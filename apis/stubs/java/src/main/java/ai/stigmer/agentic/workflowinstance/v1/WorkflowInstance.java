@@ -9,7 +9,8 @@ package ai.stigmer.agentic.workflowinstance.v1;
  * <pre>
  * WorkflowInstance represents a configured deployment of a Workflow template.
  *
- * WorkflowInstance is the "Instance" layer in the Template→Instance→Execution pattern.
+ * &#64;internal
+ * This is the "Instance" layer in the Template→Instance→Execution pattern.
  * It binds a reusable Workflow template to specific environments containing credentials,
  * configuration, and secrets needed for execution.
  *
@@ -80,8 +81,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * API version for this resource type.
-   * Format: 'agentic.stigmer.ai/v1'
-   * Validated as const to ensure version consistency.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -103,8 +102,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * API version for this resource type.
-   * Format: 'agentic.stigmer.ai/v1'
-   * Validated as const to ensure version consistency.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -131,8 +128,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource kind identifier.
-   * Must be exactly 'WorkflowInstance' to match the message name.
-   * Validated as const for type safety.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -154,8 +149,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource kind identifier.
-   * Must be exactly 'WorkflowInstance' to match the message name.
-   * Validated as const for type safety.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -180,10 +173,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-   * WorkflowInstances belong to an organization. Visibility controls access:
-   * - PUBLIC: Shared templates accessible to all users
-   * - PRIVATE: Organization-internal instances
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -195,10 +185,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-   * WorkflowInstances belong to an organization. Visibility controls access:
-   * - PUBLIC: Shared templates accessible to all users
-   * - PRIVATE: Organization-internal instances
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -210,10 +197,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-   * WorkflowInstances belong to an organization. Visibility controls access:
-   * - PUBLIC: Shared templates accessible to all users
-   * - PRIVATE: Organization-internal instances
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -227,9 +211,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec_;
   /**
    * <pre>
-   * User-provided configuration for this workflow instance.
-   * Defines which Workflow template to use and which Environments provide configuration/secrets.
-   * See WorkflowInstanceSpec for detailed field documentation.
+   * Configurable properties: workflow reference, description, and environment bindings.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -241,9 +223,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * User-provided configuration for this workflow instance.
-   * Defines which Workflow template to use and which Environments provide configuration/secrets.
-   * See WorkflowInstanceSpec for detailed field documentation.
+   * Configurable properties: workflow reference, description, and environment bindings.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -255,9 +235,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * User-provided configuration for this workflow instance.
-   * Defines which Workflow template to use and which Environments provide configuration/secrets.
-   * See WorkflowInstanceSpec for detailed field documentation.
+   * Configurable properties: workflow reference, description, and environment bindings.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -271,10 +249,11 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
   /**
    * <pre>
-   * System-managed status and audit information.
-   * Contains creation/update timestamps, version number, and other audit metadata.
-   * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-   * Execution state is tracked in WorkflowExecution resources.
+   * System-managed audit information.
+   *
+   * &#64;internal
+   * This is a simple status (no custom execution state) since WorkflowInstance
+   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -286,10 +265,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed status and audit information.
-   * Contains creation/update timestamps, version number, and other audit metadata.
-   * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-   * Execution state is tracked in WorkflowExecution resources.
+   * System-managed audit information.
+   *
+   * &#64;internal
+   * This is a simple status (no custom execution state) since WorkflowInstance
+   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -301,10 +281,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed status and audit information.
-   * Contains creation/update timestamps, version number, and other audit metadata.
-   * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-   * Execution state is tracked in WorkflowExecution resources.
+   * System-managed audit information.
+   *
+   * &#64;internal
+   * This is a simple status (no custom execution state) since WorkflowInstance
+   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -532,7 +513,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WorkflowInstance represents a configured deployment of a Workflow template.
    *
-   * WorkflowInstance is the "Instance" layer in the Template→Instance→Execution pattern.
+   * &#64;internal
+   * This is the "Instance" layer in the Template→Instance→Execution pattern.
    * It binds a reusable Workflow template to specific environments containing credentials,
    * configuration, and secrets needed for execution.
    *
@@ -780,8 +762,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
-     * Format: 'agentic.stigmer.ai/v1'
-     * Validated as const to ensure version consistency.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -802,8 +782,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
-     * Format: 'agentic.stigmer.ai/v1'
-     * Validated as const to ensure version consistency.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -825,8 +803,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
-     * Format: 'agentic.stigmer.ai/v1'
-     * Validated as const to ensure version consistency.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -844,8 +820,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
-     * Format: 'agentic.stigmer.ai/v1'
-     * Validated as const to ensure version consistency.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -860,8 +834,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
-     * Format: 'agentic.stigmer.ai/v1'
-     * Validated as const to ensure version consistency.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -882,8 +854,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
-     * Must be exactly 'WorkflowInstance' to match the message name.
-     * Validated as const for type safety.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -904,8 +874,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
-     * Must be exactly 'WorkflowInstance' to match the message name.
-     * Validated as const for type safety.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -927,8 +895,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
-     * Must be exactly 'WorkflowInstance' to match the message name.
-     * Validated as const for type safety.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -946,8 +912,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
-     * Must be exactly 'WorkflowInstance' to match the message name.
-     * Validated as const for type safety.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -962,8 +926,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
-     * Must be exactly 'WorkflowInstance' to match the message name.
-     * Validated as const for type safety.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -985,10 +947,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -999,10 +958,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1017,10 +973,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1040,10 +993,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1061,10 +1011,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1089,10 +1036,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1109,10 +1053,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1124,10 +1065,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1142,10 +1080,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-     * WorkflowInstances belong to an organization. Visibility controls access:
-     * - PUBLIC: Shared templates accessible to all users
-     * - PRIVATE: Organization-internal instances
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1169,9 +1104,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec, ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec.Builder, ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpecOrBuilder> specBuilder_;
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1182,9 +1115,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1199,9 +1130,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1221,9 +1150,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1241,9 +1168,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1268,9 +1193,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1287,9 +1210,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1301,9 +1222,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1318,9 +1237,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User-provided configuration for this workflow instance.
-     * Defines which Workflow template to use and which Environments provide configuration/secrets.
-     * See WorkflowInstanceSpec for detailed field documentation.
+     * Configurable properties: workflow reference, description, and environment bindings.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1344,10 +1261,11 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1358,10 +1276,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1376,10 +1295,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1399,10 +1319,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1420,10 +1341,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1448,10 +1370,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1468,10 +1391,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1483,10 +1407,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1501,10 +1426,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status and audit information.
-     * Contains creation/update timestamps, version number, and other audit metadata.
-     * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-     * Execution state is tracked in WorkflowExecution resources.
+     * System-managed audit information.
+     *
+     * &#64;internal
+     * This is a simple status (no custom execution state) since WorkflowInstance
+     * is configuration only. Execution state is tracked in WorkflowExecution resources.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

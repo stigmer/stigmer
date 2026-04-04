@@ -6,9 +6,10 @@ import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// RunTaskConfig defines the configuration for RUN tasks.
+// RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
 //
-// RUN tasks execute sub-workflows (Temporal child workflows).
+// @internal
+// Implemented via Temporal child workflows.
 //
 // YAML Example:
 //   - taskName:

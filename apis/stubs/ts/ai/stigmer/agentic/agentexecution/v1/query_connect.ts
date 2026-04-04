@@ -162,7 +162,8 @@ export const AgentExecutionQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get usage report for a session (all executions in a session).
+     * Get a usage report for a session.
+     *
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      *
      * @internal
@@ -178,7 +179,8 @@ export const AgentExecutionQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Get a usage report for an agent.
+     *
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      *
      * @internal
@@ -193,7 +195,8 @@ export const AgentExecutionQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get usage report for an organization (all agents in a time range).
+     * Get a usage report for an organization.
+     *
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
      *
      * @internal

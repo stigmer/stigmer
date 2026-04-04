@@ -18,6 +18,9 @@ export const IdentityProviderQueryController = {
     /**
      * Get an identity provider by its unique identifier.
      *
+     * @internal
+     * Authorization: Requires can_view permission on the identity provider resource.
+     *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.get
      */
     get: {
@@ -27,10 +30,14 @@ export const IdentityProviderQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get an identity provider by reference (org + slug).
+     * Get an identity provider by its organization-scoped reference (org/slug).
+     *
+     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * IdentityProvider resource.
      *
      * @internal
-     * Custom authorization in handler.
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getByReference
      */

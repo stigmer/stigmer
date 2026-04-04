@@ -23,10 +23,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// RaiseTaskConfig defines the configuration for RAISE tasks.
+// RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
 //
-// RAISE tasks raise errors/exceptions, terminating workflow execution.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //     raise:

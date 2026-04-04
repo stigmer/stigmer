@@ -7,9 +7,11 @@ package ai.stigmer.agentic.workflow.v1.serverless;
 
 /**
  * <pre>
- * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML
- * and its validation state. This is populated asynchronously after workflow creation
- * via a Temporal workflow that validates the workflow structure.
+ * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
+ *
+ * &#64;internal
+ * Populated asynchronously after workflow creation via a Temporal workflow
+ * that validates the workflow structure.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation}
@@ -66,7 +68,7 @@ private static final long serialVersionUID = 0L;
   private int state_ = 0;
   /**
    * <pre>
-   * Current validation state
+   * Current validation state.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -77,7 +79,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Current validation state
+   * Current validation state.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -93,12 +95,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object yaml_ = "";
   /**
    * <pre>
-   * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-   * This YAML may contain runtime expressions for environment variables:
-   * Example: ${ .env.API_BASE_URL }
-   *
+   * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
-   * Empty if validation hasn't started yet.
+   * Empty if validation has not started yet.
+   *
+   * &#64;internal
+   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    * </pre>
    *
    * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -119,12 +121,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-   * This YAML may contain runtime expressions for environment variables:
-   * Example: ${ .env.API_BASE_URL }
-   *
+   * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
-   * Empty if validation hasn't started yet.
+   * Empty if validation has not started yet.
+   *
+   * &#64;internal
+   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    * </pre>
    *
    * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -151,11 +153,7 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Validation errors (empty if valid)
-   * Examples:
-   * - "Invalid YAML syntax at line 15"
-   * - "Unknown task type 'invalid_task'"
-   * - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    * </pre>
    *
    * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -167,11 +165,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Validation errors (empty if valid)
-   * Examples:
-   * - "Invalid YAML syntax at line 15"
-   * - "Unknown task type 'invalid_task'"
-   * - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    * </pre>
    *
    * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -182,11 +176,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Validation errors (empty if valid)
-   * Examples:
-   * - "Invalid YAML syntax at line 15"
-   * - "Unknown task type 'invalid_task'"
-   * - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    * </pre>
    *
    * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -198,11 +188,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Validation errors (empty if valid)
-   * Examples:
-   * - "Invalid YAML syntax at line 15"
-   * - "Unknown task type 'invalid_task'"
-   * - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    * </pre>
    *
    * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -220,10 +206,7 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Non-fatal warnings
-   * Examples:
-   * - "Environment variable API_KEY referenced but not defined"
-   * - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    * </pre>
    *
    * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -235,10 +218,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Non-fatal warnings
-   * Examples:
-   * - "Environment variable API_KEY referenced but not defined"
-   * - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    * </pre>
    *
    * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -249,10 +229,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Non-fatal warnings
-   * Examples:
-   * - "Environment variable API_KEY referenced but not defined"
-   * - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    * </pre>
    *
    * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -264,10 +241,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Non-fatal warnings
-   * Examples:
-   * - "Environment variable API_KEY referenced but not defined"
-   * - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    * </pre>
    *
    * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -283,8 +257,7 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp validatedAt_;
   /**
    * <pre>
-   * When validation was performed
-   * Null if validation hasn't completed yet
+   * When the validation was performed.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -296,8 +269,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When validation was performed
-   * Null if validation hasn't completed yet
+   * When the validation was performed.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -309,8 +281,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When validation was performed
-   * Null if validation hasn't completed yet
+   * When the validation was performed.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -325,9 +296,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object validationWorkflowId_ = "";
   /**
    * <pre>
-   * Temporal workflow ID for the validation workflow
-   * Format: "validate-workflow-{workflow_id}"
-   * Useful for tracking/debugging validation progress
+   * Validation process ID for tracking validation progress.
+   *
+   * &#64;internal
+   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -348,9 +320,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Temporal workflow ID for the validation workflow
-   * Format: "validate-workflow-{workflow_id}"
-   * Useful for tracking/debugging validation progress
+   * Validation process ID for tracking validation progress.
+   *
+   * &#64;internal
+   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -599,9 +572,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML
-   * and its validation state. This is populated asynchronously after workflow creation
-   * via a Temporal workflow that validates the workflow structure.
+   * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
+   *
+   * &#64;internal
+   * Populated asynchronously after workflow creation via a Temporal workflow
+   * that validates the workflow structure.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation}
@@ -841,7 +816,7 @@ private static final long serialVersionUID = 0L;
     private int state_ = 0;
     /**
      * <pre>
-     * Current validation state
+     * Current validation state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -852,7 +827,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Current validation state
+     * Current validation state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -868,7 +843,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Current validation state
+     * Current validation state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -881,7 +856,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Current validation state
+     * Current validation state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -897,7 +872,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Current validation state
+     * Current validation state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -913,12 +888,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object yaml_ = "";
     /**
      * <pre>
-     * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-     * This YAML may contain runtime expressions for environment variables:
-     * Example: ${ .env.API_BASE_URL }
-     *
+     * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
-     * Empty if validation hasn't started yet.
+     * Empty if validation has not started yet.
+     *
+     * &#64;internal
+     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -938,12 +913,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-     * This YAML may contain runtime expressions for environment variables:
-     * Example: ${ .env.API_BASE_URL }
-     *
+     * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
-     * Empty if validation hasn't started yet.
+     * Empty if validation has not started yet.
+     *
+     * &#64;internal
+     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -964,12 +939,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-     * This YAML may contain runtime expressions for environment variables:
-     * Example: ${ .env.API_BASE_URL }
-     *
+     * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
-     * Empty if validation hasn't started yet.
+     * Empty if validation has not started yet.
+     *
+     * &#64;internal
+     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -986,12 +961,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-     * This YAML may contain runtime expressions for environment variables:
-     * Example: ${ .env.API_BASE_URL }
-     *
+     * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
-     * Empty if validation hasn't started yet.
+     * Empty if validation has not started yet.
+     *
+     * &#64;internal
+     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -1005,12 +980,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-     * This YAML may contain runtime expressions for environment variables:
-     * Example: ${ .env.API_BASE_URL }
-     *
+     * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
-     * Empty if validation hasn't started yet.
+     * Empty if validation has not started yet.
+     *
+     * &#64;internal
+     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -1037,11 +1012,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1054,11 +1025,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1069,11 +1036,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1085,11 +1048,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1102,11 +1061,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1125,11 +1080,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1147,11 +1098,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1169,11 +1116,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1188,11 +1131,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation errors (empty if valid)
-     * Examples:
-     * - "Invalid YAML syntax at line 15"
-     * - "Unknown task type 'invalid_task'"
-     * - "Missing required field: document.namespace"
+     * Validation errors, empty when valid.
      * </pre>
      *
      * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -1220,10 +1159,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1236,10 +1172,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1250,10 +1183,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1265,10 +1195,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1281,10 +1208,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1303,10 +1227,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1324,10 +1245,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1345,10 +1263,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1363,10 +1278,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Non-fatal warnings
-     * Examples:
-     * - "Environment variable API_KEY referenced but not defined"
-     * - "Task 'fetchData' has no error handling"
+     * Non-fatal validation warnings.
      * </pre>
      *
      * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -1389,8 +1301,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> validatedAtBuilder_;
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1401,8 +1312,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1417,8 +1327,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1438,8 +1347,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1457,8 +1365,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1483,8 +1390,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1501,8 +1407,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1514,8 +1419,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1530,8 +1434,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When validation was performed
-     * Null if validation hasn't completed yet
+     * When the validation was performed.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -1553,9 +1456,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object validationWorkflowId_ = "";
     /**
      * <pre>
-     * Temporal workflow ID for the validation workflow
-     * Format: "validate-workflow-{workflow_id}"
-     * Useful for tracking/debugging validation progress
+     * Validation process ID for tracking validation progress.
+     *
+     * &#64;internal
+     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1575,9 +1479,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Temporal workflow ID for the validation workflow
-     * Format: "validate-workflow-{workflow_id}"
-     * Useful for tracking/debugging validation progress
+     * Validation process ID for tracking validation progress.
+     *
+     * &#64;internal
+     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1598,9 +1503,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Temporal workflow ID for the validation workflow
-     * Format: "validate-workflow-{workflow_id}"
-     * Useful for tracking/debugging validation progress
+     * Validation process ID for tracking validation progress.
+     *
+     * &#64;internal
+     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1617,9 +1523,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Temporal workflow ID for the validation workflow
-     * Format: "validate-workflow-{workflow_id}"
-     * Useful for tracking/debugging validation progress
+     * Validation process ID for tracking validation progress.
+     *
+     * &#64;internal
+     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1633,9 +1540,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Temporal workflow ID for the validation workflow
-     * Format: "validate-workflow-{workflow_id}"
-     * Useful for tracking/debugging validation progress
+     * Validation process ID for tracking validation progress.
+     *
+     * &#64;internal
+     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>

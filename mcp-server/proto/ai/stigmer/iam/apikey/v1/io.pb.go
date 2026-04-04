@@ -22,10 +22,11 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// wrapper to get list of api keys
+// ApiKeys contains a list of API key resources.
 type ApiKeys struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*ApiKey              `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// API key entries.
+	Entries       []*ApiKey `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,10 +68,11 @@ func (x *ApiKeys) GetEntries() []*ApiKey {
 	return nil
 }
 
-// wrapper for user api key id.
+// ApiKeyId identifies an API key by its unique identifier.
 type ApiKeyId struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique identifier of the API key.
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -112,10 +114,11 @@ func (x *ApiKeyId) GetValue() string {
 	return ""
 }
 
-// wrapper for hashed api key
+// ApiKeyHash identifies an API key by its hashed key value.
 type ApiKeyHash struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Hash of the raw API key.
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

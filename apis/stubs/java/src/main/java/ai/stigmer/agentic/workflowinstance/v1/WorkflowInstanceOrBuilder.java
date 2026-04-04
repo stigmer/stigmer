@@ -13,8 +13,6 @@ public interface WorkflowInstanceOrBuilder extends
   /**
    * <pre>
    * API version for this resource type.
-   * Format: 'agentic.stigmer.ai/v1'
-   * Validated as const to ensure version consistency.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -24,8 +22,6 @@ public interface WorkflowInstanceOrBuilder extends
   /**
    * <pre>
    * API version for this resource type.
-   * Format: 'agentic.stigmer.ai/v1'
-   * Validated as const to ensure version consistency.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -37,8 +33,6 @@ public interface WorkflowInstanceOrBuilder extends
   /**
    * <pre>
    * Resource kind identifier.
-   * Must be exactly 'WorkflowInstance' to match the message name.
-   * Validated as const for type safety.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -48,8 +42,6 @@ public interface WorkflowInstanceOrBuilder extends
   /**
    * <pre>
    * Resource kind identifier.
-   * Must be exactly 'WorkflowInstance' to match the message name.
-   * Validated as const for type safety.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -60,10 +52,7 @@ public interface WorkflowInstanceOrBuilder extends
 
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-   * WorkflowInstances belong to an organization. Visibility controls access:
-   * - PUBLIC: Shared templates accessible to all users
-   * - PRIVATE: Organization-internal instances
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -72,10 +61,7 @@ public interface WorkflowInstanceOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-   * WorkflowInstances belong to an organization. Visibility controls access:
-   * - PUBLIC: Shared templates accessible to all users
-   * - PRIVATE: Organization-internal instances
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -84,10 +70,7 @@ public interface WorkflowInstanceOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-   * WorkflowInstances belong to an organization. Visibility controls access:
-   * - PUBLIC: Shared templates accessible to all users
-   * - PRIVATE: Organization-internal instances
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -96,9 +79,7 @@ public interface WorkflowInstanceOrBuilder extends
 
   /**
    * <pre>
-   * User-provided configuration for this workflow instance.
-   * Defines which Workflow template to use and which Environments provide configuration/secrets.
-   * See WorkflowInstanceSpec for detailed field documentation.
+   * Configurable properties: workflow reference, description, and environment bindings.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -107,9 +88,7 @@ public interface WorkflowInstanceOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * User-provided configuration for this workflow instance.
-   * Defines which Workflow template to use and which Environments provide configuration/secrets.
-   * See WorkflowInstanceSpec for detailed field documentation.
+   * Configurable properties: workflow reference, description, and environment bindings.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -118,9 +97,7 @@ public interface WorkflowInstanceOrBuilder extends
   ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec getSpec();
   /**
    * <pre>
-   * User-provided configuration for this workflow instance.
-   * Defines which Workflow template to use and which Environments provide configuration/secrets.
-   * See WorkflowInstanceSpec for detailed field documentation.
+   * Configurable properties: workflow reference, description, and environment bindings.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -129,10 +106,11 @@ public interface WorkflowInstanceOrBuilder extends
 
   /**
    * <pre>
-   * System-managed status and audit information.
-   * Contains creation/update timestamps, version number, and other audit metadata.
-   * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-   * Execution state is tracked in WorkflowExecution resources.
+   * System-managed audit information.
+   *
+   * &#64;internal
+   * This is a simple status (no custom execution state) since WorkflowInstance
+   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -141,10 +119,11 @@ public interface WorkflowInstanceOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed status and audit information.
-   * Contains creation/update timestamps, version number, and other audit metadata.
-   * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-   * Execution state is tracked in WorkflowExecution resources.
+   * System-managed audit information.
+   *
+   * &#64;internal
+   * This is a simple status (no custom execution state) since WorkflowInstance
+   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -153,10 +132,11 @@ public interface WorkflowInstanceOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus();
   /**
    * <pre>
-   * System-managed status and audit information.
-   * Contains creation/update timestamps, version number, and other audit metadata.
-   * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-   * Execution state is tracked in WorkflowExecution resources.
+   * System-managed audit information.
+   *
+   * &#64;internal
+   * This is a simple status (no custom execution state) since WorkflowInstance
+   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

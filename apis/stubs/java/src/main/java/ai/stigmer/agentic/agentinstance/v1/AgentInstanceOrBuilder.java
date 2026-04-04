@@ -52,7 +52,9 @@ public interface AgentInstanceOrBuilder extends
 
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
+   * Resource metadata including name, organization, scope, and labels.
+   *
+   * &#64;internal
    * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
@@ -62,7 +64,9 @@ public interface AgentInstanceOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
+   * Resource metadata including name, organization, scope, and labels.
+   *
+   * &#64;internal
    * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
@@ -72,7 +76,9 @@ public interface AgentInstanceOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
+   * Resource metadata including name, organization, scope, and labels.
+   *
+   * &#64;internal
    * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
@@ -82,7 +88,7 @@ public interface AgentInstanceOrBuilder extends
 
   /**
    * <pre>
-   * Spec defining the instance configuration.
+   * Configurable properties: agent binding, description, and environment references.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -91,7 +97,7 @@ public interface AgentInstanceOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * Spec defining the instance configuration.
+   * Configurable properties: agent binding, description, and environment references.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -100,7 +106,7 @@ public interface AgentInstanceOrBuilder extends
   ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec getSpec();
   /**
    * <pre>
-   * Spec defining the instance configuration.
+   * Configurable properties: agent binding, description, and environment references.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -109,7 +115,7 @@ public interface AgentInstanceOrBuilder extends
 
   /**
    * <pre>
-   * Status of the instance.
+   * System-managed audit trail including creation and update timestamps.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -118,7 +124,7 @@ public interface AgentInstanceOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * Status of the instance.
+   * System-managed audit trail including creation and update timestamps.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -127,7 +133,7 @@ public interface AgentInstanceOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus();
   /**
    * <pre>
-   * Status of the instance.
+   * System-managed audit trail including creation and update timestamps.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

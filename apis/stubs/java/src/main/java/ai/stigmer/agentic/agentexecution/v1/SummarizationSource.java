@@ -23,12 +23,16 @@ package ai.stigmer.agentic.agentexecution.v1;
 public enum SummarizationSource
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value, not a valid summarization source.
+   * </pre>
+   *
    * <code>SUMMARIZATION_SOURCE_UNSPECIFIED = 0;</code>
    */
   SUMMARIZATION_SOURCE_UNSPECIFIED(0),
   /**
    * <pre>
-   * Triggered at the start of a graph invocation (abefore_agent)
+   * Summarization triggered at the start of processing, when resuming a conversation that already exceeds the token threshold.
    * </pre>
    *
    * <code>graph_start = 1;</code>
@@ -36,7 +40,7 @@ public enum SummarizationSource
   graph_start(1),
   /**
    * <pre>
-   * Triggered mid-execution before a model call (awrap_model_call)
+   * Summarization triggered mid-execution, when accumulated tool responses push context past the token threshold.
    * </pre>
    *
    * <code>mid_execution = 2;</code>
@@ -55,12 +59,16 @@ public enum SummarizationSource
       "SummarizationSource");
   }
   /**
+   * <pre>
+   * Default value, not a valid summarization source.
+   * </pre>
+   *
    * <code>SUMMARIZATION_SOURCE_UNSPECIFIED = 0;</code>
    */
   public static final int SUMMARIZATION_SOURCE_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Triggered at the start of a graph invocation (abefore_agent)
+   * Summarization triggered at the start of processing, when resuming a conversation that already exceeds the token threshold.
    * </pre>
    *
    * <code>graph_start = 1;</code>
@@ -68,7 +76,7 @@ public enum SummarizationSource
   public static final int graph_start_VALUE = 1;
   /**
    * <pre>
-   * Triggered mid-execution before a model call (awrap_model_call)
+   * Summarization triggered mid-execution, when accumulated tool responses push context past the token threshold.
    * </pre>
    *
    * <code>mid_execution = 2;</code>

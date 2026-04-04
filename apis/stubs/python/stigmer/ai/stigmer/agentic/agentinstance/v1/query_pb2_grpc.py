@@ -8,7 +8,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 
 class AgentInstanceQueryControllerStub(object):
-    """AgentInstanceQueryController provides queries for retrieving agent instances.
+    """AgentInstanceQueryController handles read operations for agent instances.
     """
 
     def __init__(self, channel):
@@ -40,7 +40,7 @@ class AgentInstanceQueryControllerStub(object):
 
 
 class AgentInstanceQueryControllerServicer(object):
-    """AgentInstanceQueryController provides queries for retrieving agent instances.
+    """AgentInstanceQueryController handles read operations for agent instances.
     """
 
     def get(self, request, context):
@@ -115,7 +115,7 @@ def add_AgentInstanceQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class AgentInstanceQueryController(object):
-    """AgentInstanceQueryController provides queries for retrieving agent instances.
+    """AgentInstanceQueryController handles read operations for agent instances.
     """
 
     @staticmethod

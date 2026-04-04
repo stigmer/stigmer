@@ -95,8 +95,7 @@ public interface McpServerStatusOrBuilder extends
 
   /**
    * <pre>
-   * Standard audit information tracking creation and modification.
-   * Field 99 follows Stigmer convention for audit placement in status messages.
+   * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -105,8 +104,7 @@ public interface McpServerStatusOrBuilder extends
   boolean hasAudit();
   /**
    * <pre>
-   * Standard audit information tracking creation and modification.
-   * Field 99 follows Stigmer convention for audit placement in status messages.
+   * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -115,8 +113,7 @@ public interface McpServerStatusOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAudit getAudit();
   /**
    * <pre>
-   * Standard audit information tracking creation and modification.
-   * Field 99 follows Stigmer convention for audit placement in status messages.
+   * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>

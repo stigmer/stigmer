@@ -9,52 +9,17 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
  *
- * Recovery resumes execution from the last successful checkpoint, preserving
- * all completed work. This uses Temporal's Reset functionality to continue
- * the workflow without re-executing successful steps.
+ * &#64;internal
+ * Resumes execution from the last successful checkpoint, preserving all completed work.
+ * Uses the workflow engine's reset functionality to continue without re-executing
+ * successful steps.
  *
- * ## Behavior
- *
- * - Uses Temporal ResetWorkflow API to resume from last successful point
- * - Completed tasks are preserved - NOT re-executed
- * - Creates a new Temporal run in the same workflow ID chain
- * - Execution transitions from FAILED back to IN_PROGRESS phase
- * - Workflow continues from where it failed
- *
- * ## Preconditions
- *
+ * Preconditions:
  * - Execution must be in EXECUTION_FAILED phase
- * - TERMINATED executions cannot be recovered (use case: data corruption risk)
- * - CANCELLED executions cannot be recovered (intentional user action)
- * - User must have can_edit permission on the workflow execution
+ * - TERMINATED and CANCELLED executions cannot be recovered
+ * - User must have can_edit permission
  *
- * ## Idempotency
- *
- * If recovery is already in progress (execution moved to IN_PROGRESS after
- * a previous recover call), the call succeeds as a no-op and returns current state.
- *
- * ## Recovery vs Restart
- *
- * | Aspect | Recover | Restart (create new) |
- * |--------|---------|----------------------|
- * | Completed work | Preserved | Lost (re-executed) |
- * | Side effects | Not duplicated | May duplicate |
- * | Execution ID | Same | New ID |
- * | Use case | Resume after fix | Start fresh |
- *
- * ## Use Cases
- *
- * - Workflow failed due to transient error (network timeout, rate limit)
- * - External dependency was down but is now available
- * - Bug was fixed and workflow should continue from failure point
- * - Retry after investigating and fixing the root cause
- *
- * ## Example
- *
- * {
- * "id": "wfx-abc123xyz456",
- * "reason": "Stripe API was down, now recovered - resuming payment processing"
- * }
+ * Idempotent: if recovery is already in progress, returns current state as a no-op.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput}
@@ -106,15 +71,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object id_ = "";
   /**
    * <pre>
-   * Workflow execution ID to recover.
+   * Workflow execution ID to recover (must be in FAILED phase).
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
-   * cannot be recovered.
-   *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -135,15 +95,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow execution ID to recover.
+   * Workflow execution ID to recover (must be in FAILED phase).
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
-   * cannot be recovered.
-   *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -169,16 +124,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object reason_ = "";
   /**
    * <pre>
-   * Human-readable reason for recovery.
-   *
-   * Stored in the audit trail for operational debugging and compliance.
-   * Helps track why the recovery was needed and what was fixed.
-   *
-   * Examples:
-   * - "Stripe API recovered, resuming payment processing"
-   * - "Fixed typo in email template, continuing workflow"
-   * - "Increased timeout for slow API, retrying"
-   * - "Root cause identified and fixed in config"
+   * Human-readable reason for recovery, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -199,16 +145,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable reason for recovery.
-   *
-   * Stored in the audit trail for operational debugging and compliance.
-   * Helps track why the recovery was needed and what was fixed.
-   *
-   * Examples:
-   * - "Stripe API recovered, resuming payment processing"
-   * - "Fixed typo in email template, continuing workflow"
-   * - "Increased timeout for slow API, retrying"
-   * - "Root cause identified and fixed in config"
+   * Human-readable reason for recovery, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -399,52 +336,17 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
    *
-   * Recovery resumes execution from the last successful checkpoint, preserving
-   * all completed work. This uses Temporal's Reset functionality to continue
-   * the workflow without re-executing successful steps.
+   * &#64;internal
+   * Resumes execution from the last successful checkpoint, preserving all completed work.
+   * Uses the workflow engine's reset functionality to continue without re-executing
+   * successful steps.
    *
-   * ## Behavior
-   *
-   * - Uses Temporal ResetWorkflow API to resume from last successful point
-   * - Completed tasks are preserved - NOT re-executed
-   * - Creates a new Temporal run in the same workflow ID chain
-   * - Execution transitions from FAILED back to IN_PROGRESS phase
-   * - Workflow continues from where it failed
-   *
-   * ## Preconditions
-   *
+   * Preconditions:
    * - Execution must be in EXECUTION_FAILED phase
-   * - TERMINATED executions cannot be recovered (use case: data corruption risk)
-   * - CANCELLED executions cannot be recovered (intentional user action)
-   * - User must have can_edit permission on the workflow execution
+   * - TERMINATED and CANCELLED executions cannot be recovered
+   * - User must have can_edit permission
    *
-   * ## Idempotency
-   *
-   * If recovery is already in progress (execution moved to IN_PROGRESS after
-   * a previous recover call), the call succeeds as a no-op and returns current state.
-   *
-   * ## Recovery vs Restart
-   *
-   * | Aspect | Recover | Restart (create new) |
-   * |--------|---------|----------------------|
-   * | Completed work | Preserved | Lost (re-executed) |
-   * | Side effects | Not duplicated | May duplicate |
-   * | Execution ID | Same | New ID |
-   * | Use case | Resume after fix | Start fresh |
-   *
-   * ## Use Cases
-   *
-   * - Workflow failed due to transient error (network timeout, rate limit)
-   * - External dependency was down but is now available
-   * - Bug was fixed and workflow should continue from failure point
-   * - Retry after investigating and fixing the root cause
-   *
-   * ## Example
-   *
-   * {
-   * "id": "wfx-abc123xyz456",
-   * "reason": "Stripe API was down, now recovered - resuming payment processing"
-   * }
+   * Idempotent: if recovery is already in progress, returns current state as a no-op.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput}
@@ -601,15 +503,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object id_ = "";
     /**
      * <pre>
-     * Workflow execution ID to recover.
+     * Workflow execution ID to recover (must be in FAILED phase).
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
-     * cannot be recovered.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -629,15 +526,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to recover.
+     * Workflow execution ID to recover (must be in FAILED phase).
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
-     * cannot be recovered.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -658,15 +550,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to recover.
+     * Workflow execution ID to recover (must be in FAILED phase).
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
-     * cannot be recovered.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -683,15 +570,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to recover.
+     * Workflow execution ID to recover (must be in FAILED phase).
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
-     * cannot be recovered.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -705,15 +587,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to recover.
+     * Workflow execution ID to recover (must be in FAILED phase).
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
-     * cannot be recovered.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -733,16 +610,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object reason_ = "";
     /**
      * <pre>
-     * Human-readable reason for recovery.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the recovery was needed and what was fixed.
-     *
-     * Examples:
-     * - "Stripe API recovered, resuming payment processing"
-     * - "Fixed typo in email template, continuing workflow"
-     * - "Increased timeout for slow API, retrying"
-     * - "Root cause identified and fixed in config"
+     * Human-readable reason for recovery, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -762,16 +630,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for recovery.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the recovery was needed and what was fixed.
-     *
-     * Examples:
-     * - "Stripe API recovered, resuming payment processing"
-     * - "Fixed typo in email template, continuing workflow"
-     * - "Increased timeout for slow API, retrying"
-     * - "Root cause identified and fixed in config"
+     * Human-readable reason for recovery, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -792,16 +651,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for recovery.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the recovery was needed and what was fixed.
-     *
-     * Examples:
-     * - "Stripe API recovered, resuming payment processing"
-     * - "Fixed typo in email template, continuing workflow"
-     * - "Increased timeout for slow API, retrying"
-     * - "Root cause identified and fixed in config"
+     * Human-readable reason for recovery, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -818,16 +668,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for recovery.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the recovery was needed and what was fixed.
-     *
-     * Examples:
-     * - "Stripe API recovered, resuming payment processing"
-     * - "Fixed typo in email template, continuing workflow"
-     * - "Increased timeout for slow API, retrying"
-     * - "Root cause identified and fixed in config"
+     * Human-readable reason for recovery, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -841,16 +682,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for recovery.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the recovery was needed and what was fixed.
-     *
-     * Examples:
-     * - "Stripe API recovered, resuming payment processing"
-     * - "Fixed typo in email template, continuing workflow"
-     * - "Increased timeout for slow API, retrying"
-     * - "Root cause identified and fixed in config"
+     * Human-readable reason for recovery, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>

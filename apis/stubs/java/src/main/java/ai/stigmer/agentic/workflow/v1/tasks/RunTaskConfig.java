@@ -7,9 +7,10 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * RunTaskConfig defines the configuration for RUN tasks.
+ * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
  *
- * RUN tasks execute sub-workflows (Temporal child workflows).
+ * &#64;internal
+ * Implemented via Temporal child workflows.
  *
  * YAML Example:
  * - taskName:
@@ -330,9 +331,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * RunTaskConfig defines the configuration for RUN tasks.
+   * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
    *
-   * RUN tasks execute sub-workflows (Temporal child workflows).
+   * &#64;internal
+   * Implemented via Temporal child workflows.
    *
    * YAML Example:
    * - taskName:

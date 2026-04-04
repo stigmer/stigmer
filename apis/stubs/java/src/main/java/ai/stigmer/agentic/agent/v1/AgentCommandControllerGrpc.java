@@ -239,6 +239,7 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -250,7 +251,8 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent.
+     * Create an agent.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
      * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -278,6 +280,7 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * &#64;internal
      * Authorization: Requires can_edit permission on the agent resource.
      * </pre>
      */
@@ -333,6 +336,7 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -345,7 +349,8 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent.
+     * Create an agent.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
      * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -375,6 +380,7 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * &#64;internal
      * Authorization: Requires can_edit permission on the agent resource.
      * </pre>
      */
@@ -418,6 +424,7 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -429,7 +436,8 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent.
+     * Create an agent.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
      * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -457,6 +465,7 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * &#64;internal
      * Authorization: Requires can_edit permission on the agent resource.
      * </pre>
      */
@@ -498,6 +507,7 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -509,7 +519,8 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent.
+     * Create an agent.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
      * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -537,6 +548,7 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * &#64;internal
      * Authorization: Requires can_edit permission on the agent resource.
      * </pre>
      */
@@ -578,6 +590,7 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -590,7 +603,8 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent.
+     * Create an agent.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
      * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -620,6 +634,7 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * &#64;internal
      * Authorization: Requires can_edit permission on the agent resource.
      * </pre>
      */

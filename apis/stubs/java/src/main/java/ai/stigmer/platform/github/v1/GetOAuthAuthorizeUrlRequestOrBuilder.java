@@ -12,7 +12,9 @@ public interface GetOAuthAuthorizeUrlRequestOrBuilder extends
 
   /**
    * <pre>
-   * The URI that GitHub will redirect back to after the user authorizes.
+   * Callback URI that GitHub redirects to after the user authorizes.
+   *
+   * &#64;internal
    * Must match one of the callback URLs registered on the GitHub App.
    * </pre>
    *
@@ -22,7 +24,9 @@ public interface GetOAuthAuthorizeUrlRequestOrBuilder extends
   java.lang.String getRedirectUri();
   /**
    * <pre>
-   * The URI that GitHub will redirect back to after the user authorizes.
+   * Callback URI that GitHub redirects to after the user authorizes.
+   *
+   * &#64;internal
    * Must match one of the callback URLs registered on the GitHub App.
    * </pre>
    *

@@ -23,20 +23,21 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Agent represents an AI agent definition with Graphton configuration.
+// Agent defines an AI assistant's identity, tools, skills, and delegation model.
+//
+// @internal
+// Uses Graphton configuration for state management.
 type Agent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Standard resource metadata including name, id, labels, and tags.
-	// Agents belong to an organization and can be PUBLIC or PRIVATE.
-	// Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+	// Resource metadata including name, organization, visibility, and labels.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Agent-specific configuration.
+	// Configurable properties: instructions, MCP servers, skills, and sub-agents.
 	Spec *AgentSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed status containing audit information and default instance ID.
+	// System-managed state including audit trail and default instance ID.
 	Status        *AgentStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -9,7 +9,7 @@ import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pb.js";
 import { RemoveEnvironmentVariablesRequest, UpdateEnvironmentVariablesRequest } from "./io_pb.js";
 
 /**
- * EnvironmentCommandController provides write operations for Environment resources.
+ * EnvironmentCommandController handles write operations for environments.
  *
  * @generated from service ai.stigmer.agentic.environment.v1.EnvironmentCommandController
  */
@@ -17,9 +17,12 @@ export const EnvironmentCommandController = {
   typeName: "ai.stigmer.agentic.environment.v1.EnvironmentCommandController",
   methods: {
     /**
-     * Create or update an Environment resource.
-     * The authorization and state-operation are determined depending on whether the environment
-     * is going to be created or updated which is determined as part of the request execution.
+     * Create or update an environment.
+     *
+     * @internal
+     * The authorization and state-operation are determined depending on whether the
+     * environment is going to be created or updated, which is resolved as part of
+     * the request execution.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.apply
      */
@@ -30,7 +33,14 @@ export const EnvironmentCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create a new Environment resource.
+     * Create an environment.
+     *
+     * @internal
+     * Authorization:
+     * - Organization-scoped environments: Caller must have can_create_environment
+     *   permission in the organization.
+     * - Platform-scoped environments: Caller must be a platform operator
+     *   (handled automatically by common auth step).
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.create
      */
@@ -41,7 +51,10 @@ export const EnvironmentCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing Environment resource.
+     * Update an existing environment.
+     *
+     * @internal
+     * Authorization: requires can_edit permission on the environment resource.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.update
      */
@@ -52,7 +65,10 @@ export const EnvironmentCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Delete an Environment resource.
+     * Delete an environment.
+     *
+     * @internal
+     * Authorization: requires can_edit permission on the environment resource.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.delete
      */
@@ -63,8 +79,12 @@ export const EnvironmentCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Add or update specific variables in an environment (server-side merge).
+     * Add or update specific variables in an environment.
      * Existing variables not included in the request are preserved unchanged.
+     *
+     * @internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * Server-side merge — secret values are re-encrypted on write.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVariables
      */
@@ -76,7 +96,10 @@ export const EnvironmentCommandController = {
     },
     /**
      * Remove specific variables from an environment by key.
-     * Keys that don't exist are silently ignored.
+     * Keys that do not exist are silently ignored.
+     *
+     * @internal
+     * Authorization: requires can_edit permission on the environment resource.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.removeVariables
      */

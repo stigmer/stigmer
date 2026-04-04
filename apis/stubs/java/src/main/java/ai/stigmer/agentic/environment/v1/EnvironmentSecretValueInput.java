@@ -8,9 +8,11 @@ package ai.stigmer.agentic.environment.v1;
 /**
  * <pre>
  * Input for retrieving a single unredacted secret value from an environment.
- * Returns the decrypted value for exactly one key. Single-key retrieval by design:
- * limits blast radius if intercepted, enables per-key audit trails, and matches
- * the industry-standard "reveal" UX pattern (AWS, GitHub, 1Password).
+ *
+ * &#64;internal
+ * Single-key retrieval by design: limits blast radius if intercepted,
+ * enables per-key audit trails, and matches the industry-standard
+ * "reveal" UX pattern (AWS, GitHub, 1Password).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput}
@@ -320,9 +322,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input for retrieving a single unredacted secret value from an environment.
-   * Returns the decrypted value for exactly one key. Single-key retrieval by design:
-   * limits blast radius if intercepted, enables per-key audit trails, and matches
-   * the industry-standard "reveal" UX pattern (AWS, GitHub, 1Password).
+   *
+   * &#64;internal
+   * Single-key retrieval by design: limits blast radius if intercepted,
+   * enables per-key audit trails, and matches the industry-standard
+   * "reveal" UX pattern (AWS, GitHub, 1Password).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput}

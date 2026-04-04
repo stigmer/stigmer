@@ -20,9 +20,10 @@ export const file_ai_stigmer_agentic_environment_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEiuwIKC0Vudmlyb25tZW50EjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiAKBGtpbmQYAiABKAlCErpID3INCgtFbnZpcm9ubWVudBJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESQAoEc3BlYxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudFNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
- * Environment represents a named collection of configuration and secrets.
- * Environments are created before AgentInstance or WorkflowInstance and referenced during instance creation.
- * Each key-value pair can be marked as secret or non-secret.
+ * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
+ *
+ * @internal
+ * Uses Graphton configuration for state management.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.Environment
  */
@@ -42,15 +43,17 @@ export type Environment = Message<"ai.stigmer.agentic.environment.v1.Environment
   kind: string;
 
   /**
-   * Standard resource metadata including name, id, labels, and tags.
-   * Environments belong to an organization and are typically PRIVATE visibility.
+   * Resource metadata including name, organization, visibility, and labels.
+   *
+   * @internal
+   * Environments are typically PRIVATE visibility to prevent secret exposure.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;
 
   /**
-   * Environment-specific configuration.
+   * Configurable properties: description and key-value data.
    *
    * @generated from field: ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4;
    */

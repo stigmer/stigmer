@@ -7,7 +7,9 @@ package ai.stigmer.agentic.workflow.v1;
 
 /**
  * <pre>
- * WorkflowDocument contains workflow metadata.
+ * WorkflowDocument contains workflow-level metadata for versioning and identification.
+ *
+ * &#64;internal
  * Maps to the `document:` block in Zigflow DSL YAML.
  * </pre>
  *
@@ -63,7 +65,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object dsl_ = "";
   /**
    * <pre>
-   * DSL version (semver). Must be "1.0.0" for current Zigflow.
+   * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
    * </pre>
    *
    * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>
@@ -84,7 +86,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * DSL version (semver). Must be "1.0.0" for current Zigflow.
+   * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
    * </pre>
    *
    * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>
@@ -491,7 +493,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowDocument contains workflow metadata.
+   * WorkflowDocument contains workflow-level metadata for versioning and identification.
+   *
+   * &#64;internal
    * Maps to the `document:` block in Zigflow DSL YAML.
    * </pre>
    *
@@ -691,7 +695,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object dsl_ = "";
     /**
      * <pre>
-     * DSL version (semver). Must be "1.0.0" for current Zigflow.
+     * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
      * </pre>
      *
      * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>
@@ -711,7 +715,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * DSL version (semver). Must be "1.0.0" for current Zigflow.
+     * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
      * </pre>
      *
      * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>
@@ -732,7 +736,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * DSL version (semver). Must be "1.0.0" for current Zigflow.
+     * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
      * </pre>
      *
      * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>
@@ -749,7 +753,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * DSL version (semver). Must be "1.0.0" for current Zigflow.
+     * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
      * </pre>
      *
      * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>
@@ -763,7 +767,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * DSL version (semver). Must be "1.0.0" for current Zigflow.
+     * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
      * </pre>
      *
      * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>

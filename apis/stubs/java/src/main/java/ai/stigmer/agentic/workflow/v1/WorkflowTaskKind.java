@@ -7,7 +7,9 @@ package ai.stigmer.agentic.workflow.v1;
 
 /**
  * <pre>
- * WorkflowTaskKind defines all supported task types in workflows.
+ * WorkflowTaskKind defines the supported task types in a workflow.
+ *
+ * &#64;internal
  * These map directly to Zigflow DSL task types.
  *
  * Naming conventions:
@@ -41,7 +43,7 @@ public enum WorkflowTaskKind
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Unspecified (invalid) - prefixed for zero value clarity.
+   * Default value, not a valid task kind.
    * </pre>
    *
    * <code>workflow_task_kind_unspecified = 0;</code>
@@ -49,7 +51,9 @@ public enum WorkflowTaskKind
   workflow_task_kind_unspecified(0),
   /**
    * <pre>
-   * set_vars: Set variables in workflow state.
+   * Set variables in workflow state.
+   *
+   * &#64;internal
    * Config: {"variables": {"key": "value", ...}}
    * </pre>
    *
@@ -58,7 +62,9 @@ public enum WorkflowTaskKind
   set_vars(1),
   /**
    * <pre>
-   * http_call: Make HTTP requests (GET, POST, PUT, DELETE, PATCH).
+   * Make an HTTP request (GET, POST, PUT, DELETE, PATCH).
+   *
+   * &#64;internal
    * Config: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
    * </pre>
    *
@@ -67,7 +73,9 @@ public enum WorkflowTaskKind
   http_call(2),
   /**
    * <pre>
-   * grpc_call: Make gRPC requests.
+   * Make a gRPC request to an external service.
+   *
+   * &#64;internal
    * Config: {"service": "...", "method": "...", "request": {...}}
    * </pre>
    *
@@ -76,8 +84,11 @@ public enum WorkflowTaskKind
   grpc_call(3),
   /**
    * <pre>
-   * activity_call: Execute Temporal activities.
+   * Execute an activity.
+   *
+   * &#64;internal
    * Config: {"activity": "ActivityName", "input": {...}}
+   * Executes a Temporal activity.
    * </pre>
    *
    * <code>activity_call = 4;</code>
@@ -85,7 +96,9 @@ public enum WorkflowTaskKind
   activity_call(4),
   /**
    * <pre>
-   * switch_case: Conditional branching based on expressions.
+   * Branch conditionally based on expressions.
+   *
+   * &#64;internal
    * Config: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
    * </pre>
    *
@@ -94,7 +107,9 @@ public enum WorkflowTaskKind
   switch_case(5),
   /**
    * <pre>
-   * for_each: Iterate over collections (forEach loop).
+   * Iterate over a collection, executing tasks for each item.
+   *
+   * &#64;internal
    * Config: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
    * </pre>
    *
@@ -103,7 +118,9 @@ public enum WorkflowTaskKind
   for_each(6),
   /**
    * <pre>
-   * fork: Parallel execution of multiple branches.
+   * Execute multiple branches in parallel.
+   *
+   * &#64;internal
    * Config: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
    * </pre>
    *
@@ -112,7 +129,9 @@ public enum WorkflowTaskKind
   fork(7),
   /**
    * <pre>
-   * try_catch: Error handling (try/catch block).
+   * Handle errors with try/catch logic.
+   *
+   * &#64;internal
    * Config: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
    * </pre>
    *
@@ -121,8 +140,11 @@ public enum WorkflowTaskKind
   try_catch(8),
   /**
    * <pre>
-   * listen: Wait for external signals/events.
+   * Wait for external signals or events.
+   *
+   * &#64;internal
    * Config: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
+   * Implemented via Temporal signals.
    * </pre>
    *
    * <code>listen = 9;</code>
@@ -130,8 +152,11 @@ public enum WorkflowTaskKind
   listen(9),
   /**
    * <pre>
-   * wait: Sleep/delay (Temporal timer).
+   * Pause execution for a duration or until a timestamp.
+   *
+   * &#64;internal
    * Config: {"seconds": 5}
+   * Implemented via Temporal timers.
    * </pre>
    *
    * <code>wait = 10;</code>
@@ -139,7 +164,9 @@ public enum WorkflowTaskKind
   wait(10),
   /**
    * <pre>
-   * raise_error: Raise errors/exceptions.
+   * Raise an error to terminate or trigger error handling.
+   *
+   * &#64;internal
    * Config: {"error": "ErrorType", "message": "${...}"}
    * </pre>
    *
@@ -148,8 +175,11 @@ public enum WorkflowTaskKind
   raise_error(11),
   /**
    * <pre>
-   * run_workflow: Execute sub-workflows.
+   * Execute a sub-workflow.
+   *
+   * &#64;internal
    * Config: {"workflow": "workflow-name", "input": {...}}
+   * Implemented via Temporal child workflows.
    * </pre>
    *
    * <code>run_workflow = 12;</code>
@@ -157,7 +187,9 @@ public enum WorkflowTaskKind
   run_workflow(12),
   /**
    * <pre>
-   * agent_call: Invoke AI agents as tasks.
+   * Invoke an AI agent as a workflow task.
+   *
+   * &#64;internal
    * Allows workflows to delegate complex operations to specialized agents.
    * Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
    * </pre>
@@ -179,7 +211,7 @@ public enum WorkflowTaskKind
   }
   /**
    * <pre>
-   * Unspecified (invalid) - prefixed for zero value clarity.
+   * Default value, not a valid task kind.
    * </pre>
    *
    * <code>workflow_task_kind_unspecified = 0;</code>
@@ -187,7 +219,9 @@ public enum WorkflowTaskKind
   public static final int workflow_task_kind_unspecified_VALUE = 0;
   /**
    * <pre>
-   * set_vars: Set variables in workflow state.
+   * Set variables in workflow state.
+   *
+   * &#64;internal
    * Config: {"variables": {"key": "value", ...}}
    * </pre>
    *
@@ -196,7 +230,9 @@ public enum WorkflowTaskKind
   public static final int set_vars_VALUE = 1;
   /**
    * <pre>
-   * http_call: Make HTTP requests (GET, POST, PUT, DELETE, PATCH).
+   * Make an HTTP request (GET, POST, PUT, DELETE, PATCH).
+   *
+   * &#64;internal
    * Config: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
    * </pre>
    *
@@ -205,7 +241,9 @@ public enum WorkflowTaskKind
   public static final int http_call_VALUE = 2;
   /**
    * <pre>
-   * grpc_call: Make gRPC requests.
+   * Make a gRPC request to an external service.
+   *
+   * &#64;internal
    * Config: {"service": "...", "method": "...", "request": {...}}
    * </pre>
    *
@@ -214,8 +252,11 @@ public enum WorkflowTaskKind
   public static final int grpc_call_VALUE = 3;
   /**
    * <pre>
-   * activity_call: Execute Temporal activities.
+   * Execute an activity.
+   *
+   * &#64;internal
    * Config: {"activity": "ActivityName", "input": {...}}
+   * Executes a Temporal activity.
    * </pre>
    *
    * <code>activity_call = 4;</code>
@@ -223,7 +264,9 @@ public enum WorkflowTaskKind
   public static final int activity_call_VALUE = 4;
   /**
    * <pre>
-   * switch_case: Conditional branching based on expressions.
+   * Branch conditionally based on expressions.
+   *
+   * &#64;internal
    * Config: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
    * </pre>
    *
@@ -232,7 +275,9 @@ public enum WorkflowTaskKind
   public static final int switch_case_VALUE = 5;
   /**
    * <pre>
-   * for_each: Iterate over collections (forEach loop).
+   * Iterate over a collection, executing tasks for each item.
+   *
+   * &#64;internal
    * Config: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
    * </pre>
    *
@@ -241,7 +286,9 @@ public enum WorkflowTaskKind
   public static final int for_each_VALUE = 6;
   /**
    * <pre>
-   * fork: Parallel execution of multiple branches.
+   * Execute multiple branches in parallel.
+   *
+   * &#64;internal
    * Config: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
    * </pre>
    *
@@ -250,7 +297,9 @@ public enum WorkflowTaskKind
   public static final int fork_VALUE = 7;
   /**
    * <pre>
-   * try_catch: Error handling (try/catch block).
+   * Handle errors with try/catch logic.
+   *
+   * &#64;internal
    * Config: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
    * </pre>
    *
@@ -259,8 +308,11 @@ public enum WorkflowTaskKind
   public static final int try_catch_VALUE = 8;
   /**
    * <pre>
-   * listen: Wait for external signals/events.
+   * Wait for external signals or events.
+   *
+   * &#64;internal
    * Config: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
+   * Implemented via Temporal signals.
    * </pre>
    *
    * <code>listen = 9;</code>
@@ -268,8 +320,11 @@ public enum WorkflowTaskKind
   public static final int listen_VALUE = 9;
   /**
    * <pre>
-   * wait: Sleep/delay (Temporal timer).
+   * Pause execution for a duration or until a timestamp.
+   *
+   * &#64;internal
    * Config: {"seconds": 5}
+   * Implemented via Temporal timers.
    * </pre>
    *
    * <code>wait = 10;</code>
@@ -277,7 +332,9 @@ public enum WorkflowTaskKind
   public static final int wait_VALUE = 10;
   /**
    * <pre>
-   * raise_error: Raise errors/exceptions.
+   * Raise an error to terminate or trigger error handling.
+   *
+   * &#64;internal
    * Config: {"error": "ErrorType", "message": "${...}"}
    * </pre>
    *
@@ -286,8 +343,11 @@ public enum WorkflowTaskKind
   public static final int raise_error_VALUE = 11;
   /**
    * <pre>
-   * run_workflow: Execute sub-workflows.
+   * Execute a sub-workflow.
+   *
+   * &#64;internal
    * Config: {"workflow": "workflow-name", "input": {...}}
+   * Implemented via Temporal child workflows.
    * </pre>
    *
    * <code>run_workflow = 12;</code>
@@ -295,7 +355,9 @@ public enum WorkflowTaskKind
   public static final int run_workflow_VALUE = 12;
   /**
    * <pre>
-   * agent_call: Invoke AI agents as tasks.
+   * Invoke an AI agent as a workflow task.
+   *
+   * &#64;internal
    * Allows workflows to delegate complex operations to specialized agents.
    * Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
    * </pre>

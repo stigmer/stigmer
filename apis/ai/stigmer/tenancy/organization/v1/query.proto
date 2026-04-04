@@ -9,12 +9,14 @@ import "ai/stigmer/tenancy/organization/v1/api.proto";
 import "ai/stigmer/tenancy/organization/v1/io.proto";
 import "google/protobuf/empty.proto";
 
-// OrganizationQueryController provides read operations for organizations
+// OrganizationQueryController handles read operations for organizations.
 service OrganizationQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = organization;
 
-  // Get an organization by ID
-  // Requires: User must be a member of the organization (can_view)
+  // Get an organization by ID.
+  //
+  // @internal
+  // Authorization: Requires can_view permission on the organization.
   rpc get(OrganizationId) returns (Organization) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
@@ -22,9 +24,10 @@ service OrganizationQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view organization";
   }
 
-  // Find organizations with pagination and filtering
-  // Requires: Platform admin permission
-  // This is for administrative purposes only
+  // List organizations with pagination and filtering.
+  //
+  // @internal
+  // Authorization: Requires platform admin permission. Administrative use only.
   rpc find(ai.stigmer.commons.apiresource.FindApiResourcesRequest) returns (OrganizationList) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }

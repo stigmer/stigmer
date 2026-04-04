@@ -7,14 +7,14 @@ package ai.stigmer.agentic.workflowinstance.v1;
 
 /**
  * <pre>
- * GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific Workflow template.
+ * GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.
  *
+ * &#64;internal
  * This allows you to find all configured deployments of a given Workflow.
  * For example, a "deploy-to-cloud" Workflow might have instances:
  * - "prod-deploy" (with production environments)
  * - "staging-deploy" (with staging environments)
  * - "dev-deploy" (with development environments)
- *
  * Supports pagination for efficient retrieval of large result sets.
  * </pre>
  *
@@ -68,10 +68,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow template ID to filter by.
-   *
-   * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
-   * Validation: Required field
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -93,10 +89,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow template ID to filter by.
-   *
-   * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
-   * Validation: Required field
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -121,16 +113,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.rpc.PageInfo pageInfo_;
   /**
    * <pre>
-   * Pagination options for controlling result set size and pages.
-   *
-   * Includes:
-   * - page_size: Maximum number of instances per page
-   * - page_token: Token from previous response for next page
-   *
-   * Example pagination flow:
-   * 1. Request with page_info.page_size = 20
-   * 2. Response includes page_token = "next_page_token_here"
-   * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+   * Pagination options for result set control.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -142,16 +125,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pagination options for controlling result set size and pages.
-   *
-   * Includes:
-   * - page_size: Maximum number of instances per page
-   * - page_token: Token from previous response for next page
-   *
-   * Example pagination flow:
-   * 1. Request with page_info.page_size = 20
-   * 2. Response includes page_token = "next_page_token_here"
-   * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+   * Pagination options for result set control.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -163,16 +137,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pagination options for controlling result set size and pages.
-   *
-   * Includes:
-   * - page_size: Maximum number of instances per page
-   * - page_token: Token from previous response for next page
-   *
-   * Example pagination flow:
-   * 1. Request with page_info.page_size = 20
-   * 2. Response includes page_token = "next_page_token_here"
-   * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+   * Pagination options for result set control.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -356,14 +321,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific Workflow template.
+   * GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.
    *
+   * &#64;internal
    * This allows you to find all configured deployments of a given Workflow.
    * For example, a "deploy-to-cloud" Workflow might have instances:
    * - "prod-deploy" (with production environments)
    * - "staging-deploy" (with staging environments)
    * - "dev-deploy" (with development environments)
-   *
    * Supports pagination for efficient retrieval of large result sets.
    * </pre>
    *
@@ -537,10 +502,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow template ID to filter by.
-     *
-     * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
-     * Validation: Required field
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -561,10 +522,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow template ID to filter by.
-     *
-     * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
-     * Validation: Required field
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -586,10 +543,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow template ID to filter by.
-     *
-     * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
-     * Validation: Required field
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -607,10 +560,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow template ID to filter by.
-     *
-     * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
-     * Validation: Required field
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -625,10 +574,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow template ID to filter by.
-     *
-     * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
-     * Validation: Required field
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -650,16 +595,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.rpc.PageInfo, ai.stigmer.commons.rpc.PageInfo.Builder, ai.stigmer.commons.rpc.PageInfoOrBuilder> pageInfoBuilder_;
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -670,16 +606,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -694,16 +621,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -723,16 +641,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -750,16 +659,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -784,16 +684,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -810,16 +701,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -831,16 +713,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -855,16 +728,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pagination options for controlling result set size and pages.
-     *
-     * Includes:
-     * - page_size: Maximum number of instances per page
-     * - page_token: Token from previous response for next page
-     *
-     * Example pagination flow:
-     * 1. Request with page_info.page_size = 20
-     * 2. Response includes page_token = "next_page_token_here"
-     * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+     * Pagination options for result set control.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>

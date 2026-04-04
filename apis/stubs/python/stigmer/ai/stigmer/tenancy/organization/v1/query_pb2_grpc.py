@@ -9,7 +9,7 @@ from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class OrganizationQueryControllerStub(object):
-    """OrganizationQueryController provides read operations for organizations
+    """OrganizationQueryController handles read operations for organizations.
     """
 
     def __init__(self, channel):
@@ -41,21 +41,24 @@ class OrganizationQueryControllerStub(object):
 
 
 class OrganizationQueryControllerServicer(object):
-    """OrganizationQueryController provides read operations for organizations
+    """OrganizationQueryController handles read operations for organizations.
     """
 
     def get(self, request, context):
-        """Get an organization by ID
-        Requires: User must be a member of the organization (can_view)
+        """Get an organization by ID.
+
+        @internal
+        Authorization: Requires can_view permission on the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def find(self, request, context):
-        """Find organizations with pagination and filtering
-        Requires: Platform admin permission
-        This is for administrative purposes only
+        """List organizations with pagination and filtering.
+
+        @internal
+        Authorization: Requires platform admin permission. Administrative use only.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -115,7 +118,7 @@ def add_OrganizationQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class OrganizationQueryController(object):
-    """OrganizationQueryController provides read operations for organizations
+    """OrganizationQueryController handles read operations for organizations.
     """
 
     @staticmethod

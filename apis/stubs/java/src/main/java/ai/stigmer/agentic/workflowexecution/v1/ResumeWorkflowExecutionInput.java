@@ -9,23 +9,9 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
  *
- * Continues execution from the checkpoint where it was paused. The workflow
- * re-invokes activities with the same thread_id, which loads from checkpoint
- * and continues from where it left off.
- *
- * ## Behavior
- *
- * When a workflow is resumed:
- * 1. A "resume" signal is sent to the paused Temporal workflow
- * 2. Workflow unblocks from its wait state
- * 3. Activities are re-invoked with same execution context
- * 4. LangGraph loads checkpoint using thread_id
- * 5. Execution continues from exact pause point
- *
- * ## Preconditions
- *
- * - Execution must be in EXECUTION_PAUSED phase
- * - Cannot resume non-paused executions
+ * &#64;internal
+ * Continues execution from the checkpoint where it was paused.
+ * Execution must be in EXECUTION_PAUSED phase.
  *
  * &#64;since Gap A3 (Pause/Resume Propagation)
  * </pre>
@@ -78,15 +64,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object id_ = "";
   /**
    * <pre>
-   * Workflow execution ID to resume.
+   * Workflow execution ID to resume (must be in PAUSED phase).
    *
-   * Must be in PAUSED phase. Cannot resume executions
-   * that are not paused.
-   *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -107,15 +88,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow execution ID to resume.
+   * Workflow execution ID to resume (must be in PAUSED phase).
    *
-   * Must be in PAUSED phase. Cannot resume executions
-   * that are not paused.
-   *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -296,23 +272,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
    *
-   * Continues execution from the checkpoint where it was paused. The workflow
-   * re-invokes activities with the same thread_id, which loads from checkpoint
-   * and continues from where it left off.
-   *
-   * ## Behavior
-   *
-   * When a workflow is resumed:
-   * 1. A "resume" signal is sent to the paused Temporal workflow
-   * 2. Workflow unblocks from its wait state
-   * 3. Activities are re-invoked with same execution context
-   * 4. LangGraph loads checkpoint using thread_id
-   * 5. Execution continues from exact pause point
-   *
-   * ## Preconditions
-   *
-   * - Execution must be in EXECUTION_PAUSED phase
-   * - Cannot resume non-paused executions
+   * &#64;internal
+   * Continues execution from the checkpoint where it was paused.
+   * Execution must be in EXECUTION_PAUSED phase.
    *
    * &#64;since Gap A3 (Pause/Resume Propagation)
    * </pre>
@@ -457,15 +419,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object id_ = "";
     /**
      * <pre>
-     * Workflow execution ID to resume.
+     * Workflow execution ID to resume (must be in PAUSED phase).
      *
-     * Must be in PAUSED phase. Cannot resume executions
-     * that are not paused.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -485,15 +442,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to resume.
+     * Workflow execution ID to resume (must be in PAUSED phase).
      *
-     * Must be in PAUSED phase. Cannot resume executions
-     * that are not paused.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -514,15 +466,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to resume.
+     * Workflow execution ID to resume (must be in PAUSED phase).
      *
-     * Must be in PAUSED phase. Cannot resume executions
-     * that are not paused.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -539,15 +486,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to resume.
+     * Workflow execution ID to resume (must be in PAUSED phase).
      *
-     * Must be in PAUSED phase. Cannot resume executions
-     * that are not paused.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -561,15 +503,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to resume.
+     * Workflow execution ID to resume (must be in PAUSED phase).
      *
-     * Must be in PAUSED phase. Cannot resume executions
-     * that are not paused.
-     *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>

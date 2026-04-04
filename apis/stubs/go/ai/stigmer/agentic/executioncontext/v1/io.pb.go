@@ -67,14 +67,17 @@ func (x *ExecutionContextId) GetValue() string {
 	return ""
 }
 
-// ExecutionContextExecutionIdInput is used to look up an ExecutionContext by the
-// execution ID it belongs to (e.g., AgentExecution ID or WorkflowExecution ID).
-// This is the primary lookup method used by runners to retrieve merged environment
+// Input for looking up an ExecutionContext by its parent execution ID.
+//
+// @internal
+// Primary lookup method used by runners to retrieve merged environment
 // variables during execution.
 type ExecutionContextExecutionIdInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The workflow or agent execution ID to look up.
-	// This must match the execution_id field in ExecutionContextSpec.
+	// AgentExecution or WorkflowExecution ID to look up.
+	//
+	// @internal
+	// Must match the execution_id field in ExecutionContextSpec.
 	ExecutionId   string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

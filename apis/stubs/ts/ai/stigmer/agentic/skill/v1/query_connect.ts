@@ -31,9 +31,9 @@ export const SkillQueryController = {
      * Get a skill by API resource reference with version support.
      *
      * Version resolution (via ApiResourceReference.version field):
-     * - Empty/"latest" → Returns current version from main collection
-     * - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
-     * - SHA256 hash (64 hex chars) → Returns exact immutable version
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      *
      * @internal
      * Authorization is handled in the handler after resolving the reference to a skill ID.

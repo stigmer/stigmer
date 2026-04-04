@@ -5,7 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * AgentInstanceCommandController handles write operations for agent instances.
- * Follows the standard pattern: create, update, delete (no granular field updates).
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -202,7 +201,6 @@ public final class AgentInstanceCommandControllerGrpc {
   /**
    * <pre>
    * AgentInstanceCommandController handles write operations for agent instances.
-   * Follows the standard pattern: create, update, delete (no granular field updates).
    * </pre>
    */
   public interface AsyncService {
@@ -210,6 +208,7 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -221,11 +220,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent instance with full state.
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+     * Create an agent instance.
      * Public agents allow any authenticated user to create instances (cross-org allowed).
      * Private agents restrict instance creation to org members and the agent owner.
      * &#64;internal
+     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
@@ -238,10 +237,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an instance with full state.
-     * Used to update entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates - always provide complete state.
-     * Authorization: Only owner can update (can_edit permission)
+     * Update an existing agent instance.
+     * &#64;internal
+     * Replaces the entire instance configuration including metadata, spec, and secrets.
+     * No individual field updates — always provide complete state.
+     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     default void update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -252,7 +252,8 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * Authorization: Only owner can delete (can_delete permission)
+     * &#64;internal
+     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     default void delete(ai.stigmer.agentic.agentinstance.v1.AgentInstanceId request,
@@ -265,7 +266,6 @@ public final class AgentInstanceCommandControllerGrpc {
    * Base class for the server implementation of the service AgentInstanceCommandController.
    * <pre>
    * AgentInstanceCommandController handles write operations for agent instances.
-   * Follows the standard pattern: create, update, delete (no granular field updates).
    * </pre>
    */
   public static abstract class AgentInstanceCommandControllerImplBase
@@ -280,7 +280,6 @@ public final class AgentInstanceCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service AgentInstanceCommandController.
    * <pre>
    * AgentInstanceCommandController handles write operations for agent instances.
-   * Follows the standard pattern: create, update, delete (no granular field updates).
    * </pre>
    */
   public static final class AgentInstanceCommandControllerStub
@@ -299,6 +298,7 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -311,11 +311,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent instance with full state.
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+     * Create an agent instance.
      * Public agents allow any authenticated user to create instances (cross-org allowed).
      * Private agents restrict instance creation to org members and the agent owner.
      * &#64;internal
+     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
@@ -329,10 +329,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an instance with full state.
-     * Used to update entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates - always provide complete state.
-     * Authorization: Only owner can update (can_edit permission)
+     * Update an existing agent instance.
+     * &#64;internal
+     * Replaces the entire instance configuration including metadata, spec, and secrets.
+     * No individual field updates — always provide complete state.
+     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     public void update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -344,7 +345,8 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * Authorization: Only owner can delete (can_delete permission)
+     * &#64;internal
+     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     public void delete(ai.stigmer.agentic.agentinstance.v1.AgentInstanceId request,
@@ -358,7 +360,6 @@ public final class AgentInstanceCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service AgentInstanceCommandController.
    * <pre>
    * AgentInstanceCommandController handles write operations for agent instances.
-   * Follows the standard pattern: create, update, delete (no granular field updates).
    * </pre>
    */
   public static final class AgentInstanceCommandControllerBlockingV2Stub
@@ -377,6 +378,7 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -388,11 +390,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent instance with full state.
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+     * Create an agent instance.
      * Public agents allow any authenticated user to create instances (cross-org allowed).
      * Private agents restrict instance creation to org members and the agent owner.
      * &#64;internal
+     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
@@ -405,10 +407,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an instance with full state.
-     * Used to update entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates - always provide complete state.
-     * Authorization: Only owner can update (can_edit permission)
+     * Update an existing agent instance.
+     * &#64;internal
+     * Replaces the entire instance configuration including metadata, spec, and secrets.
+     * No individual field updates — always provide complete state.
+     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) throws io.grpc.StatusException {
@@ -419,7 +422,8 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * Authorization: Only owner can delete (can_delete permission)
+     * &#64;internal
+     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance delete(ai.stigmer.agentic.agentinstance.v1.AgentInstanceId request) throws io.grpc.StatusException {
@@ -432,7 +436,6 @@ public final class AgentInstanceCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service AgentInstanceCommandController.
    * <pre>
    * AgentInstanceCommandController handles write operations for agent instances.
-   * Follows the standard pattern: create, update, delete (no granular field updates).
    * </pre>
    */
   public static final class AgentInstanceCommandControllerBlockingStub
@@ -451,6 +454,7 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -462,11 +466,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent instance with full state.
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+     * Create an agent instance.
      * Public agents allow any authenticated user to create instances (cross-org allowed).
      * Private agents restrict instance creation to org members and the agent owner.
      * &#64;internal
+     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
@@ -479,10 +483,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an instance with full state.
-     * Used to update entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates - always provide complete state.
-     * Authorization: Only owner can update (can_edit permission)
+     * Update an existing agent instance.
+     * &#64;internal
+     * Replaces the entire instance configuration including metadata, spec, and secrets.
+     * No individual field updates — always provide complete state.
+     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) {
@@ -493,7 +498,8 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * Authorization: Only owner can delete (can_delete permission)
+     * &#64;internal
+     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance delete(ai.stigmer.agentic.agentinstance.v1.AgentInstanceId request) {
@@ -506,7 +512,6 @@ public final class AgentInstanceCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service AgentInstanceCommandController.
    * <pre>
    * AgentInstanceCommandController handles write operations for agent instances.
-   * Follows the standard pattern: create, update, delete (no granular field updates).
    * </pre>
    */
   public static final class AgentInstanceCommandControllerFutureStub
@@ -525,6 +530,7 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the agent instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -537,11 +543,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new agent instance with full state.
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+     * Create an agent instance.
      * Public agents allow any authenticated user to create instances (cross-org allowed).
      * Private agents restrict instance creation to org members and the agent owner.
      * &#64;internal
+     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
@@ -555,10 +561,11 @@ public final class AgentInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an instance with full state.
-     * Used to update entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates - always provide complete state.
-     * Authorization: Only owner can update (can_edit permission)
+     * Update an existing agent instance.
+     * &#64;internal
+     * Replaces the entire instance configuration including metadata, spec, and secrets.
+     * No individual field updates — always provide complete state.
+     * Authorization: Only owner can update (can_edit permission).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> update(
@@ -570,7 +577,8 @@ public final class AgentInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent instance.
-     * Authorization: Only owner can delete (can_delete permission)
+     * &#64;internal
+     * Authorization: Only owner can delete (can_delete permission).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> delete(

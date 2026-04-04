@@ -94,7 +94,9 @@ class AgentExecutionCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an execution with full state.
+        """Update an agent execution.
+
+        @internal
         Used by users to update execution configuration (spec fields).
         No individual field updates - always provide complete state.
         """
@@ -103,7 +105,7 @@ class AgentExecutionCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def updateStatus(self, request, context):
-        """Update execution status during agent execution.
+        """Update an agent execution's status.
 
         @internal
         System-level RPC used by agent-runner to send progressive status updates
@@ -115,14 +117,14 @@ class AgentExecutionCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete an execution.
+        """Delete an agent execution by ID.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def submitApproval(self, request, context):
-        """Submit approval decision for a pending tool call (HITL Phase 1).
+        """Submit an approval decision for a pending tool call.
 
         ## Preconditions
 

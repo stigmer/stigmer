@@ -57,6 +57,9 @@ class IdentityAccountCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing identity account.
+
+        @internal
+        Authorization: Requires can_edit permission on the identity account resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -64,17 +67,21 @@ class IdentityAccountCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an identity account.
+
+        @internal
+        Authorization: Requires can_delete permission on the identity account resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def simulateSignupWebhook(self, request, context):
-        """Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+        """Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
 
         @internal
         Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
         to Stigmer with the Auth0 payload format to trigger account provisioning.
+        Authorization is skipped — this is a system-level operation.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

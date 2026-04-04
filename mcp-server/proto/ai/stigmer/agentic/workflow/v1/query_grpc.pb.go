@@ -33,9 +33,11 @@ type WorkflowQueryControllerClient interface {
 	// Get a single workflow by ID.
 	Get(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
 	// Get a workflow by its organization-scoped reference (org/slug).
+	// Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
 	//
 	// @internal
-	// Custom authorization in handler.
+	// Custom authorization in handler — checks both direct resource access
+	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Workflow, error)
 }
 
@@ -76,9 +78,11 @@ type WorkflowQueryControllerServer interface {
 	// Get a single workflow by ID.
 	Get(context.Context, *WorkflowId) (*Workflow, error)
 	// Get a workflow by its organization-scoped reference (org/slug).
+	// Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
 	//
 	// @internal
-	// Custom authorization in handler.
+	// Custom authorization in handler — checks both direct resource access
+	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Workflow, error)
 }
 

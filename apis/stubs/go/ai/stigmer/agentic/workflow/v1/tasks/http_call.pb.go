@@ -24,10 +24,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// HttpCallTaskConfig defines the configuration for HTTP_CALL tasks.
+// HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
 //
-// HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //     call: http

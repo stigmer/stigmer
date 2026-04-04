@@ -113,7 +113,7 @@ public interface IdentityProviderOrBuilder extends
 
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -122,7 +122,7 @@ public interface IdentityProviderOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -131,7 +131,7 @@ public interface IdentityProviderOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus();
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

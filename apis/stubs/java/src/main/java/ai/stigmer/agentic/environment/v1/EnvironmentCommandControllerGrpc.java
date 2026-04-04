@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * EnvironmentCommandController provides write operations for Environment resources.
+ * EnvironmentCommandController handles write operations for environments.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -262,16 +262,18 @@ public final class EnvironmentCommandControllerGrpc {
 
   /**
    * <pre>
-   * EnvironmentCommandController provides write operations for Environment resources.
+   * EnvironmentCommandController handles write operations for environments.
    * </pre>
    */
   public interface AsyncService {
 
     /**
      * <pre>
-     * Create or update an Environment resource.
-     * The authorization and state-operation are determined depending on whether the environment
-     * is going to be created or updated which is determined as part of the request execution.
+     * Create or update an environment.
+     * &#64;internal
+     * The authorization and state-operation are determined depending on whether the
+     * environment is going to be created or updated, which is resolved as part of
+     * the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.environment.v1.Environment request,
@@ -281,7 +283,13 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new Environment resource.
+     * Create an environment.
+     * &#64;internal
+     * Authorization:
+     * - Organization-scoped environments: Caller must have can_create_environment
+     *   permission in the organization.
+     * - Platform-scoped environments: Caller must be a platform operator
+     *   (handled automatically by common auth step).
      * </pre>
      */
     default void create(ai.stigmer.agentic.environment.v1.Environment request,
@@ -291,7 +299,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing Environment resource.
+     * Update an existing environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     default void update(ai.stigmer.agentic.environment.v1.Environment request,
@@ -301,7 +311,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an Environment resource.
+     * Delete an environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -311,8 +323,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Add or update specific variables in an environment (server-side merge).
+     * Add or update specific variables in an environment.
      * Existing variables not included in the request are preserved unchanged.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * Server-side merge — secret values are re-encrypted on write.
      * </pre>
      */
     default void updateVariables(ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request,
@@ -323,7 +338,9 @@ public final class EnvironmentCommandControllerGrpc {
     /**
      * <pre>
      * Remove specific variables from an environment by key.
-     * Keys that don't exist are silently ignored.
+     * Keys that do not exist are silently ignored.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     default void removeVariables(ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request,
@@ -335,7 +352,7 @@ public final class EnvironmentCommandControllerGrpc {
   /**
    * Base class for the server implementation of the service EnvironmentCommandController.
    * <pre>
-   * EnvironmentCommandController provides write operations for Environment resources.
+   * EnvironmentCommandController handles write operations for environments.
    * </pre>
    */
   public static abstract class EnvironmentCommandControllerImplBase
@@ -349,7 +366,7 @@ public final class EnvironmentCommandControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service EnvironmentCommandController.
    * <pre>
-   * EnvironmentCommandController provides write operations for Environment resources.
+   * EnvironmentCommandController handles write operations for environments.
    * </pre>
    */
   public static final class EnvironmentCommandControllerStub
@@ -367,9 +384,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create or update an Environment resource.
-     * The authorization and state-operation are determined depending on whether the environment
-     * is going to be created or updated which is determined as part of the request execution.
+     * Create or update an environment.
+     * &#64;internal
+     * The authorization and state-operation are determined depending on whether the
+     * environment is going to be created or updated, which is resolved as part of
+     * the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.environment.v1.Environment request,
@@ -380,7 +399,13 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new Environment resource.
+     * Create an environment.
+     * &#64;internal
+     * Authorization:
+     * - Organization-scoped environments: Caller must have can_create_environment
+     *   permission in the organization.
+     * - Platform-scoped environments: Caller must be a platform operator
+     *   (handled automatically by common auth step).
      * </pre>
      */
     public void create(ai.stigmer.agentic.environment.v1.Environment request,
@@ -391,7 +416,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing Environment resource.
+     * Update an existing environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public void update(ai.stigmer.agentic.environment.v1.Environment request,
@@ -402,7 +429,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an Environment resource.
+     * Delete an environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -413,8 +442,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Add or update specific variables in an environment (server-side merge).
+     * Add or update specific variables in an environment.
      * Existing variables not included in the request are preserved unchanged.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * Server-side merge — secret values are re-encrypted on write.
      * </pre>
      */
     public void updateVariables(ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request,
@@ -426,7 +458,9 @@ public final class EnvironmentCommandControllerGrpc {
     /**
      * <pre>
      * Remove specific variables from an environment by key.
-     * Keys that don't exist are silently ignored.
+     * Keys that do not exist are silently ignored.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public void removeVariables(ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request,
@@ -439,7 +473,7 @@ public final class EnvironmentCommandControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service EnvironmentCommandController.
    * <pre>
-   * EnvironmentCommandController provides write operations for Environment resources.
+   * EnvironmentCommandController handles write operations for environments.
    * </pre>
    */
   public static final class EnvironmentCommandControllerBlockingV2Stub
@@ -457,9 +491,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create or update an Environment resource.
-     * The authorization and state-operation are determined depending on whether the environment
-     * is going to be created or updated which is determined as part of the request execution.
+     * Create or update an environment.
+     * &#64;internal
+     * The authorization and state-operation are determined depending on whether the
+     * environment is going to be created or updated, which is resolved as part of
+     * the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment apply(ai.stigmer.agentic.environment.v1.Environment request) throws io.grpc.StatusException {
@@ -469,7 +505,13 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new Environment resource.
+     * Create an environment.
+     * &#64;internal
+     * Authorization:
+     * - Organization-scoped environments: Caller must have can_create_environment
+     *   permission in the organization.
+     * - Platform-scoped environments: Caller must be a platform operator
+     *   (handled automatically by common auth step).
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment create(ai.stigmer.agentic.environment.v1.Environment request) throws io.grpc.StatusException {
@@ -479,7 +521,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing Environment resource.
+     * Update an existing environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment update(ai.stigmer.agentic.environment.v1.Environment request) throws io.grpc.StatusException {
@@ -489,7 +533,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an Environment resource.
+     * Delete an environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -499,8 +545,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Add or update specific variables in an environment (server-side merge).
+     * Add or update specific variables in an environment.
      * Existing variables not included in the request are preserved unchanged.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * Server-side merge — secret values are re-encrypted on write.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment updateVariables(ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request) throws io.grpc.StatusException {
@@ -511,7 +560,9 @@ public final class EnvironmentCommandControllerGrpc {
     /**
      * <pre>
      * Remove specific variables from an environment by key.
-     * Keys that don't exist are silently ignored.
+     * Keys that do not exist are silently ignored.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment removeVariables(ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request) throws io.grpc.StatusException {
@@ -523,7 +574,7 @@ public final class EnvironmentCommandControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service EnvironmentCommandController.
    * <pre>
-   * EnvironmentCommandController provides write operations for Environment resources.
+   * EnvironmentCommandController handles write operations for environments.
    * </pre>
    */
   public static final class EnvironmentCommandControllerBlockingStub
@@ -541,9 +592,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create or update an Environment resource.
-     * The authorization and state-operation are determined depending on whether the environment
-     * is going to be created or updated which is determined as part of the request execution.
+     * Create or update an environment.
+     * &#64;internal
+     * The authorization and state-operation are determined depending on whether the
+     * environment is going to be created or updated, which is resolved as part of
+     * the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment apply(ai.stigmer.agentic.environment.v1.Environment request) {
@@ -553,7 +606,13 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new Environment resource.
+     * Create an environment.
+     * &#64;internal
+     * Authorization:
+     * - Organization-scoped environments: Caller must have can_create_environment
+     *   permission in the organization.
+     * - Platform-scoped environments: Caller must be a platform operator
+     *   (handled automatically by common auth step).
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment create(ai.stigmer.agentic.environment.v1.Environment request) {
@@ -563,7 +622,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing Environment resource.
+     * Update an existing environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment update(ai.stigmer.agentic.environment.v1.Environment request) {
@@ -573,7 +634,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an Environment resource.
+     * Delete an environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -583,8 +646,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Add or update specific variables in an environment (server-side merge).
+     * Add or update specific variables in an environment.
      * Existing variables not included in the request are preserved unchanged.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * Server-side merge — secret values are re-encrypted on write.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment updateVariables(ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request) {
@@ -595,7 +661,9 @@ public final class EnvironmentCommandControllerGrpc {
     /**
      * <pre>
      * Remove specific variables from an environment by key.
-     * Keys that don't exist are silently ignored.
+     * Keys that do not exist are silently ignored.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment removeVariables(ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request) {
@@ -607,7 +675,7 @@ public final class EnvironmentCommandControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service EnvironmentCommandController.
    * <pre>
-   * EnvironmentCommandController provides write operations for Environment resources.
+   * EnvironmentCommandController handles write operations for environments.
    * </pre>
    */
   public static final class EnvironmentCommandControllerFutureStub
@@ -625,9 +693,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create or update an Environment resource.
-     * The authorization and state-operation are determined depending on whether the environment
-     * is going to be created or updated which is determined as part of the request execution.
+     * Create or update an environment.
+     * &#64;internal
+     * The authorization and state-operation are determined depending on whether the
+     * environment is going to be created or updated, which is resolved as part of
+     * the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> apply(
@@ -638,7 +708,13 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new Environment resource.
+     * Create an environment.
+     * &#64;internal
+     * Authorization:
+     * - Organization-scoped environments: Caller must have can_create_environment
+     *   permission in the organization.
+     * - Platform-scoped environments: Caller must be a platform operator
+     *   (handled automatically by common auth step).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> create(
@@ -649,7 +725,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing Environment resource.
+     * Update an existing environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> update(
@@ -660,7 +738,9 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an Environment resource.
+     * Delete an environment.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> delete(
@@ -671,8 +751,11 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Add or update specific variables in an environment (server-side merge).
+     * Add or update specific variables in an environment.
      * Existing variables not included in the request are preserved unchanged.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * Server-side merge — secret values are re-encrypted on write.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> updateVariables(
@@ -684,7 +767,9 @@ public final class EnvironmentCommandControllerGrpc {
     /**
      * <pre>
      * Remove specific variables from an environment by key.
-     * Keys that don't exist are silently ignored.
+     * Keys that do not exist are silently ignored.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> removeVariables(

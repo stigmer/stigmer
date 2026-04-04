@@ -32,18 +32,35 @@ const (
 //
 // IdentityProviderCommandController provides write operations for identity providers.
 type IdentityProviderCommandControllerClient interface {
-	// Create or update an identity provider (Kubernetes-style apply).
-	// If the resource doesn't exist: creates a new identity provider.
-	// If the resource exists: updates the existing identity provider.
+	// Create or update an identity provider.
+	//
+	// If the resource does not exist, creates a new identity provider.
+	// If the resource exists, updates the existing identity provider.
+	//
+	// @internal
+	// The authorization and state-operation are determined depending on whether the
+	// identity provider is going to be created or updated, which is determined as
+	// part of the request execution.
 	Apply(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
-	// Create a new identity provider.
+	// Create an identity provider.
+	//
 	// The creator's organization owns the identity provider.
+	//
+	// @internal
+	// Authorization: Requires can_create_idp permission in the organization.
 	Create(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Update an existing identity provider.
-	// Requires can_edit permission on the identity provider.
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the identity provider resource.
 	Update(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Delete an identity provider.
-	// Deletion is blocked if any platform-managed organizations reference this identity provider.
+	//
+	// Deletion is blocked if any platform-managed organizations reference this
+	// identity provider.
+	//
+	// @internal
+	// Authorization: Requires can_delete permission on the identity provider resource.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*IdentityProvider, error)
 }
 
@@ -101,18 +118,35 @@ func (c *identityProviderCommandControllerClient) Delete(ctx context.Context, in
 //
 // IdentityProviderCommandController provides write operations for identity providers.
 type IdentityProviderCommandControllerServer interface {
-	// Create or update an identity provider (Kubernetes-style apply).
-	// If the resource doesn't exist: creates a new identity provider.
-	// If the resource exists: updates the existing identity provider.
+	// Create or update an identity provider.
+	//
+	// If the resource does not exist, creates a new identity provider.
+	// If the resource exists, updates the existing identity provider.
+	//
+	// @internal
+	// The authorization and state-operation are determined depending on whether the
+	// identity provider is going to be created or updated, which is determined as
+	// part of the request execution.
 	Apply(context.Context, *IdentityProvider) (*IdentityProvider, error)
-	// Create a new identity provider.
+	// Create an identity provider.
+	//
 	// The creator's organization owns the identity provider.
+	//
+	// @internal
+	// Authorization: Requires can_create_idp permission in the organization.
 	Create(context.Context, *IdentityProvider) (*IdentityProvider, error)
 	// Update an existing identity provider.
-	// Requires can_edit permission on the identity provider.
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the identity provider resource.
 	Update(context.Context, *IdentityProvider) (*IdentityProvider, error)
 	// Delete an identity provider.
-	// Deletion is blocked if any platform-managed organizations reference this identity provider.
+	//
+	// Deletion is blocked if any platform-managed organizations reference this
+	// identity provider.
+	//
+	// @internal
+	// Authorization: Requires can_delete permission on the identity provider resource.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*IdentityProvider, error)
 }
 

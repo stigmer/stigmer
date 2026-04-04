@@ -7,7 +7,7 @@ package ai.stigmer.iam.identityaccount.v1;
 
 /**
  * <pre>
- * wrapper to get list of identity accounts
+ * IdentityAccounts contains a list of identity account resources.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccounts}
@@ -57,6 +57,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.iam.identityaccount.v1.IdentityAccount> entries_;
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -64,6 +68,10 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -72,6 +80,10 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -79,6 +91,10 @@ private static final long serialVersionUID = 0L;
     return entries_.size();
   }
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -86,6 +102,10 @@ private static final long serialVersionUID = 0L;
     return entries_.get(index);
   }
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -260,7 +280,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * wrapper to get list of identity accounts
+   * IdentityAccounts contains a list of identity account resources.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccounts}
@@ -458,6 +478,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.iam.identityaccount.v1.IdentityAccount, ai.stigmer.iam.identityaccount.v1.IdentityAccount.Builder, ai.stigmer.iam.identityaccount.v1.IdentityAccountOrBuilder> entriesBuilder_;
 
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.iam.identityaccount.v1.IdentityAccount> getEntriesList() {
@@ -468,6 +492,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public int getEntriesCount() {
@@ -478,6 +506,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getEntries(int index) {
@@ -488,6 +520,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -505,6 +541,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -519,6 +559,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(ai.stigmer.iam.identityaccount.v1.IdentityAccount value) {
@@ -535,6 +579,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -552,6 +600,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -566,6 +618,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -580,6 +636,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder addAllEntries(
@@ -595,6 +655,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder clearEntries() {
@@ -608,6 +672,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public Builder removeEntries(int index) {
@@ -621,6 +689,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount.Builder getEntriesBuilder(
@@ -628,6 +700,10 @@ private static final long serialVersionUID = 0L;
       return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccountOrBuilder getEntriesOrBuilder(
@@ -638,6 +714,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.iam.identityaccount.v1.IdentityAccountOrBuilder> 
@@ -649,6 +729,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount.Builder addEntriesBuilder() {
@@ -656,6 +740,10 @@ private static final long serialVersionUID = 0L;
           ai.stigmer.iam.identityaccount.v1.IdentityAccount.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount.Builder addEntriesBuilder(
@@ -664,6 +752,10 @@ private static final long serialVersionUID = 0L;
           index, ai.stigmer.iam.identityaccount.v1.IdentityAccount.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Identity account entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.iam.identityaccount.v1.IdentityAccount.Builder> 

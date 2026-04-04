@@ -24,18 +24,25 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// api-key for user-account or machine-account
+// ApiKey provides programmatic access to the Stigmer API on behalf of an identity account.
+//
+// Each API key is scoped to a single identity account (user or machine) and
+// can optionally be configured to expire.
+//
+// @internal
+// The raw key value is returned only once in the create response. Only the
+// hash and fingerprint are persisted.
 type ApiKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// api-version
+	// API version for this resource type.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
-	// resource-kind
+	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// metadata
+	// Resource metadata including name, organization, and labels.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// spec
+	// Configurable properties: key hash, fingerprint, and expiration settings.
 	Spec *ApiKeySpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// status
+	// System-managed state including audit trail and last-used timestamp.
 	Status        *ApiKeyStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -106,11 +113,12 @@ func (x *ApiKey) GetStatus() *ApiKeyStatus {
 	return nil
 }
 
+// ApiKeyStatus contains system-managed state for an API key.
 type ApiKeyStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// audit
+	// Standard audit information (created_at, updated_at, created_by, etc.).
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	// last used timestamp for the api-key
+	// Timestamp of the most recent API call made with this key.
 	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

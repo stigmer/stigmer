@@ -2111,6 +2111,7 @@ func main() {
 	target := flag.String("target", "sdk", "Generation target: sdk, mcp, or sdk-client")
 	expandStruct := flag.String("expand-struct", "", "Expand a Struct field into typed config fields: struct_field:discriminator_field:config_schema_dir")
 	comprehensive := flag.Bool("comprehensive", false, "Auto-discover all domain/resource schemas and generate for each")
+	apisDir := flag.String("apis-dir", "", "Root directory of proto API definitions (used by sdk-docs for overview.md loading)")
 	flag.Parse()
 
 	if *comprehensive {
@@ -2145,7 +2146,7 @@ func main() {
 				os.Exit(1)
 			}
 		case "sdk-docs":
-			if err := runSDKDocsGeneration(*schemaDir, *outputDir); err != nil {
+			if err := runSDKDocsGeneration(*schemaDir, *outputDir, *apisDir); err != nil {
 				fmt.Printf("Error in SDK docs generation: %v\n", err)
 				os.Exit(1)
 			}

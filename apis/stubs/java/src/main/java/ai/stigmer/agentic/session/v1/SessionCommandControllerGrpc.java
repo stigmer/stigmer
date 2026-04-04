@@ -270,6 +270,7 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the session
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -281,7 +282,8 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new session for an agent.
+     * Create a session.
+     * &#64;internal
      * Requires can_create_session permission in the organization.
      * </pre>
      */
@@ -383,6 +385,7 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the session
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -395,7 +398,8 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new session for an agent.
+     * Create a session.
+     * &#64;internal
      * Requires can_create_session permission in the organization.
      * </pre>
      */
@@ -488,6 +492,7 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the session
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -499,7 +504,8 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new session for an agent.
+     * Create a session.
+     * &#64;internal
      * Requires can_create_session permission in the organization.
      * </pre>
      */
@@ -587,6 +593,7 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the session
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -598,7 +605,8 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new session for an agent.
+     * Create a session.
+     * &#64;internal
      * Requires can_create_session permission in the organization.
      * </pre>
      */
@@ -686,6 +694,7 @@ public final class SessionCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a session.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the session
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -698,7 +707,8 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new session for an agent.
+     * Create a session.
+     * &#64;internal
      * Requires can_create_session permission in the organization.
      * </pre>
      */

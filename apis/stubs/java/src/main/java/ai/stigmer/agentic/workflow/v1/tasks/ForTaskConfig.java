@@ -7,10 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * ForTaskConfig defines the configuration for FOR tasks.
+ * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
  *
- * FOR tasks iterate over collections, executing tasks for each item.
- *
+ * &#64;internal
  * YAML Example:
  * - taskName:
  * for:
@@ -423,10 +422,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ForTaskConfig defines the configuration for FOR tasks.
+   * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
    *
-   * FOR tasks iterate over collections, executing tasks for each item.
-   *
+   * &#64;internal
    * YAML Example:
    * - taskName:
    * for:

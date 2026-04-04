@@ -16,9 +16,10 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_call_activity: GenFile = 
   fileDesc("CjhhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvY2FsbF9hY3Rpdml0eS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzInEKFkNhbGxBY3Rpdml0eVRhc2tDb25maWcSHAoIYWN0aXZpdHkYASABKAlCCrpIB8gBAXICEAESJgoFaW5wdXQYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0OhHqiywNYWN0aXZpdHlfY2FsbGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
- * CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks.
+ * CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.
  *
- * CALL_ACTIVITY tasks execute Temporal activities.
+ * @internal
+ * Executes Temporal activities.
  *
  * YAML Example:
  *   - taskName:
@@ -35,7 +36,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_call_activity: GenFile = 
 export type CallActivityTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig"> & {
   /**
    * Activity name to execute.
-   * Must match registered Temporal activity.
+   *
+   * @internal
+   * Must match a registered Temporal activity.
    *
    * @generated from field: string activity = 1;
    */

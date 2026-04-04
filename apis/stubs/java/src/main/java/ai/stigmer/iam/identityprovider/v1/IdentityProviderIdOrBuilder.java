@@ -12,7 +12,7 @@ public interface IdentityProviderIdOrBuilder extends
 
   /**
    * <pre>
-   * The unique identifier of the identity provider resource.
+   * Unique identifier of the identity provider resource.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface IdentityProviderIdOrBuilder extends
   java.lang.String getValue();
   /**
    * <pre>
-   * The unique identifier of the identity provider resource.
+   * Unique identifier of the identity provider resource.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

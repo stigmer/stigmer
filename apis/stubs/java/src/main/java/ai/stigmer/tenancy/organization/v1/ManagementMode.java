@@ -9,11 +9,11 @@ package ai.stigmer.tenancy.organization.v1;
  * <pre>
  * ManagementMode defines how an organization is operated.
  *
+ * &#64;internal
+ * Immutable after organization creation.
  * - self_managed: User signed up directly, manages the org via Stigmer UI/CLI/API.
  * - platform_managed: Created programmatically by an external platform (e.g., Planton Cloud)
  * via an IdentityProvider. Operated by the platform on behalf of its users.
- *
- * This field is immutable after organization creation.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.tenancy.organization.v1.ManagementMode}
@@ -26,10 +26,18 @@ public enum ManagementMode
    */
   management_mode_unspecified(0),
   /**
+   * <pre>
+   * Organization created and operated directly by users via Stigmer UI, CLI, or API.
+   * </pre>
+   *
    * <code>self_managed = 1;</code>
    */
   self_managed(1),
   /**
+   * <pre>
+   * Organization created programmatically by an external platform via an IdentityProvider.
+   * </pre>
+   *
    * <code>platform_managed = 2;</code>
    */
   platform_managed(2),
@@ -50,10 +58,18 @@ public enum ManagementMode
    */
   public static final int management_mode_unspecified_VALUE = 0;
   /**
+   * <pre>
+   * Organization created and operated directly by users via Stigmer UI, CLI, or API.
+   * </pre>
+   *
    * <code>self_managed = 1;</code>
    */
   public static final int self_managed_VALUE = 1;
   /**
+   * <pre>
+   * Organization created programmatically by an external platform via an IdentityProvider.
+   * </pre>
+   *
    * <code>platform_managed = 2;</code>
    */
   public static final int platform_managed_VALUE = 2;

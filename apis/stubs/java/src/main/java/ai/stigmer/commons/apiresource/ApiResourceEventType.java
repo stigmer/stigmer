@@ -7,10 +7,11 @@ package ai.stigmer.commons.apiresource;
 
 /**
  * <pre>
- * enumeration of the union of all event types used across all the api resources.
- * this is used for specifying the event type produced by rpc methods in command controllers.
- * using different enum for these event types while specifying in rpc methods and individual api resource would
- * work because the events are eventually converted to strings during message passing.
+ * Event types produced by command controller RPCs across all API resources.
+ *
+ * &#64;internal
+ * Different enums could be used per resource, but a shared enum is simpler
+ * because events are converted to strings during message passing.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.ApiResourceEventType}
@@ -19,28 +20,48 @@ package ai.stigmer.commons.apiresource;
 public enum ApiResourceEventType
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value when no event type is set.
+   * </pre>
+   *
    * <code>unspecified = 0;</code>
    */
   unspecified(0),
   /**
+   * <pre>
+   * Resource was created.
+   * </pre>
+   *
    * <code>created = 1;</code>
    */
   created(1),
   /**
+   * <pre>
+   * Resource spec or status was updated.
+   * </pre>
+   *
    * <code>updated = 2;</code>
    */
   updated(2),
   /**
+   * <pre>
+   * Resource was deleted.
+   * </pre>
+   *
    * <code>deleted = 3;</code>
    */
   deleted(3),
   /**
+   * <pre>
+   * Resource was renamed (slug changed).
+   * </pre>
+   *
    * <code>renamed = 4;</code>
    */
   renamed(4),
   /**
    * <pre>
-   * this is only applicable for cloud-resources
+   * Cloud infrastructure stack outputs were updated.
    * </pre>
    *
    * <code>stack_outputs_updated = 5;</code>
@@ -59,28 +80,48 @@ public enum ApiResourceEventType
       "ApiResourceEventType");
   }
   /**
+   * <pre>
+   * Default value when no event type is set.
+   * </pre>
+   *
    * <code>unspecified = 0;</code>
    */
   public static final int unspecified_VALUE = 0;
   /**
+   * <pre>
+   * Resource was created.
+   * </pre>
+   *
    * <code>created = 1;</code>
    */
   public static final int created_VALUE = 1;
   /**
+   * <pre>
+   * Resource spec or status was updated.
+   * </pre>
+   *
    * <code>updated = 2;</code>
    */
   public static final int updated_VALUE = 2;
   /**
+   * <pre>
+   * Resource was deleted.
+   * </pre>
+   *
    * <code>deleted = 3;</code>
    */
   public static final int deleted_VALUE = 3;
   /**
+   * <pre>
+   * Resource was renamed (slug changed).
+   * </pre>
+   *
    * <code>renamed = 4;</code>
    */
   public static final int renamed_VALUE = 4;
   /**
    * <pre>
-   * this is only applicable for cloud-resources
+   * Cloud infrastructure stack outputs were updated.
    * </pre>
    *
    * <code>stack_outputs_updated = 5;</code>

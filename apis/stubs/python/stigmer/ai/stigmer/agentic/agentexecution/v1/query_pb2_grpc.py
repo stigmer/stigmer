@@ -204,7 +204,8 @@ class AgentExecutionQueryControllerServicer(object):
         records with different aggregation scopes.
         ─────────────────────────────────────────────────────────────────────────────
 
-        Get usage report for a session (all executions in a session).
+        Get a usage report for a session.
+
         Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
 
         @internal
@@ -216,7 +217,8 @@ class AgentExecutionQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getAgentUsageReport(self, request, context):
-        """Get usage report for an agent (all sessions for an agent in a time range).
+        """Get a usage report for an agent.
+
         Returns aggregated tokens, cost, and per-session breakdown with pagination.
 
         @internal
@@ -227,7 +229,8 @@ class AgentExecutionQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getOrgUsageReport(self, request, context):
-        """Get usage report for an organization (all agents in a time range).
+        """Get a usage report for an organization.
+
         Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 
         @internal

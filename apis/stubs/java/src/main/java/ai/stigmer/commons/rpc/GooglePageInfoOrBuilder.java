@@ -12,8 +12,8 @@ public interface GooglePageInfoOrBuilder extends
 
   /**
    * <pre>
-   * google apis include a token to retrieve next page of results.
-   * if there are no more items to return, the next_page_token is empty
+   * Opaque token for retrieving the next page of results.
+   * Empty when there are no more items to return.
    * </pre>
    *
    * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -22,8 +22,8 @@ public interface GooglePageInfoOrBuilder extends
   java.lang.String getPageToken();
   /**
    * <pre>
-   * google apis include a token to retrieve next page of results.
-   * if there are no more items to return, the next_page_token is empty
+   * Opaque token for retrieving the next page of results.
+   * Empty when there are no more items to return.
    * </pre>
    *
    * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -34,7 +34,7 @@ public interface GooglePageInfoOrBuilder extends
 
   /**
    * <pre>
-   * number of items to include in the result
+   * Maximum number of items to include in the result.
    * </pre>
    *
    * <code>int32 size = 2 [json_name = "size"];</code>

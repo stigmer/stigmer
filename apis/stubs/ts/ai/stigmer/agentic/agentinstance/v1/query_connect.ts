@@ -9,7 +9,7 @@ import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 
 /**
- * AgentInstanceQueryController provides queries for retrieving agent instances.
+ * AgentInstanceQueryController handles read operations for agent instances.
  *
  * @generated from service ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController
  */

@@ -32,8 +32,7 @@ public interface UpdateEnvironmentVariablesRequestOrBuilder extends
 
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -41,8 +40,7 @@ public interface UpdateEnvironmentVariablesRequestOrBuilder extends
   int getVariablesCount();
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -57,8 +55,7 @@ public interface UpdateEnvironmentVariablesRequestOrBuilder extends
   getVariables();
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -67,8 +64,7 @@ public interface UpdateEnvironmentVariablesRequestOrBuilder extends
   getVariablesMap();
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -80,8 +76,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue getVariablesOrDefault(
 ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue);
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>

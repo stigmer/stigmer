@@ -23,10 +23,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// GetAgentInstanceRequest retrieves a single agent instance by ID.
+// AgentInstanceId wraps an agent instance identifier.
 type AgentInstanceId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Instance ID (required).
+	// Unique identifier of the agent instance.
 	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -69,10 +69,10 @@ func (x *AgentInstanceId) GetValue() string {
 	return ""
 }
 
-// GetAgentInstancesByAgentRequest gets all instances of a specific agent template.
+// Input for retrieving all instances deployed from a specific agent.
 type GetAgentInstancesByAgentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent ID to filter by (required).
+	// Identifier of the agent whose instances to retrieve.
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// Pagination options.
 	PageInfo      *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
@@ -124,12 +124,12 @@ func (x *GetAgentInstancesByAgentRequest) GetPageInfo() *rpc.PageInfo {
 	return nil
 }
 
-// AgentInstanceList represents a list of agent instances.
+// Response containing a paginated list of agent instances.
 type AgentInstanceList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total count of instances.
+	// Total number of agent instances matching the query.
 	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
-	// List of instances.
+	// Agent instances in the current page.
 	Items         []*AgentInstance `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -179,15 +179,17 @@ func (x *AgentInstanceList) GetItems() []*AgentInstance {
 	return nil
 }
 
-// ListAgentInstancesRequest specifies parameters for listing agent instances.
+// Input for listing agent instances within an organization.
 type ListAgentInstancesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization to list agent instances for (required).
+	// Organization slug to scope the listing.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+	// Filter by metadata labels. AND semantics: all labels must match.
+	//
+	// @internal
 	// Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
 	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Pagination options (optional).
+	// Pagination options.
 	PageInfo      *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

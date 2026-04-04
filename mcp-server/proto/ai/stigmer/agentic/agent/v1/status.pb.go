@@ -22,15 +22,15 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AgentStatus contains system-managed state for an Agent resource.
+// AgentStatus contains system-managed state for an agent.
 type AgentStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	// ID of the default agent instance created automatically for this agent.
-	// Every agent has exactly one default instance that requires no configuration.
-	// This instance has no environment variables and uses all agent defaults.
-	// Created automatically when the agent is created.
+	// ID of the default agent instance.
+	// Every agent has exactly one default instance that uses all agent defaults
+	// and requires no additional configuration. Created automatically when the
+	// agent is created.
 	DefaultInstanceId string `protobuf:"bytes,1,opt,name=default_instance_id,json=defaultInstanceId,proto3" json:"default_instance_id,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache

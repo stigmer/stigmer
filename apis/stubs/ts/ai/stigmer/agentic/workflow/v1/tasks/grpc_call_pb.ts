@@ -16,10 +16,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_grpc_call: GenFile = /*@_
   fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZ3JwY19jYWxsLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MihgEKEkdycGNDYWxsVGFza0NvbmZpZxIbCgdzZXJ2aWNlGAEgASgJQgq6SAfIAQFyAhABEhoKBm1ldGhvZBgCIAEoCUIKukgHyAEBcgIQARIoCgdyZXF1ZXN0GAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdDoN6ossCWdycGNfY2FsbGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
- * GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks.
+ * GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
  *
- * GRPC_CALL tasks make gRPC requests to external services.
- *
+ * @internal
  * YAML Example:
  *   - taskName:
  *       call: grpc

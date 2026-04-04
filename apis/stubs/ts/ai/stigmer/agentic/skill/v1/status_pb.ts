@@ -17,13 +17,14 @@ export const file_ai_stigmer_agentic_skill_v1_status: GenFile = /*@__PURE__*/
 
 /**
  * SkillStatus represents the system-managed state of a skill.
- * This represents observed state managed by the system.
  *
  * @generated from message ai.stigmer.agentic.skill.v1.SkillStatus
  */
 export type SkillStatus = Message<"ai.stigmer.agentic.skill.v1.SkillStatus"> & {
   /**
    * Standard audit information tracking creation and modification.
+   *
+   * @internal
    * Field 99 follows Stigmer convention for audit placement.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
@@ -31,20 +32,23 @@ export type SkillStatus = Message<"ai.stigmer.agentic.skill.v1.SkillStatus"> & {
   audit?: ApiResourceAudit;
 
   /**
-   * SHA256 hash of the skill artifact Zip file.
-   * This is the content fingerprint and serves as the immutable version identifier.
-   * Calculated by the system from the uploaded artifact.
+   * SHA256 hash of the skill artifact, used as the immutable version identifier.
+   *
+   * @internal
+   * Calculated by the system from the uploaded artifact ZIP.
    *
    * @generated from field: string version_hash = 1;
    */
   versionHash: string;
 
   /**
-   * Storage location key for the skill artifact.
+   * Storage key for the skill artifact.
+   *
+   * @internal
    * Format varies based on storage backend:
    * - Local: "<hash>.zip"
    * - Cloud: "skills/<slug>_<hash>.zip"
-   * This is determined by the system based on storage configuration.
+   * Determined by the system based on storage configuration.
    *
    * @generated from field: string artifact_storage_key = 2;
    */
@@ -59,9 +63,11 @@ export type SkillStatus = Message<"ai.stigmer.agentic.skill.v1.SkillStatus"> & {
 
   /**
    * Git provenance tracking where the skill artifacts originated from.
-   * Populated by CLI during push, provides traceability and enables
-   * "view on GitHub" links and reproducible deployments.
    * Absent when pushed from a non-git directory.
+   *
+   * @internal
+   * Populated by CLI during push; provides traceability and enables
+   * "view on GitHub" links and reproducible deployments.
    *
    * @generated from field: ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4;
    */
@@ -77,7 +83,9 @@ export const SkillStatusSchema: GenMessage<SkillStatus> = /*@__PURE__*/
 
 /**
  * GitProvenance tracks the git origin of skill artifacts.
- * This is system-detected metadata, not user-specified configuration.
+ *
+ * @internal
+ * System-detected metadata, not user-specified configuration.
  * Populated by CLI during push based on:
  * - Local push: auto-detected from directory's git context
  * - Git push: resolved from user-provided URL/ref
@@ -86,30 +94,33 @@ export const SkillStatusSchema: GenMessage<SkillStatus> = /*@__PURE__*/
  */
 export type GitProvenance = Message<"ai.stigmer.agentic.skill.v1.GitProvenance"> & {
   /**
-   * Git remote URL.
-   * For local push: detected "origin" remote URL
-   * For git push: the user-provided repository URL
-   * Example: "https://github.com/stigmer/skills.git"
+   * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+   *
+   * @internal
+   * For local push: detected "origin" remote URL.
+   * For git push: the user-provided repository URL.
    *
    * @generated from field: string remote_url = 1;
    */
   remoteUrl: string;
 
   /**
-   * Original git reference (for display purposes).
-   * For local push: detected branch name (e.g., "main") or empty if detached HEAD
-   * For git push: the user-provided ref (e.g., "v1.0.0", "main")
-   * This preserves user intent for display while commit provides immutability.
+   * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+   *
+   * @internal
+   * For local push: detected branch name or empty if detached HEAD.
+   * For git push: the user-provided ref.
+   * Preserves user intent for display while commit provides immutability.
    *
    * @generated from field: string ref = 2;
    */
   ref: string;
 
   /**
-   * Resolved commit SHA (for reproducibility).
-   * Always populated - this is the immutable version reference.
-   * Full 40-character SHA ensures exact reproducibility.
-   * Example: "abc123def456789012345678901234567890abcd"
+   * Resolved commit SHA for exact reproducibility.
+   *
+   * @internal
+   * Always populated. Full 40-character SHA.
    *
    * @generated from field: string commit = 3;
    */

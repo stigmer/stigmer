@@ -16,7 +16,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/message.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_message: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIs0CCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIEkkKC2xsbV9tZXRyaWNzGAcgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxNZXRyaWNzIqwFCghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABElMKEmNvbXBvbmVudF9tZXRhZGF0YRgGIAEoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db21wb25lbnRNZXRhZGF0YRISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIZChFyZXF1aXJlc19hcHByb3ZhbBgKIAEoCBIYChBhcHByb3ZhbF9tZXNzYWdlGAsgASgJEh0KFWFwcHJvdmFsX3JlcXVlc3RlZF9hdBgMIAEoCRIbChNhcHByb3ZhbF9kZWNpZGVkX2F0GA0gASgJEhMKC2FwcHJvdmVkX2J5GA4gASgJEk0KD2FwcHJvdmFsX2FjdGlvbhgPIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbhIUCgxpc19zdHJlYW1pbmcYECABKAgSVwoQc3RyZWFtaW5nX3NvdXJjZRgTIAEoDjI9LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbFN0cmVhbWluZ1NvdXJjZRIXCg9tY3Bfc2VydmVyX3NsdWcYESABKAkSFAoMYXJnc19wcmV2aWV3GBIgASgJIoQBChFDb21wb25lbnRNZXRhZGF0YRIWCg5jb21wb25lbnRfdHlwZRgBIAEoCRIXCg9jb21wb25lbnRfZ3JvdXAYAiABKAkSEwoLbGF5b3V0X2hpbnQYAyABKAkSKQoIbWV0YWRhdGEYBCABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0YgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIs0CCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIEkkKC2xsbV9tZXRyaWNzGAcgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxNZXRyaWNzIvEECghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAogASgIEhgKEGFwcHJvdmFsX21lc3NhZ2UYCyABKAkSHQoVYXBwcm92YWxfcmVxdWVzdGVkX2F0GAwgASgJEhsKE2FwcHJvdmFsX2RlY2lkZWRfYXQYDSABKAkSEwoLYXBwcm92ZWRfYnkYDiABKAkSTQoPYXBwcm92YWxfYWN0aW9uGA8gASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhQKDGlzX3N0cmVhbWluZxgQIAEoCBJXChBzdHJlYW1pbmdfc291cmNlGBMgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAlKBAgGEAdSEmNvbXBvbmVudF9tZXRhZGF0YWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * Represents a single message in the agent conversation.
@@ -128,15 +128,6 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus status = 5;
    */
   status: ToolCallStatus;
-
-  /**
-   * Optional metadata to guide frontend UI component rendering.
-   * Set by Python worker based on tool name or explicitly by agents.
-   * Example: kubectl_get_pods → component_type="terminal"
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6;
-   */
-  componentMetadata?: ComponentMetadata;
 
   /**
    * ISO 8601 timestamp when the tool call started.
@@ -294,54 +285,4 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
  */
 export const ToolCallSchema: GenMessage<ToolCall> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_message, 1);
-
-/**
- * Metadata to guide frontend UI component rendering for tool calls.
- * All fields are optional - if not set, frontend uses default rendering logic.
- *
- * @generated from message ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
- */
-export type ComponentMetadata = Message<"ai.stigmer.agentic.agentexecution.v1.ComponentMetadata"> & {
-  /**
-   * Type of UI component to render for this tool call.
-   * Examples: "terminal", "preview", "form", "approval", "diagram", "progress"
-   * Frontend maps these to React Flow node types (TerminalNode, PreviewNode, etc.).
-   *
-   * @generated from field: string component_type = 1;
-   */
-  componentType: string;
-
-  /**
-   * Optional group identifier for related tool calls.
-   * Tool calls with the same group_id can be aggregated into a single UI component.
-   * Example: Multiple kubectl commands in a deployment workflow.
-   *
-   * @generated from field: string component_group = 2;
-   */
-  componentGroup: string;
-
-  /**
-   * Optional layout hint for canvas positioning.
-   * Examples: "inline", "full-width", "sidebar", "floating"
-   *
-   * @generated from field: string layout_hint = 3;
-   */
-  layoutHint: string;
-
-  /**
-   * Flexible metadata for component-specific configuration.
-   * Frontend components can read this for custom behavior.
-   * Example: {"syntax": "yaml", "readonly": true} for file preview
-   *
-   * @generated from field: google.protobuf.Struct metadata = 4;
-   */
-  metadata?: JsonObject;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.
- * Use `create(ComponentMetadataSchema)` to create a new message.
- */
-export const ComponentMetadataSchema: GenMessage<ComponentMetadata> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_message, 2);
 

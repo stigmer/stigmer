@@ -23,10 +23,11 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// wrapper to get list of identity accounts
+// IdentityAccounts contains a list of identity account resources.
 type IdentityAccounts struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*IdentityAccount     `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Identity account entries.
+	Entries       []*IdentityAccount `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -68,10 +69,11 @@ func (x *IdentityAccounts) GetEntries() []*IdentityAccount {
 	return nil
 }
 
-// wrapper for user identity account id.
+// IdentityAccountId identifies an identity account by its unique identifier.
 type IdentityAccountId struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique identifier of the identity account.
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -113,10 +115,11 @@ func (x *IdentityAccountId) GetValue() string {
 	return ""
 }
 
-// wrapper for email of the identity account.
+// IdentityAccountEmail identifies an identity account by its email address.
 type IdentityAccountEmail struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Email address of the identity account.
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,10 +161,11 @@ func (x *IdentityAccountEmail) GetValue() string {
 	return ""
 }
 
-// wrapper for idp id.
+// IdpId identifies an identity account by its identity provider ID.
 type IdpId struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Identity provider ID of the account.
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -203,14 +207,15 @@ func (x *IdpId) GetValue() string {
 	return ""
 }
 
-// input for paginated queries that require identity account id as input.
+// ListWithIdentityAccountIdReq is the input for paginated queries scoped to an identity account.
 type ListWithIdentityAccountIdReq struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// identity account id
-	IdentityAccountId string        `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
-	Page              *rpc.PageInfo `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Unique identifier of the identity account to list resources for.
+	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
+	// Pagination parameters.
+	Page          *rpc.PageInfo `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListWithIdentityAccountIdReq) Reset() {
@@ -257,12 +262,12 @@ func (x *ListWithIdentityAccountIdReq) GetPage() *rpc.PageInfo {
 	return nil
 }
 
-// response for paginated rpc query to list identity accounts.
+// IdentityAccountsList is a paginated response containing identity accounts.
 type IdentityAccountsList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// total number of pages
+	// Total number of pages available.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// current page entries
+	// Identity accounts in the current page.
 	Entries       []*IdentityAccount `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -312,11 +317,13 @@ func (x *IdentityAccountsList) GetEntries() []*IdentityAccount {
 	return nil
 }
 
-// wrapper for identity account organization id.
+// ListWithIdentityOrg is the input for paginated queries scoped to an organization.
 type ListWithIdentityOrg struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	Page          *rpc.PageInfo          `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization slug to list identity accounts for.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Pagination parameters.
+	Page          *rpc.PageInfo `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

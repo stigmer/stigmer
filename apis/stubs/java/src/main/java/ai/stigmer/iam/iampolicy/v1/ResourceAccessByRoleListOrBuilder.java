@@ -11,24 +11,44 @@ public interface ResourceAccessByRoleListOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.iam.iampolicy.v1.RoleAccess> 
       getEntriesList();
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.RoleAccess getEntries(int index);
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   int getEntriesCount();
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.iam.iampolicy.v1.RoleAccessOrBuilder> 
       getEntriesOrBuilderList();
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.RoleAccessOrBuilder getEntriesOrBuilder(

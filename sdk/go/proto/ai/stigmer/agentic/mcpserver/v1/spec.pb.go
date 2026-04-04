@@ -23,12 +23,11 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// McpServerSpec defines the configuration template for an MCP server.
-// This is a reusable definition that can be referenced by multiple agents.
-// Actual secrets/credentials are provided at runtime via AgentInstance's environment.
+// McpServerSpec defines the configurable properties of an MCP server.
 //
-// MCP (Model Context Protocol) servers provide tools and capabilities to AI agents.
-// This spec declares the server type, connection details, and required environment variables.
+// @internal
+// This is the "Template" layer — declares capabilities and requirements.
+// The overview.md file provides the SDK-facing description and example YAML.
 type McpServerSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable description for marketplace display and documentation.
@@ -53,33 +52,19 @@ type McpServerSpec struct {
 	ServerType isMcpServerSpec_ServerType `protobuf_oneof:"server_type"`
 	// Default tools to enable from this MCP server.
 	// Empty list means all tools are enabled by default.
-	// When specified, only these tools will be available unless overridden in McpServerUsage.
+	//
+	// @internal
 	// Tool names must match exactly what the MCP server reports via tools/list.
-	// IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-	// Do NOT include names from `discovered_capabilities.resource_templates` —
+	// Only names from discovered_capabilities.tools are valid here.
+	// Do NOT include names from discovered_capabilities.resource_templates —
 	// resource templates are read-only data endpoints, not callable tools.
-	// Examples: ["create_pull_request", "search_code", "get_file_contents"]
+	// Including a resource template name here causes a fatal runtime error.
 	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
-	// Environment specification declaring required environment variables.
-	// This defines the SCHEMA of required env vars - actual values are provided
-	// at runtime via AgentInstance's environment_ref.
-	//
-	// Use this to declare what environment variables the MCP server needs,
-	// whether they are secrets (e.g., API tokens), and their descriptions.
-	// Values in this spec can be empty - they serve as documentation and validation.
-	//
-	// Example:
-	//
-	//	data:
-	//	  GITHUB_TOKEN:
-	//	    is_secret: true
-	//	    description: "GitHub personal access token with repo scope"
-	//	  GITHUB_OWNER:
-	//	    is_secret: false
-	//	    description: "Default GitHub organization or user"
+	// Environment variables required by the MCP server.
 	EnvSpec *v1.EnvironmentSpec `protobuf:"bytes,8,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
 	// Default tool approval policies for this MCP server.
 	//
+	// @internal
 	// Tools listed here require user approval before execution by default.
 	// This is the first layer in the approval policy chain:
 	//
@@ -89,24 +74,6 @@ type McpServerSpec struct {
 	// - Mark destructive operations as requiring approval by default
 	// - Protect sensitive data access across all agents using this server
 	// - Establish organization-wide safety policies for dangerous tools
-	//
-	// Example (GitHub MCP):
-	//
-	//	default_tool_approvals:
-	//	  - tool_name: "delete_repository"
-	//	    message: "Delete repository: {{args.repo}}"
-	//	  - tool_name: "force_push"
-	//	    message: "Force push to {{args.branch}}"
-	//	  - tool_name: "add_collaborator"
-	//	    message: "Add {{args.user}} as collaborator to {{args.repo}}"
-	//
-	// Example (Database MCP):
-	//
-	//	default_tool_approvals:
-	//	  - tool_name: "execute_sql"
-	//	    message: "Execute SQL: {{args.query}}"
-	//	  - tool_name: "drop_table"
-	//	    message: "Drop table: {{args.table_name}}"
 	//
 	// Tools not listed here do not require approval by default.
 	// Agents can still add approval requirements via tool_approval_overrides.
@@ -233,14 +200,15 @@ func (*McpServerSpec_Stdio) isMcpServerSpec_ServerType() {}
 func (*McpServerSpec_Http) isMcpServerSpec_ServerType() {}
 
 // StdioServerConfig defines an MCP server that runs as a subprocess.
-// Communication happens via stdin/stdout using JSON-RPC messages.
 //
-// This is the most common MCP server type, used for:
+// @internal
+// Communication happens via stdin/stdout using JSON-RPC messages.
+// The agent runner starts this process and communicates via stdio.
+//
+// Common examples:
 // - Node.js servers: npx @modelcontextprotocol/server-github
 // - Python servers: python -m mcp_server_sqlite
 // - Go servers: ./mcp-server-binary
-//
-// The agent runner starts this process and communicates via stdio.
 type StdioServerConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Command to execute the MCP server.
@@ -312,13 +280,13 @@ func (x *StdioServerConfig) GetWorkingDir() string {
 }
 
 // HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
-// Used for remote/managed MCP services that expose an HTTP endpoint.
 //
+// @internal
 // Communication flow:
 // 1. Agent sends JSON-RPC requests via HTTP POST
 // 2. Server streams responses via Server-Sent Events (SSE)
 //
-// This is useful for:
+// Use cases:
 // - Managed MCP services (e.g., hosted by a cloud provider)
 // - MCP servers behind a reverse proxy or API gateway
 // - Sharing a single MCP server instance across multiple agents
@@ -420,8 +388,7 @@ func (x *HttpServerConfig) GetTimeoutSeconds() int32 {
 
 // ToolApprovalPolicy defines approval requirements for a specific tool.
 //
-// ## Message Templates
-//
+// @internal
 // The message field supports {{args.field}} placeholders that are resolved
 // at runtime using the actual tool arguments. This enables contextual
 // approval messages that help users make informed decisions.
@@ -433,29 +400,7 @@ func (x *HttpServerConfig) GetTimeoutSeconds() int32 {
 //
 // If a placeholder references a missing argument, it's replaced with "<unknown>".
 //
-// ## Examples
-//
-// Simple message:
-//
-//	tool_name: "send_email"
-//	message: "Send email to {{args.recipient}}"
-//	Result: "Send email to customer@example.com"
-//
-// Multiple placeholders:
-//
-//	tool_name: "delete_file"
-//	message: "Delete {{args.path}} from {{args.repository}}"
-//	Result: "Delete src/main.py from acme/webapp"
-//
-// Default message (empty):
-//
-//	tool_name: "dangerous_operation"
-//	message: ""
-//	Result: "Execute tool: dangerous_operation" (auto-generated)
-//
-// ## Policy Chain
-//
-// This policy sits at the McpServer level. The full approval policy chain is:
+// Policy chain (lowest to highest priority):
 // 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
 // 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
 // 3. AgentExecution.auto_approve_all - Runtime bypass

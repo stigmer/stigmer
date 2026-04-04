@@ -20,6 +20,10 @@ package ai.stigmer.agentic.agentexecution.v1;
 public enum WorkspaceWriteBackPhase
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value, not a valid write-back phase.
+   * </pre>
+   *
    * <code>WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED = 0;</code>
    */
   WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED(0),
@@ -68,6 +72,10 @@ public enum WorkspaceWriteBackPhase
       "WorkspaceWriteBackPhase");
   }
   /**
+   * <pre>
+   * Default value, not a valid write-back phase.
+   * </pre>
+   *
    * <code>WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED = 0;</code>
    */
   public static final int WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED_VALUE = 0;

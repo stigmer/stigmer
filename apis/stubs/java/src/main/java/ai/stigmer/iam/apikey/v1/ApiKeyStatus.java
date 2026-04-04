@@ -6,6 +6,10 @@
 package ai.stigmer.iam.apikey.v1;
 
 /**
+ * <pre>
+ * ApiKeyStatus contains system-managed state for an API key.
+ * </pre>
+ *
  * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKeyStatus}
  */
 @com.google.protobuf.Generated
@@ -53,7 +57,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
   /**
    * <pre>
-   * audit
+   * Standard audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -65,7 +69,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * audit
+   * Standard audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -77,7 +81,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * audit
+   * Standard audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -91,7 +95,7 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp lastUsedAt_;
   /**
    * <pre>
-   * last used timestamp for the api-key
+   * Timestamp of the most recent API call made with this key.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -103,7 +107,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * last used timestamp for the api-key
+   * Timestamp of the most recent API call made with this key.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -115,7 +119,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * last used timestamp for the api-key
+   * Timestamp of the most recent API call made with this key.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -304,6 +308,10 @@ private static final long serialVersionUID = 0L;
     return builder;
   }
   /**
+   * <pre>
+   * ApiKeyStatus contains system-managed state for an API key.
+   * </pre>
+   *
    * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKeyStatus}
    */
   public static final class Builder extends
@@ -483,7 +491,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceAudit, ai.stigmer.commons.apiresource.ApiResourceAudit.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditOrBuilder> auditBuilder_;
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -494,7 +502,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -509,7 +517,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -529,7 +537,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -547,7 +555,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -572,7 +580,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -589,7 +597,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -601,7 +609,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -616,7 +624,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * audit
+     * Standard audit information (created_at, updated_at, created_by, etc.).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -640,7 +648,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> lastUsedAtBuilder_;
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -651,7 +659,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -666,7 +674,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -686,7 +694,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -704,7 +712,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -729,7 +737,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -746,7 +754,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -758,7 +766,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -773,7 +781,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * last used timestamp for the api-key
+     * Timestamp of the most recent API call made with this key.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>

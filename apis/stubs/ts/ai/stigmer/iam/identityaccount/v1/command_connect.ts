@@ -34,6 +34,9 @@ export const IdentityAccountCommandController = {
     /**
      * Update an existing identity account.
      *
+     * @internal
+     * Authorization: Requires can_edit permission on the identity account resource.
+     *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update
      */
     update: {
@@ -45,6 +48,9 @@ export const IdentityAccountCommandController = {
     /**
      * Delete an identity account.
      *
+     * @internal
+     * Authorization: Requires can_delete permission on the identity account resource.
+     *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete
      */
     delete: {
@@ -54,11 +60,12 @@ export const IdentityAccountCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      *
      * @internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
      * to Stigmer with the Auth0 payload format to trigger account provisioning.
+     * Authorization is skipped — this is a system-level operation.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook
      */

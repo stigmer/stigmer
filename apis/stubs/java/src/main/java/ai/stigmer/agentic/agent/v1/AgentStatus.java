@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * AgentStatus contains system-managed state for an Agent resource.
+ * AgentStatus contains system-managed state for an agent.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentStatus}
@@ -97,10 +97,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object defaultInstanceId_ = "";
   /**
    * <pre>
-   * ID of the default agent instance created automatically for this agent.
-   * Every agent has exactly one default instance that requires no configuration.
-   * This instance has no environment variables and uses all agent defaults.
-   * Created automatically when the agent is created.
+   * ID of the default agent instance.
+   * Every agent has exactly one default instance that uses all agent defaults
+   * and requires no additional configuration. Created automatically when the
+   * agent is created.
    * </pre>
    *
    * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
@@ -121,10 +121,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the default agent instance created automatically for this agent.
-   * Every agent has exactly one default instance that requires no configuration.
-   * This instance has no environment variables and uses all agent defaults.
-   * Created automatically when the agent is created.
+   * ID of the default agent instance.
+   * Every agent has exactly one default instance that uses all agent defaults
+   * and requires no additional configuration. Created automatically when the
+   * agent is created.
    * </pre>
    *
    * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
@@ -319,7 +319,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentStatus contains system-managed state for an Agent resource.
+   * AgentStatus contains system-managed state for an agent.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentStatus}
@@ -648,10 +648,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object defaultInstanceId_ = "";
     /**
      * <pre>
-     * ID of the default agent instance created automatically for this agent.
-     * Every agent has exactly one default instance that requires no configuration.
-     * This instance has no environment variables and uses all agent defaults.
-     * Created automatically when the agent is created.
+     * ID of the default agent instance.
+     * Every agent has exactly one default instance that uses all agent defaults
+     * and requires no additional configuration. Created automatically when the
+     * agent is created.
      * </pre>
      *
      * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
@@ -671,10 +671,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the default agent instance created automatically for this agent.
-     * Every agent has exactly one default instance that requires no configuration.
-     * This instance has no environment variables and uses all agent defaults.
-     * Created automatically when the agent is created.
+     * ID of the default agent instance.
+     * Every agent has exactly one default instance that uses all agent defaults
+     * and requires no additional configuration. Created automatically when the
+     * agent is created.
      * </pre>
      *
      * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
@@ -695,10 +695,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the default agent instance created automatically for this agent.
-     * Every agent has exactly one default instance that requires no configuration.
-     * This instance has no environment variables and uses all agent defaults.
-     * Created automatically when the agent is created.
+     * ID of the default agent instance.
+     * Every agent has exactly one default instance that uses all agent defaults
+     * and requires no additional configuration. Created automatically when the
+     * agent is created.
      * </pre>
      *
      * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
@@ -715,10 +715,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the default agent instance created automatically for this agent.
-     * Every agent has exactly one default instance that requires no configuration.
-     * This instance has no environment variables and uses all agent defaults.
-     * Created automatically when the agent is created.
+     * ID of the default agent instance.
+     * Every agent has exactly one default instance that uses all agent defaults
+     * and requires no additional configuration. Created automatically when the
+     * agent is created.
      * </pre>
      *
      * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
@@ -732,10 +732,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the default agent instance created automatically for this agent.
-     * Every agent has exactly one default instance that requires no configuration.
-     * This instance has no environment variables and uses all agent defaults.
-     * Created automatically when the agent is created.
+     * ID of the default agent instance.
+     * Every agent has exactly one default instance that uses all agent defaults
+     * and requires no additional configuration. Created automatically when the
+     * agent is created.
      * </pre>
      *
      * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>

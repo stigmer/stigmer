@@ -251,7 +251,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:   "mcp-1",
+				Id:   "mcp_1",
 				Name: "Test MCP Server",
 				Slug: "test-mcp-server",
 				Org:  "test-org",
@@ -272,7 +272,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 				},
 			},
 		}
-		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp-1", mcpServer); err != nil {
+		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp_1", mcpServer); err != nil {
 			t.Fatalf("failed to save MCP server: %v", err)
 		}
 
@@ -334,7 +334,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:   "mcp-2",
+				Id:   "mcp_2",
 				Name: "Precedence MCP Server",
 				Slug: "precedence-mcp",
 				Org:  "test-org",
@@ -355,7 +355,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 				},
 			},
 		}
-		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp-2", mcpServer); err != nil {
+		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp_2", mcpServer); err != nil {
 			t.Fatalf("failed to save MCP server: %v", err)
 		}
 
@@ -476,7 +476,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:   "mcp-a",
+				Id:   "mcp_a",
 				Name: "MCP Server A",
 				Slug: "mcp-server-a",
 				Org:  "test-org",
@@ -501,7 +501,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:   "mcp-b",
+				Id:   "mcp_b",
 				Name: "MCP Server B",
 				Slug: "mcp-server-b",
 				Org:  "test-org",
@@ -523,10 +523,10 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			},
 		}
 
-		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp-a", mcpServerA); err != nil {
+		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp_a", mcpServerA); err != nil {
 			t.Fatalf("failed to save MCP server A: %v", err)
 		}
-		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp-b", mcpServerB); err != nil {
+		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp_b", mcpServerB); err != nil {
 			t.Fatalf("failed to save MCP server B: %v", err)
 		}
 
@@ -585,7 +585,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:   "mcp-no-org-ref",
+				Id:   "mcp_no-org-ref",
 				Name: "No Org Ref MCP",
 				Slug: "no-org-ref-mcp",
 				Org:  "test-org",
@@ -602,7 +602,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 				},
 			},
 		}
-		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp-no-org-ref", mcpServer); err != nil {
+		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp_no-org-ref", mcpServer); err != nil {
 			t.Fatalf("failed to save MCP server: %v", err)
 		}
 
@@ -653,7 +653,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:   "mcp-update",
+				Id:   "mcp_update",
 				Name: "Update MCP Server",
 				Slug: "update-mcp",
 				Org:  "test-org",
@@ -670,7 +670,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 				},
 			},
 		}
-		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp-update", mcpServer); err != nil {
+		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp_update", mcpServer); err != nil {
 			t.Fatalf("failed to save MCP server: %v", err)
 		}
 

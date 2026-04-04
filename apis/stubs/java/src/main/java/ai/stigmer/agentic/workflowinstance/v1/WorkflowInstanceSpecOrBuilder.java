@@ -14,13 +14,11 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * <pre>
    * Reference to the Workflow template this instance deploys.
    *
+   * &#64;internal
    * This links the instance to a reusable orchestration blueprint.
    * The Workflow defines which AgentInstances to orchestrate and in what order.
-   *
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
+   * Format: Workflow resource ID (e.g., "wfl_abc123")
    * Validation: Minimum length of 1 character (required field)
-   *
-   * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -31,13 +29,11 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * <pre>
    * Reference to the Workflow template this instance deploys.
    *
+   * &#64;internal
    * This links the instance to a reusable orchestration blueprint.
    * The Workflow defines which AgentInstances to orchestrate and in what order.
-   *
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
+   * Format: Workflow resource ID (e.g., "wfl_abc123")
    * Validation: Minimum length of 1 character (required field)
-   *
-   * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -48,19 +44,7 @@ public interface WorkflowInstanceSpecOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable description explaining what this instance is for.
-   *
-   * Use this to document:
-   * - Purpose of this instance
-   * - Environment it targets (dev, staging, prod)
-   * - Team or project ownership
-   * - Special configuration notes
-   *
-   * Examples:
-   * - "Production CI/CD pipeline for main branch"
-   * - "Staging environment deployment for feature testing"
-   * - "Data pipeline for analytics team - runs daily at midnight"
-   * - "Customer onboarding workflow for ACME Corp"
+   * Human-readable description of this workflow instance.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -69,19 +53,7 @@ public interface WorkflowInstanceSpecOrBuilder extends
   java.lang.String getDescription();
   /**
    * <pre>
-   * Human-readable description explaining what this instance is for.
-   *
-   * Use this to document:
-   * - Purpose of this instance
-   * - Environment it targets (dev, staging, prod)
-   * - Team or project ownership
-   * - Special configuration notes
-   *
-   * Examples:
-   * - "Production CI/CD pipeline for main branch"
-   * - "Staging environment deployment for feature testing"
-   * - "Data pipeline for analytics team - runs daily at midnight"
-   * - "Customer onboarding workflow for ACME Corp"
+   * Human-readable description of this workflow instance.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -92,16 +64,16 @@ public interface WorkflowInstanceSpecOrBuilder extends
 
   /**
    * <pre>
-   * References to Environment resources providing configuration and secrets.
+   * Ordered list of Environment resources providing configuration and secrets.
    *
+   * Environments are merged in declaration order — later entries override
+   * earlier ones when keys conflict.
+   *
+   * &#64;internal
    * Environments are layered configuration containers that provide:
    * - Environment variables (API keys, endpoints, flags)
    * - Secrets (credentials, tokens, passwords)
    * - Configuration values (timeouts, limits, settings)
-   *
-   * Layering Behavior:
-   * Environments are merged in order - later environments override earlier ones.
-   * This enables a base + overrides pattern:
    *
    * Example layering:
    * [base-env, aws-prod-env, github-team-env]
@@ -115,7 +87,7 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -128,16 +100,16 @@ public interface WorkflowInstanceSpecOrBuilder extends
       getEnvironmentRefsList();
   /**
    * <pre>
-   * References to Environment resources providing configuration and secrets.
+   * Ordered list of Environment resources providing configuration and secrets.
    *
+   * Environments are merged in declaration order — later entries override
+   * earlier ones when keys conflict.
+   *
+   * &#64;internal
    * Environments are layered configuration containers that provide:
    * - Environment variables (API keys, endpoints, flags)
    * - Secrets (credentials, tokens, passwords)
    * - Configuration values (timeouts, limits, settings)
-   *
-   * Layering Behavior:
-   * Environments are merged in order - later environments override earlier ones.
-   * This enables a base + overrides pattern:
    *
    * Example layering:
    * [base-env, aws-prod-env, github-team-env]
@@ -151,7 +123,7 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -163,16 +135,16 @@ public interface WorkflowInstanceSpecOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
   /**
    * <pre>
-   * References to Environment resources providing configuration and secrets.
+   * Ordered list of Environment resources providing configuration and secrets.
    *
+   * Environments are merged in declaration order — later entries override
+   * earlier ones when keys conflict.
+   *
+   * &#64;internal
    * Environments are layered configuration containers that provide:
    * - Environment variables (API keys, endpoints, flags)
    * - Secrets (credentials, tokens, passwords)
    * - Configuration values (timeouts, limits, settings)
-   *
-   * Layering Behavior:
-   * Environments are merged in order - later environments override earlier ones.
-   * This enables a base + overrides pattern:
    *
    * Example layering:
    * [base-env, aws-prod-env, github-team-env]
@@ -186,7 +158,7 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -198,16 +170,16 @@ public interface WorkflowInstanceSpecOrBuilder extends
   int getEnvironmentRefsCount();
   /**
    * <pre>
-   * References to Environment resources providing configuration and secrets.
+   * Ordered list of Environment resources providing configuration and secrets.
    *
+   * Environments are merged in declaration order — later entries override
+   * earlier ones when keys conflict.
+   *
+   * &#64;internal
    * Environments are layered configuration containers that provide:
    * - Environment variables (API keys, endpoints, flags)
    * - Secrets (credentials, tokens, passwords)
    * - Configuration values (timeouts, limits, settings)
-   *
-   * Layering Behavior:
-   * Environments are merged in order - later environments override earlier ones.
-   * This enables a base + overrides pattern:
    *
    * Example layering:
    * [base-env, aws-prod-env, github-team-env]
@@ -221,7 +193,7 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -234,16 +206,16 @@ public interface WorkflowInstanceSpecOrBuilder extends
       getEnvironmentRefsOrBuilderList();
   /**
    * <pre>
-   * References to Environment resources providing configuration and secrets.
+   * Ordered list of Environment resources providing configuration and secrets.
    *
+   * Environments are merged in declaration order — later entries override
+   * earlier ones when keys conflict.
+   *
+   * &#64;internal
    * Environments are layered configuration containers that provide:
    * - Environment variables (API keys, endpoints, flags)
    * - Secrets (credentials, tokens, passwords)
    * - Configuration values (timeouts, limits, settings)
-   *
-   * Layering Behavior:
-   * Environments are merged in order - later environments override earlier ones.
-   * This enables a base + overrides pattern:
    *
    * Example layering:
    * [base-env, aws-prod-env, github-team-env]
@@ -257,7 +229,7 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments

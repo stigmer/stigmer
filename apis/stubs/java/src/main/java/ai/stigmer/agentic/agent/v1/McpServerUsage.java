@@ -7,25 +7,14 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * McpServerUsage declares that this Agent uses a McpServer resource.
- * The slug from mcp_server_ref becomes the identifier for SubAgent access.
+ * McpServerUsage declares that this agent uses a McpServer resource.
  *
+ * The slug from mcp_server_ref identifies this server for SubAgent access
+ * grants via McpAccess.
+ *
+ * &#64;internal
  * Design principle: Users already named their McpServer with a slug.
- * We use that slug as the identifier - no extra naming required.
- *
- * Example YAML:
- * mcp_server_usages:
- * - mcp_server_ref:
- * kind: mcp_server
- * slug: github
- * enabled_tools: [search_code, get_file, create_pr]
- * tool_approval_overrides:
- * - tool_name: delete_repository
- * requires_approval: false  # Trust this agent
- * - mcp_server_ref:
- * org: acme-corp
- * kind: mcp_server
- * slug: internal-tools
+ * We use that slug as the identifier — no extra naming required.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpServerUsage}
@@ -79,8 +68,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the McpServer resource.
-   * Must reference a resource with kind=mcp_server (44).
-   * The slug from this reference is how SubAgents identify this server.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -93,8 +80,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the McpServer resource.
-   * Must reference a resource with kind=mcp_server (44).
-   * The slug from this reference is how SubAgents identify this server.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -107,8 +92,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the McpServer resource.
-   * Must reference a resource with kind=mcp_server (44).
-   * The slug from this reference is how SubAgents identify this server.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -124,13 +107,14 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Tools to enable from this MCP server for this Agent.
-   * This defines the maximum tool set - SubAgents can only restrict further.
-   * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+   * Tools to enable from this MCP server for this agent.
+   * Empty list uses the McpServer's default_enabled_tools.
+   * Sub-agents can only restrict this set further, not expand it.
    *
+   * &#64;internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
    * Including a resource template name here causes a fatal runtime error.
    * </pre>
@@ -144,13 +128,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools to enable from this MCP server for this Agent.
-   * This defines the maximum tool set - SubAgents can only restrict further.
-   * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+   * Tools to enable from this MCP server for this agent.
+   * Empty list uses the McpServer's default_enabled_tools.
+   * Sub-agents can only restrict this set further, not expand it.
    *
+   * &#64;internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
    * Including a resource template name here causes a fatal runtime error.
    * </pre>
@@ -163,13 +148,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools to enable from this MCP server for this Agent.
-   * This defines the maximum tool set - SubAgents can only restrict further.
-   * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+   * Tools to enable from this MCP server for this agent.
+   * Empty list uses the McpServer's default_enabled_tools.
+   * Sub-agents can only restrict this set further, not expand it.
    *
+   * &#64;internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
    * Including a resource template name here causes a fatal runtime error.
    * </pre>
@@ -183,13 +169,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools to enable from this MCP server for this Agent.
-   * This defines the maximum tool set - SubAgents can only restrict further.
-   * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+   * Tools to enable from this MCP server for this agent.
+   * Empty list uses the McpServer's default_enabled_tools.
+   * Sub-agents can only restrict this set further, not expand it.
    *
+   * &#64;internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
    * Including a resource template name here causes a fatal runtime error.
    * </pre>
@@ -209,30 +196,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Override approval requirements for specific tools.
-   *
-   * These overrides take precedence over McpServer.default_tool_approvals,
-   * allowing per-agent customization of the approval policy.
-   *
-   * Use cases:
-   * - Disable approval for a trusted automation agent
-   * - Add approval for a tool that doesn't have default approval
-   * - Customize the approval message for this agent's context
-   *
-   * Example (trusted deployment agent - disable defaults):
-   * tool_approval_overrides:
-   * - tool_name: "delete_repository"
-   * requires_approval: false  # Trust this agent for deletions
-   * - tool_name: "force_push"
-   * requires_approval: false  # Trust this agent for force pushes
-   *
-   * Example (stricter approval for customer-facing agent):
-   * tool_approval_overrides:
-   * - tool_name: "send_email"
-   * requires_approval: true
-   * message: "Send customer communication: {{args.subject}}"
-   * - tool_name: "create_ticket"
-   * requires_approval: true
-   * message: "Create support ticket for customer"
+   * Takes precedence over McpServer.default_tool_approvals.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -244,30 +208,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Override approval requirements for specific tools.
-   *
-   * These overrides take precedence over McpServer.default_tool_approvals,
-   * allowing per-agent customization of the approval policy.
-   *
-   * Use cases:
-   * - Disable approval for a trusted automation agent
-   * - Add approval for a tool that doesn't have default approval
-   * - Customize the approval message for this agent's context
-   *
-   * Example (trusted deployment agent - disable defaults):
-   * tool_approval_overrides:
-   * - tool_name: "delete_repository"
-   * requires_approval: false  # Trust this agent for deletions
-   * - tool_name: "force_push"
-   * requires_approval: false  # Trust this agent for force pushes
-   *
-   * Example (stricter approval for customer-facing agent):
-   * tool_approval_overrides:
-   * - tool_name: "send_email"
-   * requires_approval: true
-   * message: "Send customer communication: {{args.subject}}"
-   * - tool_name: "create_ticket"
-   * requires_approval: true
-   * message: "Create support ticket for customer"
+   * Takes precedence over McpServer.default_tool_approvals.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -280,30 +221,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Override approval requirements for specific tools.
-   *
-   * These overrides take precedence over McpServer.default_tool_approvals,
-   * allowing per-agent customization of the approval policy.
-   *
-   * Use cases:
-   * - Disable approval for a trusted automation agent
-   * - Add approval for a tool that doesn't have default approval
-   * - Customize the approval message for this agent's context
-   *
-   * Example (trusted deployment agent - disable defaults):
-   * tool_approval_overrides:
-   * - tool_name: "delete_repository"
-   * requires_approval: false  # Trust this agent for deletions
-   * - tool_name: "force_push"
-   * requires_approval: false  # Trust this agent for force pushes
-   *
-   * Example (stricter approval for customer-facing agent):
-   * tool_approval_overrides:
-   * - tool_name: "send_email"
-   * requires_approval: true
-   * message: "Send customer communication: {{args.subject}}"
-   * - tool_name: "create_ticket"
-   * requires_approval: true
-   * message: "Create support ticket for customer"
+   * Takes precedence over McpServer.default_tool_approvals.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -315,30 +233,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Override approval requirements for specific tools.
-   *
-   * These overrides take precedence over McpServer.default_tool_approvals,
-   * allowing per-agent customization of the approval policy.
-   *
-   * Use cases:
-   * - Disable approval for a trusted automation agent
-   * - Add approval for a tool that doesn't have default approval
-   * - Customize the approval message for this agent's context
-   *
-   * Example (trusted deployment agent - disable defaults):
-   * tool_approval_overrides:
-   * - tool_name: "delete_repository"
-   * requires_approval: false  # Trust this agent for deletions
-   * - tool_name: "force_push"
-   * requires_approval: false  # Trust this agent for force pushes
-   *
-   * Example (stricter approval for customer-facing agent):
-   * tool_approval_overrides:
-   * - tool_name: "send_email"
-   * requires_approval: true
-   * message: "Send customer communication: {{args.subject}}"
-   * - tool_name: "create_ticket"
-   * requires_approval: true
-   * message: "Create support ticket for customer"
+   * Takes precedence over McpServer.default_tool_approvals.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -350,30 +245,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Override approval requirements for specific tools.
-   *
-   * These overrides take precedence over McpServer.default_tool_approvals,
-   * allowing per-agent customization of the approval policy.
-   *
-   * Use cases:
-   * - Disable approval for a trusted automation agent
-   * - Add approval for a tool that doesn't have default approval
-   * - Customize the approval message for this agent's context
-   *
-   * Example (trusted deployment agent - disable defaults):
-   * tool_approval_overrides:
-   * - tool_name: "delete_repository"
-   * requires_approval: false  # Trust this agent for deletions
-   * - tool_name: "force_push"
-   * requires_approval: false  # Trust this agent for force pushes
-   *
-   * Example (stricter approval for customer-facing agent):
-   * tool_approval_overrides:
-   * - tool_name: "send_email"
-   * requires_approval: true
-   * message: "Send customer communication: {{args.subject}}"
-   * - tool_name: "create_ticket"
-   * requires_approval: true
-   * message: "Create support ticket for customer"
+   * Takes precedence over McpServer.default_tool_approvals.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -583,25 +455,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * McpServerUsage declares that this Agent uses a McpServer resource.
-   * The slug from mcp_server_ref becomes the identifier for SubAgent access.
+   * McpServerUsage declares that this agent uses a McpServer resource.
    *
+   * The slug from mcp_server_ref identifies this server for SubAgent access
+   * grants via McpAccess.
+   *
+   * &#64;internal
    * Design principle: Users already named their McpServer with a slug.
-   * We use that slug as the identifier - no extra naming required.
-   *
-   * Example YAML:
-   * mcp_server_usages:
-   * - mcp_server_ref:
-   * kind: mcp_server
-   * slug: github
-   * enabled_tools: [search_code, get_file, create_pr]
-   * tool_approval_overrides:
-   * - tool_name: delete_repository
-   * requires_approval: false  # Trust this agent
-   * - mcp_server_ref:
-   * org: acme-corp
-   * kind: mcp_server
-   * slug: internal-tools
+   * We use that slug as the identifier — no extra naming required.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpServerUsage}
@@ -843,8 +704,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -856,8 +715,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -873,8 +730,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -895,8 +750,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -915,8 +768,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -942,8 +793,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -961,8 +810,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -975,8 +822,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -992,8 +837,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the McpServer resource.
-     * Must reference a resource with kind=mcp_server (44).
-     * The slug from this reference is how SubAgents identify this server.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [json_name = "mcpServerRef", (.buf.validate.field) = { ... }</code>
@@ -1022,13 +865,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1043,13 +887,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1062,13 +907,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1082,13 +928,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1103,13 +950,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1130,13 +978,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1156,13 +1005,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1182,13 +1032,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1205,13 +1056,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools to enable from this MCP server for this Agent.
-     * This defines the maximum tool set - SubAgents can only restrict further.
-     * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+     * Tools to enable from this MCP server for this agent.
+     * Empty list uses the McpServer's default_enabled_tools.
+     * Sub-agents can only restrict this set further, not expand it.
      *
+     * &#64;internal
      * Tool names must match exactly what the MCP server reports via tools/list.
-     * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-     * Do NOT include names from `discovered_capabilities.resource_templates` —
+     * Only names from discovered_capabilities.tools are valid here.
+     * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
      * Including a resource template name here causes a fatal runtime error.
      * </pre>
@@ -1246,30 +1098,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1284,30 +1113,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1322,30 +1128,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1360,30 +1143,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1405,30 +1165,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1447,30 +1184,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1491,30 +1205,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1536,30 +1227,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1578,30 +1246,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1620,30 +1265,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1663,30 +1285,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1704,30 +1303,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1745,30 +1321,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1780,30 +1333,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1818,30 +1348,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1857,30 +1364,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1892,30 +1376,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1928,30 +1389,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Override approval requirements for specific tools.
-     *
-     * These overrides take precedence over McpServer.default_tool_approvals,
-     * allowing per-agent customization of the approval policy.
-     *
-     * Use cases:
-     * - Disable approval for a trusted automation agent
-     * - Add approval for a tool that doesn't have default approval
-     * - Customize the approval message for this agent's context
-     *
-     * Example (trusted deployment agent - disable defaults):
-     * tool_approval_overrides:
-     * - tool_name: "delete_repository"
-     * requires_approval: false  # Trust this agent for deletions
-     * - tool_name: "force_push"
-     * requires_approval: false  # Trust this agent for force pushes
-     *
-     * Example (stricter approval for customer-facing agent):
-     * tool_approval_overrides:
-     * - tool_name: "send_email"
-     * requires_approval: true
-     * message: "Send customer communication: {{args.subject}}"
-     * - tool_name: "create_ticket"
-     * requires_approval: true
-     * message: "Create support ticket for customer"
+     * Takes precedence over McpServer.default_tool_approvals.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>

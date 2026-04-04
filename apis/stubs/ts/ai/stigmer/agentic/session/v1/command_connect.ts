@@ -17,6 +17,8 @@ export const SessionCommandController = {
   methods: {
     /**
      * Create or update a session.
+     *
+     * @internal
      * The authorization and state-operation are determined depending on whether the session
      * is going to be created or updated which is determined as part of the request execution.
      *
@@ -29,7 +31,9 @@ export const SessionCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create a new session for an agent.
+     * Create a session.
+     *
+     * @internal
      * Requires can_create_session permission in the organization.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.create

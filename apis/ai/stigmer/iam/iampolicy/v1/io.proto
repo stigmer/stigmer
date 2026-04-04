@@ -39,8 +39,9 @@ message ApiResourceRefView {
   repeated ApiResourceRefView teams = 9;
 }
 
-// Wrapper for IAM policy ID
+// IamPolicyId identifies an IAM policy by its unique identifier.
 message IamPolicyId {
+  // Unique identifier of the IAM policy.
   string value = 1 [(buf.validate.field).required = true];
 }
 
@@ -77,8 +78,9 @@ message RevokeOrgAccessInput {
   ];
 }
 
-// IamPoliciesList wrapper for returning multiple IAM policies
+// IamPoliciesList contains a list of IAM policy resources.
 message IamPoliciesList {
+  // IAM policy entries.
   repeated IamPolicy entries = 1;
 }
 
@@ -91,9 +93,10 @@ message ListResourceAccessInput {
   bool include_inherited = 2;
 }
 
-// ResourceAccessByPrincipalList groups principals by who they are,
-// showing each principal and all their assigned roles.
+// ResourceAccessByPrincipalList groups access grants by principal, showing each
+// principal and all their assigned roles on the queried resource.
 message ResourceAccessByPrincipalList {
+  // Principal access entries.
   repeated PrincipalAccess entries = 1;
 }
 
@@ -118,9 +121,10 @@ message RoleGrant {
   bool is_inherited = 3;
 }
 
-// ResourceAccessByRoleList groups roles by what they are,
-// showing each role and all principals assigned to it.
+// ResourceAccessByRoleList groups access grants by role, showing each role and
+// all principals assigned to it on the queried resource.
 message ResourceAccessByRoleList {
+  // Role access entries.
   repeated RoleAccess entries = 1;
 }
 
@@ -150,6 +154,7 @@ message RoleInfo {
 
 // PrincipalResourceRoles contains all roles a principal has on a specific resource.
 message PrincipalResourceRoles {
+  // Roles assigned to the principal on this resource.
   repeated RoleInfo roles = 1;
 }
 
@@ -191,6 +196,7 @@ message ListAuthorizedResourceIdsInput {
 
 // AuthorizedResourceIdsList contains all resource IDs a principal can access.
 message AuthorizedResourceIdsList {
+  // Resource IDs the principal is authorized to access.
   repeated string resource_ids = 1;
 }
 
@@ -217,6 +223,7 @@ message ListAuthorizedPrincipalIdsInput {
 
 // AuthorizedPrincipalIdsList contains all principal IDs that can access a resource.
 message AuthorizedPrincipalIdsList {
+  // Principal IDs authorized to access the resource.
   repeated string principal_ids = 1;
 }
 
@@ -237,5 +244,6 @@ message GetPrincipalsCountInput {
 
 // PrincipalsCount contains the count of principals.
 message PrincipalsCount {
+  // Number of principals matching the query.
   int32 count = 1;
 }

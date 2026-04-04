@@ -7,7 +7,9 @@ package ai.stigmer.agentic.workflow.v1;
 
 /**
  * <pre>
- * WorkflowTask represents a single task in the workflow.
+ * WorkflowTask represents a single executable step in a workflow.
+ *
+ * &#64;internal
  * Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
  * - `kind` determines the task type (set_vars, http_call, switch_case, etc.)
  * - `task_config` contains task-specific configuration as dynamic JSON
@@ -149,9 +151,9 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Struct taskConfig_;
   /**
    * <pre>
-   * Task-specific configuration (dynamic typed).
-   * Structure depends on `kind` value.
+   * Task-specific configuration whose structure depends on the `kind` field.
    *
+   * &#64;internal
    * Backend unmarshals this Struct to the appropriate proto message:
    * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
    * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -179,9 +181,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Task-specific configuration (dynamic typed).
-   * Structure depends on `kind` value.
+   * Task-specific configuration whose structure depends on the `kind` field.
    *
+   * &#64;internal
    * Backend unmarshals this Struct to the appropriate proto message:
    * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
    * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -209,9 +211,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Task-specific configuration (dynamic typed).
-   * Structure depends on `kind` value.
+   * Task-specific configuration whose structure depends on the `kind` field.
    *
+   * &#64;internal
    * Backend unmarshals this Struct to the appropriate proto message:
    * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
    * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -535,7 +537,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowTask represents a single task in the workflow.
+   * WorkflowTask represents a single executable step in a workflow.
+   *
+   * &#64;internal
    * Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
    * - `kind` determines the task type (set_vars, http_call, switch_case, etc.)
    * - `task_config` contains task-specific configuration as dynamic JSON
@@ -946,9 +950,9 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> taskConfigBuilder_;
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -975,9 +979,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -1008,9 +1012,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -1046,9 +1050,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -1082,9 +1086,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -1125,9 +1129,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -1160,9 +1164,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -1190,9 +1194,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -1223,9 +1227,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task-specific configuration (dynamic typed).
-     * Structure depends on `kind` value.
+     * Task-specific configuration whose structure depends on the `kind` field.
      *
+     * &#64;internal
      * Backend unmarshals this Struct to the appropriate proto message:
      * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
      * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig

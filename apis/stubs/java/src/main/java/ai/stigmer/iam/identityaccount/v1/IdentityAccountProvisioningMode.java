@@ -9,12 +9,7 @@ package ai.stigmer.iam.identityaccount.v1;
  * <pre>
  * IdentityAccountProvisioningMode defines how an identity account was created.
  *
- * - direct: User signed up via Stigmer's own Auth0 tenant (existing behavior).
- * - federated: JIT-provisioned during federated authentication via an IdentityProvider.
- * The account has no credentials in Stigmer's Auth0 — it participates in FGA
- * authorization but cannot log into Stigmer directly.
- * - machine: M2M client credentials account used for inter-service communication.
- *
+ * &#64;internal
  * Unspecified is the default for legacy accounts created before this enum was introduced.
  * </pre>
  *
@@ -24,18 +19,34 @@ package ai.stigmer.iam.identityaccount.v1;
 public enum IdentityAccountProvisioningMode
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value for legacy accounts created before provisioning mode tracking.
+   * </pre>
+   *
    * <code>identity_account_provisioning_mode_unspecified = 0;</code>
    */
   identity_account_provisioning_mode_unspecified(0),
   /**
+   * <pre>
+   * User signed up directly via Stigmer's own authentication tenant.
+   * </pre>
+   *
    * <code>direct = 1;</code>
    */
   direct(1),
   /**
+   * <pre>
+   * Account was JIT-provisioned during federated authentication via an IdentityProvider.
+   * </pre>
+   *
    * <code>federated = 2;</code>
    */
   federated(2),
   /**
+   * <pre>
+   * Machine-to-machine client credentials account for inter-service communication.
+   * </pre>
+   *
    * <code>machine = 3;</code>
    */
   machine(3),
@@ -52,18 +63,34 @@ public enum IdentityAccountProvisioningMode
       "IdentityAccountProvisioningMode");
   }
   /**
+   * <pre>
+   * Default value for legacy accounts created before provisioning mode tracking.
+   * </pre>
+   *
    * <code>identity_account_provisioning_mode_unspecified = 0;</code>
    */
   public static final int identity_account_provisioning_mode_unspecified_VALUE = 0;
   /**
+   * <pre>
+   * User signed up directly via Stigmer's own authentication tenant.
+   * </pre>
+   *
    * <code>direct = 1;</code>
    */
   public static final int direct_VALUE = 1;
   /**
+   * <pre>
+   * Account was JIT-provisioned during federated authentication via an IdentityProvider.
+   * </pre>
+   *
    * <code>federated = 2;</code>
    */
   public static final int federated_VALUE = 2;
   /**
+   * <pre>
+   * Machine-to-machine client credentials account for inter-service communication.
+   * </pre>
+   *
    * <code>machine = 3;</code>
    */
   public static final int machine_VALUE = 3;

@@ -7,7 +7,7 @@ package ai.stigmer.iam.identityaccount.v1;
 
 /**
  * <pre>
- * wrapper for idp id.
+ * IdpId identifies an identity account by its identity provider ID.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdpId}
@@ -57,6 +57,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object value_ = "";
   /**
+   * <pre>
+   * Identity provider ID of the account.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The value.
    */
@@ -74,6 +78,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Identity provider ID of the account.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The bytes for value.
    */
@@ -250,7 +258,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * wrapper for idp id.
+   * IdpId identifies an identity account by its identity provider ID.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdpId}
@@ -392,6 +400,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object value_ = "";
     /**
+     * <pre>
+     * Identity provider ID of the account.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return The value.
      */
@@ -408,6 +420,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity provider ID of the account.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return The bytes for value.
      */
@@ -425,6 +441,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity provider ID of the account.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @param value The value to set.
      * @return This builder for chaining.
@@ -438,6 +458,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider ID of the account.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -448,6 +472,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider ID of the account.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for value to set.
      * @return This builder for chaining.

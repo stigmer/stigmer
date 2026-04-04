@@ -52,9 +52,7 @@ public interface WorkflowOrBuilder extends
 
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Workflows belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/deploy", "acme/onboarding")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -63,9 +61,7 @@ public interface WorkflowOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Workflows belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/deploy", "acme/onboarding")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -74,9 +70,7 @@ public interface WorkflowOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Workflows belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/deploy", "acme/onboarding")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -85,7 +79,7 @@ public interface WorkflowOrBuilder extends
 
   /**
    * <pre>
-   * Workflow-specific configuration.
+   * Configurable properties: document metadata, tasks, and environment variables.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowSpec spec = 4 [json_name = "spec"];</code>
@@ -94,7 +88,7 @@ public interface WorkflowOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * Workflow-specific configuration.
+   * Configurable properties: document metadata, tasks, and environment variables.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowSpec spec = 4 [json_name = "spec"];</code>
@@ -103,7 +97,7 @@ public interface WorkflowOrBuilder extends
   ai.stigmer.agentic.workflow.v1.WorkflowSpec getSpec();
   /**
    * <pre>
-   * Workflow-specific configuration.
+   * Configurable properties: document metadata, tasks, and environment variables.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowSpec spec = 4 [json_name = "spec"];</code>
@@ -112,7 +106,7 @@ public interface WorkflowOrBuilder extends
 
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -121,7 +115,7 @@ public interface WorkflowOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>
@@ -130,7 +124,7 @@ public interface WorkflowOrBuilder extends
   ai.stigmer.agentic.workflow.v1.WorkflowStatus getStatus();
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5 [json_name = "status"];</code>

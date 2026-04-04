@@ -18,8 +18,8 @@ public interface SearchResponseOrBuilder extends
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -34,8 +34,8 @@ public interface SearchResponseOrBuilder extends
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -49,8 +49,8 @@ public interface SearchResponseOrBuilder extends
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -64,8 +64,8 @@ public interface SearchResponseOrBuilder extends
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -80,8 +80,8 @@ public interface SearchResponseOrBuilder extends
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>

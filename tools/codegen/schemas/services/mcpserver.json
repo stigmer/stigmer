@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Create or update an MCP server resource (Kubernetes-style apply).\n\n This is the primary interface for MCP server management.\n Behavior:\n - If the resource doesn't exist: Creates a new MCP server\n - If the resource exists: Updates the existing MCP server\n\n The resource is identified by (scope, org, slug) combination.\n\n Input: Full McpServer resource with metadata and spec.\n Returns: The created/updated McpServer with system-populated fields.\n\n Authorization: Custom authorization in handler.\n The handler determines whether this is a create or update operation\n and performs appropriate scope-aware authorization:\n - Create: Requires permission to create in the target scope\n - Update: Requires can_edit on the existing resource"
+          "description": "Create or update an MCP server resource.\n\n If the resource doesn't exist, creates it. If it exists, updates it.\n The resource is identified by its (scope, org, slug) combination.\n\n @internal\n The handler determines whether this is a create or update operation\n and performs appropriate scope-aware authorization:\n - Create: Requires permission to create in the target scope\n - Update: Requires can_edit on the existing resource"
         },
         {
           "name": "Create",
@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Create a new MCP server resource.\n\n Use this when you explicitly want to create a new resource\n and want an error if it already exists.\n\n Input: McpServer with metadata (scope, org, name/slug) and spec.\n Returns: The created McpServer with system-generated ID and status.\n\n Authorization: Custom authorization in handler.\n Requires permission to create MCP servers in the specified scope:\n - Platform: Requires platform operator role\n - Organization: Requires org admin role or can_create_mcp_server permission\n - Identity Account: Automatically allowed for the authenticated user"
+          "description": "Create an MCP server resource.\n\n Returns an error if a resource with the same (scope, org, slug) already exists.\n Use `apply` for idempotent create-or-update semantics.\n\n @internal\n Authorization: Custom authorization in handler.\n Requires permission to create MCP servers in the specified scope:\n - Platform: Requires platform operator role\n - Organization: Requires org admin role or can_create_mcp_server permission\n - Identity Account: Automatically allowed for the authenticated user"
         },
         {
           "name": "Update",
@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Update an existing MCP server resource.\n\n Input: McpServer with metadata.id populated and updated spec.\n Returns: The updated McpServer.\n\n Authorization: Requires can_edit permission on the mcp_server resource.\n Only the owner (based on scope) can update:\n - Platform: Platform operators\n - Organization: Org admins or resource owner\n - Identity Account: The owner"
+          "description": "Update an existing MCP server resource.\n\n @internal\n Authorization: Requires can_edit permission on the mcp_server resource.\n Only the owner (based on scope) can update:\n - Platform: Platform operators\n - Organization: Org admins or resource owner\n - Identity Account: The owner"
         },
         {
           "name": "Delete",
@@ -37,7 +37,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Delete an MCP server resource.\n\n Permanently removes the MCP server definition.\n Agents referencing this MCP server will need to be updated.\n\n Input: ApiResourceDeleteInput with resource_id and optional version_message.\n Returns: The deleted McpServer (for confirmation/audit).\n\n Authorization: Requires can_delete permission on the mcp_server resource.\n Only the owner can delete:\n - Platform: Platform operators\n - Organization: Org admins or resource owner\n - Identity Account: The owner"
+          "description": "Delete an MCP server resource.\n\n Permanently removes the MCP server definition.\n Agents referencing this server will need to be updated.\n\n @internal\n Authorization: Requires can_delete permission on the mcp_server resource.\n Only the owner can delete:\n - Platform: Platform operators\n - Organization: Org admins or resource owner\n - Identity Account: The owner"
         },
         {
           "name": "UpdateVisibility",
@@ -45,7 +45,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Update the visibility of an existing MCP server.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an MCP server publicly accessible (marketplace-style sharing) or to\n revoke public access without sending the entire resource.\n\n Authorization: Requires can_edit permission on the mcp_server resource."
+          "description": "Update the visibility of an existing MCP server.\n\n Only modifies metadata.visibility, leaving spec, status, and other\n metadata fields untouched.\n\n @internal\n Authorization: Requires can_edit permission on the mcp_server resource."
         },
         {
           "name": "UpdateDiscoveredCapabilities",
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Update the discovered capabilities (tools and resource templates) for an MCP server.\n\n This is a targeted status update — it only modifies status.discovered_capabilities,\n leaving spec, validation state, and other status fields untouched.\n\n Typical flow:\n 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID\n 2. CLI connects to the MCP server locally and queries tools/resources\n 3. CLI calls this RPC with the ID and discovered capabilities\n\n Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities.\n Returns: The updated McpServer with the new discovered capabilities.\n\n Authorization: Requires can_edit permission on the mcp_server resource."
+          "description": "Update the discovered capabilities (tools and resource templates) for an MCP server.\n\n Only modifies status.discovered_capabilities, leaving spec, validation\n state, and other status fields untouched.\n\n @internal\n Typical flow:\n 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID\n 2. CLI connects to the MCP server locally and queries tools/resources\n 3. CLI calls this RPC with the ID and discovered capabilities\n\n Authorization: Requires can_edit permission on the mcp_server resource."
         },
         {
           "name": "DiscoverCapabilities",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Discover the capabilities of an MCP server by connecting to it.\n\n This triggers server-side discovery: the backend resolves credentials,\n connects to the MCP server, enumerates tools and resource templates,\n and stores the result.\n\n The RPC blocks until discovery completes (up to ~30 seconds) and returns the\n updated McpServer with populated status.discovered_capabilities.\n\n @internal\n Typical flow:\n 1. Web console ensures required credentials are saved in the user's personal environment\n 2. Web console calls discoverCapabilities with the MCP server ID\n 3. Backend resolves env vars from the user's personal environment\n 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server\n 5. Discovered tools and resource templates are stored and returned\n\n Input: DiscoverCapabilitiesInput with mcp_server_id.\n Returns: The updated McpServer with discovered capabilities.\n\n Errors:\n - FAILED_PRECONDITION: Required credentials missing from personal environment\n - DEADLINE_EXCEEDED: Discovery did not complete within the timeout\n - NOT_FOUND: MCP server does not exist\n\n Authorization: Requires can_edit permission on the mcp_server resource."
+          "description": "Discover the capabilities of an MCP server by connecting to it.\n\n Connects to the MCP server, enumerates tools and resource templates,\n and stores the result. Blocks until discovery completes (up to ~30 seconds)\n and returns the updated McpServer with populated\n status.discovered_capabilities.\n\n @internal\n Typical flow:\n 1. Web console ensures required credentials are saved in the user's personal environment\n 2. Web console calls discoverCapabilities with the MCP server ID\n 3. Backend resolves env vars from the user's personal environment\n 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server\n 5. Discovered tools and resource templates are stored and returned\n\n Errors:\n - FAILED_PRECONDITION: Required credentials missing from personal environment\n - DEADLINE_EXCEEDED: Discovery did not complete within the timeout\n - NOT_FOUND: MCP server does not exist\n\n Authorization: Requires can_edit permission on the mcp_server resource."
         }
       ]
     },
@@ -75,7 +75,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Get an MCP server by its unique identifier.\n\n Input: ApiResourceId containing the MCP server's system-generated ID.\n Returns: The full McpServer resource including metadata, spec, and status.\n\n Authorization: Requires can_view permission on the mcp_server resource.\n The caller must have access based on the resource's scope:\n - Platform: All authenticated users\n - Organization: Organization members\n - Identity Account: Only the owner"
+          "description": "Get an MCP server by its unique identifier.\n\n @internal\n Authorization: Requires can_view permission on the mcp_server resource.\n The caller must have access based on the resource's scope:\n - Platform: All authenticated users\n - Organization: Organization members\n - Identity Account: Only the owner"
         },
         {
           "name": "GetByReference",
@@ -83,10 +83,694 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Get an MCP server by reference (scope + org + slug).\n\n Input: ApiResourceReference with scope, org (if applicable), kind, and slug.\n Returns: The full McpServer resource.\n\n This is the preferred method for looking up MCP servers by name/slug\n rather than system-generated ID. Useful for:\n - Resolving references from Agent.mcp_server_usages\n - CLI lookups by name\n - Cross-scope resolution (platform vs org vs personal)\n\n Authorization: Custom authorization in handler.\n The handler performs scope-aware authorization based on the reference."
+          "description": "Get an MCP server by reference (scope + org + slug).\n\n Preferred method for looking up MCP servers by name/slug rather than\n system-generated ID.\n\n @internal\n Authorization: Custom authorization in handler.\n The handler performs scope-aware authorization based on the reference."
         }
       ]
     }
   ],
-  "listVia": "SearchService"
+  "listVia": "SearchService",
+  "methodTypes": [
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to toggle between\n PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC\n accepts this shared input and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must be either visibility_private or visibility_public.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateDiscoveredCapabilitiesInput",
+      "description": "UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.\n\n @internal\n Used by:\n - CLI: after `stigmer discover mcp-server \u003cname\u003e` connects locally, queries tools/resources,\n   and pushes the results to stigmer-server.\n - Agent-runner: future runtime cache refresh.\n\n The caller must first resolve the MCP server's system ID (e.g., via getByReference)\n before calling this RPC.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "McpServerId",
+          "jsonName": "mcpServerId",
+          "protoField": "mcp_server_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the MCP server to update.\n Obtained from McpServer.metadata.id (e.g., via getByReference).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "DiscoveredCapabilities",
+          "jsonName": "discoveredCapabilities",
+          "protoField": "discovered_capabilities",
+          "type": {
+            "kind": "message",
+            "messageType": "DiscoveredCapabilities"
+          },
+          "description": "Discovered tools and resource templates to store.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "DiscoverCapabilitiesInput",
+      "description": "DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.\n\n @internal\n Triggers server-side MCP discovery: the backend creates an ephemeral\n ExecutionContext with the resolved environment variables, starts a Temporal\n workflow that connects to the MCP server (via the agent-runner), enumerates\n tools and resource templates, and stores the result in\n status.discovered_capabilities.\n\n Environment variable resolution:\n - When runtime_env is provided, the backend creates an ExecutionContext directly\n   from these values (one-time use, values are not persisted to any environment).\n - When runtime_env is empty, the backend resolves values from the authenticated\n   user's personal environment.\n\n Prerequisites:\n - The MCP server must exist and have a valid server_type (stdio or http)\n - Either runtime_env must contain all required keys, or the keys must be\n   present in the user's personal environment",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "McpServerId",
+          "jsonName": "mcpServerId",
+          "protoField": "mcp_server_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the MCP server to discover.\n Obtained from McpServer.metadata.id (e.g., via getByReference).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "RuntimeEnv",
+          "jsonName": "runtimeEnv",
+          "protoField": "runtime_env",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "message",
+              "messageType": "ExecutionValue"
+            }
+          },
+          "description": "Optional environment variable values for one-time discovery.\n When empty, values are resolved from the user's personal environment.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "identity_provider",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"web-search\", \"code-reviewer\").\n Length: 1-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "ValidationState",
+      "description": "ValidationState represents the structural validity of an MCP server definition.\n This is NOT runtime health — it only indicates whether the definition is valid.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.ValidationState",
+      "values": [
+        {
+          "name": "valid",
+          "number": 1,
+          "description": "The MCP server definition is structurally valid.\n All required fields are present and have valid values.\n The definition can be referenced by agents."
+        },
+        {
+          "name": "invalid",
+          "number": 2,
+          "description": "The MCP server definition is invalid.\n Check validation_message for details on what's wrong.\n The definition should be corrected before use."
+        }
+      ]
+    },
+    {
+      "name": "DiscoverySource",
+      "description": "DiscoverySource identifies how discovered capabilities were obtained.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
+      "values": [
+        {
+          "name": "seedpack",
+          "number": 1,
+          "description": "Statically defined in the seedpack (built-in servers with known tool sets)."
+        },
+        {
+          "name": "cli",
+          "number": 2,
+          "description": "Discovered by the CLI via `stigmer discover mcp-server \u003cname\u003e`.\n The CLI connects to the MCP server locally and pushes results to the server."
+        },
+        {
+          "name": "agent_runner",
+          "number": 3,
+          "description": "Discovered by the agent-runner at runtime (future)."
+        },
+        {
+          "name": "api",
+          "number": 4,
+          "description": "Discovered via the discoverCapabilities RPC (web console or API).\n The backend delegates to the agent-runner via a Temporal workflow."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "McpServer represents a reusable MCP (Model Context Protocol) server configuration.\n\n @internal\n Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:\n - Can be referenced by multiple agents (reusability)\n - Has proper access control via FGA (authorization)\n - Can be discovered in the marketplace (discoverability)\n - Belongs to an organization with PUBLIC/PRIVATE visibility\n\n Lifecycle:\n 1. Create McpServer definition (this resource) with server type and env requirements\n 2. Reference in Agent via mcp_server_usages\n 3. Create AgentInstance with environment_ref providing actual secrets\n 4. Agent runner resolves McpServer, gets secrets from Environment, starts server",
+  "statusType": {
+    "name": "McpServerStatus",
+    "description": "McpServerStatus represents the system-managed state of an MCP server definition.\n\n @internal\n Tracks two concerns:\n 1. Structural validation — whether the definition is valid and can be used by agents.\n 2. Discovered capabilities — the tools and resource templates the MCP server\n    actually provides. Populated by one of three mechanisms:\n      a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)\n      b. CLI discovery: `stigmer discover mcp-server \u003cname\u003e` connects locally,\n         queries the running server, and pushes results via updateDiscoveredCapabilities\n      c. Agent-runner runtime cache (future)\n\n    CLI discovery runs on the developer's machine, so credentials (e.g., GITHUB_TOKEN)\n    never leave the local environment. The server only receives tool/resource metadata.",
+    "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerStatus",
+    "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+    "fields": [
+      {
+        "name": "ValidationState",
+        "jsonName": "validationState",
+        "protoField": "validation_state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.mcpserver.v1.ValidationState",
+          "enumValues": [
+            "valid",
+            "invalid"
+          ]
+        },
+        "description": "Validation state of the MCP server definition.\n Indicates whether the definition passed structural validation.",
+        "required": false
+      },
+      {
+        "name": "ValidationMessage",
+        "jsonName": "validationMessage",
+        "protoField": "validation_message",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Human-readable validation message.\n Populated when validation_state is INVALID to explain what's wrong.\n Empty when validation_state is VALID or UNSPECIFIED.\n Examples:\n - \"server_type is required: must specify stdio, http, or docker\"\n - \"http.url is not a valid URL: missing scheme\"\n - \"docker.image is required\"",
+        "required": false
+      },
+      {
+        "name": "DiscoveredCapabilities",
+        "jsonName": "discoveredCapabilities",
+        "protoField": "discovered_capabilities",
+        "type": {
+          "kind": "message",
+          "messageType": "DiscoveredCapabilities"
+        },
+        "description": "Tools and resource templates discovered from the MCP server.\n Optional — absent until discovery has been performed (or seeded from seedpack).",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "DiscoveredCapabilities",
+      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.\n\n @internal\n This is a point-in-time snapshot — the server's actual capabilities may change\n if tools are added or removed.\n\n Tools vs Resource Templates:\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.\n   - resource_templates: Read-only data endpoints accessed by URI template.\n     Resource template names must NEVER appear in enabled_tools — doing so causes\n     a fatal runtime error.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Tools",
+          "jsonName": "tools",
+          "protoField": "tools",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredTool"
+            }
+          },
+          "description": "Callable tools reported by the MCP server.",
+          "required": false
+        },
+        {
+          "name": "ResourceTemplates",
+          "jsonName": "resourceTemplates",
+          "protoField": "resource_templates",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredResourceTemplate"
+            }
+          },
+          "description": "Read-only data endpoints reported by the MCP server.",
+          "required": false
+        },
+        {
+          "name": "LastDiscoveredAt",
+          "jsonName": "lastDiscoveredAt",
+          "protoField": "last_discovered_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When this snapshot was captured.",
+          "required": false
+        },
+        {
+          "name": "DiscoveredBy",
+          "jsonName": "discoveredBy",
+          "protoField": "discovered_by",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
+            "enumValues": [
+              "seedpack",
+              "cli",
+              "agent_runner",
+              "api"
+            ]
+          },
+          "description": "How this snapshot was produced.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredTool",
+      "description": "DiscoveredTool describes a single tool reported by an MCP server.\n\n @internal\n Maps directly to the MCP protocol's Tool type from tools/list.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredTool",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique tool name within the MCP server (case-sensitive).\n Example: \"search\", \"get_agent\", \"apply_mcp_server\"",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description of the tool's purpose.",
+          "required": false
+        },
+        {
+          "name": "InputSchema",
+          "jsonName": "inputSchema",
+          "protoField": "input_schema",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "JSON Schema describing the tool's input parameters.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredResourceTemplate",
+      "description": "DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.\n\n @internal\n Resource templates use URI templates (RFC 6570) with placeholders that\n clients fill in to access specific resources.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "UriTemplate",
+          "jsonName": "uriTemplate",
+          "protoField": "uri_template",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URI template with placeholders (RFC 6570).\n Example: \"stigmer://agents/{org}/{slug}\"",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identifier for this resource template.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description of the resource.",
+          "required": false
+        },
+        {
+          "name": "MimeType",
+          "jsonName": "mimeType",
+          "protoField": "mime_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "MIME type of the resource content.\n Example: \"application/json\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    }
+  ]
 }

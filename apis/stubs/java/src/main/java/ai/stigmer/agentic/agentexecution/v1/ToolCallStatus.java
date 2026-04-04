@@ -33,12 +33,16 @@ package ai.stigmer.agentic.agentexecution.v1;
 public enum ToolCallStatus
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value, not a valid tool call status.
+   * </pre>
+   *
    * <code>TOOL_CALL_STATUS_UNSPECIFIED = 0;</code>
    */
   TOOL_CALL_STATUS_UNSPECIFIED(0),
   /**
    * <pre>
-   * Waiting to execute
+   * Tool call is queued and waiting to execute.
    * </pre>
    *
    * <code>TOOL_CALL_PENDING = 1;</code>
@@ -46,7 +50,7 @@ public enum ToolCallStatus
   TOOL_CALL_PENDING(1),
   /**
    * <pre>
-   * Currently executing
+   * Tool is currently executing.
    * </pre>
    *
    * <code>TOOL_CALL_RUNNING = 2;</code>
@@ -54,7 +58,7 @@ public enum ToolCallStatus
   TOOL_CALL_RUNNING(2),
   /**
    * <pre>
-   * Successfully completed
+   * Tool executed successfully and returned a result.
    * </pre>
    *
    * <code>TOOL_CALL_COMPLETED = 3;</code>
@@ -62,7 +66,7 @@ public enum ToolCallStatus
   TOOL_CALL_COMPLETED(3),
   /**
    * <pre>
-   * Failed with error
+   * Tool execution failed with an error.
    * </pre>
    *
    * <code>TOOL_CALL_FAILED = 4;</code>
@@ -120,12 +124,16 @@ public enum ToolCallStatus
       "ToolCallStatus");
   }
   /**
+   * <pre>
+   * Default value, not a valid tool call status.
+   * </pre>
+   *
    * <code>TOOL_CALL_STATUS_UNSPECIFIED = 0;</code>
    */
   public static final int TOOL_CALL_STATUS_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Waiting to execute
+   * Tool call is queued and waiting to execute.
    * </pre>
    *
    * <code>TOOL_CALL_PENDING = 1;</code>
@@ -133,7 +141,7 @@ public enum ToolCallStatus
   public static final int TOOL_CALL_PENDING_VALUE = 1;
   /**
    * <pre>
-   * Currently executing
+   * Tool is currently executing.
    * </pre>
    *
    * <code>TOOL_CALL_RUNNING = 2;</code>
@@ -141,7 +149,7 @@ public enum ToolCallStatus
   public static final int TOOL_CALL_RUNNING_VALUE = 2;
   /**
    * <pre>
-   * Successfully completed
+   * Tool executed successfully and returned a result.
    * </pre>
    *
    * <code>TOOL_CALL_COMPLETED = 3;</code>
@@ -149,7 +157,7 @@ public enum ToolCallStatus
   public static final int TOOL_CALL_COMPLETED_VALUE = 3;
   /**
    * <pre>
-   * Failed with error
+   * Tool execution failed with an error.
    * </pre>
    *
    * <code>TOOL_CALL_FAILED = 4;</code>

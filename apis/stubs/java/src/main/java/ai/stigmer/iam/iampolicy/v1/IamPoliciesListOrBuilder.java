@@ -11,24 +11,44 @@ public interface IamPoliciesListOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * IAM policy entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.IamPolicy entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.iam.iampolicy.v1.IamPolicy> 
       getEntriesList();
   /**
+   * <pre>
+   * IAM policy entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.IamPolicy entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.IamPolicy getEntries(int index);
   /**
+   * <pre>
+   * IAM policy entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.IamPolicy entries = 1 [json_name = "entries"];</code>
    */
   int getEntriesCount();
   /**
+   * <pre>
+   * IAM policy entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.IamPolicy entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.iam.iampolicy.v1.IamPolicyOrBuilder> 
       getEntriesOrBuilderList();
   /**
+   * <pre>
+   * IAM policy entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.IamPolicy entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.IamPolicyOrBuilder getEntriesOrBuilder(

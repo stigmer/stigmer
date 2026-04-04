@@ -20,8 +20,9 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_command: GenFile = /*@_
   fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9jb21tYW5kLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MTKnBQohV29ya2Zsb3dJbnN0YW5jZUNvbW1hbmRDb250cm9sbGVyEnsKBWFwcGx5EjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dJbnN0YW5jZRo4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2USggEKBmNyZWF0ZRI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2UaOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlIgTQuBgBEr0BCgZ1cGRhdGUSOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlGjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dJbnN0YW5jZSI/wrgYOwgEEDMiC21ldGFkYXRhLmlkKih1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IGluc3RhbmNlErkBCgZkZWxldGUSOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlSWQaOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlIjnCuBg1CAIQMyIFdmFsdWUqKHVuYXV0aG9yaXplZCB0byBkZWxldGUgd29ya2Zsb3cgaW5zdGFuY2UaBKD/KzNiBnByb3RvMw", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_agentic_workflowinstance_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
- * WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+ * WorkflowInstanceCommandController handles write operations for workflow instances.
  *
+ * @internal
  * This service provides the CUD (Create, Update, Delete) operations following the
  * Command-Query Separation pattern. All RPCs that modify state go through this controller.
  *
@@ -37,6 +38,8 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_command: GenFile = /*@_
 export const WorkflowInstanceCommandController: GenService<{
   /**
    * Create or update a workflow instance.
+   *
+   * @internal
    * The authorization and state-operation are determined depending on whether the workflow instance
    * is going to be created or updated which is determined as part of the request execution.
    *
@@ -48,10 +51,9 @@ export const WorkflowInstanceCommandController: GenService<{
     output: typeof WorkflowInstanceSchema;
   },
   /**
-   * Create a new workflow instance.
+   * Create a workflow instance.
    *
-   * Creates a configured deployment of a Workflow template with environment bindings.
-   *
+   * @internal
    * Input validation:
    * - metadata.org must be specified
    * - spec.workflow_id must be a valid Workflow resource ID
@@ -63,16 +65,6 @@ export const WorkflowInstanceCommandController: GenService<{
    * 2. User has permission to access all referenced Environment resources
    * 3. Owner scope is valid for the user's organization/identity
    *
-   * Returns:
-   * The created WorkflowInstance with:
-   * - Assigned resource ID (metadata.id)
-   * - Created timestamp (status.audit.created_at)
-   * - Initial version (status.audit.version = 1)
-   *
-   * Example:
-   * Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-   * Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
-   *
    * @generated from rpc ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController.create
    */
   create: {
@@ -83,29 +75,19 @@ export const WorkflowInstanceCommandController: GenService<{
   /**
    * Update an existing workflow instance.
    *
-   * Modifies the configuration of an existing WorkflowInstance.
-   * You can update:
-   * - spec.description (change descriptive text)
-   * - spec.environment_refs (add/remove/reorder environment bindings)
+   * @internal
+   * Mutable fields:
+   * - spec.description, spec.environment_refs
    * - metadata.labels, metadata.tags, metadata.annotations
    *
-   * You cannot update:
-   * - spec.workflow_id (must delete and recreate to change template)
-   * - metadata.id (immutable resource identifier)
-   * - metadata.org (immutable after creation)
+   * Immutable fields (must delete and recreate to change):
+   * - spec.workflow_id, metadata.id, metadata.org
    *
    * Authorization:
    * Requires "update" permission on the specific WorkflowInstance resource.
    * Field path "metadata.id" identifies which resource to authorize.
    *
-   * Versioning:
    * Each update increments status.audit.version and updates status.audit.updated_at.
-   *
-   * Returns:
-   * The updated WorkflowInstance with:
-   * - Incremented version number
-   * - Updated timestamp
-   * - Modified spec fields
    *
    * Error: PERMISSION_DENIED if user lacks update permission
    *
@@ -119,10 +101,8 @@ export const WorkflowInstanceCommandController: GenService<{
   /**
    * Delete a workflow instance.
    *
+   * @internal
    * Permanently removes a WorkflowInstance resource.
-   *
-   * Important:
-   * - Deletion is permanent and cannot be undone
    * - Does NOT delete the referenced Workflow template (templates are reusable)
    * - Does NOT delete the referenced Environment resources (environments are reusable)
    * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
@@ -131,14 +111,7 @@ export const WorkflowInstanceCommandController: GenService<{
    * Requires "delete" permission on the specific WorkflowInstance resource.
    * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
    *
-   * Use Cases:
-   * - Remove deprecated instances
-   * - Clean up test/dev instances
-   * - Decommission old deployment configurations
-   *
-   * Returns:
-   * The deleted WorkflowInstance (final state before deletion).
-   * Useful for audit logs and confirming what was deleted.
+   * Returns the deleted WorkflowInstance (final state before deletion).
    *
    * Error: PERMISSION_DENIED if user lacks delete permission
    * Error: NOT_FOUND if instance ID doesn't exist

@@ -39,10 +39,10 @@ public interface AgentStatusOrBuilder extends
 
   /**
    * <pre>
-   * ID of the default agent instance created automatically for this agent.
-   * Every agent has exactly one default instance that requires no configuration.
-   * This instance has no environment variables and uses all agent defaults.
-   * Created automatically when the agent is created.
+   * ID of the default agent instance.
+   * Every agent has exactly one default instance that uses all agent defaults
+   * and requires no additional configuration. Created automatically when the
+   * agent is created.
    * </pre>
    *
    * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
@@ -51,10 +51,10 @@ public interface AgentStatusOrBuilder extends
   java.lang.String getDefaultInstanceId();
   /**
    * <pre>
-   * ID of the default agent instance created automatically for this agent.
-   * Every agent has exactly one default instance that requires no configuration.
-   * This instance has no environment variables and uses all agent defaults.
-   * Created automatically when the agent is created.
+   * ID of the default agent instance.
+   * Every agent has exactly one default instance that uses all agent defaults
+   * and requires no additional configuration. Created automatically when the
+   * agent is created.
    * </pre>
    *
    * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>

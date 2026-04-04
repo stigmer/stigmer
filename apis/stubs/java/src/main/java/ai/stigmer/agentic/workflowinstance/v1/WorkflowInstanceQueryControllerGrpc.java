@@ -4,7 +4,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+ * WorkflowInstanceQueryController handles read operations for workflow instances.
+ * &#64;internal
  * This service provides all query operations following the Command-Query Separation pattern.
  * All RPCs that read state without modifying it go through this controller.
  * Authorization:
@@ -176,7 +177,8 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
   /**
    * <pre>
-   * WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+   * WorkflowInstanceQueryController handles read operations for workflow instances.
+   * &#64;internal
    * This service provides all query operations following the Command-Query Separation pattern.
    * All RPCs that read state without modifying it go through this controller.
    * Authorization:
@@ -191,24 +193,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
+     * &#64;internal
      * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Input:
-     * WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
-     * Returns:
-     * Complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information: created_at, updated_at, version)
      * Authorization:
      * Requires "get" permission on the specific WorkflowInstance.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
      * Verifies user has access based on:
      * - Instance owner scope (organization or identity_account)
      * - User's IAM policies
-     * Use Cases:
-     * - Retrieve instance configuration before executing
-     * - View instance details in UI
-     * - Fetch instance for editing/updating
      * Error: PERMISSION_DENIED if user lacks get permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -220,24 +212,9 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all instances of a specific workflow template.
-     * Retrieves all WorkflowInstance resources that reference a specific Workflow template.
-     * Useful for discovering all configured deployments of a workflow.
-     * Example Use Case:
-     * Workflow "deploy-to-cloud" (wfl-123) has instances:
-     * - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
-     * - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
-     * - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+     * Get all workflow instances that use a specific workflow template.
+     * Returns a paginated list of instances that reference the given workflow ID.
      * &#64;internal
-     * Input:
-     * GetWorkflowInstancesByWorkflowRequest with:
-     * - workflow_id: Workflow template ID to filter by
-     * - page_info: Pagination settings (page_size, page_token)
-     * Returns:
-     * WorkflowInstanceList with:
-     * - total_pages: Total number of pages available
-     * - entries: Array of WorkflowInstance resources in current page
-     * Authorization:
      * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
      * then filtered by workflow_id. This ensures users only see instances they have access to,
      * even if the parent workflow is shared across organizations.
@@ -257,28 +234,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow instance by flexible reference (ID or slug).
-     * Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-     * - By ID: {id: "wfi-abc123"}
-     * - By slug: {slug: "prod-deploy"}
-     * - By name: {name: "Production Deploy"}
-     * Input:
-     * ApiResourceReference with one of: id, slug, or name
-     * Returns:
-     * Complete WorkflowInstance resource matching the reference.
-     * Authorization:
-     * Uses custom authorization logic in the handler.
-     * Allows for flexible authorization based on reference type and context.
-     * Typical checks:
-     * - User has get permission on the resolved instance
-     * - Instance owner scope matches user's organization/identity
-     * Use Cases:
-     * - User-friendly lookups by slug instead of opaque IDs
-     * - CLI commands using human-readable names
-     * - API integrations using stable slugs
-     * Example:
-     * Input: ApiResourceReference{slug: "prod-deploy"}
-     * Output: WorkflowInstance with metadata.slug = "prod-deploy"
+     * Get a workflow instance by reference (ID or slug).
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
+     * Supports lookup by:
+     * - ID: {id: "wfi_abc123"}
+     * - Slug: {slug: "prod-deploy"}
+     * - Name: {name: "Production Deploy"}
      * Error: PERMISSION_DENIED if user lacks access
      * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
@@ -292,7 +255,8 @@ public final class WorkflowInstanceQueryControllerGrpc {
   /**
    * Base class for the server implementation of the service WorkflowInstanceQueryController.
    * <pre>
-   * WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+   * WorkflowInstanceQueryController handles read operations for workflow instances.
+   * &#64;internal
    * This service provides all query operations following the Command-Query Separation pattern.
    * All RPCs that read state without modifying it go through this controller.
    * Authorization:
@@ -313,7 +277,8 @@ public final class WorkflowInstanceQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service WorkflowInstanceQueryController.
    * <pre>
-   * WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+   * WorkflowInstanceQueryController handles read operations for workflow instances.
+   * &#64;internal
    * This service provides all query operations following the Command-Query Separation pattern.
    * All RPCs that read state without modifying it go through this controller.
    * Authorization:
@@ -339,24 +304,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
+     * &#64;internal
      * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Input:
-     * WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
-     * Returns:
-     * Complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information: created_at, updated_at, version)
      * Authorization:
      * Requires "get" permission on the specific WorkflowInstance.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
      * Verifies user has access based on:
      * - Instance owner scope (organization or identity_account)
      * - User's IAM policies
-     * Use Cases:
-     * - Retrieve instance configuration before executing
-     * - View instance details in UI
-     * - Fetch instance for editing/updating
      * Error: PERMISSION_DENIED if user lacks get permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -369,24 +324,9 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all instances of a specific workflow template.
-     * Retrieves all WorkflowInstance resources that reference a specific Workflow template.
-     * Useful for discovering all configured deployments of a workflow.
-     * Example Use Case:
-     * Workflow "deploy-to-cloud" (wfl-123) has instances:
-     * - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
-     * - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
-     * - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+     * Get all workflow instances that use a specific workflow template.
+     * Returns a paginated list of instances that reference the given workflow ID.
      * &#64;internal
-     * Input:
-     * GetWorkflowInstancesByWorkflowRequest with:
-     * - workflow_id: Workflow template ID to filter by
-     * - page_info: Pagination settings (page_size, page_token)
-     * Returns:
-     * WorkflowInstanceList with:
-     * - total_pages: Total number of pages available
-     * - entries: Array of WorkflowInstance resources in current page
-     * Authorization:
      * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
      * then filtered by workflow_id. This ensures users only see instances they have access to,
      * even if the parent workflow is shared across organizations.
@@ -407,28 +347,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow instance by flexible reference (ID or slug).
-     * Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-     * - By ID: {id: "wfi-abc123"}
-     * - By slug: {slug: "prod-deploy"}
-     * - By name: {name: "Production Deploy"}
-     * Input:
-     * ApiResourceReference with one of: id, slug, or name
-     * Returns:
-     * Complete WorkflowInstance resource matching the reference.
-     * Authorization:
-     * Uses custom authorization logic in the handler.
-     * Allows for flexible authorization based on reference type and context.
-     * Typical checks:
-     * - User has get permission on the resolved instance
-     * - Instance owner scope matches user's organization/identity
-     * Use Cases:
-     * - User-friendly lookups by slug instead of opaque IDs
-     * - CLI commands using human-readable names
-     * - API integrations using stable slugs
-     * Example:
-     * Input: ApiResourceReference{slug: "prod-deploy"}
-     * Output: WorkflowInstance with metadata.slug = "prod-deploy"
+     * Get a workflow instance by reference (ID or slug).
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
+     * Supports lookup by:
+     * - ID: {id: "wfi_abc123"}
+     * - Slug: {slug: "prod-deploy"}
+     * - Name: {name: "Production Deploy"}
      * Error: PERMISSION_DENIED if user lacks access
      * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
@@ -443,7 +369,8 @@ public final class WorkflowInstanceQueryControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service WorkflowInstanceQueryController.
    * <pre>
-   * WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+   * WorkflowInstanceQueryController handles read operations for workflow instances.
+   * &#64;internal
    * This service provides all query operations following the Command-Query Separation pattern.
    * All RPCs that read state without modifying it go through this controller.
    * Authorization:
@@ -469,24 +396,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
+     * &#64;internal
      * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Input:
-     * WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
-     * Returns:
-     * Complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information: created_at, updated_at, version)
      * Authorization:
      * Requires "get" permission on the specific WorkflowInstance.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
      * Verifies user has access based on:
      * - Instance owner scope (organization or identity_account)
      * - User's IAM policies
-     * Use Cases:
-     * - Retrieve instance configuration before executing
-     * - View instance details in UI
-     * - Fetch instance for editing/updating
      * Error: PERMISSION_DENIED if user lacks get permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -498,24 +415,9 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all instances of a specific workflow template.
-     * Retrieves all WorkflowInstance resources that reference a specific Workflow template.
-     * Useful for discovering all configured deployments of a workflow.
-     * Example Use Case:
-     * Workflow "deploy-to-cloud" (wfl-123) has instances:
-     * - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
-     * - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
-     * - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+     * Get all workflow instances that use a specific workflow template.
+     * Returns a paginated list of instances that reference the given workflow ID.
      * &#64;internal
-     * Input:
-     * GetWorkflowInstancesByWorkflowRequest with:
-     * - workflow_id: Workflow template ID to filter by
-     * - page_info: Pagination settings (page_size, page_token)
-     * Returns:
-     * WorkflowInstanceList with:
-     * - total_pages: Total number of pages available
-     * - entries: Array of WorkflowInstance resources in current page
-     * Authorization:
      * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
      * then filtered by workflow_id. This ensures users only see instances they have access to,
      * even if the parent workflow is shared across organizations.
@@ -535,28 +437,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow instance by flexible reference (ID or slug).
-     * Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-     * - By ID: {id: "wfi-abc123"}
-     * - By slug: {slug: "prod-deploy"}
-     * - By name: {name: "Production Deploy"}
-     * Input:
-     * ApiResourceReference with one of: id, slug, or name
-     * Returns:
-     * Complete WorkflowInstance resource matching the reference.
-     * Authorization:
-     * Uses custom authorization logic in the handler.
-     * Allows for flexible authorization based on reference type and context.
-     * Typical checks:
-     * - User has get permission on the resolved instance
-     * - Instance owner scope matches user's organization/identity
-     * Use Cases:
-     * - User-friendly lookups by slug instead of opaque IDs
-     * - CLI commands using human-readable names
-     * - API integrations using stable slugs
-     * Example:
-     * Input: ApiResourceReference{slug: "prod-deploy"}
-     * Output: WorkflowInstance with metadata.slug = "prod-deploy"
+     * Get a workflow instance by reference (ID or slug).
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
+     * Supports lookup by:
+     * - ID: {id: "wfi_abc123"}
+     * - Slug: {slug: "prod-deploy"}
+     * - Name: {name: "Production Deploy"}
      * Error: PERMISSION_DENIED if user lacks access
      * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
@@ -570,7 +458,8 @@ public final class WorkflowInstanceQueryControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service WorkflowInstanceQueryController.
    * <pre>
-   * WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+   * WorkflowInstanceQueryController handles read operations for workflow instances.
+   * &#64;internal
    * This service provides all query operations following the Command-Query Separation pattern.
    * All RPCs that read state without modifying it go through this controller.
    * Authorization:
@@ -596,24 +485,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
+     * &#64;internal
      * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Input:
-     * WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
-     * Returns:
-     * Complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information: created_at, updated_at, version)
      * Authorization:
      * Requires "get" permission on the specific WorkflowInstance.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
      * Verifies user has access based on:
      * - Instance owner scope (organization or identity_account)
      * - User's IAM policies
-     * Use Cases:
-     * - Retrieve instance configuration before executing
-     * - View instance details in UI
-     * - Fetch instance for editing/updating
      * Error: PERMISSION_DENIED if user lacks get permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -625,24 +504,9 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all instances of a specific workflow template.
-     * Retrieves all WorkflowInstance resources that reference a specific Workflow template.
-     * Useful for discovering all configured deployments of a workflow.
-     * Example Use Case:
-     * Workflow "deploy-to-cloud" (wfl-123) has instances:
-     * - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
-     * - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
-     * - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+     * Get all workflow instances that use a specific workflow template.
+     * Returns a paginated list of instances that reference the given workflow ID.
      * &#64;internal
-     * Input:
-     * GetWorkflowInstancesByWorkflowRequest with:
-     * - workflow_id: Workflow template ID to filter by
-     * - page_info: Pagination settings (page_size, page_token)
-     * Returns:
-     * WorkflowInstanceList with:
-     * - total_pages: Total number of pages available
-     * - entries: Array of WorkflowInstance resources in current page
-     * Authorization:
      * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
      * then filtered by workflow_id. This ensures users only see instances they have access to,
      * even if the parent workflow is shared across organizations.
@@ -662,28 +526,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow instance by flexible reference (ID or slug).
-     * Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-     * - By ID: {id: "wfi-abc123"}
-     * - By slug: {slug: "prod-deploy"}
-     * - By name: {name: "Production Deploy"}
-     * Input:
-     * ApiResourceReference with one of: id, slug, or name
-     * Returns:
-     * Complete WorkflowInstance resource matching the reference.
-     * Authorization:
-     * Uses custom authorization logic in the handler.
-     * Allows for flexible authorization based on reference type and context.
-     * Typical checks:
-     * - User has get permission on the resolved instance
-     * - Instance owner scope matches user's organization/identity
-     * Use Cases:
-     * - User-friendly lookups by slug instead of opaque IDs
-     * - CLI commands using human-readable names
-     * - API integrations using stable slugs
-     * Example:
-     * Input: ApiResourceReference{slug: "prod-deploy"}
-     * Output: WorkflowInstance with metadata.slug = "prod-deploy"
+     * Get a workflow instance by reference (ID or slug).
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
+     * Supports lookup by:
+     * - ID: {id: "wfi_abc123"}
+     * - Slug: {slug: "prod-deploy"}
+     * - Name: {name: "Production Deploy"}
      * Error: PERMISSION_DENIED if user lacks access
      * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>
@@ -697,7 +547,8 @@ public final class WorkflowInstanceQueryControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service WorkflowInstanceQueryController.
    * <pre>
-   * WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+   * WorkflowInstanceQueryController handles read operations for workflow instances.
+   * &#64;internal
    * This service provides all query operations following the Command-Query Separation pattern.
    * All RPCs that read state without modifying it go through this controller.
    * Authorization:
@@ -723,24 +574,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get a single workflow instance by ID.
+     * &#64;internal
      * Retrieves a specific WorkflowInstance using its unique resource identifier.
-     * Input:
-     * WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
-     * Returns:
-     * Complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information: created_at, updated_at, version)
      * Authorization:
      * Requires "get" permission on the specific WorkflowInstance.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
      * Verifies user has access based on:
      * - Instance owner scope (organization or identity_account)
      * - User's IAM policies
-     * Use Cases:
-     * - Retrieve instance configuration before executing
-     * - View instance details in UI
-     * - Fetch instance for editing/updating
      * Error: PERMISSION_DENIED if user lacks get permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -753,24 +594,9 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all instances of a specific workflow template.
-     * Retrieves all WorkflowInstance resources that reference a specific Workflow template.
-     * Useful for discovering all configured deployments of a workflow.
-     * Example Use Case:
-     * Workflow "deploy-to-cloud" (wfl-123) has instances:
-     * - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
-     * - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
-     * - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+     * Get all workflow instances that use a specific workflow template.
+     * Returns a paginated list of instances that reference the given workflow ID.
      * &#64;internal
-     * Input:
-     * GetWorkflowInstancesByWorkflowRequest with:
-     * - workflow_id: Workflow template ID to filter by
-     * - page_info: Pagination settings (page_size, page_token)
-     * Returns:
-     * WorkflowInstanceList with:
-     * - total_pages: Total number of pages available
-     * - entries: Array of WorkflowInstance resources in current page
-     * Authorization:
      * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
      * then filtered by workflow_id. This ensures users only see instances they have access to,
      * even if the parent workflow is shared across organizations.
@@ -791,28 +617,14 @@ public final class WorkflowInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a workflow instance by flexible reference (ID or slug).
-     * Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-     * - By ID: {id: "wfi-abc123"}
-     * - By slug: {slug: "prod-deploy"}
-     * - By name: {name: "Production Deploy"}
-     * Input:
-     * ApiResourceReference with one of: id, slug, or name
-     * Returns:
-     * Complete WorkflowInstance resource matching the reference.
-     * Authorization:
-     * Uses custom authorization logic in the handler.
-     * Allows for flexible authorization based on reference type and context.
-     * Typical checks:
-     * - User has get permission on the resolved instance
-     * - Instance owner scope matches user's organization/identity
-     * Use Cases:
-     * - User-friendly lookups by slug instead of opaque IDs
-     * - CLI commands using human-readable names
-     * - API integrations using stable slugs
-     * Example:
-     * Input: ApiResourceReference{slug: "prod-deploy"}
-     * Output: WorkflowInstance with metadata.slug = "prod-deploy"
+     * Get a workflow instance by reference (ID or slug).
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
+     * Supports lookup by:
+     * - ID: {id: "wfi_abc123"}
+     * - Slug: {slug: "prod-deploy"}
+     * - Name: {name: "Production Deploy"}
      * Error: PERMISSION_DENIED if user lacks access
      * Error: NOT_FOUND if reference doesn't resolve to an instance
      * </pre>

@@ -22,6 +22,11 @@ service IdentityAccountQueryController {
   }
 
   // Get the identity account of the currently authenticated user.
+  //
+  // Returns the full identity account for the caller based on the auth header.
+  //
+  // @internal
+  // Scoped to the caller's own account, so authorization is skipped.
   rpc whoAmI(google.protobuf.Empty) returns (IdentityAccount) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }

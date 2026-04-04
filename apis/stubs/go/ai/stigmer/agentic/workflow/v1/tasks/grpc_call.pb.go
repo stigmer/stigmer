@@ -24,10 +24,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks.
+// GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
 //
-// GRPC_CALL tasks make gRPC requests to external services.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //     call: grpc

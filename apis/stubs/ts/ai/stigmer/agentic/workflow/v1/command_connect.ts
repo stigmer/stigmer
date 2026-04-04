@@ -17,6 +17,8 @@ export const WorkflowCommandController = {
   methods: {
     /**
      * Create or update a workflow.
+     *
+     * @internal
      * The authorization and state-operation are determined depending on whether the workflow
      * is going to be created or updated which is determined as part of the request execution.
      *
@@ -29,8 +31,9 @@ export const WorkflowCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create a new workflow.
+     * Create a workflow.
      *
+     * @internal
      * Authorization:
      * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
      * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)

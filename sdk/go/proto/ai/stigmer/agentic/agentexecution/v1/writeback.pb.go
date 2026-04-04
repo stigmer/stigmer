@@ -29,6 +29,7 @@ const (
 type WorkspaceWriteBackPhase int32
 
 const (
+	// Default value, not a valid write-back phase.
 	WorkspaceWriteBackPhase_WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED WorkspaceWriteBackPhase = 0
 	// Changes were committed to a new branch in the sandbox.
 	WorkspaceWriteBackPhase_WORKSPACE_WRITE_BACK_COMMITTED WorkspaceWriteBackPhase = 1

@@ -18,13 +18,13 @@ export const file_ai_stigmer_agentic_agentinstance_v1_io: GenFile = /*@__PURE__*
   fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9pby5wcm90bxIjYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEiKAoPQWdlbnRJbnN0YW5jZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEicAofR2V0QWdlbnRJbnN0YW5jZXNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8iawoRQWdlbnRJbnN0YW5jZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSQQoFaXRlbXMYAiADKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5BZ2VudEluc3RhbmNlIvEBChlMaXN0QWdlbnRJbnN0YW5jZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJaCgZsYWJlbHMYAiADKAsySi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5MaXN0QWdlbnRJbnN0YW5jZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_agentinstance_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
- * GetAgentInstanceRequest retrieves a single agent instance by ID.
+ * AgentInstanceId wraps an agent instance identifier.
  *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.AgentInstanceId
  */
 export type AgentInstanceId = Message<"ai.stigmer.agentic.agentinstance.v1.AgentInstanceId"> & {
   /**
-   * Instance ID (required).
+   * Unique identifier of the agent instance.
    *
    * @generated from field: string value = 1;
    */
@@ -39,13 +39,13 @@ export const AgentInstanceIdSchema: GenMessage<AgentInstanceId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentinstance_v1_io, 0);
 
 /**
- * GetAgentInstancesByAgentRequest gets all instances of a specific agent template.
+ * Input for retrieving all instances deployed from a specific agent.
  *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest
  */
 export type GetAgentInstancesByAgentRequest = Message<"ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest"> & {
   /**
-   * Agent ID to filter by (required).
+   * Identifier of the agent whose instances to retrieve.
    *
    * @generated from field: string agent_id = 1;
    */
@@ -67,20 +67,20 @@ export const GetAgentInstancesByAgentRequestSchema: GenMessage<GetAgentInstances
   messageDesc(file_ai_stigmer_agentic_agentinstance_v1_io, 1);
 
 /**
- * AgentInstanceList represents a list of agent instances.
+ * Response containing a paginated list of agent instances.
  *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.AgentInstanceList
  */
 export type AgentInstanceList = Message<"ai.stigmer.agentic.agentinstance.v1.AgentInstanceList"> & {
   /**
-   * Total count of instances.
+   * Total number of agent instances matching the query.
    *
    * @generated from field: int32 total_count = 1;
    */
   totalCount: number;
 
   /**
-   * List of instances.
+   * Agent instances in the current page.
    *
    * @generated from field: repeated ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2;
    */
@@ -95,20 +95,22 @@ export const AgentInstanceListSchema: GenMessage<AgentInstanceList> = /*@__PURE_
   messageDesc(file_ai_stigmer_agentic_agentinstance_v1_io, 2);
 
 /**
- * ListAgentInstancesRequest specifies parameters for listing agent instances.
+ * Input for listing agent instances within an organization.
  *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest
  */
 export type ListAgentInstancesRequest = Message<"ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest"> & {
   /**
-   * Organization to list agent instances for (required).
+   * Organization slug to scope the listing.
    *
    * @generated from field: string org = 1;
    */
   org: string;
 
   /**
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * @internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    *
    * @generated from field: map<string, string> labels = 2;
@@ -116,7 +118,7 @@ export type ListAgentInstancesRequest = Message<"ai.stigmer.agentic.agentinstanc
   labels: { [key: string]: string };
 
   /**
-   * Pagination options (optional).
+   * Pagination options.
    *
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 3;
    */

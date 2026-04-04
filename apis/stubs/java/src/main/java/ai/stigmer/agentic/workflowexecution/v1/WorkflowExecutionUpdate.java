@@ -9,20 +9,9 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * WorkflowExecutionUpdate represents a real-time execution update event.
  *
- * This message is used for WebSocket or SSE (Server-Sent Events) streaming
- * to provide granular updates about what changed in the execution.
- *
- * Difference from subscribe() RPC:
- * - subscribe() RPC: Sends full WorkflowExecution on each update
- * - WorkflowExecutionUpdate: Sends only what changed (more efficient for high-frequency updates)
- *
- * Use Cases:
- * - WebSocket streaming (more efficient than full execution on each update)
- * - Event sourcing patterns (replay update events to reconstruct state)
- * - Real-time UI updates (apply delta updates to cached state)
- *
- * Note: Currently not used by subscribe() RPC (which sends full WorkflowExecution).
- * This message is reserved for future WebSocket/SSE streaming implementations.
+ * &#64;internal
+ * Reserved for future WebSocket/SSE streaming implementations.
+ * Currently not used by subscribe() RPC (which sends full WorkflowExecution).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate}
@@ -75,15 +64,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Type of update that occurred.
    *
-   * Determines which fields in this message are populated:
-   * - wf_update_status_changed: execution.status.phase changed
-   * - wf_update_task_started: task changed to IN_PROGRESS
-   * - wf_update_task_completed: task changed to COMPLETED
-   * - wf_update_task_failed: task changed to FAILED
-   * - wf_update_execution_completed: execution reached COMPLETED
-   * - wf_update_execution_cancelled: execution reached CANCELLED
-   *
-   * Validation: Must be a defined enum value (not unspecified)
+   * &#64;internal
+   * Determines which fields in this message are populated.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType update_type = 1 [json_name = "updateType", (.buf.validate.field) = { ... }</code>
@@ -96,15 +78,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Type of update that occurred.
    *
-   * Determines which fields in this message are populated:
-   * - wf_update_status_changed: execution.status.phase changed
-   * - wf_update_task_started: task changed to IN_PROGRESS
-   * - wf_update_task_completed: task changed to COMPLETED
-   * - wf_update_task_failed: task changed to FAILED
-   * - wf_update_execution_completed: execution reached COMPLETED
-   * - wf_update_execution_cancelled: execution reached CANCELLED
-   *
-   * Validation: Must be a defined enum value (not unspecified)
+   * &#64;internal
+   * Determines which fields in this message are populated.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType update_type = 1 [json_name = "updateType", (.buf.validate.field) = { ... }</code>
@@ -119,25 +94,10 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution_;
   /**
    * <pre>
-   * Updated execution (full or partial).
+   * Updated execution state (full or partial).
    *
-   * For efficiency, may contain only changed fields:
-   * - wf_update_status_changed: Full execution with updated status.phase
-   * - wf_update_task_*: Partial execution with updated status.tasks[i]
-   * - wf_update_execution_completed: Full execution with final state
-   *
-   * Clients should merge this with cached state to get complete picture.
-   *
-   * Example (task completed update):
-   * execution: {
-   * metadata: { id: "wfx-abc123" },
-   * status: {
-   * completed_tasks: 1,
-   * tasks: [
-   * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-   * ]
-   * }
-   * }
+   * &#64;internal
+   * May contain only changed fields. Clients should merge with cached state.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -149,25 +109,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Updated execution (full or partial).
+   * Updated execution state (full or partial).
    *
-   * For efficiency, may contain only changed fields:
-   * - wf_update_status_changed: Full execution with updated status.phase
-   * - wf_update_task_*: Partial execution with updated status.tasks[i]
-   * - wf_update_execution_completed: Full execution with final state
-   *
-   * Clients should merge this with cached state to get complete picture.
-   *
-   * Example (task completed update):
-   * execution: {
-   * metadata: { id: "wfx-abc123" },
-   * status: {
-   * completed_tasks: 1,
-   * tasks: [
-   * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-   * ]
-   * }
-   * }
+   * &#64;internal
+   * May contain only changed fields. Clients should merge with cached state.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -179,25 +124,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Updated execution (full or partial).
+   * Updated execution state (full or partial).
    *
-   * For efficiency, may contain only changed fields:
-   * - wf_update_status_changed: Full execution with updated status.phase
-   * - wf_update_task_*: Partial execution with updated status.tasks[i]
-   * - wf_update_execution_completed: Full execution with final state
-   *
-   * Clients should merge this with cached state to get complete picture.
-   *
-   * Example (task completed update):
-   * execution: {
-   * metadata: { id: "wfx-abc123" },
-   * status: {
-   * completed_tasks: 1,
-   * tasks: [
-   * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-   * ]
-   * }
-   * }
+   * &#64;internal
+   * May contain only changed fields. Clients should merge with cached state.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -211,23 +141,10 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task_;
   /**
    * <pre>
-   * Updated task (if update_type is task-related).
+   * Updated task, populated only for task-related update types.
    *
-   * Populated when update_type is:
-   * - wf_update_task_started
-   * - wf_update_task_completed
-   * - wf_update_task_failed
-   *
+   * &#64;internal
    * Provides direct access to the changed task without searching execution.status.tasks[].
-   *
-   * Example (task completed):
-   * task: {
-   * task_id: "task-1",
-   * task_name: "validate_email",
-   * status: WORKFLOW_TASK_COMPLETED,
-   * output: { "valid": true },
-   * completed_at: "2025-01-11T14:30:27Z"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -239,23 +156,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Updated task (if update_type is task-related).
+   * Updated task, populated only for task-related update types.
    *
-   * Populated when update_type is:
-   * - wf_update_task_started
-   * - wf_update_task_completed
-   * - wf_update_task_failed
-   *
+   * &#64;internal
    * Provides direct access to the changed task without searching execution.status.tasks[].
-   *
-   * Example (task completed):
-   * task: {
-   * task_id: "task-1",
-   * task_name: "validate_email",
-   * status: WORKFLOW_TASK_COMPLETED,
-   * output: { "valid": true },
-   * completed_at: "2025-01-11T14:30:27Z"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -267,23 +171,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Updated task (if update_type is task-related).
+   * Updated task, populated only for task-related update types.
    *
-   * Populated when update_type is:
-   * - wf_update_task_started
-   * - wf_update_task_completed
-   * - wf_update_task_failed
-   *
+   * &#64;internal
    * Provides direct access to the changed task without searching execution.status.tasks[].
-   *
-   * Example (task completed):
-   * task: {
-   * task_id: "task-1",
-   * task_name: "validate_email",
-   * status: WORKFLOW_TASK_COMPLETED,
-   * output: { "valid": true },
-   * completed_at: "2025-01-11T14:30:27Z"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -485,20 +376,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WorkflowExecutionUpdate represents a real-time execution update event.
    *
-   * This message is used for WebSocket or SSE (Server-Sent Events) streaming
-   * to provide granular updates about what changed in the execution.
-   *
-   * Difference from subscribe() RPC:
-   * - subscribe() RPC: Sends full WorkflowExecution on each update
-   * - WorkflowExecutionUpdate: Sends only what changed (more efficient for high-frequency updates)
-   *
-   * Use Cases:
-   * - WebSocket streaming (more efficient than full execution on each update)
-   * - Event sourcing patterns (replay update events to reconstruct state)
-   * - Real-time UI updates (apply delta updates to cached state)
-   *
-   * Note: Currently not used by subscribe() RPC (which sends full WorkflowExecution).
-   * This message is reserved for future WebSocket/SSE streaming implementations.
+   * &#64;internal
+   * Reserved for future WebSocket/SSE streaming implementations.
+   * Currently not used by subscribe() RPC (which sends full WorkflowExecution).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate}
@@ -692,15 +572,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of update that occurred.
      *
-     * Determines which fields in this message are populated:
-     * - wf_update_status_changed: execution.status.phase changed
-     * - wf_update_task_started: task changed to IN_PROGRESS
-     * - wf_update_task_completed: task changed to COMPLETED
-     * - wf_update_task_failed: task changed to FAILED
-     * - wf_update_execution_completed: execution reached COMPLETED
-     * - wf_update_execution_cancelled: execution reached CANCELLED
-     *
-     * Validation: Must be a defined enum value (not unspecified)
+     * &#64;internal
+     * Determines which fields in this message are populated.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType update_type = 1 [json_name = "updateType", (.buf.validate.field) = { ... }</code>
@@ -713,15 +586,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of update that occurred.
      *
-     * Determines which fields in this message are populated:
-     * - wf_update_status_changed: execution.status.phase changed
-     * - wf_update_task_started: task changed to IN_PROGRESS
-     * - wf_update_task_completed: task changed to COMPLETED
-     * - wf_update_task_failed: task changed to FAILED
-     * - wf_update_execution_completed: execution reached COMPLETED
-     * - wf_update_execution_cancelled: execution reached CANCELLED
-     *
-     * Validation: Must be a defined enum value (not unspecified)
+     * &#64;internal
+     * Determines which fields in this message are populated.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType update_type = 1 [json_name = "updateType", (.buf.validate.field) = { ... }</code>
@@ -739,15 +605,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of update that occurred.
      *
-     * Determines which fields in this message are populated:
-     * - wf_update_status_changed: execution.status.phase changed
-     * - wf_update_task_started: task changed to IN_PROGRESS
-     * - wf_update_task_completed: task changed to COMPLETED
-     * - wf_update_task_failed: task changed to FAILED
-     * - wf_update_execution_completed: execution reached COMPLETED
-     * - wf_update_execution_cancelled: execution reached CANCELLED
-     *
-     * Validation: Must be a defined enum value (not unspecified)
+     * &#64;internal
+     * Determines which fields in this message are populated.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType update_type = 1 [json_name = "updateType", (.buf.validate.field) = { ... }</code>
@@ -762,15 +621,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of update that occurred.
      *
-     * Determines which fields in this message are populated:
-     * - wf_update_status_changed: execution.status.phase changed
-     * - wf_update_task_started: task changed to IN_PROGRESS
-     * - wf_update_task_completed: task changed to COMPLETED
-     * - wf_update_task_failed: task changed to FAILED
-     * - wf_update_execution_completed: execution reached COMPLETED
-     * - wf_update_execution_cancelled: execution reached CANCELLED
-     *
-     * Validation: Must be a defined enum value (not unspecified)
+     * &#64;internal
+     * Determines which fields in this message are populated.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType update_type = 1 [json_name = "updateType", (.buf.validate.field) = { ... }</code>
@@ -788,15 +640,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of update that occurred.
      *
-     * Determines which fields in this message are populated:
-     * - wf_update_status_changed: execution.status.phase changed
-     * - wf_update_task_started: task changed to IN_PROGRESS
-     * - wf_update_task_completed: task changed to COMPLETED
-     * - wf_update_task_failed: task changed to FAILED
-     * - wf_update_execution_completed: execution reached COMPLETED
-     * - wf_update_execution_cancelled: execution reached CANCELLED
-     *
-     * Validation: Must be a defined enum value (not unspecified)
+     * &#64;internal
+     * Determines which fields in this message are populated.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType update_type = 1 [json_name = "updateType", (.buf.validate.field) = { ... }</code>
@@ -814,25 +659,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionOrBuilder> executionBuilder_;
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -843,25 +673,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -876,25 +691,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -914,25 +714,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -950,25 +735,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -993,25 +763,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -1028,25 +783,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -1058,25 +798,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -1091,25 +816,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated execution (full or partial).
+     * Updated execution state (full or partial).
      *
-     * For efficiency, may contain only changed fields:
-     * - wf_update_status_changed: Full execution with updated status.phase
-     * - wf_update_task_*: Partial execution with updated status.tasks[i]
-     * - wf_update_execution_completed: Full execution with final state
-     *
-     * Clients should merge this with cached state to get complete picture.
-     *
-     * Example (task completed update):
-     * execution: {
-     * metadata: { id: "wfx-abc123" },
-     * status: {
-     * completed_tasks: 1,
-     * tasks: [
-     * { task_id: "task-1", status: WORKFLOW_TASK_COMPLETED, output: {...} }
-     * ]
-     * }
-     * }
+     * &#64;internal
+     * May contain only changed fields. Clients should merge with cached state.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2 [json_name = "execution"];</code>
@@ -1133,23 +843,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflowexecution.v1.WorkflowTask, ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskOrBuilder> taskBuilder_;
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -1160,23 +857,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -1191,23 +875,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -1227,23 +898,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -1261,23 +919,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -1302,23 +947,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -1335,23 +967,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -1363,23 +982,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>
@@ -1394,23 +1000,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Updated task (if update_type is task-related).
+     * Updated task, populated only for task-related update types.
      *
-     * Populated when update_type is:
-     * - wf_update_task_started
-     * - wf_update_task_completed
-     * - wf_update_task_failed
-     *
+     * &#64;internal
      * Provides direct access to the changed task without searching execution.status.tasks[].
-     *
-     * Example (task completed):
-     * task: {
-     * task_id: "task-1",
-     * task_name: "validate_email",
-     * status: WORKFLOW_TASK_COMPLETED,
-     * output: { "valid": true },
-     * completed_at: "2025-01-11T14:30:27Z"
-     * }
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3 [json_name = "task"];</code>

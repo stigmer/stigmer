@@ -12,7 +12,7 @@ public interface GetAgentInstancesByAgentRequestOrBuilder extends
 
   /**
    * <pre>
-   * Agent ID to filter by (required).
+   * Identifier of the agent whose instances to retrieve.
    * </pre>
    *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface GetAgentInstancesByAgentRequestOrBuilder extends
   java.lang.String getAgentId();
   /**
    * <pre>
-   * Agent ID to filter by (required).
+   * Identifier of the agent whose instances to retrieve.
    * </pre>
    *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>

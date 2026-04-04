@@ -7,10 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * HttpCallTaskConfig defines the configuration for HTTP_CALL tasks.
+ * HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
  *
- * HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).
- *
+ * &#64;internal
  * YAML Example:
  * - taskName:
  * call: http
@@ -545,10 +544,9 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * HttpCallTaskConfig defines the configuration for HTTP_CALL tasks.
+   * HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
    *
-   * HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).
-   *
+   * &#64;internal
    * YAML Example:
    * - taskName:
    * call: http

@@ -9,21 +9,9 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * WorkflowExecutionList contains a paginated list of workflow executions.
  *
- * This message is returned by list operations (list, list_by_workflow).
- * It includes pagination metadata to help clients navigate through large result sets.
- *
- * Pagination Pattern:
- * 1. Client sends request with page_size (e.g., 50)
- * 2. Server returns up to page_size entries + total_pages count
- * 3. Client displays entries and "Page 1 of N" indicator
- * 4. Client can request next page using page_token from response
- *
- * Example Usage:
- * Response for page 1:
- * {
- * "total_pages": 10,
- * "entries": [ execution1, execution2, ... execution50 ]
- * }
+ * &#64;internal
+ * Returned by list operations (list, list_by_workflow).
+ * Includes pagination metadata and the execution entries for the current page.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList}
@@ -75,17 +63,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Total number of pages available for this query.
    *
-   * Calculated as: ceil(total_matching_executions / page_size)
-   *
-   * Example: If 237 executions match and page_size=50, total_pages=5
-   *
-   * Use Cases:
-   * - Display pagination UI ("Page 1 of 5")
-   * - Disable "Next" button when on last page
-   * - Show total result count (total_pages * page_size approximation)
-   *
-   * Note: total_pages may change between requests if new executions are created
-   * or deleted, or if filters change.
+   * &#64;internal
+   * Calculated as: ceil(total_matching_executions / page_size).
+   * May change between requests if results are created or deleted.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -101,21 +81,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> entries_;
   /**
    * <pre>
-   * Workflow executions in the current page.
-   *
-   * Contains up to page_size WorkflowExecution resources.
-   * May contain fewer than page_size if:
-   * - This is the last page (fewer remaining results)
-   * - Fewer results match the filter criteria
-   *
-   * Executions are sorted by created_at descending (newest first).
-   *
-   * Example:
-   * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-   * ]
+   * Workflow executions in the current page, sorted by created_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -126,21 +92,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow executions in the current page.
-   *
-   * Contains up to page_size WorkflowExecution resources.
-   * May contain fewer than page_size if:
-   * - This is the last page (fewer remaining results)
-   * - Fewer results match the filter criteria
-   *
-   * Executions are sorted by created_at descending (newest first).
-   *
-   * Example:
-   * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-   * ]
+   * Workflow executions in the current page, sorted by created_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -152,21 +104,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow executions in the current page.
-   *
-   * Contains up to page_size WorkflowExecution resources.
-   * May contain fewer than page_size if:
-   * - This is the last page (fewer remaining results)
-   * - Fewer results match the filter criteria
-   *
-   * Executions are sorted by created_at descending (newest first).
-   *
-   * Example:
-   * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-   * ]
+   * Workflow executions in the current page, sorted by created_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -177,21 +115,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow executions in the current page.
-   *
-   * Contains up to page_size WorkflowExecution resources.
-   * May contain fewer than page_size if:
-   * - This is the last page (fewer remaining results)
-   * - Fewer results match the filter criteria
-   *
-   * Executions are sorted by created_at descending (newest first).
-   *
-   * Example:
-   * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-   * ]
+   * Workflow executions in the current page, sorted by created_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -202,21 +126,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow executions in the current page.
-   *
-   * Contains up to page_size WorkflowExecution resources.
-   * May contain fewer than page_size if:
-   * - This is the last page (fewer remaining results)
-   * - Fewer results match the filter criteria
-   *
-   * Executions are sorted by created_at descending (newest first).
-   *
-   * Example:
-   * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-   * ]
+   * Workflow executions in the current page, sorted by created_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -406,21 +316,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WorkflowExecutionList contains a paginated list of workflow executions.
    *
-   * This message is returned by list operations (list, list_by_workflow).
-   * It includes pagination metadata to help clients navigate through large result sets.
-   *
-   * Pagination Pattern:
-   * 1. Client sends request with page_size (e.g., 50)
-   * 2. Server returns up to page_size entries + total_pages count
-   * 3. Client displays entries and "Page 1 of N" indicator
-   * 4. Client can request next page using page_token from response
-   *
-   * Example Usage:
-   * Response for page 1:
-   * {
-   * "total_pages": 10,
-   * "entries": [ execution1, execution2, ... execution50 ]
-   * }
+   * &#64;internal
+   * Returned by list operations (list, list_by_workflow).
+   * Includes pagination metadata and the execution entries for the current page.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList}
@@ -622,17 +520,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Total number of pages available for this query.
      *
-     * Calculated as: ceil(total_matching_executions / page_size)
-     *
-     * Example: If 237 executions match and page_size=50, total_pages=5
-     *
-     * Use Cases:
-     * - Display pagination UI ("Page 1 of 5")
-     * - Disable "Next" button when on last page
-     * - Show total result count (total_pages * page_size approximation)
-     *
-     * Note: total_pages may change between requests if new executions are created
-     * or deleted, or if filters change.
+     * &#64;internal
+     * Calculated as: ceil(total_matching_executions / page_size).
+     * May change between requests if results are created or deleted.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -646,17 +536,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Total number of pages available for this query.
      *
-     * Calculated as: ceil(total_matching_executions / page_size)
-     *
-     * Example: If 237 executions match and page_size=50, total_pages=5
-     *
-     * Use Cases:
-     * - Display pagination UI ("Page 1 of 5")
-     * - Disable "Next" button when on last page
-     * - Show total result count (total_pages * page_size approximation)
-     *
-     * Note: total_pages may change between requests if new executions are created
-     * or deleted, or if filters change.
+     * &#64;internal
+     * Calculated as: ceil(total_matching_executions / page_size).
+     * May change between requests if results are created or deleted.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -674,17 +556,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Total number of pages available for this query.
      *
-     * Calculated as: ceil(total_matching_executions / page_size)
-     *
-     * Example: If 237 executions match and page_size=50, total_pages=5
-     *
-     * Use Cases:
-     * - Display pagination UI ("Page 1 of 5")
-     * - Disable "Next" button when on last page
-     * - Show total result count (total_pages * page_size approximation)
-     *
-     * Note: total_pages may change between requests if new executions are created
-     * or deleted, or if filters change.
+     * &#64;internal
+     * Calculated as: ceil(total_matching_executions / page_size).
+     * May change between requests if results are created or deleted.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -711,21 +585,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -739,21 +599,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -767,21 +613,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -795,21 +627,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -830,21 +648,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -862,21 +666,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -896,21 +686,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -931,21 +707,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -963,21 +725,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -995,21 +743,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -1028,21 +762,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -1059,21 +779,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -1090,21 +796,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -1115,21 +807,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -1143,21 +821,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -1172,21 +836,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -1197,21 +847,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>
@@ -1223,21 +859,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow executions in the current page.
-     *
-     * Contains up to page_size WorkflowExecution resources.
-     * May contain fewer than page_size if:
-     * - This is the last page (fewer remaining results)
-     * - Fewer results match the filter criteria
-     *
-     * Executions are sorted by created_at descending (newest first).
-     *
-     * Example:
-     * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
-     * ]
+     * Workflow executions in the current page, sorted by created_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution entries = 2 [json_name = "entries"];</code>

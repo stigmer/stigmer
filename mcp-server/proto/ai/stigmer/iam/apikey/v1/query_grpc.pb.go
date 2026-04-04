@@ -40,6 +40,11 @@ type ApiKeyQueryControllerClient interface {
 	// (input doesn't contain API key ID, so proto-level auth cannot work).
 	GetByKeyHash(ctx context.Context, in *ApiKeyHash, opts ...grpc.CallOption) (*ApiKey, error)
 	// List all API keys belonging to the authenticated user.
+	//
+	// Returns only the keys owned by the identity account in the auth header.
+	//
+	// @internal
+	// Scoped to the caller's own keys, so authorization is skipped.
 	FindAll(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ApiKeys, error)
 }
 
@@ -96,6 +101,11 @@ type ApiKeyQueryControllerServer interface {
 	// (input doesn't contain API key ID, so proto-level auth cannot work).
 	GetByKeyHash(context.Context, *ApiKeyHash) (*ApiKey, error)
 	// List all API keys belonging to the authenticated user.
+	//
+	// Returns only the keys owned by the identity account in the auth header.
+	//
+	// @internal
+	// Scoped to the caller's own keys, so authorization is skipped.
 	FindAll(context.Context, *emptypb.Empty) (*ApiKeys, error)
 }
 

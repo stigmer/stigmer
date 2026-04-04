@@ -128,7 +128,7 @@ func TestGet_NonExistentID(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	_, err := controller.Get(contextWithProjectKind(), &projectv1.ProjectId{Value: "prj-nonexistent123456789"})
+	_, err := controller.Get(contextWithProjectKind(), &projectv1.ProjectId{Value: "prj_nonexistent123456789"})
 	if err == nil {
 		t.Error("Expected error when getting non-existent project, got nil")
 	}

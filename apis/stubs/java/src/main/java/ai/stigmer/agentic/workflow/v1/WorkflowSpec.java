@@ -7,12 +7,14 @@ package ai.stigmer.agentic.workflow.v1;
 
 /**
  * <pre>
- * WorkflowSpec defines the complete specification of a workflow.
- * Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
+ * WorkflowSpec defines the configurable properties of a workflow.
  *
+ * &#64;internal
+ * Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
  * This replaces the old `synthesized_yaml` field with structured proto definitions.
  * Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
  * providing maximum flexibility and extensibility.
+ * The overview.md file provides the SDK-facing description and example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowSpec}
@@ -111,7 +113,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.workflow.v1.WorkflowDocument document_;
   /**
    * <pre>
-   * Workflow document metadata (DSL version, namespace, name, version).
+   * Workflow document metadata including DSL version, namespace, name, and version.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -123,7 +125,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow document metadata (DSL version, namespace, name, version).
+   * Workflow document metadata including DSL version, namespace, name, and version.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -135,7 +137,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow document metadata (DSL version, namespace, name, version).
+   * Workflow document metadata including DSL version, namespace, name, and version.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -216,7 +218,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Environment variables required by the workflow.
-   * Uses the shared EnvironmentSpec for consistent env var handling.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -229,7 +230,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Environment variables required by the workflow.
-   * Uses the shared EnvironmentSpec for consistent env var handling.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -242,7 +242,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Environment variables required by the workflow.
-   * Uses the shared EnvironmentSpec for consistent env var handling.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -460,12 +459,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowSpec defines the complete specification of a workflow.
-   * Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
+   * WorkflowSpec defines the configurable properties of a workflow.
    *
+   * &#64;internal
+   * Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
    * This replaces the old `synthesized_yaml` field with structured proto definitions.
    * Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
    * providing maximum flexibility and extensibility.
+   * The overview.md file provides the SDK-facing description and example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowSpec}
@@ -813,7 +814,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflow.v1.WorkflowDocument, ai.stigmer.agentic.workflow.v1.WorkflowDocument.Builder, ai.stigmer.agentic.workflow.v1.WorkflowDocumentOrBuilder> documentBuilder_;
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -824,7 +825,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -839,7 +840,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -859,7 +860,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -877,7 +878,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -902,7 +903,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -919,7 +920,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -931,7 +932,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -946,7 +947,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow document metadata (DSL version, namespace, name, version).
+     * Workflow document metadata including DSL version, namespace, name, and version.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -1301,7 +1302,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -1313,7 +1313,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -1329,7 +1328,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -1350,7 +1348,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -1369,7 +1366,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -1395,7 +1391,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -1413,7 +1408,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -1426,7 +1420,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -1442,7 +1435,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Environment variables required by the workflow.
-     * Uses the shared EnvironmentSpec for consistent env var handling.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>

@@ -146,6 +146,8 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its unique identifier.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the identity provider resource.
      * </pre>
      */
     default void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -155,9 +157,12 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity provider by reference (org + slug).
+     * Get an identity provider by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler.
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -202,6 +207,8 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its unique identifier.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the identity provider resource.
      * </pre>
      */
     public void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -212,9 +219,12 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity provider by reference (org + slug).
+     * Get an identity provider by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler.
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -246,6 +256,8 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its unique identifier.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the identity provider resource.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider get(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -255,9 +267,12 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity provider by reference (org + slug).
+     * Get an identity provider by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler.
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -288,6 +303,8 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its unique identifier.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the identity provider resource.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider get(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -297,9 +314,12 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity provider by reference (org + slug).
+     * Get an identity provider by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler.
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -330,6 +350,8 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its unique identifier.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the identity provider resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> get(
@@ -340,9 +362,12 @@ public final class IdentityProviderQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity provider by reference (org + slug).
+     * Get an identity provider by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * IdentityProvider resource.
      * &#64;internal
-     * Custom authorization in handler.
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> getByReference(

@@ -1,7 +1,7 @@
 {
   "name": "SessionSpec",
   "kind": "SESSION_SPEC",
-  "description": "SessionSpec defines the configurable properties of an agent conversation session.\n This is the \"Execution\" layer - ephemeral runtime against an AgentInstance.",
+  "description": "SessionSpec defines the configurable properties of a session.\n\n @internal\n This is the \"Execution\" layer — ephemeral runtime against an AgentInstance.\n The overview.md file provides the SDK-facing description and example YAML.",
   "protoType": "ai.stigmer.agentic.session.v1.SessionSpec",
   "protoFile": "apis/ai/stigmer/agentic/session/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the AgentInstance this session runs against.\n\n When provided, the session uses this specific agent instance.\n When empty, the backend resolves the platform default agent\n (labeled stigmer.ai/default-agent: \"true\" with visibility_public)\n and auto-creates a default instance if needed.",
+      "description": "Agent instance this session runs against.\n\n @internal\n When empty, the backend resolves the platform default agent\n (labeled stigmer.ai/default-agent: \"true\" with visibility_public)\n and auto-creates a default instance if needed.",
       "required": false
     },
     {
@@ -22,7 +22,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Conversation title/subject for UI display (optional).",
+      "description": "Conversation title for UI display.",
       "required": false
     },
     {
@@ -32,7 +32,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "thread ID (generated on first execution, persists across all executions).",
+      "description": "Thread ID that carries the conversation history across executions.\n\n @internal\n Generated on first execution, persists across all executions.",
       "required": false
     },
     {
@@ -42,7 +42,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Daytona sandbox ID (created on first execution, reused for file persistence).",
+      "description": "Sandbox ID for persistent file storage across executions.\n\n @internal\n Created on first execution (Daytona sandbox), reused for file persistence.",
       "required": false
     },
     {
@@ -58,7 +58,7 @@
           "kind": "string"
         }
       },
-      "description": "Session metadata (e.g., client info, tags).",
+      "description": "Custom key-value pairs for client-specific information.",
       "required": false
     },
     {
@@ -72,7 +72,7 @@
           "messageType": "WorkspaceEntry"
         }
       },
-      "description": "Workspace entries for this session (optional, may be empty).\n\n Each entry pairs a name with a source (git repo or local path), forming\n a multi-root workspace (VS Code model). Entries are provisioned on the\n first execution; subsequent executions reuse the same workspace.\n\n When empty, the session uses an empty workspace directory\n (existing default behavior, no provisioning step).",
+      "description": "Workspace entries for this session.\n\n Each entry pairs a name with a source (git repo or local path), forming\n a multi-root workspace. Entries are provisioned on the first execution;\n subsequent executions reuse the same workspace.\n\n When empty, the session uses an empty workspace directory.",
       "required": false
     },
     {
@@ -86,7 +86,7 @@
           "messageType": "McpServerUsage"
         }
       },
-      "description": "MCP servers to make available in this session (merged with agent's at execution time).\n\n Enables users to augment the agent's tool set for a specific conversation\n without modifying the agent blueprint. Each usage references an McpServer\n resource; the agent runner merges these with the agent's mcp_server_usages\n when constructing the execution graph.\n\n Merge semantics: session-level usages are union'd with agent-level usages.\n If both reference the same MCP server slug, the session-level entry takes\n precedence (enables per-session tool restriction or expansion).",
+      "description": "MCP servers to make available in this session.\n\n Augments the agent's tool set for this specific conversation without\n modifying the agent blueprint. Each usage references an McpServer\n resource.\n\n @internal\n Merge semantics: session-level usages are union'd with agent-level usages.\n If both reference the same MCP server slug, the session-level entry takes\n precedence (enables per-session tool restriction or expansion). The agent\n runner merges these with the agent's mcp_server_usages when constructing\n the execution graph.",
       "required": false
     },
     {
@@ -100,7 +100,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "Skills to inject into this session's context (merged with agent's at execution time).\n\n Enables users to provide domain-specific knowledge for a specific conversation\n without modifying the agent blueprint. Each reference points to a Skill resource\n whose content is injected into the agent's context alongside agent-level skills.\n\n Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.",
+      "description": "Skills to inject into this session's context.\n\n Provides domain-specific knowledge for this specific conversation without\n modifying the agent blueprint. Each reference points to a Skill resource\n whose content is added to the agent's context alongside agent-level skills.\n\n @internal\n Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.",
       "required": false,
       "referenceKind": 43
     }

@@ -55,6 +55,10 @@ private static final long serialVersionUID = 0L;
   public static final int COUNT_FIELD_NUMBER = 1;
   private int count_ = 0;
   /**
+   * <pre>
+   * Number of principals matching the query.
+   * </pre>
+   *
    * <code>int32 count = 1 [json_name = "count"];</code>
    * @return The count.
    */
@@ -362,6 +366,10 @@ private static final long serialVersionUID = 0L;
 
     private int count_ ;
     /**
+     * <pre>
+     * Number of principals matching the query.
+     * </pre>
+     *
      * <code>int32 count = 1 [json_name = "count"];</code>
      * @return The count.
      */
@@ -370,6 +378,10 @@ private static final long serialVersionUID = 0L;
       return count_;
     }
     /**
+     * <pre>
+     * Number of principals matching the query.
+     * </pre>
+     *
      * <code>int32 count = 1 [json_name = "count"];</code>
      * @param value The count to set.
      * @return This builder for chaining.
@@ -382,6 +394,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Number of principals matching the query.
+     * </pre>
+     *
      * <code>int32 count = 1 [json_name = "count"];</code>
      * @return This builder for chaining.
      */

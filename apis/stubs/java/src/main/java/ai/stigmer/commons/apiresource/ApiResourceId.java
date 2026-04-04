@@ -7,7 +7,7 @@ package ai.stigmer.commons.apiresource;
 
 /**
  * <pre>
- * Wrapper for api-resource-id
+ * Wraps a system-generated resource identifier.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.ApiResourceId}
@@ -250,7 +250,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Wrapper for api-resource-id
+   * Wraps a system-generated resource identifier.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.ApiResourceId}

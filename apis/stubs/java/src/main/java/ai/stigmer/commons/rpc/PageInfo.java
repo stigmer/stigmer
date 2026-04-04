@@ -6,6 +6,10 @@
 package ai.stigmer.commons.rpc;
 
 /**
+ * <pre>
+ * Offset-based pagination parameters.
+ * </pre>
+ *
  * Protobuf type {@code ai.stigmer.commons.rpc.PageInfo}
  */
 @com.google.protobuf.Generated
@@ -51,6 +55,10 @@ private static final long serialVersionUID = 0L;
   public static final int NUM_FIELD_NUMBER = 1;
   private int num_ = 0;
   /**
+   * <pre>
+   * Page number (1-indexed).
+   * </pre>
+   *
    * <code>int32 num = 1 [json_name = "num"];</code>
    * @return The num.
    */
@@ -62,6 +70,10 @@ private static final long serialVersionUID = 0L;
   public static final int SIZE_FIELD_NUMBER = 2;
   private int size_ = 0;
   /**
+   * <pre>
+   * Maximum number of items per page.
+   * </pre>
+   *
    * <code>int32 size = 2 [json_name = "size"];</code>
    * @return The size.
    */
@@ -239,6 +251,10 @@ private static final long serialVersionUID = 0L;
     return builder;
   }
   /**
+   * <pre>
+   * Offset-based pagination parameters.
+   * </pre>
+   *
    * Protobuf type {@code ai.stigmer.commons.rpc.PageInfo}
    */
   public static final class Builder extends
@@ -388,6 +404,10 @@ private static final long serialVersionUID = 0L;
 
     private int num_ ;
     /**
+     * <pre>
+     * Page number (1-indexed).
+     * </pre>
+     *
      * <code>int32 num = 1 [json_name = "num"];</code>
      * @return The num.
      */
@@ -396,6 +416,10 @@ private static final long serialVersionUID = 0L;
       return num_;
     }
     /**
+     * <pre>
+     * Page number (1-indexed).
+     * </pre>
+     *
      * <code>int32 num = 1 [json_name = "num"];</code>
      * @param value The num to set.
      * @return This builder for chaining.
@@ -408,6 +432,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Page number (1-indexed).
+     * </pre>
+     *
      * <code>int32 num = 1 [json_name = "num"];</code>
      * @return This builder for chaining.
      */
@@ -420,6 +448,10 @@ private static final long serialVersionUID = 0L;
 
     private int size_ ;
     /**
+     * <pre>
+     * Maximum number of items per page.
+     * </pre>
+     *
      * <code>int32 size = 2 [json_name = "size"];</code>
      * @return The size.
      */
@@ -428,6 +460,10 @@ private static final long serialVersionUID = 0L;
       return size_;
     }
     /**
+     * <pre>
+     * Maximum number of items per page.
+     * </pre>
+     *
      * <code>int32 size = 2 [json_name = "size"];</code>
      * @param value The size to set.
      * @return This builder for chaining.
@@ -440,6 +476,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Maximum number of items per page.
+     * </pre>
+     *
      * <code>int32 size = 2 [json_name = "size"];</code>
      * @return This builder for chaining.
      */

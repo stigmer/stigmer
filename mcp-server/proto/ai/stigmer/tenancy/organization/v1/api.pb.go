@@ -24,20 +24,22 @@ const (
 )
 
 // Organization is the top-level container for all Stigmer resources.
+//
+// @internal
 // Similar to GitHub organizations, all agents, workflows, sessions, and other
 // resources are scoped under an organization. This enables multi-tenancy and
 // proper resource isolation.
 type Organization struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// api-version (tenancy.stigmer.ai/v1)
+	// API version for this resource type.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
-	// resource kind
+	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// metadata
+	// Resource metadata including name, organization, and labels.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// spec
+	// Configurable properties: description, logo, and management mode.
 	Spec *OrganizationSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// status
+	// System-managed audit state.
 	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

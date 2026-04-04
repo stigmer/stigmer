@@ -128,20 +128,23 @@ type AgentExecutionQueryControllerClient interface {
 	//
 	// @since Artifact Lifecycle (Attachments & Artifacts)
 	GetArtifactContent(ctx context.Context, in *GetArtifactContentRequest, opts ...grpc.CallOption) (*GetArtifactContentResponse, error)
-	// Get usage report for a session (all executions in a session).
+	// Get a usage report for a session.
+	//
 	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
 	//
 	// @internal
 	// Authorization is handled in handler — caller must have can_view on
 	// all executions in the session (same pattern as listBySession).
 	GetSessionUsageReport(ctx context.Context, in *GetSessionUsageReportInput, opts ...grpc.CallOption) (*GetSessionUsageReportOutput, error)
-	// Get usage report for an agent (all sessions for an agent in a time range).
+	// Get a usage report for an agent.
+	//
 	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
 	//
 	// @internal
 	// Authorization is handled in handler — caller must have can_view on the agent.
 	GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error)
-	// Get usage report for an organization (all agents in a time range).
+	// Get a usage report for an organization.
+	//
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 	//
 	// @internal
@@ -354,20 +357,23 @@ type AgentExecutionQueryControllerServer interface {
 	//
 	// @since Artifact Lifecycle (Attachments & Artifacts)
 	GetArtifactContent(context.Context, *GetArtifactContentRequest) (*GetArtifactContentResponse, error)
-	// Get usage report for a session (all executions in a session).
+	// Get a usage report for a session.
+	//
 	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
 	//
 	// @internal
 	// Authorization is handled in handler — caller must have can_view on
 	// all executions in the session (same pattern as listBySession).
 	GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error)
-	// Get usage report for an agent (all sessions for an agent in a time range).
+	// Get a usage report for an agent.
+	//
 	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
 	//
 	// @internal
 	// Authorization is handled in handler — caller must have can_view on the agent.
 	GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error)
-	// Get usage report for an organization (all agents in a time range).
+	// Get a usage report for an organization.
+	//
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 	//
 	// @internal

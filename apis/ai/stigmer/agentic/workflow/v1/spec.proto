@@ -8,17 +8,19 @@ import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// WorkflowSpec defines the complete specification of a workflow.
-// Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
+// WorkflowSpec defines the configurable properties of a workflow.
 //
+// @internal
+// Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
 // This replaces the old `synthesized_yaml` field with structured proto definitions.
 // Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
 // providing maximum flexibility and extensibility.
+// The overview.md file provides the SDK-facing description and example YAML.
 message WorkflowSpec {
   // Human-readable description for UI and marketplace display.
   string description = 1;
 
-  // Workflow document metadata (DSL version, namespace, name, version).
+  // Workflow document metadata including DSL version, namespace, name, and version.
   WorkflowDocument document = 2 [(buf.validate.field).required = true];
 
   // Ordered list of tasks that make up this workflow.
@@ -26,14 +28,15 @@ message WorkflowSpec {
   repeated WorkflowTask tasks = 3 [(buf.validate.field).repeated.min_items = 1];
 
   // Environment variables required by the workflow.
-  // Uses the shared EnvironmentSpec for consistent env var handling.
   ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4;
 }
 
-// WorkflowDocument contains workflow metadata.
+// WorkflowDocument contains workflow-level metadata for versioning and identification.
+//
+// @internal
 // Maps to the `document:` block in Zigflow DSL YAML.
 message WorkflowDocument {
-  // DSL version (semver). Must be "1.0.0" for current Zigflow.
+  // Workflow DSL version (semver). Must be "1.0.0" for the current specification.
   string dsl = 1 [(buf.validate.field).string = {pattern: "^1\\.0\\.0$"}];
 
   // Workflow namespace (organization/categorization).
@@ -49,7 +52,9 @@ message WorkflowDocument {
   string description = 5;
 }
 
-// WorkflowTask represents a single task in the workflow.
+// WorkflowTask represents a single executable step in a workflow.
+//
+// @internal
 // Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
 // - `kind` determines the task type (set_vars, http_call, switch_case, etc.)
 // - `task_config` contains task-specific configuration as dynamic JSON
@@ -74,9 +79,9 @@ message WorkflowTask {
   // Task type (determines how to interpret task_config).
   WorkflowTaskKind kind = 2 [(buf.validate.field).required = true];
 
-  // Task-specific configuration (dynamic typed).
-  // Structure depends on `kind` value.
+  // Task-specific configuration whose structure depends on the `kind` field.
   //
+  // @internal
   // Backend unmarshals this Struct to the appropriate proto message:
   // - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
   // - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -107,7 +112,9 @@ message WorkflowTask {
   FlowControl flow = 5;
 }
 
-// Export defines how to save task output to context.
+// Export defines how task output is saved to the workflow context.
+//
+// @internal
 // Maps to the `export:` block in Zigflow DSL.
 //
 // Examples:
@@ -115,12 +122,13 @@ message WorkflowTask {
 // - {"as": "${.fieldName}"} - Export specific field
 // - {"as": "${$context + {taskName: .}}"} - Merge into context
 message Export {
-  // Expression defining how to export output.
-  // Uses Zigflow expression syntax: ${...}
+  // Expression defining how to export output using ${...} syntax.
   string as = 1 [(buf.validate.field).string.min_len = 1];
 }
 
-// FlowControl defines which task executes next.
+// FlowControl defines which task executes next after the current task completes.
+//
+// @internal
 // Maps to the `then:` directive in Zigflow DSL.
 //
 // Examples:

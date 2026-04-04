@@ -34,10 +34,14 @@ const (
 // SessionCommandController handles write operations for agent sessions.
 type SessionCommandControllerClient interface {
 	// Create or update a session.
+	//
+	// @internal
 	// The authorization and state-operation are determined depending on whether the session
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
-	// Create a new session for an agent.
+	// Create a session.
+	//
+	// @internal
 	// Requires can_create_session permission in the organization.
 	Create(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
 	// Update an existing session (e.g., subject, thread_id, sandbox_id).
@@ -145,10 +149,14 @@ func (c *sessionCommandControllerClient) Delete(ctx context.Context, in *Session
 // SessionCommandController handles write operations for agent sessions.
 type SessionCommandControllerServer interface {
 	// Create or update a session.
+	//
+	// @internal
 	// The authorization and state-operation are determined depending on whether the session
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *Session) (*Session, error)
-	// Create a new session for an agent.
+	// Create a session.
+	//
+	// @internal
 	// Requires can_create_session permission in the organization.
 	Create(context.Context, *Session) (*Session, error)
 	// Update an existing session (e.g., subject, thread_id, sandbox_id).

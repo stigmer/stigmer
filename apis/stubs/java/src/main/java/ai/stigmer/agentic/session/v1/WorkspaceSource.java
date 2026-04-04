@@ -7,11 +7,12 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * WorkspaceSource defines where the agent's workspace content comes from.
+ * WorkspaceSource defines where the workspace content comes from.
  *
- * This is a pure source-definition type: it describes the origin of workspace
- * content (a git repo or a local directory) without any identity or naming.
- * Use WorkspaceEntry to pair a source with a name for session-level usage.
+ * &#64;internal
+ * Pure source-definition type: describes the origin of workspace content
+ * without any identity or naming. Use WorkspaceEntry to pair a source with
+ * a name for session-level usage.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.WorkspaceSource}
@@ -100,6 +101,10 @@ private static final long serialVersionUID = 0L;
 
   public static final int GIT_REPO_FIELD_NUMBER = 1;
   /**
+   * <pre>
+   * Clone a git repository as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
    * @return Whether the gitRepo field is set.
    */
@@ -108,6 +113,10 @@ private static final long serialVersionUID = 0L;
     return sourceCase_ == 1;
   }
   /**
+   * <pre>
+   * Clone a git repository as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
    * @return The gitRepo.
    */
@@ -119,6 +128,10 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.GitRepoSource.getDefaultInstance();
   }
   /**
+   * <pre>
+   * Clone a git repository as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
    */
   @java.lang.Override
@@ -131,6 +144,10 @@ private static final long serialVersionUID = 0L;
 
   public static final int LOCAL_PATH_FIELD_NUMBER = 2;
   /**
+   * <pre>
+   * Use an existing local directory as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
    * @return Whether the localPath field is set.
    */
@@ -139,6 +156,10 @@ private static final long serialVersionUID = 0L;
     return sourceCase_ == 2;
   }
   /**
+   * <pre>
+   * Use an existing local directory as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
    * @return The localPath.
    */
@@ -150,6 +171,10 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.LocalPathSource.getDefaultInstance();
   }
   /**
+   * <pre>
+   * Use an existing local directory as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
    */
   @java.lang.Override
@@ -347,11 +372,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkspaceSource defines where the agent's workspace content comes from.
+   * WorkspaceSource defines where the workspace content comes from.
    *
-   * This is a pure source-definition type: it describes the origin of workspace
-   * content (a git repo or a local directory) without any identity or naming.
-   * Use WorkspaceEntry to pair a source with a name for session-level usage.
+   * &#64;internal
+   * Pure source-definition type: describes the origin of workspace content
+   * without any identity or naming. Use WorkspaceEntry to pair a source with
+   * a name for session-level usage.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.WorkspaceSource}
@@ -544,6 +570,10 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.session.v1.GitRepoSource, ai.stigmer.agentic.session.v1.GitRepoSource.Builder, ai.stigmer.agentic.session.v1.GitRepoSourceOrBuilder> gitRepoBuilder_;
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      * @return Whether the gitRepo field is set.
      */
@@ -552,6 +582,10 @@ private static final long serialVersionUID = 0L;
       return sourceCase_ == 1;
     }
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      * @return The gitRepo.
      */
@@ -570,6 +604,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      */
     public Builder setGitRepo(ai.stigmer.agentic.session.v1.GitRepoSource value) {
@@ -586,6 +624,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      */
     public Builder setGitRepo(
@@ -600,6 +642,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      */
     public Builder mergeGitRepo(ai.stigmer.agentic.session.v1.GitRepoSource value) {
@@ -623,6 +669,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      */
     public Builder clearGitRepo() {
@@ -642,12 +692,20 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      */
     public ai.stigmer.agentic.session.v1.GitRepoSource.Builder getGitRepoBuilder() {
       return internalGetGitRepoFieldBuilder().getBuilder();
     }
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      */
     @java.lang.Override
@@ -662,6 +720,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Clone a git repository as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
@@ -686,6 +748,10 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.session.v1.LocalPathSource, ai.stigmer.agentic.session.v1.LocalPathSource.Builder, ai.stigmer.agentic.session.v1.LocalPathSourceOrBuilder> localPathBuilder_;
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      * @return Whether the localPath field is set.
      */
@@ -694,6 +760,10 @@ private static final long serialVersionUID = 0L;
       return sourceCase_ == 2;
     }
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      * @return The localPath.
      */
@@ -712,6 +782,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      */
     public Builder setLocalPath(ai.stigmer.agentic.session.v1.LocalPathSource value) {
@@ -728,6 +802,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      */
     public Builder setLocalPath(
@@ -742,6 +820,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      */
     public Builder mergeLocalPath(ai.stigmer.agentic.session.v1.LocalPathSource value) {
@@ -765,6 +847,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      */
     public Builder clearLocalPath() {
@@ -784,12 +870,20 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      */
     public ai.stigmer.agentic.session.v1.LocalPathSource.Builder getLocalPathBuilder() {
       return internalGetLocalPathFieldBuilder().getBuilder();
     }
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      */
     @java.lang.Override
@@ -804,6 +898,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Use an existing local directory as the workspace source.
+     * </pre>
+     *
      * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<

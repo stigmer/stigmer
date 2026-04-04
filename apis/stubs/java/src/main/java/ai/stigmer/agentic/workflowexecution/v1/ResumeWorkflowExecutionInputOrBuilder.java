@@ -12,15 +12,10 @@ public interface ResumeWorkflowExecutionInputOrBuilder extends
 
   /**
    * <pre>
-   * Workflow execution ID to resume.
+   * Workflow execution ID to resume (must be in PAUSED phase).
    *
-   * Must be in PAUSED phase. Cannot resume executions
-   * that are not paused.
-   *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -29,15 +24,10 @@ public interface ResumeWorkflowExecutionInputOrBuilder extends
   java.lang.String getId();
   /**
    * <pre>
-   * Workflow execution ID to resume.
+   * Workflow execution ID to resume (must be in PAUSED phase).
    *
-   * Must be in PAUSED phase. Cannot resume executions
-   * that are not paused.
-   *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>

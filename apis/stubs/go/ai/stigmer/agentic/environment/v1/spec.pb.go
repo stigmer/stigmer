@@ -21,18 +21,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// EnvironmentSpec defines a collection of configuration and secrets.
-// Created before AgentInstance or WorkflowInstance, referenced during instance creation.
+// EnvironmentSpec defines the configurable properties of an environment.
+//
+// @internal
+// The overview.md file provides the SDK-facing description and example YAML.
 type EnvironmentSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Human-readable description of this environment.
-	// Example: "Production AWS credentials for deployment"
+	// Human-readable description for UI and listing display.
 	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
-	// Key-value pairs containing both configuration and secrets.
-	// Each value includes a flag indicating whether it's a secret.
-	// Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-	//
-	//	"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+	// Key-value pairs containing configuration and secrets.
+	// Each value includes a flag indicating whether it is a secret.
 	Data          map[string]*EnvironmentValue `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -82,27 +80,23 @@ func (x *EnvironmentSpec) GetData() map[string]*EnvironmentValue {
 	return nil
 }
 
-// EnvironmentValue represents a single configuration or secret value.
+// EnvironmentValue represents a single configuration or secret entry.
 type EnvironmentValue struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The actual value.
-	// - If is_secret=true: This value is encrypted at rest and redacted in logs
-	// - If is_secret=false: This value is stored as plaintext
-	// Note: Value can be empty when defining environment variables in specs.
+	// The configuration or secret string.
 	//
-	//	Actual values are typically provided at runtime during execution.
+	// @internal
+	// When is_secret is true the value is encrypted at rest and redacted in logs.
+	// When is_secret is false the value is stored as plaintext.
+	// Value can be empty when pre-declaring keys whose values are injected at runtime.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Whether this value should be treated as a secret.
-	// When true:
-	// - Value is encrypted at rest
-	// - Value is redacted in logs
-	// - Value requires special permissions to read
-	// When false:
-	// - Value is stored as plaintext
-	// - Value is visible in audit logs
+	//
+	// @internal
+	// When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
+	// When false: stored as plaintext, visible in audit logs.
 	IsSecret bool `protobuf:"varint,2,opt,name=is_secret,json=isSecret,proto3" json:"is_secret,omitempty"`
-	// Optional description for documentation.
-	// Example: "AWS access key for S3 bucket access"
+	// Human-readable description of what this value is used for.
 	Description   string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -7,25 +7,21 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * PendingApproval is a UI-facing projection computed server-side from tool
- * call state in messages.
+ * A pending approval request for a tool call that requires user consent before execution.
  *
- * ## How It Works
+ * Each entry represents one tool call waiting for a user decision (approve, skip,
+ * or reject). Sub-agent approvals are included with from_sub_agent set to true
+ * and sub_agent_name identifying the origin.
  *
- * The Go/Java UpdateStatus handlers recompute this projection on every write
- * by scanning messages[].tool_calls (and sub_agent_executions[].messages[].tool_calls),
+ * &#64;internal
+ *
+ * Computed server-side by the UpdateStatus handlers on every write. The handler
+ * scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,
  * collecting entries where status == WAITING_APPROVAL &amp;&amp; requires_approval == true.
  * Because the list is recomputed rather than merged, it is always consistent
  * with the authoritative tool call state embedded in messages.
  *
- * ## Sub-Agent Approvals
- *
- * When a sub-agent's tool requires approval, the computed projection includes
- * it with from_sub_agent=true and sub_agent_name set. This allows UI to show:
- * "Sub-agent 'code-reviewer' needs approval to execute 'delete_file'"
- *
- * ## Lifecycle
- *
+ * Lifecycle:
  * 1. Tool with requires_approval=true is about to execute
  * 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
  * 3. Server recomputes pending_approvals, entry appears
@@ -779,25 +775,21 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * PendingApproval is a UI-facing projection computed server-side from tool
-   * call state in messages.
+   * A pending approval request for a tool call that requires user consent before execution.
    *
-   * ## How It Works
+   * Each entry represents one tool call waiting for a user decision (approve, skip,
+   * or reject). Sub-agent approvals are included with from_sub_agent set to true
+   * and sub_agent_name identifying the origin.
    *
-   * The Go/Java UpdateStatus handlers recompute this projection on every write
-   * by scanning messages[].tool_calls (and sub_agent_executions[].messages[].tool_calls),
+   * &#64;internal
+   *
+   * Computed server-side by the UpdateStatus handlers on every write. The handler
+   * scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,
    * collecting entries where status == WAITING_APPROVAL &amp;&amp; requires_approval == true.
    * Because the list is recomputed rather than merged, it is always consistent
    * with the authoritative tool call state embedded in messages.
    *
-   * ## Sub-Agent Approvals
-   *
-   * When a sub-agent's tool requires approval, the computed projection includes
-   * it with from_sub_agent=true and sub_agent_name set. This allows UI to show:
-   * "Sub-agent 'code-reviewer' needs approval to execute 'delete_file'"
-   *
-   * ## Lifecycle
-   *
+   * Lifecycle:
    * 1. Tool with requires_approval=true is about to execute
    * 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
    * 3. Server recomputes pending_approvals, entry appears

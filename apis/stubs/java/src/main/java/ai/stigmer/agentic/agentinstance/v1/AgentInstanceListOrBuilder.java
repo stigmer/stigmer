@@ -12,7 +12,7 @@ public interface AgentInstanceListOrBuilder extends
 
   /**
    * <pre>
-   * Total count of instances.
+   * Total number of agent instances matching the query.
    * </pre>
    *
    * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
@@ -22,7 +22,7 @@ public interface AgentInstanceListOrBuilder extends
 
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -31,7 +31,7 @@ public interface AgentInstanceListOrBuilder extends
       getItemsList();
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -39,7 +39,7 @@ public interface AgentInstanceListOrBuilder extends
   ai.stigmer.agentic.agentinstance.v1.AgentInstance getItems(int index);
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -47,7 +47,7 @@ public interface AgentInstanceListOrBuilder extends
   int getItemsCount();
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -56,7 +56,7 @@ public interface AgentInstanceListOrBuilder extends
       getItemsOrBuilderList();
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>

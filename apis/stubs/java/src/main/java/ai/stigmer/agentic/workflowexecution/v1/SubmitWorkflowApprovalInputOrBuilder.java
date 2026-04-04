@@ -13,6 +13,8 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   /**
    * <pre>
    * ID of the workflow execution.
+   *
+   * &#64;internal
    * Format: "wfx_abc123xyz456"
    * </pre>
    *
@@ -23,6 +25,8 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   /**
    * <pre>
    * ID of the workflow execution.
+   *
+   * &#64;internal
    * Format: "wfx_abc123xyz456"
    * </pre>
    *
@@ -34,9 +38,10 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
 
   /**
    * <pre>
-   * ID of the tool call to approve/skip/reject.
+   * ID of the tool call to approve, skip, or reject.
+   *
+   * &#64;internal
    * Must match status.pending_approval.tool_call_id exactly.
-   * Format: Tool call ID from agent runtime (e.g., "call_abc123")
    * </pre>
    *
    * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -45,9 +50,10 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   java.lang.String getToolCallId();
   /**
    * <pre>
-   * ID of the tool call to approve/skip/reject.
+   * ID of the tool call to approve, skip, or reject.
+   *
+   * &#64;internal
    * Must match status.pending_approval.tool_call_id exactly.
-   * Format: Tool call ID from agent runtime (e.g., "call_abc123")
    * </pre>
    *
    * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -58,13 +64,10 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
 
   /**
    * <pre>
-   * User's decision: APPROVE, SKIP, or REJECT.
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+   * Approval decision: APPROVE, SKIP, or REJECT.
    *
-   * Actions:
-   * - APPROVE: Tool executes with the provided arguments
-   * - SKIP: Tool execution is skipped, agent receives skip message
-   * - REJECT: Agent execution fails with rejection error
+   * &#64;internal
+   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -73,13 +76,10 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   int getActionValue();
   /**
    * <pre>
-   * User's decision: APPROVE, SKIP, or REJECT.
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+   * Approval decision: APPROVE, SKIP, or REJECT.
    *
-   * Actions:
-   * - APPROVE: Tool executes with the provided arguments
-   * - SKIP: Tool execution is skipped, agent receives skip message
-   * - REJECT: Agent execution fails with rejection error
+   * &#64;internal
+   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -89,13 +89,7 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
 
   /**
    * <pre>
-   * Optional reason/comment for the decision.
-   * Stored in audit trail for compliance and debugging.
-   *
-   * Examples:
-   * - "Verified the target repository is safe to delete" (on APPROVE)
-   * - "Will handle this operation manually" (on SKIP)
-   * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+   * Optional reason or comment for the decision, stored in the audit trail.
    * </pre>
    *
    * <code>string comment = 4 [json_name = "comment"];</code>
@@ -104,13 +98,7 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   java.lang.String getComment();
   /**
    * <pre>
-   * Optional reason/comment for the decision.
-   * Stored in audit trail for compliance and debugging.
-   *
-   * Examples:
-   * - "Verified the target repository is safe to delete" (on APPROVE)
-   * - "Will handle this operation manually" (on SKIP)
-   * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+   * Optional reason or comment for the decision, stored in the audit trail.
    * </pre>
    *
    * <code>string comment = 4 [json_name = "comment"];</code>

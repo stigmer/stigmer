@@ -16,29 +16,33 @@ export const file_ai_stigmer_agentic_agentinstance_v1_spec: GenFile = /*@__PURE_
   fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9zcGVjLnByb3RvEiNhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MSKKAgoRQWdlbnRJbnN0YW5jZVNwZWMSGQoIYWdlbnRfaWQYASABKAlCB7pIBHICEAESEwoLZGVzY3JpcHRpb24YAiABKAkSxAEKEGVudmlyb25tZW50X3JlZnMYAyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCdLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUzYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
- * AgentInstanceSpec defines a configured deployment of an Agent template.
- * This is the "Instance" layer - stateful configuration with secrets.
+ * AgentInstanceSpec defines the configurable properties of an agent instance.
+ *
+ * @internal
+ * This is the "Instance" layer — stateful configuration with secrets.
+ * The overview.md file provides the SDK-facing description and example YAML.
  *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec
  */
 export type AgentInstanceSpec = Message<"ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec"> & {
   /**
-   * Reference to the Agent template this instance deploys.
+   * Identifier of the Agent template this instance deploys.
    *
    * @generated from field: string agent_id = 1;
    */
   agentId: string;
 
   /**
-   * Human-readable description for this instance.
-   * Example: "Production GitHub bot for main repo"
+   * Human-readable description for UI and API display.
    *
    * @generated from field: string description = 2;
    */
   description: string;
 
   /**
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * @internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).

@@ -171,12 +171,13 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
-   * When specified, only these tools will be available unless overridden in McpServerUsage.
+   *
+   * &#64;internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Examples: ["create_pull_request", "search_code", "get_file_contents"]
+   * Including a resource template name here causes a fatal runtime error.
    * </pre>
    *
    * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
@@ -188,12 +189,13 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
-   * When specified, only these tools will be available unless overridden in McpServerUsage.
+   *
+   * &#64;internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Examples: ["create_pull_request", "search_code", "get_file_contents"]
+   * Including a resource template name here causes a fatal runtime error.
    * </pre>
    *
    * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
@@ -204,12 +206,13 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
-   * When specified, only these tools will be available unless overridden in McpServerUsage.
+   *
+   * &#64;internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Examples: ["create_pull_request", "search_code", "get_file_contents"]
+   * Including a resource template name here causes a fatal runtime error.
    * </pre>
    *
    * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
@@ -221,12 +224,13 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
-   * When specified, only these tools will be available unless overridden in McpServerUsage.
+   *
+   * &#64;internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Examples: ["create_pull_request", "search_code", "get_file_contents"]
+   * Including a resource template name here causes a fatal runtime error.
    * </pre>
    *
    * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
@@ -238,22 +242,7 @@ public interface McpServerSpecOrBuilder extends
 
   /**
    * <pre>
-   * Environment specification declaring required environment variables.
-   * This defines the SCHEMA of required env vars - actual values are provided
-   * at runtime via AgentInstance's environment_ref.
-   *
-   * Use this to declare what environment variables the MCP server needs,
-   * whether they are secrets (e.g., API tokens), and their descriptions.
-   * Values in this spec can be empty - they serve as documentation and validation.
-   *
-   * Example:
-   * data:
-   * GITHUB_TOKEN:
-   * is_secret: true
-   * description: "GitHub personal access token with repo scope"
-   * GITHUB_OWNER:
-   * is_secret: false
-   * description: "Default GitHub organization or user"
+   * Environment variables required by the MCP server.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec"];</code>
@@ -262,22 +251,7 @@ public interface McpServerSpecOrBuilder extends
   boolean hasEnvSpec();
   /**
    * <pre>
-   * Environment specification declaring required environment variables.
-   * This defines the SCHEMA of required env vars - actual values are provided
-   * at runtime via AgentInstance's environment_ref.
-   *
-   * Use this to declare what environment variables the MCP server needs,
-   * whether they are secrets (e.g., API tokens), and their descriptions.
-   * Values in this spec can be empty - they serve as documentation and validation.
-   *
-   * Example:
-   * data:
-   * GITHUB_TOKEN:
-   * is_secret: true
-   * description: "GitHub personal access token with repo scope"
-   * GITHUB_OWNER:
-   * is_secret: false
-   * description: "Default GitHub organization or user"
+   * Environment variables required by the MCP server.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec"];</code>
@@ -286,22 +260,7 @@ public interface McpServerSpecOrBuilder extends
   ai.stigmer.agentic.environment.v1.EnvironmentSpec getEnvSpec();
   /**
    * <pre>
-   * Environment specification declaring required environment variables.
-   * This defines the SCHEMA of required env vars - actual values are provided
-   * at runtime via AgentInstance's environment_ref.
-   *
-   * Use this to declare what environment variables the MCP server needs,
-   * whether they are secrets (e.g., API tokens), and their descriptions.
-   * Values in this spec can be empty - they serve as documentation and validation.
-   *
-   * Example:
-   * data:
-   * GITHUB_TOKEN:
-   * is_secret: true
-   * description: "GitHub personal access token with repo scope"
-   * GITHUB_OWNER:
-   * is_secret: false
-   * description: "Default GitHub organization or user"
+   * Environment variables required by the MCP server.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec"];</code>
@@ -312,6 +271,7 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tool approval policies for this MCP server.
    *
+   * &#64;internal
    * Tools listed here require user approval before execution by default.
    * This is the first layer in the approval policy chain:
    * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
@@ -320,22 +280,6 @@ public interface McpServerSpecOrBuilder extends
    * - Mark destructive operations as requiring approval by default
    * - Protect sensitive data access across all agents using this server
    * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Example (GitHub MCP):
-   * default_tool_approvals:
-   * - tool_name: "delete_repository"
-   * message: "Delete repository: {{args.repo}}"
-   * - tool_name: "force_push"
-   * message: "Force push to {{args.branch}}"
-   * - tool_name: "add_collaborator"
-   * message: "Add {{args.user}} as collaborator to {{args.repo}}"
-   *
-   * Example (Database MCP):
-   * default_tool_approvals:
-   * - tool_name: "execute_sql"
-   * message: "Execute SQL: {{args.query}}"
-   * - tool_name: "drop_table"
-   * message: "Drop table: {{args.table_name}}"
    *
    * Tools not listed here do not require approval by default.
    * Agents can still add approval requirements via tool_approval_overrides.
@@ -349,6 +293,7 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tool approval policies for this MCP server.
    *
+   * &#64;internal
    * Tools listed here require user approval before execution by default.
    * This is the first layer in the approval policy chain:
    * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
@@ -357,22 +302,6 @@ public interface McpServerSpecOrBuilder extends
    * - Mark destructive operations as requiring approval by default
    * - Protect sensitive data access across all agents using this server
    * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Example (GitHub MCP):
-   * default_tool_approvals:
-   * - tool_name: "delete_repository"
-   * message: "Delete repository: {{args.repo}}"
-   * - tool_name: "force_push"
-   * message: "Force push to {{args.branch}}"
-   * - tool_name: "add_collaborator"
-   * message: "Add {{args.user}} as collaborator to {{args.repo}}"
-   *
-   * Example (Database MCP):
-   * default_tool_approvals:
-   * - tool_name: "execute_sql"
-   * message: "Execute SQL: {{args.query}}"
-   * - tool_name: "drop_table"
-   * message: "Drop table: {{args.table_name}}"
    *
    * Tools not listed here do not require approval by default.
    * Agents can still add approval requirements via tool_approval_overrides.
@@ -385,6 +314,7 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tool approval policies for this MCP server.
    *
+   * &#64;internal
    * Tools listed here require user approval before execution by default.
    * This is the first layer in the approval policy chain:
    * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
@@ -393,22 +323,6 @@ public interface McpServerSpecOrBuilder extends
    * - Mark destructive operations as requiring approval by default
    * - Protect sensitive data access across all agents using this server
    * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Example (GitHub MCP):
-   * default_tool_approvals:
-   * - tool_name: "delete_repository"
-   * message: "Delete repository: {{args.repo}}"
-   * - tool_name: "force_push"
-   * message: "Force push to {{args.branch}}"
-   * - tool_name: "add_collaborator"
-   * message: "Add {{args.user}} as collaborator to {{args.repo}}"
-   *
-   * Example (Database MCP):
-   * default_tool_approvals:
-   * - tool_name: "execute_sql"
-   * message: "Execute SQL: {{args.query}}"
-   * - tool_name: "drop_table"
-   * message: "Drop table: {{args.table_name}}"
    *
    * Tools not listed here do not require approval by default.
    * Agents can still add approval requirements via tool_approval_overrides.
@@ -421,6 +335,7 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tool approval policies for this MCP server.
    *
+   * &#64;internal
    * Tools listed here require user approval before execution by default.
    * This is the first layer in the approval policy chain:
    * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
@@ -429,22 +344,6 @@ public interface McpServerSpecOrBuilder extends
    * - Mark destructive operations as requiring approval by default
    * - Protect sensitive data access across all agents using this server
    * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Example (GitHub MCP):
-   * default_tool_approvals:
-   * - tool_name: "delete_repository"
-   * message: "Delete repository: {{args.repo}}"
-   * - tool_name: "force_push"
-   * message: "Force push to {{args.branch}}"
-   * - tool_name: "add_collaborator"
-   * message: "Add {{args.user}} as collaborator to {{args.repo}}"
-   *
-   * Example (Database MCP):
-   * default_tool_approvals:
-   * - tool_name: "execute_sql"
-   * message: "Execute SQL: {{args.query}}"
-   * - tool_name: "drop_table"
-   * message: "Drop table: {{args.table_name}}"
    *
    * Tools not listed here do not require approval by default.
    * Agents can still add approval requirements via tool_approval_overrides.
@@ -458,6 +357,7 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Default tool approval policies for this MCP server.
    *
+   * &#64;internal
    * Tools listed here require user approval before execution by default.
    * This is the first layer in the approval policy chain:
    * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
@@ -466,22 +366,6 @@ public interface McpServerSpecOrBuilder extends
    * - Mark destructive operations as requiring approval by default
    * - Protect sensitive data access across all agents using this server
    * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Example (GitHub MCP):
-   * default_tool_approvals:
-   * - tool_name: "delete_repository"
-   * message: "Delete repository: {{args.repo}}"
-   * - tool_name: "force_push"
-   * message: "Force push to {{args.branch}}"
-   * - tool_name: "add_collaborator"
-   * message: "Add {{args.user}} as collaborator to {{args.repo}}"
-   *
-   * Example (Database MCP):
-   * default_tool_approvals:
-   * - tool_name: "execute_sql"
-   * message: "Execute SQL: {{args.query}}"
-   * - tool_name: "drop_table"
-   * message: "Drop table: {{args.table_name}}"
    *
    * Tools not listed here do not require approval by default.
    * Agents can still add approval requirements via tool_approval_overrides.

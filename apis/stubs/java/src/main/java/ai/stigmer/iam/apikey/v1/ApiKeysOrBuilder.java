@@ -11,24 +11,44 @@ public interface ApiKeysOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * API key entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.apikey.v1.ApiKey entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.iam.apikey.v1.ApiKey> 
       getEntriesList();
   /**
+   * <pre>
+   * API key entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.apikey.v1.ApiKey entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.apikey.v1.ApiKey getEntries(int index);
   /**
+   * <pre>
+   * API key entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.apikey.v1.ApiKey entries = 1 [json_name = "entries"];</code>
    */
   int getEntriesCount();
   /**
+   * <pre>
+   * API key entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.apikey.v1.ApiKey entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.iam.apikey.v1.ApiKeyOrBuilder> 
       getEntriesOrBuilderList();
   /**
+   * <pre>
+   * API key entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.apikey.v1.ApiKey entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.apikey.v1.ApiKeyOrBuilder getEntriesOrBuilder(

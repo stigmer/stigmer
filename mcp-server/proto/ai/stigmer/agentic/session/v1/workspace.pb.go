@@ -22,11 +22,12 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WorkspaceSource defines where the agent's workspace content comes from.
+// WorkspaceSource defines where the workspace content comes from.
 //
-// This is a pure source-definition type: it describes the origin of workspace
-// content (a git repo or a local directory) without any identity or naming.
-// Use WorkspaceEntry to pair a source with a name for session-level usage.
+// @internal
+// Pure source-definition type: describes the origin of workspace content
+// without any identity or naming. Use WorkspaceEntry to pair a source with
+// a name for session-level usage.
 type WorkspaceSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Source:
@@ -98,10 +99,12 @@ type isWorkspaceSource_Source interface {
 }
 
 type WorkspaceSource_GitRepo struct {
+	// Clone a git repository as the workspace source.
 	GitRepo *GitRepoSource `protobuf:"bytes,1,opt,name=git_repo,json=gitRepo,proto3,oneof"`
 }
 
 type WorkspaceSource_LocalPath struct {
+	// Use an existing local directory as the workspace source.
 	LocalPath *LocalPathSource `protobuf:"bytes,2,opt,name=local_path,json=localPath,proto3,oneof"`
 }
 
@@ -109,24 +112,22 @@ func (*WorkspaceSource_GitRepo) isWorkspaceSource_Source() {}
 
 func (*WorkspaceSource_LocalPath) isWorkspaceSource_Source() {}
 
-// WorkspaceEntry pairs a WorkspaceSource with a human-readable name,
-// forming an addressable unit within a session's workspace.
+// WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
 //
-// In a multi-root workspace (VS Code model), each entry is a separate
-// directory or repository that the agent can operate on. The name serves as
-// the entry's identity: it appears in the system prompt, and in cloud mode
-// it becomes the subdirectory name under the workspace root.
+// Each entry is a separate directory or repository that the agent can
+// operate on. The name serves as the entry's identity and must be unique
+// within a session's workspace_entries list.
 //
-// Names are auto-derived by the CLI from the repository name (last URL path
-// segment sans ".git") or the directory basename. They must be unique within
-// a session's workspace_entries list.
+// @internal
+// In a multi-root workspace (VS Code model), the name appears in the system
+// prompt and in cloud mode it becomes the subdirectory name under the
+// workspace root. Names are auto-derived by the CLI from the repository
+// name (last URL path segment sans ".git") or the directory basename.
 type WorkspaceEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Short identifier for this workspace entry (required).
-	// Used in system prompt headings and as the clone subdirectory in cloud mode.
-	// Example: "my-app", "frontend", "shared-lib"
+	// Short identifier for this workspace entry.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// The source that provides this entry's content (required).
+	// The source that provides this entry's content.
 	Source        *WorkspaceSource `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -176,22 +177,18 @@ func (x *WorkspaceEntry) GetSource() *WorkspaceSource {
 	return nil
 }
 
-// LocalPathSource uses an existing directory on the host filesystem as the
-// workspace. The agent operates directly on the user's files -- changes are
-// immediate and persistent.
+// LocalPathSource uses an existing directory on the host filesystem as the workspace.
 //
+// The agent operates directly on the user's files — changes are immediate
+// and persistent. No copy or clone is made.
+//
+// @internal
 // Deployment constraint: only valid when the agent-runner is in local mode.
 // Cloud runners reject this at provisioning time with a clear error, the same
-// way GitRepoSource rejects SSH URLs at validation time. This is a normal
-// deployment-specific constraint, not a schema limitation.
-//
-// No copy or clone is made. The path is used directly as the workspace root.
+// way GitRepoSource rejects SSH URLs at validation time.
 type LocalPathSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Absolute path to an existing directory on the host filesystem (required).
-	// The runner validates that the path exists and is a directory at
-	// provisioning time.
-	// Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+	// Absolute path to an existing directory on the host filesystem.
 	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -236,55 +233,51 @@ func (x *LocalPathSource) GetPath() string {
 
 // GitRepoSource provisions a workspace by cloning a git repository.
 //
+// Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
+//
+// @internal
 // Authentication: The provisioner resolves GITHUB_TOKEN from the merged
 // environment (Agent defaults < Environment < ExecutionContext.runtime_env)
 // and injects it into the clone URL. The token is consumed by provisioning
 // and stripped before forwarding to the agent runtime (see AD-05).
-//
-// HTTPS only for MVP. SSH key authentication is a future enhancement.
+// SSH key authentication is a future enhancement.
 type GitRepoSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// HTTPS clone URL (required).
-	// Must use the https:// scheme. SSH URLs (git@...) are not supported.
-	// Example: "https://github.com/acme/my-app.git"
+	// HTTPS clone URL for the repository.
 	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	// Branch to clone (optional).
+	// Branch to clone.
+	//
 	// When empty, the repository's default branch is used.
-	// Example: "main", "develop", "feature/workspace-support"
 	Branch string `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
-	// Commit SHA to checkout after cloning (optional).
-	// When set, the workspace is checked out at this exact commit (detached HEAD).
+	// Commit SHA to checkout after cloning.
+	//
+	// When set, the workspace is checked out at this exact commit.
 	// When both branch and commit are set, the branch is cloned first, then
-	// the commit is checked out -- this allows shallow clones of a specific
-	// commit on a known branch.
-	// When only commit is set (no branch), a full clone is required to
-	// locate the commit.
+	// the commit is checked out.
 	Commit string `protobuf:"bytes,3,opt,name=commit,proto3" json:"commit,omitempty"`
-	// Clone depth (optional).
+	// Number of commits to include in the clone history.
 	//
-	// Presence semantics:
-	//   - Absent (not set): shallow clone with depth 1 (fast default).
-	//   - 0: full clone with complete history.
-	//   - N > 0: shallow clone with depth N.
+	// When not set, defaults to a shallow clone with depth 1. Set to 0 for
+	// a full clone with complete history.
 	//
+	// @internal
 	// Uses proto3 optional to distinguish "not set" from "set to 0."
+	// Absent: shallow clone depth 1; 0: full clone; N > 0: shallow clone depth N.
 	Depth *int32 `protobuf:"varint,4,opt,name=depth,proto3,oneof" json:"depth,omitempty"`
-	// Controls whether the platform automatically creates a branch and
-	// pull request from the agent's file changes during execution.
+	// Controls whether the platform creates a branch and pull request from the agent's file changes.
 	//
+	// @internal
 	// This is a platform-level workflow, not an agent-level decision. The
 	// agent focuses on making code changes; the platform packages them
 	// incrementally — the PR appears the moment the first file is written
 	// and the diff grows in real time as the agent works.
 	//
-	// Requires git credentials to be configured during workspace provisioning
-	// (GITHUB_TOKEN available in the execution environment). If credentials
+	// Requires GITHUB_TOKEN in the execution environment. If credentials
 	// are not available, the write-back is silently skipped regardless of
 	// this setting.
 	//
 	// Default (UNSPECIFIED): platform decides. Currently defaults to
-	// write-back enabled when git credentials are available. Set an
-	// explicit mode to override.
+	// write-back enabled when git credentials are available.
 	WriteBackMode GitWriteBackMode `protobuf:"varint,5,opt,name=write_back_mode,json=writeBackMode,proto3,enum=ai.stigmer.agentic.session.v1.GitWriteBackMode" json:"write_back_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

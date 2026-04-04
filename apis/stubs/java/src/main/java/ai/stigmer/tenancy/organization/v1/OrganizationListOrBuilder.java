@@ -12,7 +12,7 @@ public interface OrganizationListOrBuilder extends
 
   /**
    * <pre>
-   * total number of pages
+   * Total number of pages.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -22,7 +22,7 @@ public interface OrganizationListOrBuilder extends
 
   /**
    * <pre>
-   * organizations in current page
+   * Organizations in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 2 [json_name = "entries"];</code>
@@ -31,7 +31,7 @@ public interface OrganizationListOrBuilder extends
       getEntriesList();
   /**
    * <pre>
-   * organizations in current page
+   * Organizations in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 2 [json_name = "entries"];</code>
@@ -39,7 +39,7 @@ public interface OrganizationListOrBuilder extends
   ai.stigmer.tenancy.organization.v1.Organization getEntries(int index);
   /**
    * <pre>
-   * organizations in current page
+   * Organizations in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 2 [json_name = "entries"];</code>
@@ -47,7 +47,7 @@ public interface OrganizationListOrBuilder extends
   int getEntriesCount();
   /**
    * <pre>
-   * organizations in current page
+   * Organizations in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 2 [json_name = "entries"];</code>
@@ -56,7 +56,7 @@ public interface OrganizationListOrBuilder extends
       getEntriesOrBuilderList();
   /**
    * <pre>
-   * organizations in current page
+   * Organizations in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 2 [json_name = "entries"];</code>

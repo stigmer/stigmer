@@ -11,23 +11,39 @@ public interface AuthorizedResourceIdsListOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Resource IDs the principal is authorized to access.
+   * </pre>
+   *
    * <code>repeated string resource_ids = 1 [json_name = "resourceIds"];</code>
    * @return A list containing the resourceIds.
    */
   java.util.List<java.lang.String>
       getResourceIdsList();
   /**
+   * <pre>
+   * Resource IDs the principal is authorized to access.
+   * </pre>
+   *
    * <code>repeated string resource_ids = 1 [json_name = "resourceIds"];</code>
    * @return The count of resourceIds.
    */
   int getResourceIdsCount();
   /**
+   * <pre>
+   * Resource IDs the principal is authorized to access.
+   * </pre>
+   *
    * <code>repeated string resource_ids = 1 [json_name = "resourceIds"];</code>
    * @param index The index of the element to return.
    * @return The resourceIds at the given index.
    */
   java.lang.String getResourceIds(int index);
   /**
+   * <pre>
+   * Resource IDs the principal is authorized to access.
+   * </pre>
+   *
    * <code>repeated string resource_ids = 1 [json_name = "resourceIds"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the resourceIds at the given index.

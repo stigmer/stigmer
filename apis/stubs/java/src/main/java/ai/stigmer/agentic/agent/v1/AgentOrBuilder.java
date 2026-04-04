@@ -52,9 +52,7 @@ public interface AgentOrBuilder extends
 
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Agents belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -63,9 +61,7 @@ public interface AgentOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Agents belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -74,9 +70,7 @@ public interface AgentOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Agents belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -85,7 +79,7 @@ public interface AgentOrBuilder extends
 
   /**
    * <pre>
-   * Agent-specific configuration.
+   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -94,7 +88,7 @@ public interface AgentOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * Agent-specific configuration.
+   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -103,7 +97,7 @@ public interface AgentOrBuilder extends
   ai.stigmer.agentic.agent.v1.AgentSpec getSpec();
   /**
    * <pre>
-   * Agent-specific configuration.
+   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -112,7 +106,7 @@ public interface AgentOrBuilder extends
 
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -121,7 +115,7 @@ public interface AgentOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -130,7 +124,7 @@ public interface AgentOrBuilder extends
   ai.stigmer.agentic.agent.v1.AgentStatus getStatus();
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>

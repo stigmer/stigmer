@@ -19,12 +19,16 @@ package ai.stigmer.agentic.agentexecution.v1;
 public enum ExecutionArtifactKind
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value, not a valid artifact kind.
+   * </pre>
+   *
    * <code>EXECUTION_ARTIFACT_KIND_UNSPECIFIED = 0;</code>
    */
   EXECUTION_ARTIFACT_KIND_UNSPECIFIED(0),
   /**
    * <pre>
-   * Single file
+   * A single file published by the agent.
    * </pre>
    *
    * <code>EXECUTION_ARTIFACT_KIND_FILE = 1;</code>
@@ -32,7 +36,7 @@ public enum ExecutionArtifactKind
   EXECUTION_ARTIFACT_KIND_FILE(1),
   /**
    * <pre>
-   * Directory (stored as ZIP)
+   * A directory published by the agent, archived as a ZIP file for download.
    * </pre>
    *
    * <code>EXECUTION_ARTIFACT_KIND_DIRECTORY = 2;</code>
@@ -51,12 +55,16 @@ public enum ExecutionArtifactKind
       "ExecutionArtifactKind");
   }
   /**
+   * <pre>
+   * Default value, not a valid artifact kind.
+   * </pre>
+   *
    * <code>EXECUTION_ARTIFACT_KIND_UNSPECIFIED = 0;</code>
    */
   public static final int EXECUTION_ARTIFACT_KIND_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Single file
+   * A single file published by the agent.
    * </pre>
    *
    * <code>EXECUTION_ARTIFACT_KIND_FILE = 1;</code>
@@ -64,7 +72,7 @@ public enum ExecutionArtifactKind
   public static final int EXECUTION_ARTIFACT_KIND_FILE_VALUE = 1;
   /**
    * <pre>
-   * Directory (stored as ZIP)
+   * A directory published by the agent, archived as a ZIP file for download.
    * </pre>
    *
    * <code>EXECUTION_ARTIFACT_KIND_DIRECTORY = 2;</code>

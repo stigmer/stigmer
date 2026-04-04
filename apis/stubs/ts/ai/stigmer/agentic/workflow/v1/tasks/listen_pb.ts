@@ -15,9 +15,10 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_listen: GenFile = /*@__PU
   fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvbGlzdGVuLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MiYgoQTGlzdGVuVGFza0NvbmZpZxJCCgJ0bxgBIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5MaXN0ZW5Ub0IGukgDyAEBOgrqiywGbGlzdGVuInkKCExpc3RlblRvEiAKBG1vZGUYASABKAlCErpID8gBAXIKUgNvbmVSA2FsbBJLCgdzaWduYWxzGAIgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLlNpZ25hbFNwZWNCCLpIBZIBAggBIlMKClNpZ25hbFNwZWMSFgoCaWQYASABKAlCCrpIB8gBAXICEAESLQoEdHlwZRgCIAEoCUIfukgcyAEBchdSBnNpZ25hbFIFcXVlcnlSBnVwZGF0ZWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
- * ListenTaskConfig defines the configuration for LISTEN tasks.
+ * ListenTaskConfig defines the configuration for listen tasks that wait for external signals.
  *
- * LISTEN tasks wait for external signals/events (Temporal signals).
+ * @internal
+ * Implemented via Temporal signals.
  *
  * YAML Example:
  *   - taskName:
@@ -92,10 +93,7 @@ export type SignalSpec = Message<"ai.stigmer.agentic.workflow.v1.tasks.SignalSpe
   id: string;
 
   /**
-   * Signal type:
-   * - "signal": Temporal signal
-   * - "query": Temporal query
-   * - "update": Temporal update
+   * Signal type: "signal", "query", or "update".
    *
    * @generated from field: string type = 2;
    */

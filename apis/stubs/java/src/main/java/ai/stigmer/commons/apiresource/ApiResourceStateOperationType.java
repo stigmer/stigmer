@@ -6,32 +6,64 @@
 package ai.stigmer.commons.apiresource;
 
 /**
+ * <pre>
+ * Operation type for API resource state transitions.
+ *
+ * &#64;internal
+ * Used by the state machine to classify RPC operations and enforce
+ * transition rules (e.g., a resource in "deleting" state rejects create).
+ * </pre>
+ *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.ApiResourceStateOperationType}
  */
 @com.google.protobuf.Generated
 public enum ApiResourceStateOperationType
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value when no operation type is set.
+   * </pre>
+   *
    * <code>api_resource_state_operation_type_unspecified = 0;</code>
    */
   api_resource_state_operation_type_unspecified(0),
   /**
+   * <pre>
+   * Create a new resource.
+   * </pre>
+   *
    * <code>create = 1;</code>
    */
   create(1),
   /**
+   * <pre>
+   * Update an existing resource.
+   * </pre>
+   *
    * <code>update = 2;</code>
    */
   update(2),
   /**
+   * <pre>
+   * Delete an existing resource.
+   * </pre>
+   *
    * <code>delete = 3;</code>
    */
   delete(3),
   /**
+   * <pre>
+   * Read a resource (query).
+   * </pre>
+   *
    * <code>read = 4;</code>
    */
   read(4),
   /**
+   * <pre>
+   * Open a server-streaming connection to a resource.
+   * </pre>
+   *
    * <code>stream = 5;</code>
    */
   stream(5),
@@ -48,26 +80,50 @@ public enum ApiResourceStateOperationType
       "ApiResourceStateOperationType");
   }
   /**
+   * <pre>
+   * Default value when no operation type is set.
+   * </pre>
+   *
    * <code>api_resource_state_operation_type_unspecified = 0;</code>
    */
   public static final int api_resource_state_operation_type_unspecified_VALUE = 0;
   /**
+   * <pre>
+   * Create a new resource.
+   * </pre>
+   *
    * <code>create = 1;</code>
    */
   public static final int create_VALUE = 1;
   /**
+   * <pre>
+   * Update an existing resource.
+   * </pre>
+   *
    * <code>update = 2;</code>
    */
   public static final int update_VALUE = 2;
   /**
+   * <pre>
+   * Delete an existing resource.
+   * </pre>
+   *
    * <code>delete = 3;</code>
    */
   public static final int delete_VALUE = 3;
   /**
+   * <pre>
+   * Read a resource (query).
+   * </pre>
+   *
    * <code>read = 4;</code>
    */
   public static final int read_VALUE = 4;
   /**
+   * <pre>
+   * Open a server-streaming connection to a resource.
+   * </pre>
+   *
    * <code>stream = 5;</code>
    */
   public static final int stream_VALUE = 5;

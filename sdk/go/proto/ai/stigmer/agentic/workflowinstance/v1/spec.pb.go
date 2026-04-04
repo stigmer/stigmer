@@ -25,8 +25,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WorkflowInstanceSpec defines the user-configurable properties for a WorkflowInstance.
+// WorkflowInstanceSpec defines the configurable properties of a workflow instance.
 //
+// @internal
 // This is the "Instance" layer in the Template→Instance→Execution pattern.
 // It provides stateful configuration with environment bindings and secrets.
 //
@@ -43,38 +44,24 @@ type WorkflowInstanceSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the Workflow template this instance deploys.
 	//
+	// @internal
 	// This links the instance to a reusable orchestration blueprint.
 	// The Workflow defines which AgentInstances to orchestrate and in what order.
-	//
-	// Format: Workflow resource ID (e.g., "wfl-abc123")
+	// Format: Workflow resource ID (e.g., "wfl_abc123")
 	// Validation: Minimum length of 1 character (required field)
-	//
-	// Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	// Human-readable description explaining what this instance is for.
-	//
-	// Use this to document:
-	// - Purpose of this instance
-	// - Environment it targets (dev, staging, prod)
-	// - Team or project ownership
-	// - Special configuration notes
-	//
-	// Examples:
-	// - "Production CI/CD pipeline for main branch"
-	// - "Staging environment deployment for feature testing"
-	// - "Data pipeline for analytics team - runs daily at midnight"
-	// - "Customer onboarding workflow for ACME Corp"
+	// Human-readable description of this workflow instance.
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	// References to Environment resources providing configuration and secrets.
+	// Ordered list of Environment resources providing configuration and secrets.
 	//
+	// Environments are merged in declaration order — later entries override
+	// earlier ones when keys conflict.
+	//
+	// @internal
 	// Environments are layered configuration containers that provide:
 	// - Environment variables (API keys, endpoints, flags)
 	// - Secrets (credentials, tokens, passwords)
 	// - Configuration values (timeouts, limits, settings)
-	//
-	// Layering Behavior:
-	// Environments are merged in order - later environments override earlier ones.
-	// This enables a base + overrides pattern:
 	//
 	// Example layering:
 	//
@@ -89,7 +76,7 @@ type WorkflowInstanceSpec struct {
 	// - Layered: [base, cloud, team] - Base + cloud credentials + team settings
 	//
 	// References use ApiResourceReference which supports:
-	// - By ID: {id: "env-abc123"}
+	// - By ID: {id: "env_abc123"}
 	// - By slug: {slug: "aws-prod-env"}
 	//
 	// At execution time, the WorkflowExecution runtime merges these environments

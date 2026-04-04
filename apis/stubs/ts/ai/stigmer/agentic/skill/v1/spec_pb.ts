@@ -14,11 +14,12 @@ export const file_ai_stigmer_agentic_skill_v1_spec: GenFile = /*@__PURE__*/
   fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxIpoBCglTa2lsbFNwZWMSGQoIc2tpbGxfbWQYASABKAlCB7pIBHICEAESKAoDdGFnGAIgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSLQoEbmFtZRgDIAEoCUIfukgcchoyGF5bYS16MC05XSsoLVthLXowLTldKykqJBITCgtkZXNjcmlwdGlvbhgFIAEoCUoECAQQBWIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
- * SkillSpec defines the stored desired state of a skill.
- * All fields are extracted from the skill artifact by the backend.
- * This follows the Kubernetes spec pattern - contains user's desired state.
+ * SkillSpec defines the desired state of a skill.
  *
- * Note: Source/provenance information is NOT stored here - it's in SkillStatus
+ * @internal
+ * All fields are extracted from the skill artifact by the backend.
+ * This follows the Kubernetes spec pattern — contains user's desired state.
+ * Source/provenance information is NOT stored here — it's in SkillStatus
  * as GitProvenance (observed state). See synth.proto for SDK input structure.
  *
  * @generated from message ai.stigmer.agentic.skill.v1.SkillSpec

@@ -7,17 +7,17 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * WorkspaceEntry pairs a WorkspaceSource with a human-readable name,
- * forming an addressable unit within a session's workspace.
+ * WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
  *
- * In a multi-root workspace (VS Code model), each entry is a separate
- * directory or repository that the agent can operate on. The name serves as
- * the entry's identity: it appears in the system prompt, and in cloud mode
- * it becomes the subdirectory name under the workspace root.
+ * Each entry is a separate directory or repository that the agent can
+ * operate on. The name serves as the entry's identity and must be unique
+ * within a session's workspace_entries list.
  *
- * Names are auto-derived by the CLI from the repository name (last URL path
- * segment sans ".git") or the directory basename. They must be unique within
- * a session's workspace_entries list.
+ * &#64;internal
+ * In a multi-root workspace (VS Code model), the name appears in the system
+ * prompt and in cloud mode it becomes the subdirectory name under the
+ * workspace root. Names are auto-derived by the CLI from the repository
+ * name (last URL path segment sans ".git") or the directory basename.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.WorkspaceEntry}
@@ -69,9 +69,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object name_ = "";
   /**
    * <pre>
-   * Short identifier for this workspace entry (required).
-   * Used in system prompt headings and as the clone subdirectory in cloud mode.
-   * Example: "my-app", "frontend", "shared-lib"
+   * Short identifier for this workspace entry.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -92,9 +90,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Short identifier for this workspace entry (required).
-   * Used in system prompt headings and as the clone subdirectory in cloud mode.
-   * Example: "my-app", "frontend", "shared-lib"
+   * Short identifier for this workspace entry.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -119,7 +115,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.session.v1.WorkspaceSource source_;
   /**
    * <pre>
-   * The source that provides this entry's content (required).
+   * The source that provides this entry's content.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -131,7 +127,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The source that provides this entry's content (required).
+   * The source that provides this entry's content.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -143,7 +139,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The source that provides this entry's content (required).
+   * The source that provides this entry's content.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -327,17 +323,17 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkspaceEntry pairs a WorkspaceSource with a human-readable name,
-   * forming an addressable unit within a session's workspace.
+   * WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
    *
-   * In a multi-root workspace (VS Code model), each entry is a separate
-   * directory or repository that the agent can operate on. The name serves as
-   * the entry's identity: it appears in the system prompt, and in cloud mode
-   * it becomes the subdirectory name under the workspace root.
+   * Each entry is a separate directory or repository that the agent can
+   * operate on. The name serves as the entry's identity and must be unique
+   * within a session's workspace_entries list.
    *
-   * Names are auto-derived by the CLI from the repository name (last URL path
-   * segment sans ".git") or the directory basename. They must be unique within
-   * a session's workspace_entries list.
+   * &#64;internal
+   * In a multi-root workspace (VS Code model), the name appears in the system
+   * prompt and in cloud mode it becomes the subdirectory name under the
+   * workspace root. Names are auto-derived by the CLI from the repository
+   * name (last URL path segment sans ".git") or the directory basename.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.WorkspaceEntry}
@@ -509,9 +505,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object name_ = "";
     /**
      * <pre>
-     * Short identifier for this workspace entry (required).
-     * Used in system prompt headings and as the clone subdirectory in cloud mode.
-     * Example: "my-app", "frontend", "shared-lib"
+     * Short identifier for this workspace entry.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -531,9 +525,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Short identifier for this workspace entry (required).
-     * Used in system prompt headings and as the clone subdirectory in cloud mode.
-     * Example: "my-app", "frontend", "shared-lib"
+     * Short identifier for this workspace entry.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -554,9 +546,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Short identifier for this workspace entry (required).
-     * Used in system prompt headings and as the clone subdirectory in cloud mode.
-     * Example: "my-app", "frontend", "shared-lib"
+     * Short identifier for this workspace entry.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -573,9 +563,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Short identifier for this workspace entry (required).
-     * Used in system prompt headings and as the clone subdirectory in cloud mode.
-     * Example: "my-app", "frontend", "shared-lib"
+     * Short identifier for this workspace entry.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -589,9 +577,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Short identifier for this workspace entry (required).
-     * Used in system prompt headings and as the clone subdirectory in cloud mode.
-     * Example: "my-app", "frontend", "shared-lib"
+     * Short identifier for this workspace entry.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -613,7 +599,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.session.v1.WorkspaceSource, ai.stigmer.agentic.session.v1.WorkspaceSource.Builder, ai.stigmer.agentic.session.v1.WorkspaceSourceOrBuilder> sourceBuilder_;
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -624,7 +610,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -639,7 +625,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -659,7 +645,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -677,7 +663,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -702,7 +688,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -719,7 +705,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -731,7 +717,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -746,7 +732,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The source that provides this entry's content (required).
+     * The source that provides this entry's content.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>

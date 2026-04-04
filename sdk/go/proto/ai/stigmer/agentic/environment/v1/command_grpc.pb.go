@@ -32,23 +32,46 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// EnvironmentCommandController provides write operations for Environment resources.
+// EnvironmentCommandController handles write operations for environments.
 type EnvironmentCommandControllerClient interface {
-	// Create or update an Environment resource.
-	// The authorization and state-operation are determined depending on whether the environment
-	// is going to be created or updated which is determined as part of the request execution.
+	// Create or update an environment.
+	//
+	// @internal
+	// The authorization and state-operation are determined depending on whether the
+	// environment is going to be created or updated, which is resolved as part of
+	// the request execution.
 	Apply(ctx context.Context, in *Environment, opts ...grpc.CallOption) (*Environment, error)
-	// Create a new Environment resource.
+	// Create an environment.
+	//
+	// @internal
+	// Authorization:
+	//   - Organization-scoped environments: Caller must have can_create_environment
+	//     permission in the organization.
+	//   - Platform-scoped environments: Caller must be a platform operator
+	//     (handled automatically by common auth step).
 	Create(ctx context.Context, in *Environment, opts ...grpc.CallOption) (*Environment, error)
-	// Update an existing Environment resource.
+	// Update an existing environment.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
 	Update(ctx context.Context, in *Environment, opts ...grpc.CallOption) (*Environment, error)
-	// Delete an Environment resource.
+	// Delete an environment.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*Environment, error)
-	// Add or update specific variables in an environment (server-side merge).
+	// Add or update specific variables in an environment.
 	// Existing variables not included in the request are preserved unchanged.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
+	// Server-side merge — secret values are re-encrypted on write.
 	UpdateVariables(ctx context.Context, in *UpdateEnvironmentVariablesRequest, opts ...grpc.CallOption) (*Environment, error)
 	// Remove specific variables from an environment by key.
-	// Keys that don't exist are silently ignored.
+	// Keys that do not exist are silently ignored.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
 	RemoveVariables(ctx context.Context, in *RemoveEnvironmentVariablesRequest, opts ...grpc.CallOption) (*Environment, error)
 }
 
@@ -124,23 +147,46 @@ func (c *environmentCommandControllerClient) RemoveVariables(ctx context.Context
 // All implementations should embed UnimplementedEnvironmentCommandControllerServer
 // for forward compatibility.
 //
-// EnvironmentCommandController provides write operations for Environment resources.
+// EnvironmentCommandController handles write operations for environments.
 type EnvironmentCommandControllerServer interface {
-	// Create or update an Environment resource.
-	// The authorization and state-operation are determined depending on whether the environment
-	// is going to be created or updated which is determined as part of the request execution.
+	// Create or update an environment.
+	//
+	// @internal
+	// The authorization and state-operation are determined depending on whether the
+	// environment is going to be created or updated, which is resolved as part of
+	// the request execution.
 	Apply(context.Context, *Environment) (*Environment, error)
-	// Create a new Environment resource.
+	// Create an environment.
+	//
+	// @internal
+	// Authorization:
+	//   - Organization-scoped environments: Caller must have can_create_environment
+	//     permission in the organization.
+	//   - Platform-scoped environments: Caller must be a platform operator
+	//     (handled automatically by common auth step).
 	Create(context.Context, *Environment) (*Environment, error)
-	// Update an existing Environment resource.
+	// Update an existing environment.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
 	Update(context.Context, *Environment) (*Environment, error)
-	// Delete an Environment resource.
+	// Delete an environment.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*Environment, error)
-	// Add or update specific variables in an environment (server-side merge).
+	// Add or update specific variables in an environment.
 	// Existing variables not included in the request are preserved unchanged.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
+	// Server-side merge — secret values are re-encrypted on write.
 	UpdateVariables(context.Context, *UpdateEnvironmentVariablesRequest) (*Environment, error)
 	// Remove specific variables from an environment by key.
-	// Keys that don't exist are silently ignored.
+	// Keys that do not exist are silently ignored.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
 	RemoveVariables(context.Context, *RemoveEnvironmentVariablesRequest) (*Environment, error)
 }
 

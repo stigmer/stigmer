@@ -1,7 +1,7 @@
 {
   "name": "McpServerSpec",
   "kind": "MCP_SERVER_SPEC",
-  "description": "McpServerSpec defines the configuration template for an MCP server.\n This is a reusable definition that can be referenced by multiple agents.\n Actual secrets/credentials are provided at runtime via AgentInstance's environment.\n\n MCP (Model Context Protocol) servers provide tools and capabilities to AI agents.\n This spec declares the server type, connection details, and required environment variables.",
+  "description": "McpServerSpec defines the configurable properties of an MCP server.\n\n @internal\n This is the \"Template\" layer — declares capabilities and requirements.\n The overview.md file provides the SDK-facing description and example YAML.",
   "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerSpec",
   "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
   "fields": [
@@ -72,7 +72,7 @@
           "kind": "string"
         }
       },
-      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n When specified, only these tools will be available unless overridden in McpServerUsage.\n Tool names must match exactly what the MCP server reports via tools/list.\n IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.\n Do NOT include names from `discovered_capabilities.resource_templates` —\n resource templates are read-only data endpoints, not callable tools.\n Examples: [\"create_pull_request\", \"search_code\", \"get_file_contents\"]",
+      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n\n @internal\n Tool names must match exactly what the MCP server reports via tools/list.\n Only names from discovered_capabilities.tools are valid here.\n Do NOT include names from discovered_capabilities.resource_templates —\n resource templates are read-only data endpoints, not callable tools.\n Including a resource template name here causes a fatal runtime error.",
       "required": false
     },
     {
@@ -83,7 +83,7 @@
         "kind": "message",
         "messageType": "EnvironmentSpec"
       },
-      "description": "Environment specification declaring required environment variables.\n This defines the SCHEMA of required env vars - actual values are provided\n at runtime via AgentInstance's environment_ref.\n\n Use this to declare what environment variables the MCP server needs,\n whether they are secrets (e.g., API tokens), and their descriptions.\n Values in this spec can be empty - they serve as documentation and validation.\n\n Example:\n   data:\n     GITHUB_TOKEN:\n       is_secret: true\n       description: \"GitHub personal access token with repo scope\"\n     GITHUB_OWNER:\n       is_secret: false\n       description: \"Default GitHub organization or user\"",
+      "description": "Environment variables required by the MCP server.",
       "required": false
     },
     {
@@ -97,7 +97,7 @@
           "messageType": "ToolApprovalPolicy"
         }
       },
-      "description": "Default tool approval policies for this MCP server.\n\n Tools listed here require user approval before execution by default.\n This is the first layer in the approval policy chain:\n   McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all\n\n Use cases:\n - Mark destructive operations as requiring approval by default\n - Protect sensitive data access across all agents using this server\n - Establish organization-wide safety policies for dangerous tools\n\n Example (GitHub MCP):\n   default_tool_approvals:\n     - tool_name: \"delete_repository\"\n       message: \"Delete repository: {{args.repo}}\"\n     - tool_name: \"force_push\"\n       message: \"Force push to {{args.branch}}\"\n     - tool_name: \"add_collaborator\"\n       message: \"Add {{args.user}} as collaborator to {{args.repo}}\"\n\n Example (Database MCP):\n   default_tool_approvals:\n     - tool_name: \"execute_sql\"\n       message: \"Execute SQL: {{args.query}}\"\n     - tool_name: \"drop_table\"\n       message: \"Drop table: {{args.table_name}}\"\n\n Tools not listed here do not require approval by default.\n Agents can still add approval requirements via tool_approval_overrides.",
+      "description": "Default tool approval policies for this MCP server.\n\n @internal\n Tools listed here require user approval before execution by default.\n This is the first layer in the approval policy chain:\n   McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all\n\n Use cases:\n - Mark destructive operations as requiring approval by default\n - Protect sensitive data access across all agents using this server\n - Establish organization-wide safety policies for dangerous tools\n\n Tools not listed here do not require approval by default.\n Agents can still add approval requirements via tool_approval_overrides.",
       "required": false
     }
   ]

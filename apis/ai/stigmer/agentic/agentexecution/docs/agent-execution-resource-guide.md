@@ -177,7 +177,6 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 | `completed_at` | `string` | ISO 8601 timestamp when the tool call completed or failed. |
 | `error` | `string` | Error message when `status == TOOL_CALL_FAILED`. |
 | `is_streaming` | `bool` | `true` while the tool is actively producing output. |
-| `component_metadata` | `ComponentMetadata` | UI rendering hints (component type, layout, group). Set by the Python worker. |
 | `requires_approval` | `bool` | `true` if this tool requires user approval before execution. |
 | `approval_message` | `string` | Human-readable approval prompt with resolved argument placeholders. |
 | `approval_requested_at` | `string` | ISO 8601 timestamp when approval was requested. |

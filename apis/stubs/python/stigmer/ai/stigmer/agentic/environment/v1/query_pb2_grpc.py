@@ -9,7 +9,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 
 class EnvironmentQueryControllerStub(object):
-    """EnvironmentQueryController provides read operations for Environment resources.
+    """EnvironmentQueryController handles read operations for environments.
     """
 
     def __init__(self, channel):
@@ -41,11 +41,14 @@ class EnvironmentQueryControllerStub(object):
 
 
 class EnvironmentQueryControllerServicer(object):
-    """EnvironmentQueryController provides read operations for Environment resources.
+    """EnvironmentQueryController handles read operations for environments.
     """
 
     def get(self, request, context):
-        """Get an Environment by ID.
+        """Get an environment by ID.
+
+        @internal
+        Authorization: requires can_view permission on the environment resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,9 +56,11 @@ class EnvironmentQueryControllerServicer(object):
 
     def getByReference(self, request, context):
         """Get an environment by its organization-scoped reference (org/slug).
+        Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
 
         @internal
-        Custom authorization in handler.
+        Custom authorization in handler — checks both direct resource access
+        and organization-level visibility permissions.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -63,11 +68,10 @@ class EnvironmentQueryControllerServicer(object):
 
     def getSecretValue(self, request, context):
         """Get the unredacted value of a single secret key in an environment.
-        Creator-only: requires can_read_secrets permission.
-        Returns the EnvironmentValue with the decrypted value.
+        Returns the EnvironmentValue with the decrypted value for exactly one key.
 
         @internal
-        FGA authorization: creator relation grants can_read_secrets.
+        Creator-only: FGA authorization grants can_read_secrets via the creator relation.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -117,7 +121,7 @@ def add_EnvironmentQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class EnvironmentQueryController(object):
-    """EnvironmentQueryController provides read operations for Environment resources.
+    """EnvironmentQueryController handles read operations for environments.
     """
 
     @staticmethod

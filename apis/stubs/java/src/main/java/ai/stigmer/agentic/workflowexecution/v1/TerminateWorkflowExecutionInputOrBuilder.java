@@ -14,10 +14,8 @@ public interface TerminateWorkflowExecutionInputOrBuilder extends
    * <pre>
    * Workflow execution ID to terminate.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -28,10 +26,8 @@ public interface TerminateWorkflowExecutionInputOrBuilder extends
    * <pre>
    * Workflow execution ID to terminate.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -42,17 +38,7 @@ public interface TerminateWorkflowExecutionInputOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable reason for termination.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended - termination is a drastic action
-   * and the reason helps with post-incident analysis.
-   *
-   * Examples:
-   * - "Workflow stuck for 2 hours, not responding to cancel"
-   * - "Infinite loop detected, consuming 100% CPU"
-   * - "Emergency stop - incorrect data being processed"
-   * - "Cancel failed after 3 attempts, force terminating"
+   * Human-readable reason for termination, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -61,17 +47,7 @@ public interface TerminateWorkflowExecutionInputOrBuilder extends
   java.lang.String getReason();
   /**
    * <pre>
-   * Human-readable reason for termination.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended - termination is a drastic action
-   * and the reason helps with post-incident analysis.
-   *
-   * Examples:
-   * - "Workflow stuck for 2 hours, not responding to cancel"
-   * - "Infinite loop detected, consuming 100% CPU"
-   * - "Emergency stop - incorrect data being processed"
-   * - "Cancel failed after 3 attempts, force terminating"
+   * Human-readable reason for termination, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>

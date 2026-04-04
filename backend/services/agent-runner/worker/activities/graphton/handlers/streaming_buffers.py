@@ -22,13 +22,11 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
 )
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
     AgentMessage,
-    ComponentMetadata,
     ToolCall,
 )
 from google.protobuf.struct_pb2 import Struct
 
 from worker.activities.graphton.approval_policy import render_approval_message
-from worker.component_type_inference import infer_component_type
 
 if TYPE_CHECKING:
     from worker.activities.graphton.status_builder import StatusBuilder
@@ -178,10 +176,6 @@ def create_early_tool_call(
         status=ToolCallStatus.TOOL_CALL_RUNNING,
         is_streaming=True,
         streaming_source=ToolCallStreamingSource.TOOL_CALL_STREAMING_SOURCE_INPUT,
-        component_metadata=ComponentMetadata(
-            component_type=infer_component_type(tool_name),
-            component_group="main-agent-tools",
-        ),
         started_at=_utc_timestamp(now),
         mcp_server_slug=mcp_server_slug,
     )
@@ -327,10 +321,6 @@ def start_thinking_stream(
         result=initial_text,
         status=ToolCallStatus.TOOL_CALL_RUNNING,
         is_streaming=True,
-        component_metadata=ComponentMetadata(
-            component_type=infer_component_type("think"),
-            component_group="main-agent-tools",
-        ),
         started_at=_utc_timestamp(now),
     )
 
@@ -483,10 +473,6 @@ def flush_thinking_buffer(sb: StatusBuilder, ns_key: str, namespace: str) -> Non
         args=args_struct,
         result="ok",
         status=ToolCallStatus.TOOL_CALL_COMPLETED,
-        component_metadata=ComponentMetadata(
-            component_type=infer_component_type("think"),
-            component_group="main-agent-tools",
-        ),
         started_at=_utc_timestamp(started_at or now),
         completed_at=completed_ts,
     )
