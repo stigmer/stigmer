@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentinstance.v1;
 
 /**
  * <pre>
- * GetAgentInstancesByAgentRequest gets all instances of a specific agent template.
+ * Input for retrieving all instances deployed from a specific agent.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest}
@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object agentId_ = "";
   /**
    * <pre>
-   * Agent ID to filter by (required).
+   * Identifier of the agent whose instances to retrieve.
    * </pre>
    *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent ID to filter by (required).
+   * Identifier of the agent whose instances to retrieve.
    * </pre>
    *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -313,7 +313,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetAgentInstancesByAgentRequest gets all instances of a specific agent template.
+   * Input for retrieving all instances deployed from a specific agent.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest}
@@ -485,7 +485,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object agentId_ = "";
     /**
      * <pre>
-     * Agent ID to filter by (required).
+     * Identifier of the agent whose instances to retrieve.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -505,7 +505,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent ID to filter by (required).
+     * Identifier of the agent whose instances to retrieve.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -526,7 +526,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent ID to filter by (required).
+     * Identifier of the agent whose instances to retrieve.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -543,7 +543,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent ID to filter by (required).
+     * Identifier of the agent whose instances to retrieve.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -557,7 +557,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent ID to filter by (required).
+     * Identifier of the agent whose instances to retrieve.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>

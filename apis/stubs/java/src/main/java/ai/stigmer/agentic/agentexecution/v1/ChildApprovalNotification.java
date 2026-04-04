@@ -7,15 +7,15 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * ChildApprovalNotification is the signal payload sent to parent workflows
- * when a child agent enters WAITING_FOR_APPROVAL state.
+ * Notification sent to a parent workflow when a child agent needs tool approval.
  *
- * This enables events-based notification instead of polling, providing
- * sub-100ms latency for approval state propagation from child agents to
- * parent workflows.
+ * Contains all pending approvals from a single child agent execution,
+ * enabling the parent workflow to surface approval requests to users
+ * without polling.
  *
- * ## Signal Flow
+ * &#64;internal
  *
+ * Signal Flow:
  * 1. Child agent requires tool approval (phase = WAITING_FOR_APPROVAL)
  * 2. Java workflow detects this and builds ChildApprovalNotification
  * 3. Java sends Temporal signal "child_approval_required" to parent workflow
@@ -23,15 +23,7 @@ package ai.stigmer.agentic.agentexecution.v1;
  * 5. Parent updates task status to WORKFLOW_TASK_WAITING_APPROVAL
  * 6. Parent populates WorkflowExecution.status.pending_approvals
  *
- * ## Parent Workflow Actions
- *
- * Upon receiving this signal, the parent workflow should:
- * 1. Update its task status to WORKFLOW_TASK_WAITING_APPROVAL
- * 2. Populate WorkflowExecution.status.pending_approvals with all entries
- * 3. Surface the approval requests to users via UI/API
- *
- * ## Graceful Degradation
- *
+ * Graceful Degradation:
  * If the signal fails to send (parent workflow completed, network error),
  * the system continues to function. Users can still submit approvals directly
  * via the AgentExecution.SubmitApproval RPC.
@@ -416,15 +408,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ChildApprovalNotification is the signal payload sent to parent workflows
-   * when a child agent enters WAITING_FOR_APPROVAL state.
+   * Notification sent to a parent workflow when a child agent needs tool approval.
    *
-   * This enables events-based notification instead of polling, providing
-   * sub-100ms latency for approval state propagation from child agents to
-   * parent workflows.
+   * Contains all pending approvals from a single child agent execution,
+   * enabling the parent workflow to surface approval requests to users
+   * without polling.
    *
-   * ## Signal Flow
+   * &#64;internal
    *
+   * Signal Flow:
    * 1. Child agent requires tool approval (phase = WAITING_FOR_APPROVAL)
    * 2. Java workflow detects this and builds ChildApprovalNotification
    * 3. Java sends Temporal signal "child_approval_required" to parent workflow
@@ -432,15 +424,7 @@ private static final long serialVersionUID = 0L;
    * 5. Parent updates task status to WORKFLOW_TASK_WAITING_APPROVAL
    * 6. Parent populates WorkflowExecution.status.pending_approvals
    *
-   * ## Parent Workflow Actions
-   *
-   * Upon receiving this signal, the parent workflow should:
-   * 1. Update its task status to WORKFLOW_TASK_WAITING_APPROVAL
-   * 2. Populate WorkflowExecution.status.pending_approvals with all entries
-   * 3. Surface the approval requests to users via UI/API
-   *
-   * ## Graceful Degradation
-   *
+   * Graceful Degradation:
    * If the signal fails to send (parent workflow completed, network error),
    * the system continues to function. Users can still submit approvals directly
    * via the AgentExecution.SubmitApproval RPC.

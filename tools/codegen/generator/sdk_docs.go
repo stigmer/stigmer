@@ -1335,14 +1335,9 @@ func docWriteResourceAndStatusTypesWithCommons(buf *bytes.Buffer, cfg sdkResourc
 		metadataLink = ", typeDescriptionLink: \"/docs/sdk/commons#apiresourcemetadata\""
 	}
 
-	kindLink := ""
-	if commonsTypes["ApiResourceKind"] {
-		kindLink = ", typeDescriptionLink: \"/docs/sdk/commons#apiresourcekind\""
-	}
-
 	buf.WriteString("<TypeTable\n  type={{\n")
 	fmt.Fprintf(buf, "    apiVersion: { type: \"string\", description: \"API version for this resource type.\" },\n")
-	fmt.Fprintf(buf, "    kind: { type: \"ApiResourceKind\", description: \"Resource kind identifier.\"%s },\n", kindLink)
+	fmt.Fprintf(buf, "    kind: { type: \"string\", description: \"Resource kind identifier.\" },\n")
 	fmt.Fprintf(buf, "    metadata: { type: \"ApiResourceMetadata\", description: \"Resource metadata including id, name, org, slug, labels, visibility, and timestamps.\"%s },\n", metadataLink)
 	fmt.Fprintf(buf, "    spec: { type: \"%s\", description: \"Resource specification. See %s.\"%s },\n", inputTypeName, specRef, specLink)
 	fmt.Fprintf(buf, "    status: { type: \"%s\", description: \"System-managed state. See %s.\"%s },\n", statusTypeName, statusRef, statusLink)

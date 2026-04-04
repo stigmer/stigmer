@@ -9,7 +9,6 @@ import { AgentInstanceId } from "./io_pb.js";
 
 /**
  * AgentInstanceCommandController handles write operations for agent instances.
- * Follows the standard pattern: create, update, delete (no granular field updates).
  *
  * @generated from service ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController
  */
@@ -18,6 +17,8 @@ export const AgentInstanceCommandController = {
   methods: {
     /**
      * Create or update an agent instance.
+     *
+     * @internal
      * The authorization and state-operation are determined depending on whether the agent instance
      * is going to be created or updated which is determined as part of the request execution.
      *
@@ -30,13 +31,13 @@ export const AgentInstanceCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create a new agent instance with full state.
-     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+     * Create an agent instance.
      *
      * Public agents allow any authenticated user to create instances (cross-org allowed).
      * Private agents restrict instance creation to org members and the agent owner.
      *
      * @internal
+     * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
      * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
@@ -50,10 +51,12 @@ export const AgentInstanceCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an instance with full state.
-     * Used to update entire instance configuration including metadata, spec, and secrets.
-     * No individual field updates - always provide complete state.
-     * Authorization: Only owner can update (can_edit permission)
+     * Update an existing agent instance.
+     *
+     * @internal
+     * Replaces the entire instance configuration including metadata, spec, and secrets.
+     * No individual field updates — always provide complete state.
+     * Authorization: Only owner can update (can_edit permission).
      *
      * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController.update
      */
@@ -65,7 +68,9 @@ export const AgentInstanceCommandController = {
     },
     /**
      * Delete an agent instance.
-     * Authorization: Only owner can delete (can_delete permission)
+     *
+     * @internal
+     * Authorization: Only owner can delete (can_delete permission).
      *
      * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController.delete
      */

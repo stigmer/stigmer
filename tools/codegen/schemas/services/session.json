@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.Session",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Create or update a session.\n The authorization and state-operation are determined depending on whether the session\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update a session.\n\n @internal\n The authorization and state-operation are determined depending on whether the session\n is going to be created or updated which is determined as part of the request execution."
         },
         {
           "name": "Create",
@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.Session",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Create a new session for an agent.\n Requires can_create_session permission in the organization."
+          "description": "Create a session.\n\n @internal\n Requires can_create_session permission in the organization."
         },
         {
           "name": "Update",
@@ -91,7 +91,7 @@
   "methodTypes": [
     {
       "name": "UpdateSessionSubjectRequest",
-      "description": "UpdateSessionSubjectRequest sets the conversation title for a session.\n\n This is a field-level update that atomically modifies only the subject\n field, avoiding the lost-update race condition that occurs when multiple\n activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently\n perform full-resource updates on the same session.",
+      "description": "UpdateSessionSubjectRequest sets the conversation title for a session.\n\n @internal\n Field-level update that atomically modifies only the subject field,\n avoiding the lost-update race condition that occurs when multiple\n activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently\n perform full-resource updates on the same session.",
       "protoType": "ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest",
       "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
       "fields": [
@@ -122,7 +122,7 @@
     },
     {
       "name": "UpdateSessionSandboxIdRequest",
-      "description": "UpdateSessionSandboxIdRequest sets the Daytona sandbox ID for a session.\n\n This is a field-level update that atomically modifies only the sandbox_id\n field, avoiding the lost-update race condition that occurs when multiple\n activities concurrently perform full-resource updates on the same session.",
+      "description": "UpdateSessionSandboxIdRequest sets the sandbox ID for a session.\n\n @internal\n Field-level update that atomically modifies only the sandbox_id field,\n avoiding the lost-update race condition that occurs when multiple\n activities concurrently perform full-resource updates on the same session.",
       "protoType": "ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest",
       "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
       "fields": [
@@ -286,13 +286,13 @@
     },
     {
       "name": "GitWriteBackMode",
-      "description": "GitWriteBackMode controls the platform's git workflow for a\n git-backed workspace entry.\n\n The platform enables write-back by default when credentials are\n available. Users can override this per-session by setting an\n explicit mode. The agent never sees or controls this setting.",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.\n\n @internal\n The platform enables write-back by default when credentials are\n available. Users can override this per-session by setting an\n explicit mode. The agent never sees or controls this setting.",
       "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
       "values": [
         {
           "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
           "number": 1,
-          "description": "After execution completes, the platform automatically:\n   1. Detects uncommitted changes via `git diff`\n   2. Creates a branch (stigmer/{execution_id_short})\n   3. Commits all changes\n   4. Pushes the branch to the remote\n   5. Creates a pull request targeting the original branch\n\n The write-back outcome is recorded in\n AgentExecutionStatus.workspace_write_backs."
+          "description": "Create a branch and pull request from the agent's file changes after execution completes.\n\n @internal\n The platform automatically detects uncommitted changes via git diff,\n creates a branch (stigmer/{execution_id_short}), commits all changes,\n pushes the branch to the remote, and creates a pull request targeting\n the original branch. The write-back outcome is recorded in\n AgentExecutionStatus.workspace_write_backs."
         }
       ]
     },

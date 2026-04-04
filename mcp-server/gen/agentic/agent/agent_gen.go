@@ -107,22 +107,22 @@ type SubAgentInput struct {
 	ModelOverride string `json:"model_override,omitempty" jsonschema:"Model override for this sub-agent. When set, uses this model instead of the parent's model. When empty, inherits the parent agent's model."`
 }
 
-// EnvironmentValue represents a single configuration or secret value.
+// EnvironmentValue represents a single configuration or secret entry.
 type EnvironmentValue struct {
-	// The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext Note: Value can be empty when defining environment variables in specs. Actual values are typically provided at runtime during execution.
-	Value string `json:"value,omitempty" jsonschema:"The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext Note: Value can be empty when defining environment variables in specs. Actual values are typically provided at runtime during execution."`
-	// Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value requires special permissions to read When false: - Value is stored as plaintext - Value is visible in audit logs
-	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value requires special permissions to read When false: - Value is stored as plaintext - Value is visible in audit logs"`
-	// Optional description for documentation. Example: "AWS access key for S3 bucket access"
-	Description string `json:"description,omitempty" jsonschema:"Optional description for documentation. Example: 'AWS access key for S3 bucket access'"`
+	// The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime.
+	Value string `json:"value,omitempty" jsonschema:"The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime."`
+	// Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs.
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs."`
+	// Human-readable description of what this value is used for.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description of what this value is used for."`
 }
 
-// EnvironmentSpec defines a collection of configuration and secrets. Created before AgentInstance or WorkflowInstance, referenced during instance creation.
+// EnvironmentSpec defines the configurable properties of an environment. @internal The overview.md file provides the SDK-facing description and example YAML.
 type EnvironmentInput struct {
-	// Human-readable description of this environment. Example: "Production AWS credentials for deployment"
-	Description string `json:"description,omitempty" jsonschema:"Human-readable description of this environment. Example: 'Production AWS credentials for deployment'"`
-	// Key-value pairs containing both configuration and secrets. Each value includes a flag indicating whether it's a secret. Example: {"AWS_REGION": {value: "us-west-2", is_secret: false}, "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
-	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing both configuration and secrets. Each value includes a flag indicating whether it's a secret. Example: {'AWS_REGION': {value: 'us-west-2', is_secret: false}, 'AWS_ACCESS_KEY_ID': {value: 'AKIA...', is_secret: true}}"`
+	// Human-readable description for UI and listing display.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and listing display."`
+	// Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret.
+	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed Agent proto message.

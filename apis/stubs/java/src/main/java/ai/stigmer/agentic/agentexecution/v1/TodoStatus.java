@@ -16,12 +16,16 @@ package ai.stigmer.agentic.agentexecution.v1;
 public enum TodoStatus
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value, not a valid todo status.
+   * </pre>
+   *
    * <code>TODO_STATUS_UNSPECIFIED = 0;</code>
    */
   TODO_STATUS_UNSPECIFIED(0),
   /**
    * <pre>
-   * Not started
+   * Task has not been started yet.
    * </pre>
    *
    * <code>TODO_PENDING = 1;</code>
@@ -29,7 +33,7 @@ public enum TodoStatus
   TODO_PENDING(1),
   /**
    * <pre>
-   * Currently being worked on
+   * Task is currently being worked on by the agent.
    * </pre>
    *
    * <code>TODO_IN_PROGRESS = 2;</code>
@@ -37,7 +41,7 @@ public enum TodoStatus
   TODO_IN_PROGRESS(2),
   /**
    * <pre>
-   * Successfully completed
+   * Task was completed successfully.
    * </pre>
    *
    * <code>TODO_COMPLETED = 3;</code>
@@ -45,7 +49,7 @@ public enum TodoStatus
   TODO_COMPLETED(3),
   /**
    * <pre>
-   * Cancelled/no longer needed
+   * Task was cancelled and is no longer needed.
    * </pre>
    *
    * <code>TODO_CANCELLED = 4;</code>
@@ -64,12 +68,16 @@ public enum TodoStatus
       "TodoStatus");
   }
   /**
+   * <pre>
+   * Default value, not a valid todo status.
+   * </pre>
+   *
    * <code>TODO_STATUS_UNSPECIFIED = 0;</code>
    */
   public static final int TODO_STATUS_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Not started
+   * Task has not been started yet.
    * </pre>
    *
    * <code>TODO_PENDING = 1;</code>
@@ -77,7 +85,7 @@ public enum TodoStatus
   public static final int TODO_PENDING_VALUE = 1;
   /**
    * <pre>
-   * Currently being worked on
+   * Task is currently being worked on by the agent.
    * </pre>
    *
    * <code>TODO_IN_PROGRESS = 2;</code>
@@ -85,7 +93,7 @@ public enum TodoStatus
   public static final int TODO_IN_PROGRESS_VALUE = 2;
   /**
    * <pre>
-   * Successfully completed
+   * Task was completed successfully.
    * </pre>
    *
    * <code>TODO_COMPLETED = 3;</code>
@@ -93,7 +101,7 @@ public enum TodoStatus
   public static final int TODO_COMPLETED_VALUE = 3;
   /**
    * <pre>
-   * Cancelled/no longer needed
+   * Task was cancelled and is no longer needed.
    * </pre>
    *
    * <code>TODO_CANCELLED = 4;</code>

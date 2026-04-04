@@ -20,12 +20,14 @@ export const file_ai_stigmer_agentic_environment_v1_io: GenFile = /*@__PURE__*/
   fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MSImCg1FbnZpcm9ubWVudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiVAobRW52aXJvbm1lbnRTZWNyZXRWYWx1ZUlucHV0Eh8KDmVudmlyb25tZW50X2lkGAEgASgJQge6SARyAhABEhQKA2tleRgCIAEoCUIHukgEcgIQASLrAQoXTGlzdEVudmlyb25tZW50c1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABElYKBmxhYmVscxgCIAMoCzJGLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5MaXN0RW52aXJvbm1lbnRzUmVxdWVzdC5MYWJlbHNFbnRyeRIzCglwYWdlX2luZm8YAyABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiZQoPRW52aXJvbm1lbnRMaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEj0KBWl0ZW1zGAIgAygLMi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IpMCCiFVcGRhdGVFbnZpcm9ubWVudFZhcmlhYmxlc1JlcXVlc3QSHwoOZW52aXJvbm1lbnRfaWQYASABKAlCB7pIBHICEAESZgoJdmFyaWFibGVzGAIgAygLMlMuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLlVwZGF0ZUVudmlyb25tZW50VmFyaWFibGVzUmVxdWVzdC5WYXJpYWJsZXNFbnRyeRplCg5WYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSQgoFdmFsdWUYAiABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnRWYWx1ZToCOAEiXAohUmVtb3ZlRW52aXJvbm1lbnRWYXJpYWJsZXNSZXF1ZXN0Eh8KDmVudmlyb25tZW50X2lkGAEgASgJQge6SARyAhABEhYKBGtleXMYAiADKAlCCLpIBZIBAggBYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
- * EnvironmentId wraps an Environment identifier.
+ * EnvironmentId wraps an environment identifier.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.EnvironmentId
  */
 export type EnvironmentId = Message<"ai.stigmer.agentic.environment.v1.EnvironmentId"> & {
   /**
+   * Unique identifier of the environment.
+   *
    * @generated from field: string value = 1;
    */
   value: string;
@@ -40,9 +42,11 @@ export const EnvironmentIdSchema: GenMessage<EnvironmentId> = /*@__PURE__*/
 
 /**
  * Input for retrieving a single unredacted secret value from an environment.
- * Returns the decrypted value for exactly one key. Single-key retrieval by design:
- * limits blast radius if intercepted, enables per-key audit trails, and matches
- * the industry-standard "reveal" UX pattern (AWS, GitHub, 1Password).
+ *
+ * @internal
+ * Single-key retrieval by design: limits blast radius if intercepted,
+ * enables per-key audit trails, and matches the industry-standard
+ * "reveal" UX pattern (AWS, GitHub, 1Password).
  *
  * @generated from message ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput
  */
@@ -76,14 +80,16 @@ export const EnvironmentSecretValueInputSchema: GenMessage<EnvironmentSecretValu
  */
 export type ListEnvironmentsRequest = Message<"ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest"> & {
   /**
-   * Organization to list environments for (required).
+   * Organization to list environments for.
    *
    * @generated from field: string org = 1;
    */
   org: string;
 
   /**
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: the resource must match all provided labels.
+   *
+   * @internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
    *
    * @generated from field: map<string, string> labels = 2;
@@ -91,7 +97,7 @@ export type ListEnvironmentsRequest = Message<"ai.stigmer.agentic.environment.v1
   labels: { [key: string]: string };
 
   /**
-   * Pagination options (optional).
+   * Pagination options.
    *
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 3;
    */
@@ -135,8 +141,11 @@ export const EnvironmentListSchema: GenMessage<EnvironmentList> = /*@__PURE__*/
 
 /**
  * Request to add or update specific variables in an environment.
- * Server-side merge: existing variables not included in this request are preserved.
- * For secret variables, the new value replaces the old one (re-encrypted server-side).
+ * Existing variables not included in this request are preserved.
+ *
+ * @internal
+ * Server-side merge. For secret variables the new value replaces the old
+ * one and is re-encrypted server-side.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest
  */
@@ -149,8 +158,7 @@ export type UpdateEnvironmentVariablesRequest = Message<"ai.stigmer.agentic.envi
   environmentId: string;
 
   /**
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    *
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvironmentValue> variables = 2;
    */
@@ -178,7 +186,7 @@ export type RemoveEnvironmentVariablesRequest = Message<"ai.stigmer.agentic.envi
   environmentId: string;
 
   /**
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    *
    * @generated from field: repeated string keys = 2;
    */

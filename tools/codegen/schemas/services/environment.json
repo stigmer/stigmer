@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.agentic.environment.v1.Environment",
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
-          "description": "Create or update an Environment resource.\n The authorization and state-operation are determined depending on whether the environment\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update an environment.\n\n @internal\n The authorization and state-operation are determined depending on whether the\n environment is going to be created or updated, which is resolved as part of\n the request execution."
         },
         {
           "name": "Create",
@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.environment.v1.Environment",
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
-          "description": "Create a new Environment resource."
+          "description": "Create an environment.\n\n @internal\n Authorization:\n - Organization-scoped environments: Caller must have can_create_environment\n   permission in the organization.\n - Platform-scoped environments: Caller must be a platform operator\n   (handled automatically by common auth step)."
         },
         {
           "name": "Update",
@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.agentic.environment.v1.Environment",
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
-          "description": "Update an existing Environment resource."
+          "description": "Update an existing environment.\n\n @internal\n Authorization: requires can_edit permission on the environment resource."
         },
         {
           "name": "Delete",
@@ -37,7 +37,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
-          "description": "Delete an Environment resource."
+          "description": "Delete an environment.\n\n @internal\n Authorization: requires can_edit permission on the environment resource."
         },
         {
           "name": "UpdateVariables",
@@ -45,7 +45,7 @@
           "inputFullType": "ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest",
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
-          "description": "Add or update specific variables in an environment (server-side merge).\n Existing variables not included in the request are preserved unchanged."
+          "description": "Add or update specific variables in an environment.\n Existing variables not included in the request are preserved unchanged.\n\n @internal\n Authorization: requires can_edit permission on the environment resource.\n Server-side merge — secret values are re-encrypted on write."
         },
         {
           "name": "RemoveVariables",
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest",
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
-          "description": "Remove specific variables from an environment by key.\n Keys that don't exist are silently ignored."
+          "description": "Remove specific variables from an environment by key.\n Keys that do not exist are silently ignored.\n\n @internal\n Authorization: requires can_edit permission on the environment resource."
         }
       ]
     },
@@ -67,7 +67,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
-          "description": "Get an Environment by ID."
+          "description": "Get an environment by ID.\n\n @internal\n Authorization: requires can_view permission on the environment resource."
         },
         {
           "name": "GetByReference",
@@ -75,7 +75,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
-          "description": "Get an environment by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler."
+          "description": "Get an environment by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"acme/aws-prod\" to the full Environment resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
         },
         {
           "name": "GetSecretValue",
@@ -83,7 +83,7 @@
           "inputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput",
           "outputType": "EnvironmentValue",
           "outputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentValue",
-          "description": "Get the unredacted value of a single secret key in an environment.\n Creator-only: requires can_read_secrets permission.\n Returns the EnvironmentValue with the decrypted value.\n\n @internal\n FGA authorization: creator relation grants can_read_secrets."
+          "description": "Get the unredacted value of a single secret key in an environment.\n Returns the EnvironmentValue with the decrypted value for exactly one key.\n\n @internal\n Creator-only: FGA authorization grants can_read_secrets via the creator relation."
         },
         {
           "name": "List",
@@ -99,7 +99,7 @@
   "methodTypes": [
     {
       "name": "UpdateEnvironmentVariablesRequest",
-      "description": "Request to add or update specific variables in an environment.\n Server-side merge: existing variables not included in this request are preserved.\n For secret variables, the new value replaces the old one (re-encrypted server-side).",
+      "description": "Request to add or update specific variables in an environment.\n Existing variables not included in this request are preserved.\n\n @internal\n Server-side merge. For secret variables the new value replaces the old\n one and is re-encrypted server-side.",
       "protoType": "ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest",
       "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
       "fields": [
@@ -130,7 +130,7 @@
               "messageType": "EnvironmentValue"
             }
           },
-          "description": "Variables to add or update. Keys that already exist are overwritten.\n Keys not present in this map are left unchanged.",
+          "description": "Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.",
           "required": false
         }
       ]
@@ -164,7 +164,7 @@
               "kind": "string"
             }
           },
-          "description": "Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.",
+          "description": "Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.",
           "required": false,
           "validation": {
             "minItems": 1
@@ -257,7 +257,7 @@
     },
     {
       "name": "EnvironmentSecretValueInput",
-      "description": "Input for retrieving a single unredacted secret value from an environment.\n Returns the decrypted value for exactly one key. Single-key retrieval by design:\n limits blast radius if intercepted, enables per-key audit trails, and matches\n the industry-standard \"reveal\" UX pattern (AWS, GitHub, 1Password).",
+      "description": "Input for retrieving a single unredacted secret value from an environment.\n\n @internal\n Single-key retrieval by design: limits blast radius if intercepted,\n enables per-key audit trails, and matches the industry-standard\n \"reveal\" UX pattern (AWS, GitHub, 1Password).",
       "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput",
       "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
       "fields": [
@@ -291,7 +291,7 @@
     },
     {
       "name": "EnvironmentValue",
-      "description": "EnvironmentValue represents a single configuration or secret value.",
+      "description": "EnvironmentValue represents a single configuration or secret entry.",
       "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentValue",
       "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
       "fields": [
@@ -302,7 +302,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The actual value.\n - If is_secret=true: This value is encrypted at rest and redacted in logs\n - If is_secret=false: This value is stored as plaintext\n Note: Value can be empty when defining environment variables in specs.\n       Actual values are typically provided at runtime during execution.",
+          "description": "The configuration or secret string.\n\n @internal\n When is_secret is true the value is encrypted at rest and redacted in logs.\n When is_secret is false the value is stored as plaintext.\n Value can be empty when pre-declaring keys whose values are injected at runtime.",
           "required": false
         },
         {
@@ -312,7 +312,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether this value should be treated as a secret.\n When true:\n - Value is encrypted at rest\n - Value is redacted in logs\n - Value requires special permissions to read\n When false:\n - Value is stored as plaintext\n - Value is visible in audit logs",
+          "description": "Whether this value should be treated as a secret.\n\n @internal\n When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.\n When false: stored as plaintext, visible in audit logs.",
           "required": false
         },
         {
@@ -322,7 +322,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Optional description for documentation.\n Example: \"AWS access key for S3 bucket access\"",
+          "description": "Human-readable description of what this value is used for.",
           "required": false
         }
       ]
@@ -340,7 +340,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization to list environments for (required).",
+          "description": "Organization to list environments for.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -359,7 +359,7 @@
               "kind": "string"
             }
           },
-          "description": "Filter by metadata labels (optional). AND semantics: resource must match ALL labels.\n Example: {\"stigmer.ai/personal\": \"true\"} returns only personal environments.",
+          "description": "Filter by metadata labels. AND semantics: the resource must match all provided labels.\n\n @internal\n Example: {\"stigmer.ai/personal\": \"true\"} returns only personal environments.",
           "required": false
         },
         {
@@ -370,7 +370,7 @@
             "kind": "message",
             "messageType": "PageInfo"
           },
-          "description": "Pagination options (optional).",
+          "description": "Pagination options.",
           "required": false
         }
       ]
@@ -529,5 +529,5 @@
       ]
     }
   ],
-  "resourceDescription": "Environment represents a named collection of configuration and secrets.\n Environments are created before AgentInstance or WorkflowInstance and referenced during instance creation.\n Each key-value pair can be marked as secret or non-secret."
+  "resourceDescription": "Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.\n\n @internal\n Uses Graphton configuration for state management."
 }

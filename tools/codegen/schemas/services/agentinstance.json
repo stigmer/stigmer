@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Create or update an agent instance.\n The authorization and state-operation are determined depending on whether the agent instance\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update an agent instance.\n\n @internal\n The authorization and state-operation are determined depending on whether the agent instance\n is going to be created or updated which is determined as part of the request execution."
         },
         {
           "name": "Create",
@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Create a new agent instance with full state.\n Provide organization_id in metadata.org, and complete spec with configuration and secrets.\n\n Public agents allow any authenticated user to create instances (cross-org allowed).\n Private agents restrict instance creation to org members and the agent owner.\n\n @internal\n Authorization: FGA can_create_instance on parent agent (handler-level).\n FGA is the single source of truth — no hardcoded org-matching rules.\n Agents are blueprints with zero secrets; instances are personal resources in the caller's org."
+          "description": "Create an agent instance.\n\n Public agents allow any authenticated user to create instances (cross-org allowed).\n Private agents restrict instance creation to org members and the agent owner.\n\n @internal\n Provide organization_id in metadata.org, and complete spec with configuration and secrets.\n Authorization: FGA can_create_instance on parent agent (handler-level).\n FGA is the single source of truth — no hardcoded org-matching rules.\n Agents are blueprints with zero secrets; instances are personal resources in the caller's org."
         },
         {
           "name": "Update",
@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Update an instance with full state.\n Used to update entire instance configuration including metadata, spec, and secrets.\n No individual field updates - always provide complete state.\n Authorization: Only owner can update (can_edit permission)"
+          "description": "Update an existing agent instance.\n\n @internal\n Replaces the entire instance configuration including metadata, spec, and secrets.\n No individual field updates — always provide complete state.\n Authorization: Only owner can update (can_edit permission)."
         },
         {
           "name": "Delete",
@@ -37,7 +37,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceId",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Delete an agent instance.\n Authorization: Only owner can delete (can_delete permission)"
+          "description": "Delete an agent instance.\n\n @internal\n Authorization: Only owner can delete (can_delete permission)."
         }
       ]
     },
@@ -83,7 +83,7 @@
   "methodTypes": [
     {
       "name": "GetAgentInstancesByAgentRequest",
-      "description": "GetAgentInstancesByAgentRequest gets all instances of a specific agent template.",
+      "description": "Input for retrieving all instances deployed from a specific agent.",
       "protoType": "ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest",
       "protoFile": "apis/ai/stigmer/agentic/agentinstance/v1/io.proto",
       "fields": [
@@ -94,7 +94,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Agent ID to filter by (required).",
+          "description": "Identifier of the agent whose instances to retrieve.",
           "required": true,
           "validation": {
             "required": true
@@ -115,7 +115,7 @@
     },
     {
       "name": "AgentInstanceList",
-      "description": "AgentInstanceList represents a list of agent instances.",
+      "description": "Response containing a paginated list of agent instances.",
       "protoType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceList",
       "protoFile": "apis/ai/stigmer/agentic/agentinstance/v1/io.proto",
       "fields": [
@@ -126,7 +126,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Total count of instances.",
+          "description": "Total number of agent instances matching the query.",
           "required": false
         },
         {
@@ -140,7 +140,7 @@
               "messageType": "AgentInstance"
             }
           },
-          "description": "List of instances.",
+          "description": "Agent instances in the current page.",
           "required": false
         }
       ]
@@ -230,7 +230,7 @@
     },
     {
       "name": "ListAgentInstancesRequest",
-      "description": "ListAgentInstancesRequest specifies parameters for listing agent instances.",
+      "description": "Input for listing agent instances within an organization.",
       "protoType": "ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest",
       "protoFile": "apis/ai/stigmer/agentic/agentinstance/v1/io.proto",
       "fields": [
@@ -241,7 +241,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization to list agent instances for (required).",
+          "description": "Organization slug to scope the listing.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -260,7 +260,7 @@
               "kind": "string"
             }
           },
-          "description": "Filter by metadata labels (optional). AND semantics: resource must match ALL labels.\n Example: {\"stigmer.ai/personal\": \"true\"} returns only personal agent instances.",
+          "description": "Filter by metadata labels. AND semantics: all labels must match.\n\n @internal\n Example: {\"stigmer.ai/personal\": \"true\"} returns only personal agent instances.",
           "required": false
         },
         {
@@ -271,7 +271,7 @@
             "kind": "message",
             "messageType": "PageInfo"
           },
-          "description": "Pagination options (optional).",
+          "description": "Pagination options.",
           "required": false
         }
       ]
@@ -398,5 +398,5 @@
       ]
     }
   ],
-  "resourceDescription": "AgentInstance represents a configured deployment of an Agent template."
+  "resourceDescription": "AgentInstance defines a configured deployment of an Agent template.\n\n @internal\n Uses Graphton configuration for state management."
 }

@@ -12,7 +12,7 @@ public interface AgentInstanceIdOrBuilder extends
 
   /**
    * <pre>
-   * Instance ID (required).
+   * Unique identifier of the agent instance.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface AgentInstanceIdOrBuilder extends
   java.lang.String getValue();
   /**
    * <pre>
-   * Instance ID (required).
+   * Unique identifier of the agent instance.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

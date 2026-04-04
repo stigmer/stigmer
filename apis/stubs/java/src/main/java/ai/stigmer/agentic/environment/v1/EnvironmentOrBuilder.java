@@ -52,8 +52,10 @@ public interface EnvironmentOrBuilder extends
 
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Environments belong to an organization and are typically PRIVATE visibility.
+   * Resource metadata including name, organization, visibility, and labels.
+   *
+   * &#64;internal
+   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -62,8 +64,10 @@ public interface EnvironmentOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Environments belong to an organization and are typically PRIVATE visibility.
+   * Resource metadata including name, organization, visibility, and labels.
+   *
+   * &#64;internal
+   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -72,8 +76,10 @@ public interface EnvironmentOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Environments belong to an organization and are typically PRIVATE visibility.
+   * Resource metadata including name, organization, visibility, and labels.
+   *
+   * &#64;internal
+   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -82,7 +88,7 @@ public interface EnvironmentOrBuilder extends
 
   /**
    * <pre>
-   * Environment-specific configuration.
+   * Configurable properties: description and key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -91,7 +97,7 @@ public interface EnvironmentOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * Environment-specific configuration.
+   * Configurable properties: description and key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -100,7 +106,7 @@ public interface EnvironmentOrBuilder extends
   ai.stigmer.agentic.environment.v1.EnvironmentSpec getSpec();
   /**
    * <pre>
-   * Environment-specific configuration.
+   * Configurable properties: description and key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>

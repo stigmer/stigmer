@@ -7,7 +7,10 @@ package ai.stigmer.agentic.agentinstance.v1;
 
 /**
  * <pre>
- * AgentInstance represents a configured deployment of an Agent template.
+ * AgentInstance defines a configured deployment of an Agent template.
+ *
+ * &#64;internal
+ * Uses Graphton configuration for state management.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstance}
@@ -153,7 +156,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
+   * Resource metadata including name, organization, scope, and labels.
+   *
+   * &#64;internal
    * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
@@ -166,7 +171,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
+   * Resource metadata including name, organization, scope, and labels.
+   *
+   * &#64;internal
    * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
@@ -179,7 +186,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
+   * Resource metadata including name, organization, scope, and labels.
+   *
+   * &#64;internal
    * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
@@ -194,7 +203,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec_;
   /**
    * <pre>
-   * Spec defining the instance configuration.
+   * Configurable properties: agent binding, description, and environment references.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -206,7 +215,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Spec defining the instance configuration.
+   * Configurable properties: agent binding, description, and environment references.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -218,7 +227,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Spec defining the instance configuration.
+   * Configurable properties: agent binding, description, and environment references.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -232,7 +241,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
   /**
    * <pre>
-   * Status of the instance.
+   * System-managed audit trail including creation and update timestamps.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -244,7 +253,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Status of the instance.
+   * System-managed audit trail including creation and update timestamps.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -256,7 +265,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Status of the instance.
+   * System-managed audit trail including creation and update timestamps.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -482,7 +491,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentInstance represents a configured deployment of an Agent template.
+   * AgentInstance defines a configured deployment of an Agent template.
+   *
+   * &#64;internal
+   * Uses Graphton configuration for state management.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstance}
@@ -898,7 +910,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -910,7 +924,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -926,7 +942,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -947,7 +965,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -966,7 +986,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -992,7 +1014,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -1010,7 +1034,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -1023,7 +1049,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -1039,7 +1067,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
+     * Resource metadata including name, organization, scope, and labels.
+     *
+     * &#64;internal
      * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
@@ -1064,7 +1094,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec, ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec.Builder, ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpecOrBuilder> specBuilder_;
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1075,7 +1105,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1090,7 +1120,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1110,7 +1140,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1128,7 +1158,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1153,7 +1183,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1170,7 +1200,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1182,7 +1212,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1197,7 +1227,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Spec defining the instance configuration.
+     * Configurable properties: agent binding, description, and environment references.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4 [json_name = "spec"];</code>
@@ -1221,7 +1251,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1232,7 +1262,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1247,7 +1277,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1267,7 +1297,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1285,7 +1315,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1310,7 +1340,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1327,7 +1357,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1339,7 +1369,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1354,7 +1384,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the instance.
+     * System-managed audit trail including creation and update timestamps.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
