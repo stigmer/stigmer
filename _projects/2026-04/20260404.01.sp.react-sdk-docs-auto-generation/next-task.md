@@ -101,8 +101,17 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Current Task**: T01 (TypeDoc setup + proof of concept)
-**Status**: T01 plan written, PENDING REVIEW
+**Current Task**: T02 (TSDoc coverage audit + writing guidelines)
+**Status**: T01 COMPLETE, T02 next
+
+### T01 Results (TypeDoc setup + proof of concept)
+TypeDoc 0.28.18 is configured and producing JSON. Key findings:
+- 354 exports captured (159 functions, 159 interfaces, 29 type aliases, 7 variables)
+- 57.6% overall TSDoc coverage; functions at 98.7%, interfaces at 20.1%
+- Domain grouping via source paths is reliable (18 domains detected)
+- @example blocks present on 116 exports
+- Re-exported external types excluded (link to proto docs instead)
+- See tasks/T01_1_execution.md for full analysis
 
 ### Context from Parent T06
 The hand-written React SDK overview page (`docs/sdk/react.mdx`) is complete.
