@@ -13,70 +13,59 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: 2026-04-04 (Session 8)
-**Status**: T06 in progress -- SDK Overview page and Streaming guide complete, React SDK page pending
-**Active Task**: T06 (Manual pages -- SDK overview, streaming guide, React SDK docs)
+**Last Session**: 2026-04-04 (Session 9)
+**Status**: T06 complete -- all three manual pages written (SDK Overview, Streaming, React SDK)
+**Active Task**: T06 wrap-up (verify index.mdx renders as landing page)
 
-## Session Progress (2026-04-04, Session 8)
+## Session Progress (2026-04-04, Session 9)
 
 ### Completed
-- **Streaming guide** (`docs/sdk/streaming.mdx`): Hand-written how-to guide covering production streaming patterns
-  - Subscribe to an Agent Execution (full phase-aware loop across all 4 languages)
-  - Read the snapshot (key status fields orientation with links to full reference)
-  - Detect completion (terminal vs non-terminal phases, helper function per language)
-  - Handle stream errors (transport errors vs execution failures, retryable checks)
-  - Cancel a stream (AbortSignal in TS, context cancellation in Go, iterator break in Python/Java)
-  - Subscribe to a Workflow Execution (different input shape, task-based progress)
-  - What's next cards linking to Agent Execution, Workflow Execution, and Connect Tools
-- **Updated `docs/sdk/meta.json`**: Added `"streaming"` page and `"resources"` collapsible folder
+- **React SDK page** (`docs/sdk/react.mdx`): Hand-written reference page for `@stigmer/react`
+  - Installation with all peer deps (`@stigmer/sdk`, `@stigmer/protos`, `@bufbuild/protobuf`)
+  - `StigmerProvider` setup with complete working example and styles import
+  - Deployment mode reference (`"local"` vs `"cloud"`, `useDeploymentMode`, `useResourceAvailable`, `CloudFeatureNotice`)
+  - Full `StigmerProvider` props table (client, deploymentMode, preset, className, children)
+  - Domain quick-reference table: 16 domains, 67 hooks, 59 components (counts verified against `index.ts`)
+  - What's next cards linking to Streaming, Agent Execution, and Session
+- **Updated `docs/sdk/meta.json`**: Added `"react"` before `"streaming"` in pages array
+- **Sub-project scaffolding**: Created `20260404.01.sp.react-sdk-docs-auto-generation/` with T01 plan for TypeDoc-based auto-generation pipeline
 
-### Key Decisions (Session 8)
-- **Scope boundaries**: Focused on patterns not covered elsewhere (quickstart, connect-tools, generated reference pages). Did not duplicate type tables or approval handling.
-- **API asymmetry**: AgentExecution subscribe takes bare string ID; WorkflowExecution subscribe takes request object. Documented clearly with numbered differences.
-- **Resources folder**: Resource pages moved to `docs/sdk/resources/` subdirectory, making them collapsible in the sidebar. Codegen now outputs to `docs/sdk/resources/`.
-- **Cancellation warning**: Added callout that cancelling a stream does not cancel the execution itself.
-
-### Discovery: Go/Java Phase Constants Convention
-The connect-tools tutorial uses convenience names (`stigmer.ExecutionCompleted`, `ExecutionPhase.COMPLETED`) that don't match the proto-generated constants (`ExecutionPhase_EXECUTION_COMPLETED`). The streaming guide follows the same convention as connect-tools for consistency. This may warrant a separate investigation to confirm these aliases exist or need to be added.
+### Key Decisions (Session 9)
+- **Sidebar ordering**: React SDK placed before Streaming in sidebar (setup pages first, then how-to guides, then reference)
+- **Diataxis type**: Reference -- same register as SDK Overview, no tutorials, no demos
+- **Domain table approach**: Counts + descriptions per domain, not exhaustive hook/component lists. Keeps the page maintainable while giving readers discoverability.
+- **No SDKTabs**: React-only page uses plain tsx code blocks (no multi-language tabs)
+- **Scope boundary**: Page does not list every hook or component (deferred to future auto-generated per-domain pages from the sub-project)
 
 ## Next Steps
 
-1. **T06 (continued)**: Write `docs/sdk/react.mdx` -- React SDK reference
-2. **T06 (continued)**: Verify `index.mdx` renders as section landing page in Fumadocs
+1. **T06 (verification)**: Verify `index.mdx` renders as section landing page in Fumadocs
+2. **Sub-project T01**: Review and approve the TypeDoc setup + proof of concept plan (`20260404.01.sp.react-sdk-docs-auto-generation/tasks/T01_0_plan.md`)
 3. **Follow-up**: Fix Python/Java accessor name bug in `sdk_docs.go` codegen (separate task)
 
 ## Context for Resume
 
 ### Working Tree
-Clean -- all SDK docs changes committed.
+Clean -- all T06 docs committed.
+
+### Committed in Session 9
+- React SDK reference page and meta.json update
+- Sub-project scaffolding for TypeDoc-based auto-generation pipeline
 
 ### Committed in Session 8
 - `0330f019` -- `docs(sdk): add Streaming how-to guide for SDK Reference section`
 
-### Plan Reference
-The full T06 plan is in:
-```
-/Users/suresh/.cursor/plans/t06_sdk_manual_pages_9d43630c.plan.md
-```
+### T06 Completion Status
+All three manual pages are written:
+1. `docs/sdk/index.mdx` -- SDK Overview (session 7)
+2. `docs/sdk/streaming.mdx` -- Streaming how-to guide (session 8)
+3. `docs/sdk/react.mdx` -- React SDK reference (session 9)
 
-The streaming guide plan is in:
-```
-/Users/suresh/.cursor/plans/sdk_streaming_guide_b6c4b233.plan.md
-```
-
-### React SDK Page (next page to write)
-Diataxis type: **Reference**. Covers:
-- `@stigmer/react` installation and peer deps
-- `StigmerProvider` setup with `deploymentMode`
-- `useStigmer()` hook
-- Key hooks (session, execution, resource)
-- Key components (composer, message thread, detail views)
-- Styles import
+Remaining: verify `index.mdx` renders as the section landing page in the Fumadocs dev server.
 
 ### Key Source Files for Remaining Work
-- `sdk/react/src/index.ts` -- React SDK public exports
-- `sdk/react/src/provider.tsx` -- StigmerProvider implementation
-- `docs/sdk/resources/agent-execution.mdx` -- Generated page for reference
+- `docs/sdk/index.mdx` -- Verify renders as landing page
+- Sub-project: `_projects/2026-04/20260404.01.sp.react-sdk-docs-auto-generation/tasks/T01_0_plan.md` -- TypeDoc PoC plan (pending review)
 
 ### Full Codegen Chain (after T07)
 ```
@@ -131,17 +120,17 @@ _projects/2026-04/20260403.03.sdk-docs-auto-generation/tasks/
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-04-session-8.md`
-2. [ ] Review `docs/sdk/streaming.mdx` (Streaming guide written in session 8)
-3. [ ] Review `docs/sdk/index.mdx` (SDK Overview page written in session 7)
-4. [ ] Check `git status` -- working tree should be clean
-5. [ ] Continue T06: write `docs/sdk/react.mdx` next
-6. [ ] Then verify `index.mdx` renders as section landing page
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-04-session-9.md`
+2. [ ] Review `docs/sdk/react.mdx` (React SDK reference written in session 9)
+3. [ ] Check `git status` -- working tree should be clean
+4. [ ] Verify `index.mdx` renders as section landing page in Fumadocs
+5. [ ] Review sub-project T01 plan for TypeDoc auto-generation pipeline
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T06" - Write the React SDK page next
+- "Verify index.mdx landing page" - Check Fumadocs rendering
+- "Review sub-project T01 plan" - Evaluate TypeDoc PoC approach
 - "Show project status" - Get overview of progress
 - "Run the SDK docs generator" - `make gen-sdk-docs`
 - "Check SDK docs freshness" - `make gen-sdk-docs-check`
@@ -149,3 +138,9 @@ After loading context:
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-04/20260404.01.sp.react-sdk-docs-auto-generation/next-task.md` - Build a TypeDoc-based auto-generation pipeline for React SDK (@stigmer/react) reference documentation, producing always-in-sync Fumadocs MDX pages from TSDoc comments in the source code.
