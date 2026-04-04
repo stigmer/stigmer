@@ -7,7 +7,7 @@ import "ai/stigmer/commons/apiresource/enum.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 
-// Wrapper for api-resource-id
+// Wraps a system-generated resource identifier.
 message ApiResourceId {
   string value = 1 [(buf.validate.field).required = true];
 }

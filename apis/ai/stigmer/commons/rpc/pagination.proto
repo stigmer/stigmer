@@ -2,16 +2,19 @@ syntax = "proto3";
 
 package ai.stigmer.commons.rpc;
 
+// Offset-based pagination parameters.
 message PageInfo {
+  // Page number (1-indexed).
   int32 num = 1;
+  // Maximum number of items per page.
   int32 size = 2;
 }
 
-//google style of pagination
+// Token-based pagination parameters following the Google API style.
 message GooglePageInfo {
-  //google apis include a token to retrieve next page of results.
-  //if there are no more items to return, the next_page_token is empty
+  // Opaque token for retrieving the next page of results.
+  // Empty when there are no more items to return.
   string page_token = 1;
-  //number of items to include in the result
+  // Maximum number of items to include in the result.
   int32 size = 2;
 }

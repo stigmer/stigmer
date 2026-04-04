@@ -2,26 +2,43 @@ syntax = "proto3";
 
 package ai.stigmer.commons.apiresource;
 
-//enumeration of the union of all event types used across all the api resources.
-//this is used for specifying the event type produced by rpc methods in command controllers.
-//using different enum for these event types while specifying in rpc methods and individual api resource would
-// work because the events are eventually converted to strings during message passing.
+// Event types produced by command controller RPCs across all API resources.
+//
+// @internal
+// Different enums could be used per resource, but a shared enum is simpler
+// because events are converted to strings during message passing.
 enum ApiResourceEventType {
+  // Default value when no event type is set.
   unspecified = 0;
+  // Resource was created.
   created = 1;
+  // Resource spec or status was updated.
   updated = 2;
+  // Resource was deleted.
   deleted = 3;
+  // Resource was renamed (slug changed).
   renamed = 4;
-  //this is only applicable for cloud-resources
+  // Cloud infrastructure stack outputs were updated.
   stack_outputs_updated = 5;
 }
 
+// Operation type for API resource state transitions.
+//
+// @internal
+// Used by the state machine to classify RPC operations and enforce
+// transition rules (e.g., a resource in "deleting" state rejects create).
 enum ApiResourceStateOperationType {
+  // Default value when no operation type is set.
   api_resource_state_operation_type_unspecified = 0;
+  // Create a new resource.
   create = 1;
+  // Update an existing resource.
   update = 2;
+  // Delete an existing resource.
   delete = 3;
+  // Read a resource (query).
   read = 4;
+  // Open a server-streaming connection to a resource.
   stream = 5;
 }
 

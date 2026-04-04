@@ -13,9 +13,11 @@ extend google.protobuf.EnumValueOptions {
   ApiResourceKindMeta kind_meta = 90101;
 }
 
-// API resource version
+// API resource version.
 enum ApiResourceVersion {
+  // Default value when no version is set.
   api_resource_version_unspecified = 0;
+  // Current API version for all resource types.
   v1 = 1;
 }
 
@@ -58,11 +60,14 @@ message ApiResourceKindMeta {
   AuthorizationConfig authorization = 9;
 }
 
-// API resource kinds for Stigmer
+// API resource kinds for Stigmer.
 enum ApiResourceKind {
+  // Default value for unset or unrecognized resource kinds.
   api_resource_kind_unknown = 0;
 
   // Agentic - System-level audit trails and versioning
+
+  // Immutable version record tracking changes to an API resource.
   api_resource_version = 1 [(kind_meta) = {
     group: agentic
     version: v1
@@ -79,6 +84,8 @@ enum ApiResourceKind {
   }];
 
   // IAM - Identity and Access Management
+
+  // Role-based access control policy for granting permissions on resources.
   iam_policy = 10 [(kind_meta) = {
     group: iam
     version: v1
@@ -94,6 +101,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // User account in the identity system.
   identity_account = 11 [(kind_meta) = {
     group: iam
     version: v1
@@ -109,6 +117,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Credential for programmatic API access.
   api_key = 12 [(kind_meta) = {
     group: iam
     version: v1
@@ -125,6 +134,8 @@ enum ApiResourceKind {
   }];
 
   // IAM - External identity provider configuration
+
+  // External identity provider for federated authentication.
   identity_provider = 21 [(kind_meta) = {
     group: iam
     version: v1
@@ -141,6 +152,8 @@ enum ApiResourceKind {
   }];
 
   // Tenancy - Platform and organizational resources
+
+  // Top-level tenant that owns and manages resources.
   organization = 30 [(kind_meta) = {
     group: tenancy
     version: v1
@@ -156,6 +169,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Singleton platform instance representing the Stigmer deployment.
   platform = 31 [(kind_meta) = {
     group: tenancy
     version: v1
@@ -172,6 +186,8 @@ enum ApiResourceKind {
   }];
 
   // Agentic - AI agent management
+
+  // AI assistant with instructions, tools, skills, and a delegation model.
   agent = 40 [(kind_meta) = {
     group: agentic
     version: v1
@@ -188,6 +204,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Single run of an agent within a session, tracking tool calls and responses.
   agent_execution = 41 [(kind_meta) = {
     group: agentic
     version: v1
@@ -208,6 +225,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Conversation thread between a user and an agent.
   session = 42 [(kind_meta) = {
     group: agentic
     version: v1
@@ -223,6 +241,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Knowledge resource that provides domain-specific context to an agent.
   skill = 43 [(kind_meta) = {
     group: agentic
     version: v1
@@ -239,6 +258,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // External tool server connected via the Model Context Protocol.
   mcp_server = 44 [(kind_meta) = {
     group: agentic
     version: v1
@@ -255,6 +275,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Configured deployment of an agent with environment-specific overrides.
   agent_instance = 45 [(kind_meta) = {
     group: agentic
     version: v1
@@ -279,6 +300,8 @@ enum ApiResourceKind {
   }];
 
   // Agentic - Workflow orchestration
+
+  // Multi-step orchestration defining how agents collaborate on a task.
   workflow = 50 [(kind_meta) = {
     group: agentic
     version: v1
@@ -295,6 +318,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Configured deployment of a workflow with environment-specific bindings.
   workflow_instance = 51 [(kind_meta) = {
     group: agentic
     version: v1
@@ -317,6 +341,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Single run of a workflow instance, tracking step progress and outcomes.
   workflow_execution = 52 [(kind_meta) = {
     group: agentic
     version: v1
@@ -332,6 +357,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // Named set of variables and secrets for agent and workflow execution.
   environment = 53 [(kind_meta) = {
     group: agentic
     version: v1
@@ -348,6 +374,7 @@ enum ApiResourceKind {
     }
   }];
 
+  // User-owned runtime context for managing execution state.
   execution_context = 54 [(kind_meta) = {
     group: agentic
     version: v1
@@ -363,7 +390,9 @@ enum ApiResourceKind {
     }
   }];
 
-  // Tenancy - Project management (aggregate root for resource lifecycle)
+  // Tenancy - Project management
+
+  // Aggregate root grouping related resources for lifecycle management.
   project = 60 [(kind_meta) = {
     group: tenancy
     version: v1
