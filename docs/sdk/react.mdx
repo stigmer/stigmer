@@ -1,0 +1,169 @@
+---
+title: React SDK
+description:
+  Install and configure @stigmer/react to build UIs with pre-built hooks and
+  components for the Stigmer API.
+---
+
+`@stigmer/react` provides 67 React hooks and 59 UI components for the Stigmer
+API. The hooks manage data fetching, mutations, and real-time streaming. The
+components render the same views used in the Stigmer Console — session
+composers, message threads, approval cards, and resource detail panels.
+
+This package requires a configured `@stigmer/sdk` client. See
+[SDK Overview](/docs/sdk) for client setup and authentication.
+
+## Installation
+
+```bash
+npm install @stigmer/react @stigmer/sdk @stigmer/protos @bufbuild/protobuf
+```
+
+`@stigmer/protos` provides the protocol buffer types that hooks and components
+use. `@bufbuild/protobuf` is its runtime dependency.
+
+`react` and `react-dom` 19+ must already be installed.
+
+<Callout type="info">
+  `@base-ui/react` is an optional peer dependency used by components that
+  render overlays and dropdowns. Install it if your package manager reports a
+  missing peer dependency warning.
+</Callout>
+
+## Setup
+
+Import the stylesheet, create a client, and wrap your component tree in
+`StigmerProvider`:
+
+```tsx
+import { Stigmer } from "@stigmer/sdk";
+import { StigmerProvider } from "@stigmer/react";
+import "@stigmer/react/styles.css";
+
+const client = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
+
+function App() {
+  return (
+    <StigmerProvider client={client}>
+      {/* your app */}
+    </StigmerProvider>
+  );
+}
+```
+
+`StigmerProvider` renders a `<div class="stgm">` wrapper that scopes all
+Stigmer styles. The CSS does not leak into the host application.
+
+For token-based authentication in browser apps, see
+[SDK Overview > Authentication](/docs/sdk#authentication).
+
+Any descendant component can access the SDK client with `useStigmer()`:
+
+```tsx
+import { useStigmer } from "@stigmer/react";
+
+function MyComponent() {
+  const stigmer = useStigmer();
+  // stigmer.agent.list(), stigmer.session.create(), etc.
+}
+```
+
+## Deployment mode
+
+`StigmerProvider` accepts a `deploymentMode` prop that controls which features
+are available:
+
+| Mode | Backend | Effect |
+|------|---------|--------|
+| `"cloud"` | Stigmer Cloud | All features enabled. Default. |
+| `"local"` | Local Go CLI (OSS) | Cloud-only features (API keys, IAM, identity providers) are hidden. |
+
+Two hooks read the deployment mode from context:
+
+- **`useDeploymentMode()`** — returns the current mode (`"local"` or
+  `"cloud"`).
+- **`useResourceAvailable(kind)`** — returns `true` if the given
+  `ApiResourceKind` is available in the current mode.
+
+When a feature requires Stigmer Cloud, render `CloudFeatureNotice` to show a
+contextual message:
+
+```tsx
+import {
+  useResourceAvailable,
+  ApiResourceKind,
+  CloudFeatureNotice,
+  ApiKeyListPanel,
+} from "@stigmer/react";
+
+function ApiKeySection() {
+  const available = useResourceAvailable(ApiResourceKind.api_key);
+  if (!available) return <CloudFeatureNotice />;
+  return <ApiKeyListPanel />;
+}
+```
+
+## StigmerProvider
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `client` | `Stigmer` | — | Configured SDK client instance. Required. |
+| `deploymentMode` | `"local" \| "cloud"` | `"cloud"` | Backend deployment mode. Controls feature availability. |
+| `preset` | `ThemePresetId` | — | Theme preset from `@stigmer/theme`. Applies preset design tokens to all descendant components. |
+| `className` | `string` | — | Additional CSS classes on the scoping wrapper. |
+| `children` | `ReactNode` | — | Application tree. |
+
+## Hooks and components
+
+The SDK is organized by domain. Each domain exports hooks for data access and
+mutations, and components for rendering UI.
+
+| Domain | Description | Hooks | Components |
+|--------|-------------|:-----:|:----------:|
+| Session | Conversation lifecycle, message history, artifacts, and usage. | 10 | — |
+| Execution | Real-time streaming, tool calls, approvals, messages, and artifacts. | 7 | 26 |
+| Composer | Unified message input with model selection, workspace, and attachments. | 1 | 1 |
+| Agent | Agent definitions, search, setup orchestration, picker, and detail view. | 6 | 3 |
+| Agent Instance | Deployed agent instances bound to an environment. | 4 | — |
+| MCP Server | Server connections, setup, credentials, tool selection, and approval policies. | 8 | 5 |
+| Skill | Knowledge attachments, search, picker, and detail view. | 4 | 2 |
+| Environment | Configuration, variables, secrets, and session environment pool. | 9 | 4 |
+| Workspace | File entries, folder browsing, and code editor. | 2 | 3 |
+| API Key | Key creation, listing, and deletion. Cloud only. | 3 | 3 |
+| Attachment | File upload handling and chip display. | 1 | 1 |
+| Organization | Organization creation. | 1 | 1 |
+| GitHub | OAuth connection, repository search, and picker. | 3 | 1 |
+| Library | Resource browsing, YAML detection, apply flow, and visibility. | 4 | 4 |
+| Models | Model registry data and selector. | 1 | 1 |
+| Error | Structured error display and secret-flow guidance. | — | 2 |
+
+The table above excludes the core exports documented in earlier sections
+(`StigmerProvider`, `useStigmer`, deployment mode hooks, and
+`CloudFeatureNotice`).
+
+Detailed per-domain reference pages with full hook signatures and component
+props are planned. Every public export has TSDoc comments in the source files
+under `sdk/react/src/`.
+
+## What's next
+
+<Cards>
+  <Card
+    title="Streaming"
+    description="Consume real-time execution updates as they arrive."
+    href="/docs/sdk/streaming"
+  />
+  <Card
+    title="Agent Execution"
+    description="Full method and type reference for Agent Executions."
+    href="/docs/sdk/resources/agent-execution"
+  />
+  <Card
+    title="Session"
+    description="Full method and type reference for Sessions."
+    href="/docs/sdk/resources/session"
+  />
+</Cards>
