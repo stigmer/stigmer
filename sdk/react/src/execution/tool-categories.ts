@@ -24,10 +24,15 @@ export type ToolCategory =
   | "mcp"
   | "unknown";
 
+/** Resolved display metadata for a tool call, returned by {@link resolveToolCategory}. */
 export interface ToolCategoryInfo {
+  /** Semantic category of the tool. */
   readonly category: ToolCategory;
+  /** Human-readable label for the tool (e.g., `"Shell"`, `"Read"`). */
   readonly label: string;
+  /** JSON argument key that provides the primary display value (e.g., `"command"` for shell). */
   readonly primaryArgField: string;
+  /** Fallback argument keys tried when the primary key is absent. */
   readonly fallbackArgFields: readonly string[];
 }
 

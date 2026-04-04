@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useStigmer } from "../hooks";
 import { useResourceCount, type ResourceListScope } from "../search";
 
+/** Options for {@link useAgentCount}. */
 export interface UseAgentCountOptions {
   /** Text query to filter agents before counting. */
   readonly query?: string;
@@ -18,6 +19,7 @@ export interface UseAgentCountOptions {
   readonly scope?: ResourceListScope;
 }
 
+/** Return value of {@link useAgentCount}. */
 export interface UseAgentCountReturn {
   /**
    * Total number of agents matching the current filters. `undefined`

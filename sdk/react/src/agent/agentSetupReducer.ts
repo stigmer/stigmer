@@ -103,6 +103,7 @@ export type AgentSetupReadyResult = AgentSetupResult & { readonly status: "ready
 // Actions
 // ---------------------------------------------------------------------------
 
+/** Action union for the agent setup state machine managed by {@link agentSetupReducer}. */
 export type AgentSetupAction =
   | { readonly type: "RESOLVE_START"; readonly agentRef: ResourceRef }
   | {
@@ -137,11 +138,18 @@ export type AgentSetupAction =
 // Reducer
 // ---------------------------------------------------------------------------
 
+/** Initial idle state for the agent setup reducer. */
 export const INITIAL_STATE: AgentSetupState = {
   status: "idle",
   error: null,
 };
 
+/**
+ * Pure reducer for the agent setup state machine.
+ *
+ * Transitions through `idle → resolving → needsEnvVars → submitting → ready`,
+ * with error handling orthogonal to the current phase.
+ */
 export function agentSetupReducer(
   state: AgentSetupState,
   action: AgentSetupAction,

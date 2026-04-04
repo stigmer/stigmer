@@ -17,6 +17,7 @@ import { VisibilityToggle } from "../library/VisibilityToggle";
 
 const INSTRUCTIONS_COLLAPSED_LINES = 8;
 
+/** Props for {@link AgentDetailView}. */
 export interface AgentDetailViewProps {
   /** Organization slug that owns the agent. */
   readonly org: string;

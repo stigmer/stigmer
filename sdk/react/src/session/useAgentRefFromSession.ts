@@ -6,10 +6,13 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useAgentRefFromSession}. */
 export interface UseAgentRefFromSessionReturn {
-  /** Resolved agent reference, or `null` while loading / on error. */
+  /** Resolved agent reference, or `null` while loading or on error. */
   readonly agentRef: ResourceRef | null;
+  /** `true` while the chained lookups are in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed lookup, or `null` when healthy. */
   readonly error: Error | null;
 }
 

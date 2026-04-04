@@ -7,6 +7,7 @@ import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { isTerminalPhase } from "./execution-phases";
 
+/** Return value of {@link useExecutionStream}. */
 export interface UseExecutionStreamReturn {
   /** Latest full execution snapshot from the stream, or `null` before the first update arrives. */
   readonly execution: AgentExecution | null;

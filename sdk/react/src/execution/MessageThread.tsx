@@ -25,6 +25,7 @@ import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
 
+/** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
   /** Completed executions in chronological order. */
   readonly executions: readonly AgentExecution[];
@@ -41,6 +42,7 @@ export interface MessageThreadProps {
    * first snapshot.
    */
   readonly pendingUserMessage?: string | null;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
    * Custom formatter for tool call summary labels. Passed through to

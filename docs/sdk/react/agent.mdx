@@ -43,10 +43,10 @@ function useAgent(org: string | null, slug: string | null): UseAgentReturn
 
 <TypeTable
   type={{
-    agent: { type: "Agent | null", description: "The resolved agent, or `null` while loading, on error, or when not found." },
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "Re-fetch the agent with the same org and slug." },
+    agent: { type: "Agent | null", description: "The resolved Agent, or `null` while loading, on error, or when not found." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the agent from the server." },
   }}
 />
 
@@ -134,9 +134,9 @@ function useAgentList(org: string | null, options?: UseAgentListOptions): UseAge
   type={{
     agents: { type: "readonly SearchResult[]", description: "Paginated agent entries for the current page." },
     currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
-    error: { type: "string | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "Re-fetch the current page with the same parameters." },
+    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
     totalCount: { type: "number", description: "Total number of agents matching the current filters." },
     totalPages: { type: "number", description: "Total pages available at the current page size." },
   }}
@@ -289,10 +289,10 @@ function useDefaultAgent(org: string | null): UseDefaultAgentReturn
 
 <TypeTable
   type={{
-    agent: { type: "Agent | null", description: "The platform default agent, or null while loading / on error." },
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
+    agent: { type: "Agent | null", description: "The platform default Agent, or `null` while loading or on error." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the default agent from the server." },
   }}
 />
 
@@ -492,6 +492,8 @@ error messages without losing the current phase context.
 
 ### SubmitEnvVarsOptions
 
+Options for `UseAgentSetupReturn.submitEnvVars`.
+
 <TypeTable
   type={{
     saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment and a personal agent instance is created. Subsequent runs of the same agent will reuse these credentials.  When `false`, the values are collected as `runtimeEnv` for this execution only — no data is persisted and no agent instance is created. This path is instant (no network calls)." },
@@ -499,6 +501,8 @@ error messages without losing the current phase context.
 />
 
 ### UseAgentCountOptions
+
+Options for [`useAgentCount`](#useagentcount).
 
 <TypeTable
   type={{
@@ -508,6 +512,8 @@ error messages without losing the current phase context.
 />
 
 ### UseAgentListOptions
+
+Options for [`useAgentList`](#useagentlist).
 
 <TypeTable
   type={{
@@ -520,6 +526,10 @@ error messages without losing the current phase context.
 
 ### UseAgentSearchOptions
 
+Options for [`useAgentSearch`](#useagentsearch). Delegates to the shared resource search options.
+
 
 ### UseAgentSearchReturn
+
+Return value of [`useAgentSearch`](#useagentsearch). Delegates to the shared resource search return type.
 

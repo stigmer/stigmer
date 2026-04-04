@@ -14,9 +14,13 @@ export const TRUNCATION_LINE_LIMIT = 10;
 // CollapsibleCode — labeled code block with line-based truncation
 // ---------------------------------------------------------------------------
 
+/** Props for {@link CollapsibleCode}. */
 export interface CollapsibleCodeProps {
+  /** Label displayed above the code block. */
   readonly label: string;
+  /** Code content to render. */
   readonly content: string;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
@@ -60,8 +64,11 @@ export function CollapsibleCode({ label, content, className }: CollapsibleCodePr
 // CollapsiblePre — raw pre with line-based truncation (no label/border)
 // ---------------------------------------------------------------------------
 
+/** Props for {@link CollapsiblePre}. */
 export interface CollapsiblePreProps {
+  /** Text content to render in the `<pre>` element. */
   readonly content: string;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
@@ -106,8 +113,11 @@ export function CollapsiblePre({ content, className }: CollapsiblePreProps) {
 // CollapsibleJsonBlock — chevron-toggled JSON section
 // ---------------------------------------------------------------------------
 
+/** Props for {@link CollapsibleJsonBlock}. */
 export interface CollapsibleJsonBlockProps {
+  /** Label displayed as the toggle header text. */
   readonly label: string;
+  /** Pre-formatted JSON content. */
   readonly content: string;
 }
 

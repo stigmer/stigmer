@@ -11,6 +11,7 @@ import type { ResolvedPathAction } from "./file-path-resolver";
  * copy-to-clipboard for all paths.
  */
 export interface FilePathContextValue {
+  /** Workspace entries from the session spec, used for path resolution. */
   readonly workspaceEntries: readonly WorkspaceEntry[];
   /**
    * Optional override for the default click behavior. When provided,
@@ -28,5 +29,6 @@ const DEFAULT_VALUE: FilePathContextValue = {
   workspaceEntries: [],
 };
 
+/** Context that supplies workspace file-path metadata for display-time path resolution. */
 export const FilePathContext =
   createContext<FilePathContextValue>(DEFAULT_VALUE);

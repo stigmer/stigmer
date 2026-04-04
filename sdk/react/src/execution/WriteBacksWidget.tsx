@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { useSessionWriteBacks } from "../session/useSessionWriteBacks";
 import { WriteBackCard } from "./WriteBackCard";
 
+/** Props for {@link WriteBacksWidget}. */
 export interface WriteBacksWidgetProps {
   /**
    * All executions for the current session — both completed and

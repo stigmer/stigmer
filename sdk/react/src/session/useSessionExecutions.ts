@@ -7,10 +7,15 @@ import { ListAgentExecutionsBySessionRequestSchema } from "@stigmer/protos/ai/st
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useSessionExecutions}. */
 export interface UseSessionExecutionsReturn {
+  /** All executions for the session, empty while loading or on error. */
   readonly executions: readonly AgentExecution[];
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
+  /** Discard cached data and re-fetch the execution list from the server. */
   readonly refetch: () => void;
 }
 

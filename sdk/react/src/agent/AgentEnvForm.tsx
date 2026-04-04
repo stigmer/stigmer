@@ -34,6 +34,7 @@ export type AgentEnvFormSubmitOptions = EnvVarFormSubmitOptions;
 // Props (unchanged public shape)
 // ---------------------------------------------------------------------------
 
+/** Props for {@link AgentEnvForm}. */
 export interface AgentEnvFormProps {
   /** Agent display name shown in the form header. */
   readonly agentName: string;

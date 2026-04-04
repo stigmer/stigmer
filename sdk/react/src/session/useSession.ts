@@ -5,11 +5,15 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useSession}. */
 export interface UseSessionReturn {
+  /** The fetched Session, or `null` while loading or on error. */
   readonly session: Session | null;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
-  /** Re-fetch the session from the server. */
+  /** Discard cached data and re-fetch the session from the server. */
   readonly refetch: () => void;
 }
 

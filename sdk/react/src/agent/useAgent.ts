@@ -6,12 +6,15 @@ import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useAgent}. */
 export interface UseAgentReturn {
-  /** The resolved agent, or `null` while loading, on error, or when not found. */
+  /** The resolved Agent, or `null` while loading, on error, or when not found. */
   readonly agent: Agent | null;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
-  /** Re-fetch the agent with the same org and slug. */
+  /** Discard cached data and re-fetch the agent from the server. */
   readonly refetch: () => void;
 }
 

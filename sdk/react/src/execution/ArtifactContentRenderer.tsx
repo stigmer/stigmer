@@ -12,6 +12,7 @@ import {
   type ArtifactRenderMode,
 } from "./artifact-utils";
 
+/** Props for {@link ArtifactContentRenderer}. */
 export interface ArtifactContentRendererProps {
   /** The text content to render. */
   readonly content: string;

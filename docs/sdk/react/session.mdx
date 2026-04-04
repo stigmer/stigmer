@@ -36,9 +36,9 @@ function useAgentRefFromSession(instanceId: string | null | undefined): UseAgent
 
 <TypeTable
   type={{
-    agentRef: { type: "ResourceRef | null", description: "Resolved agent reference, or `null` while loading / on error." },
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
+    agentRef: { type: "ResourceRef | null", description: "Resolved agent reference, or `null` while loading or on error." },
+    error: { type: "Error | null", description: "Error from the last failed lookup, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the chained lookups are in flight." },
   }}
 />
 
@@ -76,10 +76,10 @@ function useCreateSession(): UseCreateSessionReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    create: { type: "(input: CreateSessionInput) => Promise<CreateSessionResult>", description: "" },
-    error: { type: "Error | null", description: "" },
-    isCreating: { type: "boolean", description: "" },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
+    create: { type: "(input: CreateSessionInput) => Promise<CreateSessionResult>", description: "Create a Session from the given input. Resolves with the new session ID." },
+    error: { type: "Error | null", description: "Error from the last failed create attempt, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the create RPC is in flight." },
   }}
 />
 
@@ -119,10 +119,10 @@ function useSession(id: string | null): UseSessionReturn
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "Re-fetch the session from the server." },
-    session: { type: "Session | null", description: "" },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the session from the server." },
+    session: { type: "Session | null", description: "The fetched Session, or `null` while loading or on error." },
   }}
 />
 
@@ -292,10 +292,10 @@ function useSessionExecutions(sessionId: string | null): UseSessionExecutionsRet
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "" },
-    executions: { type: "readonly AgentExecution[]", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    executions: { type: "readonly AgentExecution[]", description: "All executions for the session, empty while loading or on error." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the execution list from the server." },
   }}
 />
 
@@ -327,10 +327,10 @@ function useSessionList(options?: UseSessionListOptions): UseSessionListReturn
 
 <TypeTable
   type={{
-    error: { type: "string | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
-    sessions: { type: "readonly Session[]", description: "" },
+    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the session list from the server." },
+    sessions: { type: "readonly Session[]", description: "The fetched list of Sessions, empty while loading or on error." },
   }}
 />
 
@@ -458,10 +458,10 @@ function useUpdateSession(): UseUpdateSessionReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    error: { type: "string | null", description: "" },
-    isUpdating: { type: "boolean", description: "" },
-    update: { type: "(input: SessionInput) => Promise<Session>", description: "" },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
+    error: { type: "string | null", description: "Error message from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(input: SessionInput) => Promise<Session>", description: "Send a full-replace update for a Session. Resolves with the updated resource." },
   }}
 />
 
@@ -484,9 +484,11 @@ backend's implicit agent resolution can use `@stigmer/sdk`'s
 
 ### CreateSessionResult
 
+Resolved output of `UseCreateSessionReturn.create`.
+
 <TypeTable
   type={{
-    sessionId: { type: "string", description: "", required: true },
+    sessionId: { type: "string", description: "Server-assigned identifier for the newly created Session.", required: true },
   }}
 />
 
@@ -509,14 +511,14 @@ Per-model cost breakdown computed from per-message `LlmCallMetrics`.
 
 <TypeTable
   type={{
-    cacheCreationTokens: { type: "number", description: "", required: true },
-    cacheReadTokens: { type: "number", description: "", required: true },
-    callCount: { type: "number", description: "", required: true },
-    estimatedCostUsd: { type: "number", description: "", required: true },
-    inputTokens: { type: "number", description: "", required: true },
-    model: { type: "string", description: "", required: true },
-    outputTokens: { type: "number", description: "", required: true },
-    provider: { type: "string", description: "", required: true },
+    cacheCreationTokens: { type: "number", description: "Total cache creation tokens across all calls to this model.", required: true },
+    cacheReadTokens: { type: "number", description: "Total cache read tokens across all calls to this model.", required: true },
+    callCount: { type: "number", description: "Number of LLM calls made to this model.", required: true },
+    estimatedCostUsd: { type: "number", description: "Estimated cost in USD for all calls to this model.", required: true },
+    inputTokens: { type: "number", description: "Total non-cached input tokens across all calls to this model.", required: true },
+    model: { type: "string", description: "Model identifier (e.g., `\"claude-3-5-sonnet-20241022\"`).", required: true },
+    outputTokens: { type: "number", description: "Total output tokens across all calls to this model.", required: true },
+    provider: { type: "string", description: "Provider that served the model (e.g., `\"anthropic\"`).", required: true },
   }}
 />
 
@@ -565,6 +567,8 @@ Apply CTA is enabled in the preview modal.
 
 ### SessionGroup
 
+A time-based group of sessions produced by [`groupSessionsByTime`](#groupsessionsbytime).
+
 <TypeTable
   type={{
     label: { type: "string", description: "Display label for this group (e.g. \"Today\", \"Yesterday\").", required: true },
@@ -588,6 +592,8 @@ for traceability in the UI (e.g., tooltip or detail view).
 />
 
 ### UseSessionListOptions
+
+Options for [`useSessionList`](#usesessionlist).
 
 <TypeTable
   type={{

@@ -5,9 +5,11 @@ import { cn } from "@stigmer/theme";
 import { FilePathContext } from "./FilePathContext";
 import { resolvePathAction } from "./file-path-resolver";
 
+/** Props for {@link FilePathLink}. */
 export interface FilePathLinkProps {
   /** The workspace-relative file path from the tool call. */
   readonly path: string;
+  /** Additional CSS class names for the root element. */
   readonly className?: string;
 }
 

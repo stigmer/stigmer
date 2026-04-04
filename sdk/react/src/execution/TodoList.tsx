@@ -5,12 +5,14 @@ import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution
 import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link TodoList}. */
 export interface TodoListProps {
   /**
    * Todo items keyed by ID. Accepts the proto map shape directly
    * (`execution.status.todos` or `subAgentExecution.todos`).
    */
   readonly todos: { readonly [key: string]: TodoItem };
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

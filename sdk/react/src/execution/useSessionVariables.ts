@@ -12,13 +12,19 @@ import type { EnvVarInput } from "@stigmer/sdk";
  * to the user's personal environment for reuse across sessions.
  */
 export interface SessionVariableEntry {
+  /** Unique identifier for this entry (auto-generated). */
   readonly id: string;
+  /** Environment variable name. */
   readonly key: string;
+  /** Environment variable value. */
   readonly value: string;
+  /** Whether the value should be masked in the UI. */
   readonly isSecret: boolean;
+  /** When `true`, persists the value to the user's personal environment on submit. */
   readonly saveForFuture: boolean;
 }
 
+/** Return value of {@link useSessionVariables}. */
 export interface UseSessionVariablesReturn {
   /** Current entries in the editor. */
   readonly entries: readonly SessionVariableEntry[];

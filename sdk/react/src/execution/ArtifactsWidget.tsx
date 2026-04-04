@@ -11,6 +11,7 @@ import { ArtifactCard } from "./ArtifactCard";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal";
 import type { ApplyResourceResult } from "../library/useApplyResource";
 
+/** Props for {@link ArtifactsWidget}. */
 export interface ArtifactsWidgetProps {
   /**
    * All executions for the current session — both completed and
