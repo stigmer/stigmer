@@ -14,6 +14,20 @@ import {
 } from "./mdx-utils";
 
 // ---------------------------------------------------------------------------
+// Component preview — names of SDK components that have a live preview
+// registered in site/src/components/docs/previews/preview-configs.ts.
+// The generator emits a <ComponentPreview> tag for these components.
+// ---------------------------------------------------------------------------
+
+const PREVIEW_COMPONENTS = new Set([
+  "SessionComposer",
+  "ModelSelector",
+  "AgentDetailView",
+  "ErrorMessage",
+  "ApiKeyListPanel",
+]);
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -126,6 +140,10 @@ function renderComponentSection(component: Component): string {
 
   if (component.description.length > 0) {
     s += renderCommentParts(component.description) + "\n\n";
+  }
+
+  if (PREVIEW_COMPONENTS.has(component.name)) {
+    s += `<ComponentPreview component="${component.name}" />\n\n`;
   }
 
   if (component.propsInterface && component.propsInterface.fields.length > 0) {
