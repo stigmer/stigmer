@@ -10,14 +10,14 @@ All execution results and state live in AgentExecutionStatus (in api.proto).
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Get(ctx, "aex_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.get("aex_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Get(ctx, "aex_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -62,14 +62,14 @@ AgentExecution agentExecution = client.agentExecution().get("aex_01j5q3k7m8r2s4t
 Get a single agent execution by ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -90,24 +90,13 @@ AgentExecution agentExecution = client.agentExecution().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Agent Execution identifier. |
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### getAgentUsageReport
 
 Get usage report for an agent (all sessions for an agent in a time range). Returns aggregated tokens, cost, and per-session breakdown with pagination.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-getAgentUsageReportOutput, err := client.AgentExecution.GetAgentUsageReport(ctx, &stigmer.GetAgentUsageReportInput{
-  AgentId:   "...",
-  FromDate:  "...",
-  ToDate:    "...",
-  PageSize:  0,
-  PageToken: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const getAgentUsageReportOutput = await stigmer.agentExecution.getAgentUsageReport({
@@ -117,6 +106,17 @@ const getAgentUsageReportOutput = await stigmer.agentExecution.getAgentUsageRepo
   pageSize: 0,
   pageToken: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+getAgentUsageReportOutput, err := client.AgentExecution.GetAgentUsageReport(ctx, &stigmer.GetAgentUsageReportInput{
+  AgentId:   "...",
+  FromDate:  "...",
+  ToDate:    "...",
+  PageSize:  0,
+  PageToken: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -156,16 +156,6 @@ Returns artifact bytes through the Stigmer API, eliminating CORS concerns for SD
 For direct file downloads, use getArtifactDownloadUrl instead — it returns a presigned R2 URL that avoids proxying bytes through the server.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-getArtifactContentResponse, err := client.AgentExecution.GetArtifactContent(ctx, &stigmer.GetArtifactContentRequest{
-  ExecutionId: "...",
-  StorageKey:  "...",
-  MaxBytes:    0,
-  EntryPath:   "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const getArtifactContentResponse = await stigmer.agentExecution.getArtifactContent({
@@ -174,6 +164,16 @@ const getArtifactContentResponse = await stigmer.agentExecution.getArtifactConte
   maxBytes: 0,
   entryPath: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+getArtifactContentResponse, err := client.AgentExecution.GetArtifactContent(ctx, &stigmer.GetArtifactContentRequest{
+  ExecutionId: "...",
+  StorageKey:  "...",
+  MaxBytes:    0,
+  EntryPath:   "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -209,20 +209,20 @@ Get a presigned download URL for an execution artifact.
 Returns a time-limited URL for downloading an artifact published by an agent during execution. The URL can be used with a simple HTTP GET request without authentication.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-getArtifactDownloadUrlResponse, err := client.AgentExecution.GetArtifactDownloadUrl(ctx, &stigmer.GetArtifactDownloadUrlRequest{
-  ExecutionId: "...",
-  StorageKey:  "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const getArtifactDownloadUrlResponse = await stigmer.agentExecution.getArtifactDownloadUrl({
   executionId: "...",
   storageKey: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+getArtifactDownloadUrlResponse, err := client.AgentExecution.GetArtifactDownloadUrl(ctx, &stigmer.GetArtifactDownloadUrlRequest{
+  ExecutionId: "...",
+  StorageKey:  "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -252,15 +252,6 @@ GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.agentExec
 Get usage report for an organization (all agents in a time range). Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-getOrgUsageReportOutput, err := client.AgentExecution.GetOrgUsageReport(ctx, &stigmer.GetOrgUsageReportInput{
-  OrgId:    "...",
-  FromDate: "...",
-  ToDate:   "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const getOrgUsageReportOutput = await stigmer.agentExecution.getOrgUsageReport({
@@ -268,6 +259,15 @@ const getOrgUsageReportOutput = await stigmer.agentExecution.getOrgUsageReport({
   fromDate: "...",
   toDate: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+getOrgUsageReportOutput, err := client.AgentExecution.GetOrgUsageReport(ctx, &stigmer.GetOrgUsageReportInput{
+  OrgId:    "...",
+  FromDate: "...",
+  ToDate:   "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -299,18 +299,18 @@ GetOrgUsageReportOutput getOrgUsageReportOutput = client.agentExecution().getOrg
 Get usage report for a session (all executions in a session). Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-getSessionUsageReportOutput, err := client.AgentExecution.GetSessionUsageReport(ctx, &stigmer.GetSessionUsageReportInput{
-  SessionId: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const getSessionUsageReportOutput = await stigmer.agentExecution.getSessionUsageReport({
   sessionId: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+getSessionUsageReportOutput, err := client.AgentExecution.GetSessionUsageReport(ctx, &stigmer.GetSessionUsageReportInput{
+  SessionId: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -338,16 +338,6 @@ GetSessionUsageReportOutput getSessionUsageReportOutput = client.agentExecution(
 List all agent executions with pagination and optional filtering.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.AgentExecution.List(ctx, &stigmer.ListAgentExecutionsRequest{
-  PageSize:  0,
-  PageToken: "...",
-  Phase:     "...",
-  Tags:      []string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.agentExecution.list({
@@ -356,6 +346,16 @@ const result = await stigmer.agentExecution.list({
   phase: "...",
   tags: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.AgentExecution.List(ctx, &stigmer.ListAgentExecutionsRequest{
+  PageSize:  0,
+  PageToken: "...",
+  Phase:     "...",
+  Tags:      []string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -389,15 +389,6 @@ AgentExecutionList result = client.agentExecution().list(ListAgentExecutionsRequ
 List all executions in a specific session.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.AgentExecution.ListBySession(ctx, &stigmer.ListAgentExecutionsBySessionRequest{
-  SessionId: "...",
-  PageSize:  0,
-  PageToken: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.agentExecution.listBySession({
@@ -405,6 +396,15 @@ const result = await stigmer.agentExecution.listBySession({
   pageSize: 0,
   pageToken: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.AgentExecution.ListBySession(ctx, &stigmer.ListAgentExecutionsBySessionRequest{
+  SessionId: "...",
+  PageSize:  0,
+  PageToken: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -438,6 +438,14 @@ AgentExecutionList result = client.agentExecution().listBySession(ListAgentExecu
 Subscribe to real-time execution updates (streaming).
 
 <SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const stream = stigmer.agentExecution.subscribe(id);
+for await (const agentExecution of stream) {
+  // process agentExecution
+}
+```
+</Tab>
 <Tab value="Go">
 ```go
 stream, err := client.AgentExecution.Subscribe(ctx, id)
@@ -447,14 +455,6 @@ for {
         break
     }
     // process agentExecution
-}
-```
-</Tab>
-<Tab value="TypeScript">
-```typescript
-const stream = stigmer.agentExecution.subscribe(id);
-for await (const agentExecution of stream) {
-  // process agentExecution
 }
 ```
 </Tab>
@@ -479,33 +479,13 @@ client.agentExecution().subscribe(id, agentExecution -> {
 |-----------|------|-------------|
 | `id` | `string` | Agent Execution identifier. |
 
-**Returns**: `Stream<AgentExecution>`
+**Returns**: Stream&lt;[`AgentExecution`](#agentexecution)&gt;
 
 ### create
 
 Create and trigger a new agent execution. Session is optional — can be provided or auto-created from agent_id.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
-  Name:              "my-agent-execution",
-  Org:               "acme",
-  Slug:              "...",
-  Labels:            map[string]string{},
-  SessionId:         "...",
-  AgentId:           "...",
-  Message:           "...",
-  ExecutionConfig:   &stigmer.ExecutionConfigInput{},
-  RuntimeEnv:        map[string]string{},
-  CallbackToken:     "...",
-  AutoApproveAll:    false,
-  ParentWorkflowId:  "...",
-  Attachments:       []stigmer.AttachmentInput{},
-  WorkspaceFileRefs: []string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.create({
@@ -524,6 +504,26 @@ const agentExecution = await stigmer.agentExecution.create({
   attachments: [],
   workspaceFileRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
+  Name:              "my-agent-execution",
+  Org:               "acme",
+  Slug:              "...",
+  Labels:            map[string]string{},
+  SessionId:         "...",
+  AgentId:           "...",
+  Message:           "...",
+  ExecutionConfig:   &stigmer.ExecutionConfigInput{},
+  RuntimeEnv:        map[string]string{},
+  CallbackToken:     "...",
+  AutoApproveAll:    false,
+  ParentWorkflowId:  "...",
+  Attachments:       []stigmer.AttachmentInput{},
+  WorkspaceFileRefs: []string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -570,33 +570,13 @@ AgentExecution agentExecution = client.agentExecution().create(AgentExecutionInp
 
 **Parameters**: [`AgentExecutionInput`](#agentexecutioninput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### update
 
 Update an execution with full state. Used by users to update execution configuration (spec fields). No individual field updates - always provide complete state.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecutionInput{
-  Name:              "my-agent-execution",
-  Org:               "acme",
-  Slug:              "...",
-  Labels:            map[string]string{},
-  SessionId:         "...",
-  AgentId:           "...",
-  Message:           "...",
-  ExecutionConfig:   &stigmer.ExecutionConfigInput{},
-  RuntimeEnv:        map[string]string{},
-  CallbackToken:     "...",
-  AutoApproveAll:    false,
-  ParentWorkflowId:  "...",
-  Attachments:       []stigmer.AttachmentInput{},
-  WorkspaceFileRefs: []string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.update({
@@ -615,6 +595,26 @@ const agentExecution = await stigmer.agentExecution.update({
   attachments: [],
   workspaceFileRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecutionInput{
+  Name:              "my-agent-execution",
+  Org:               "acme",
+  Slug:              "...",
+  Labels:            map[string]string{},
+  SessionId:         "...",
+  AgentId:           "...",
+  Message:           "...",
+  ExecutionConfig:   &stigmer.ExecutionConfigInput{},
+  RuntimeEnv:        map[string]string{},
+  CallbackToken:     "...",
+  AutoApproveAll:    false,
+  ParentWorkflowId:  "...",
+  Attachments:       []stigmer.AttachmentInput{},
+  WorkspaceFileRefs: []string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -661,27 +661,27 @@ AgentExecution agentExecution = client.agentExecution().update(AgentExecutionInp
 
 **Parameters**: [`AgentExecutionInput`](#agentexecutioninput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### updateStatus
 
 Update execution status during agent execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExecutionUpdateStatusInput{
-  ExecutionId: "...",
-  Status:      &stigmer.AgentExecutionStatusInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.updateStatus({
   executionId: "...",
   status: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExecutionUpdateStatusInput{
+  ExecutionId: "...",
+  Status:      &stigmer.AgentExecutionStatusInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -704,21 +704,21 @@ AgentExecution agentExecution = client.agentExecution().updateStatus(AgentExecut
 
 **Parameters**: [`AgentExecutionUpdateStatusInput`](#agentexecutionupdatestatusinput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### delete
 
 Delete an execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -739,7 +739,7 @@ AgentExecution agentExecution = client.agentExecution().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Agent Execution identifier. |
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### pause
 
@@ -748,20 +748,20 @@ Pause a running agent execution.
 Temporarily stops the agent at its current checkpoint. Unlike cancel, the execution is NOT terminal and can be resumed later from where it left off.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Pause(ctx, &stigmer.PauseAgentExecutionInput{
-  Id:     "...",
-  Reason: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.pause({
   id: "...",
   reason: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Pause(ctx, &stigmer.PauseAgentExecutionInput{
+  Id:     "...",
+  Reason: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -784,7 +784,7 @@ AgentExecution agentExecution = client.agentExecution().pause(PauseAgentExecutio
 
 **Parameters**: [`PauseAgentExecutionInput`](#pauseagentexecutioninput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### resume
 
@@ -793,18 +793,18 @@ Resume a paused agent execution.
 Continues execution from the checkpoint where it was paused. The agent re-invokes with the same thread_id, loading from LangGraph checkpoint and continuing from where it left off.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Resume(ctx, &stigmer.ResumeAgentExecutionInput{
-  Id: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.resume({
   id: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Resume(ctx, &stigmer.ResumeAgentExecutionInput{
+  Id: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -825,7 +825,7 @@ AgentExecution agentExecution = client.agentExecution().resume(ResumeAgentExecut
 
 **Parameters**: [`ResumeAgentExecutionInput`](#resumeagentexecutioninput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### cancel
 
@@ -834,20 +834,20 @@ Cancel a running agent execution gracefully.
 Sends a cancellation signal to the agent execution. The agent can handle the cancellation signal to save checkpoint and clean up before transitioning to the CANCELLED phase.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Cancel(ctx, &stigmer.CancelAgentExecutionInput{
-  Id:     "...",
-  Reason: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.cancel({
   id: "...",
   reason: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Cancel(ctx, &stigmer.CancelAgentExecutionInput{
+  Id:     "...",
+  Reason: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -870,7 +870,7 @@ AgentExecution agentExecution = client.agentExecution().cancel(CancelAgentExecut
 
 **Parameters**: [`CancelAgentExecutionInput`](#cancelagentexecutioninput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### terminate
 
@@ -879,20 +879,20 @@ Terminate an agent execution immediately.
 Force-stops the agent execution without allowing cleanup. Unlike cancel, the agent cannot respond to termination - it is stopped immediately. Use this for stuck or unresponsive agents.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Terminate(ctx, &stigmer.TerminateAgentExecutionInput{
-  Id:     "...",
-  Reason: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.terminate({
   id: "...",
   reason: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Terminate(ctx, &stigmer.TerminateAgentExecutionInput{
+  Id:     "...",
+  Reason: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -915,7 +915,7 @@ AgentExecution agentExecution = client.agentExecution().terminate(TerminateAgent
 
 **Parameters**: [`TerminateAgentExecutionInput`](#terminateagentexecutioninput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### recover
 
@@ -924,18 +924,18 @@ Recover a failed agent execution from the last checkpoint.
 Resumes execution from the last checkpoint. Completed work is preserved - successful tool calls are NOT re-executed.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.Recover(ctx, &stigmer.RecoverAgentExecutionInput{
-  Id: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.recover({
   id: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.Recover(ctx, &stigmer.RecoverAgentExecutionInput{
+  Id: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -956,23 +956,13 @@ AgentExecution agentExecution = client.agentExecution().recover(RecoverAgentExec
 
 **Parameters**: [`RecoverAgentExecutionInput`](#recoveragentexecutioninput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### submitApproval
 
 Submit approval decision for a pending tool call (HITL Phase 1).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentExecution, err := client.AgentExecution.SubmitApproval(ctx, &stigmer.SubmitApprovalInput{
-  AgentExecutionId: "...",
-  ToolCallId:       "...",
-  Action:           "...",
-  Comment:          "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentExecution = await stigmer.agentExecution.submitApproval({
@@ -981,6 +971,16 @@ const agentExecution = await stigmer.agentExecution.submitApproval({
   action: "...",
   comment: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.SubmitApproval(ctx, &stigmer.SubmitApprovalInput{
+  AgentExecutionId: "...",
+  ToolCallId:       "...",
+  Action:           "...",
+  Comment:          "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -1007,7 +1007,7 @@ AgentExecution agentExecution = client.agentExecution().submitApproval(SubmitApp
 
 **Parameters**: [`SubmitApprovalInput`](#submitapprovalinput)
 
-**Returns**: `AgentExecution`
+**Returns**: [`AgentExecution`](#agentexecution)
 
 ### uploadAttachment
 
@@ -1016,15 +1016,6 @@ Upload a file attachment for use in an agent execution.
 Pre-uploads files to artifact storage before creating an execution. The returned storage_key can be used in Attachment.storage_key when creating the execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-uploadAttachmentResponse, err := client.AgentExecution.UploadAttachment(ctx, &stigmer.UploadAttachmentRequest{
-  Filename:    "...",
-  Content:     "...",
-  ContentType: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const uploadAttachmentResponse = await stigmer.agentExecution.uploadAttachment({
@@ -1032,6 +1023,15 @@ const uploadAttachmentResponse = await stigmer.agentExecution.uploadAttachment({
   content: "...",
   contentType: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+uploadAttachmentResponse, err := client.AgentExecution.UploadAttachment(ctx, &stigmer.UploadAttachmentRequest{
+  Filename:    "...",
+  Content:     "...",
+  ContentType: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -1392,6 +1392,44 @@ GetOrgUsageReportOutput returns aggregated usage for an organization.
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the organization." },
     topAgentsByCost: { type: "AgentUsageSummaryInput[]", description: "Top agents by cost (top 10), ordered by estimated_cost_usd descending." },
     dailyCosts: { type: "DailyCostEntryInput[]", description: "Daily cost trend within the time range, ordered chronologically." },
+  }}
+/>
+
+### AgentExecution
+
+AgentExecution represents a single agent execution instance (conversational).
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "AgentExecutionInput", description: "Resource specification. See [`AgentExecutionInput`](#agentexecutioninput)." },
+    status: { type: "AgentExecutionStatus", description: "System-managed state. See [`AgentExecutionStatus`](#agentexecutionstatus)." },
+  }}
+/>
+
+### AgentExecutionStatus
+
+AgentExecutionStatus contains all execution results and state.
+
+<TypeTable
+  type={{
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.)." },
+    messages: { type: "AgentMessage[]", description: "Sequential stream of execution events: AI messages, tool calls, and system notifications." },
+    phase: { type: "ExecutionPhase", description: "Current execution lifecycle phase." },
+    subAgentExecutions: { type: "SubAgentExecution[]", description: "Sub-agent executions invoked during this execution." },
+    error: { type: "string", description: "Error message if execution failed." },
+    startedAt: { type: "string", description: "ISO 8601 timestamp when execution started." },
+    completedAt: { type: "string", description: "ISO 8601 timestamp when execution completed, failed, or was cancelled." },
+    todos: { type: "Record<string, TodoItem>", description: "Todo list tracking multi-step tasks and progress for this execution." },
+    callbackToken: { type: "Uint8Array", description: "Temporal callback token for async activity completion." },
+    resolvedContext: { type: "ResolvedExecutionContext", description: "Resolved execution context showing what resources the agent had access to." },
+    pendingApprovals: { type: "PendingApproval[]", description: "Active pending approval requests for this execution." },
+    contextInfo: { type: "ContextInfo", description: "Context window utilization and summarization tracking." },
+    artifacts: { type: "ExecutionArtifact[]", description: "Files/directories published by the agent for download." },
+    workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes." },
+    setupProgress: { type: "SetupProgress", description: "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING." },
   }}
 />
 

@@ -155,7 +155,7 @@ func generateSDKDocPage(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSc
 
 	// Build the set of type names that will have documented sections on this page.
 	// Computed before methods so type references can be rendered as clickable links.
-	documentedTypes := docBuildDocumentedTypeSet(cfg, specSchema, specTypes, schema.MethodTypes)
+	documentedTypes := docBuildDocumentedTypeSet(cfg, schema, specSchema, specTypes)
 
 	// Client Access
 	docWriteClientAccess(&buf, schema, cfg, clientField, goField, pyField)
@@ -168,21 +168,21 @@ func generateSDKDocPage(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSc
 	docWriteMethods(&buf, schema, cfg, clientField, goField, pyField, hasInputType, documentedTypes, specSchema, methodTypeMap)
 
 	// Types
-	if specSchema != nil || len(schema.MethodTypes) > 0 {
-		if specSchema != nil {
-			typeMap := make(map[string]*TypeSchema)
-			for _, t := range specTypes {
-				typeMap[t.Name] = t
-			}
-			docWriteTypes(&buf, cfg, specSchema, typeMap)
-		} else {
-			buf.WriteString("## Types\n\n")
+	if specSchema != nil {
+		typeMap := make(map[string]*TypeSchema)
+		for _, t := range specTypes {
+			typeMap[t.Name] = t
 		}
-
-		if len(schema.MethodTypes) > 0 {
-			docWriteMethodTypes(&buf, schema.MethodTypes, documentedTypes)
-		}
+		docWriteTypes(&buf, cfg, specSchema, typeMap)
+	} else {
+		buf.WriteString("## Types\n\n")
 	}
+
+	if len(schema.MethodTypes) > 0 {
+		docWriteMethodTypes(&buf, schema.MethodTypes, documentedTypes)
+	}
+
+	docWriteResourceAndStatusTypes(&buf, cfg, schema, documentedTypes)
 
 	return buf.Bytes()
 }
@@ -297,7 +297,7 @@ func docWriteMethod(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, c
 	if emptyOutput {
 		buf.WriteString("**Returns**: `void`\n\n")
 	} else if m.ServerStreaming {
-		fmt.Fprintf(buf, "**Returns**: `Stream<%s>`\n\n", m.OutputType)
+		fmt.Fprintf(buf, "**Returns**: Stream&lt;%s&gt;\n\n", docTypeRef(m.OutputType, documentedTypes))
 	} else {
 		fmt.Fprintf(buf, "**Returns**: %s\n\n", docTypeRef(m.OutputType, documentedTypes))
 	}
@@ -313,40 +313,40 @@ func docWriteMethodSigs(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfi
 
 	switch {
 	case emptyInput && emptyOutput:
-		docWriteTab(buf, "Go", "go",
-			fmt.Sprintf("err := client.%s.%s(ctx)", goField, m.Name))
 		docWriteTab(buf, "TypeScript", "typescript",
 			fmt.Sprintf("await stigmer.%s.%s();", clientField, tsName))
+		docWriteTab(buf, "Go", "go",
+			fmt.Sprintf("err := client.%s.%s(ctx)", goField, m.Name))
 		docWriteTab(buf, "Python", "python",
 			fmt.Sprintf("client.%s.%s()", pyField, pyName))
 		docWriteTab(buf, "Java", "java",
 			fmt.Sprintf("client.%s().%s();", clientField, tsName))
 
 	case emptyInput:
-		docWriteTab(buf, "Go", "go",
-			fmt.Sprintf("%s, err := client.%s.%s(ctx)", resultVar, goField, m.Name))
 		docWriteTab(buf, "TypeScript", "typescript",
 			fmt.Sprintf("const %s = await stigmer.%s.%s();", resultVar, clientField, tsName))
+		docWriteTab(buf, "Go", "go",
+			fmt.Sprintf("%s, err := client.%s.%s(ctx)", resultVar, goField, m.Name))
 		docWriteTab(buf, "Python", "python",
 			fmt.Sprintf("%s = client.%s.%s()", resultVar, pyField, pyName))
 		docWriteTab(buf, "Java", "java",
 			fmt.Sprintf("%s %s = client.%s().%s();", m.OutputType, resultVar, clientField, tsName))
 
 	case idInput && emptyOutput:
-		docWriteTab(buf, "Go", "go",
-			fmt.Sprintf("err := client.%s.%s(ctx, id)", goField, m.Name))
 		docWriteTab(buf, "TypeScript", "typescript",
 			fmt.Sprintf("await stigmer.%s.%s(id);", clientField, tsName))
+		docWriteTab(buf, "Go", "go",
+			fmt.Sprintf("err := client.%s.%s(ctx, id)", goField, m.Name))
 		docWriteTab(buf, "Python", "python",
 			fmt.Sprintf("client.%s.%s(id)", pyField, pyName))
 		docWriteTab(buf, "Java", "java",
 			fmt.Sprintf("client.%s().%s(id);", clientField, tsName))
 
 	case idInput:
-		docWriteTab(buf, "Go", "go",
-			fmt.Sprintf("%s, err := client.%s.%s(ctx, id)", resultVar, goField, m.Name))
 		docWriteTab(buf, "TypeScript", "typescript",
 			fmt.Sprintf("const %s = await stigmer.%s.%s(id);", resultVar, clientField, tsName))
+		docWriteTab(buf, "Go", "go",
+			fmt.Sprintf("%s, err := client.%s.%s(ctx, id)", resultVar, goField, m.Name))
 		docWriteTab(buf, "Python", "python",
 			fmt.Sprintf("%s = client.%s.%s(id)", resultVar, pyField, pyName))
 		docWriteTab(buf, "Java", "java",
@@ -358,20 +358,20 @@ func docWriteMethodSigs(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfi
 		pyFields := docInputFields(specSchema, "python", exampleName)
 		javaFields := docInputFields(specSchema, "java", exampleName)
 
-		docWriteTab(buf, "Go", "go",
-			fmt.Sprintf("%s, err := client.%s.%s(ctx, &stigmer.%s{\n%s\n})", resultVar, goField, m.Name, inputTypeName, docFormatInputGo(goFields)))
 		docWriteTab(buf, "TypeScript", "typescript",
 			fmt.Sprintf("const %s = await stigmer.%s.%s({\n%s\n});", resultVar, clientField, tsName, docFormatInputTS(tsFields)))
+		docWriteTab(buf, "Go", "go",
+			fmt.Sprintf("%s, err := client.%s.%s(ctx, &stigmer.%s{\n%s\n})", resultVar, goField, m.Name, inputTypeName, docFormatInputGo(goFields)))
 		docWriteTab(buf, "Python", "python",
 			fmt.Sprintf("%s = client.%s.%s(%s(\n%s\n))", resultVar, pyField, pyName, inputTypeName, docFormatInputPython(pyFields)))
 		docWriteTab(buf, "Java", "java",
 			fmt.Sprintf("%s %s = client.%s().%s(%s.builder()\n%s\n    .build());", cfg.protoResType, resultVar, clientField, tsName, inputTypeName, docFormatInputJava(javaFields)))
 
 	case deleteInput:
-		docWriteTab(buf, "Go", "go",
-			fmt.Sprintf("%s, err := client.%s.%s(ctx, &stigmer.DeleteResourceInput{\n  ResourceID: id,\n})", resultVar, goField, m.Name))
 		docWriteTab(buf, "TypeScript", "typescript",
 			fmt.Sprintf("const %s = await stigmer.%s.%s({ resourceId: id });", resultVar, clientField, tsName))
+		docWriteTab(buf, "Go", "go",
+			fmt.Sprintf("%s, err := client.%s.%s(ctx, &stigmer.DeleteResourceInput{\n  ResourceID: id,\n})", resultVar, goField, m.Name))
 		docWriteTab(buf, "Python", "python",
 			fmt.Sprintf("%s = client.%s.%s(DeleteResourceInput(resource_id=id))", resultVar, pyField, pyName))
 		docWriteTab(buf, "Java", "java",
@@ -385,19 +385,19 @@ func docWriteMethodSigs(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfi
 			javaFields := docMethodTypeFields(mt, "java")
 			mtName := m.InputType
 
-			docWriteTab(buf, "Go", "go",
-				fmt.Sprintf("%s, err := client.%s.%s(ctx, &stigmer.%s{\n%s\n})", resultVar, goField, m.Name, mtName, docFormatInputGo(goFields)))
 			docWriteTab(buf, "TypeScript", "typescript",
 				fmt.Sprintf("const %s = await stigmer.%s.%s({\n%s\n});", resultVar, clientField, tsName, docFormatInputTS(tsFields)))
+			docWriteTab(buf, "Go", "go",
+				fmt.Sprintf("%s, err := client.%s.%s(ctx, &stigmer.%s{\n%s\n})", resultVar, goField, m.Name, mtName, docFormatInputGo(goFields)))
 			docWriteTab(buf, "Python", "python",
 				fmt.Sprintf("%s = client.%s.%s(%s(\n%s\n))", resultVar, pyField, pyName, mtName, docFormatInputPython(pyFields)))
 			docWriteTab(buf, "Java", "java",
 				fmt.Sprintf("%s %s = client.%s().%s(%s.builder()\n%s\n    .build());", m.OutputType, resultVar, clientField, tsName, mtName, docFormatInputJava(javaFields)))
 		} else {
-			docWriteTab(buf, "Go", "go",
-				fmt.Sprintf("%s, err := client.%s.%s(ctx, input)", resultVar, goField, m.Name))
 			docWriteTab(buf, "TypeScript", "typescript",
 				fmt.Sprintf("const %s = await stigmer.%s.%s(input);", resultVar, clientField, tsName))
+			docWriteTab(buf, "Go", "go",
+				fmt.Sprintf("%s, err := client.%s.%s(ctx, input)", resultVar, goField, m.Name))
 			docWriteTab(buf, "Python", "python",
 				fmt.Sprintf("%s = client.%s.%s(input)", resultVar, pyField, pyName))
 			docWriteTab(buf, "Java", "java",
@@ -789,10 +789,16 @@ func docWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*T
 // =========================================================================
 
 // docBuildDocumentedTypeSet returns the set of type names that will have
-// a documented ### section on the page. This includes SDK input types
-// (from spec schemas) and proto method types (from service schemas).
-func docBuildDocumentedTypeSet(cfg sdkResourceConfig, specSchema *TaskConfigSchema, specTypes []*TypeSchema, methodTypes []MethodTypeSchema) map[string]bool {
+// a documented ### section on the page. This includes the resource type,
+// its status sub-type, SDK input types (from spec schemas), and proto
+// method types (from service schemas).
+func docBuildDocumentedTypeSet(cfg sdkResourceConfig, schema *ServiceSchemaFile, specSchema *TaskConfigSchema, specTypes []*TypeSchema) map[string]bool {
 	set := make(map[string]bool)
+
+	set[cfg.protoResType] = true
+	if schema.StatusType != nil {
+		set[schema.StatusType.Name] = true
+	}
 
 	if specSchema != nil {
 		inputName := cfg.inputPrefix + "Input"
@@ -815,8 +821,8 @@ func docBuildDocumentedTypeSet(cfg sdkResourceConfig, specSchema *TaskConfigSche
 		}
 	}
 
-	for i := range methodTypes {
-		set[methodTypes[i].Name] = true
+	for i := range schema.MethodTypes {
+		set[schema.MethodTypes[i].Name] = true
 	}
 
 	return set
@@ -892,6 +898,97 @@ func docTypeRef(typeName string, documentedTypes map[string]bool) string {
 }
 
 // =========================================================================
+// Resource and status type sections (response types)
+// =========================================================================
+
+// docResponseTypeString converts a TypeSpec into a human-readable type string
+// for response types. Unlike docTypeString, message types use their raw proto
+// name (e.g., "ApiResourceAudit") instead of appending "Input".
+func docResponseTypeString(ts *TypeSpec) string {
+	switch ts.Kind {
+	case "array":
+		if ts.ElementType != nil {
+			return docResponseTypeString(ts.ElementType) + "[]"
+		}
+		return "string[]"
+	case "map":
+		key := "string"
+		val := "string"
+		if ts.KeyType != nil {
+			key = docResponseTypeString(ts.KeyType)
+		}
+		if ts.ValueType != nil {
+			val = docResponseTypeString(ts.ValueType)
+		}
+		return fmt.Sprintf("Record<%s, %s>", key, val)
+	case "message":
+		return ts.MessageType
+	default:
+		return docTypeString(ts)
+	}
+}
+
+// docWriteResponseTypeField emits a single field entry inside a <TypeTable>
+// using response-oriented type names (no "Input" suffix for messages).
+func docWriteResponseTypeField(buf *bytes.Buffer, f *FieldSchema) {
+	fieldName := tsProtoFieldName(f.ProtoField)
+	fieldType := docResponseTypeString(&f.Type)
+	desc := docEscapeJSString(docFirstSentence(docStripInternal(f.Description)))
+	if f.Required {
+		fmt.Fprintf(buf, "    %s: { type: \"%s\", description: \"%s\", required: true },\n", fieldName, fieldType, desc)
+	} else {
+		fmt.Fprintf(buf, "    %s: { type: \"%s\", description: \"%s\" },\n", fieldName, fieldType, desc)
+	}
+}
+
+// docWriteResourceAndStatusTypes renders the resource type and its status
+// sub-type as TypeTable sections at the end of the Types block.
+func docWriteResourceAndStatusTypes(buf *bytes.Buffer, cfg sdkResourceConfig, schema *ServiceSchemaFile, documentedTypes map[string]bool) {
+	inputTypeName := cfg.inputPrefix + "Input"
+	statusTypeName := cfg.protoResType + "Status"
+
+	// ### Agent (resource type)
+	fmt.Fprintf(buf, "### %s\n\n", cfg.protoResType)
+	if schema.ResourceDescription != "" {
+		content := docFirstSentence(docStripInternal(schema.ResourceDescription))
+		if content != "" {
+			buf.WriteString(docEscapeMDX(content))
+			buf.WriteString("\n\n")
+		}
+	}
+
+	specRef := docTypeRef(inputTypeName, documentedTypes)
+	statusRef := docTypeRef(statusTypeName, documentedTypes)
+
+	buf.WriteString("<TypeTable\n  type={{\n")
+	buf.WriteString("    apiVersion: { type: \"string\", description: \"API version for this resource type.\" },\n")
+	buf.WriteString("    kind: { type: \"string\", description: \"Resource kind identifier.\" },\n")
+	buf.WriteString("    metadata: { type: \"ApiResourceMetadata\", description: \"Resource metadata including id, name, org, slug, labels, visibility, and timestamps.\" },\n")
+	fmt.Fprintf(buf, "    spec: { type: \"%s\", description: \"Resource specification. See %s.\" },\n", inputTypeName, specRef)
+	fmt.Fprintf(buf, "    status: { type: \"%s\", description: \"System-managed state. See %s.\" },\n", statusTypeName, statusRef)
+	buf.WriteString("  }}\n/>\n\n")
+
+	// ### AgentStatus (status type, only when it has non-audit fields)
+	if schema.StatusType != nil {
+		fmt.Fprintf(buf, "### %s\n\n", schema.StatusType.Name)
+		if schema.StatusType.Description != "" {
+			content := docFirstSentence(docStripInternal(schema.StatusType.Description))
+			if content != "" {
+				buf.WriteString(docEscapeMDX(content))
+				buf.WriteString("\n\n")
+			}
+		}
+		if len(schema.StatusType.Fields) > 0 {
+			buf.WriteString("<TypeTable\n  type={{\n")
+			for _, field := range schema.StatusType.Fields {
+				docWriteResponseTypeField(buf, field)
+			}
+			buf.WriteString("  }}\n/>\n\n")
+		}
+	}
+}
+
+// =========================================================================
 // Tab helper
 // =========================================================================
 
@@ -912,13 +1009,13 @@ func docWriteStreamingSigs(buf *bytes.Buffer, m *MethodSchema, clientField, goFi
 		param = "id"
 	}
 
-	docWriteTab(buf, "Go", "go", fmt.Sprintf(
-		"stream, err := client.%s.%s(ctx, %s)\nfor {\n    %s, err := stream.Recv()\n    if err != nil {\n        break\n    }\n    // process %s\n}",
-		goField, m.Name, param, eventVar, eventVar))
-
 	docWriteTab(buf, "TypeScript", "typescript", fmt.Sprintf(
 		"const stream = stigmer.%s.%s(%s);\nfor await (const %s of stream) {\n  // process %s\n}",
 		clientField, tsName, param, eventVar, eventVar))
+
+	docWriteTab(buf, "Go", "go", fmt.Sprintf(
+		"stream, err := client.%s.%s(ctx, %s)\nfor {\n    %s, err := stream.Recv()\n    if err != nil {\n        break\n    }\n    // process %s\n}",
+		goField, m.Name, param, eventVar, eventVar))
 
 	docWriteTab(buf, "Python", "python", fmt.Sprintf(
 		"for %s in client.%s.%s(%s):\n    # process %s",

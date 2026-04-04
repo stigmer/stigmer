@@ -148,5 +148,6 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "IdentityProvider represents an external platform's trust relationship with Stigmer.\n\n An IdentityProvider is owned by an organization (e.g., \"planton\") and configures\n how Stigmer validates signed JWT assertions from that platform. It enables the\n platform to create and manage organizations on behalf of its users, and to pass\n user identity for FGA-based authorization.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Planton Cloud\n     slug: planton-cloud\n     org: planton\n   spec:\n     display_name: \"Planton Cloud\"\n     jwks_uri: \"https://api.planton.ai/.well-known/stigmer-jwks.json\"\n     allowed_issuers: [\"planton-cloud\"]\n     expected_audience: \"stigmer-api\""
 }

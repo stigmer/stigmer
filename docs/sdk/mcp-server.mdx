@@ -12,14 +12,14 @@ MCP (Model Context Protocol) servers provide tools and capabilities to AI agents
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.Get(ctx, "mcp_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.Get(ctx, "mcp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -57,14 +57,14 @@ Input: ApiResourceId containing the MCP server's system-generated ID. Returns: T
 Authorization: Requires can_view permission on the mcp_server resource. The caller must have access based on the resource's scope: - Platform: All authenticated users - Organization: Organization members - Identity Account: Only the owner
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -85,7 +85,7 @@ McpServer mcpServer = client.mcpServer().get(id);
 |-----------|------|-------------|
 | `id` | `string` | MCP Server identifier. |
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ### getByReference
 
@@ -98,16 +98,6 @@ This is the preferred method for looking up MCP servers by name/slug rather than
 Authorization: Custom authorization in handler. The handler performs scope-aware authorization based on the reference.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.getByReference({
@@ -116,6 +106,16 @@ const mcpServer = await stigmer.mcpServer.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -142,7 +142,7 @@ McpServer mcpServer = client.mcpServer().getByReference(ApiResourceReference.bui
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ### apply
 
@@ -157,23 +157,6 @@ Input: Full McpServer resource with metadata and spec. Returns: The created/upda
 Authorization: Custom authorization in handler. The handler determines whether this is a create or update operation and performs appropriate scope-aware authorization: - Create: Requires permission to create in the target scope - Update: Requires can_edit on the existing resource
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
-  Name:                 "my-mcp-server",
-  Org:                  "acme",
-  Slug:                 "...",
-  Labels:               map[string]string{},
-  Description:          "...",
-  IconUrl:              "...",
-  Stdio:                &stigmer.StdioServerConfigInput{},
-  Http:                 &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools:  []string{},
-  EnvSpec:              &stigmer.EnvSpecInput{},
-  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.apply({
@@ -189,6 +172,23 @@ const mcpServer = await stigmer.mcpServer.apply({
   envSpec: {},
   defaultToolApprovals: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
+  Name:                 "my-mcp-server",
+  Org:                  "acme",
+  Slug:                 "...",
+  Labels:               map[string]string{},
+  Description:          "...",
+  IconUrl:              "...",
+  Stdio:                &stigmer.StdioServerConfigInput{},
+  Http:                 &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools:  []string{},
+  EnvSpec:              &stigmer.EnvSpecInput{},
+  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -229,7 +229,7 @@ McpServer mcpServer = client.mcpServer().apply(McpServerInput.builder()
 
 **Parameters**: [`McpServerInput`](#mcpserverinput)
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ### create
 
@@ -242,23 +242,6 @@ Input: McpServer with metadata (scope, org, name/slug) and spec. Returns: The cr
 Authorization: Custom authorization in handler. Requires permission to create MCP servers in the specified scope: - Platform: Requires platform operator role - Organization: Requires org admin role or can_create_mcp_server permission - Identity Account: Automatically allowed for the authenticated user
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
-  Name:                 "my-mcp-server",
-  Org:                  "acme",
-  Slug:                 "...",
-  Labels:               map[string]string{},
-  Description:          "...",
-  IconUrl:              "...",
-  Stdio:                &stigmer.StdioServerConfigInput{},
-  Http:                 &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools:  []string{},
-  EnvSpec:              &stigmer.EnvSpecInput{},
-  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.create({
@@ -274,6 +257,23 @@ const mcpServer = await stigmer.mcpServer.create({
   envSpec: {},
   defaultToolApprovals: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
+  Name:                 "my-mcp-server",
+  Org:                  "acme",
+  Slug:                 "...",
+  Labels:               map[string]string{},
+  Description:          "...",
+  IconUrl:              "...",
+  Stdio:                &stigmer.StdioServerConfigInput{},
+  Http:                 &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools:  []string{},
+  EnvSpec:              &stigmer.EnvSpecInput{},
+  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -314,7 +314,7 @@ McpServer mcpServer = client.mcpServer().create(McpServerInput.builder()
 
 **Parameters**: [`McpServerInput`](#mcpserverinput)
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ### update
 
@@ -325,23 +325,6 @@ Input: McpServer with metadata.id populated and updated spec. Returns: The updat
 Authorization: Requires can_edit permission on the mcp_server resource. Only the owner (based on scope) can update: - Platform: Platform operators - Organization: Org admins or resource owner - Identity Account: The owner
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
-  Name:                 "my-mcp-server",
-  Org:                  "acme",
-  Slug:                 "...",
-  Labels:               map[string]string{},
-  Description:          "...",
-  IconUrl:              "...",
-  Stdio:                &stigmer.StdioServerConfigInput{},
-  Http:                 &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools:  []string{},
-  EnvSpec:              &stigmer.EnvSpecInput{},
-  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.update({
@@ -357,6 +340,23 @@ const mcpServer = await stigmer.mcpServer.update({
   envSpec: {},
   defaultToolApprovals: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
+  Name:                 "my-mcp-server",
+  Org:                  "acme",
+  Slug:                 "...",
+  Labels:               map[string]string{},
+  Description:          "...",
+  IconUrl:              "...",
+  Stdio:                &stigmer.StdioServerConfigInput{},
+  Http:                 &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools:  []string{},
+  EnvSpec:              &stigmer.EnvSpecInput{},
+  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -397,7 +397,7 @@ McpServer mcpServer = client.mcpServer().update(McpServerInput.builder()
 
 **Parameters**: [`McpServerInput`](#mcpserverinput)
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ### updateDiscoveredCapabilities
 
@@ -412,20 +412,20 @@ Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capab
 Authorization: Requires can_edit permission on the mcp_server resource.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.UpdateDiscoveredCapabilities(ctx, &stigmer.UpdateDiscoveredCapabilitiesInput{
-  McpServerId:            "...",
-  DiscoveredCapabilities: &stigmer.DiscoveredCapabilitiesInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.updateDiscoveredCapabilities({
   mcpServerId: "...",
   discoveredCapabilities: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.UpdateDiscoveredCapabilities(ctx, &stigmer.UpdateDiscoveredCapabilitiesInput{
+  McpServerId:            "...",
+  DiscoveredCapabilities: &stigmer.DiscoveredCapabilitiesInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -448,7 +448,7 @@ McpServer mcpServer = client.mcpServer().updateDiscoveredCapabilities(UpdateDisc
 
 **Parameters**: [`UpdateDiscoveredCapabilitiesInput`](#updatediscoveredcapabilitiesinput)
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ### updateVisibility
 
@@ -459,20 +459,20 @@ This is a targeted metadata update — it only modifies metadata.visibility, lea
 Authorization: Requires can_edit permission on the mcp_server resource.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
-  ResourceId: "...",
-  Visibility: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.updateVisibility({
   resourceId: "...",
   visibility: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -495,7 +495,7 @@ McpServer mcpServer = client.mcpServer().updateVisibility(UpdateVisibilityInput.
 
 **Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ### delete
 
@@ -508,16 +508,16 @@ Input: ApiResourceDeleteInput with resource_id and optional version_message. Ret
 Authorization: Requires can_delete permission on the mcp_server resource. Only the owner can delete: - Platform: Platform operators - Organization: Org admins or resource owner - Identity Account: The owner
 
 <SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const mcpServer = await stigmer.mcpServer.delete({ resourceId: id });
+```
+</Tab>
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Delete(ctx, &stigmer.DeleteResourceInput{
   ResourceID: id,
 })
-```
-</Tab>
-<Tab value="TypeScript">
-```typescript
-const mcpServer = await stigmer.mcpServer.delete({ resourceId: id });
 ```
 </Tab>
 <Tab value="Python">
@@ -542,7 +542,7 @@ McpServer mcpServer = client.mcpServer().delete(DeleteResourceInput.builder()
 | `versionMessage` | `string` | Optional deletion reason. |
 | `force` | `boolean` | Force delete even if resource is in use. |
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ### discoverCapabilities
 
@@ -553,20 +553,20 @@ This triggers server-side discovery: the backend resolves credentials, connects 
 The RPC blocks until discovery completes (up to ~30 seconds) and returns the updated McpServer with populated status.discovered_capabilities.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.DiscoverCapabilities(ctx, &stigmer.DiscoverCapabilitiesInput{
-  McpServerId: "...",
-  RuntimeEnv:  map[string]string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.discoverCapabilities({
   mcpServerId: "...",
   runtimeEnv: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+mcpServer, err := client.McpServer.DiscoverCapabilities(ctx, &stigmer.DiscoverCapabilitiesInput{
+  McpServerId: "...",
+  RuntimeEnv:  map[string]string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -589,7 +589,7 @@ McpServer mcpServer = client.mcpServer().discoverCapabilities(DiscoverCapabiliti
 
 **Parameters**: [`DiscoverCapabilitiesInput`](#discovercapabilitiesinput)
 
-**Returns**: `McpServer`
+**Returns**: [`McpServer`](#mcpserver)
 
 ## Types
 
@@ -692,6 +692,33 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### McpServer
+
+McpServer represents a reusable MCP (Model Context Protocol) server configuration.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "McpServerInput", description: "Resource specification. See [`McpServerInput`](#mcpserverinput)." },
+    status: { type: "McpServerStatus", description: "System-managed state. See [`McpServerStatus`](#mcpserverstatus)." },
+  }}
+/>
+
+### McpServerStatus
+
+McpServerStatus represents the system-managed state of an MCP server definition.
+
+<TypeTable
+  type={{
+    validationState: { type: "ValidationState", description: "Validation state of the MCP server definition." },
+    validationMessage: { type: "string", description: "Human-readable validation message." },
+    discoveredCapabilities: { type: "DiscoveredCapabilities", description: "Tools and resource templates discovered from the MCP server." },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information tracking creation and modification." },
   }}
 />
 

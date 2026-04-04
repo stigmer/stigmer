@@ -100,12 +100,14 @@ type Validation struct {
 // ServiceSchemaFile represents all services for a single resource,
 // written to tools/codegen/schemas/services/<resource>.json.
 type ServiceSchemaFile struct {
-	Resource     string              `json:"resource"`
-	Package      string              `json:"package"`
-	GoImportPath string              `json:"goImportPath"`
-	Services     []ServiceDefinition `json:"services"`
-	ListVia      string              `json:"listVia,omitempty"`
-	MethodTypes  []TypeSchema        `json:"methodTypes,omitempty"`
+	Resource            string              `json:"resource"`
+	Package             string              `json:"package"`
+	GoImportPath        string              `json:"goImportPath"`
+	Services            []ServiceDefinition `json:"services"`
+	ListVia             string              `json:"listVia,omitempty"`
+	MethodTypes         []TypeSchema        `json:"methodTypes,omitempty"`
+	ResourceDescription string              `json:"resourceDescription,omitempty"`
+	StatusType          *TypeSchema         `json:"statusType,omitempty"`
 }
 
 // ServiceDefinition describes a single gRPC service (e.g., AgentQueryController).
@@ -1204,6 +1206,10 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 
 	schema.MethodTypes = collectMethodTypes(fileDescriptors, &schema, resourceType)
 
+	if resourceType != "" {
+		extractResourceAndStatusSchemas(fileDescriptors, &schema, resourceType)
+	}
+
 	return &schema, nil
 }
 
@@ -1274,6 +1280,50 @@ func shouldSkipMethodType(shortName, fqn, resourceType string) bool {
 		return true
 	}
 	return false
+}
+
+// extractResourceAndStatusSchemas populates the resource description and
+// status type schema on the service schema. The resource description comes
+// from the proto comment on the resource message (e.g., Agent). The status
+// type is extracted from the resource message's "status" field, but only
+// when it contains fields beyond the shared audit field.
+func extractResourceAndStatusSchemas(fileDescriptors []*desc.FileDescriptor, schema *ServiceSchemaFile, resourceType string) {
+	var resourceMsg *desc.MessageDescriptor
+	for _, fd := range fileDescriptors {
+		for _, msg := range fd.GetMessageTypes() {
+			if msg.GetName() == resourceType {
+				resourceMsg = msg
+				break
+			}
+		}
+		if resourceMsg != nil {
+			break
+		}
+	}
+	if resourceMsg == nil {
+		return
+	}
+
+	schema.ResourceDescription = extractComments(resourceMsg)
+
+	statusField := resourceMsg.FindFieldByName("status")
+	if statusField == nil || statusField.GetMessageType() == nil {
+		return
+	}
+
+	statusMsg := statusField.GetMessageType()
+	hasNonAuditField := false
+	for _, f := range statusMsg.GetFields() {
+		if f.GetName() != "audit" {
+			hasNonAuditField = true
+			break
+		}
+	}
+	if !hasNonAuditField {
+		return
+	}
+
+	schema.StatusType = parseSharedType(statusMsg, statusMsg.GetFile())
 }
 
 // generateSDKServiceSchemas auto-discovers all resources with gRPC services

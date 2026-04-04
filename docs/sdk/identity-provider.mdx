@@ -14,14 +14,14 @@ Example YAML: apiVersion: iam.stigmer.ai/v1 kind: IdentityProvider metadata: nam
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-identityProvider, err := client.IdentityProvider.Get(ctx, "idp_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const identityProvider = await stigmer.identityProvider.get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.Get(ctx, "idp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -52,14 +52,14 @@ IdentityProvider identityProvider = client.identityProvider().get("idp_01j5q3k7m
 Get an identity provider by its unique identifier.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-identityProvider, err := client.IdentityProvider.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const identityProvider = await stigmer.identityProvider.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -80,23 +80,13 @@ IdentityProvider identityProvider = client.identityProvider().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Identity Provider identifier. |
 
-**Returns**: `IdentityProvider`
+**Returns**: [`IdentityProvider`](#identityprovider)
 
 ### getByReference
 
 Get an identity provider by reference (org + slug).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-identityProvider, err := client.IdentityProvider.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const identityProvider = await stigmer.identityProvider.getByReference({
@@ -105,6 +95,16 @@ const identityProvider = await stigmer.identityProvider.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -131,29 +131,13 @@ IdentityProvider identityProvider = client.identityProvider().getByReference(Api
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `IdentityProvider`
+**Returns**: [`IdentityProvider`](#identityprovider)
 
 ### apply
 
 Create or update an identity provider (Kubernetes-style apply). If the resource doesn't exist: creates a new identity provider. If the resource exists: updates the existing identity provider.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityProviderInput{
-  Name:             "my-identity-provider",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  DisplayName:      "...",
-  JwksUri:          "...",
-  AllowedIssuers:   []string{},
-  ExpectedAudience: "...",
-  RateLimitBudget:  0,
-  UserinfoEndpoint: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const identityProvider = await stigmer.identityProvider.apply({
@@ -168,6 +152,22 @@ const identityProvider = await stigmer.identityProvider.apply({
   rateLimitBudget: 0,
   userinfoEndpoint: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityProviderInput{
+  Name:             "my-identity-provider",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  DisplayName:      "...",
+  JwksUri:          "...",
+  AllowedIssuers:   []string{},
+  ExpectedAudience: "...",
+  RateLimitBudget:  0,
+  UserinfoEndpoint: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -206,29 +206,13 @@ IdentityProvider identityProvider = client.identityProvider().apply(IdentityProv
 
 **Parameters**: [`IdentityProviderInput`](#identityproviderinput)
 
-**Returns**: `IdentityProvider`
+**Returns**: [`IdentityProvider`](#identityprovider)
 
 ### create
 
 Create a new identity provider. The creator's organization owns the identity provider.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
-  Name:             "my-identity-provider",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  DisplayName:      "...",
-  JwksUri:          "...",
-  AllowedIssuers:   []string{},
-  ExpectedAudience: "...",
-  RateLimitBudget:  0,
-  UserinfoEndpoint: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const identityProvider = await stigmer.identityProvider.create({
@@ -243,6 +227,22 @@ const identityProvider = await stigmer.identityProvider.create({
   rateLimitBudget: 0,
   userinfoEndpoint: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
+  Name:             "my-identity-provider",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  DisplayName:      "...",
+  JwksUri:          "...",
+  AllowedIssuers:   []string{},
+  ExpectedAudience: "...",
+  RateLimitBudget:  0,
+  UserinfoEndpoint: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -281,29 +281,13 @@ IdentityProvider identityProvider = client.identityProvider().create(IdentityPro
 
 **Parameters**: [`IdentityProviderInput`](#identityproviderinput)
 
-**Returns**: `IdentityProvider`
+**Returns**: [`IdentityProvider`](#identityprovider)
 
 ### update
 
 Update an existing identity provider. Requires can_edit permission on the identity provider.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityProviderInput{
-  Name:             "my-identity-provider",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  DisplayName:      "...",
-  JwksUri:          "...",
-  AllowedIssuers:   []string{},
-  ExpectedAudience: "...",
-  RateLimitBudget:  0,
-  UserinfoEndpoint: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const identityProvider = await stigmer.identityProvider.update({
@@ -318,6 +302,22 @@ const identityProvider = await stigmer.identityProvider.update({
   rateLimitBudget: 0,
   userinfoEndpoint: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityProviderInput{
+  Name:             "my-identity-provider",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  DisplayName:      "...",
+  JwksUri:          "...",
+  AllowedIssuers:   []string{},
+  ExpectedAudience: "...",
+  RateLimitBudget:  0,
+  UserinfoEndpoint: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -356,23 +356,23 @@ IdentityProvider identityProvider = client.identityProvider().update(IdentityPro
 
 **Parameters**: [`IdentityProviderInput`](#identityproviderinput)
 
-**Returns**: `IdentityProvider`
+**Returns**: [`IdentityProvider`](#identityprovider)
 
 ### delete
 
 Delete an identity provider. Deletion is blocked if any platform-managed organizations reference this identity provider.
 
 <SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const identityProvider = await stigmer.identityProvider.delete({ resourceId: id });
+```
+</Tab>
 <Tab value="Go">
 ```go
 identityProvider, err := client.IdentityProvider.Delete(ctx, &stigmer.DeleteResourceInput{
   ResourceID: id,
 })
-```
-</Tab>
-<Tab value="TypeScript">
-```typescript
-const identityProvider = await stigmer.identityProvider.delete({ resourceId: id });
 ```
 </Tab>
 <Tab value="Python">
@@ -397,7 +397,7 @@ IdentityProvider identityProvider = client.identityProvider().delete(DeleteResou
 | `versionMessage` | `string` | Optional deletion reason. |
 | `force` | `boolean` | Force delete even if resource is in use. |
 
-**Returns**: `IdentityProvider`
+**Returns**: [`IdentityProvider`](#identityprovider)
 
 ## Types
 
@@ -430,6 +430,20 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### IdentityProvider
+
+IdentityProvider represents an external platform's trust relationship with Stigmer.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "IdentityProviderInput", description: "Resource specification. See [`IdentityProviderInput`](#identityproviderinput)." },
+    status: { type: "IdentityProviderStatus", description: "System-managed state. See `IdentityProviderStatus`." },
   }}
 />
 

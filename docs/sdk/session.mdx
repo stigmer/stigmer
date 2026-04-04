@@ -10,14 +10,14 @@ This is the "Execution" layer - ephemeral runtime against an AgentInstance.
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-session, err := client.Session.Get(ctx, "ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const session = await stigmer.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.Get(ctx, "ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -51,14 +51,14 @@ Session session = client.session().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 Get a single session by ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-session, err := client.Session.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const session = await stigmer.session.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -79,22 +79,13 @@ Session session = client.session().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Session identifier. |
 
-**Returns**: `Session`
+**Returns**: [`Session`](#session)
 
 ### list
 
 List all sessions with pagination and optional filtering.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
-  PageSize:  0,
-  PageToken: "...",
-  Tags:      []string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.session.list({
@@ -102,6 +93,15 @@ const result = await stigmer.session.list({
   pageToken: "...",
   tags: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
+  PageSize:  0,
+  PageToken: "...",
+  Tags:      []string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -133,15 +133,6 @@ SessionList result = client.session().list(ListSessionsRequest.builder()
 List all sessions for a specific agent.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.Session.ListByAgent(ctx, &stigmer.ListSessionsByAgentRequest{
-  AgentId:   "...",
-  PageSize:  0,
-  PageToken: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.session.listByAgent({
@@ -149,6 +140,15 @@ const result = await stigmer.session.listByAgent({
   pageSize: 0,
   pageToken: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Session.ListByAgent(ctx, &stigmer.ListSessionsByAgentRequest{
+  AgentId:   "...",
+  PageSize:  0,
+  PageToken: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -180,24 +180,6 @@ SessionList result = client.session().listByAgent(ListSessionsByAgentRequest.bui
 Create or update a session. The authorization and state-operation are determined depending on whether the session is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentInstanceId:  "...",
-  Subject:          "...",
-  ThreadId:         "...",
-  SandboxId:        "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:  []stigmer.McpServerUsageInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const session = await stigmer.session.apply({
@@ -214,6 +196,24 @@ const session = await stigmer.session.apply({
   mcpServerUsages: [],
   skillRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
+  Name:             "my-session",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  AgentInstanceId:  "...",
+  Subject:          "...",
+  ThreadId:         "...",
+  SandboxId:        "...",
+  Metadata:         map[string]string{},
+  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
+  McpServerUsages:  []stigmer.McpServerUsageInput{},
+  SkillRefs:        []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -256,31 +256,13 @@ Session session = client.session().apply(SessionInput.builder()
 
 **Parameters**: [`SessionInput`](#sessioninput)
 
-**Returns**: `Session`
+**Returns**: [`Session`](#session)
 
 ### create
 
 Create a new session for an agent. Requires can_create_session permission in the organization.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentInstanceId:  "...",
-  Subject:          "...",
-  ThreadId:         "...",
-  SandboxId:        "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:  []stigmer.McpServerUsageInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const session = await stigmer.session.create({
@@ -297,6 +279,24 @@ const session = await stigmer.session.create({
   mcpServerUsages: [],
   skillRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.Create(ctx, &stigmer.SessionInput{
+  Name:             "my-session",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  AgentInstanceId:  "...",
+  Subject:          "...",
+  ThreadId:         "...",
+  SandboxId:        "...",
+  Metadata:         map[string]string{},
+  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
+  McpServerUsages:  []stigmer.McpServerUsageInput{},
+  SkillRefs:        []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -339,31 +339,13 @@ Session session = client.session().create(SessionInput.builder()
 
 **Parameters**: [`SessionInput`](#sessioninput)
 
-**Returns**: `Session`
+**Returns**: [`Session`](#session)
 
 ### update
 
 Update an existing session (e.g., subject, thread_id, sandbox_id).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-session, err := client.Session.Update(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentInstanceId:  "...",
-  Subject:          "...",
-  ThreadId:         "...",
-  SandboxId:        "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:  []stigmer.McpServerUsageInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const session = await stigmer.session.update({
@@ -380,6 +362,24 @@ const session = await stigmer.session.update({
   mcpServerUsages: [],
   skillRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.Update(ctx, &stigmer.SessionInput{
+  Name:             "my-session",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  AgentInstanceId:  "...",
+  Subject:          "...",
+  ThreadId:         "...",
+  SandboxId:        "...",
+  Metadata:         map[string]string{},
+  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
+  McpServerUsages:  []stigmer.McpServerUsageInput{},
+  SkillRefs:        []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -422,7 +422,7 @@ Session session = client.session().update(SessionInput.builder()
 
 **Parameters**: [`SessionInput`](#sessioninput)
 
-**Returns**: `Session`
+**Returns**: [`Session`](#session)
 
 ### updateSandboxId
 
@@ -431,20 +431,20 @@ Set the session sandbox ID.
 This is a targeted update that modifies only the sandbox ID field, leaving other session fields untouched. Use this instead of the full update RPC when you only need to change the sandbox assignment.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-session, err := client.Session.UpdateSandboxId(ctx, &stigmer.UpdateSessionSandboxIdRequest{
-  Id:        "...",
-  SandboxId: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const session = await stigmer.session.updateSandboxId({
   id: "...",
   sandboxId: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.UpdateSandboxId(ctx, &stigmer.UpdateSessionSandboxIdRequest{
+  Id:        "...",
+  SandboxId: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -467,7 +467,7 @@ Session session = client.session().updateSandboxId(UpdateSessionSandboxIdRequest
 
 **Parameters**: [`UpdateSessionSandboxIdRequest`](#updatesessionsandboxidrequest)
 
-**Returns**: `Session`
+**Returns**: [`Session`](#session)
 
 ### updateSubject
 
@@ -476,20 +476,20 @@ Set the session subject.
 This is a targeted update that modifies only the subject field, leaving other session fields untouched. Use this instead of the full update RPC when you only need to change the session subject.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-session, err := client.Session.UpdateSubject(ctx, &stigmer.UpdateSessionSubjectRequest{
-  Id:      "...",
-  Subject: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const session = await stigmer.session.updateSubject({
   id: "...",
   subject: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.UpdateSubject(ctx, &stigmer.UpdateSessionSubjectRequest{
+  Id:      "...",
+  Subject: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -512,21 +512,21 @@ Session session = client.session().updateSubject(UpdateSessionSubjectRequest.bui
 
 **Parameters**: [`UpdateSessionSubjectRequest`](#updatesessionsubjectrequest)
 
-**Returns**: `Session`
+**Returns**: [`Session`](#session)
 
 ### delete
 
 Delete a session (also cleans up thread and sandbox).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-session, err := client.Session.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const session = await stigmer.session.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -547,7 +547,7 @@ Session session = client.session().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Session identifier. |
 
-**Returns**: `Session`
+**Returns**: [`Session`](#session)
 
 ## Types
 
@@ -696,6 +696,20 @@ ListSessionsByAgentRequest lists all sessions for a specific agent.
     agentId: { type: "string", description: "Agent ID to filter by.", required: true },
     pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
     pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+  }}
+/>
+
+### Session
+
+Session represents a multi-turn conversation thread with an agent.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "SessionInput", description: "Resource specification. See [`SessionInput`](#sessioninput)." },
+    status: { type: "SessionStatus", description: "System-managed state. See `SessionStatus`." },
   }}
 />
 

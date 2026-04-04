@@ -148,5 +148,36 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "Project is a lightweight membership tracker that groups related resources\n under a single unit of management with automatic orphan pruning.\n\n Two tracks are supported:\n\n Declarative Track (no entry_point):\n   Place YAML resource files alongside stigmer.yaml. The CLI scans the\n   directory, applies each resource individually, and updates the project\n   membership. Resources removed from the directory are pruned.\n\n SDK Track (entry_point set):\n   The CLI executes the entry_point to synthesize resources, applies each\n   individually, and updates the project membership. The runtime is inferred\n   from the entry_point file extension (.go, .py, .ts, .js).\n\n In both tracks, the project stores only references (org/kind/slug) to its\n members — never full resource objects. Orphan pruning is a set-difference\n between previous and current members.\n\n Example YAML — Declarative (stigmer.yaml):\n\n   apiVersion: tenancy.stigmer.ai/v1\n   kind: Project\n   metadata:\n     name: my-agent-fleet\n     org: acme-corp\n   spec:\n     description: Production agent fleet\n\n Example YAML — SDK (stigmer.yaml):\n\n   apiVersion: tenancy.stigmer.ai/v1\n   kind: Project\n   metadata:\n     name: my-super-app\n     org: acme-corp\n   spec:\n     entry_point: main.go\n     description: Go SDK project",
+  "statusType": {
+    "name": "ProjectStatus",
+    "description": "ProjectStatus contains system-managed state for a Project.\n\n Minimal by design:\n - audit.updated_at tracks when the project was last applied\n - Member counts are derivable from spec.members (no duplication)\n - Errors are returned in Apply() response, not stored in status",
+    "protoType": "ai.stigmer.tenancy.project.v1.ProjectStatus",
+    "protoFile": "apis/ai/stigmer/tenancy/project/v1/status.proto",
+    "fields": [
+      {
+        "name": "LastReconciliation",
+        "jsonName": "lastReconciliation",
+        "protoField": "last_reconciliation",
+        "type": {
+          "kind": "message",
+          "messageType": "ReconciliationSummary"
+        },
+        "description": "Reconciliation summary from the most recent Apply operation.\n Populated only in the Apply() response — not persisted to database.\n Reports orphan-pruned resources and any server-side changes.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, etc.)\n The updated_at field indicates when the project was last successfully applied.",
+        "required": false
+      }
+    ]
+  }
 }

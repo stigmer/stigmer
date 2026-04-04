@@ -12,14 +12,14 @@ This replaces the old `synthesized_yaml` field with structured proto definitions
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflow, err := client.Workflow.Get(ctx, "wfl_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflow = await stigmer.workflow.get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Get(ctx, "wfl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -50,14 +50,14 @@ Workflow workflow = client.workflow().get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 Get a single workflow by ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflow, err := client.Workflow.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflow = await stigmer.workflow.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -78,23 +78,13 @@ Workflow workflow = client.workflow().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Workflow identifier. |
 
-**Returns**: `Workflow`
+**Returns**: [`Workflow`](#workflow)
 
 ### getByReference
 
 Get a workflow by its organization-scoped reference (org/slug).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflow, err := client.Workflow.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflow = await stigmer.workflow.getByReference({
@@ -103,6 +93,16 @@ const workflow = await stigmer.workflow.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -129,27 +129,13 @@ Workflow workflow = client.workflow().getByReference(ApiResourceReference.builde
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `Workflow`
+**Returns**: [`Workflow`](#workflow)
 
 ### apply
 
 Create or update a workflow. The authorization and state-operation are determined depending on whether the workflow is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
-  Name:        "my-workflow",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Description: "...",
-  Document:    &stigmer.WorkflowDocumentInput{},
-  Tasks:       []stigmer.WorkflowTaskInput{},
-  EnvSpec:     &stigmer.EnvSpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflow = await stigmer.workflow.apply({
@@ -162,6 +148,20 @@ const workflow = await stigmer.workflow.apply({
   tasks: [],
   envSpec: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
+  Name:        "my-workflow",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Document:    &stigmer.WorkflowDocumentInput{},
+  Tasks:       []stigmer.WorkflowTaskInput{},
+  EnvSpec:     &stigmer.EnvSpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -196,7 +196,7 @@ Workflow workflow = client.workflow().apply(WorkflowInput.builder()
 
 **Parameters**: [`WorkflowInput`](#workflowinput)
 
-**Returns**: `Workflow`
+**Returns**: [`Workflow`](#workflow)
 
 ### create
 
@@ -205,20 +205,6 @@ Create a new workflow.
 Authorization: - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
-  Name:        "my-workflow",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Description: "...",
-  Document:    &stigmer.WorkflowDocumentInput{},
-  Tasks:       []stigmer.WorkflowTaskInput{},
-  EnvSpec:     &stigmer.EnvSpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflow = await stigmer.workflow.create({
@@ -231,6 +217,20 @@ const workflow = await stigmer.workflow.create({
   tasks: [],
   envSpec: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
+  Name:        "my-workflow",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Document:    &stigmer.WorkflowDocumentInput{},
+  Tasks:       []stigmer.WorkflowTaskInput{},
+  EnvSpec:     &stigmer.EnvSpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -265,27 +265,13 @@ Workflow workflow = client.workflow().create(WorkflowInput.builder()
 
 **Parameters**: [`WorkflowInput`](#workflowinput)
 
-**Returns**: `Workflow`
+**Returns**: [`Workflow`](#workflow)
 
 ### update
 
 Update an existing workflow.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
-  Name:        "my-workflow",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Description: "...",
-  Document:    &stigmer.WorkflowDocumentInput{},
-  Tasks:       []stigmer.WorkflowTaskInput{},
-  EnvSpec:     &stigmer.EnvSpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflow = await stigmer.workflow.update({
@@ -298,6 +284,20 @@ const workflow = await stigmer.workflow.update({
   tasks: [],
   envSpec: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
+  Name:        "my-workflow",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Document:    &stigmer.WorkflowDocumentInput{},
+  Tasks:       []stigmer.WorkflowTaskInput{},
+  EnvSpec:     &stigmer.EnvSpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -332,21 +332,21 @@ Workflow workflow = client.workflow().update(WorkflowInput.builder()
 
 **Parameters**: [`WorkflowInput`](#workflowinput)
 
-**Returns**: `Workflow`
+**Returns**: [`Workflow`](#workflow)
 
 ### delete
 
 Delete a workflow.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflow, err := client.Workflow.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflow = await stigmer.workflow.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -367,7 +367,7 @@ Workflow workflow = client.workflow().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Workflow identifier. |
 
-**Returns**: `Workflow`
+**Returns**: [`Workflow`](#workflow)
 
 ## Types
 
@@ -446,6 +446,32 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### Workflow
+
+Workflow represents a workflow orchestration definition.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "WorkflowInput", description: "Resource specification. See [`WorkflowInput`](#workflowinput)." },
+    status: { type: "WorkflowStatus", description: "System-managed state. See [`WorkflowStatus`](#workflowstatus)." },
+  }}
+/>
+
+### WorkflowStatus
+
+WorkflowStatus contains system-managed state for a Workflow resource.
+
+<TypeTable
+  type={{
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.)." },
+    defaultInstanceId: { type: "string", description: "ID of the default workflow instance created automatically for this workflow." },
+    serverlessWorkflowValidation: { type: "ServerlessWorkflowValidation", description: "Serverless Workflow YAML generation and validation state." },
   }}
 />
 

@@ -10,14 +10,14 @@ Organizations are the top-level container for all Stigmer resources. Similar to 
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-organization, err := client.Organization.Get(ctx, "org_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const organization = await stigmer.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.Get(ctx, "org_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -50,14 +50,14 @@ Organization organization = client.organization().get("org_01j5q3k7m8r2s4tnz2hfp
 Get an organization by ID Requires: User must be a member of the organization (can_view)
 
 <SDKTabs>
-<Tab value="Go">
-```go
-organization, err := client.Organization.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const organization = await stigmer.organization.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -78,27 +78,27 @@ Organization organization = client.organization().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Organization identifier. |
 
-**Returns**: `Organization`
+**Returns**: [`Organization`](#organization)
 
 ### getByExternalOrgId
 
 Look up a platform-managed organization by its external platform coordinates. Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-organization, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.OrganizationExternalLookup{
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  ExternalOrgId:       "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const organization = await stigmer.organization.getByExternalOrgId({
   identityProviderRef: {},
   externalOrgId: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.OrganizationExternalLookup{
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalOrgId:       "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -121,24 +121,13 @@ Organization organization = client.organization().getByExternalOrgId(Organizatio
 
 **Parameters**: [`OrganizationExternalLookup`](#organizationexternallookup)
 
-**Returns**: `Organization`
+**Returns**: [`Organization`](#organization)
 
 ### find
 
 Find organizations with pagination and filtering Requires: Platform admin permission This is for administrative purposes only
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.Organization.Find(ctx, &stigmer.FindApiResourcesRequest{
-  Org:        "...",
-  Kind:       "...",
-  Page:       &stigmer.PageInfoInput{},
-  PageNumber: 0,
-  PageSize:   0,
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.organization.find({
@@ -148,6 +137,17 @@ const result = await stigmer.organization.find({
   pageNumber: 0,
   pageSize: 0,
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Organization.Find(ctx, &stigmer.FindApiResourcesRequest{
+  Org:        "...",
+  Kind:       "...",
+  Page:       &stigmer.PageInfoInput{},
+  PageNumber: 0,
+  PageSize:   0,
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -183,14 +183,14 @@ OrganizationList result = client.organization().find(FindApiResourcesRequest.bui
 Find organizations the authenticated user is a member of. Returns only organizations the caller has access to.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-organizations, err := client.Organization.FindMyOrganizations(ctx)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const organizations = await stigmer.organization.findMyOrganizations();
+```
+</Tab>
+<Tab value="Go">
+```go
+organizations, err := client.Organization.FindMyOrganizations(ctx)
 ```
 </Tab>
 <Tab value="Python">
@@ -212,22 +212,6 @@ Organizations organizations = client.organization().findMyOrganizations();
 Create or update an organization. The authorization and state-operation are determined depending on whether the organization is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
-  Name:                "my-organization",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  LogoUrl:             "...",
-  ManagementMode:      "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  ExternalOrgId:       "...",
-  IsPersonal:          false,
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const organization = await stigmer.organization.apply({
@@ -242,6 +226,22 @@ const organization = await stigmer.organization.apply({
   externalOrgId: "...",
   isPersonal: false,
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
+  Name:                "my-organization",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  LogoUrl:             "...",
+  ManagementMode:      "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalOrgId:       "...",
+  IsPersonal:          false,
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -280,29 +280,13 @@ Organization organization = client.organization().apply(OrganizationInput.builde
 
 **Parameters**: [`OrganizationInput`](#organizationinput)
 
-**Returns**: `Organization`
+**Returns**: [`Organization`](#organization)
 
 ### create
 
 Create a new organization No authorization required - any authenticated user can create an organization The creator automatically becomes the owner of the organization
 
 <SDKTabs>
-<Tab value="Go">
-```go
-organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
-  Name:                "my-organization",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  LogoUrl:             "...",
-  ManagementMode:      "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  ExternalOrgId:       "...",
-  IsPersonal:          false,
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const organization = await stigmer.organization.create({
@@ -317,6 +301,22 @@ const organization = await stigmer.organization.create({
   externalOrgId: "...",
   isPersonal: false,
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
+  Name:                "my-organization",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  LogoUrl:             "...",
+  ManagementMode:      "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalOrgId:       "...",
+  IsPersonal:          false,
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -355,29 +355,13 @@ Organization organization = client.organization().create(OrganizationInput.build
 
 **Parameters**: [`OrganizationInput`](#organizationinput)
 
-**Returns**: `Organization`
+**Returns**: [`Organization`](#organization)
 
 ### update
 
 Update an existing organization Requires: Organization admin permission (can_edit)
 
 <SDKTabs>
-<Tab value="Go">
-```go
-organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
-  Name:                "my-organization",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  LogoUrl:             "...",
-  ManagementMode:      "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  ExternalOrgId:       "...",
-  IsPersonal:          false,
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const organization = await stigmer.organization.update({
@@ -392,6 +376,22 @@ const organization = await stigmer.organization.update({
   externalOrgId: "...",
   isPersonal: false,
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
+  Name:                "my-organization",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  LogoUrl:             "...",
+  ManagementMode:      "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalOrgId:       "...",
+  IsPersonal:          false,
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -430,21 +430,21 @@ Organization organization = client.organization().update(OrganizationInput.build
 
 **Parameters**: [`OrganizationInput`](#organizationinput)
 
-**Returns**: `Organization`
+**Returns**: [`Organization`](#organization)
 
 ### delete
 
 Delete an organization Requires: Organization owner permission (can_delete) Note: This will cascade delete all resources under the organization
 
 <SDKTabs>
-<Tab value="Go">
-```go
-organization, err := client.Organization.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const organization = await stigmer.organization.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -465,7 +465,7 @@ Organization organization = client.organization().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Organization identifier. |
 
-**Returns**: `Organization`
+**Returns**: [`Organization`](#organization)
 
 ## Types
 
@@ -531,6 +531,20 @@ Input for looking up a platform-managed organization by its external platform co
   type={{
     identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider (org + slug) that manages this organization.", required: true },
     externalOrgId: { type: "string", description: "The external platform's organization identifier." },
+  }}
+/>
+
+### Organization
+
+Organization is the top-level container for all Stigmer resources.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "OrganizationInput", description: "Resource specification. See [`OrganizationInput`](#organizationinput)." },
+    status: { type: "OrganizationStatus", description: "System-managed state. See `OrganizationStatus`." },
   }}
 />
 
