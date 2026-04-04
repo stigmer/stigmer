@@ -67,7 +67,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object remoteUrl_ = "";
   /**
    * <pre>
-   * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+   * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
    *
    * &#64;internal
    * For local push: detected "origin" remote URL.
@@ -92,7 +92,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+   * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
    *
    * &#64;internal
    * For local push: detected "origin" remote URL.
@@ -657,7 +657,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object remoteUrl_ = "";
     /**
      * <pre>
-     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
      *
      * &#64;internal
      * For local push: detected "origin" remote URL.
@@ -681,7 +681,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
      *
      * &#64;internal
      * For local push: detected "origin" remote URL.
@@ -706,7 +706,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
      *
      * &#64;internal
      * For local push: detected "origin" remote URL.
@@ -727,7 +727,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
      *
      * &#64;internal
      * For local push: detected "origin" remote URL.
@@ -745,7 +745,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
      *
      * &#64;internal
      * For local push: detected "origin" remote URL.

@@ -696,7 +696,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Git remote URL (e.g., \"https://github.com/stigmer/skills.git\").\n\n @internal\n For local push: detected \"origin\" remote URL.\n For git push: the user-provided repository URL.",
+          "description": "Git remote URL (e.g., \"https://github.com/stigmer/stigmer.git\").\n\n @internal\n For local push: detected \"origin\" remote URL.\n For git push: the user-provided repository URL.",
           "required": false,
           "validation": {
             "minLength": 1

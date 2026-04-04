@@ -189,7 +189,7 @@ type Git struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Git repository URL (HTTPS or SSH).
 	// CLI uses locally configured git credentials for authentication.
-	// Examples: "https://github.com/stigmer/skills.git", "git@github.com:stigmer/skills.git"
+	// Examples: "https://github.com/stigmer/stigmer.git", "git@github.com:stigmer/stigmer.git"
 	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// Git reference - tag, branch name, or commit SHA.
 	// If empty, defaults to the repository's default branch (usually "main").

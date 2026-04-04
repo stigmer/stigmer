@@ -47,7 +47,7 @@ message LocalDir {
 message Git {
   // Git repository URL (HTTPS or SSH).
   // CLI uses locally configured git credentials for authentication.
-  // Examples: "https://github.com/stigmer/skills.git", "git@github.com:stigmer/skills.git"
+  // Examples: "https://github.com/stigmer/stigmer.git", "git@github.com:stigmer/stigmer.git"
   string url = 1;
 
   // Git reference - tag, branch name, or commit SHA.

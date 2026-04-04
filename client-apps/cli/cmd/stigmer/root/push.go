@@ -57,7 +57,7 @@ SOURCE MODES:
   stigmer push skill --org my-org
 
   # Push from a GitHub repository
-  stigmer push skill --git-url https://github.com/stigmer/skills.git --git-ref v1.0.0 --subdir skills/calculator
+  stigmer push skill --git-url https://github.com/stigmer/stigmer.git --git-ref v1.0.0 --subdir seedpack/skills/skill-creator
 
   # Dry run (validate without pushing)
   stigmer push skill --dry-run
