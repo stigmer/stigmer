@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useStigmer } from "../hooks";
 import { useResourceCount, type ResourceListScope } from "../search";
 
+/** Options for {@link useMcpServerCount}. */
 export interface UseMcpServerCountOptions {
   /** Text query to filter MCP servers before counting. */
   readonly query?: string;
@@ -18,15 +19,18 @@ export interface UseMcpServerCountOptions {
   readonly scope?: ResourceListScope;
 }
 
+/** Return value of {@link useMcpServerCount}. */
 export interface UseMcpServerCountReturn {
   /**
    * Total number of MCP servers matching the current filters. `undefined`
    * until the first successful fetch completes.
    */
   readonly count: number | undefined;
+  /** `true` while the count fetch is in flight. */
   readonly isLoading: boolean;
+  /** Error message from the last failed request, or `null` when healthy. */
   readonly error: string | null;
-  /** Re-fetch the count with the same parameters. */
+  /** Discard cached data and re-fetch the count from the server. */
   readonly refetch: () => void;
 }
 

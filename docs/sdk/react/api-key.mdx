@@ -29,10 +29,10 @@ function useApiKeyList(): UseApiKeyListReturn
 
 <TypeTable
   type={{
-    apiKeys: { type: "readonly ApiKey[]", description: "" },
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
+    apiKeys: { type: "readonly ApiKey[]", description: "All API keys for the authenticated identity. Empty while loading or on error." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the key list from the server." },
   }}
 />
 
@@ -72,10 +72,10 @@ function useCreateApiKey(): UseCreateApiKeyReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    create: { type: "(input: ApiKeyInput) => Promise<ApiKey>", description: "" },
-    error: { type: "Error | null", description: "" },
-    isCreating: { type: "boolean", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    create: { type: "(input: ApiKeyInput) => Promise<ApiKey>", description: "Submit an ApiKeyInput to create a new API key. Resolves with the server-created resource including the raw key value." },
+    error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the create request is in flight." },
   }}
 />
 
@@ -110,10 +110,10 @@ function useDeleteApiKey(): UseDeleteApiKeyReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    deleteKey: { type: "(id: string) => Promise<ApiKey>", description: "" },
-    error: { type: "Error | null", description: "" },
-    isDeleting: { type: "boolean", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    deleteKey: { type: "(id: string) => Promise<ApiKey>", description: "Delete an API key by its resource ID. Resolves with the deleted resource for confirmation display." },
+    error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
+    isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
   }}
 />
 
@@ -146,7 +146,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     keyName: { type: "string", description: "Human-readable name of the key for context.", required: true },
     onDismiss: { type: "() => void", description: "Fired when the user dismisses the alert.", required: true },
     rawKey: { type: "string", description: "The raw API key value to display. Shown exactly once.", required: true },
@@ -182,7 +182,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Re-expose refetch so parents can trigger a list refresh." },
   }}
 />
@@ -212,7 +212,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     onCancel: { type: "() => void", description: "Fired when the user cancels creation." },
     onCreated: { type: "(apiKey: ApiKey) => void", description: "Fired with the newly created API key after successful creation. The `spec.keyHash` field of the returned key contains the raw key value — available only at this moment." },
     org: { type: "string", description: "Organization slug used as the `org` field when creating the key.", required: true },

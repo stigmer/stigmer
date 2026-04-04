@@ -16,9 +16,13 @@ const COST_TIER_INDICATOR: Record<string, string> = {
   premium: "$$$",
 };
 
+/** Props for {@link ModelSelector}. */
 export interface ModelSelectorProps {
+  /** Currently selected model ID. Falls back to {@link DEFAULT_MODEL_ID} when omitted. */
   readonly value?: string;
+  /** Called when the user picks a different model. Receives the new `modelId`. */
   readonly onValueChange: (modelId: string) => void;
+  /** Additional CSS class names for the trigger button. */
   readonly className?: string;
   /** When true, disables the selector. */
   readonly disabled?: boolean;

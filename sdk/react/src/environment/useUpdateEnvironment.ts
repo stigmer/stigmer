@@ -6,10 +6,15 @@ import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useUpdateEnvironment}. */
 export interface UseUpdateEnvironmentReturn {
+  /** Submit an {@link EnvironmentInput} to update an existing Environment. Resolves with the updated resource. */
   readonly update: (input: EnvironmentInput) => Promise<Environment>;
+  /** `true` while the update request is in flight. */
   readonly isUpdating: boolean;
+  /** Error from the last failed update, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 

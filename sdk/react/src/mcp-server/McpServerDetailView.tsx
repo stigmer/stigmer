@@ -26,6 +26,7 @@ import { Tabs, type TabItem } from "../internal/Tabs";
 
 type CapabilityTab = "tools" | "policies" | "resources";
 
+/** Props for {@link McpServerDetailView}. */
 export interface McpServerDetailViewProps {
   /** Organization slug that owns the MCP server. */
   readonly org: string;

@@ -26,11 +26,11 @@ function useModelRegistry(): UseModelRegistryReturn
 
 <TypeTable
   type={{
-    byProvider: { type: "ReadonlyMap<Provider, readonly ModelInfo[]>", description: "" },
-    defaultModel: { type: "ModelInfo", description: "", typeDescriptionLink: "#modelinfo" },
-    getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "" },
-    models: { type: "readonly ModelInfo[]", description: "" },
-    providers: { type: "readonly Provider[]", description: "" },
+    byProvider: { type: "ReadonlyMap<Provider, readonly ModelInfo[]>", description: "Models grouped by provider for sectioned rendering." },
+    defaultModel: { type: "ModelInfo", description: "The platform default model, resolved from DEFAULT_MODEL_ID.", typeDescriptionLink: "#modelinfo" },
+    getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`. Returns `undefined` for unknown or disabled models." },
+    models: { type: "readonly ModelInfo[]", description: "All enabled models, filtered to exclude DISABLED_PROVIDERS." },
+    providers: { type: "readonly Provider[]", description: "Ordered list of enabled provider identifiers." },
   }}
 />
 
@@ -57,10 +57,10 @@ Platform builders who need different rendering use
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the trigger button." },
     disabled: { type: "boolean", description: "When true, disables the selector." },
-    onValueChange: { type: "(modelId: string) => void", description: "", required: true },
-    value: { type: "string", description: "" },
+    onValueChange: { type: "(modelId: string) => void", description: "Called when the user picks a different model. Receives the new `modelId`.", required: true },
+    value: { type: "string", description: "Currently selected model ID. Falls back to DEFAULT_MODEL_ID when omitted." },
   }}
 />
 
@@ -69,33 +69,43 @@ Platform builders who need different rendering use
 
 ### CostTier
 
-Model registry — UI-relevant metadata for all platform-supported LLM models.
+Pricing bracket for a model.
 
-Ported from the Python source of truth at
-backend/libs/python/graphton/src/graphton/core/model_registry.py.
-
-This is a static, hardcoded list. A future backend RPC will replace it
-with a dynamic query; when that happens consumers will only need to
-swap from the static constant to a fetched result — the shape stays
-the same.
+- `economy` — lowest-cost models suitable for high-volume or latency-sensitive tasks
+- `standard` — balanced cost-to-capability, the default choice for most workloads
+- `premium` — highest-capability models for complex reasoning or critical tasks
 
 
 ### DEFAULT_MODEL_ID
 
+Model ID used when no user preference is set.
+
 
 ### MODEL_REGISTRY
+
+Static catalog of all platform-supported LLM models.
+
+Each entry carries the metadata needed for model selection UI.
+[`useModelRegistry`](#usemodelregistry) filters out disabled providers and provides
+lookup helpers on top of this list.
 
 
 ### ModelInfo
 
+UI-relevant metadata for a single platform-supported LLM model.
+
 <TypeTable
   type={{
-    costTier: { type: "CostTier", description: "", required: true, typeDescriptionLink: "#costtier" },
-    displayName: { type: "string", description: "", required: true },
-    modelId: { type: "string", description: "", required: true },
-    provider: { type: "Provider", description: "", required: true, typeDescriptionLink: "#provider" },
+    costTier: { type: "CostTier", description: "Pricing bracket used for cost-tier indicators in the UI.", required: true, typeDescriptionLink: "#costtier" },
+    displayName: { type: "string", description: "Human-readable name shown in the ModelSelector dropdown.", required: true },
+    modelId: { type: "string", description: "Unique model identifier sent to the backend (e.g. `\"claude-sonnet-4.5\"`).", required: true },
+    provider: { type: "Provider", description: "LLM provider that serves this model.", required: true, typeDescriptionLink: "#provider" },
   }}
 />
 
 ### Provider
+
+LLM provider identifier. Each provider maps to a distinct inference
+backend. The [`MODEL_REGISTRY`](#model_registry) groups models by provider for
+display in [`ModelSelector`](#modelselector).
 

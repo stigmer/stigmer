@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
+/** Props for {@link VisibilityToggle}. */
 export interface VisibilityToggleProps {
   /** Current visibility of the resource. */
   readonly visibility: ApiResourceVisibility;

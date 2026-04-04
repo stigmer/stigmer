@@ -92,10 +92,10 @@ function useMcpServer(org: string | null, slug: string | null): UseMcpServerRetu
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
     mcpServer: { type: "McpServer | null", description: "The resolved MCP server, or `null` while loading, on error, or when not found." },
-    refetch: { type: "() => void", description: "Re-fetch the MCP server with the same org and slug." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the MCP server from the server." },
   }}
 />
 
@@ -141,9 +141,9 @@ function useMcpServerCount(org: string | null, options?: UseMcpServerCountOption
 <TypeTable
   type={{
     count: { type: "number | undefined", description: "Total number of MCP servers matching the current filters. `undefined` until the first successful fetch completes." },
-    error: { type: "string | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "Re-fetch the count with the same parameters." },
+    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the count from the server." },
   }}
 />
 
@@ -242,10 +242,10 @@ function useMcpServerList(org: string | null, options?: UseMcpServerListOptions)
 <TypeTable
   type={{
     currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
-    error: { type: "string | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
+    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
     mcpServers: { type: "readonly SearchResult[]", description: "Paginated MCP server entries for the current page." },
-    refetch: { type: "() => void", description: "Re-fetch the current page with the same parameters." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
     totalCount: { type: "number", description: "Total number of MCP servers matching the current filters." },
     totalPages: { type: "number", description: "Total pages available at the current page size." },
   }}
@@ -395,10 +395,10 @@ function useTriggerApprovalPolicySession(): UseTriggerApprovalPolicySessionRetur
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    error: { type: "Error | null", description: "" },
-    isTriggering: { type: "boolean", description: "" },
-    result: { type: "TriggerApprovalPolicyResult | null", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed trigger, or `null` when healthy." },
+    isTriggering: { type: "boolean", description: "`true` while the session creation and execution trigger are in flight." },
+    result: { type: "TriggerApprovalPolicyResult | null", description: "Result from the last successful trigger, or `null`." },
     trigger: { type: "(mcpServerYaml: string, org: string, mcpServerSlug: string) => Promise<TriggerApprovalPolicyResult>", description: "Create an agent session with the `mcp-server-creator` agent, attach the current MCP server YAML, and start an execution that generates approval policies for the discovered tools." },
   }}
 />
@@ -477,9 +477,9 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     credentials: { type: "McpServerCredentialsProps", description: "When provided, the credentials form is shown above the tool selector. Omit when no credentials are needed or they have already been provided.  While credentials are pending, the tool selector is rendered in a disabled state so the user completes step 1 (credentials) before step 2 (tool customization).", typeDescriptionLink: "#mcpservercredentialsprops" },
-    disabled: { type: "boolean", description: "" },
+    disabled: { type: "boolean", description: "Disables all interaction." },
     discoveredTools: { type: "DiscoveredTool[]", description: "Discovered tools from `status.discovered_capabilities.tools`.", required: true },
     enabledTools: { type: "string[]", description: "Currently enabled tool names (controlled).", required: true },
     error: { type: "Error | null", description: "Error to display inline (e.g., from credential submission failure)." },
@@ -588,8 +588,8 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    disabled: { type: "boolean", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "Disables all interaction." },
     initialServerKey: { type: "string", description: "When provided, the picker opens directly to the configure view for the given server key (`\"org/slug\"`) instead of showing the list.  Intended for flows where the caller already knows which server needs configuration (e.g. a warning banner for a single unconfigured server, or a chip click on a specific server).  Only used as the initial view — subsequent navigation within the picker is unaffected. Ignored if the key does not match any entry in `setup.entries`." },
     onChange: { type: "(usages: McpServerUsageInput[]) => void", description: "Called when the selection changes in simple mode.  Required when `setup` is not provided. Not called when `setup` is provided — selection goes through `setup.onServerAdded` and `setup.onServerRemoved` instead." },
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an item is added (for chip rendering)." },
@@ -648,8 +648,8 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    disabled: { type: "boolean", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "Disables all interaction." },
     enabledTools: { type: "string[]", description: "Currently enabled tool names (controlled).", required: true },
     onChange: { type: "(enabledTools: string[]) => void", description: "Called when the set of enabled tools changes.", required: true },
     toolApprovals: { type: "ToolApprovalPolicy[]", description: "Approval policies from `spec.default_tool_approvals`.", required: true },
@@ -765,6 +765,8 @@ in the picker and removed when toggled off.
 
 ### SubmitMcpEnvVarsOptions
 
+Options for `UseMcpServerSetupReturn.submitEnvVars`.
+
 <TypeTable
   type={{
     saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment. Subsequent sessions using the same MCP server will reuse these credentials.  When `false`, the values are collected as `pendingRuntimeEnv` for this session only — no data is persisted and no network calls are made. The runtime env is passed to execution creation." },
@@ -786,14 +788,18 @@ function toServerKey(ref: ResourceRef): string
 
 ### TriggerApprovalPolicyResult
 
+IDs of the session and execution created by [`useTriggerApprovalPolicySession`](#usetriggerapprovalpolicysession).
+
 <TypeTable
   type={{
-    executionId: { type: "string", description: "", required: true },
-    sessionId: { type: "string", description: "", required: true },
+    executionId: { type: "string", description: "ID of the first execution within the session.", required: true },
+    sessionId: { type: "string", description: "ID of the newly created agent session.", required: true },
   }}
 />
 
 ### UseMcpServerCountOptions
+
+Options for [`useMcpServerCount`](#usemcpservercount).
 
 <TypeTable
   type={{
@@ -803,6 +809,8 @@ function toServerKey(ref: ResourceRef): string
 />
 
 ### UseMcpServerListOptions
+
+Options for [`useMcpServerList`](#usemcpserverlist).
 
 <TypeTable
   type={{
@@ -815,6 +823,10 @@ function toServerKey(ref: ResourceRef): string
 
 ### UseMcpServerSearchOptions
 
+Options for [`useMcpServerSearch`](#usemcpserversearch). Delegates to the shared resource search options.
+
 
 ### UseMcpServerSearchReturn
+
+Return value of [`useMcpServerSearch`](#usemcpserversearch). Delegates to the shared resource search return.
 

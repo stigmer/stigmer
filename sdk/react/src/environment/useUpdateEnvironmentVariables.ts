@@ -23,12 +23,17 @@ export interface UpdateEnvironmentVariablesInput {
   readonly variables: Record<string, EnvVarInput>;
 }
 
+/** Return value of {@link useUpdateEnvironmentVariables}. */
 export interface UseUpdateEnvironmentVariablesReturn {
+  /** Add or update variables in an environment. Resolves with the updated resource. */
   readonly updateVariables: (
     input: UpdateEnvironmentVariablesInput,
   ) => Promise<Environment>;
+  /** `true` while the update request is in flight. */
   readonly isUpdatingVariables: boolean;
+  /** Error from the last failed update, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 

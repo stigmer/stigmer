@@ -5,10 +5,15 @@ import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useDeleteApiKey}. */
 export interface UseDeleteApiKeyReturn {
+  /** Delete an API key by its resource ID. Resolves with the deleted resource for confirmation display. */
   readonly deleteKey: (id: string) => Promise<ApiKey>;
+  /** `true` while the delete request is in flight. */
   readonly isDeleting: boolean;
+  /** Error from the last failed delete, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 

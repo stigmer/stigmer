@@ -16,6 +16,7 @@ import { useSkillSearch } from "./useSkillSearch";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
+/** Props for {@link SkillPicker}. */
 export interface SkillPickerProps {
   /** Organization slug used as the default search scope. */
   readonly org: string;
@@ -35,7 +36,9 @@ export interface SkillPickerProps {
   readonly onChange: (refs: ResourceRef[]) => void;
   /** Called with the display name when an item is added (for chip rendering). */
   readonly onDisplayNameResolved?: (key: string, name: string) => void;
+  /** Disables all interaction. */
   readonly disabled?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

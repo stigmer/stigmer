@@ -13,6 +13,7 @@ import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
 
+/** Props for {@link SkillDetailView}. */
 export interface SkillDetailViewProps {
   /** Organization slug that owns the skill. */
   readonly org: string;

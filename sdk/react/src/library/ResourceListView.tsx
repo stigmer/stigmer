@@ -12,6 +12,7 @@ const DEBOUNCE_MS = 300;
 const SKELETON_COUNT = 5;
 const MAX_VISIBLE_TAGS = 3;
 
+/** Props for {@link ResourceListView}. */
 export interface ResourceListViewProps {
   /** Resource entries to display. */
   readonly items: readonly SearchResult[];

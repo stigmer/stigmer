@@ -18,6 +18,7 @@ const PERSONAL_LABELS: Record<string, string> = {
   "stigmer.ai/personal": "true",
 };
 
+/** Return value of {@link usePersonalEnvironment}. */
 export interface UsePersonalEnvironmentReturn {
   /** The caller's personal environment, or `null` if not yet created or still loading. */
   readonly environment: Environment | null;

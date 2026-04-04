@@ -45,9 +45,9 @@ function useSkill(org: string | null, slug: string | null, version?: string): Us
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "Re-fetch the skill with the same parameters." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the skill from the server." },
     skill: { type: "Skill | null", description: "The resolved skill, or `null` while loading, on error, or when not found." },
   }}
 />
@@ -94,9 +94,9 @@ function useSkillCount(org: string | null, options?: UseSkillCountOptions): UseS
 <TypeTable
   type={{
     count: { type: "number | undefined", description: "Total number of skills matching the current filters. `undefined` until the first successful fetch completes." },
-    error: { type: "string | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "Re-fetch the count with the same parameters." },
+    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the count from the server." },
   }}
 />
 
@@ -135,9 +135,9 @@ function useSkillList(org: string | null, options?: UseSkillListOptions): UseSki
 <TypeTable
   type={{
     currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
-    error: { type: "string | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "Re-fetch the current page with the same parameters." },
+    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
     skills: { type: "readonly SearchResult[]", description: "Paginated skill entries for the current page." },
     totalCount: { type: "number", description: "Total number of skills matching the current filters." },
     totalPages: { type: "number", description: "Total pages available at the current page size." },
@@ -236,8 +236,8 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    disabled: { type: "boolean", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "Disables all interaction." },
     onChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the selection changes.", required: true },
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an item is added (for chip rendering)." },
     org: { type: "string", description: "Organization slug used as the default search scope.", required: true },
@@ -251,6 +251,8 @@ All visual properties flow through `--stgm-*` tokens.
 
 ### UseSkillCountOptions
 
+Options for [`useSkillCount`](#useskillcount).
+
 <TypeTable
   type={{
     query: { type: "string", description: "Text query to filter skills before counting." },
@@ -259,6 +261,8 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ### UseSkillListOptions
+
+Options for [`useSkillList`](#useskilllist).
 
 <TypeTable
   type={{
@@ -271,6 +275,10 @@ All visual properties flow through `--stgm-*` tokens.
 
 ### UseSkillSearchOptions
 
+Options for [`useSkillSearch`](#useskillsearch). Delegates to the shared resource search options.
+
 
 ### UseSkillSearchReturn
+
+Return value of [`useSkillSearch`](#useskillsearch). Delegates to the shared resource search return.
 
