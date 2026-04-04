@@ -8,6 +8,7 @@ import type { EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useDiscoverCapabilities}. */
 export interface UseDiscoverCapabilitiesReturn {
   /**
    * Trigger server-side MCP discovery for the given MCP server.

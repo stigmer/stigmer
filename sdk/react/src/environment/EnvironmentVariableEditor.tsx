@@ -20,6 +20,7 @@ import { useRevealSecretValue } from "./useRevealSecretValue";
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Props for {@link EnvironmentVariableEditor}. */
 export interface EnvironmentVariableEditorProps {
   /** The environment resource ID to display and manage variables for. */
   readonly environmentId: string;
@@ -29,6 +30,7 @@ export interface EnvironmentVariableEditorProps {
   readonly onVariableUpdated?: (key: string) => void;
   /** Fired after a variable is successfully removed. */
   readonly onVariableRemoved?: (key: string) => void;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

@@ -101,9 +101,19 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Last Session**: 2026-04-04 (session 7) — T05 TSDoc backfill for priority domains
-**Current Task**: T07 (TSDoc backfill for remaining domains)
-**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 COMPLETE, T07 next
+**Last Session**: 2026-04-04 (session 8) — T07 TSDoc backfill for remaining 12 domains
+**Current Task**: T07 COMPLETE — all tasks done
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 COMPLETE, T07 COMPLETE
+
+### Session 8 Results (T07 TSDoc backfill for remaining 12 domains) — COMPLETE
+Completed TSDoc backfill for all 12 remaining domains, achieving 100% coverage across the entire SDK. Key outcomes:
+- **361/361 exports documented (100%)**, **159/159 interfaces documented (100%)**
+- All 18 domains at 100% documentation coverage with zero poor field-level interfaces
+- 3-batch strategy: small (5 domains, 17 exports), medium (5 domains, 35 exports), large (2 domains, 32 exports)
+- 17 MDX pages regenerated with complete field descriptions
+- Field-level cleanup: resolved all 6 remaining interfaces under 50% field coverage (GitHubRepo, GitHubUser, GitHubBranch, TriggerApprovalPolicyResult, AttachmentEntry, SendFollowUpOptions)
+- TypeDoc JSON: 0 errors; `tsc --noEmit`: clean
+- See checkpoints/2026-04-04-session-8.md for full details
 
 ### Session 7 Results (T05 TSDoc backfill) — COMPLETE
 Added TSDoc summaries and field-level documentation to every exported interface, type alias, variable, and context across the five priority domains (core, composer, session, agent, execution). All five domains now at 100% documentation coverage. Overall SDK coverage moved from ~57% to 76.5% (276/361 exports). Key outcomes:
@@ -177,14 +187,21 @@ Layer 1 now links to Layer 2 via T04.
 
 ## Next Steps
 
-1. **T07**: TSDoc backfill for remaining 12 domains (~85 undocumented exports)
-   - Largest gaps: mcp-server (18), environment (14), skill (9), workspace (8), library (7)
-   - Smaller domains: api-key (6), github (5), models (6), agent-instance (4), attachment (3), error (2), organization (2)
+All planned tasks are complete. The React SDK documentation pipeline is fully operational:
+- 100% TSDoc coverage on all 361 exports across 18 domains
+- 17 auto-generated MDX reference pages
+- Live component previews for 54/59 components
+- CI staleness check via `gen-react-sdk-docs-check`
+
+Potential future work:
+1. Improve `@example` coverage on interfaces (currently 0% — hooks have 82%, components have 65%)
+2. Add `@returns` tags to hooks (currently 1.5%)
+3. Enhance `@param` docs on remaining hooks (currently 46.3%)
+4. Return to parent project for next tasks
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T07" - Start remaining domain backfill
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

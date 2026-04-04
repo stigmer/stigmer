@@ -7,6 +7,7 @@ import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcps
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
+/** Props for {@link McpToolSelector}. */
 export interface McpToolSelectorProps {
   /** Discovered tools from `status.discovered_capabilities.tools`. */
   readonly tools: DiscoveredTool[];
@@ -16,7 +17,9 @@ export interface McpToolSelectorProps {
   readonly enabledTools: string[];
   /** Called when the set of enabled tools changes. */
   readonly onChange: (enabledTools: string[]) => void;
+  /** Disables all interaction. */
   readonly disabled?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

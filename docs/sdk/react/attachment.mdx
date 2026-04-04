@@ -104,7 +104,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disables remove and retry actions." },
     entries: { type: "readonly AttachmentEntry[]", description: "Attachment entries from useAttachments.", required: true },
     onRemove: { type: "(id: string) => void", description: "Remove callback (by entry ID).", required: true },
@@ -125,12 +125,12 @@ independent entries with distinct IDs.
 
 <TypeTable
   type={{
-    contentType: { type: "string", description: "", required: true },
-    error: { type: "string | null", description: "Set when `phase` is `\"error\"`.", required: true },
-    file: { type: "File", description: "", required: true },
-    id: { type: "string", description: "", required: true },
-    phase: { type: "AttachmentPhase", description: "", required: true, typeDescriptionLink: "#attachmentphase" },
-    storageKey: { type: "string | null", description: "Set when `phase` is `\"ready\"`.", required: true },
+    contentType: { type: "string", description: "MIME type of the file (e.g. `\"image/png\"`).", required: true },
+    error: { type: "string | null", description: "Human-readable error message. Set when `phase` is `\"error\"`.", required: true },
+    file: { type: "File", description: "The original `File` object selected by the user.", required: true },
+    id: { type: "string", description: "Unique client-side identifier for this attachment.", required: true },
+    phase: { type: "AttachmentPhase", description: "Current upload lifecycle phase.", required: true, typeDescriptionLink: "#attachmentphase" },
+    storageKey: { type: "string | null", description: "Server-assigned storage key. Set when `phase` is `\"ready\"`.", required: true },
   }}
 />
 
@@ -179,6 +179,8 @@ upload to avoid wasting bandwidth on requests that will fail.
 
 
 ### UseAttachmentsOptions
+
+Options for [`useAttachments`](#useattachments).
 
 <TypeTable
   type={{

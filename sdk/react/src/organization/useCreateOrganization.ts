@@ -6,10 +6,15 @@ import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organizati
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useCreateOrganization}. */
 export interface UseCreateOrganizationReturn {
+  /** Submit an {@link OrganizationInput} to create a new Organization. Resolves with the server-created resource. */
   readonly create: (input: OrganizationInput) => Promise<Organization>;
+  /** `true` while the create request is in flight. */
   readonly isCreating: boolean;
+  /** Error from the last failed create, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 

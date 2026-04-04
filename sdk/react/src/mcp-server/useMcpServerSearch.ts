@@ -8,7 +8,9 @@ import {
   type UseResourceSearchReturn,
 } from "../search";
 
+/** Options for {@link useMcpServerSearch}. Delegates to the shared resource search options. */
 export type UseMcpServerSearchOptions = UseResourceSearchOptions;
+/** Return value of {@link useMcpServerSearch}. Delegates to the shared resource search return. */
 export type UseMcpServerSearchReturn = UseResourceSearchReturn;
 
 /**

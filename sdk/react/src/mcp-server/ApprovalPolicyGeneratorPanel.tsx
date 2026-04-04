@@ -8,6 +8,7 @@ import { MessageThread } from "../execution/MessageThread";
 import { ExecutionProgress } from "../execution/ExecutionProgress";
 import { isTerminalPhase } from "../execution/execution-phases";
 
+/** Props for {@link ApprovalPolicyGeneratorPanel}. */
 export interface ApprovalPolicyGeneratorPanelProps {
   /** The execution ID to stream. */
   readonly executionId: string;

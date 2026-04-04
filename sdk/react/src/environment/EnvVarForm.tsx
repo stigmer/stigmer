@@ -29,6 +29,7 @@ export interface EnvVarFormSubmitOptions {
   readonly saveForFuture: boolean;
 }
 
+/** Props for {@link EnvVarForm}. */
 export interface EnvVarFormProps {
   /**
    * Variables to collect. Each entry renders one input field, in order.
@@ -47,6 +48,7 @@ export interface EnvVarFormProps {
   readonly onCancel?: () => void;
   /** When true, the submit button shows a spinner and inputs are disabled. */
   readonly isSubmitting?: boolean;
+  /** When `true`, all inputs and buttons are disabled. */
   readonly disabled?: boolean;
 
   /**
@@ -96,6 +98,7 @@ export interface EnvVarFormProps {
    * `pool.getAvailableValue` to look up pre-fill values.
    */
   readonly poolValues?: (key: string) => EnvVarInput | undefined;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
    * Overrides the `aria-label` on the `<form>` element. When omitted,

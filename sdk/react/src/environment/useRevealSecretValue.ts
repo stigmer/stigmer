@@ -6,6 +6,7 @@ import { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/ag
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Options for {@link useRevealSecretValue}. */
 export interface UseRevealSecretValueOptions {
   /**
    * Milliseconds after which the revealed value is automatically cleared
@@ -17,6 +18,7 @@ export interface UseRevealSecretValueOptions {
   readonly autoClearMs?: number;
 }
 
+/** Return value of {@link useRevealSecretValue}. */
 export interface UseRevealSecretValueReturn {
   /**
    * Fetch and reveal a single secret value from an environment.

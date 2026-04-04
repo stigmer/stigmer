@@ -10,6 +10,7 @@ import { toError } from "../internal/toError";
 /** Resource kinds that support the `updateVisibility` RPC. */
 export type VisibilityResourceKind = "skill" | "agent" | "mcpServer";
 
+/** Return value of {@link useUpdateVisibility}. */
 export interface UseUpdateVisibilityReturn {
   /**
    * Call the `updateVisibility` RPC for the specified resource.

@@ -6,12 +6,15 @@ import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useSkill}. */
 export interface UseSkillReturn {
   /** The resolved skill, or `null` while loading, on error, or when not found. */
   readonly skill: Skill | null;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
-  /** Re-fetch the skill with the same parameters. */
+  /** Discard cached data and re-fetch the skill from the server. */
   readonly refetch: () => void;
 }
 

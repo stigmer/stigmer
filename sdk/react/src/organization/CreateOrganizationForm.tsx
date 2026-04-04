@@ -29,11 +29,13 @@ function validateSlug(slug: string): string | null {
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Props for {@link CreateOrganizationForm}. */
 export interface CreateOrganizationFormProps {
   /** Fired with the newly created organization after a successful creation. */
   readonly onCreated?: (org: Organization) => void;
   /** Fired when the user cancels. */
   readonly onCancel?: () => void;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

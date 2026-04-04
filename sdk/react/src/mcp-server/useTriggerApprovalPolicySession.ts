@@ -12,11 +12,15 @@ import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { buildPersonalInstanceInput } from "../agent-instance/buildPersonalInstanceInput";
 
+/** IDs of the session and execution created by {@link useTriggerApprovalPolicySession}. */
 export interface TriggerApprovalPolicyResult {
+  /** ID of the newly created agent session. */
   readonly sessionId: string;
+  /** ID of the first execution within the session. */
   readonly executionId: string;
 }
 
+/** Return value of {@link useTriggerApprovalPolicySession}. */
 export interface UseTriggerApprovalPolicySessionReturn {
   /**
    * Create an agent session with the `mcp-server-creator` agent, attach the
@@ -32,9 +36,13 @@ export interface UseTriggerApprovalPolicySessionReturn {
     org: string,
     mcpServerSlug: string,
   ) => Promise<TriggerApprovalPolicyResult>;
+  /** `true` while the session creation and execution trigger are in flight. */
   readonly isTriggering: boolean;
+  /** Error from the last failed trigger, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
+  /** Result from the last successful trigger, or `null`. */
   readonly result: TriggerApprovalPolicyResult | null;
 }
 

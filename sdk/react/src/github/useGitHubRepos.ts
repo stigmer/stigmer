@@ -8,34 +8,53 @@ const PER_PAGE = 100;
 
 /** A GitHub repository from the API. */
 export interface GitHubRepo {
+  /** GitHub-assigned numeric repository ID. */
   readonly id: number;
+  /** Full repository name including the owner (e.g. `"acme/my-repo"`). */
   readonly fullName: string;
+  /** Repository name without the owner prefix. */
   readonly name: string;
+  /** Owner login (user or organization). */
   readonly owner: string;
+  /** Whether the owner is a personal account or an organization. */
   readonly ownerType: "User" | "Organization";
+  /** Web URL for the repository on GitHub. */
   readonly htmlUrl: string;
+  /** HTTPS clone URL. */
   readonly cloneUrl: string;
+  /** Name of the repository's default branch (e.g. `"main"`). */
   readonly defaultBranch: string;
+  /** `true` when the repository is private. */
   readonly isPrivate: boolean;
+  /** ISO 8601 timestamp of the last push or update event. */
   readonly updatedAt: string;
 }
 
 /** A GitHub branch from the API. */
 export interface GitHubBranch {
+  /** Branch name (e.g. `"main"`, `"feat/new-feature"`). */
   readonly name: string;
 }
 
+/** Return value of {@link useGitHubRepos}. */
 export interface UseGitHubReposReturn {
+  /** Repositories matching the current client-side search filter. */
   readonly repos: readonly GitHubRepo[];
+  /** `true` while the first page is being fetched. */
   readonly isLoading: boolean;
-  /** True while additional pages are being fetched after the first page. */
+  /** `true` while additional pages are being fetched after the first page. */
   readonly isBackgroundLoading: boolean;
+  /** Error message from the last failed fetch, or `null` when healthy. */
   readonly error: string | null;
+  /** Current client-side search query. */
   readonly search: string;
+  /** Update the client-side search query to filter repos by name. */
   readonly setSearch: (query: string) => void;
+  /** Whether more pages may be available. */
   readonly hasMore: boolean;
   /** @deprecated Background pagination loads all pages automatically. */
   readonly loadMore: () => void;
+  /** Fetch branches for a specific repository. */
   readonly fetchBranches: (
     owner: string,
     repo: string,

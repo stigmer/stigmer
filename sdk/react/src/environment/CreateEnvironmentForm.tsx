@@ -10,6 +10,7 @@ import { useCreateEnvironment } from "./useCreateEnvironment";
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Props for {@link CreateEnvironmentForm}. */
 export interface CreateEnvironmentFormProps {
   /** Organization slug. Used as the `org` field when creating the environment. */
   readonly org: string;
@@ -17,6 +18,7 @@ export interface CreateEnvironmentFormProps {
   readonly onCreated?: (env: Environment) => void;
   /** Fired when the user cancels. */
   readonly onCancel?: () => void;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

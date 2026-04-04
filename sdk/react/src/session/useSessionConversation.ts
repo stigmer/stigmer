@@ -36,6 +36,7 @@ import { useUpdateSession } from "./useUpdateSession";
  * values are scoped to the single execution and deleted on completion.
  */
 export interface SendFollowUpOptions {
+  /** LLM model name to use for this execution. Overrides the session default. */
   readonly modelName?: string;
   /**
    * Override the session's agent instance for this and all future
@@ -43,8 +44,11 @@ export interface SendFollowUpOptions {
    * execution is created.
    */
   readonly agentInstanceId?: string;
+  /** Workspace entries to attach to the execution. */
   readonly workspaceEntries?: WorkspaceEntryInput[];
+  /** MCP server configurations to include for tool access. */
   readonly mcpServerUsages?: McpServerUsageInput[];
+  /** Skill references to enable for this execution. */
   readonly skillRefs?: ResourceRef[];
   /**
    * Execution-scoped secrets and configuration (Execution Flow).

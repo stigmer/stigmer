@@ -19,11 +19,15 @@ const POPUP_CLOSE_POLL_MS = 500;
 
 /** Minimal GitHub user profile for display. */
 export interface GitHubUser {
+  /** GitHub username (e.g. `"octocat"`). */
   readonly login: string;
+  /** URL of the user's avatar image. */
   readonly avatarUrl: string;
+  /** Display name, or `null` when the user has not set one. */
   readonly name: string | null;
 }
 
+/** Options for {@link UseGitHubConnectionReturn.connect}. */
 export interface GitHubConnectOptions {
   /**
    * When `true`, open the OAuth authorization page in a popup window
@@ -38,6 +42,7 @@ export interface GitHubConnectOptions {
   readonly popup?: boolean;
 }
 
+/** Return value of {@link useGitHubConnection}. */
 export interface UseGitHubConnectionReturn {
   /** Whether a valid GitHub token exists. */
   readonly isConnected: boolean;

@@ -5,6 +5,7 @@ import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { useResourceList, type ResourceListScope } from "../search";
 
+/** Options for {@link useSkillList}. */
 export interface UseSkillListOptions {
   /** Maximum skills per page. @default 20 */
   readonly pageSize?: number;
@@ -23,6 +24,7 @@ export interface UseSkillListOptions {
   readonly scope?: ResourceListScope;
 }
 
+/** Return value of {@link useSkillList}. */
 export interface UseSkillListReturn {
   /** Paginated skill entries for the current page. */
   readonly skills: readonly SearchResult[];
@@ -32,9 +34,11 @@ export interface UseSkillListReturn {
   readonly totalPages: number;
   /** The current page number (mirrors the `page` option). */
   readonly currentPage: number;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error message from the last failed request, or `null` when healthy. */
   readonly error: string | null;
-  /** Re-fetch the current page with the same parameters. */
+  /** Discard cached data and re-fetch the current page from the server. */
   readonly refetch: () => void;
 }
 

@@ -41,10 +41,10 @@ function useAgentInstance(ref: ResourceRef | null): UseAgentInstanceReturn
 
 <TypeTable
   type={{
-    agentInstance: { type: "AgentInstance | null", description: "" },
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
+    agentInstance: { type: "AgentInstance | null", description: "The fetched AgentInstance, or `null` while loading or on error." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the agent instance from the server." },
   }}
 />
 
@@ -85,11 +85,11 @@ function useAgentInstanceList(org: string | null, labels?: Record<string, string
 
 <TypeTable
   type={{
-    agentInstances: { type: "readonly AgentInstance[]", description: "" },
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
-    totalCount: { type: "number", description: "" },
+    agentInstances: { type: "readonly AgentInstance[]", description: "The fetched list of AgentInstance entries. Empty while loading or on error." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the list from the server." },
+    totalCount: { type: "number", description: "Total number of agent instances matching the query, including unpaged items." },
   }}
 />
 
@@ -129,10 +129,10 @@ function useCreateAgentInstance(): UseCreateAgentInstanceReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    create: { type: "(input: AgentInstanceInput) => Promise<AgentInstance>", description: "" },
-    error: { type: "Error | null", description: "" },
-    isCreating: { type: "boolean", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    create: { type: "(input: AgentInstanceInput) => Promise<AgentInstance>", description: "Submit an AgentInstanceInput to create a new AgentInstance. Resolves with the server-created resource." },
+    error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the create request is in flight." },
   }}
 />
 

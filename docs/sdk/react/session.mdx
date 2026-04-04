@@ -538,11 +538,11 @@ values are scoped to the single execution and deleted on completion.
   type={{
     agentInstanceId: { type: "string", description: "Override the session's agent instance for this and all future executions. When provided, the session is updated before the execution is created." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for this execution.  Each entry must include a `storageKey` from `agentExecution.uploadAttachment()`. Forwarded directly to execution creation." },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "" },
-    modelName: { type: "string", description: "" },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
+    modelName: { type: "string", description: "LLM model name to use for this execution. Overrides the session default." },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They override both Environment values and agent defaults." },
-    skillRefs: { type: "ResourceRef[]", description: "" },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "" },
+    skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for this execution." },
+    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries to attach to the execution." },
   }}
 />
 

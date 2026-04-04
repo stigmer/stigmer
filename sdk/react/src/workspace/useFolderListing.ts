@@ -2,27 +2,41 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/** A single filesystem entry (file or directory) within a {@link FolderListing}. */
 export interface FolderEntry {
+  /** Filename or directory name (not a full path). */
   readonly name: string;
+  /** `true` when the entry is a directory that can be browsed further. */
   readonly isDir: boolean;
+  /** `true` when the entry name starts with `.` (hidden file/directory). */
   readonly hidden?: boolean;
 }
 
+/** Directory listing returned by the local CLI filesystem API. */
 export interface FolderListing {
+  /** Absolute path of the listed directory. */
   readonly path: string;
+  /** Current working directory of the CLI process. */
   readonly cwd: string;
+  /** User home directory, for quick-navigation buttons. */
   readonly home: string;
+  /** Files and subdirectories within the listed directory. */
   readonly entries: readonly FolderEntry[];
 }
 
+/** Return value of {@link useFolderListing}. */
 export interface UseFolderListingReturn {
+  /** Current directory listing, or `null` while loading or on error. */
   readonly listing: FolderListing | null;
+  /** `true` while a directory listing is being fetched. */
   readonly isLoading: boolean;
+  /** Error message from the last failed request, or `null` when healthy. */
   readonly error: string | null;
-  /** Whether the /api/fs/list endpoint is available. Null until first fetch. */
+  /** Whether the `/api/fs/list` endpoint is available. `null` until the first fetch completes. */
   readonly isAvailable: boolean | null;
+  /** Navigate to a different directory by absolute path. */
   readonly browse: (path: string) => void;
-  /** Clears the current error without navigating. */
+  /** Reset `error` to `null` without navigating. */
   readonly clearError: () => void;
 }
 

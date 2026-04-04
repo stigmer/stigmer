@@ -11,6 +11,7 @@ import { EnvironmentVariableEditor } from "./EnvironmentVariableEditor";
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Props for {@link EnvironmentListPanel}. */
 export interface EnvironmentListPanelProps {
   /** Organization slug to list environments for. */
   readonly org: string;
@@ -28,6 +29,7 @@ export interface EnvironmentListPanelProps {
   readonly readOnly?: boolean;
   /** Re-expose refetch so parents can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

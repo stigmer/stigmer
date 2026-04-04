@@ -37,10 +37,10 @@ function useCreateEnvironment(): UseCreateEnvironmentReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    create: { type: "(input: EnvironmentInput) => Promise<Environment>", description: "" },
-    error: { type: "Error | null", description: "" },
-    isCreating: { type: "boolean", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    create: { type: "(input: EnvironmentInput) => Promise<Environment>", description: "Submit an EnvironmentInput to create a new Environment. Resolves with the server-created resource." },
+    error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the create request is in flight." },
   }}
 />
 
@@ -93,10 +93,10 @@ function useEnvironment(ref: ResourceRef | null): UseEnvironmentReturn
 
 <TypeTable
   type={{
-    environment: { type: "Environment | null", description: "" },
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
+    environment: { type: "Environment | null", description: "The fetched Environment, or `null` while loading or on error." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the environment from the server." },
   }}
 />
 
@@ -139,11 +139,11 @@ function useEnvironmentList(org: string | null, labels?: Record<string, string>)
 
 <TypeTable
   type={{
-    environments: { type: "readonly Environment[]", description: "" },
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
-    totalCount: { type: "number", description: "" },
+    environments: { type: "readonly Environment[]", description: "The fetched list of Environment entries. Empty while loading or on error." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the list from the server." },
+    totalCount: { type: "number", description: "Total number of environments matching the query, including unpaged items." },
   }}
 />
 
@@ -244,10 +244,10 @@ function useRemoveEnvironmentVariables(): UseRemoveEnvironmentVariablesReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    error: { type: "Error | null", description: "" },
-    isRemovingVariables: { type: "boolean", description: "" },
-    removeVariables: { type: "(input: RemoveEnvironmentVariablesInput) => Promise<Environment>", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed removal, or `null` when healthy." },
+    isRemovingVariables: { type: "boolean", description: "`true` while the remove request is in flight." },
+    removeVariables: { type: "(input: RemoveEnvironmentVariablesInput) => Promise<Environment>", description: "Remove variables from an environment by key. Resolves with the updated resource." },
   }}
 />
 
@@ -402,10 +402,10 @@ function useUpdateEnvironment(): UseUpdateEnvironmentReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    error: { type: "Error | null", description: "" },
-    isUpdating: { type: "boolean", description: "" },
-    update: { type: "(input: EnvironmentInput) => Promise<Environment>", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
+    update: { type: "(input: EnvironmentInput) => Promise<Environment>", description: "Submit an EnvironmentInput to update an existing Environment. Resolves with the updated resource." },
   }}
 />
 
@@ -449,10 +449,10 @@ function useUpdateEnvironmentVariables(): UseUpdateEnvironmentVariablesReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    error: { type: "Error | null", description: "" },
-    isUpdatingVariables: { type: "boolean", description: "" },
-    updateVariables: { type: "(input: UpdateEnvironmentVariablesInput) => Promise<Environment>", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdatingVariables: { type: "boolean", description: "`true` while the update request is in flight." },
+    updateVariables: { type: "(input: UpdateEnvironmentVariablesInput) => Promise<Environment>", description: "Add or update variables in an environment. Resolves with the updated resource." },
   }}
 />
 
@@ -488,7 +488,7 @@ stores. All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     onCancel: { type: "() => void", description: "Fired when the user cancels." },
     onCreated: { type: "(env: Environment) => void", description: "Fired with the newly created environment after a successful creation." },
     org: { type: "string", description: "Organization slug. Used as the `org` field when creating the environment.", required: true },
@@ -528,7 +528,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     excludeLabels: { type: "Record<string, string>", description: "Exclude environments whose labels contain all key-value pairs in this record. Useful for filtering the personal environment out of the organization list: `excludeLabels={{ \"stigmer.ai/personal\": \"true\" }}`." },
     labels: { type: "Record<string, string>", description: "Optional label filter — only environments matching ALL labels are shown." },
     onEnvironmentSelect: { type: "(env: Environment) => void", description: "Fired when a user selects (expands) an environment." },
@@ -574,7 +574,7 @@ hooks directly ([`useUpdateEnvironmentVariables`](#useupdateenvironmentvariables
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     environmentId: { type: "string", description: "The environment resource ID to display and manage variables for.", required: true },
     onVariableRemoved: { type: "(key: string) => void", description: "Fired after a variable is successfully removed." },
     onVariableUpdated: { type: "(key: string) => void", description: "Fired after a variable is successfully added or updated." },
@@ -624,10 +624,10 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     ariaLabel: { type: "string", description: "Overrides the `aria-label` on the `<form>` element. When omitted, falls back to `\"Configure {title}\"` if a title is provided, or `\"Configure environment variables\"` as a generic fallback." },
     cancelLabel: { type: "string", description: "Overrides the default cancel button label (`\"Back\"`)." },
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save for future runs\" toggle. Platform builders can override this to match their default secret-persistence policy." },
     description: { type: "string", description: "Subtitle shown below the title. Only rendered when `title` is also provided." },
-    disabled: { type: "boolean", description: "" },
+    disabled: { type: "boolean", description: "When `true`, all inputs and buttons are disabled." },
     hideSaveToggle: { type: "boolean", description: "When `true`, the save toggle is hidden and the form always uses `defaultSaveForFuture` as the submit value. Useful for platform builders who want to enforce a single persistence policy." },
     isSubmitting: { type: "boolean", description: "When true, the submit button shows a spinner and inputs are disabled." },
     onCancel: { type: "() => void", description: "Called when the user clicks the cancel/back button." },
@@ -808,6 +808,8 @@ read-modify-write pattern that destroys redacted secrets.
 />
 
 ### UseRevealSecretValueOptions
+
+Options for [`useRevealSecretValue`](#userevealsecretvalue).
 
 <TypeTable
   type={{

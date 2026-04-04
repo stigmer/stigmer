@@ -9,11 +9,17 @@ import {
   type Provider,
 } from "./registry";
 
+/** Return value of {@link useModelRegistry}. */
 export interface UseModelRegistryReturn {
+  /** All enabled models, filtered to exclude {@link DISABLED_PROVIDERS}. */
   readonly models: readonly ModelInfo[];
+  /** Models grouped by provider for sectioned rendering. */
   readonly byProvider: ReadonlyMap<Provider, readonly ModelInfo[]>;
+  /** The platform default model, resolved from {@link DEFAULT_MODEL_ID}. */
   readonly defaultModel: ModelInfo;
+  /** Look up a single model by its `modelId`. Returns `undefined` for unknown or disabled models. */
   readonly getModel: (modelId: string) => ModelInfo | undefined;
+  /** Ordered list of enabled provider identifiers. */
   readonly providers: readonly Provider[];
 }
 

@@ -27,6 +27,7 @@ export type {
 
 export { toServerKey } from "./mcpServerSetupReducer";
 
+/** Options for {@link UseMcpServerSetupReturn.submitEnvVars}. */
 export interface SubmitMcpEnvVarsOptions {
   /**
    * When `true` (default), the provided values are saved to the user's
@@ -42,6 +43,7 @@ export interface SubmitMcpEnvVarsOptions {
   readonly saveForFuture?: boolean;
 }
 
+/** Return value of {@link useMcpServerSetup}. */
 export interface UseMcpServerSetupReturn {
   /**
    * Per-server setup state, keyed by `"org/slug"` (see {@link toServerKey}).

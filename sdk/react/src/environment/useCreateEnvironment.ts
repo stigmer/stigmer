@@ -6,10 +6,15 @@ import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useCreateEnvironment}. */
 export interface UseCreateEnvironmentReturn {
+  /** Submit an {@link EnvironmentInput} to create a new Environment. Resolves with the server-created resource. */
   readonly create: (input: EnvironmentInput) => Promise<Environment>;
+  /** `true` while the create request is in flight. */
   readonly isCreating: boolean;
+  /** Error from the last failed create, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 

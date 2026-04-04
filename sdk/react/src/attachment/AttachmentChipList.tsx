@@ -4,6 +4,7 @@ import { cn } from "@stigmer/theme";
 import type { AttachmentEntry } from "./useAttachments";
 import { formatFileSize } from "./attachment-utils";
 
+/** Props for {@link AttachmentChipList}. */
 export interface AttachmentChipListProps {
   /** Attachment entries from {@link useAttachments}. */
   readonly entries: readonly AttachmentEntry[];
@@ -13,6 +14,7 @@ export interface AttachmentChipListProps {
   readonly onRetry: (id: string) => void;
   /** Disables remove and retry actions. */
   readonly disabled?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
