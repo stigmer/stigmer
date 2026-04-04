@@ -6,5 +6,6 @@ import "buf/validate/validate.proto";
 
 // ProjectId wraps a project identifier.
 message ProjectId {
+  // Project identifier.
   string value = 1 [(buf.validate.field).required = true];
 }
