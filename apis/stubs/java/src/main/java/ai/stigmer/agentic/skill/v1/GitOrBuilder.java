@@ -14,7 +14,7 @@ public interface GitOrBuilder extends
    * <pre>
    * Git repository URL (HTTPS or SSH).
    * CLI uses locally configured git credentials for authentication.
-   * Examples: "https://github.com/stigmer/skills.git", "git&#64;github.com:stigmer/skills.git"
+   * Examples: "https://github.com/stigmer/stigmer.git", "git&#64;github.com:stigmer/stigmer.git"
    * </pre>
    *
    * <code>string url = 1 [json_name = "url"];</code>
@@ -25,7 +25,7 @@ public interface GitOrBuilder extends
    * <pre>
    * Git repository URL (HTTPS or SSH).
    * CLI uses locally configured git credentials for authentication.
-   * Examples: "https://github.com/stigmer/skills.git", "git&#64;github.com:stigmer/skills.git"
+   * Examples: "https://github.com/stigmer/stigmer.git", "git&#64;github.com:stigmer/stigmer.git"
    * </pre>
    *
    * <code>string url = 1 [json_name = "url"];</code>

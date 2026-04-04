@@ -12,7 +12,7 @@ public interface GitProvenanceOrBuilder extends
 
   /**
    * <pre>
-   * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+   * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
    *
    * &#64;internal
    * For local push: detected "origin" remote URL.
@@ -25,7 +25,7 @@ public interface GitProvenanceOrBuilder extends
   java.lang.String getRemoteUrl();
   /**
    * <pre>
-   * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+   * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
    *
    * &#64;internal
    * For local push: detected "origin" remote URL.

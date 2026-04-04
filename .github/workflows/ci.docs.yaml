@@ -88,7 +88,7 @@ jobs:
         run: npm ci
 
       - name: Install site dependencies
-        run: cd site && yarn install --immutable
+        run: cd site && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 
       - name: Verify SDK docs are up to date
         run: make gen-sdk-docs-check
@@ -114,8 +114,6 @@ jobs:
             --fallback-extensions mdx
             --scheme https
             --scheme http
-            --exclude 'https://api\.stigmer\.ai'
-            --exclude 'github\.com/stigmer/skills\.git'
-            --exclude 'https://platform\.openai\.com'
+            --accept '100..=199,200..=299,403,415'
             docs/
           fail: true

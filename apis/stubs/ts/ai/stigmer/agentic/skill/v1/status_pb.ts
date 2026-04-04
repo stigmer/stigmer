@@ -94,7 +94,7 @@ export const SkillStatusSchema: GenMessage<SkillStatus> = /*@__PURE__*/
  */
 export type GitProvenance = Message<"ai.stigmer.agentic.skill.v1.GitProvenance"> & {
   /**
-   * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+   * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
    *
    * @internal
    * For local push: detected "origin" remote URL.

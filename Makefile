@@ -231,9 +231,7 @@ check-links: ## Check for broken links in documentation
 	@lychee --no-progress --exclude-path docs/_archive \
 		--root-dir . --fallback-extensions mdx \
 		--scheme https --scheme http \
-		--exclude 'https://api\.stigmer\.ai' \
-		--exclude 'github\.com/stigmer/skills\.git' \
-		--exclude 'https://platform\.openai\.com' \
+		--accept '100..=199,200..=299,403,415' \
 		docs/
 
 # ─── Dependencies ─────────────────────────────

@@ -729,6 +729,19 @@ McpServerStatus represents the system-managed state of an MCP server definition.
   }}
 />
 
+### DiscoveredCapabilities
+
+DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
+
+<TypeTable
+  type={{
+    tools: { type: "DiscoveredTool[]", description: "Callable tools reported by the MCP server.", typeDescriptionLink: "#discoveredtool" },
+    resourceTemplates: { type: "DiscoveredResourceTemplate[]", description: "Read-only data endpoints reported by the MCP server.", typeDescriptionLink: "#discoveredresourcetemplate" },
+    lastDiscoveredAt: { type: "string", description: "When this snapshot was captured." },
+    discoveredBy: { type: "DiscoverySource", description: "How this snapshot was produced.", typeDescriptionLink: "#discoverysource" },
+  }}
+/>
+
 ### DiscoveredTool
 
 DiscoveredTool describes a single tool reported by an MCP server.
@@ -751,19 +764,6 @@ DiscoveredResourceTemplate describes a parameterized resource template reported 
     name: { type: "string", description: "Identifier for this resource template." },
     description: { type: "string", description: "Human-readable description of the resource." },
     mimeType: { type: "string", description: "MIME type of the resource content." },
-  }}
-/>
-
-### DiscoveredCapabilities
-
-DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
-
-<TypeTable
-  type={{
-    tools: { type: "DiscoveredTool[]", description: "Callable tools reported by the MCP server.", typeDescriptionLink: "#discoveredtool" },
-    resourceTemplates: { type: "DiscoveredResourceTemplate[]", description: "Read-only data endpoints reported by the MCP server.", typeDescriptionLink: "#discoveredresourcetemplate" },
-    lastDiscoveredAt: { type: "string", description: "When this snapshot was captured." },
-    discoveredBy: { type: "DiscoverySource", description: "How this snapshot was produced.", typeDescriptionLink: "#discoverysource" },
   }}
 />
 

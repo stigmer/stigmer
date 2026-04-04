@@ -63,7 +63,7 @@ enum SkillState {
 // - Local push: auto-detected from directory's git context
 // - Git push: resolved from user-provided URL/ref
 message GitProvenance {
-  // Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+  // Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
   //
   // @internal
   // For local push: detected "origin" remote URL.

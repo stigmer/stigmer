@@ -188,7 +188,7 @@ func (x *SkillStatus) GetGitProvenance() *GitProvenance {
 // - Git push: resolved from user-provided URL/ref
 type GitProvenance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+	// Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
 	//
 	// @internal
 	// For local push: detected "origin" remote URL.

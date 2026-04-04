@@ -107,7 +107,7 @@ export type Git = Message<"ai.stigmer.agentic.skill.v1.Git"> & {
   /**
    * Git repository URL (HTTPS or SSH).
    * CLI uses locally configured git credentials for authentication.
-   * Examples: "https://github.com/stigmer/skills.git", "git@github.com:stigmer/skills.git"
+   * Examples: "https://github.com/stigmer/stigmer.git", "git@github.com:stigmer/stigmer.git"
    *
    * @generated from field: string url = 1;
    */
