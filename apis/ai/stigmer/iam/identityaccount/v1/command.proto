@@ -23,6 +23,9 @@ service IdentityAccountCommandController {
   }
 
   // Update an existing identity account.
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the identity account resource.
   rpc update(IdentityAccount) returns (IdentityAccount) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
@@ -31,6 +34,9 @@ service IdentityAccountCommandController {
   }
 
   // Delete an identity account.
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the identity account resource.
   rpc delete(IdentityAccountId) returns (IdentityAccount) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
@@ -38,11 +44,12 @@ service IdentityAccountCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete identity account";
   }
 
-  // Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+  // Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
   //
   // @internal
   // Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
   // to Stigmer with the Auth0 payload format to trigger account provisioning.
+  // Authorization is skipped — this is a system-level operation.
   rpc simulateSignupWebhook(IdentityAccountEmail) returns (google.protobuf.Empty) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }

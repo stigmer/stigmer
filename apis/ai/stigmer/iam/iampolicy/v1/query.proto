@@ -12,6 +12,11 @@ service IamPolicyQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = iam_policy;
 
   // Get an IAM policy by its unique identifier.
+  //
+  // Returns the full IAM policy including its principal, resource, and relation binding.
+  //
+  // @internal
+  // Authorization: Requires can_view_access permission.
   rpc get(IamPolicyId) returns (IamPolicy) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view_access;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view access policies";

@@ -16,7 +16,8 @@ import "buf/validate/validate.proto";
 
 // WorkflowInstance represents a configured deployment of a Workflow template.
 //
-// WorkflowInstance is the "Instance" layer in the Template→Instance→Execution pattern.
+// @internal
+// This is the "Instance" layer in the Template→Instance→Execution pattern.
 // It binds a reusable Workflow template to specific environments containing credentials,
 // configuration, and secrets needed for execution.
 //
@@ -36,29 +37,21 @@ import "buf/validate/validate.proto";
 // - Executions to track individual runs with results
 message WorkflowInstance {
   // API version for this resource type.
-  // Format: 'agentic.stigmer.ai/v1'
-  // Validated as const to ensure version consistency.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
 
   // Resource kind identifier.
-  // Must be exactly 'WorkflowInstance' to match the message name.
-  // Validated as const for type safety.
   string kind = 2 [(buf.validate.field).string.const = 'WorkflowInstance'];
 
-  // Standard resource metadata including name, id, slug, labels, tags, and annotations.
-  // WorkflowInstances belong to an organization. Visibility controls access:
-  // - PUBLIC: Shared templates accessible to all users
-  // - PRIVATE: Organization-internal instances
+  // Resource metadata including name, organization, visibility, and labels.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
-  // User-provided configuration for this workflow instance.
-  // Defines which Workflow template to use and which Environments provide configuration/secrets.
-  // See WorkflowInstanceSpec for detailed field documentation.
+  // Configurable properties: workflow reference, description, and environment bindings.
   WorkflowInstanceSpec spec = 4;
 
-  // System-managed status and audit information.
-  // Contains creation/update timestamps, version number, and other audit metadata.
-  // This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-  // Execution state is tracked in WorkflowExecution resources.
+  // System-managed audit information.
+  //
+  // @internal
+  // This is a simple status (no custom execution state) since WorkflowInstance
+  // is configuration only. Execution state is tracked in WorkflowExecution resources.
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
 }

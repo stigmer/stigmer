@@ -42,6 +42,6 @@ message IdentityProvider {
   // User-provided identity provider configuration (desired state).
   IdentityProviderSpec spec = 4;
 
-  //status
+  // System-managed state including audit trail.
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
 }

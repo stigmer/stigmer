@@ -8,28 +8,36 @@ import "ai/stigmer/iam/apikey/v1/spec.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
-// api-key for user-account or machine-account
+// ApiKey provides programmatic access to the Stigmer API on behalf of an identity account.
+//
+// Each API key is scoped to a single identity account (user or machine) and
+// can optionally be configured to expire.
+//
+// @internal
+// The raw key value is returned only once in the create response. Only the
+// hash and fingerprint are persisted.
 message ApiKey {
-  //api-version
+  // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
 
-  //resource-kind
+  // Resource kind identifier.
   string kind = 2 [(buf.validate.field).string.const = 'ApiKey'];
 
-  // metadata
+  // Resource metadata including name, organization, and labels.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
 
-  //spec
+  // Configurable properties: key hash, fingerprint, and expiration settings.
   ApiKeySpec spec = 4;
 
-  //status
+  // System-managed state including audit trail and last-used timestamp.
   ApiKeyStatus status = 5;
 }
 
+// ApiKeyStatus contains system-managed state for an API key.
 message ApiKeyStatus {
-  // audit
+  // Standard audit information (created_at, updated_at, created_by, etc.).
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
-  //last used timestamp for the api-key
+  // Timestamp of the most recent API call made with this key.
   google.protobuf.Timestamp last_used_at = 1;
 }
