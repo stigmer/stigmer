@@ -9,11 +9,14 @@ import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 
-// EnvironmentQueryController provides read operations for Environment resources.
+// EnvironmentQueryController handles read operations for environments.
 service EnvironmentQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = environment;
 
-  // Get an Environment by ID.
+  // Get an environment by ID.
+  //
+  // @internal
+  // Authorization: requires can_view permission on the environment resource.
   rpc get(ai.stigmer.commons.apiresource.ApiResourceId) returns (Environment) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = environment;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
@@ -22,19 +25,20 @@ service EnvironmentQueryController {
   }
 
   // Get an environment by its organization-scoped reference (org/slug).
+  // Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
   //
   // @internal
-  // Custom authorization in handler.
+  // Custom authorization in handler — checks both direct resource access
+  // and organization-level visibility permissions.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Environment) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
   // Get the unredacted value of a single secret key in an environment.
-  // Creator-only: requires can_read_secrets permission.
-  // Returns the EnvironmentValue with the decrypted value.
+  // Returns the EnvironmentValue with the decrypted value for exactly one key.
   //
   // @internal
-  // FGA authorization: creator relation grants can_read_secrets.
+  // Creator-only: FGA authorization grants can_read_secrets via the creator relation.
   rpc getSecretValue(EnvironmentSecretValueInput) returns (EnvironmentValue) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = environment;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_read_secrets;

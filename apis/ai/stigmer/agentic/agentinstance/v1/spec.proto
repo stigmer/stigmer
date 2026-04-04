@@ -5,17 +5,21 @@ package ai.stigmer.agentic.agentinstance.v1;
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
 
-// AgentInstanceSpec defines a configured deployment of an Agent template.
-// This is the "Instance" layer - stateful configuration with secrets.
+// AgentInstanceSpec defines the configurable properties of an agent instance.
+//
+// @internal
+// This is the "Instance" layer — stateful configuration with secrets.
+// The overview.md file provides the SDK-facing description and example YAML.
 message AgentInstanceSpec {
-  // Reference to the Agent template this instance deploys.
+  // Identifier of the Agent template this instance deploys.
   string agent_id = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Human-readable description for this instance.
-  // Example: "Production GitHub bot for main repo"
+  // Human-readable description for UI and API display.
   string description = 2;
 
-  // References to Environment resources (can be multiple).
+  // References to Environment resources providing secrets and configuration at runtime.
+  //
+  // @internal
   // Environments are merged in order: later environments override earlier ones.
   // Example: [base-env, aws-prod-env, github-team-env]
   // This allows layering of configurations (base → specific overrides).

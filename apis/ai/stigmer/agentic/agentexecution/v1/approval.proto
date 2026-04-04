@@ -8,25 +8,21 @@ package ai.stigmer.agentic.agentexecution.v1;
 // These types support the approval flow for tool execution requiring user consent.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// PendingApproval is a UI-facing projection computed server-side from tool
-// call state in messages.
+// A pending approval request for a tool call that requires user consent before execution.
 //
-// ## How It Works
+// Each entry represents one tool call waiting for a user decision (approve, skip,
+// or reject). Sub-agent approvals are included with from_sub_agent set to true
+// and sub_agent_name identifying the origin.
 //
-// The Go/Java UpdateStatus handlers recompute this projection on every write
-// by scanning messages[].tool_calls (and sub_agent_executions[].messages[].tool_calls),
+// @internal
+//
+// Computed server-side by the UpdateStatus handlers on every write. The handler
+// scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,
 // collecting entries where status == WAITING_APPROVAL && requires_approval == true.
 // Because the list is recomputed rather than merged, it is always consistent
 // with the authoritative tool call state embedded in messages.
 //
-// ## Sub-Agent Approvals
-//
-// When a sub-agent's tool requires approval, the computed projection includes
-// it with from_sub_agent=true and sub_agent_name set. This allows UI to show:
-// "Sub-agent 'code-reviewer' needs approval to execute 'delete_file'"
-//
-// ## Lifecycle
-//
+// Lifecycle:
 // 1. Tool with requires_approval=true is about to execute
 // 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
 // 3. Server recomputes pending_approvals, entry appears
@@ -102,15 +98,15 @@ message PendingApproval {
 // Carries ALL pending approvals from a single child agent in one signal.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ChildApprovalNotification is the signal payload sent to parent workflows
-// when a child agent enters WAITING_FOR_APPROVAL state.
+// Notification sent to a parent workflow when a child agent needs tool approval.
 //
-// This enables events-based notification instead of polling, providing
-// sub-100ms latency for approval state propagation from child agents to
-// parent workflows.
+// Contains all pending approvals from a single child agent execution,
+// enabling the parent workflow to surface approval requests to users
+// without polling.
 //
-// ## Signal Flow
+// @internal
 //
+// Signal Flow:
 // 1. Child agent requires tool approval (phase = WAITING_FOR_APPROVAL)
 // 2. Java workflow detects this and builds ChildApprovalNotification
 // 3. Java sends Temporal signal "child_approval_required" to parent workflow
@@ -118,15 +114,7 @@ message PendingApproval {
 // 5. Parent updates task status to WORKFLOW_TASK_WAITING_APPROVAL
 // 6. Parent populates WorkflowExecution.status.pending_approvals
 //
-// ## Parent Workflow Actions
-//
-// Upon receiving this signal, the parent workflow should:
-// 1. Update its task status to WORKFLOW_TASK_WAITING_APPROVAL
-// 2. Populate WorkflowExecution.status.pending_approvals with all entries
-// 3. Surface the approval requests to users via UI/API
-//
-// ## Graceful Degradation
-//
+// Graceful Degradation:
 // If the signal fails to send (parent workflow completed, network error),
 // the system continues to function. Users can still submit approvals directly
 // via the AgentExecution.SubmitApproval RPC.
