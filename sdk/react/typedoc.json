@@ -7,5 +7,18 @@
   "pretty": true,
   "excludeInternal": true,
   "excludeExternals": true,
-  "readme": "none"
+  "readme": "none",
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": true,
+    "unusedMergeModuleWith": true
+  },
+  "requiredToBeDocumented": [
+    "Variable",
+    "Function",
+    "Interface",
+    "Property",
+    "TypeAlias"
+  ]
 }
