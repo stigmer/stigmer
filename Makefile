@@ -78,7 +78,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build protos codegen gen-sdk-docs gen-sdk-docs-check
+.PHONY: build protos codegen gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check
 build: ## Build the Stigmer CLI binary
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -93,11 +93,19 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/java codegen
 	$(MAKE) gen-sdk-docs
 
-gen-sdk-docs: ## Generate SDK reference docs from proto schemas
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs ## Generate all SDK reference docs
+
+gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
 
-gen-sdk-docs-check: ## Verify SDK docs are up to date (CI, no writes)
+gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
+	cd sdk/react && npm run typedoc:json
+	cd site && yarn generate-react-sdk-docs
+
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check ## Verify all SDK docs are up to date (CI)
+
+gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" --apis-dir apis && \
@@ -109,9 +117,20 @@ gen-sdk-docs-check: ## Verify SDK docs are up to date (CI, no writes)
 	done; \
 	rm -rf "$$tmpdir"; \
 	if [ $$rc -ne 0 ]; then \
-		echo "error: SDK docs are stale — run 'make gen-sdk-docs'"; exit 1; \
+		echo "error: proto SDK docs are stale — run 'make gen-proto-sdk-docs'"; exit 1; \
 	fi; \
-	echo "✓ SDK docs are up to date"
+	echo "✓ Proto SDK docs are up to date"
+
+gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
+	@tmpdir=$$(mktemp -d) && \
+	(cd sdk/react && npm run typedoc:json) && \
+	(cd site && REACT_SDK_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-react-sdk-docs) && \
+	diff -rq "$$tmpdir" docs/sdk/react/ > /dev/null 2>&1; \
+	rc=$$?; rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: React SDK docs are stale — run 'make gen-react-sdk-docs'"; exit 1; \
+	fi; \
+	echo "✓ React SDK docs are up to date"
 
 codegen: protos ## Regenerate all derived code
 
