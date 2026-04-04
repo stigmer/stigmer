@@ -142,7 +142,8 @@ mutations, and components for rendering UI.
 
 The table above excludes the core exports documented in earlier sections
 (`StigmerProvider`, `useStigmer`, deployment mode hooks, and
-`CloudFeatureNotice`).
+`CloudFeatureNotice`). For full type signatures and props, see
+[Core](/docs/sdk/react/core).
 
 Each domain page documents every public hook signature, component props table,
 and type definition for that domain.
@@ -151,18 +152,18 @@ and type definition for that domain.
 
 <Cards>
   <Card
-    title="Streaming"
-    description="Consume real-time execution updates as they arrive."
-    href="/docs/sdk/streaming"
-  />
-  <Card
-    title="Agent Execution"
-    description="Full method and type reference for Agent Executions."
-    href="/docs/sdk/resources/agent-execution"
-  />
-  <Card
     title="Session"
-    description="Full method and type reference for Sessions."
-    href="/docs/sdk/resources/session"
+    description="Hooks for conversation lifecycle, message history, and usage."
+    href="/docs/sdk/react/session"
+  />
+  <Card
+    title="Execution"
+    description="Stream tool calls, approvals, and messages in real time."
+    href="/docs/sdk/react/execution"
+  />
+  <Card
+    title="Agent"
+    description="Fetch agent definitions, search, and render detail views."
+    href="/docs/sdk/react/agent"
   />
 </Cards>
