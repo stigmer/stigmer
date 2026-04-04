@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Current Task**: T02 (TSDoc coverage audit + writing guidelines)
-**Status**: T01 COMPLETE, T02 next
+**Current Task**: T03 (MDX generator script) / T05 (TSDoc backfill) — can run in parallel
+**Status**: T01 COMPLETE, T02 COMPLETE, T03+T05 next
 
 ### T01 Results (TypeDoc setup + proof of concept)
 TypeDoc 0.28.18 is configured and producing JSON. Key findings:
@@ -112,6 +112,16 @@ TypeDoc 0.28.18 is configured and producing JSON. Key findings:
 - @example blocks present on 116 exports
 - Re-exported external types excluded (link to proto docs instead)
 - See tasks/T01_1_execution.md for full analysis
+
+### T02 Results (TSDoc coverage audit + writing guidelines)
+Comprehensive audit completed. Key findings:
+- The gap is entirely in interfaces: Props at 1.8%, Return at 0.0%
+- Functions (hooks + components) are at 98.7% — essentially done
+- 150 undocumented exports: 116 mechanical (one-liner), 22 light authoring, 12 minor
+- 48 interfaces have <50% field-level coverage
+- Created reusable `tsdoc-coverage` script, TSDoc writing guidelines, TypeDoc validation
+- Prioritized 5 domains for T05: session, execution, agent, composer, core
+- See tasks/T02_1_execution.md for full audit data
 
 ### Context from Parent T06
 The hand-written React SDK overview page (`docs/sdk/react.mdx`) is complete.
