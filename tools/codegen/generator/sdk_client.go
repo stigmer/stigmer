@@ -51,9 +51,9 @@ type ServiceSchemaFile struct {
 	ListVia             string              `json:"listVia,omitempty"`
 	MethodTypes         []MethodTypeSchema  `json:"methodTypes,omitempty"`
 	EnumTypes           []EnumSchema        `json:"enumTypes,omitempty"`
-	ResourceDescription  string              `json:"resourceDescription,omitempty"`
-	StatusType           *MethodTypeSchema   `json:"statusType,omitempty"`
-	StatusNestedTypes    []MethodTypeSchema  `json:"statusNestedTypes,omitempty"`
+	ResourceDescription string              `json:"resourceDescription,omitempty"`
+	StatusType          *MethodTypeSchema   `json:"statusType,omitempty"`
+	StatusNestedTypes   []MethodTypeSchema  `json:"statusNestedTypes,omitempty"`
 }
 
 type ServiceDefinition struct {
