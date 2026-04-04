@@ -8,9 +8,6 @@ package ai.stigmer.agentic.workflowinstance.v1;
 /**
  * <pre>
  * WorkflowInstanceList contains a paginated list of workflow instances.
- *
- * Returned by list and query operations. Includes pagination metadata
- * to support iterating through large result sets.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList}
@@ -60,12 +57,7 @@ private static final long serialVersionUID = 0L;
   private int totalPages_ = 0;
   /**
    * <pre>
-   * Total number of pages available in the full result set.
-   *
-   * Use this to determine if there are more pages to fetch.
-   * If total_pages &gt; current_page, more results are available.
-   *
-   * Example: If total_pages = 5, you can fetch up to 5 pages of results.
+   * Total number of pages in the result set.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -82,14 +74,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow instances in the current page.
-   *
-   * The number of entries is controlled by the page_size parameter
-   * in the request. May be fewer than page_size on the last page.
-   *
-   * Each entry is a complete WorkflowInstance resource with:
-   * - api_version, kind, metadata
-   * - spec (workflow_id, description, environment_refs)
-   * - status (audit information)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -101,14 +85,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow instances in the current page.
-   *
-   * The number of entries is controlled by the page_size parameter
-   * in the request. May be fewer than page_size on the last page.
-   *
-   * Each entry is a complete WorkflowInstance resource with:
-   * - api_version, kind, metadata
-   * - spec (workflow_id, description, environment_refs)
-   * - status (audit information)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -121,14 +97,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow instances in the current page.
-   *
-   * The number of entries is controlled by the page_size parameter
-   * in the request. May be fewer than page_size on the last page.
-   *
-   * Each entry is a complete WorkflowInstance resource with:
-   * - api_version, kind, metadata
-   * - spec (workflow_id, description, environment_refs)
-   * - status (audit information)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -140,14 +108,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow instances in the current page.
-   *
-   * The number of entries is controlled by the page_size parameter
-   * in the request. May be fewer than page_size on the last page.
-   *
-   * Each entry is a complete WorkflowInstance resource with:
-   * - api_version, kind, metadata
-   * - spec (workflow_id, description, environment_refs)
-   * - status (audit information)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -159,14 +119,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow instances in the current page.
-   *
-   * The number of entries is controlled by the page_size parameter
-   * in the request. May be fewer than page_size on the last page.
-   *
-   * Each entry is a complete WorkflowInstance resource with:
-   * - api_version, kind, metadata
-   * - spec (workflow_id, description, environment_refs)
-   * - status (audit information)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -355,9 +307,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowInstanceList contains a paginated list of workflow instances.
-   *
-   * Returned by list and query operations. Includes pagination metadata
-   * to support iterating through large result sets.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList}
@@ -557,12 +506,7 @@ private static final long serialVersionUID = 0L;
     private int totalPages_ ;
     /**
      * <pre>
-     * Total number of pages available in the full result set.
-     *
-     * Use this to determine if there are more pages to fetch.
-     * If total_pages &gt; current_page, more results are available.
-     *
-     * Example: If total_pages = 5, you can fetch up to 5 pages of results.
+     * Total number of pages in the result set.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -574,12 +518,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of pages available in the full result set.
-     *
-     * Use this to determine if there are more pages to fetch.
-     * If total_pages &gt; current_page, more results are available.
-     *
-     * Example: If total_pages = 5, you can fetch up to 5 pages of results.
+     * Total number of pages in the result set.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -595,12 +534,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of pages available in the full result set.
-     *
-     * Use this to determine if there are more pages to fetch.
-     * If total_pages &gt; current_page, more results are available.
-     *
-     * Example: If total_pages = 5, you can fetch up to 5 pages of results.
+     * Total number of pages in the result set.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -628,14 +562,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -650,14 +576,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -672,14 +590,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -694,14 +604,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -723,14 +625,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -749,14 +643,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -777,14 +663,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -806,14 +684,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -832,14 +702,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -858,14 +720,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -885,14 +739,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -910,14 +756,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -935,14 +773,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -954,14 +784,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -976,14 +798,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -999,14 +813,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -1018,14 +824,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>
@@ -1038,14 +836,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow instances in the current page.
-     *
-     * The number of entries is controlled by the page_size parameter
-     * in the request. May be fewer than page_size on the last page.
-     *
-     * Each entry is a complete WorkflowInstance resource with:
-     * - api_version, kind, metadata
-     * - spec (workflow_id, description, environment_refs)
-     * - status (audit information)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2 [json_name = "entries"];</code>

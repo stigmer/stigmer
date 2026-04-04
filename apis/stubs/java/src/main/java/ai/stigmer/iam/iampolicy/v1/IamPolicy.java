@@ -67,7 +67,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object apiVersion_ = "";
   /**
    * <pre>
-   * api-version
+   * API version for this resource type.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -88,7 +88,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * api-version
+   * API version for this resource type.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -114,7 +114,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object kind_ = "";
   /**
    * <pre>
-   * resource-kind
+   * Resource kind identifier.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -135,7 +135,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * resource-kind
+   * Resource kind identifier.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -160,7 +160,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
+   *
+   * &#64;internal
    * id format: iamp_&lt;ulid&gt;
    * name: human-readable identifier (e.g., "john-vpc-admin")
    * org: organization this policy belongs to
@@ -175,7 +177,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
+   *
+   * &#64;internal
    * id format: iamp_&lt;ulid&gt;
    * name: human-readable identifier (e.g., "john-vpc-admin")
    * org: organization this policy belongs to
@@ -190,7 +194,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
+   *
+   * &#64;internal
    * id format: iamp_&lt;ulid&gt;
    * name: human-readable identifier (e.g., "john-vpc-admin")
    * org: organization this policy belongs to
@@ -207,7 +213,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec_;
   /**
    * <pre>
-   * spec
+   * Policy binding: principal, resource, and relation.
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -219,7 +225,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * spec
+   * Policy binding: principal, resource, and relation.
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -231,7 +237,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * spec
+   * Policy binding: principal, resource, and relation.
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -245,7 +251,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status_;
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -257,7 +263,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -269,7 +275,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -732,7 +738,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object apiVersion_ = "";
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -752,7 +758,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -773,7 +779,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -790,7 +796,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -804,7 +810,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -824,7 +830,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object kind_ = "";
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -844,7 +850,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -865,7 +871,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -882,7 +888,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -896,7 +902,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -918,7 +924,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -932,7 +940,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -950,7 +960,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -973,7 +985,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -994,7 +1008,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -1022,7 +1038,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -1042,7 +1060,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -1057,7 +1077,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -1075,7 +1097,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
+     *
+     * &#64;internal
      * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
@@ -1102,7 +1126,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.iam.iampolicy.v1.IamPolicySpec, ai.stigmer.iam.iampolicy.v1.IamPolicySpec.Builder, ai.stigmer.iam.iampolicy.v1.IamPolicySpecOrBuilder> specBuilder_;
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1113,7 +1137,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1128,7 +1152,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1148,7 +1172,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1166,7 +1190,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1191,7 +1215,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1208,7 +1232,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1220,7 +1244,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1235,7 +1259,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Policy binding: principal, resource, and relation.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4 [json_name = "spec"];</code>
@@ -1259,7 +1283,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.iam.iampolicy.v1.IamPolicyStatus, ai.stigmer.iam.iampolicy.v1.IamPolicyStatus.Builder, ai.stigmer.iam.iampolicy.v1.IamPolicyStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -1270,7 +1294,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -1285,7 +1309,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -1305,7 +1329,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -1323,7 +1347,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -1348,7 +1372,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -1365,7 +1389,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -1377,7 +1401,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>
@@ -1392,7 +1416,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5 [json_name = "status"];</code>

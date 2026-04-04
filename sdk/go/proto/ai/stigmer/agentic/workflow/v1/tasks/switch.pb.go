@@ -23,10 +23,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// SwitchTaskConfig defines the configuration for SWITCH tasks.
+// SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.
 //
-// SWITCH tasks provide conditional branching based on expressions.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //     switch:

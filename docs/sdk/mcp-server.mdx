@@ -709,7 +709,7 @@ McpServer represents a reusable MCP (Model Context Protocol) server configuratio
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "McpServerInput", description: "Resource specification. See [`McpServerInput`](#mcpserverinput).", typeDescriptionLink: "#mcpserverinput" },
     status: { type: "McpServerStatus", description: "System-managed state. See [`McpServerStatus`](#mcpserverstatus).", typeDescriptionLink: "#mcpserverstatus" },

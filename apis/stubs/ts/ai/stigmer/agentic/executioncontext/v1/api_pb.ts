@@ -20,9 +20,11 @@ export const file_ai_stigmer_agentic_executioncontext_v1_api: GenFile = /*@__PUR
   fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9hcGkucHJvdG8SJmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxIs8CChBFeGVjdXRpb25Db250ZXh0EjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiUKBGtpbmQYAiABKAlCF7pIFHISChBFeGVjdXRpb25Db250ZXh0Ek0KCG1ldGFkYXRhGAMgASgLMjMuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFCBrpIA8gBARJKCgRzcGVjGAQgASgLMjwuYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dFNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
- * ExecutionContext represents ephemeral runtime configuration and secrets.
- * Created during execution, deleted when execution completes.
- * Used for B2B scenarios where secrets are injected at runtime (e.g., Plant & Cloud).
+ * Ephemeral runtime configuration and secrets scoped to a single execution.
+ *
+ * @internal
+ * Created by the execution engine at start, deleted when execution completes.
+ * Used for B2B scenarios where secrets are injected at runtime.
  *
  * @generated from message ai.stigmer.agentic.executioncontext.v1.ExecutionContext
  */
@@ -42,22 +44,21 @@ export type ExecutionContext = Message<"ai.stigmer.agentic.executioncontext.v1.E
   kind: string;
 
   /**
-   * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+   * Resource metadata including name, organization, and labels.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;
 
   /**
-   * ExecutionContext-specific configuration.
+   * Configuration including the parent execution ID and runtime key-value data.
    *
    * @generated from field: ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4;
    */
   spec?: ExecutionContextSpec;
 
   /**
-   * System-managed status containing audit information.
+   * System-managed audit status.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
    */

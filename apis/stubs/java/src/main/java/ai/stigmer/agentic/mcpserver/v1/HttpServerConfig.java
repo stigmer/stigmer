@@ -8,13 +8,13 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
- * Used for remote/managed MCP services that expose an HTTP endpoint.
  *
+ * &#64;internal
  * Communication flow:
  * 1. Agent sends JSON-RPC requests via HTTP POST
  * 2. Server streams responses via Server-Sent Events (SSE)
  *
- * This is useful for:
+ * Use cases:
  * - Managed MCP services (e.g., hosted by a cloud provider)
  * - MCP servers behind a reverse proxy or API gateway
  * - Sharing a single MCP server instance across multiple agents
@@ -612,13 +612,13 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
-   * Used for remote/managed MCP services that expose an HTTP endpoint.
    *
+   * &#64;internal
    * Communication flow:
    * 1. Agent sends JSON-RPC requests via HTTP POST
    * 2. Server streams responses via Server-Sent Events (SSE)
    *
-   * This is useful for:
+   * Use cases:
    * - Managed MCP services (e.g., hosted by a cloud provider)
    * - MCP servers behind a reverse proxy or API gateway
    * - Sharing a single MCP server instance across multiple agents

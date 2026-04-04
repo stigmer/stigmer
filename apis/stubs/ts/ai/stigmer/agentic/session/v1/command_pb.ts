@@ -25,6 +25,8 @@ export const file_ai_stigmer_agentic_session_v1_command: GenFile = /*@__PURE__*/
 export const SessionCommandController: GenService<{
   /**
    * Create or update a session.
+   *
+   * @internal
    * The authorization and state-operation are determined depending on whether the session
    * is going to be created or updated which is determined as part of the request execution.
    *
@@ -36,7 +38,9 @@ export const SessionCommandController: GenService<{
     output: typeof SessionSchema;
   },
   /**
-   * Create a new session for an agent.
+   * Create a session.
+   *
+   * @internal
    * Requires can_create_session permission in the organization.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.create

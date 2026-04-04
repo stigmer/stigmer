@@ -18,8 +18,9 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_spec: GenFile = /*@__PU
   fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MSKQAgoUV29ya2Zsb3dJbnN0YW5jZVNwZWMSHAoLd29ya2Zsb3dfaWQYASABKAlCB7pIBHICEAESEwoLZGVzY3JpcHRpb24YAiABKAkSxAEKEGVudmlyb25tZW50X3JlZnMYAyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCdLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUzYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
- * WorkflowInstanceSpec defines the user-configurable properties for a WorkflowInstance.
+ * WorkflowInstanceSpec defines the configurable properties of a workflow instance.
  *
+ * @internal
  * This is the "Instance" layer in the Template→Instance→Execution pattern.
  * It provides stateful configuration with environment bindings and secrets.
  *
@@ -39,48 +40,34 @@ export type WorkflowInstanceSpec = Message<"ai.stigmer.agentic.workflowinstance.
   /**
    * Reference to the Workflow template this instance deploys.
    *
+   * @internal
    * This links the instance to a reusable orchestration blueprint.
    * The Workflow defines which AgentInstances to orchestrate and in what order.
-   *
    * Format: Workflow resource ID (e.g., "wfl_abc123")
    * Validation: Minimum length of 1 character (required field)
-   *
-   * Example: "wfl_abc123" (references a Workflow named "deploy-to-cloud")
    *
    * @generated from field: string workflow_id = 1;
    */
   workflowId: string;
 
   /**
-   * Human-readable description explaining what this instance is for.
-   *
-   * Use this to document:
-   * - Purpose of this instance
-   * - Environment it targets (dev, staging, prod)
-   * - Team or project ownership
-   * - Special configuration notes
-   *
-   * Examples:
-   * - "Production CI/CD pipeline for main branch"
-   * - "Staging environment deployment for feature testing"
-   * - "Data pipeline for analytics team - runs daily at midnight"
-   * - "Customer onboarding workflow for ACME Corp"
+   * Human-readable description of this workflow instance.
    *
    * @generated from field: string description = 2;
    */
   description: string;
 
   /**
-   * References to Environment resources providing configuration and secrets.
+   * Ordered list of Environment resources providing configuration and secrets.
    *
+   * Environments are merged in declaration order — later entries override
+   * earlier ones when keys conflict.
+   *
+   * @internal
    * Environments are layered configuration containers that provide:
    * - Environment variables (API keys, endpoints, flags)
    * - Secrets (credentials, tokens, passwords)
    * - Configuration values (timeouts, limits, settings)
-   *
-   * Layering Behavior:
-   * Environments are merged in order - later environments override earlier ones.
-   * This enables a base + overrides pattern:
    *
    * Example layering:
    *   [base-env, aws-prod-env, github-team-env]

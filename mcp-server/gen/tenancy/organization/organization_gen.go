@@ -9,8 +9,9 @@ import (
 	organizationv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/tenancy/organization/v1"
 )
 
-// OrganizationSpec defines the configuration for an organization.
+// OrganizationSpec defines the configurable properties of an organization.
 //
+//	@internal
 //	Organizations are the top-level container for all Stigmer resources.
 //	Similar to GitHub organizations, all agents, workflows, and other resources
 //	are scoped under an organization.
@@ -28,18 +29,18 @@ type OrganizationInput struct {
 	// Tags for categorization and discovery.
 	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
-	// description for the organization
-	Description string `json:"description,omitempty" jsonschema:"description for the organization"`
-	// public url for the organization logo (optional)
-	LogoUrl string `json:"logo_url,omitempty" jsonschema:"public url for the organization logo (optional)"`
-	// How this organization is operated. Immutable after creation. - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API. - platform_managed: Created programmatically by an external platform via an IdentityProvider.
-	ManagementMode string `json:"management_mode,omitempty" jsonschema:"How this organization is operated. Immutable after creation. - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API. - platform_managed: Created programmatically by an external platform via an IdentityProvider. Allowed values: self_managed, platform_managed."`
-	// Reference to the IdentityProvider that authenticates requests for this organization. Required when management_mode is platform_managed; must be empty for self_managed. The referenced IdentityProvider must exist and be active at creation time. Immutable after creation.
-	IdentityProviderRef *ApiResourceReferenceInput `json:"identity_provider_ref,omitempty" jsonschema:"Reference to the IdentityProvider that authenticates requests for this organization. Required when management_mode is platform_managed; must be empty for self_managed. The referenced IdentityProvider must exist and be active at creation time. Immutable after creation."`
-	// External platform's organization identifier for reverse mapping. Set only for platform_managed organizations. Stores the integrating platform's own org ID so the platform can look up the corresponding Stigmer org even if the Stigmer slug differs from the platform's original slug due to availability.
-	ExternalOrgId string `json:"external_org_id,omitempty" jsonschema:"External platform's organization identifier for reverse mapping. Set only for platform_managed organizations. Stores the integrating platform's own org ID so the platform can look up the corresponding Stigmer org even if the Stigmer slug differs from the platform's original slug due to availability."`
-	// Whether this is a personal organization, auto-created during identity provisioning. Personal orgs serve as the user's default workspace (like GitHub personal accounts). Immutable after creation. Set by the server — clients cannot set this to true.
-	IsPersonal bool `json:"is_personal,omitempty" jsonschema:"Whether this is a personal organization, auto-created during identity provisioning. Personal orgs serve as the user's default workspace (like GitHub personal accounts). Immutable after creation. Set by the server — clients cannot set this to true."`
+	// Human-readable description of the organization.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description of the organization."`
+	// Public URL for the organization logo.
+	LogoUrl string `json:"logo_url,omitempty" jsonschema:"Public URL for the organization logo."`
+	// How this organization is operated. @internal Immutable after creation. - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API. - platform_managed: Created programmatically by an external platform via an IdentityProvider.
+	ManagementMode string `json:"management_mode,omitempty" jsonschema:"How this organization is operated. @internal Immutable after creation. - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API. - platform_managed: Created programmatically by an external platform via an IdentityProvider. Allowed values: self_managed, platform_managed."`
+	// Reference to the IdentityProvider that authenticates requests for this organization. @internal Required when management_mode is platform_managed; must be empty for self_managed. The referenced IdentityProvider must exist and be active at creation time. Immutable after creation.
+	IdentityProviderRef *ApiResourceReferenceInput `json:"identity_provider_ref,omitempty" jsonschema:"Reference to the IdentityProvider that authenticates requests for this organization. @internal Required when management_mode is platform_managed; must be empty for self_managed. The referenced IdentityProvider must exist and be active at creation time. Immutable after creation."`
+	// External platform's organization identifier for reverse mapping. @internal Set only for platform_managed organizations. Stores the integrating platform's own org ID so the platform can look up the corresponding Stigmer org even if the Stigmer slug differs from the platform's original slug due to availability.
+	ExternalOrgId string `json:"external_org_id,omitempty" jsonschema:"External platform's organization identifier for reverse mapping. @internal Set only for platform_managed organizations. Stores the integrating platform's own org ID so the platform can look up the corresponding Stigmer org even if the Stigmer slug differs from the platform's original slug due to availability."`
+	// Whether this is a personal organization, auto-created during identity provisioning. @internal Personal orgs serve as the user's default workspace (like GitHub personal accounts). Immutable after creation. Set by the server — clients cannot set this to true.
+	IsPersonal bool `json:"is_personal,omitempty" jsonschema:"Whether this is a personal organization, auto-created during identity provisioning. @internal Personal orgs serve as the user's default workspace (like GitHub personal accounts). Immutable after creation. Set by the server — clients cannot set this to true."`
 }
 
 // Generic reference to any API resource by org and slug. Used across resources to reference other resources (e.g., Environment, Agent, Skill). Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").

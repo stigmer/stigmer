@@ -10,8 +10,8 @@ package ai.stigmer.search.v1;
  * SearchResponse contains paginated search results with metadata.
  *
  * The response includes:
- * - Matching resources as SearchResult projections
- * - Counts per kind for UI filtering/tabs
+ * - Matching resources as SearchResult summaries
+ * - Counts per kind for filtering
  * - Pagination metadata
  * </pre>
  *
@@ -81,8 +81,8 @@ private static final long serialVersionUID = 0L;
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -99,8 +99,8 @@ private static final long serialVersionUID = 0L;
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -118,8 +118,8 @@ private static final long serialVersionUID = 0L;
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -136,8 +136,8 @@ private static final long serialVersionUID = 0L;
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -154,8 +154,8 @@ private static final long serialVersionUID = 0L;
    * - With query: Sorted by relevance score (descending)
    * - Without query: Sorted by created_at (descending, newer first)
    *
-   * Each result is a display projection, not the full resource.
-   * To get the full resource, use the kind-specific get RPC.
+   * Each result is a summary, not the full resource.
+   * To get the full resource, call the get method for that resource kind.
    * </pre>
    *
    * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -536,8 +536,8 @@ private static final long serialVersionUID = 0L;
    * SearchResponse contains paginated search results with metadata.
    *
    * The response includes:
-   * - Matching resources as SearchResult projections
-   * - Counts per kind for UI filtering/tabs
+   * - Matching resources as SearchResult summaries
+   * - Counts per kind for filtering
    * - Pagination metadata
    * </pre>
    *
@@ -806,8 +806,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -827,8 +827,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -848,8 +848,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -869,8 +869,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -897,8 +897,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -922,8 +922,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -949,8 +949,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -977,8 +977,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1002,8 +1002,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1027,8 +1027,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1053,8 +1053,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1077,8 +1077,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1101,8 +1101,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1119,8 +1119,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1140,8 +1140,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1162,8 +1162,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1180,8 +1180,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>
@@ -1199,8 +1199,8 @@ private static final long serialVersionUID = 0L;
      * - With query: Sorted by relevance score (descending)
      * - Without query: Sorted by created_at (descending, newer first)
      *
-     * Each result is a display projection, not the full resource.
-     * To get the full resource, use the kind-specific get RPC.
+     * Each result is a summary, not the full resource.
+     * To get the full resource, call the get method for that resource kind.
      * </pre>
      *
      * <code>repeated .ai.stigmer.search.v1.SearchResult entries = 1 [json_name = "entries"];</code>

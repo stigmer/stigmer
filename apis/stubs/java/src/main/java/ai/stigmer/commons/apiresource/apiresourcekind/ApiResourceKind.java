@@ -7,7 +7,7 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
 
 /**
  * <pre>
- * API resource kinds for Stigmer
+ * API resource kinds for Stigmer.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind}
@@ -16,12 +16,16 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
 public enum ApiResourceKind
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value for unset or unrecognized resource kinds.
+   * </pre>
+   *
    * <code>api_resource_kind_unknown = 0;</code>
    */
   api_resource_kind_unknown(0),
   /**
    * <pre>
-   * Agentic - System-level audit trails and versioning
+   * Immutable version record tracking changes to an API resource.
    * </pre>
    *
    * <code>api_resource_version = 1 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -29,23 +33,31 @@ public enum ApiResourceKind
   api_resource_version(1),
   /**
    * <pre>
-   * IAM - Identity and Access Management
+   * Role-based access control policy for granting permissions on resources.
    * </pre>
    *
    * <code>iam_policy = 10 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   iam_policy(10),
   /**
+   * <pre>
+   * User account in the identity system.
+   * </pre>
+   *
    * <code>identity_account = 11 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   identity_account(11),
   /**
+   * <pre>
+   * Credential for programmatic API access.
+   * </pre>
+   *
    * <code>api_key = 12 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   api_key(12),
   /**
    * <pre>
-   * IAM - External identity provider configuration
+   * External identity provider for federated authentication.
    * </pre>
    *
    * <code>identity_provider = 21 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -53,71 +65,111 @@ public enum ApiResourceKind
   identity_provider(21),
   /**
    * <pre>
-   * Tenancy - Platform and organizational resources
+   * Top-level tenant that owns and manages resources.
    * </pre>
    *
    * <code>organization = 30 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   organization(30),
   /**
+   * <pre>
+   * Singleton platform instance representing the Stigmer deployment.
+   * </pre>
+   *
    * <code>platform = 31 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   platform(31),
   /**
    * <pre>
-   * Agentic - AI agent management
+   * AI assistant with instructions, tools, skills, and a delegation model.
    * </pre>
    *
    * <code>agent = 40 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   agent(40),
   /**
+   * <pre>
+   * Single run of an agent within a session, tracking tool calls and responses.
+   * </pre>
+   *
    * <code>agent_execution = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   agent_execution(41),
   /**
+   * <pre>
+   * Conversation thread between a user and an agent.
+   * </pre>
+   *
    * <code>session = 42 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   session(42),
   /**
+   * <pre>
+   * Knowledge resource that provides domain-specific context to an agent.
+   * </pre>
+   *
    * <code>skill = 43 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   skill(43),
   /**
+   * <pre>
+   * External tool server connected via the Model Context Protocol.
+   * </pre>
+   *
    * <code>mcp_server = 44 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   mcp_server(44),
   /**
+   * <pre>
+   * Configured deployment of an agent with environment-specific overrides.
+   * </pre>
+   *
    * <code>agent_instance = 45 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   agent_instance(45),
   /**
    * <pre>
-   * Agentic - Workflow orchestration
+   * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
    * <code>workflow = 50 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   workflow(50),
   /**
+   * <pre>
+   * Configured deployment of a workflow with environment-specific bindings.
+   * </pre>
+   *
    * <code>workflow_instance = 51 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   workflow_instance(51),
   /**
+   * <pre>
+   * Single run of a workflow instance, tracking step progress and outcomes.
+   * </pre>
+   *
    * <code>workflow_execution = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   workflow_execution(52),
   /**
+   * <pre>
+   * Named set of variables and secrets for agent and workflow execution.
+   * </pre>
+   *
    * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   environment(53),
   /**
+   * <pre>
+   * User-owned runtime context for managing execution state.
+   * </pre>
+   *
    * <code>execution_context = 54 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   execution_context(54),
   /**
    * <pre>
-   * Tenancy - Project management (aggregate root for resource lifecycle)
+   * Aggregate root grouping related resources for lifecycle management.
    * </pre>
    *
    * <code>project = 60 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -136,12 +188,16 @@ public enum ApiResourceKind
       "ApiResourceKind");
   }
   /**
+   * <pre>
+   * Default value for unset or unrecognized resource kinds.
+   * </pre>
+   *
    * <code>api_resource_kind_unknown = 0;</code>
    */
   public static final int api_resource_kind_unknown_VALUE = 0;
   /**
    * <pre>
-   * Agentic - System-level audit trails and versioning
+   * Immutable version record tracking changes to an API resource.
    * </pre>
    *
    * <code>api_resource_version = 1 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -149,23 +205,31 @@ public enum ApiResourceKind
   public static final int api_resource_version_VALUE = 1;
   /**
    * <pre>
-   * IAM - Identity and Access Management
+   * Role-based access control policy for granting permissions on resources.
    * </pre>
    *
    * <code>iam_policy = 10 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int iam_policy_VALUE = 10;
   /**
+   * <pre>
+   * User account in the identity system.
+   * </pre>
+   *
    * <code>identity_account = 11 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int identity_account_VALUE = 11;
   /**
+   * <pre>
+   * Credential for programmatic API access.
+   * </pre>
+   *
    * <code>api_key = 12 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int api_key_VALUE = 12;
   /**
    * <pre>
-   * IAM - External identity provider configuration
+   * External identity provider for federated authentication.
    * </pre>
    *
    * <code>identity_provider = 21 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -173,71 +237,111 @@ public enum ApiResourceKind
   public static final int identity_provider_VALUE = 21;
   /**
    * <pre>
-   * Tenancy - Platform and organizational resources
+   * Top-level tenant that owns and manages resources.
    * </pre>
    *
    * <code>organization = 30 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int organization_VALUE = 30;
   /**
+   * <pre>
+   * Singleton platform instance representing the Stigmer deployment.
+   * </pre>
+   *
    * <code>platform = 31 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int platform_VALUE = 31;
   /**
    * <pre>
-   * Agentic - AI agent management
+   * AI assistant with instructions, tools, skills, and a delegation model.
    * </pre>
    *
    * <code>agent = 40 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int agent_VALUE = 40;
   /**
+   * <pre>
+   * Single run of an agent within a session, tracking tool calls and responses.
+   * </pre>
+   *
    * <code>agent_execution = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int agent_execution_VALUE = 41;
   /**
+   * <pre>
+   * Conversation thread between a user and an agent.
+   * </pre>
+   *
    * <code>session = 42 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int session_VALUE = 42;
   /**
+   * <pre>
+   * Knowledge resource that provides domain-specific context to an agent.
+   * </pre>
+   *
    * <code>skill = 43 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int skill_VALUE = 43;
   /**
+   * <pre>
+   * External tool server connected via the Model Context Protocol.
+   * </pre>
+   *
    * <code>mcp_server = 44 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int mcp_server_VALUE = 44;
   /**
+   * <pre>
+   * Configured deployment of an agent with environment-specific overrides.
+   * </pre>
+   *
    * <code>agent_instance = 45 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int agent_instance_VALUE = 45;
   /**
    * <pre>
-   * Agentic - Workflow orchestration
+   * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
    * <code>workflow = 50 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int workflow_VALUE = 50;
   /**
+   * <pre>
+   * Configured deployment of a workflow with environment-specific bindings.
+   * </pre>
+   *
    * <code>workflow_instance = 51 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int workflow_instance_VALUE = 51;
   /**
+   * <pre>
+   * Single run of a workflow instance, tracking step progress and outcomes.
+   * </pre>
+   *
    * <code>workflow_execution = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int workflow_execution_VALUE = 52;
   /**
+   * <pre>
+   * Named set of variables and secrets for agent and workflow execution.
+   * </pre>
+   *
    * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int environment_VALUE = 53;
   /**
+   * <pre>
+   * User-owned runtime context for managing execution state.
+   * </pre>
+   *
    * <code>execution_context = 54 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int execution_context_VALUE = 54;
   /**
    * <pre>
-   * Tenancy - Project management (aggregate root for resource lifecycle)
+   * Aggregate root grouping related resources for lifecycle management.
    * </pre>
    *
    * <code>project = 60 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>

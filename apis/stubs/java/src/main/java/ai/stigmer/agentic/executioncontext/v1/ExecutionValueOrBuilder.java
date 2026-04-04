@@ -12,9 +12,11 @@ public interface ExecutionValueOrBuilder extends
 
   /**
    * <pre>
-   * The actual value.
-   * - If is_secret=true: This value is encrypted at rest and redacted in logs
-   * - If is_secret=false: This value is stored as plaintext
+   * String content of this entry.
+   *
+   * &#64;internal
+   * If is_secret=true: encrypted at rest and redacted in logs.
+   * If is_secret=false: stored as plaintext.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -23,9 +25,11 @@ public interface ExecutionValueOrBuilder extends
   java.lang.String getValue();
   /**
    * <pre>
-   * The actual value.
-   * - If is_secret=true: This value is encrypted at rest and redacted in logs
-   * - If is_secret=false: This value is stored as plaintext
+   * String content of this entry.
+   *
+   * &#64;internal
+   * If is_secret=true: encrypted at rest and redacted in logs.
+   * If is_secret=false: stored as plaintext.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -37,13 +41,11 @@ public interface ExecutionValueOrBuilder extends
   /**
    * <pre>
    * Whether this value should be treated as a secret.
-   * When true:
-   * - Value is encrypted at rest
-   * - Value is redacted in logs
-   * - Value is deleted when execution completes
-   * When false:
-   * - Value is stored as plaintext
-   * - Value is visible in audit logs
+   *
+   * &#64;internal
+   * When true: value is encrypted at rest, redacted in logs, and deleted
+   * when execution completes.
+   * When false: value is stored as plaintext and visible in audit logs.
    * </pre>
    *
    * <code>bool is_secret = 2 [json_name = "isSecret"];</code>

@@ -222,6 +222,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     default void update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -232,6 +234,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     default void delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -241,10 +245,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
      * to Stigmer with the Auth0 payload format to trigger account provisioning.
+     * Authorization is skipped — this is a system-level operation.
      * </pre>
      */
     default void simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -304,6 +309,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     public void update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -315,6 +322,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     public void delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -325,10 +334,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
      * to Stigmer with the Auth0 payload format to trigger account provisioning.
+     * Authorization is skipped — this is a system-level operation.
      * </pre>
      */
     public void simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -374,6 +384,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) throws io.grpc.StatusException {
@@ -384,6 +396,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) throws io.grpc.StatusException {
@@ -393,10 +407,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
      * to Stigmer with the Auth0 payload format to trigger account provisioning.
+     * Authorization is skipped — this is a system-level operation.
      * </pre>
      */
     public com.google.protobuf.Empty simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) throws io.grpc.StatusException {
@@ -441,6 +456,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) {
@@ -451,6 +468,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) {
@@ -460,10 +479,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
      * to Stigmer with the Auth0 payload format to trigger account provisioning.
+     * Authorization is skipped — this is a system-level operation.
      * </pre>
      */
     public com.google.protobuf.Empty simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) {
@@ -509,6 +529,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity account.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the identity account resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> update(
@@ -520,6 +542,8 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Delete an identity account.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the identity account resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> delete(
@@ -530,10 +554,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
      * to Stigmer with the Auth0 payload format to trigger account provisioning.
+     * Authorization is skipped — this is a system-level operation.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty> simulateSignupWebhook(

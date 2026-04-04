@@ -23,20 +23,19 @@ const (
 
 // IdentityAccountProvisioningMode defines how an identity account was created.
 //
-//   - direct: User signed up via Stigmer's own Auth0 tenant (existing behavior).
-//   - federated: JIT-provisioned during federated authentication via an IdentityProvider.
-//     The account has no credentials in Stigmer's Auth0 — it participates in FGA
-//     authorization but cannot log into Stigmer directly.
-//   - machine: M2M client credentials account used for inter-service communication.
-//
+// @internal
 // Unspecified is the default for legacy accounts created before this enum was introduced.
 type IdentityAccountProvisioningMode int32
 
 const (
+	// Default value for legacy accounts created before provisioning mode tracking.
 	IdentityAccountProvisioningMode_identity_account_provisioning_mode_unspecified IdentityAccountProvisioningMode = 0
-	IdentityAccountProvisioningMode_direct                                         IdentityAccountProvisioningMode = 1
-	IdentityAccountProvisioningMode_federated                                      IdentityAccountProvisioningMode = 2
-	IdentityAccountProvisioningMode_machine                                        IdentityAccountProvisioningMode = 3
+	// User signed up directly via Stigmer's own authentication tenant.
+	IdentityAccountProvisioningMode_direct IdentityAccountProvisioningMode = 1
+	// Account was JIT-provisioned during federated authentication via an IdentityProvider.
+	IdentityAccountProvisioningMode_federated IdentityAccountProvisioningMode = 2
+	// Machine-to-machine client credentials account for inter-service communication.
+	IdentityAccountProvisioningMode_machine IdentityAccountProvisioningMode = 3
 )
 
 // Enum value maps for IdentityAccountProvisioningMode.

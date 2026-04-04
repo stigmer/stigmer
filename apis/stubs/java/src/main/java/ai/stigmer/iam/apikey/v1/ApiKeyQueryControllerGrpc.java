@@ -200,6 +200,9 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
+     * Returns only the keys owned by the identity account in the auth header.
+     * &#64;internal
+     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     default void findAll(com.google.protobuf.Empty request,
@@ -269,6 +272,9 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
+     * Returns only the keys owned by the identity account in the auth header.
+     * &#64;internal
+     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     public void findAll(com.google.protobuf.Empty request,
@@ -323,6 +329,9 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
+     * Returns only the keys owned by the identity account in the auth header.
+     * &#64;internal
+     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKeys findAll(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -376,6 +385,9 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
+     * Returns only the keys owned by the identity account in the auth header.
+     * &#64;internal
+     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKeys findAll(com.google.protobuf.Empty request) {
@@ -431,6 +443,9 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
+     * Returns only the keys owned by the identity account in the auth header.
+     * &#64;internal
+     * Scoped to the caller's own keys, so authorization is skipped.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKeys> findAll(

@@ -12,7 +12,7 @@ public interface SearchResultOrBuilder extends
 
   /**
    * <pre>
-   * Resource kind (e.g., agent, skill, mcp_server, workflow).
+   * Type of API resource this result represents (e.g., agent, skill, mcp_server).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -21,7 +21,7 @@ public interface SearchResultOrBuilder extends
   int getKindValue();
   /**
    * <pre>
-   * Resource kind (e.g., agent, skill, mcp_server, workflow).
+   * Type of API resource this result represents (e.g., agent, skill, mcp_server).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -57,10 +57,10 @@ public interface SearchResultOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable display name.
+   * Human-readable display name of the resource.
    *
-   * From metadata.name. This is the user-provided name.
-   * Example: "Code Review Agent", "Web Search Skill"
+   * &#64;internal
+   * From metadata.name.
    * </pre>
    *
    * <code>string name = 3 [json_name = "name"];</code>
@@ -69,10 +69,10 @@ public interface SearchResultOrBuilder extends
   java.lang.String getName();
   /**
    * <pre>
-   * Human-readable display name.
+   * Human-readable display name of the resource.
    *
-   * From metadata.name. This is the user-provided name.
-   * Example: "Code Review Agent", "Web Search Skill"
+   * &#64;internal
+   * From metadata.name.
    * </pre>
    *
    * <code>string name = 3 [json_name = "name"];</code>
@@ -85,8 +85,10 @@ public interface SearchResultOrBuilder extends
    * <pre>
    * URL-friendly identifier, unique within the organization.
    *
-   * From metadata.slug. Lowercase alphanumeric with hyphens.
-   * Example: "code-review-agent", "web-search"
+   * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+   *
+   * &#64;internal
+   * From metadata.slug.
    * </pre>
    *
    * <code>string slug = 4 [json_name = "slug"];</code>
@@ -97,8 +99,10 @@ public interface SearchResultOrBuilder extends
    * <pre>
    * URL-friendly identifier, unique within the organization.
    *
-   * From metadata.slug. Lowercase alphanumeric with hyphens.
-   * Example: "code-review-agent", "web-search"
+   * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+   *
+   * &#64;internal
+   * From metadata.slug.
    * </pre>
    *
    * <code>string slug = 4 [json_name = "slug"];</code>
@@ -139,10 +143,10 @@ public interface SearchResultOrBuilder extends
 
   /**
    * <pre>
-   * Organization that owns this resource.
+   * Organization that owns this resource (e.g., "stigmer", "acme-corp").
    *
-   * From metadata.org. The organization slug.
-   * Example: "stigmer", "acme-corp"
+   * &#64;internal
+   * From metadata.org.
    * </pre>
    *
    * <code>string org = 6 [json_name = "org"];</code>
@@ -151,10 +155,10 @@ public interface SearchResultOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization that owns this resource.
+   * Organization that owns this resource (e.g., "stigmer", "acme-corp").
    *
-   * From metadata.org. The organization slug.
-   * Example: "stigmer", "acme-corp"
+   * &#64;internal
+   * From metadata.org.
    * </pre>
    *
    * <code>string org = 6 [json_name = "org"];</code>
@@ -165,16 +169,17 @@ public interface SearchResultOrBuilder extends
 
   /**
    * <pre>
-   * Brief description for display in search results.
+   * Brief description of the resource for display in search results.
    *
+   * May be empty if the resource has no description.
+   *
+   * &#64;internal
    * Extracted from the resource spec via the Searchable interface.
    * The source field varies by resource type:
-   * - Agent: spec.instructions
+   * - Agent: spec.instructions (may be truncated)
    * - Skill: spec.description
    * - McpServer: spec.description
    * - Workflow: spec.description
-   *
-   * May be empty if the resource has no description.
    * Truncation for display is a presentation concern (CLI/UI responsibility).
    * </pre>
    *
@@ -184,16 +189,17 @@ public interface SearchResultOrBuilder extends
   java.lang.String getDescription();
   /**
    * <pre>
-   * Brief description for display in search results.
+   * Brief description of the resource for display in search results.
    *
+   * May be empty if the resource has no description.
+   *
+   * &#64;internal
    * Extracted from the resource spec via the Searchable interface.
    * The source field varies by resource type:
-   * - Agent: spec.instructions
+   * - Agent: spec.instructions (may be truncated)
    * - Skill: spec.description
    * - McpServer: spec.description
    * - Workflow: spec.description
-   *
-   * May be empty if the resource has no description.
    * Truncation for display is a presentation concern (CLI/UI responsibility).
    * </pre>
    *
@@ -230,10 +236,10 @@ public interface SearchResultOrBuilder extends
 
   /**
    * <pre>
-   * Tags for categorization and filtering.
+   * User-provided tags for categorization and filtering.
    *
-   * From metadata.tags. User-provided labels.
-   * Example: ["security", "code-review", "ai"]
+   * &#64;internal
+   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -243,10 +249,10 @@ public interface SearchResultOrBuilder extends
       getTagsList();
   /**
    * <pre>
-   * Tags for categorization and filtering.
+   * User-provided tags for categorization and filtering.
    *
-   * From metadata.tags. User-provided labels.
-   * Example: ["security", "code-review", "ai"]
+   * &#64;internal
+   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -255,10 +261,10 @@ public interface SearchResultOrBuilder extends
   int getTagsCount();
   /**
    * <pre>
-   * Tags for categorization and filtering.
+   * User-provided tags for categorization and filtering.
    *
-   * From metadata.tags. User-provided labels.
-   * Example: ["security", "code-review", "ai"]
+   * &#64;internal
+   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -268,10 +274,10 @@ public interface SearchResultOrBuilder extends
   java.lang.String getTags(int index);
   /**
    * <pre>
-   * Tags for categorization and filtering.
+   * User-provided tags for categorization and filtering.
    *
-   * From metadata.tags. User-provided labels.
-   * Example: ["security", "code-review", "ai"]
+   * &#64;internal
+   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -285,8 +291,10 @@ public interface SearchResultOrBuilder extends
    * <pre>
    * When the resource was created.
    *
+   * Used for sorting in list mode (when no query is provided).
+   *
+   * &#64;internal
    * From status.audit.created_at.
-   * Used for sorting in list mode (no query).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -297,8 +305,10 @@ public interface SearchResultOrBuilder extends
    * <pre>
    * When the resource was created.
    *
+   * Used for sorting in list mode (when no query is provided).
+   *
+   * &#64;internal
    * From status.audit.created_at.
-   * Used for sorting in list mode (no query).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -309,8 +319,10 @@ public interface SearchResultOrBuilder extends
    * <pre>
    * When the resource was created.
    *
+   * Used for sorting in list mode (when no query is provided).
+   *
+   * &#64;internal
    * From status.audit.created_at.
-   * Used for sorting in list mode (no query).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -321,8 +333,8 @@ public interface SearchResultOrBuilder extends
    * <pre>
    * When the resource was last updated.
    *
+   * &#64;internal
    * From status.audit.updated_at.
-   * Useful for showing recency in search results.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -333,8 +345,8 @@ public interface SearchResultOrBuilder extends
    * <pre>
    * When the resource was last updated.
    *
+   * &#64;internal
    * From status.audit.updated_at.
-   * Useful for showing recency in search results.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -345,8 +357,8 @@ public interface SearchResultOrBuilder extends
    * <pre>
    * When the resource was last updated.
    *
+   * &#64;internal
    * From status.audit.updated_at.
-   * Useful for showing recency in search results.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>

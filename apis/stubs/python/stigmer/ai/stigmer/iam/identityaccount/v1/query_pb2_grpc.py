@@ -58,6 +58,11 @@ class IdentityAccountQueryControllerServicer(object):
 
     def whoAmI(self, request, context):
         """Get the identity account of the currently authenticated user.
+
+        Returns the full identity account for the caller based on the auth header.
+
+        @internal
+        Scoped to the caller's own account, so authorization is skipped.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

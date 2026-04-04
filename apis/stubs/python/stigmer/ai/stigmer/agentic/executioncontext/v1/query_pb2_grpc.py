@@ -8,8 +8,9 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 
 class ExecutionContextQueryControllerStub(object):
-    """ExecutionContextQueryController provides read operations for ExecutionContext resources.
+    """ExecutionContextQueryController handles read operations for ExecutionContext resources.
 
+    @internal
     Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
     FGA model. Authorization is derived from the parent execution:
@@ -44,8 +45,9 @@ class ExecutionContextQueryControllerStub(object):
 
 
 class ExecutionContextQueryControllerServicer(object):
-    """ExecutionContextQueryController provides read operations for ExecutionContext resources.
+    """ExecutionContextQueryController handles read operations for ExecutionContext resources.
 
+    @internal
     Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
     FGA model. Authorization is derived from the parent execution:
@@ -77,7 +79,7 @@ class ExecutionContextQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByExecutionId(self, request, context):
-        """Get an ExecutionContext by the execution ID it belongs to.
+        """Get the ExecutionContext for a given execution ID.
 
         @internal
         Primary lookup method used by runners to retrieve the merged environment
@@ -116,8 +118,9 @@ def add_ExecutionContextQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ExecutionContextQueryController(object):
-    """ExecutionContextQueryController provides read operations for ExecutionContext resources.
+    """ExecutionContextQueryController handles read operations for ExecutionContext resources.
 
+    @internal
     Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
     FGA model. Authorization is derived from the parent execution:

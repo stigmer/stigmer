@@ -24,8 +24,8 @@ const (
 )
 
 // McpServer represents a reusable MCP (Model Context Protocol) server configuration.
-// MCP servers provide tools and capabilities to AI agents via a standardized protocol.
 //
+// @internal
 // Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:
 // - Can be referenced by multiple agents (reusability)
 // - Has proper access control via FGA (authorization)
@@ -37,24 +37,6 @@ const (
 // 2. Reference in Agent via mcp_server_usages
 // 3. Create AgentInstance with environment_ref providing actual secrets
 // 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
-//
-// Example YAML:
-//
-//	apiVersion: agentic.stigmer.ai/v1
-//	kind: McpServer
-//	metadata:
-//	  name: github
-//	  scope: platform
-//	spec:
-//	  description: "GitHub MCP server for repository operations"
-//	  stdio:
-//	    command: npx
-//	    args: ["-y", "@modelcontextprotocol/server-github"]
-//	  env_spec:
-//	    data:
-//	      GITHUB_TOKEN:
-//	        is_secret: true
-//	        description: "GitHub personal access token"
 type McpServer struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
@@ -63,8 +45,9 @@ type McpServer struct {
 	// Resource kind identifier.
 	// Must be exactly "McpServer".
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Standard resource metadata including name, id, org, visibility, labels, and tags.
+	// Resource metadata including name, organization, visibility, and labels.
 	//
+	// @internal
 	// Key fields:
 	// - name: Human-readable name (e.g., "GitHub MCP Server")
 	// - slug: URL-friendly identifier (e.g., "github")

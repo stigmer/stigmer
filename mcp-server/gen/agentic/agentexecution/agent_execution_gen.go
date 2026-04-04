@@ -72,12 +72,12 @@ type ExecutionConfigInput struct {
 	MaxCostUsd float64 `json:"max_cost_usd,omitempty" jsonschema:"Maximum estimated cost in USD for this execution. When the running cost exceeds this limit, the agent receives a 'budget exhausted' message and the execution transitions to TERMINATED. 0.0 = no cost cap (default, unlimited). Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows. Cost is checked after each LLM call using the running total from UsageMetrics.estimated_cost_usd. When approaching the cap (>80%), a budget warning is injected into the conversation."`
 }
 
-// ExecutionValue represents a single runtime configuration or secret value.
+// A single runtime configuration or secret value.
 type ExecutionValue struct {
-	// The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext
-	Value string `json:"value,omitempty" jsonschema:"The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext"`
-	// Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value is deleted when execution completes When false: - Value is stored as plaintext - Value is visible in audit logs
-	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value is deleted when execution completes When false: - Value is stored as plaintext - Value is visible in audit logs"`
+	// String content of this entry. @internal If is_secret=true: encrypted at rest and redacted in logs. If is_secret=false: stored as plaintext.
+	Value string `json:"value,omitempty" jsonschema:"String content of this entry. @internal If is_secret=true: encrypted at rest and redacted in logs. If is_secret=false: stored as plaintext."`
+	// Whether this value should be treated as a secret. @internal When true: value is encrypted at rest, redacted in logs, and deleted when execution completes. When false: value is stored as plaintext and visible in audit logs.
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. @internal When true: value is encrypted at rest, redacted in logs, and deleted when execution completes. When false: value is stored as plaintext and visible in audit logs."`
 }
 
 // Attachment represents a file attached to an agent execution. All files must be pre-uploaded via the uploadAttachment RPC and referenced by storage_key. This ensures consistent behavior regardless of file size. ## Usage Flow 1. Client calls uploadAttachment RPC with file content 2. Server returns a storage_key 3. Client creates execution with Attachment containing that storage_key 4. Agent-runner downloads file from storage and injects into sandbox ## Mount Path The mount_path determines where the file appears in the sandbox. If not specified, defaults to /inputs/{filename} Examples: - mount_path: "/inputs/config.yaml" -> file at /inputs/config.yaml - mount_path: "/workspace/data/" -> directory extracted at /workspace/data/ @since Artifact Lifecycle (Attachments & Outputs)

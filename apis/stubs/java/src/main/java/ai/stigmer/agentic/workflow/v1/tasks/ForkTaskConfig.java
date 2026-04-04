@@ -7,10 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * ForkTaskConfig defines the configuration for FORK tasks.
+ * ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
  *
- * FORK tasks execute multiple branches in parallel.
- *
+ * &#64;internal
  * YAML Example:
  * - taskName:
  * fork:
@@ -329,10 +328,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ForkTaskConfig defines the configuration for FORK tasks.
+   * ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
    *
-   * FORK tasks execute multiple branches in parallel.
-   *
+   * &#64;internal
    * YAML Example:
    * - taskName:
    * fork:

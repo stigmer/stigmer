@@ -14,23 +14,8 @@ public interface SubscribeWorkflowExecutionRequestOrBuilder extends
    * <pre>
    * Execution ID to subscribe to.
    *
+   * &#64;internal
    * Format: "wfx_{unique-suffix}"
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required field, cannot be empty
-   *
-   * Error Cases:
-   * - NOT_FOUND: No WorkflowExecution with this ID exists
-   * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-   *
-   * Example:
-   * execution_id: "wfx_abc123xyz456"
-   *
-   * After subscription starts, client receives:
-   * - Initial message: Current state of execution
-   * - Update messages: Changes to status.phase, status.tasks, etc.
-   * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-   * - Stream closes automatically after final message
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -41,23 +26,8 @@ public interface SubscribeWorkflowExecutionRequestOrBuilder extends
    * <pre>
    * Execution ID to subscribe to.
    *
+   * &#64;internal
    * Format: "wfx_{unique-suffix}"
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required field, cannot be empty
-   *
-   * Error Cases:
-   * - NOT_FOUND: No WorkflowExecution with this ID exists
-   * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-   *
-   * Example:
-   * execution_id: "wfx_abc123xyz456"
-   *
-   * After subscription starts, client receives:
-   * - Initial message: Current state of execution
-   * - Update messages: Changes to status.phase, status.tasks, etc.
-   * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-   * - Stream closes automatically after final message
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

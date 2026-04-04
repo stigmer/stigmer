@@ -7,10 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * SwitchTaskConfig defines the configuration for SWITCH tasks.
+ * SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.
  *
- * SWITCH tasks provide conditional branching based on expressions.
- *
+ * &#64;internal
  * YAML Example:
  * - taskName:
  * switch:
@@ -303,10 +302,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * SwitchTaskConfig defines the configuration for SWITCH tasks.
+   * SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.
    *
-   * SWITCH tasks provide conditional branching based on expressions.
-   *
+   * &#64;internal
    * YAML Example:
    * - taskName:
    * switch:

@@ -23,21 +23,19 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_io: GenFile = /*@__PURE
   fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9pby5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEiKwoSV29ya2Zsb3dJbnN0YW5jZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEieQolR2V0V29ya2Zsb3dJbnN0YW5jZXNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8idgoUV29ya2Zsb3dJbnN0YW5jZUxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSSQoHZW50cmllcxgCIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2ViBnByb3RvMw", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
- * WorkflowInstanceId wraps a workflow instance identifier for RPC operations.
+ * WorkflowInstanceId wraps a workflow instance identifier.
  *
+ * @internal
  * Used as input to RPCs that operate on a single instance:
  * - get: Retrieve a specific instance by ID
  * - delete: Remove a specific instance by ID
- *
  * Format: Resource ID string (e.g., "wfi_abc123")
- * Validation: Required field (must not be empty)
  *
  * @generated from message ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId
  */
 export type WorkflowInstanceId = Message<"ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId"> & {
   /**
-   * The workflow instance resource ID.
-   * Example: "wfi_abc123"
+   * Workflow instance resource ID.
    *
    * @generated from field: string value = 1;
    */
@@ -52,14 +50,14 @@ export const WorkflowInstanceIdSchema: GenMessage<WorkflowInstanceId> = /*@__PUR
   messageDesc(file_ai_stigmer_agentic_workflowinstance_v1_io, 0);
 
 /**
- * GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific Workflow template.
+ * GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.
  *
+ * @internal
  * This allows you to find all configured deployments of a given Workflow.
  * For example, a "deploy-to-cloud" Workflow might have instances:
  * - "prod-deploy" (with production environments)
  * - "staging-deploy" (with staging environments)
  * - "dev-deploy" (with development environments)
- *
  * Supports pagination for efficient retrieval of large result sets.
  *
  * @generated from message ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest
@@ -68,25 +66,12 @@ export type GetWorkflowInstancesByWorkflowRequest = Message<"ai.stigmer.agentic.
   /**
    * Workflow template ID to filter by.
    *
-   * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-   * Format: Workflow resource ID (e.g., "wfl_abc123")
-   * Validation: Required field
-   *
    * @generated from field: string workflow_id = 1;
    */
   workflowId: string;
 
   /**
-   * Pagination options for controlling result set size and pages.
-   *
-   * Includes:
-   * - page_size: Maximum number of instances per page
-   * - page_token: Token from previous response for next page
-   *
-   * Example pagination flow:
-   * 1. Request with page_info.page_size = 20
-   * 2. Response includes page_token = "next_page_token_here"
-   * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+   * Pagination options for result set control.
    *
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
    */
@@ -103,19 +88,11 @@ export const GetWorkflowInstancesByWorkflowRequestSchema: GenMessage<GetWorkflow
 /**
  * WorkflowInstanceList contains a paginated list of workflow instances.
  *
- * Returned by list and query operations. Includes pagination metadata
- * to support iterating through large result sets.
- *
  * @generated from message ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList
  */
 export type WorkflowInstanceList = Message<"ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList"> & {
   /**
-   * Total number of pages available in the full result set.
-   *
-   * Use this to determine if there are more pages to fetch.
-   * If total_pages > current_page, more results are available.
-   *
-   * Example: If total_pages = 5, you can fetch up to 5 pages of results.
+   * Total number of pages in the result set.
    *
    * @generated from field: int32 total_pages = 1;
    */
@@ -123,14 +100,6 @@ export type WorkflowInstanceList = Message<"ai.stigmer.agentic.workflowinstance.
 
   /**
    * Workflow instances in the current page.
-   *
-   * The number of entries is controlled by the page_size parameter
-   * in the request. May be fewer than page_size on the last page.
-   *
-   * Each entry is a complete WorkflowInstance resource with:
-   * - api_version, kind, metadata
-   * - spec (workflow_id, description, environment_refs)
-   * - status (audit information)
    *
    * @generated from field: repeated ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2;
    */

@@ -22,41 +22,48 @@ export const file_ai_stigmer_iam_apikey_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CiJhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvYXBpLnByb3RvEhhhaS5zdGlnbWVyLmlhbS5hcGlrZXkudjEihwIKBkFwaUtleRItCgthcGlfdmVyc2lvbhgBIAEoCUIYukgVchMKEWlhbS5zdGlnbWVyLmFpL3YxEhsKBGtpbmQYAiABKAlCDbpICnIICgZBcGlLZXkSRQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YRIyCgRzcGVjGAQgASgLMiQuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleVNwZWMSNgoGc3RhdHVzGAUgASgLMiYuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleVN0YXR1cyKBAQoMQXBpS2V5U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSMAoMbGFzdF91c2VkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_apikey_v1_spec, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
- * api-key for user-account or machine-account
+ * ApiKey provides programmatic access to the Stigmer API on behalf of an identity account.
+ *
+ * Each API key is scoped to a single identity account (user or machine) and
+ * can optionally be configured to expire.
+ *
+ * @internal
+ * The raw key value is returned only once in the create response. Only the
+ * hash and fingerprint are persisted.
  *
  * @generated from message ai.stigmer.iam.apikey.v1.ApiKey
  */
 export type ApiKey = Message<"ai.stigmer.iam.apikey.v1.ApiKey"> & {
   /**
-   * api-version
+   * API version for this resource type.
    *
    * @generated from field: string api_version = 1;
    */
   apiVersion: string;
 
   /**
-   * resource-kind
+   * Resource kind identifier.
    *
    * @generated from field: string kind = 2;
    */
   kind: string;
 
   /**
-   * metadata
+   * Resource metadata including name, organization, and labels.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;
 
   /**
-   * spec
+   * Configurable properties: key hash, fingerprint, and expiration settings.
    *
    * @generated from field: ai.stigmer.iam.apikey.v1.ApiKeySpec spec = 4;
    */
   spec?: ApiKeySpec;
 
   /**
-   * status
+   * System-managed state including audit trail and last-used timestamp.
    *
    * @generated from field: ai.stigmer.iam.apikey.v1.ApiKeyStatus status = 5;
    */
@@ -71,18 +78,20 @@ export const ApiKeySchema: GenMessage<ApiKey> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_apikey_v1_api, 0);
 
 /**
+ * ApiKeyStatus contains system-managed state for an API key.
+ *
  * @generated from message ai.stigmer.iam.apikey.v1.ApiKeyStatus
  */
 export type ApiKeyStatus = Message<"ai.stigmer.iam.apikey.v1.ApiKeyStatus"> & {
   /**
-   * audit
+   * Standard audit information (created_at, updated_at, created_by, etc.).
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
    */
   audit?: ApiResourceAudit;
 
   /**
-   * last used timestamp for the api-key
+   * Timestamp of the most recent API call made with this key.
    *
    * @generated from field: google.protobuf.Timestamp last_used_at = 1;
    */

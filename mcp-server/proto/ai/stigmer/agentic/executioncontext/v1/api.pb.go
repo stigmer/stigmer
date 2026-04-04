@@ -23,21 +23,22 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ExecutionContext represents ephemeral runtime configuration and secrets.
-// Created during execution, deleted when execution completes.
-// Used for B2B scenarios where secrets are injected at runtime (e.g., Plant & Cloud).
+// Ephemeral runtime configuration and secrets scoped to a single execution.
+//
+// @internal
+// Created by the execution engine at start, deleted when execution completes.
+// Used for B2B scenarios where secrets are injected at runtime.
 type ExecutionContext struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Standard resource metadata including name, id, labels, and tags.
-	// ExecutionContext is ephemeral and authorization is derived from the parent execution.
+	// Resource metadata including name, organization, and labels.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// ExecutionContext-specific configuration.
+	// Configuration including the parent execution ID and runtime key-value data.
 	Spec *ExecutionContextSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed status containing audit information.
+	// System-managed audit status.
 	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

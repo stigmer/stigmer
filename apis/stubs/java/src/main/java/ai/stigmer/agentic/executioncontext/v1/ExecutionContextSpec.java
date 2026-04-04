@@ -7,8 +7,10 @@ package ai.stigmer.agentic.executioncontext.v1;
 
 /**
  * <pre>
- * ExecutionContextSpec defines ephemeral runtime configuration and secrets.
- * This is created during execution and deleted when execution completes.
+ * Runtime configuration and secrets for a single execution.
+ *
+ * &#64;internal
+ * Created by the execution engine, deleted when execution completes.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec}
@@ -71,8 +73,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object executionId_ = "";
   /**
    * <pre>
-   * The execution ID this context belongs to.
-   * This is typically a WorkflowExecution ID or AgentExecution ID.
+   * ID of the parent AgentExecution or WorkflowExecution.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -93,8 +94,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The execution ID this context belongs to.
-   * This is typically a WorkflowExecution ID or AgentExecution ID.
+   * ID of the parent AgentExecution or WorkflowExecution.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -143,8 +143,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
@@ -166,8 +168,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
@@ -179,8 +183,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
@@ -199,8 +205,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   }
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
@@ -398,8 +406,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   }
   /**
    * <pre>
-   * ExecutionContextSpec defines ephemeral runtime configuration and secrets.
-   * This is created during execution and deleted when execution completes.
+   * Runtime configuration and secrets for a single execution.
+   *
+   * &#64;internal
+   * Created by the execution engine, deleted when execution completes.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec}
@@ -580,8 +590,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.lang.Object executionId_ = "";
     /**
      * <pre>
-     * The execution ID this context belongs to.
-     * This is typically a WorkflowExecution ID or AgentExecution ID.
+     * ID of the parent AgentExecution or WorkflowExecution.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -601,8 +610,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * The execution ID this context belongs to.
-     * This is typically a WorkflowExecution ID or AgentExecution ID.
+     * ID of the parent AgentExecution or WorkflowExecution.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -623,8 +631,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * The execution ID this context belongs to.
-     * This is typically a WorkflowExecution ID or AgentExecution ID.
+     * ID of the parent AgentExecution or WorkflowExecution.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -641,8 +648,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * The execution ID this context belongs to.
-     * This is typically a WorkflowExecution ID or AgentExecution ID.
+     * ID of the parent AgentExecution or WorkflowExecution.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -656,8 +662,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * The execution ID this context belongs to.
-     * This is typically a WorkflowExecution ID or AgentExecution ID.
+     * ID of the parent AgentExecution or WorkflowExecution.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -711,8 +716,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * These are provided at runtime and only exist for the duration of the execution.
+     * Runtime key-value pairs, each marked as secret or plaintext.
+     *
+     * &#64;internal
+     * Provided at runtime and only exist for the duration of the execution.
      * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
@@ -734,8 +741,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * These are provided at runtime and only exist for the duration of the execution.
+     * Runtime key-value pairs, each marked as secret or plaintext.
+     *
+     * &#64;internal
+     * Provided at runtime and only exist for the duration of the execution.
      * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
@@ -747,8 +756,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * These are provided at runtime and only exist for the duration of the execution.
+     * Runtime key-value pairs, each marked as secret or plaintext.
+     *
+     * &#64;internal
+     * Provided at runtime and only exist for the duration of the execution.
      * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
@@ -766,8 +777,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * These are provided at runtime and only exist for the duration of the execution.
+     * Runtime key-value pairs, each marked as secret or plaintext.
+     *
+     * &#64;internal
+     * Provided at runtime and only exist for the duration of the execution.
      * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
@@ -790,8 +803,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * These are provided at runtime and only exist for the duration of the execution.
+     * Runtime key-value pairs, each marked as secret or plaintext.
+     *
+     * &#64;internal
+     * Provided at runtime and only exist for the duration of the execution.
      * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
@@ -815,8 +830,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * These are provided at runtime and only exist for the duration of the execution.
+     * Runtime key-value pairs, each marked as secret or plaintext.
+     *
+     * &#64;internal
+     * Provided at runtime and only exist for the duration of the execution.
      * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
@@ -834,8 +851,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * These are provided at runtime and only exist for the duration of the execution.
+     * Runtime key-value pairs, each marked as secret or plaintext.
+     *
+     * &#64;internal
+     * Provided at runtime and only exist for the duration of the execution.
      * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *
@@ -855,8 +874,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * These are provided at runtime and only exist for the duration of the execution.
+     * Runtime key-value pairs, each marked as secret or plaintext.
+     *
+     * &#64;internal
+     * Provided at runtime and only exist for the duration of the execution.
      * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
      * </pre>
      *

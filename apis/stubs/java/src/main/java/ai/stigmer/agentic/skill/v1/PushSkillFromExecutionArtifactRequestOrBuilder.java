@@ -32,11 +32,11 @@ public interface PushSkillFromExecutionArtifactRequestOrBuilder extends
 
   /**
    * <pre>
-   * ID of the agent execution that produced the artifact.
-   * Used for authorization (can_view check) and storage_key validation.
+   * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
    *
-   * Format: "aex_{ulid}"
-   * Example: "aex_abc123xyz456"
+   * &#64;internal
+   * Used for authorization (can_view check) and storage_key validation.
+   * Format: "aex_{ulid}".
    * </pre>
    *
    * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -45,11 +45,11 @@ public interface PushSkillFromExecutionArtifactRequestOrBuilder extends
   java.lang.String getExecutionId();
   /**
    * <pre>
-   * ID of the agent execution that produced the artifact.
-   * Used for authorization (can_view check) and storage_key validation.
+   * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
    *
-   * Format: "aex_{ulid}"
-   * Example: "aex_abc123xyz456"
+   * &#64;internal
+   * Used for authorization (can_view check) and storage_key validation.
+   * Format: "aex_{ulid}".
    * </pre>
    *
    * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -61,13 +61,11 @@ public interface PushSkillFromExecutionArtifactRequestOrBuilder extends
   /**
    * <pre>
    * Storage key of the directory artifact (ZIP) to push as a skill.
+   * Obtain this from ExecutionArtifact.storage_key in the execution status.
+   *
+   * &#64;internal
    * Must start with "artifacts/{execution_id}/" for security.
-   *
-   * Obtain this value from ExecutionArtifact.storage_key in the
-   * execution status for a DIRECTORY artifact.
-   *
-   * Format: "artifacts/{execution_id}/{filename}.zip"
-   * Example: "artifacts/aex_abc123xyz456/my-skill.zip"
+   * Format: "artifacts/{execution_id}/{filename}.zip".
    * </pre>
    *
    * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -77,13 +75,11 @@ public interface PushSkillFromExecutionArtifactRequestOrBuilder extends
   /**
    * <pre>
    * Storage key of the directory artifact (ZIP) to push as a skill.
+   * Obtain this from ExecutionArtifact.storage_key in the execution status.
+   *
+   * &#64;internal
    * Must start with "artifacts/{execution_id}/" for security.
-   *
-   * Obtain this value from ExecutionArtifact.storage_key in the
-   * execution status for a DIRECTORY artifact.
-   *
-   * Format: "artifacts/{execution_id}/{filename}.zip"
-   * Example: "artifacts/aex_abc123xyz456/my-skill.zip"
+   * Format: "artifacts/{execution_id}/{filename}.zip".
    * </pre>
    *
    * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>

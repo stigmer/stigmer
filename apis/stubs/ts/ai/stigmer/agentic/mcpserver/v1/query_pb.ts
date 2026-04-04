@@ -19,8 +19,8 @@ export const file_ai_stigmer_agentic_mcpserver_v1_query: GenFile = /*@__PURE__*/
 
 /**
  * McpServerQueryController provides read operations for MCP server resources.
- * All read operations require appropriate authorization based on the resource's scope.
  *
+ * @internal
  * Authorization model:
  * - Platform-scoped: Anyone can view (public marketplace)
  * - Organization-scoped: Org members can view
@@ -32,9 +32,7 @@ export const McpServerQueryController: GenService<{
   /**
    * Get an MCP server by its unique identifier.
    *
-   * Input: ApiResourceId containing the MCP server's system-generated ID.
-   * Returns: The full McpServer resource including metadata, spec, and status.
-   *
+   * @internal
    * Authorization: Requires can_view permission on the mcp_server resource.
    * The caller must have access based on the resource's scope:
    * - Platform: All authenticated users
@@ -51,15 +49,10 @@ export const McpServerQueryController: GenService<{
   /**
    * Get an MCP server by reference (scope + org + slug).
    *
-   * Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-   * Returns: The full McpServer resource.
+   * Preferred method for looking up MCP servers by name/slug rather than
+   * system-generated ID.
    *
-   * This is the preferred method for looking up MCP servers by name/slug
-   * rather than system-generated ID. Useful for:
-   * - Resolving references from Agent.mcp_server_usages
-   * - CLI lookups by name
-   * - Cross-scope resolution (platform vs org vs personal)
-   *
+   * @internal
    * Authorization: Custom authorization in handler.
    * The handler performs scope-aware authorization based on the reference.
    *

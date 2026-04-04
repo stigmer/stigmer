@@ -11,11 +11,19 @@ public interface ProjectIdOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Project identifier.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The value.
    */
   java.lang.String getValue();
   /**
+   * <pre>
+   * Project identifier.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The bytes for value.
    */

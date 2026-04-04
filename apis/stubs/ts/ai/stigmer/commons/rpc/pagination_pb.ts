@@ -13,15 +13,21 @@ export const file_ai_stigmer_commons_rpc_pagination: GenFile = /*@__PURE__*/
   fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvcnBjL3BhZ2luYXRpb24ucHJvdG8SFmFpLnN0aWdtZXIuY29tbW9ucy5ycGMiJQoIUGFnZUluZm8SCwoDbnVtGAEgASgFEgwKBHNpemUYAiABKAUiMgoOR29vZ2xlUGFnZUluZm8SEgoKcGFnZV90b2tlbhgBIAEoCRIMCgRzaXplGAIgASgFYgZwcm90bzM");
 
 /**
+ * Offset-based pagination parameters.
+ *
  * @generated from message ai.stigmer.commons.rpc.PageInfo
  */
 export type PageInfo = Message<"ai.stigmer.commons.rpc.PageInfo"> & {
   /**
+   * Page number (1-indexed).
+   *
    * @generated from field: int32 num = 1;
    */
   num: number;
 
   /**
+   * Maximum number of items per page.
+   *
    * @generated from field: int32 size = 2;
    */
   size: number;
@@ -35,21 +41,21 @@ export const PageInfoSchema: GenMessage<PageInfo> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_commons_rpc_pagination, 0);
 
 /**
- * google style of pagination
+ * Token-based pagination parameters following the Google API style.
  *
  * @generated from message ai.stigmer.commons.rpc.GooglePageInfo
  */
 export type GooglePageInfo = Message<"ai.stigmer.commons.rpc.GooglePageInfo"> & {
   /**
-   * google apis include a token to retrieve next page of results.
-   * if there are no more items to return, the next_page_token is empty
+   * Opaque token for retrieving the next page of results.
+   * Empty when there are no more items to return.
    *
    * @generated from field: string page_token = 1;
    */
   pageToken: string;
 
   /**
-   * number of items to include in the result
+   * Maximum number of items to include in the result.
    *
    * @generated from field: int32 size = 2;
    */

@@ -22,50 +22,75 @@ const (
 )
 
 // ApiResourceIamPermission defines the permissions and structural relations
-// used in the Stigmer authorization model. Each value maps to an FGA relation
-// name that appears either in RPC authorization annotations or in FGA tuple
-// creation logic.
+// used in the Stigmer authorization model.
+//
+// Each value maps to an FGA relation name that appears either in RPC
+// authorization annotations or in FGA tuple creation logic.
+//
+// @internal
+// Removed: operator (5), platform (6), can_update_status (28).
+// These values are reserved to prevent accidental reuse.
 type ApiResourceIamPermission int32
 
 const (
+	// Default unspecified value.
 	ApiResourceIamPermission_unspecified ApiResourceIamPermission = 0
-	// Basic CRUD permissions
-	ApiResourceIamPermission_create     ApiResourceIamPermission = 1
+	// Permission to create a resource.
+	ApiResourceIamPermission_create ApiResourceIamPermission = 1
+	// Permission to delete a resource.
 	ApiResourceIamPermission_can_delete ApiResourceIamPermission = 2
-	ApiResourceIamPermission_can_view   ApiResourceIamPermission = 3
-	ApiResourceIamPermission_can_edit   ApiResourceIamPermission = 4
-	// Platform-level permissions
+	// Permission to view a resource.
+	ApiResourceIamPermission_can_view ApiResourceIamPermission = 3
+	// Permission to edit a resource.
+	ApiResourceIamPermission_can_edit ApiResourceIamPermission = 4
+	// Permission to access the back-office admin console.
 	ApiResourceIamPermission_login_to_back_office ApiResourceIamPermission = 7
-	// IAM policy management permissions
+	// Permission to grant or revoke access on a resource.
 	ApiResourceIamPermission_can_grant_access ApiResourceIamPermission = 8
-	ApiResourceIamPermission_can_view_access  ApiResourceIamPermission = 9
-	// Resource ownership and membership
-	ApiResourceIamPermission_owner  ApiResourceIamPermission = 10
+	// Permission to view access policies on a resource.
+	ApiResourceIamPermission_can_view_access ApiResourceIamPermission = 9
+	// Owner relation granting full control of a resource.
+	ApiResourceIamPermission_owner ApiResourceIamPermission = 10
+	// Member relation granting membership-level access to a resource.
 	ApiResourceIamPermission_member ApiResourceIamPermission = 11
+	// Viewer relation granting read-only access to a resource.
 	ApiResourceIamPermission_viewer ApiResourceIamPermission = 26
-	// Structural relations (parent links)
+	// Structural relation linking a resource to its owning identity account.
 	ApiResourceIamPermission_identity_account ApiResourceIamPermission = 12
-	ApiResourceIamPermission_organization     ApiResourceIamPermission = 13
-	ApiResourceIamPermission_session          ApiResourceIamPermission = 14
-	ApiResourceIamPermission_agent            ApiResourceIamPermission = 15
-	// Resource-specific creation permissions
-	ApiResourceIamPermission_can_create_agent        ApiResourceIamPermission = 16
-	ApiResourceIamPermission_can_create_workflow     ApiResourceIamPermission = 17
-	ApiResourceIamPermission_can_create_session      ApiResourceIamPermission = 18
+	// Structural relation linking a resource to its owning organization.
+	ApiResourceIamPermission_organization ApiResourceIamPermission = 13
+	// Structural relation linking an execution to its parent session.
+	ApiResourceIamPermission_session ApiResourceIamPermission = 14
+	// Structural relation linking an instance or session to its parent agent.
+	ApiResourceIamPermission_agent ApiResourceIamPermission = 15
+	// Permission to create an agent within an organization.
+	ApiResourceIamPermission_can_create_agent ApiResourceIamPermission = 16
+	// Permission to create a workflow within an organization.
+	ApiResourceIamPermission_can_create_workflow ApiResourceIamPermission = 17
+	// Permission to create a session for an agent.
+	ApiResourceIamPermission_can_create_session ApiResourceIamPermission = 18
+	// Permission to create an execution within a session.
 	ApiResourceIamPermission_can_create_execution_in ApiResourceIamPermission = 19
-	ApiResourceIamPermission_can_create_instance     ApiResourceIamPermission = 20
-	ApiResourceIamPermission_can_create_skill        ApiResourceIamPermission = 21
-	ApiResourceIamPermission_can_create_project      ApiResourceIamPermission = 23
-	ApiResourceIamPermission_can_create_idp          ApiResourceIamPermission = 24
-	ApiResourceIamPermission_can_create_environment  ApiResourceIamPermission = 27
-	// Resource-specific operation permissions
+	// Permission to create an agent instance.
+	ApiResourceIamPermission_can_create_instance ApiResourceIamPermission = 20
+	// Permission to create a skill within an organization.
+	ApiResourceIamPermission_can_create_skill ApiResourceIamPermission = 21
+	// Permission to create a project within an organization.
+	ApiResourceIamPermission_can_create_project ApiResourceIamPermission = 23
+	// Permission to create an identity provider within an organization.
+	ApiResourceIamPermission_can_create_idp ApiResourceIamPermission = 24
+	// Permission to create an environment within an organization.
+	ApiResourceIamPermission_can_create_environment ApiResourceIamPermission = 27
+	// Permission to execute an agent or workflow.
 	ApiResourceIamPermission_can_execute ApiResourceIamPermission = 22
-	// Secret access permissions
+	// Permission to read secret values from an environment.
 	ApiResourceIamPermission_can_read_secrets ApiResourceIamPermission = 25
-	// Platform-level operational permissions (checked against platform:stigmer)
-	ApiResourceIamPermission_can_bootstrap_iam            ApiResourceIamPermission = 29
+	// Platform-level permission to bootstrap IAM policies during resource creation.
+	ApiResourceIamPermission_can_bootstrap_iam ApiResourceIamPermission = 29
+	// Platform-level permission to manage identity accounts.
 	ApiResourceIamPermission_can_manage_identity_accounts ApiResourceIamPermission = 30
-	ApiResourceIamPermission_can_update_execution_status  ApiResourceIamPermission = 31
+	// Platform-level permission to update agent execution status.
+	ApiResourceIamPermission_can_update_execution_status ApiResourceIamPermission = 31
 )
 
 // Enum value maps for ApiResourceIamPermission.

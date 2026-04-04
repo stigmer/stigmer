@@ -411,103 +411,103 @@
   "enumTypes": [
     {
       "name": "ApiResourceKind",
-      "description": "API resource kinds for Stigmer",
+      "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
       "values": [
         {
           "name": "api_resource_version",
           "number": 1,
-          "description": "Agentic - System-level audit trails and versioning"
+          "description": "Immutable version record tracking changes to an API resource."
         },
         {
           "name": "iam_policy",
           "number": 10,
-          "description": "IAM - Identity and Access Management"
+          "description": "Role-based access control policy for granting permissions on resources."
         },
         {
           "name": "identity_account",
           "number": 11,
-          "description": ""
+          "description": "User account in the identity system."
         },
         {
           "name": "api_key",
           "number": 12,
-          "description": ""
+          "description": "Credential for programmatic API access."
         },
         {
           "name": "identity_provider",
           "number": 21,
-          "description": "IAM - External identity provider configuration"
+          "description": "External identity provider for federated authentication."
         },
         {
           "name": "organization",
           "number": 30,
-          "description": "Tenancy - Platform and organizational resources"
+          "description": "Top-level tenant that owns and manages resources."
         },
         {
           "name": "platform",
           "number": 31,
-          "description": ""
+          "description": "Singleton platform instance representing the Stigmer deployment."
         },
         {
           "name": "agent",
           "number": 40,
-          "description": "Agentic - AI agent management"
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
           "name": "agent_execution",
           "number": 41,
-          "description": ""
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
         {
           "name": "session",
           "number": 42,
-          "description": ""
+          "description": "Conversation thread between a user and an agent."
         },
         {
           "name": "skill",
           "number": 43,
-          "description": ""
+          "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
           "name": "mcp_server",
           "number": 44,
-          "description": ""
+          "description": "External tool server connected via the Model Context Protocol."
         },
         {
           "name": "agent_instance",
           "number": 45,
-          "description": ""
+          "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
           "name": "workflow",
           "number": 50,
-          "description": "Agentic - Workflow orchestration"
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
           "name": "workflow_instance",
           "number": 51,
-          "description": ""
+          "description": "Configured deployment of a workflow with environment-specific bindings."
         },
         {
           "name": "workflow_execution",
           "number": 52,
-          "description": ""
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
         },
         {
           "name": "environment",
           "number": 53,
-          "description": ""
+          "description": "Named set of variables and secrets for agent and workflow execution."
         },
         {
           "name": "execution_context",
           "number": 54,
-          "description": ""
+          "description": "User-owned runtime context for managing execution state."
         },
         {
           "name": "project",
           "number": 60,
-          "description": "Tenancy - Project management (aggregate root for resource lifecycle)"
+          "description": "Aggregate root grouping related resources for lifecycle management."
         }
       ]
     },

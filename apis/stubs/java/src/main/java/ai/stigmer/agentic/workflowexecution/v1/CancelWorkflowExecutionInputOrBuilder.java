@@ -14,10 +14,8 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
    * <pre>
    * Workflow execution ID to cancel.
    *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -28,10 +26,8 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
    * <pre>
    * Workflow execution ID to cancel.
    *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -42,16 +38,7 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable reason for cancellation.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended for compliance and troubleshooting.
-   *
-   * Examples:
-   * - "Customer requested cancellation"
-   * - "Incorrect workflow triggered by mistake"
-   * - "Superseded by newer execution wfx_def456"
-   * - "Pre-maintenance shutdown"
+   * Human-readable reason for cancellation, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -60,16 +47,7 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
   java.lang.String getReason();
   /**
    * <pre>
-   * Human-readable reason for cancellation.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended for compliance and troubleshooting.
-   *
-   * Examples:
-   * - "Customer requested cancellation"
-   * - "Incorrect workflow triggered by mistake"
-   * - "Superseded by newer execution wfx_def456"
-   * - "Pre-maintenance shutdown"
+   * Human-readable reason for cancellation, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>

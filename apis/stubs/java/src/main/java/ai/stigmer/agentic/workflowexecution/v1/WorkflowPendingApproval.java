@@ -7,9 +7,9 @@ package ai.stigmer.agentic.workflowexecution.v1;
 
 /**
  * <pre>
- * WorkflowPendingApproval wraps a PendingApproval from a child agent execution
- * with the routing information needed for workflow-level approval forwarding.
+ * WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
  *
+ * &#64;internal
  * PendingApproval is an agentexecution domain type — it describes what tool
  * needs approval. WorkflowPendingApproval adds the workflow-level concern:
  * which child agent execution the approval should be forwarded to.
@@ -63,7 +63,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agentexecution.v1.PendingApproval approval_;
   /**
    * <pre>
-   * The approval details projected from the child agent's tool call state.
+   * Approval details from the child agent's tool call.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -75,7 +75,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The approval details projected from the child agent's tool call state.
+   * Approval details from the child agent's tool call.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -87,7 +87,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The approval details projected from the child agent's tool call state.
+   * Approval details from the child agent's tool call.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -102,8 +102,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object childAgentExecutionId_ = "";
   /**
    * <pre>
-   * Child agent execution to forward the approval to.
+   * ID of the child agent execution to forward the approval decision to.
    *
+   * &#64;internal
    * Set by the workflow-runner when surfacing child agent approvals
    * at the workflow level. WorkflowExecution.SubmitApproval uses this
    * to route the decision to the correct AgentExecution.SubmitApproval RPC.
@@ -129,8 +130,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Child agent execution to forward the approval to.
+   * ID of the child agent execution to forward the approval decision to.
    *
+   * &#64;internal
    * Set by the workflow-runner when surfacing child agent approvals
    * at the workflow level. WorkflowExecution.SubmitApproval uses this
    * to route the decision to the correct AgentExecution.SubmitApproval RPC.
@@ -330,9 +332,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowPendingApproval wraps a PendingApproval from a child agent execution
-   * with the routing information needed for workflow-level approval forwarding.
+   * WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
    *
+   * &#64;internal
    * PendingApproval is an agentexecution domain type — it describes what tool
    * needs approval. WorkflowPendingApproval adds the workflow-level concern:
    * which child agent execution the approval should be forwarded to.
@@ -509,7 +511,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agentexecution.v1.PendingApproval, ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder, ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder> approvalBuilder_;
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -520,7 +522,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -535,7 +537,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -555,7 +557,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -573,7 +575,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -598,7 +600,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -615,7 +617,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -627,7 +629,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -642,7 +644,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The approval details projected from the child agent's tool call state.
+     * Approval details from the child agent's tool call.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -664,8 +666,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object childAgentExecutionId_ = "";
     /**
      * <pre>
-     * Child agent execution to forward the approval to.
+     * ID of the child agent execution to forward the approval decision to.
      *
+     * &#64;internal
      * Set by the workflow-runner when surfacing child agent approvals
      * at the workflow level. WorkflowExecution.SubmitApproval uses this
      * to route the decision to the correct AgentExecution.SubmitApproval RPC.
@@ -690,8 +693,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Child agent execution to forward the approval to.
+     * ID of the child agent execution to forward the approval decision to.
      *
+     * &#64;internal
      * Set by the workflow-runner when surfacing child agent approvals
      * at the workflow level. WorkflowExecution.SubmitApproval uses this
      * to route the decision to the correct AgentExecution.SubmitApproval RPC.
@@ -717,8 +721,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Child agent execution to forward the approval to.
+     * ID of the child agent execution to forward the approval decision to.
      *
+     * &#64;internal
      * Set by the workflow-runner when surfacing child agent approvals
      * at the workflow level. WorkflowExecution.SubmitApproval uses this
      * to route the decision to the correct AgentExecution.SubmitApproval RPC.
@@ -740,8 +745,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Child agent execution to forward the approval to.
+     * ID of the child agent execution to forward the approval decision to.
      *
+     * &#64;internal
      * Set by the workflow-runner when surfacing child agent approvals
      * at the workflow level. WorkflowExecution.SubmitApproval uses this
      * to route the decision to the correct AgentExecution.SubmitApproval RPC.
@@ -760,8 +766,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Child agent execution to forward the approval to.
+     * ID of the child agent execution to forward the approval decision to.
      *
+     * &#64;internal
      * Set by the workflow-runner when surfacing child agent approvals
      * at the workflow level. WorkflowExecution.SubmitApproval uses this
      * to route the decision to the correct AgentExecution.SubmitApproval RPC.

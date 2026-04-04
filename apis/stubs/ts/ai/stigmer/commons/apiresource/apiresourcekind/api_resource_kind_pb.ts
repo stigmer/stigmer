@@ -96,17 +96,21 @@ export const ApiResourceKindMetaSchema: GenMessage<ApiResourceKindMeta> = /*@__P
   messageDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, 0);
 
 /**
- * API resource version
+ * API resource version.
  *
  * @generated from enum ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersion
  */
 export enum ApiResourceVersion {
   /**
+   * Default value when no version is set.
+   *
    * @generated from enum value: api_resource_version_unspecified = 0;
    */
   api_resource_version_unspecified = 0,
 
   /**
+   * Current API version for all resource types.
+   *
    * @generated from enum value: v1 = 1;
    */
   v1 = 1,
@@ -178,120 +182,146 @@ export const PlatformIdValueSchema: GenEnum<PlatformIdValue> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, 2);
 
 /**
- * API resource kinds for Stigmer
+ * API resource kinds for Stigmer.
  *
  * @generated from enum ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
  */
 export enum ApiResourceKind {
   /**
+   * Default value for unset or unrecognized resource kinds.
+   *
    * @generated from enum value: api_resource_kind_unknown = 0;
    */
   api_resource_kind_unknown = 0,
 
   /**
-   * Agentic - System-level audit trails and versioning
+   * Immutable version record tracking changes to an API resource.
    *
    * @generated from enum value: api_resource_version = 1;
    */
   api_resource_version = 1,
 
   /**
-   * IAM - Identity and Access Management
+   * Role-based access control policy for granting permissions on resources.
    *
    * @generated from enum value: iam_policy = 10;
    */
   iam_policy = 10,
 
   /**
+   * User account in the identity system.
+   *
    * @generated from enum value: identity_account = 11;
    */
   identity_account = 11,
 
   /**
+   * Credential for programmatic API access.
+   *
    * @generated from enum value: api_key = 12;
    */
   api_key = 12,
 
   /**
-   * IAM - External identity provider configuration
+   * External identity provider for federated authentication.
    *
    * @generated from enum value: identity_provider = 21;
    */
   identity_provider = 21,
 
   /**
-   * Tenancy - Platform and organizational resources
+   * Top-level tenant that owns and manages resources.
    *
    * @generated from enum value: organization = 30;
    */
   organization = 30,
 
   /**
+   * Singleton platform instance representing the Stigmer deployment.
+   *
    * @generated from enum value: platform = 31;
    */
   platform = 31,
 
   /**
-   * Agentic - AI agent management
+   * AI assistant with instructions, tools, skills, and a delegation model.
    *
    * @generated from enum value: agent = 40;
    */
   agent = 40,
 
   /**
+   * Single run of an agent within a session, tracking tool calls and responses.
+   *
    * @generated from enum value: agent_execution = 41;
    */
   agent_execution = 41,
 
   /**
+   * Conversation thread between a user and an agent.
+   *
    * @generated from enum value: session = 42;
    */
   session = 42,
 
   /**
+   * Knowledge resource that provides domain-specific context to an agent.
+   *
    * @generated from enum value: skill = 43;
    */
   skill = 43,
 
   /**
+   * External tool server connected via the Model Context Protocol.
+   *
    * @generated from enum value: mcp_server = 44;
    */
   mcp_server = 44,
 
   /**
+   * Configured deployment of an agent with environment-specific overrides.
+   *
    * @generated from enum value: agent_instance = 45;
    */
   agent_instance = 45,
 
   /**
-   * Agentic - Workflow orchestration
+   * Multi-step orchestration defining how agents collaborate on a task.
    *
    * @generated from enum value: workflow = 50;
    */
   workflow = 50,
 
   /**
+   * Configured deployment of a workflow with environment-specific bindings.
+   *
    * @generated from enum value: workflow_instance = 51;
    */
   workflow_instance = 51,
 
   /**
+   * Single run of a workflow instance, tracking step progress and outcomes.
+   *
    * @generated from enum value: workflow_execution = 52;
    */
   workflow_execution = 52,
 
   /**
+   * Named set of variables and secrets for agent and workflow execution.
+   *
    * @generated from enum value: environment = 53;
    */
   environment = 53,
 
   /**
+   * User-owned runtime context for managing execution state.
+   *
    * @generated from enum value: execution_context = 54;
    */
   execution_context = 54,
 
   /**
-   * Tenancy - Project management (aggregate root for resource lifecycle)
+   * Aggregate root grouping related resources for lifecycle management.
    *
    * @generated from enum value: project = 60;
    */

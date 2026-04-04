@@ -16,18 +16,24 @@ export const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options: G
   fileDesc("CkFhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvcnBjYXV0aG9yaXphdGlvbi9tZXRob2Rfb3B0aW9ucy5wcm90bxIsYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLnJwY2F1dGhvcml6YXRpb246fgoGY29uZmlnEh4uZ29vZ2xlLnByb3RvYnVmLk1ldGhvZE9wdGlvbnMYiIcDIAEoCzJELmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5ycGNhdXRob3JpemF0aW9uLlJwY0F1dGhvcml6YXRpb25Db25maWdSBmNvbmZpZzo9Cglpc19wdWJsaWMSHi5nb29nbGUucHJvdG9idWYuTWV0aG9kT3B0aW9ucxiJhwMgASgIUghpc1B1YmxpYzpUChVpc19za2lwX2F1dGhvcml6YXRpb24SHi5nb29nbGUucHJvdG9idWYuTWV0aG9kT3B0aW9ucxiKhwMgASgIUhNpc1NraXBBdXRob3JpemF0aW9uYgZwcm90bzM", [file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_io, file_google_protobuf_descriptor]);
 
 /**
+ * Full authorization configuration: permission, resource kind, field path, and error message.
+ *
  * @generated from extension: ai.stigmer.iam.iampolicy.v1.rpcauthorization.RpcAuthorizationConfig config = 50056;
  */
 export const config: GenExtension<MethodOptions, RpcAuthorizationConfig> = /*@__PURE__*/
   extDesc(file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, 0);
 
 /**
+ * When true, the RPC is publicly accessible without any authentication.
+ *
  * @generated from extension: bool is_public = 50057;
  */
 export const is_public: GenExtension<MethodOptions, boolean> = /*@__PURE__*/
   extDesc(file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, 1);
 
 /**
+ * When true, the RPC requires authentication but skips FGA authorization checks.
+ *
  * @generated from extension: bool is_skip_authorization = 50058;
  */
 export const is_skip_authorization: GenExtension<MethodOptions, boolean> = /*@__PURE__*/

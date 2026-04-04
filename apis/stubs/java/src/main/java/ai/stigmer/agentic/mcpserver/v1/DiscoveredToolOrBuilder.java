@@ -55,9 +55,6 @@ public interface DiscoveredToolOrBuilder extends
   /**
    * <pre>
    * JSON Schema describing the tool's input parameters.
-   * Stored as a Struct for natural representation in YAML/JSON and to allow
-   * inspection without string parsing. This is the raw schema from the MCP
-   * server's tools/list response.
    * </pre>
    *
    * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -67,9 +64,6 @@ public interface DiscoveredToolOrBuilder extends
   /**
    * <pre>
    * JSON Schema describing the tool's input parameters.
-   * Stored as a Struct for natural representation in YAML/JSON and to allow
-   * inspection without string parsing. This is the raw schema from the MCP
-   * server's tools/list response.
    * </pre>
    *
    * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -79,9 +73,6 @@ public interface DiscoveredToolOrBuilder extends
   /**
    * <pre>
    * JSON Schema describing the tool's input parameters.
-   * Stored as a Struct for natural representation in YAML/JSON and to allow
-   * inspection without string parsing. This is the raw schema from the MCP
-   * server's tools/list response.
    * </pre>
    *
    * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>

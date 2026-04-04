@@ -12,8 +12,7 @@ public interface ExportOrBuilder extends
 
   /**
    * <pre>
-   * Expression defining how to export output.
-   * Uses Zigflow expression syntax: ${...}
+   * Expression defining how to export output using ${...} syntax.
    * </pre>
    *
    * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>
@@ -22,8 +21,7 @@ public interface ExportOrBuilder extends
   java.lang.String getAs();
   /**
    * <pre>
-   * Expression defining how to export output.
-   * Uses Zigflow expression syntax: ${...}
+   * Expression defining how to export output using ${...} syntax.
    * </pre>
    *
    * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>

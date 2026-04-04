@@ -20,6 +20,8 @@ export const file_ai_stigmer_tenancy_project_v1_io: GenFile = /*@__PURE__*/
  */
 export type ProjectId = Message<"ai.stigmer.tenancy.project.v1.ProjectId"> & {
   /**
+   * Project identifier.
+   *
    * @generated from field: string value = 1;
    */
   value: string;

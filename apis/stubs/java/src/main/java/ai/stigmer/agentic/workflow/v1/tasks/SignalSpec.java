@@ -106,10 +106,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object type_ = "";
   /**
    * <pre>
-   * Signal type:
-   * - "signal": Temporal signal
-   * - "query": Temporal query
-   * - "update": Temporal update
+   * Signal type: "signal", "query", or "update".
    * </pre>
    *
    * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>
@@ -130,10 +127,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Signal type:
-   * - "signal": Temporal signal
-   * - "query": Temporal query
-   * - "update": Temporal update
+   * Signal type: "signal", "query", or "update".
    * </pre>
    *
    * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>
@@ -571,10 +565,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object type_ = "";
     /**
      * <pre>
-     * Signal type:
-     * - "signal": Temporal signal
-     * - "query": Temporal query
-     * - "update": Temporal update
+     * Signal type: "signal", "query", or "update".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>
@@ -594,10 +585,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal type:
-     * - "signal": Temporal signal
-     * - "query": Temporal query
-     * - "update": Temporal update
+     * Signal type: "signal", "query", or "update".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>
@@ -618,10 +606,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal type:
-     * - "signal": Temporal signal
-     * - "query": Temporal query
-     * - "update": Temporal update
+     * Signal type: "signal", "query", or "update".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>
@@ -638,10 +623,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal type:
-     * - "signal": Temporal signal
-     * - "query": Temporal query
-     * - "update": Temporal update
+     * Signal type: "signal", "query", or "update".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>
@@ -655,10 +637,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Signal type:
-     * - "signal": Temporal signal
-     * - "query": Temporal query
-     * - "update": Temporal update
+     * Signal type: "signal", "query", or "update".
      * </pre>
      *
      * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>

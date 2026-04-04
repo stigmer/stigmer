@@ -208,6 +208,7 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -219,7 +220,8 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow.
+     * Create a workflow.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
      * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
@@ -287,6 +289,7 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -299,7 +302,8 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow.
+     * Create a workflow.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
      * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
@@ -356,6 +360,7 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -367,7 +372,8 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow.
+     * Create a workflow.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
      * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
@@ -421,6 +427,7 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -432,7 +439,8 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow.
+     * Create a workflow.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
      * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
@@ -486,6 +494,7 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -498,7 +507,8 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow.
+     * Create a workflow.
+     * &#64;internal
      * Authorization:
      * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
      * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)

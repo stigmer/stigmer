@@ -14,10 +14,8 @@ public interface SendSignalInputOrBuilder extends
    * <pre>
    * Workflow execution ID to send the signal to.
    *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -28,10 +26,8 @@ public interface SendSignalInputOrBuilder extends
    * <pre>
    * Workflow execution ID to send the signal to.
    *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -42,18 +38,10 @@ public interface SendSignalInputOrBuilder extends
 
   /**
    * <pre>
-   * Signal name to send.
+   * Signal name matching the workflow's LISTEN task signal ID.
    *
-   * Must match the signal ID defined in the workflow's LISTEN task.
-   * Signal names are case-sensitive and should follow snake_case convention.
-   *
-   * Examples:
-   * - "payment_confirmed"
-   * - "approval_received"
-   * - "external_event"
-   * - "verification_complete"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Case-sensitive, follows snake_case convention.
    * </pre>
    *
    * <code>string signal_name = 2 [json_name = "signalName", (.buf.validate.field) = { ... }</code>
@@ -62,18 +50,10 @@ public interface SendSignalInputOrBuilder extends
   java.lang.String getSignalName();
   /**
    * <pre>
-   * Signal name to send.
+   * Signal name matching the workflow's LISTEN task signal ID.
    *
-   * Must match the signal ID defined in the workflow's LISTEN task.
-   * Signal names are case-sensitive and should follow snake_case convention.
-   *
-   * Examples:
-   * - "payment_confirmed"
-   * - "approval_received"
-   * - "external_event"
-   * - "verification_complete"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Case-sensitive, follows snake_case convention.
    * </pre>
    *
    * <code>string signal_name = 2 [json_name = "signalName", (.buf.validate.field) = { ... }</code>
@@ -84,20 +64,7 @@ public interface SendSignalInputOrBuilder extends
 
   /**
    * <pre>
-   * Signal payload data.
-   *
-   * JSON-serializable data to send with the signal. The payload is delivered
-   * to the workflow and can be accessed by the LISTEN task.
-   *
-   * Optional - signals can be sent without payload if they just need to
-   * unblock the workflow without passing data.
-   *
-   * Examples:
-   * - { "status": "approved", "approver": "jane&#64;example.com" }
-   * - { "transaction_id": "txn_123", "amount": 99.99 }
-   * - { "verified": true }
-   *
-   * Note: Use google.protobuf.Struct for arbitrary JSON payloads.
+   * Optional JSON payload delivered to the LISTEN task.
    * </pre>
    *
    * <code>.google.protobuf.Struct payload = 3 [json_name = "payload"];</code>
@@ -106,20 +73,7 @@ public interface SendSignalInputOrBuilder extends
   boolean hasPayload();
   /**
    * <pre>
-   * Signal payload data.
-   *
-   * JSON-serializable data to send with the signal. The payload is delivered
-   * to the workflow and can be accessed by the LISTEN task.
-   *
-   * Optional - signals can be sent without payload if they just need to
-   * unblock the workflow without passing data.
-   *
-   * Examples:
-   * - { "status": "approved", "approver": "jane&#64;example.com" }
-   * - { "transaction_id": "txn_123", "amount": 99.99 }
-   * - { "verified": true }
-   *
-   * Note: Use google.protobuf.Struct for arbitrary JSON payloads.
+   * Optional JSON payload delivered to the LISTEN task.
    * </pre>
    *
    * <code>.google.protobuf.Struct payload = 3 [json_name = "payload"];</code>
@@ -128,20 +82,7 @@ public interface SendSignalInputOrBuilder extends
   com.google.protobuf.Struct getPayload();
   /**
    * <pre>
-   * Signal payload data.
-   *
-   * JSON-serializable data to send with the signal. The payload is delivered
-   * to the workflow and can be accessed by the LISTEN task.
-   *
-   * Optional - signals can be sent without payload if they just need to
-   * unblock the workflow without passing data.
-   *
-   * Examples:
-   * - { "status": "approved", "approver": "jane&#64;example.com" }
-   * - { "transaction_id": "txn_123", "amount": 99.99 }
-   * - { "verified": true }
-   *
-   * Note: Use google.protobuf.Struct for arbitrary JSON payloads.
+   * Optional JSON payload delivered to the LISTEN task.
    * </pre>
    *
    * <code>.google.protobuf.Struct payload = 3 [json_name = "payload"];</code>
@@ -150,43 +91,12 @@ public interface SendSignalInputOrBuilder extends
 
   /**
    * <pre>
-   * Idempotency key for deduplication of signal delivery.
+   * Optional idempotency key for deduplication of signal delivery.
    *
-   * Optional - if not provided, signal is processed without dedupe protection.
-   * When provided, duplicate signals with the same key (within the TTL window)
+   * &#64;internal
+   * When provided, duplicate signals with the same key (within the 24-hour TTL window)
    * return the cached response instead of re-delivering the signal.
-   *
-   * ## Format Recommendations
-   *
-   * - Webhook sources: "{source}:{event_id}" (e.g., "stripe:evt_1234567890")
-   * - API callers: Client-generated UUID (e.g., "550e8400-e29b-41d4-a716-446655440000")
-   * - Scheduled events: "{schedule_id}:{timestamp}" (e.g., "sched_abc:2026-02-08T12:00:00Z")
-   *
-   * ## Scope
-   *
    * Keys are scoped to the organization to prevent cross-org collisions.
-   * The effective key stored is: "{org_id}:{idempotency_key}"
-   *
-   * ## TTL (Time-To-Live)
-   *
-   * Keys expire after 24 hours by default. After expiration, the same key
-   * can be reused and will trigger a new signal delivery. This aligns with
-   * industry standards (e.g., Stripe's 24-hour idempotency window).
-   *
-   * ## Behavior on Duplicate
-   *
-   * When a duplicate key is detected:
-   * - The signal is NOT re-delivered to the workflow
-   * - The original WorkflowExecution state is returned (idempotent response)
-   * - No error is returned (success with cached result)
-   *
-   * ## Use Cases
-   *
-   * 1. Webhook retry protection: Stripe/GitHub may retry webhooks on timeout
-   * 2. Client retry safety: API clients can safely retry on network errors
-   * 3. At-least-once to effectively-once: Convert retries into safe operations
-   *
-   * Example: "stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT"
    *
    * &#64;since Gap B2 (Event Dedupe)
    * </pre>
@@ -197,43 +107,12 @@ public interface SendSignalInputOrBuilder extends
   java.lang.String getIdempotencyKey();
   /**
    * <pre>
-   * Idempotency key for deduplication of signal delivery.
+   * Optional idempotency key for deduplication of signal delivery.
    *
-   * Optional - if not provided, signal is processed without dedupe protection.
-   * When provided, duplicate signals with the same key (within the TTL window)
+   * &#64;internal
+   * When provided, duplicate signals with the same key (within the 24-hour TTL window)
    * return the cached response instead of re-delivering the signal.
-   *
-   * ## Format Recommendations
-   *
-   * - Webhook sources: "{source}:{event_id}" (e.g., "stripe:evt_1234567890")
-   * - API callers: Client-generated UUID (e.g., "550e8400-e29b-41d4-a716-446655440000")
-   * - Scheduled events: "{schedule_id}:{timestamp}" (e.g., "sched_abc:2026-02-08T12:00:00Z")
-   *
-   * ## Scope
-   *
    * Keys are scoped to the organization to prevent cross-org collisions.
-   * The effective key stored is: "{org_id}:{idempotency_key}"
-   *
-   * ## TTL (Time-To-Live)
-   *
-   * Keys expire after 24 hours by default. After expiration, the same key
-   * can be reused and will trigger a new signal delivery. This aligns with
-   * industry standards (e.g., Stripe's 24-hour idempotency window).
-   *
-   * ## Behavior on Duplicate
-   *
-   * When a duplicate key is detected:
-   * - The signal is NOT re-delivered to the workflow
-   * - The original WorkflowExecution state is returned (idempotent response)
-   * - No error is returned (success with cached result)
-   *
-   * ## Use Cases
-   *
-   * 1. Webhook retry protection: Stripe/GitHub may retry webhooks on timeout
-   * 2. Client retry safety: API clients can safely retry on network errors
-   * 3. At-least-once to effectively-once: Convert retries into safe operations
-   *
-   * Example: "stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT"
    *
    * &#64;since Gap B2 (Event Dedupe)
    * </pre>

@@ -16,12 +16,14 @@ export const file_ai_stigmer_iam_apikey_v1_io: GenFile = /*@__PURE__*/
   fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSI8CgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5IiEKCEFwaUtleUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKQXBpS2V5SGFzaBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBYgZwcm90bzM", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate]);
 
 /**
- * wrapper to get list of api keys
+ * ApiKeys contains a list of API key resources.
  *
  * @generated from message ai.stigmer.iam.apikey.v1.ApiKeys
  */
 export type ApiKeys = Message<"ai.stigmer.iam.apikey.v1.ApiKeys"> & {
   /**
+   * API key entries.
+   *
    * @generated from field: repeated ai.stigmer.iam.apikey.v1.ApiKey entries = 1;
    */
   entries: ApiKey[];
@@ -35,12 +37,14 @@ export const ApiKeysSchema: GenMessage<ApiKeys> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_apikey_v1_io, 0);
 
 /**
- * wrapper for user api key id.
+ * ApiKeyId identifies an API key by its unique identifier.
  *
  * @generated from message ai.stigmer.iam.apikey.v1.ApiKeyId
  */
 export type ApiKeyId = Message<"ai.stigmer.iam.apikey.v1.ApiKeyId"> & {
   /**
+   * Unique identifier of the API key.
+   *
    * @generated from field: string value = 1;
    */
   value: string;
@@ -54,12 +58,14 @@ export const ApiKeyIdSchema: GenMessage<ApiKeyId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_apikey_v1_io, 1);
 
 /**
- * wrapper for hashed api key
+ * ApiKeyHash identifies an API key by its hashed key value.
  *
  * @generated from message ai.stigmer.iam.apikey.v1.ApiKeyHash
  */
 export type ApiKeyHash = Message<"ai.stigmer.iam.apikey.v1.ApiKeyHash"> & {
   /**
+   * Hash of the raw API key.
+   *
    * @generated from field: string value = 1;
    */
   value: string;

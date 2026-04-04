@@ -7,7 +7,7 @@ package ai.stigmer.iam.identityprovider.v1;
 
 /**
  * <pre>
- * Wrapper for identity provider id.
+ * IdentityProviderId identifies an identity provider by its unique identifier.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityprovider.v1.IdentityProviderId}
@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object value_ = "";
   /**
    * <pre>
-   * The unique identifier of the identity provider resource.
+   * Unique identifier of the identity provider resource.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -79,7 +79,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The unique identifier of the identity provider resource.
+   * Unique identifier of the identity provider resource.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -258,7 +258,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Wrapper for identity provider id.
+   * IdentityProviderId identifies an identity provider by its unique identifier.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityprovider.v1.IdentityProviderId}
@@ -401,7 +401,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object value_ = "";
     /**
      * <pre>
-     * The unique identifier of the identity provider resource.
+     * Unique identifier of the identity provider resource.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -421,7 +421,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The unique identifier of the identity provider resource.
+     * Unique identifier of the identity provider resource.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -442,7 +442,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The unique identifier of the identity provider resource.
+     * Unique identifier of the identity provider resource.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -459,7 +459,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The unique identifier of the identity provider resource.
+     * Unique identifier of the identity provider resource.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -473,7 +473,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The unique identifier of the identity provider resource.
+     * Unique identifier of the identity provider resource.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

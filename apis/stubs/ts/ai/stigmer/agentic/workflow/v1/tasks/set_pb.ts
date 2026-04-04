@@ -15,10 +15,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_set: GenFile = /*@__PURE_
   fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3Mvc2V0LnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MirgEKDVNldFRhc2tDb25maWcSXQoJdmFyaWFibGVzGAEgAygLMkIuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLlNldFRhc2tDb25maWcuVmFyaWFibGVzRW50cnlCBrpIA8gBARowCg5WYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBOgzqiywIc2V0X3ZhcnNiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
- * SetTaskConfig defines the configuration for SET tasks.
+ * SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.
  *
- * SET tasks assign variables in workflow state.
- *
+ * @internal
  * YAML Example:
  *   - taskName:
  *       set:

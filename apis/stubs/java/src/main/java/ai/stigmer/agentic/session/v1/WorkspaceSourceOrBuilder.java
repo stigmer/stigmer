@@ -11,31 +11,55 @@ public interface WorkspaceSourceOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Clone a git repository as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
    * @return Whether the gitRepo field is set.
    */
   boolean hasGitRepo();
   /**
+   * <pre>
+   * Clone a git repository as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
    * @return The gitRepo.
    */
   ai.stigmer.agentic.session.v1.GitRepoSource getGitRepo();
   /**
+   * <pre>
+   * Clone a git repository as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1 [json_name = "gitRepo"];</code>
    */
   ai.stigmer.agentic.session.v1.GitRepoSourceOrBuilder getGitRepoOrBuilder();
 
   /**
+   * <pre>
+   * Use an existing local directory as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
    * @return Whether the localPath field is set.
    */
   boolean hasLocalPath();
   /**
+   * <pre>
+   * Use an existing local directory as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
    * @return The localPath.
    */
   ai.stigmer.agentic.session.v1.LocalPathSource getLocalPath();
   /**
+   * <pre>
+   * Use an existing local directory as the workspace source.
+   * </pre>
+   *
    * <code>.ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2 [json_name = "localPath"];</code>
    */
   ai.stigmer.agentic.session.v1.LocalPathSourceOrBuilder getLocalPathOrBuilder();

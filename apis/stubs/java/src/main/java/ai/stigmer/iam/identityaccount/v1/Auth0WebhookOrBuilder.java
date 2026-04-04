@@ -11,11 +11,19 @@ public interface Auth0WebhookOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * ISO 8601 timestamp of the event.
+   * </pre>
+   *
    * <code>string date = 1 [json_name = "date"];</code>
    * @return The date.
    */
   java.lang.String getDate();
   /**
+   * <pre>
+   * ISO 8601 timestamp of the event.
+   * </pre>
+   *
    * <code>string date = 1 [json_name = "date"];</code>
    * @return The bytes for date.
    */
@@ -23,11 +31,19 @@ public interface Auth0WebhookOrBuilder extends
       getDateBytes();
 
   /**
+   * <pre>
+   * Auth0 event type code (e.g., "ss" for successful signup).
+   * </pre>
+   *
    * <code>string type = 2 [json_name = "type"];</code>
    * @return The type.
    */
   java.lang.String getType();
   /**
+   * <pre>
+   * Auth0 event type code (e.g., "ss" for successful signup).
+   * </pre>
+   *
    * <code>string type = 2 [json_name = "type"];</code>
    * @return The bytes for type.
    */
@@ -35,11 +51,19 @@ public interface Auth0WebhookOrBuilder extends
       getTypeBytes();
 
   /**
+   * <pre>
+   * Human-readable description of the event.
+   * </pre>
+   *
    * <code>string description = 3 [json_name = "description"];</code>
    * @return The description.
    */
   java.lang.String getDescription();
   /**
+   * <pre>
+   * Human-readable description of the event.
+   * </pre>
+   *
    * <code>string description = 3 [json_name = "description"];</code>
    * @return The bytes for description.
    */
@@ -47,11 +71,19 @@ public interface Auth0WebhookOrBuilder extends
       getDescriptionBytes();
 
   /**
+   * <pre>
+   * Auth0 application client ID that triggered the event.
+   * </pre>
+   *
    * <code>string client_id = 4 [json_name = "clientId"];</code>
    * @return The clientId.
    */
   java.lang.String getClientId();
   /**
+   * <pre>
+   * Auth0 application client ID that triggered the event.
+   * </pre>
+   *
    * <code>string client_id = 4 [json_name = "clientId"];</code>
    * @return The bytes for clientId.
    */
@@ -59,11 +91,19 @@ public interface Auth0WebhookOrBuilder extends
       getClientIdBytes();
 
   /**
+   * <pre>
+   * Name of the Auth0 application that triggered the event.
+   * </pre>
+   *
    * <code>string client_name = 5 [json_name = "clientName"];</code>
    * @return The clientName.
    */
   java.lang.String getClientName();
   /**
+   * <pre>
+   * Name of the Auth0 application that triggered the event.
+   * </pre>
+   *
    * <code>string client_name = 5 [json_name = "clientName"];</code>
    * @return The bytes for clientName.
    */
@@ -71,11 +111,19 @@ public interface Auth0WebhookOrBuilder extends
       getClientNameBytes();
 
   /**
+   * <pre>
+   * IP address of the user who triggered the event.
+   * </pre>
+   *
    * <code>string ip = 6 [json_name = "ip"];</code>
    * @return The ip.
    */
   java.lang.String getIp();
   /**
+   * <pre>
+   * IP address of the user who triggered the event.
+   * </pre>
+   *
    * <code>string ip = 6 [json_name = "ip"];</code>
    * @return The bytes for ip.
    */
@@ -83,11 +131,19 @@ public interface Auth0WebhookOrBuilder extends
       getIpBytes();
 
   /**
+   * <pre>
+   * User-Agent header from the request that triggered the event.
+   * </pre>
+   *
    * <code>string user_agent = 7 [json_name = "userAgent"];</code>
    * @return The userAgent.
    */
   java.lang.String getUserAgent();
   /**
+   * <pre>
+   * User-Agent header from the request that triggered the event.
+   * </pre>
+   *
    * <code>string user_agent = 7 [json_name = "userAgent"];</code>
    * @return The bytes for userAgent.
    */
@@ -95,11 +151,19 @@ public interface Auth0WebhookOrBuilder extends
       getUserAgentBytes();
 
   /**
+   * <pre>
+   * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+   * </pre>
+   *
    * <code>string user_id = 8 [json_name = "userId"];</code>
    * @return The userId.
    */
   java.lang.String getUserId();
   /**
+   * <pre>
+   * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+   * </pre>
+   *
    * <code>string user_id = 8 [json_name = "userId"];</code>
    * @return The bytes for userId.
    */

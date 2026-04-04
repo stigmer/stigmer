@@ -4,7 +4,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+ * WorkflowInstanceCommandController handles write operations for workflow instances.
+ * &#64;internal
  * This service provides the CUD (Create, Update, Delete) operations following the
  * Command-Query Separation pattern. All RPCs that modify state go through this controller.
  * Authorization:
@@ -207,7 +208,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
   /**
    * <pre>
-   * WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+   * WorkflowInstanceCommandController handles write operations for workflow instances.
+   * &#64;internal
    * This service provides the CUD (Create, Update, Delete) operations following the
    * Command-Query Separation pattern. All RPCs that modify state go through this controller.
    * Authorization:
@@ -222,6 +224,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -233,8 +236,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow instance.
-     * Creates a configured deployment of a Workflow template with environment bindings.
+     * Create a workflow instance.
+     * &#64;internal
      * Input validation:
      * - metadata.org must be specified
      * - spec.workflow_id must be a valid Workflow resource ID
@@ -244,14 +247,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * 1. User has permission to access the referenced Workflow template
      * 2. User has permission to access all referenced Environment resources
      * 3. Owner scope is valid for the user's organization/identity
-     * Returns:
-     * The created WorkflowInstance with:
-     * - Assigned resource ID (metadata.id)
-     * - Created timestamp (status.audit.created_at)
-     * - Initial version (status.audit.version = 1)
-     * Example:
-     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
-     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     default void create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -262,25 +257,16 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * Modifies the configuration of an existing WorkflowInstance.
-     * You can update:
-     * - spec.description (change descriptive text)
-     * - spec.environment_refs (add/remove/reorder environment bindings)
+     * &#64;internal
+     * Mutable fields:
+     * - spec.description, spec.environment_refs
      * - metadata.labels, metadata.tags, metadata.annotations
-     * You cannot update:
-     * - spec.workflow_id (must delete and recreate to change template)
-     * - metadata.id (immutable resource identifier)
-     * - metadata.org (immutable after creation)
+     * Immutable fields (must delete and recreate to change):
+     * - spec.workflow_id, metadata.id, metadata.org
      * Authorization:
      * Requires "update" permission on the specific WorkflowInstance resource.
      * Field path "metadata.id" identifies which resource to authorize.
-     * Versioning:
      * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Returns:
-     * The updated WorkflowInstance with:
-     * - Incremented version number
-     * - Updated timestamp
-     * - Modified spec fields
      * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
@@ -292,22 +278,15 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
+     * &#64;internal
      * Permanently removes a WorkflowInstance resource.
-     * Important:
-     * - Deletion is permanent and cannot be undone
      * - Does NOT delete the referenced Workflow template (templates are reusable)
      * - Does NOT delete the referenced Environment resources (environments are reusable)
      * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
      * Authorization:
      * Requires "delete" permission on the specific WorkflowInstance resource.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Use Cases:
-     * - Remove deprecated instances
-     * - Clean up test/dev instances
-     * - Decommission old deployment configurations
-     * Returns:
-     * The deleted WorkflowInstance (final state before deletion).
-     * Useful for audit logs and confirming what was deleted.
+     * Returns the deleted WorkflowInstance (final state before deletion).
      * Error: PERMISSION_DENIED if user lacks delete permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -321,7 +300,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
   /**
    * Base class for the server implementation of the service WorkflowInstanceCommandController.
    * <pre>
-   * WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+   * WorkflowInstanceCommandController handles write operations for workflow instances.
+   * &#64;internal
    * This service provides the CUD (Create, Update, Delete) operations following the
    * Command-Query Separation pattern. All RPCs that modify state go through this controller.
    * Authorization:
@@ -342,7 +322,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service WorkflowInstanceCommandController.
    * <pre>
-   * WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+   * WorkflowInstanceCommandController handles write operations for workflow instances.
+   * &#64;internal
    * This service provides the CUD (Create, Update, Delete) operations following the
    * Command-Query Separation pattern. All RPCs that modify state go through this controller.
    * Authorization:
@@ -368,6 +349,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -380,8 +362,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow instance.
-     * Creates a configured deployment of a Workflow template with environment bindings.
+     * Create a workflow instance.
+     * &#64;internal
      * Input validation:
      * - metadata.org must be specified
      * - spec.workflow_id must be a valid Workflow resource ID
@@ -391,14 +373,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * 1. User has permission to access the referenced Workflow template
      * 2. User has permission to access all referenced Environment resources
      * 3. Owner scope is valid for the user's organization/identity
-     * Returns:
-     * The created WorkflowInstance with:
-     * - Assigned resource ID (metadata.id)
-     * - Created timestamp (status.audit.created_at)
-     * - Initial version (status.audit.version = 1)
-     * Example:
-     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
-     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     public void create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -410,25 +384,16 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * Modifies the configuration of an existing WorkflowInstance.
-     * You can update:
-     * - spec.description (change descriptive text)
-     * - spec.environment_refs (add/remove/reorder environment bindings)
+     * &#64;internal
+     * Mutable fields:
+     * - spec.description, spec.environment_refs
      * - metadata.labels, metadata.tags, metadata.annotations
-     * You cannot update:
-     * - spec.workflow_id (must delete and recreate to change template)
-     * - metadata.id (immutable resource identifier)
-     * - metadata.org (immutable after creation)
+     * Immutable fields (must delete and recreate to change):
+     * - spec.workflow_id, metadata.id, metadata.org
      * Authorization:
      * Requires "update" permission on the specific WorkflowInstance resource.
      * Field path "metadata.id" identifies which resource to authorize.
-     * Versioning:
      * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Returns:
-     * The updated WorkflowInstance with:
-     * - Incremented version number
-     * - Updated timestamp
-     * - Modified spec fields
      * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
@@ -441,22 +406,15 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
+     * &#64;internal
      * Permanently removes a WorkflowInstance resource.
-     * Important:
-     * - Deletion is permanent and cannot be undone
      * - Does NOT delete the referenced Workflow template (templates are reusable)
      * - Does NOT delete the referenced Environment resources (environments are reusable)
      * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
      * Authorization:
      * Requires "delete" permission on the specific WorkflowInstance resource.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Use Cases:
-     * - Remove deprecated instances
-     * - Clean up test/dev instances
-     * - Decommission old deployment configurations
-     * Returns:
-     * The deleted WorkflowInstance (final state before deletion).
-     * Useful for audit logs and confirming what was deleted.
+     * Returns the deleted WorkflowInstance (final state before deletion).
      * Error: PERMISSION_DENIED if user lacks delete permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -471,7 +429,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service WorkflowInstanceCommandController.
    * <pre>
-   * WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+   * WorkflowInstanceCommandController handles write operations for workflow instances.
+   * &#64;internal
    * This service provides the CUD (Create, Update, Delete) operations following the
    * Command-Query Separation pattern. All RPCs that modify state go through this controller.
    * Authorization:
@@ -497,6 +456,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -508,8 +468,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow instance.
-     * Creates a configured deployment of a Workflow template with environment bindings.
+     * Create a workflow instance.
+     * &#64;internal
      * Input validation:
      * - metadata.org must be specified
      * - spec.workflow_id must be a valid Workflow resource ID
@@ -519,14 +479,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * 1. User has permission to access the referenced Workflow template
      * 2. User has permission to access all referenced Environment resources
      * 3. Owner scope is valid for the user's organization/identity
-     * Returns:
-     * The created WorkflowInstance with:
-     * - Assigned resource ID (metadata.id)
-     * - Created timestamp (status.audit.created_at)
-     * - Initial version (status.audit.version = 1)
-     * Example:
-     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
-     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) throws io.grpc.StatusException {
@@ -537,25 +489,16 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * Modifies the configuration of an existing WorkflowInstance.
-     * You can update:
-     * - spec.description (change descriptive text)
-     * - spec.environment_refs (add/remove/reorder environment bindings)
+     * &#64;internal
+     * Mutable fields:
+     * - spec.description, spec.environment_refs
      * - metadata.labels, metadata.tags, metadata.annotations
-     * You cannot update:
-     * - spec.workflow_id (must delete and recreate to change template)
-     * - metadata.id (immutable resource identifier)
-     * - metadata.org (immutable after creation)
+     * Immutable fields (must delete and recreate to change):
+     * - spec.workflow_id, metadata.id, metadata.org
      * Authorization:
      * Requires "update" permission on the specific WorkflowInstance resource.
      * Field path "metadata.id" identifies which resource to authorize.
-     * Versioning:
      * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Returns:
-     * The updated WorkflowInstance with:
-     * - Incremented version number
-     * - Updated timestamp
-     * - Modified spec fields
      * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
@@ -567,22 +510,15 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
+     * &#64;internal
      * Permanently removes a WorkflowInstance resource.
-     * Important:
-     * - Deletion is permanent and cannot be undone
      * - Does NOT delete the referenced Workflow template (templates are reusable)
      * - Does NOT delete the referenced Environment resources (environments are reusable)
      * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
      * Authorization:
      * Requires "delete" permission on the specific WorkflowInstance resource.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Use Cases:
-     * - Remove deprecated instances
-     * - Clean up test/dev instances
-     * - Decommission old deployment configurations
-     * Returns:
-     * The deleted WorkflowInstance (final state before deletion).
-     * Useful for audit logs and confirming what was deleted.
+     * Returns the deleted WorkflowInstance (final state before deletion).
      * Error: PERMISSION_DENIED if user lacks delete permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -596,7 +532,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service WorkflowInstanceCommandController.
    * <pre>
-   * WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+   * WorkflowInstanceCommandController handles write operations for workflow instances.
+   * &#64;internal
    * This service provides the CUD (Create, Update, Delete) operations following the
    * Command-Query Separation pattern. All RPCs that modify state go through this controller.
    * Authorization:
@@ -622,6 +559,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -633,8 +571,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow instance.
-     * Creates a configured deployment of a Workflow template with environment bindings.
+     * Create a workflow instance.
+     * &#64;internal
      * Input validation:
      * - metadata.org must be specified
      * - spec.workflow_id must be a valid Workflow resource ID
@@ -644,14 +582,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * 1. User has permission to access the referenced Workflow template
      * 2. User has permission to access all referenced Environment resources
      * 3. Owner scope is valid for the user's organization/identity
-     * Returns:
-     * The created WorkflowInstance with:
-     * - Assigned resource ID (metadata.id)
-     * - Created timestamp (status.audit.created_at)
-     * - Initial version (status.audit.version = 1)
-     * Example:
-     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
-     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) {
@@ -662,25 +592,16 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * Modifies the configuration of an existing WorkflowInstance.
-     * You can update:
-     * - spec.description (change descriptive text)
-     * - spec.environment_refs (add/remove/reorder environment bindings)
+     * &#64;internal
+     * Mutable fields:
+     * - spec.description, spec.environment_refs
      * - metadata.labels, metadata.tags, metadata.annotations
-     * You cannot update:
-     * - spec.workflow_id (must delete and recreate to change template)
-     * - metadata.id (immutable resource identifier)
-     * - metadata.org (immutable after creation)
+     * Immutable fields (must delete and recreate to change):
+     * - spec.workflow_id, metadata.id, metadata.org
      * Authorization:
      * Requires "update" permission on the specific WorkflowInstance resource.
      * Field path "metadata.id" identifies which resource to authorize.
-     * Versioning:
      * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Returns:
-     * The updated WorkflowInstance with:
-     * - Incremented version number
-     * - Updated timestamp
-     * - Modified spec fields
      * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
@@ -692,22 +613,15 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
+     * &#64;internal
      * Permanently removes a WorkflowInstance resource.
-     * Important:
-     * - Deletion is permanent and cannot be undone
      * - Does NOT delete the referenced Workflow template (templates are reusable)
      * - Does NOT delete the referenced Environment resources (environments are reusable)
      * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
      * Authorization:
      * Requires "delete" permission on the specific WorkflowInstance resource.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Use Cases:
-     * - Remove deprecated instances
-     * - Clean up test/dev instances
-     * - Decommission old deployment configurations
-     * Returns:
-     * The deleted WorkflowInstance (final state before deletion).
-     * Useful for audit logs and confirming what was deleted.
+     * Returns the deleted WorkflowInstance (final state before deletion).
      * Error: PERMISSION_DENIED if user lacks delete permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
@@ -721,7 +635,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service WorkflowInstanceCommandController.
    * <pre>
-   * WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+   * WorkflowInstanceCommandController handles write operations for workflow instances.
+   * &#64;internal
    * This service provides the CUD (Create, Update, Delete) operations following the
    * Command-Query Separation pattern. All RPCs that modify state go through this controller.
    * Authorization:
@@ -747,6 +662,7 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the workflow instance
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -759,8 +675,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new workflow instance.
-     * Creates a configured deployment of a Workflow template with environment bindings.
+     * Create a workflow instance.
+     * &#64;internal
      * Input validation:
      * - metadata.org must be specified
      * - spec.workflow_id must be a valid Workflow resource ID
@@ -770,14 +686,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * 1. User has permission to access the referenced Workflow template
      * 2. User has permission to access all referenced Environment resources
      * 3. Owner scope is valid for the user's organization/identity
-     * Returns:
-     * The created WorkflowInstance with:
-     * - Assigned resource ID (metadata.id)
-     * - Created timestamp (status.audit.created_at)
-     * - Initial version (status.audit.version = 1)
-     * Example:
-     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
-     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> create(
@@ -789,25 +697,16 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * Modifies the configuration of an existing WorkflowInstance.
-     * You can update:
-     * - spec.description (change descriptive text)
-     * - spec.environment_refs (add/remove/reorder environment bindings)
+     * &#64;internal
+     * Mutable fields:
+     * - spec.description, spec.environment_refs
      * - metadata.labels, metadata.tags, metadata.annotations
-     * You cannot update:
-     * - spec.workflow_id (must delete and recreate to change template)
-     * - metadata.id (immutable resource identifier)
-     * - metadata.org (immutable after creation)
+     * Immutable fields (must delete and recreate to change):
+     * - spec.workflow_id, metadata.id, metadata.org
      * Authorization:
      * Requires "update" permission on the specific WorkflowInstance resource.
      * Field path "metadata.id" identifies which resource to authorize.
-     * Versioning:
      * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Returns:
-     * The updated WorkflowInstance with:
-     * - Incremented version number
-     * - Updated timestamp
-     * - Modified spec fields
      * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
@@ -820,22 +719,15 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
+     * &#64;internal
      * Permanently removes a WorkflowInstance resource.
-     * Important:
-     * - Deletion is permanent and cannot be undone
      * - Does NOT delete the referenced Workflow template (templates are reusable)
      * - Does NOT delete the referenced Environment resources (environments are reusable)
      * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
      * Authorization:
      * Requires "delete" permission on the specific WorkflowInstance resource.
      * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Use Cases:
-     * - Remove deprecated instances
-     * - Clean up test/dev instances
-     * - Decommission old deployment configurations
-     * Returns:
-     * The deleted WorkflowInstance (final state before deletion).
-     * Useful for audit logs and confirming what was deleted.
+     * Returns the deleted WorkflowInstance (final state before deletion).
      * Error: PERMISSION_DENIED if user lacks delete permission
      * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>

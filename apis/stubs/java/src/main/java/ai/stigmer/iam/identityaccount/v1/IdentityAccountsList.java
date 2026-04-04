@@ -7,7 +7,7 @@ package ai.stigmer.iam.identityaccount.v1;
 
 /**
  * <pre>
- * response for paginated rpc query to list identity accounts.
+ * IdentityAccountsList is a paginated response containing identity accounts.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountsList}
@@ -57,7 +57,7 @@ private static final long serialVersionUID = 0L;
   private int totalPages_ = 0;
   /**
    * <pre>
-   * total number of pages
+   * Total number of pages available.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -73,7 +73,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.iam.identityaccount.v1.IdentityAccount> entries_;
   /**
    * <pre>
-   * current page entries
+   * Identity accounts in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -84,7 +84,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * current page entries
+   * Identity accounts in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -96,7 +96,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * current page entries
+   * Identity accounts in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * current page entries
+   * Identity accounts in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -118,7 +118,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * current page entries
+   * Identity accounts in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -306,7 +306,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * response for paginated rpc query to list identity accounts.
+   * IdentityAccountsList is a paginated response containing identity accounts.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountsList}
@@ -506,7 +506,7 @@ private static final long serialVersionUID = 0L;
     private int totalPages_ ;
     /**
      * <pre>
-     * total number of pages
+     * Total number of pages available.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -518,7 +518,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * total number of pages
+     * Total number of pages available.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -534,7 +534,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * total number of pages
+     * Total number of pages available.
      * </pre>
      *
      * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -561,7 +561,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -575,7 +575,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -589,7 +589,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -603,7 +603,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -624,7 +624,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -642,7 +642,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -662,7 +662,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -683,7 +683,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -701,7 +701,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -719,7 +719,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -738,7 +738,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -755,7 +755,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -772,7 +772,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -783,7 +783,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -797,7 +797,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -812,7 +812,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -823,7 +823,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>
@@ -835,7 +835,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * current page entries
+     * Identity accounts in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2 [json_name = "entries"];</code>

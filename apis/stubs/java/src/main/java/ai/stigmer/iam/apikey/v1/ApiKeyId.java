@@ -7,7 +7,7 @@ package ai.stigmer.iam.apikey.v1;
 
 /**
  * <pre>
- * wrapper for user api key id.
+ * ApiKeyId identifies an API key by its unique identifier.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKeyId}
@@ -57,6 +57,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object value_ = "";
   /**
+   * <pre>
+   * Unique identifier of the API key.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The value.
    */
@@ -74,6 +78,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Unique identifier of the API key.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The bytes for value.
    */
@@ -250,7 +258,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * wrapper for user api key id.
+   * ApiKeyId identifies an API key by its unique identifier.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKeyId}
@@ -392,6 +400,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object value_ = "";
     /**
+     * <pre>
+     * Unique identifier of the API key.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return The value.
      */
@@ -408,6 +420,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Unique identifier of the API key.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return The bytes for value.
      */
@@ -425,6 +441,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Unique identifier of the API key.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @param value The value to set.
      * @return This builder for chaining.
@@ -438,6 +458,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Unique identifier of the API key.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -448,6 +472,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Unique identifier of the API key.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for value to set.
      * @return This builder for chaining.

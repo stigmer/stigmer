@@ -7,7 +7,7 @@ package ai.stigmer.iam.identityaccount.v1;
 
 /**
  * <pre>
- * input for paginated queries that require identity account id as input.
+ * ListWithIdentityAccountIdReq is the input for paginated queries scoped to an identity account.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq}
@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object identityAccountId_ = "";
   /**
    * <pre>
-   * identity account id
+   * Unique identifier of the identity account to list resources for.
    * </pre>
    *
    * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * identity account id
+   * Unique identifier of the identity account to list resources for.
    * </pre>
    *
    * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -104,6 +104,10 @@ private static final long serialVersionUID = 0L;
   public static final int PAGE_FIELD_NUMBER = 2;
   private ai.stigmer.commons.rpc.PageInfo page_;
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    * @return Whether the page field is set.
    */
@@ -112,6 +116,10 @@ private static final long serialVersionUID = 0L;
     return ((bitField0_ & 0x00000001) != 0);
   }
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    * @return The page.
    */
@@ -120,6 +128,10 @@ private static final long serialVersionUID = 0L;
     return page_ == null ? ai.stigmer.commons.rpc.PageInfo.getDefaultInstance() : page_;
   }
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    */
   @java.lang.Override
@@ -301,7 +313,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * input for paginated queries that require identity account id as input.
+   * ListWithIdentityAccountIdReq is the input for paginated queries scoped to an identity account.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq}
@@ -473,7 +485,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object identityAccountId_ = "";
     /**
      * <pre>
-     * identity account id
+     * Unique identifier of the identity account to list resources for.
      * </pre>
      *
      * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -493,7 +505,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * identity account id
+     * Unique identifier of the identity account to list resources for.
      * </pre>
      *
      * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -514,7 +526,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * identity account id
+     * Unique identifier of the identity account to list resources for.
      * </pre>
      *
      * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -531,7 +543,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * identity account id
+     * Unique identifier of the identity account to list resources for.
      * </pre>
      *
      * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -545,7 +557,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * identity account id
+     * Unique identifier of the identity account to list resources for.
      * </pre>
      *
      * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -566,6 +578,10 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.rpc.PageInfo, ai.stigmer.commons.rpc.PageInfo.Builder, ai.stigmer.commons.rpc.PageInfoOrBuilder> pageBuilder_;
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      * @return Whether the page field is set.
      */
@@ -573,6 +589,10 @@ private static final long serialVersionUID = 0L;
       return ((bitField0_ & 0x00000002) != 0);
     }
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      * @return The page.
      */
@@ -584,6 +604,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      */
     public Builder setPage(ai.stigmer.commons.rpc.PageInfo value) {
@@ -600,6 +624,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      */
     public Builder setPage(
@@ -614,6 +642,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      */
     public Builder mergePage(ai.stigmer.commons.rpc.PageInfo value) {
@@ -635,6 +667,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      */
     public Builder clearPage() {
@@ -648,6 +684,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      */
     public ai.stigmer.commons.rpc.PageInfo.Builder getPageBuilder() {
@@ -656,6 +696,10 @@ private static final long serialVersionUID = 0L;
       return internalGetPageFieldBuilder().getBuilder();
     }
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      */
     public ai.stigmer.commons.rpc.PageInfoOrBuilder getPageOrBuilder() {
@@ -667,6 +711,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Pagination parameters.
+     * </pre>
+     *
      * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<

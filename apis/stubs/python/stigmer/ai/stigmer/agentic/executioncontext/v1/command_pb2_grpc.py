@@ -7,8 +7,9 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 
 class ExecutionContextCommandControllerStub(object):
-    """ExecutionContextCommandController provides write operations for ExecutionContext resources.
+    """ExecutionContextCommandController handles write operations for ExecutionContext resources.
 
+    @internal
     Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
     FGA model. Authorization is derived from the parent execution:
@@ -42,8 +43,9 @@ class ExecutionContextCommandControllerStub(object):
 
 
 class ExecutionContextCommandControllerServicer(object):
-    """ExecutionContextCommandController provides write operations for ExecutionContext resources.
+    """ExecutionContextCommandController handles write operations for ExecutionContext resources.
 
+    @internal
     Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
     FGA model. Authorization is derived from the parent execution:
@@ -55,6 +57,8 @@ class ExecutionContextCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update an ExecutionContext.
+
+        @internal
         The authorization and state-operation are determined depending on whether the execution context
         is going to be created or updated which is determined as part of the request execution.
         """
@@ -111,8 +115,9 @@ def add_ExecutionContextCommandControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ExecutionContextCommandController(object):
-    """ExecutionContextCommandController provides write operations for ExecutionContext resources.
+    """ExecutionContextCommandController handles write operations for ExecutionContext resources.
 
+    @internal
     Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
     FGA model. Authorization is derived from the parent execution:

@@ -7,10 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * TryTaskConfig defines the configuration for TRY tasks.
+ * TryTaskConfig defines the configuration for try_catch tasks that handle errors.
  *
- * TRY tasks provide try/catch error handling.
- *
+ * &#64;internal
  * YAML Example:
  * - taskName:
  * try:
@@ -365,10 +364,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * TryTaskConfig defines the configuration for TRY tasks.
+   * TryTaskConfig defines the configuration for try_catch tasks that handle errors.
    *
-   * TRY tasks provide try/catch error handling.
-   *
+   * &#64;internal
    * YAML Example:
    * - taskName:
    * try:

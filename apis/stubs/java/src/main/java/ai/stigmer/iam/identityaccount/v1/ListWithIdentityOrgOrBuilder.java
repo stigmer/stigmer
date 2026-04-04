@@ -11,11 +11,19 @@ public interface ListWithIdentityOrgOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Organization slug to list identity accounts for.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org"];</code>
    * @return The org.
    */
   java.lang.String getOrg();
   /**
+   * <pre>
+   * Organization slug to list identity accounts for.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org"];</code>
    * @return The bytes for org.
    */
@@ -23,16 +31,28 @@ public interface ListWithIdentityOrgOrBuilder extends
       getOrgBytes();
 
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    * @return Whether the page field is set.
    */
   boolean hasPage();
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    * @return The page.
    */
   ai.stigmer.commons.rpc.PageInfo getPage();
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    */
   ai.stigmer.commons.rpc.PageInfoOrBuilder getPageOrBuilder();

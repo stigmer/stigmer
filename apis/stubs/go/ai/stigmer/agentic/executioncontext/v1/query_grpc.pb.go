@@ -29,8 +29,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// ExecutionContextQueryController provides read operations for ExecutionContext resources.
+// ExecutionContextQueryController handles read operations for ExecutionContext resources.
 //
+// @internal
 // Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
 // ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
 // FGA model. Authorization is derived from the parent execution:
@@ -50,7 +51,7 @@ type ExecutionContextQueryControllerClient interface {
 	// @internal
 	// Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*ExecutionContext, error)
-	// Get an ExecutionContext by the execution ID it belongs to.
+	// Get the ExecutionContext for a given execution ID.
 	//
 	// @internal
 	// Primary lookup method used by runners to retrieve the merged environment
@@ -102,8 +103,9 @@ func (c *executionContextQueryControllerClient) GetByExecutionId(ctx context.Con
 // All implementations should embed UnimplementedExecutionContextQueryControllerServer
 // for forward compatibility.
 //
-// ExecutionContextQueryController provides read operations for ExecutionContext resources.
+// ExecutionContextQueryController handles read operations for ExecutionContext resources.
 //
+// @internal
 // Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
 // ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
 // FGA model. Authorization is derived from the parent execution:
@@ -123,7 +125,7 @@ type ExecutionContextQueryControllerServer interface {
 	// @internal
 	// Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*ExecutionContext, error)
-	// Get an ExecutionContext by the execution ID it belongs to.
+	// Get the ExecutionContext for a given execution ID.
 	//
 	// @internal
 	// Primary lookup method used by runners to retrieve the merged environment

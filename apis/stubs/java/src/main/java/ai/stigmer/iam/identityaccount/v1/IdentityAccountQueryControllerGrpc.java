@@ -249,6 +249,9 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get the identity account of the currently authenticated user.
+     * Returns the full identity account for the caller based on the auth header.
+     * &#64;internal
+     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     default void whoAmI(com.google.protobuf.Empty request,
@@ -346,6 +349,9 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get the identity account of the currently authenticated user.
+     * Returns the full identity account for the caller based on the auth header.
+     * &#64;internal
+     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     public void whoAmI(com.google.protobuf.Empty request,
@@ -432,6 +438,9 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get the identity account of the currently authenticated user.
+     * Returns the full identity account for the caller based on the auth header.
+     * &#64;internal
+     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount whoAmI(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -514,6 +523,9 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get the identity account of the currently authenticated user.
+     * Returns the full identity account for the caller based on the auth header.
+     * &#64;internal
+     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount whoAmI(com.google.protobuf.Empty request) {
@@ -597,6 +609,9 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get the identity account of the currently authenticated user.
+     * Returns the full identity account for the caller based on the auth header.
+     * &#64;internal
+     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> whoAmI(

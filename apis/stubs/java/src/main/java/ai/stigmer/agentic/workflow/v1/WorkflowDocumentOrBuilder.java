@@ -12,7 +12,7 @@ public interface WorkflowDocumentOrBuilder extends
 
   /**
    * <pre>
-   * DSL version (semver). Must be "1.0.0" for current Zigflow.
+   * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
    * </pre>
    *
    * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface WorkflowDocumentOrBuilder extends
   java.lang.String getDsl();
   /**
    * <pre>
-   * DSL version (semver). Must be "1.0.0" for current Zigflow.
+   * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
    * </pre>
    *
    * <code>string dsl = 1 [json_name = "dsl", (.buf.validate.field) = { ... }</code>

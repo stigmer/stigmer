@@ -12,15 +12,10 @@ public interface RecoverWorkflowExecutionInputOrBuilder extends
 
   /**
    * <pre>
-   * Workflow execution ID to recover.
+   * Workflow execution ID to recover (must be in FAILED phase).
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
-   * cannot be recovered.
-   *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -29,15 +24,10 @@ public interface RecoverWorkflowExecutionInputOrBuilder extends
   java.lang.String getId();
   /**
    * <pre>
-   * Workflow execution ID to recover.
+   * Workflow execution ID to recover (must be in FAILED phase).
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
-   * cannot be recovered.
-   *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -48,16 +38,7 @@ public interface RecoverWorkflowExecutionInputOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable reason for recovery.
-   *
-   * Stored in the audit trail for operational debugging and compliance.
-   * Helps track why the recovery was needed and what was fixed.
-   *
-   * Examples:
-   * - "Stripe API recovered, resuming payment processing"
-   * - "Fixed typo in email template, continuing workflow"
-   * - "Increased timeout for slow API, retrying"
-   * - "Root cause identified and fixed in config"
+   * Human-readable reason for recovery, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -66,16 +47,7 @@ public interface RecoverWorkflowExecutionInputOrBuilder extends
   java.lang.String getReason();
   /**
    * <pre>
-   * Human-readable reason for recovery.
-   *
-   * Stored in the audit trail for operational debugging and compliance.
-   * Helps track why the recovery was needed and what was fixed.
-   *
-   * Examples:
-   * - "Stripe API recovered, resuming payment processing"
-   * - "Fixed typo in email template, continuing workflow"
-   * - "Increased timeout for slow API, retrying"
-   * - "Root cause identified and fixed in config"
+   * Human-readable reason for recovery, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>

@@ -14,23 +14,26 @@ export const file_ai_stigmer_agentic_executioncontext_v1_spec: GenFile = /*@__PU
   fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MSLwAQoURXhlY3V0aW9uQ29udGV4dFNwZWMSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABElQKBGRhdGEYAiADKAsyRi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25Db250ZXh0U3BlYy5EYXRhRW50cnkaYwoJRGF0YUVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASI7Cg5FeGVjdXRpb25WYWx1ZRIWCgV2YWx1ZRgBIAEoCUIHukgEcgIQARIRCglpc19zZWNyZXQYAiABKAhiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
- * ExecutionContextSpec defines ephemeral runtime configuration and secrets.
- * This is created during execution and deleted when execution completes.
+ * Runtime configuration and secrets for a single execution.
+ *
+ * @internal
+ * Created by the execution engine, deleted when execution completes.
  *
  * @generated from message ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec
  */
 export type ExecutionContextSpec = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec"> & {
   /**
-   * The execution ID this context belongs to.
-   * This is typically a WorkflowExecution ID or AgentExecution ID.
+   * ID of the parent AgentExecution or WorkflowExecution.
    *
    * @generated from field: string execution_id = 1;
    */
   executionId: string;
 
   /**
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * @internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    *
    * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> data = 2;
@@ -46,15 +49,17 @@ export const ExecutionContextSpecSchema: GenMessage<ExecutionContextSpec> = /*@_
   messageDesc(file_ai_stigmer_agentic_executioncontext_v1_spec, 0);
 
 /**
- * ExecutionValue represents a single runtime configuration or secret value.
+ * A single runtime configuration or secret value.
  *
  * @generated from message ai.stigmer.agentic.executioncontext.v1.ExecutionValue
  */
 export type ExecutionValue = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionValue"> & {
   /**
-   * The actual value.
-   * - If is_secret=true: This value is encrypted at rest and redacted in logs
-   * - If is_secret=false: This value is stored as plaintext
+   * String content of this entry.
+   *
+   * @internal
+   * If is_secret=true: encrypted at rest and redacted in logs.
+   * If is_secret=false: stored as plaintext.
    *
    * @generated from field: string value = 1;
    */
@@ -62,13 +67,11 @@ export type ExecutionValue = Message<"ai.stigmer.agentic.executioncontext.v1.Exe
 
   /**
    * Whether this value should be treated as a secret.
-   * When true:
-   * - Value is encrypted at rest
-   * - Value is redacted in logs
-   * - Value is deleted when execution completes
-   * When false:
-   * - Value is stored as plaintext
-   * - Value is visible in audit logs
+   *
+   * @internal
+   * When true: value is encrypted at rest, redacted in logs, and deleted
+   * when execution completes.
+   * When false: value is stored as plaintext and visible in audit logs.
    *
    * @generated from field: bool is_secret = 2;
    */

@@ -24,51 +24,62 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// SessionSpec defines the configurable properties of an agent conversation session.
-// This is the "Execution" layer - ephemeral runtime against an AgentInstance.
+// SessionSpec defines the configurable properties of a session.
+//
+// @internal
+// This is the "Execution" layer — ephemeral runtime against an AgentInstance.
+// The overview.md file provides the SDK-facing description and example YAML.
 type SessionSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the AgentInstance this session runs against.
+	// Agent instance this session runs against.
 	//
-	// When provided, the session uses this specific agent instance.
+	// @internal
 	// When empty, the backend resolves the platform default agent
 	// (labeled stigmer.ai/default-agent: "true" with visibility_public)
 	// and auto-creates a default instance if needed.
 	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
-	// Conversation title/subject for UI display (optional).
+	// Conversation title for UI display.
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
-	// thread ID (generated on first execution, persists across all executions).
+	// Thread ID that carries the conversation history across executions.
+	//
+	// @internal
+	// Generated on first execution, persists across all executions.
 	ThreadId string `protobuf:"bytes,3,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
-	// Daytona sandbox ID (created on first execution, reused for file persistence).
+	// Sandbox ID for persistent file storage across executions.
+	//
+	// @internal
+	// Created on first execution (Daytona sandbox), reused for file persistence.
 	SandboxId string `protobuf:"bytes,4,opt,name=sandbox_id,json=sandboxId,proto3" json:"sandbox_id,omitempty"`
-	// Session metadata (e.g., client info, tags).
+	// Custom key-value pairs for client-specific information.
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Workspace entries for this session (optional, may be empty).
+	// Workspace entries for this session.
 	//
 	// Each entry pairs a name with a source (git repo or local path), forming
-	// a multi-root workspace (VS Code model). Entries are provisioned on the
-	// first execution; subsequent executions reuse the same workspace.
+	// a multi-root workspace. Entries are provisioned on the first execution;
+	// subsequent executions reuse the same workspace.
 	//
-	// When empty, the session uses an empty workspace directory
-	// (existing default behavior, no provisioning step).
+	// When empty, the session uses an empty workspace directory.
 	WorkspaceEntries []*WorkspaceEntry `protobuf:"bytes,6,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
-	// MCP servers to make available in this session (merged with agent's at execution time).
+	// MCP servers to make available in this session.
 	//
-	// Enables users to augment the agent's tool set for a specific conversation
-	// without modifying the agent blueprint. Each usage references an McpServer
-	// resource; the agent runner merges these with the agent's mcp_server_usages
-	// when constructing the execution graph.
+	// Augments the agent's tool set for this specific conversation without
+	// modifying the agent blueprint. Each usage references an McpServer
+	// resource.
 	//
+	// @internal
 	// Merge semantics: session-level usages are union'd with agent-level usages.
 	// If both reference the same MCP server slug, the session-level entry takes
-	// precedence (enables per-session tool restriction or expansion).
+	// precedence (enables per-session tool restriction or expansion). The agent
+	// runner merges these with the agent's mcp_server_usages when constructing
+	// the execution graph.
 	McpServerUsages []*v1.McpServerUsage `protobuf:"bytes,7,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
-	// Skills to inject into this session's context (merged with agent's at execution time).
+	// Skills to inject into this session's context.
 	//
-	// Enables users to provide domain-specific knowledge for a specific conversation
-	// without modifying the agent blueprint. Each reference points to a Skill resource
-	// whose content is injected into the agent's context alongside agent-level skills.
+	// Provides domain-specific knowledge for this specific conversation without
+	// modifying the agent blueprint. Each reference points to a Skill resource
+	// whose content is added to the agent's context alongside agent-level skills.
 	//
+	// @internal
 	// Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
 	SkillRefs     []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	unknownFields protoimpl.UnknownFields

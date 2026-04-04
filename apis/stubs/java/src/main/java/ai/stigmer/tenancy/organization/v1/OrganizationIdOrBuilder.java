@@ -12,7 +12,7 @@ public interface OrganizationIdOrBuilder extends
 
   /**
    * <pre>
-   * organization id (UUID format)
+   * Organization identifier.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface OrganizationIdOrBuilder extends
   java.lang.String getValue();
   /**
    * <pre>
-   * organization id (UUID format)
+   * Organization identifier.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

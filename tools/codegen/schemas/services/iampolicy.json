@@ -51,7 +51,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicyId",
           "outputType": "IamPolicy",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicy",
-          "description": "Get an IAM policy by its unique identifier."
+          "description": "Get an IAM policy by its unique identifier.\n\n Returns the full IAM policy including its principal, resource, and relation binding.\n\n @internal\n Authorization: Requires can_view_access permission."
         },
         {
           "name": "CheckAuthorization",
@@ -317,7 +317,7 @@
               "kind": "string"
             }
           },
-          "description": "",
+          "description": "Resource IDs the principal is authorized to access.",
           "required": false
         }
       ]
@@ -402,7 +402,7 @@
               "kind": "string"
             }
           },
-          "description": "",
+          "description": "Principal IDs authorized to access the resource.",
           "required": false
         }
       ]

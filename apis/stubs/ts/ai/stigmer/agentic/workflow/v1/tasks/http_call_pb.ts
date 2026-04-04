@@ -16,10 +16,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_http_call: GenFile = /*@_
   fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvaHR0cF9jYWxsLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3Mi/gIKEkh0dHBDYWxsVGFza0NvbmZpZxI3CgZtZXRob2QYASABKAlCJ7pIJMgBAXIfUgNHRVRSBFBPU1RSA1BVVFIGREVMRVRFUgVQQVRDSBJMCghlbmRwb2ludBgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5IdHRwRW5kcG9pbnRCBrpIA8gBARJWCgdoZWFkZXJzGAMgAygLMkUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkh0dHBDYWxsVGFza0NvbmZpZy5IZWFkZXJzRW50cnkSJQoEYm9keRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSIwoPdGltZW91dF9zZWNvbmRzGAUgASgFQgq6SAcaBRisAigBGi4KDEhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBOg3qiywJaHR0cF9jYWxsIisKDEh0dHBFbmRwb2ludBIbCgN1cmkYASABKAlCDrpIB8gBAXICEAHYhSwBYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
- * HttpCallTaskConfig defines the configuration for HTTP_CALL tasks.
+ * HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
  *
- * HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).
- *
+ * @internal
  * YAML Example:
  *   - taskName:
  *       call: http

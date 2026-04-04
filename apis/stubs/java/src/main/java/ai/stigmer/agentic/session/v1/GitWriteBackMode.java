@@ -7,9 +7,9 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * GitWriteBackMode controls the platform's git workflow for a
- * git-backed workspace entry.
+ * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
  *
+ * &#64;internal
  * The platform enables write-back by default when credentials are
  * available. Users can override this per-session by setting an
  * explicit mode. The agent never sees or controls this setting.
@@ -22,10 +22,11 @@ public enum GitWriteBackMode
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Platform default. Currently treated as write-back enabled when git
-   * credentials are available. Artifacts are still published as
-   * downloadable files regardless of this setting.
-   * Set an explicit mode to override the platform default.
+   * Platform default behavior — write-back is enabled when git credentials are available.
+   *
+   * &#64;internal
+   * Artifacts are still published as downloadable files regardless of this
+   * setting. Set an explicit mode to override the platform default.
    * </pre>
    *
    * <code>GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;</code>
@@ -33,14 +34,13 @@ public enum GitWriteBackMode
   GIT_WRITE_BACK_MODE_UNSPECIFIED(0),
   /**
    * <pre>
-   * After execution completes, the platform automatically:
-   * 1. Detects uncommitted changes via `git diff`
-   * 2. Creates a branch (stigmer/{execution_id_short})
-   * 3. Commits all changes
-   * 4. Pushes the branch to the remote
-   * 5. Creates a pull request targeting the original branch
+   * Create a branch and pull request from the agent's file changes after execution completes.
    *
-   * The write-back outcome is recorded in
+   * &#64;internal
+   * The platform automatically detects uncommitted changes via git diff,
+   * creates a branch (stigmer/{execution_id_short}), commits all changes,
+   * pushes the branch to the remote, and creates a pull request targeting
+   * the original branch. The write-back outcome is recorded in
    * AgentExecutionStatus.workspace_write_backs.
    * </pre>
    *
@@ -61,10 +61,11 @@ public enum GitWriteBackMode
   }
   /**
    * <pre>
-   * Platform default. Currently treated as write-back enabled when git
-   * credentials are available. Artifacts are still published as
-   * downloadable files regardless of this setting.
-   * Set an explicit mode to override the platform default.
+   * Platform default behavior — write-back is enabled when git credentials are available.
+   *
+   * &#64;internal
+   * Artifacts are still published as downloadable files regardless of this
+   * setting. Set an explicit mode to override the platform default.
    * </pre>
    *
    * <code>GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;</code>
@@ -72,14 +73,13 @@ public enum GitWriteBackMode
   public static final int GIT_WRITE_BACK_MODE_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * After execution completes, the platform automatically:
-   * 1. Detects uncommitted changes via `git diff`
-   * 2. Creates a branch (stigmer/{execution_id_short})
-   * 3. Commits all changes
-   * 4. Pushes the branch to the remote
-   * 5. Creates a pull request targeting the original branch
+   * Create a branch and pull request from the agent's file changes after execution completes.
    *
-   * The write-back outcome is recorded in
+   * &#64;internal
+   * The platform automatically detects uncommitted changes via git diff,
+   * creates a branch (stigmer/{execution_id_short}), commits all changes,
+   * pushes the branch to the remote, and creates a pull request targeting
+   * the original branch. The write-back outcome is recorded in
    * AgentExecutionStatus.workspace_write_backs.
    * </pre>
    *

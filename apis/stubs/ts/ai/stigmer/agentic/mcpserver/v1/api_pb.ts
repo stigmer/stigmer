@@ -21,8 +21,8 @@ export const file_ai_stigmer_agentic_mcpserver_v1_api: GenFile = /*@__PURE__*/
 
 /**
  * McpServer represents a reusable MCP (Model Context Protocol) server configuration.
- * MCP servers provide tools and capabilities to AI agents via a standardized protocol.
  *
+ * @internal
  * Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:
  * - Can be referenced by multiple agents (reusability)
  * - Has proper access control via FGA (authorization)
@@ -34,23 +34,6 @@ export const file_ai_stigmer_agentic_mcpserver_v1_api: GenFile = /*@__PURE__*/
  * 2. Reference in Agent via mcp_server_usages
  * 3. Create AgentInstance with environment_ref providing actual secrets
  * 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
- *
- * Example YAML:
- *   apiVersion: agentic.stigmer.ai/v1
- *   kind: McpServer
- *   metadata:
- *     name: github
- *     scope: platform
- *   spec:
- *     description: "GitHub MCP server for repository operations"
- *     stdio:
- *       command: npx
- *       args: ["-y", "@modelcontextprotocol/server-github"]
- *     env_spec:
- *       data:
- *         GITHUB_TOKEN:
- *           is_secret: true
- *           description: "GitHub personal access token"
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServer
  */
@@ -72,8 +55,9 @@ export type McpServer = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer"> & {
   kind: string;
 
   /**
-   * Standard resource metadata including name, id, org, visibility, labels, and tags.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * @internal
    * Key fields:
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")

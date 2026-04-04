@@ -7,14 +7,13 @@ package ai.stigmer.agentic.workflowinstance.v1;
 
 /**
  * <pre>
- * WorkflowInstanceId wraps a workflow instance identifier for RPC operations.
+ * WorkflowInstanceId wraps a workflow instance identifier.
  *
+ * &#64;internal
  * Used as input to RPCs that operate on a single instance:
  * - get: Retrieve a specific instance by ID
  * - delete: Remove a specific instance by ID
- *
  * Format: Resource ID string (e.g., "wfi_abc123")
- * Validation: Required field (must not be empty)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId}
@@ -65,8 +64,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object value_ = "";
   /**
    * <pre>
-   * The workflow instance resource ID.
-   * Example: "wfi_abc123"
+   * Workflow instance resource ID.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -87,8 +85,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The workflow instance resource ID.
-   * Example: "wfi_abc123"
+   * Workflow instance resource ID.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -267,14 +264,13 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowInstanceId wraps a workflow instance identifier for RPC operations.
+   * WorkflowInstanceId wraps a workflow instance identifier.
    *
+   * &#64;internal
    * Used as input to RPCs that operate on a single instance:
    * - get: Retrieve a specific instance by ID
    * - delete: Remove a specific instance by ID
-   *
    * Format: Resource ID string (e.g., "wfi_abc123")
-   * Validation: Required field (must not be empty)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId}
@@ -417,8 +413,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object value_ = "";
     /**
      * <pre>
-     * The workflow instance resource ID.
-     * Example: "wfi_abc123"
+     * Workflow instance resource ID.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -438,8 +433,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The workflow instance resource ID.
-     * Example: "wfi_abc123"
+     * Workflow instance resource ID.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -460,8 +454,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The workflow instance resource ID.
-     * Example: "wfi_abc123"
+     * Workflow instance resource ID.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -478,8 +471,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The workflow instance resource ID.
-     * Example: "wfi_abc123"
+     * Workflow instance resource ID.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -493,8 +485,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The workflow instance resource ID.
-     * Example: "wfi_abc123"
+     * Workflow instance resource ID.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

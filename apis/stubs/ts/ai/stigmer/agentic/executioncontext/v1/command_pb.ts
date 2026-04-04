@@ -18,8 +18,9 @@ export const file_ai_stigmer_agentic_executioncontext_v1_command: GenFile = /*@_
   fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9jb21tYW5kLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MTKuAwohRXhlY3V0aW9uQ29udGV4dENvbW1hbmRDb250cm9sbGVyEnsKBWFwcGx5EjguYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQSggEKBmNyZWF0ZRI4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQaOC5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25Db250ZXh0IgTQuBgBEoABCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQiBNC4GAEaBKD/KzZiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
- * ExecutionContextCommandController provides write operations for ExecutionContext resources.
+ * ExecutionContextCommandController handles write operations for ExecutionContext resources.
  *
+ * @internal
  * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
  * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
  * FGA model. Authorization is derived from the parent execution:
@@ -33,6 +34,8 @@ export const file_ai_stigmer_agentic_executioncontext_v1_command: GenFile = /*@_
 export const ExecutionContextCommandController: GenService<{
   /**
    * Create or update an ExecutionContext.
+   *
+   * @internal
    * The authorization and state-operation are determined depending on whether the execution context
    * is going to be created or updated which is determined as part of the request execution.
    *

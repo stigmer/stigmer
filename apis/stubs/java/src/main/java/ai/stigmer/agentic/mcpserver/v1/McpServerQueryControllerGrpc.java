@@ -5,7 +5,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * McpServerQueryController provides read operations for MCP server resources.
- * All read operations require appropriate authorization based on the resource's scope.
+ * &#64;internal
  * Authorization model:
  * - Platform-scoped: Anyone can view (public marketplace)
  * - Organization-scoped: Org members can view
@@ -144,7 +144,7 @@ public final class McpServerQueryControllerGrpc {
   /**
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * All read operations require appropriate authorization based on the resource's scope.
+   * &#64;internal
    * Authorization model:
    * - Platform-scoped: Anyone can view (public marketplace)
    * - Organization-scoped: Org members can view
@@ -156,8 +156,7 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * Input: ApiResourceId containing the MCP server's system-generated ID.
-     * Returns: The full McpServer resource including metadata, spec, and status.
+     * &#64;internal
      * Authorization: Requires can_view permission on the mcp_server resource.
      * The caller must have access based on the resource's scope:
      * - Platform: All authenticated users
@@ -173,13 +172,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by reference (scope + org + slug).
-     * Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-     * Returns: The full McpServer resource.
-     * This is the preferred method for looking up MCP servers by name/slug
-     * rather than system-generated ID. Useful for:
-     * - Resolving references from Agent.mcp_server_usages
-     * - CLI lookups by name
-     * - Cross-scope resolution (platform vs org vs personal)
+     * Preferred method for looking up MCP servers by name/slug rather than
+     * system-generated ID.
+     * &#64;internal
      * Authorization: Custom authorization in handler.
      * The handler performs scope-aware authorization based on the reference.
      * </pre>
@@ -194,7 +189,7 @@ public final class McpServerQueryControllerGrpc {
    * Base class for the server implementation of the service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * All read operations require appropriate authorization based on the resource's scope.
+   * &#64;internal
    * Authorization model:
    * - Platform-scoped: Anyone can view (public marketplace)
    * - Organization-scoped: Org members can view
@@ -213,7 +208,7 @@ public final class McpServerQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * All read operations require appropriate authorization based on the resource's scope.
+   * &#64;internal
    * Authorization model:
    * - Platform-scoped: Anyone can view (public marketplace)
    * - Organization-scoped: Org members can view
@@ -236,8 +231,7 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * Input: ApiResourceId containing the MCP server's system-generated ID.
-     * Returns: The full McpServer resource including metadata, spec, and status.
+     * &#64;internal
      * Authorization: Requires can_view permission on the mcp_server resource.
      * The caller must have access based on the resource's scope:
      * - Platform: All authenticated users
@@ -254,13 +248,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by reference (scope + org + slug).
-     * Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-     * Returns: The full McpServer resource.
-     * This is the preferred method for looking up MCP servers by name/slug
-     * rather than system-generated ID. Useful for:
-     * - Resolving references from Agent.mcp_server_usages
-     * - CLI lookups by name
-     * - Cross-scope resolution (platform vs org vs personal)
+     * Preferred method for looking up MCP servers by name/slug rather than
+     * system-generated ID.
+     * &#64;internal
      * Authorization: Custom authorization in handler.
      * The handler performs scope-aware authorization based on the reference.
      * </pre>
@@ -276,7 +266,7 @@ public final class McpServerQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * All read operations require appropriate authorization based on the resource's scope.
+   * &#64;internal
    * Authorization model:
    * - Platform-scoped: Anyone can view (public marketplace)
    * - Organization-scoped: Org members can view
@@ -299,8 +289,7 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * Input: ApiResourceId containing the MCP server's system-generated ID.
-     * Returns: The full McpServer resource including metadata, spec, and status.
+     * &#64;internal
      * Authorization: Requires can_view permission on the mcp_server resource.
      * The caller must have access based on the resource's scope:
      * - Platform: All authenticated users
@@ -316,13 +305,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by reference (scope + org + slug).
-     * Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-     * Returns: The full McpServer resource.
-     * This is the preferred method for looking up MCP servers by name/slug
-     * rather than system-generated ID. Useful for:
-     * - Resolving references from Agent.mcp_server_usages
-     * - CLI lookups by name
-     * - Cross-scope resolution (platform vs org vs personal)
+     * Preferred method for looking up MCP servers by name/slug rather than
+     * system-generated ID.
+     * &#64;internal
      * Authorization: Custom authorization in handler.
      * The handler performs scope-aware authorization based on the reference.
      * </pre>
@@ -337,7 +322,7 @@ public final class McpServerQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * All read operations require appropriate authorization based on the resource's scope.
+   * &#64;internal
    * Authorization model:
    * - Platform-scoped: Anyone can view (public marketplace)
    * - Organization-scoped: Org members can view
@@ -360,8 +345,7 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * Input: ApiResourceId containing the MCP server's system-generated ID.
-     * Returns: The full McpServer resource including metadata, spec, and status.
+     * &#64;internal
      * Authorization: Requires can_view permission on the mcp_server resource.
      * The caller must have access based on the resource's scope:
      * - Platform: All authenticated users
@@ -377,13 +361,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by reference (scope + org + slug).
-     * Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-     * Returns: The full McpServer resource.
-     * This is the preferred method for looking up MCP servers by name/slug
-     * rather than system-generated ID. Useful for:
-     * - Resolving references from Agent.mcp_server_usages
-     * - CLI lookups by name
-     * - Cross-scope resolution (platform vs org vs personal)
+     * Preferred method for looking up MCP servers by name/slug rather than
+     * system-generated ID.
+     * &#64;internal
      * Authorization: Custom authorization in handler.
      * The handler performs scope-aware authorization based on the reference.
      * </pre>
@@ -398,7 +378,7 @@ public final class McpServerQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * All read operations require appropriate authorization based on the resource's scope.
+   * &#64;internal
    * Authorization model:
    * - Platform-scoped: Anyone can view (public marketplace)
    * - Organization-scoped: Org members can view
@@ -421,8 +401,7 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * Input: ApiResourceId containing the MCP server's system-generated ID.
-     * Returns: The full McpServer resource including metadata, spec, and status.
+     * &#64;internal
      * Authorization: Requires can_view permission on the mcp_server resource.
      * The caller must have access based on the resource's scope:
      * - Platform: All authenticated users
@@ -439,13 +418,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by reference (scope + org + slug).
-     * Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-     * Returns: The full McpServer resource.
-     * This is the preferred method for looking up MCP servers by name/slug
-     * rather than system-generated ID. Useful for:
-     * - Resolving references from Agent.mcp_server_usages
-     * - CLI lookups by name
-     * - Cross-scope resolution (platform vs org vs personal)
+     * Preferred method for looking up MCP servers by name/slug rather than
+     * system-generated ID.
+     * &#64;internal
      * Authorization: Custom authorization in handler.
      * The handler performs scope-aware authorization based on the reference.
      * </pre>

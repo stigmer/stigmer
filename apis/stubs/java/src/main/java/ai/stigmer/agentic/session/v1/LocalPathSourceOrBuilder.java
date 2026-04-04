@@ -12,10 +12,7 @@ public interface LocalPathSourceOrBuilder extends
 
   /**
    * <pre>
-   * Absolute path to an existing directory on the host filesystem (required).
-   * The runner validates that the path exists and is a directory at
-   * provisioning time.
-   * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+   * Absolute path to an existing directory on the host filesystem.
    * </pre>
    *
    * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>
@@ -24,10 +21,7 @@ public interface LocalPathSourceOrBuilder extends
   java.lang.String getPath();
   /**
    * <pre>
-   * Absolute path to an existing directory on the host filesystem (required).
-   * The runner validates that the path exists and is a directory at
-   * provisioning time.
-   * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+   * Absolute path to an existing directory on the host filesystem.
    * </pre>
    *
    * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>

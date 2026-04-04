@@ -745,7 +745,7 @@ Session represents a multi-turn conversation thread with an agent.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "SessionInput", description: "Resource specification. See [`SessionInput`](#sessioninput).", typeDescriptionLink: "#sessioninput" },
     status: { type: "SessionStatus", description: "System-managed state. See `SessionStatus`." },

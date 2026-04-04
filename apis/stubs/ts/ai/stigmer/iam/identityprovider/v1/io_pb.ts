@@ -16,13 +16,13 @@ export const file_ai_stigmer_iam_identityprovider_v1_io: GenFile = /*@__PURE__*/
   fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlcmIGcHJvdG8z", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate]);
 
 /**
- * Wrapper for identity provider id.
+ * IdentityProviderId identifies an identity provider by its unique identifier.
  *
  * @generated from message ai.stigmer.iam.identityprovider.v1.IdentityProviderId
  */
 export type IdentityProviderId = Message<"ai.stigmer.iam.identityprovider.v1.IdentityProviderId"> & {
   /**
-   * The unique identifier of the identity provider resource.
+   * Unique identifier of the identity provider resource.
    *
    * @generated from field: string value = 1;
    */
@@ -37,12 +37,14 @@ export const IdentityProviderIdSchema: GenMessage<IdentityProviderId> = /*@__PUR
   messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 0);
 
 /**
- * List of identity providers (unbounded).
+ * IdentityProviders contains a list of identity provider resources.
  *
  * @generated from message ai.stigmer.iam.identityprovider.v1.IdentityProviders
  */
 export type IdentityProviders = Message<"ai.stigmer.iam.identityprovider.v1.IdentityProviders"> & {
   /**
+   * Identity provider entries.
+   *
    * @generated from field: repeated ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1;
    */
   entries: IdentityProvider[];
@@ -56,20 +58,20 @@ export const IdentityProvidersSchema: GenMessage<IdentityProviders> = /*@__PURE_
   messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 1);
 
 /**
- * Response for paginated list query.
+ * IdentityProviderList is a paginated response containing identity providers.
  *
  * @generated from message ai.stigmer.iam.identityprovider.v1.IdentityProviderList
  */
 export type IdentityProviderList = Message<"ai.stigmer.iam.identityprovider.v1.IdentityProviderList"> & {
   /**
-   * Total number of pages.
+   * Total number of pages available.
    *
    * @generated from field: int32 total_pages = 1;
    */
   totalPages: number;
 
   /**
-   * Identity providers in current page.
+   * Identity providers in the current page.
    *
    * @generated from field: repeated ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 2;
    */

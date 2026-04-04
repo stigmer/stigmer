@@ -9,14 +9,12 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
  *
+ * &#64;internal
  * Triggers server-side MCP discovery: the backend creates an ephemeral
  * ExecutionContext with the resolved environment variables, starts a Temporal
  * workflow that connects to the MCP server (via the agent-runner), enumerates
  * tools and resource templates, and stores the result in
  * status.discovered_capabilities.
- *
- * The RPC blocks until discovery completes (~30s timeout) and returns the updated
- * McpServer with populated discovered_capabilities.
  *
  * Environment variable resolution:
  * - When runtime_env is provided, the backend creates an ExecutionContext directly
@@ -162,12 +160,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -189,12 +182,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -206,12 +194,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -230,12 +213,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   }
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -435,14 +413,12 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * <pre>
    * DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
    *
+   * &#64;internal
    * Triggers server-side MCP discovery: the backend creates an ephemeral
    * ExecutionContext with the resolved environment variables, starts a Temporal
    * workflow that connects to the MCP server (via the agent-runner), enumerates
    * tools and resource templates, and stores the result in
    * status.discovered_capabilities.
-   *
-   * The RPC blocks until discovery completes (~30s timeout) and returns the updated
-   * McpServer with populated discovered_capabilities.
    *
    * Environment variable resolution:
    * - When runtime_env is provided, the backend creates an ExecutionContext directly
@@ -765,12 +741,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery. When provided,
-     * the backend creates a temporary ExecutionContext directly from these values
-     * without reading from the personal environment. Each value carries its own
-     * is_secret classification, matching the contract of
-     * AgentExecution.spec.runtime_env.
-     *
+     * Optional environment variable values for one-time discovery.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -792,12 +763,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery. When provided,
-     * the backend creates a temporary ExecutionContext directly from these values
-     * without reading from the personal environment. Each value carries its own
-     * is_secret classification, matching the contract of
-     * AgentExecution.spec.runtime_env.
-     *
+     * Optional environment variable values for one-time discovery.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -809,12 +775,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery. When provided,
-     * the backend creates a temporary ExecutionContext directly from these values
-     * without reading from the personal environment. Each value carries its own
-     * is_secret classification, matching the contract of
-     * AgentExecution.spec.runtime_env.
-     *
+     * Optional environment variable values for one-time discovery.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -832,12 +793,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery. When provided,
-     * the backend creates a temporary ExecutionContext directly from these values
-     * without reading from the personal environment. Each value carries its own
-     * is_secret classification, matching the contract of
-     * AgentExecution.spec.runtime_env.
-     *
+     * Optional environment variable values for one-time discovery.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -860,12 +816,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery. When provided,
-     * the backend creates a temporary ExecutionContext directly from these values
-     * without reading from the personal environment. Each value carries its own
-     * is_secret classification, matching the contract of
-     * AgentExecution.spec.runtime_env.
-     *
+     * Optional environment variable values for one-time discovery.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -889,12 +840,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery. When provided,
-     * the backend creates a temporary ExecutionContext directly from these values
-     * without reading from the personal environment. Each value carries its own
-     * is_secret classification, matching the contract of
-     * AgentExecution.spec.runtime_env.
-     *
+     * Optional environment variable values for one-time discovery.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -912,12 +858,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery. When provided,
-     * the backend creates a temporary ExecutionContext directly from these values
-     * without reading from the personal environment. Each value carries its own
-     * is_secret classification, matching the contract of
-     * AgentExecution.spec.runtime_env.
-     *
+     * Optional environment variable values for one-time discovery.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -937,12 +878,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery. When provided,
-     * the backend creates a temporary ExecutionContext directly from these values
-     * without reading from the personal environment. Each value carries its own
-     * is_secret classification, matching the contract of
-     * AgentExecution.spec.runtime_env.
-     *
+     * Optional environment variable values for one-time discovery.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *

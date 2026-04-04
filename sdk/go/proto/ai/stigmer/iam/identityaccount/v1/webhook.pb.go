@@ -21,17 +21,30 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// https://auth0.com/docs/customize/log-streams/custom-log-streams
+// Auth0Webhook represents a log-stream event payload from Auth0.
+//
+// @internal
+// Stigmer receives these events via a custom Auth0 log stream to trigger
+// identity account provisioning on signup.
+// See: https://auth0.com/docs/customize/log-streams/custom-log-streams
 type Auth0Webhook struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Date          string                 `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	ClientId      string                 `protobuf:"bytes,4,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	ClientName    string                 `protobuf:"bytes,5,opt,name=client_name,json=clientName,proto3" json:"client_name,omitempty"`
-	Ip            string                 `protobuf:"bytes,6,opt,name=ip,proto3" json:"ip,omitempty"`
-	UserAgent     string                 `protobuf:"bytes,7,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
-	UserId        string                 `protobuf:"bytes,8,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ISO 8601 timestamp of the event.
+	Date string `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
+	// Auth0 event type code (e.g., "ss" for successful signup).
+	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	// Human-readable description of the event.
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// Auth0 application client ID that triggered the event.
+	ClientId string `protobuf:"bytes,4,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	// Name of the Auth0 application that triggered the event.
+	ClientName string `protobuf:"bytes,5,opt,name=client_name,json=clientName,proto3" json:"client_name,omitempty"`
+	// IP address of the user who triggered the event.
+	Ip string `protobuf:"bytes,6,opt,name=ip,proto3" json:"ip,omitempty"`
+	// User-Agent header from the request that triggered the event.
+	UserAgent string `protobuf:"bytes,7,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	// Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+	UserId        string `protobuf:"bytes,8,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

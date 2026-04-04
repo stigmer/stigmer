@@ -24,10 +24,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ForTaskConfig defines the configuration for FOR tasks.
+// ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
 //
-// FOR tasks iterate over collections, executing tasks for each item.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //     for:

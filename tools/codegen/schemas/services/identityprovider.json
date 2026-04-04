@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Create or update an identity provider (Kubernetes-style apply).\n If the resource doesn't exist: creates a new identity provider.\n If the resource exists: updates the existing identity provider."
+          "description": "Create or update an identity provider.\n\n If the resource does not exist, creates a new identity provider.\n If the resource exists, updates the existing identity provider.\n\n @internal\n The authorization and state-operation are determined depending on whether the\n identity provider is going to be created or updated, which is determined as\n part of the request execution."
         },
         {
           "name": "Create",
@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Create a new identity provider.\n The creator's organization owns the identity provider."
+          "description": "Create an identity provider.\n\n The creator's organization owns the identity provider.\n\n @internal\n Authorization: Requires can_create_idp permission in the organization."
         },
         {
           "name": "Update",
@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Update an existing identity provider.\n Requires can_edit permission on the identity provider."
+          "description": "Update an existing identity provider.\n\n @internal\n Authorization: Requires can_edit permission on the identity provider resource."
         },
         {
           "name": "Delete",
@@ -37,7 +37,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Delete an identity provider.\n Deletion is blocked if any platform-managed organizations reference this identity provider."
+          "description": "Delete an identity provider.\n\n Deletion is blocked if any platform-managed organizations reference this\n identity provider.\n\n @internal\n Authorization: Requires can_delete permission on the identity provider resource."
         }
       ]
     },
@@ -51,7 +51,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Get an identity provider by its unique identifier."
+          "description": "Get an identity provider by its unique identifier.\n\n @internal\n Authorization: Requires can_view permission on the identity provider resource."
         },
         {
           "name": "GetByReference",
@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Get an identity provider by reference (org + slug).\n\n @internal\n Custom authorization in handler."
+          "description": "Get an identity provider by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/planton-cloud\" to the full\n IdentityProvider resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
         }
       ]
     }
@@ -152,103 +152,103 @@
   "enumTypes": [
     {
       "name": "ApiResourceKind",
-      "description": "API resource kinds for Stigmer",
+      "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
       "values": [
         {
           "name": "api_resource_version",
           "number": 1,
-          "description": "Agentic - System-level audit trails and versioning"
+          "description": "Immutable version record tracking changes to an API resource."
         },
         {
           "name": "iam_policy",
           "number": 10,
-          "description": "IAM - Identity and Access Management"
+          "description": "Role-based access control policy for granting permissions on resources."
         },
         {
           "name": "identity_account",
           "number": 11,
-          "description": ""
+          "description": "User account in the identity system."
         },
         {
           "name": "api_key",
           "number": 12,
-          "description": ""
+          "description": "Credential for programmatic API access."
         },
         {
           "name": "identity_provider",
           "number": 21,
-          "description": "IAM - External identity provider configuration"
+          "description": "External identity provider for federated authentication."
         },
         {
           "name": "organization",
           "number": 30,
-          "description": "Tenancy - Platform and organizational resources"
+          "description": "Top-level tenant that owns and manages resources."
         },
         {
           "name": "platform",
           "number": 31,
-          "description": ""
+          "description": "Singleton platform instance representing the Stigmer deployment."
         },
         {
           "name": "agent",
           "number": 40,
-          "description": "Agentic - AI agent management"
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
           "name": "agent_execution",
           "number": 41,
-          "description": ""
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
         {
           "name": "session",
           "number": 42,
-          "description": ""
+          "description": "Conversation thread between a user and an agent."
         },
         {
           "name": "skill",
           "number": 43,
-          "description": ""
+          "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
           "name": "mcp_server",
           "number": 44,
-          "description": ""
+          "description": "External tool server connected via the Model Context Protocol."
         },
         {
           "name": "agent_instance",
           "number": 45,
-          "description": ""
+          "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
           "name": "workflow",
           "number": 50,
-          "description": "Agentic - Workflow orchestration"
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
           "name": "workflow_instance",
           "number": 51,
-          "description": ""
+          "description": "Configured deployment of a workflow with environment-specific bindings."
         },
         {
           "name": "workflow_execution",
           "number": 52,
-          "description": ""
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
         },
         {
           "name": "environment",
           "number": 53,
-          "description": ""
+          "description": "Named set of variables and secrets for agent and workflow execution."
         },
         {
           "name": "execution_context",
           "number": 54,
-          "description": ""
+          "description": "User-owned runtime context for managing execution state."
         },
         {
           "name": "project",
           "number": 60,
-          "description": "Tenancy - Project management (aggregate root for resource lifecycle)"
+          "description": "Aggregate root grouping related resources for lifecycle management."
         }
       ]
     },

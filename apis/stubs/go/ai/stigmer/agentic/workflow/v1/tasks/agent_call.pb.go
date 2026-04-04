@@ -24,11 +24,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.
+// AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
 //
-// This enables workflows to invoke AI agents as tasks, delegating complex
-// operations to specialized agents with their own skills and context.
-//
+// @internal
 // The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
 // Resolution order:
 // 1. If org is specified: look in that org's agents
@@ -165,9 +163,11 @@ type AgentExecutionConfig struct {
 	// Optional.
 	Temperature float32 `protobuf:"fixed32,3,opt,name=temperature,proto3" json:"temperature,omitempty"`
 	// Context management configuration for this agent invocation.
-	//
 	// Controls automatic summarization behavior for long-running conversations.
 	// When specified, overrides model defaults from the Model Registry.
+	//
+	// @internal
+	// @since Phase 3 (Context Summarization Architecture)
 	//
 	// Use cases:
 	// - Disable summarization for short-lived agents
@@ -181,8 +181,6 @@ type AgentExecutionConfig struct {
 	//	  context_management:
 	//	    custom_trigger_threshold: 150000
 	//	    custom_target_tokens: 120000
-	//
-	// @since Phase 3 (Context Summarization Architecture)
 	ContextManagement *v1.ContextManagementConfig `protobuf:"bytes,4,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache

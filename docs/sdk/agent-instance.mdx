@@ -537,7 +537,7 @@ AgentInstance defines a configured deployment of an Agent template.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "AgentInstanceInput", description: "Resource specification. See [`AgentInstanceInput`](#agentinstanceinput).", typeDescriptionLink: "#agentinstanceinput" },
     status: { type: "AgentInstanceStatus", description: "System-managed state. See `AgentInstanceStatus`." },

@@ -56,7 +56,7 @@ type IdentityProvider struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided identity provider configuration (desired state).
 	Spec *IdentityProviderSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// status
+	// System-managed state including audit trail.
 	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

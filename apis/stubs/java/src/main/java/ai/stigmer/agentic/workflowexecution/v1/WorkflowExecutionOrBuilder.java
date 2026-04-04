@@ -13,6 +13,8 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * API version for this resource type.
+   *
+   * &#64;internal
    * Format: 'agentic.stigmer.ai/v1'
    * Validated as const to ensure version consistency across all workflow execution resources.
    * </pre>
@@ -24,6 +26,8 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * API version for this resource type.
+   *
+   * &#64;internal
    * Format: 'agentic.stigmer.ai/v1'
    * Validated as const to ensure version consistency across all workflow execution resources.
    * </pre>
@@ -37,6 +41,8 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * Resource kind identifier.
+   *
+   * &#64;internal
    * Must be exactly 'WorkflowExecution' to match the message name.
    * Validated as const for type safety and resource identification.
    * </pre>
@@ -48,6 +54,8 @@ public interface WorkflowExecutionOrBuilder extends
   /**
    * <pre>
    * Resource kind identifier.
+   *
+   * &#64;internal
    * Must be exactly 'WorkflowExecution' to match the message name.
    * Validated as const for type safety and resource identification.
    * </pre>
@@ -60,8 +68,9 @@ public interface WorkflowExecutionOrBuilder extends
 
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * All workflow executions belong to an organization. Visibility (public/private)
    * is typically PRIVATE for executions since they contain runtime data.
    *
@@ -81,8 +90,9 @@ public interface WorkflowExecutionOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * All workflow executions belong to an organization. Visibility (public/private)
    * is typically PRIVATE for executions since they contain runtime data.
    *
@@ -102,8 +112,9 @@ public interface WorkflowExecutionOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * All workflow executions belong to an organization. Visibility (public/private)
    * is typically PRIVATE for executions since they contain runtime data.
    *
@@ -125,6 +136,7 @@ public interface WorkflowExecutionOrBuilder extends
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
    *
+   * &#64;internal
    * Contains:
    * - workflow_instance_id: Which WorkflowInstance to execute (required)
    * - trigger_message: Input message or payload for the workflow (optional)
@@ -158,6 +170,7 @@ public interface WorkflowExecutionOrBuilder extends
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
    *
+   * &#64;internal
    * Contains:
    * - workflow_instance_id: Which WorkflowInstance to execute (required)
    * - trigger_message: Input message or payload for the workflow (optional)
@@ -191,6 +204,7 @@ public interface WorkflowExecutionOrBuilder extends
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
    *
+   * &#64;internal
    * Contains:
    * - workflow_instance_id: Which WorkflowInstance to execute (required)
    * - trigger_message: Input message or payload for the workflow (optional)
@@ -224,6 +238,7 @@ public interface WorkflowExecutionOrBuilder extends
    * <pre>
    * System-managed execution state and results.
    *
+   * &#64;internal
    * Contains:
    * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
    * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -231,7 +246,7 @@ public interface WorkflowExecutionOrBuilder extends
    * - error: Error message (only for FAILED executions)
    * - started_at: Timestamp when execution started
    * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+   * - temporal_workflow_id: Correlation ID for workflow engine
    *
    * The status is continuously updated by the workflow execution engine as the workflow progresses.
    * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -261,6 +276,7 @@ public interface WorkflowExecutionOrBuilder extends
    * <pre>
    * System-managed execution state and results.
    *
+   * &#64;internal
    * Contains:
    * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
    * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -268,7 +284,7 @@ public interface WorkflowExecutionOrBuilder extends
    * - error: Error message (only for FAILED executions)
    * - started_at: Timestamp when execution started
    * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+   * - temporal_workflow_id: Correlation ID for workflow engine
    *
    * The status is continuously updated by the workflow execution engine as the workflow progresses.
    * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -298,6 +314,7 @@ public interface WorkflowExecutionOrBuilder extends
    * <pre>
    * System-managed execution state and results.
    *
+   * &#64;internal
    * Contains:
    * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
    * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -305,7 +322,7 @@ public interface WorkflowExecutionOrBuilder extends
    * - error: Error message (only for FAILED executions)
    * - started_at: Timestamp when execution started
    * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+   * - temporal_workflow_id: Correlation ID for workflow engine
    *
    * The status is continuously updated by the workflow execution engine as the workflow progresses.
    * Users can read status but cannot modify it - it reflects the actual execution state.

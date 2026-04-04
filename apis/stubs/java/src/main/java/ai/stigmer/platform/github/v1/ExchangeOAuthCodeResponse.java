@@ -7,7 +7,7 @@ package ai.stigmer.platform.github.v1;
 
 /**
  * <pre>
- * Response containing the exchanged access token.
+ * Result of exchanging a GitHub authorization code for an access token.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse}
@@ -60,7 +60,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object accessToken_ = "";
   /**
    * <pre>
-   * The GitHub access token for API calls.
+   * GitHub access token for API calls.
    * </pre>
    *
    * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -81,7 +81,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The GitHub access token for API calls.
+   * GitHub access token for API calls.
    * </pre>
    *
    * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object tokenType_ = "";
   /**
    * <pre>
-   * The token type (typically "bearer").
+   * Token type (typically "bearer").
    * </pre>
    *
    * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -128,7 +128,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The token type (typically "bearer").
+   * Token type (typically "bearer").
    * </pre>
    *
    * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -154,7 +154,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object scope_ = "";
   /**
    * <pre>
-   * The granted OAuth scopes (comma-separated).
+   * Granted OAuth scopes, comma-separated.
    * </pre>
    *
    * <code>string scope = 3 [json_name = "scope"];</code>
@@ -175,7 +175,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The granted OAuth scopes (comma-separated).
+   * Granted OAuth scopes, comma-separated.
    * </pre>
    *
    * <code>string scope = 3 [json_name = "scope"];</code>
@@ -374,7 +374,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Response containing the exchanged access token.
+   * Result of exchanging a GitHub authorization code for an access token.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse}
@@ -545,7 +545,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object accessToken_ = "";
     /**
      * <pre>
-     * The GitHub access token for API calls.
+     * GitHub access token for API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -565,7 +565,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The GitHub access token for API calls.
+     * GitHub access token for API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -586,7 +586,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The GitHub access token for API calls.
+     * GitHub access token for API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -603,7 +603,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The GitHub access token for API calls.
+     * GitHub access token for API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -617,7 +617,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The GitHub access token for API calls.
+     * GitHub access token for API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -637,7 +637,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object tokenType_ = "";
     /**
      * <pre>
-     * The token type (typically "bearer").
+     * Token type (typically "bearer").
      * </pre>
      *
      * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -657,7 +657,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The token type (typically "bearer").
+     * Token type (typically "bearer").
      * </pre>
      *
      * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -678,7 +678,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The token type (typically "bearer").
+     * Token type (typically "bearer").
      * </pre>
      *
      * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -695,7 +695,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The token type (typically "bearer").
+     * Token type (typically "bearer").
      * </pre>
      *
      * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -709,7 +709,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The token type (typically "bearer").
+     * Token type (typically "bearer").
      * </pre>
      *
      * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -729,7 +729,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object scope_ = "";
     /**
      * <pre>
-     * The granted OAuth scopes (comma-separated).
+     * Granted OAuth scopes, comma-separated.
      * </pre>
      *
      * <code>string scope = 3 [json_name = "scope"];</code>
@@ -749,7 +749,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The granted OAuth scopes (comma-separated).
+     * Granted OAuth scopes, comma-separated.
      * </pre>
      *
      * <code>string scope = 3 [json_name = "scope"];</code>
@@ -770,7 +770,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The granted OAuth scopes (comma-separated).
+     * Granted OAuth scopes, comma-separated.
      * </pre>
      *
      * <code>string scope = 3 [json_name = "scope"];</code>
@@ -787,7 +787,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The granted OAuth scopes (comma-separated).
+     * Granted OAuth scopes, comma-separated.
      * </pre>
      *
      * <code>string scope = 3 [json_name = "scope"];</code>
@@ -801,7 +801,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The granted OAuth scopes (comma-separated).
+     * Granted OAuth scopes, comma-separated.
      * </pre>
      *
      * <code>string scope = 3 [json_name = "scope"];</code>

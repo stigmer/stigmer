@@ -18,6 +18,11 @@ export const IamPolicyQueryController = {
     /**
      * Get an IAM policy by its unique identifier.
      *
+     * Returns the full IAM policy including its principal, resource, and relation binding.
+     *
+     * @internal
+     * Authorization: Requires can_view_access permission.
+     *
      * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.get
      */
     get: {

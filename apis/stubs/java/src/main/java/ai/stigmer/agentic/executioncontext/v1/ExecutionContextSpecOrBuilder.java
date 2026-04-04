@@ -12,8 +12,7 @@ public interface ExecutionContextSpecOrBuilder extends
 
   /**
    * <pre>
-   * The execution ID this context belongs to.
-   * This is typically a WorkflowExecution ID or AgentExecution ID.
+   * ID of the parent AgentExecution or WorkflowExecution.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -22,8 +21,7 @@ public interface ExecutionContextSpecOrBuilder extends
   java.lang.String getExecutionId();
   /**
    * <pre>
-   * The execution ID this context belongs to.
-   * This is typically a WorkflowExecution ID or AgentExecution ID.
+   * ID of the parent AgentExecution or WorkflowExecution.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -34,8 +32,10 @@ public interface ExecutionContextSpecOrBuilder extends
 
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
@@ -44,8 +44,10 @@ public interface ExecutionContextSpecOrBuilder extends
   int getDataCount();
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
@@ -61,8 +63,10 @@ public interface ExecutionContextSpecOrBuilder extends
   getData();
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
@@ -72,8 +76,10 @@ public interface ExecutionContextSpecOrBuilder extends
   getDataMap();
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *
@@ -86,8 +92,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue getDataOrDefault(
 ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * These are provided at runtime and only exist for the duration of the execution.
+   * Runtime key-value pairs, each marked as secret or plaintext.
+   *
+   * &#64;internal
+   * Provided at runtime and only exist for the duration of the execution.
    * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    * </pre>
    *

@@ -20,41 +20,46 @@ export const file_ai_stigmer_iam_identityaccount_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEiuwIKD0lkZW50aXR5QWNjb3VudBItCgthcGlfdmVyc2lvbhgBIAEoCUIYukgVchMKEWlhbS5zdGlnbWVyLmFpL3YxEiQKBGtpbmQYAiABKAlCFrpIE3IRCg9JZGVudGl0eUFjY291bnQSRQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YRJECgRzcGVjGAQgASgLMjYuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudFNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_identityaccount_v1_spec, file_buf_validate_validate]);
 
 /**
- * identity-account for user accounts
+ * IdentityAccount represents a user or machine principal in Stigmer.
+ *
+ * An identity account is the core identity primitive for authentication and
+ * authorization. Accounts can be direct (signed up via Stigmer), federated
+ * (provisioned through an external identity provider), or machine
+ * (service-to-service credentials).
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccount
  */
 export type IdentityAccount = Message<"ai.stigmer.iam.identityaccount.v1.IdentityAccount"> & {
   /**
-   * api-version
+   * API version for this resource type.
    *
    * @generated from field: string api_version = 1;
    */
   apiVersion: string;
 
   /**
-   * resource-kind
+   * Resource kind identifier.
    *
    * @generated from field: string kind = 2;
    */
   kind: string;
 
   /**
-   * metadata
+   * Resource metadata including name, organization, and labels.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;
 
   /**
-   * spec
+   * Configurable properties: identity provider ID, email, name, and provisioning mode.
    *
    * @generated from field: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4;
    */
   spec?: IdentityAccountSpec;
 
   /**
-   * status
+   * System-managed state including audit trail.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
    */

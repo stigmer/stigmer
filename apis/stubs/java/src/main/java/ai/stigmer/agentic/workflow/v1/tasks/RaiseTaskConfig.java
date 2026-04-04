@@ -7,10 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * RaiseTaskConfig defines the configuration for RAISE tasks.
+ * RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
  *
- * RAISE tasks raise errors/exceptions, terminating workflow execution.
- *
+ * &#64;internal
  * YAML Example:
  * - taskName:
  * raise:
@@ -328,10 +327,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * RaiseTaskConfig defines the configuration for RAISE tasks.
+   * RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
    *
-   * RAISE tasks raise errors/exceptions, terminating workflow execution.
-   *
+   * &#64;internal
    * YAML Example:
    * - taskName:
    * raise:

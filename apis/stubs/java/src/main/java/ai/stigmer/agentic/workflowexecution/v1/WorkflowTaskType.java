@@ -9,19 +9,9 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * WorkflowTaskType defines the type of workflow task.
  *
- * Tasks are the atomic units of work within a workflow. Each task type has:
- * - Specific input/output schema expectations
- * - Specific execution behavior
- * - Specific error handling and retry policies
- *
- * Task types enable workflows to orchestrate diverse operations:
- * - Invoke AI agents with prompts
- * - Call external APIs (REST, GraphQL, gRPC)
- * - Wait for human approvals
- * - Execute conditional branching
- * - Run tasks in parallel
- * - Transform data between tasks
- * - Execute custom plugin logic
+ * &#64;internal
+ * Each task type has specific input/output schema expectations,
+ * execution behavior, and error handling/retry policies.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType}
@@ -31,7 +21,9 @@ public enum WorkflowTaskType
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Unspecified task type (invalid, should never be used).
+   * Unspecified task type (invalid).
+   *
+   * &#64;internal
    * Exists only for proto3 zero-value semantics.
    * </pre>
    *
@@ -42,33 +34,8 @@ public enum WorkflowTaskType
    * <pre>
    * Invoke an AI agent with a prompt.
    *
-   * This task type calls an AgentInstance and waits for the agent execution to complete.
-   *
-   * Input Schema:
-   * {
-   * "agent_instance_id": "agi-customer-support",
-   * "prompt": "Analyze this feedback: {{workflow.input.feedback}}",
-   * "max_tokens": 500,
-   * "temperature": 0.7
-   * }
-   *
-   * Output Schema:
-   * {
-   * "agent_execution_id": "agx-abc123",
-   * "response": "The customer feedback indicates...",
-   * "metadata": { "tokens_used": 450, "model": "gpt-4" }
-   * }
-   *
-   * Use Cases:
-   * - Content generation (write email, generate report)
-   * - Data analysis (analyze customer feedback, classify support tickets)
-   * - Decision making (should we approve this request?)
-   * - Code generation (generate deployment script)
-   *
-   * Error Cases:
-   * - Agent execution timeout
-   * - Agent execution failed (prompt too long, API error)
-   * - Agent not found (invalid agent_instance_id)
+   * &#64;internal
+   * Calls an AgentInstance and waits for the agent execution to complete.
    * </pre>
    *
    * <code>WORKFLOW_TASK_AGENT_INVOCATION = 1;</code>
@@ -78,33 +45,8 @@ public enum WorkflowTaskType
    * <pre>
    * Wait for human approval before proceeding.
    *
-   * This task pauses the workflow and waits for one or more users to approve or reject.
-   *
-   * Input Schema:
-   * {
-   * "approvers": ["usr-admin-1", "usr-admin-2"],
-   * "message": "Approve account creation for {{workflow.input.email}}?",
-   * "timeout_hours": 24,
-   * "require_all_approvers": false
-   * }
-   *
-   * Output Schema:
-   * {
-   * "approved": true,
-   * "approved_by": "usr-admin-1",
-   * "approved_at": "2025-01-11T15:22:33Z",
-   * "comment": "Looks good, approved"
-   * }
-   *
-   * Use Cases:
-   * - Manual approval gates (approve deployment, approve budget)
-   * - Compliance workflows (legal review, security review)
-   * - Escalation workflows (escalate to manager if amount &gt; $10,000)
-   *
-   * Error Cases:
-   * - Timeout (no approval received within timeout_hours)
-   * - Rejected (approver explicitly rejected)
-   * - Approver not found (invalid user ID)
+   * &#64;internal
+   * Pauses the workflow and waits for one or more users to approve or reject.
    * </pre>
    *
    * <code>WORKFLOW_TASK_APPROVAL = 2;</code>
@@ -112,47 +54,10 @@ public enum WorkflowTaskType
   WORKFLOW_TASK_APPROVAL(2),
   /**
    * <pre>
-   * Make an HTTP or gRPC API call to an external service.
+   * Call an external HTTP or gRPC API.
    *
-   * This task sends a request to an external API and captures the response.
-   *
-   * Input Schema:
-   * {
-   * "method": "POST",
-   * "url": "https://api.stripe.com/v1/customers",
-   * "headers": {
-   * "Authorization": "Bearer {{env.STRIPE_API_KEY}}",
-   * "Content-Type": "application/json"
-   * },
-   * "body": {
-   * "email": "{{workflow.input.email}}",
-   * "name": "{{workflow.input.name}}"
-   * },
-   * "timeout_seconds": 30
-   * }
-   *
-   * Output Schema:
-   * {
-   * "status_code": 200,
-   * "headers": { "x-request-id": "req-xyz789" },
-   * "body": {
-   * "id": "cus-abc123",
-   * "email": "customer&#64;example.com",
-   * "created": 1704988800
-   * }
-   * }
-   *
-   * Use Cases:
-   * - Create resources in external systems (create Stripe customer, create GitHub issue)
-   * - Fetch data from APIs (get weather data, get stock prices)
-   * - Send notifications (Slack, email, SMS)
-   * - Trigger webhooks (notify external systems of workflow completion)
-   *
-   * Error Cases:
-   * - Network error (connection timeout, DNS failure)
-   * - HTTP error (4xx, 5xx status codes)
-   * - Timeout (API took longer than timeout_seconds)
-   * - Invalid response (malformed JSON, unexpected schema)
+   * &#64;internal
+   * Sends a request to an external API and captures the response.
    * </pre>
    *
    * <code>WORKFLOW_TASK_API_CALL = 3;</code>
@@ -162,30 +67,8 @@ public enum WorkflowTaskType
    * <pre>
    * Evaluate a condition and branch to different paths.
    *
-   * This task evaluates a boolean expression and determines which tasks to execute next.
-   *
-   * Input Schema:
-   * {
-   * "condition": "{{tasks.validate_email.output.valid}} == true",
-   * "if_true": ["task-create-account", "task-send-welcome"],
-   * "if_false": ["task-send-error-email"]
-   * }
-   *
-   * Output Schema:
-   * {
-   * "condition_result": true,
-   * "executed_branch": "if_true",
-   * "executed_tasks": ["task-create-account", "task-send-welcome"]
-   * }
-   *
-   * Use Cases:
-   * - Branching logic (if email is valid, create account; else send error)
-   * - Feature flags (if beta_enabled, execute beta_tasks; else execute stable_tasks)
-   * - Environment-specific behavior (if env == prod, use prod_config; else use dev_config)
-   *
-   * Error Cases:
-   * - Invalid expression (syntax error in condition)
-   * - Missing variables (referenced variable doesn't exist)
+   * &#64;internal
+   * Evaluates a boolean expression and determines which tasks to execute next.
    * </pre>
    *
    * <code>WORKFLOW_TASK_CONDITIONAL = 4;</code>
@@ -195,39 +78,8 @@ public enum WorkflowTaskType
    * <pre>
    * Execute multiple sub-tasks concurrently.
    *
-   * This task spawns multiple tasks that run in parallel and waits for all to complete.
-   *
-   * Input Schema:
-   * {
-   * "tasks": [
-   * { "task_id": "send-email", "task_type": "api_call", "input": {...} },
-   * { "task_id": "send-sms", "task_type": "api_call", "input": {...} },
-   * { "task_id": "send-slack", "task_type": "api_call", "input": {...} }
-   * ],
-   * "wait_for_all": true,
-   * "fail_on_any_failure": false
-   * }
-   *
-   * Output Schema:
-   * {
-   * "total_tasks": 3,
-   * "successful_tasks": 2,
-   * "failed_tasks": 1,
-   * "results": [
-   * { "task_id": "send-email", "status": "completed", "output": {...} },
-   * { "task_id": "send-sms", "status": "failed", "error": "..." },
-   * { "task_id": "send-slack", "status": "completed", "output": {...} }
-   * ]
-   * }
-   *
-   * Use Cases:
-   * - Fan-out operations (send notifications to multiple channels)
-   * - Parallel data processing (process multiple files concurrently)
-   * - Multi-region deployments (deploy to US, EU, APAC in parallel)
-   *
-   * Error Cases:
-   * - One or more sub-tasks failed (if fail_on_any_failure is true)
-   * - Timeout (sub-tasks took longer than allowed)
+   * &#64;internal
+   * Spawns multiple tasks that run in parallel and waits for all to complete.
    * </pre>
    *
    * <code>WORKFLOW_TASK_PARALLEL = 5;</code>
@@ -237,28 +89,8 @@ public enum WorkflowTaskType
    * <pre>
    * Transform data between tasks.
    *
-   * This task applies transformations to data (map, filter, aggregate, format).
-   *
-   * Input Schema:
-   * {
-   * "expression": "{{tasks.fetch_customers.output.customers | map('email')}}",
-   * "output_variable": "customer_emails"
-   * }
-   *
-   * Output Schema:
-   * {
-   * "result": ["customer1&#64;example.com", "customer2&#64;example.com", "customer3&#64;example.com"]
-   * }
-   *
-   * Use Cases:
-   * - Data extraction (extract email addresses from customer objects)
-   * - Data formatting (convert timestamps to different formats)
-   * - Data aggregation (sum order totals, calculate averages)
-   * - Data filtering (filter customers by region)
-   *
-   * Error Cases:
-   * - Invalid expression (syntax error)
-   * - Type mismatch (trying to apply number operation to string)
+   * &#64;internal
+   * Applies transformations to data (map, filter, aggregate, format).
    * </pre>
    *
    * <code>WORKFLOW_TASK_TRANSFORM = 6;</code>
@@ -268,18 +100,8 @@ public enum WorkflowTaskType
    * <pre>
    * Execute custom task logic defined by plugins.
    *
-   * This task type allows extending workflows with custom business logic
-   * that doesn't fit into other task types.
-   *
-   * Input Schema: Plugin-specific (defined by the custom plugin)
-   * Output Schema: Plugin-specific (defined by the custom plugin)
-   *
-   * Use Cases:
-   * - Domain-specific operations (calculate shipping costs, validate addresses)
-   * - Integration with proprietary systems (legacy database queries)
-   * - Complex business rules (pricing calculations, eligibility checks)
-   *
-   * Error Cases: Plugin-specific
+   * &#64;internal
+   * Input/output schemas are plugin-specific.
    * </pre>
    *
    * <code>WORKFLOW_TASK_CUSTOM = 7;</code>
@@ -299,7 +121,9 @@ public enum WorkflowTaskType
   }
   /**
    * <pre>
-   * Unspecified task type (invalid, should never be used).
+   * Unspecified task type (invalid).
+   *
+   * &#64;internal
    * Exists only for proto3 zero-value semantics.
    * </pre>
    *
@@ -310,33 +134,8 @@ public enum WorkflowTaskType
    * <pre>
    * Invoke an AI agent with a prompt.
    *
-   * This task type calls an AgentInstance and waits for the agent execution to complete.
-   *
-   * Input Schema:
-   * {
-   * "agent_instance_id": "agi-customer-support",
-   * "prompt": "Analyze this feedback: {{workflow.input.feedback}}",
-   * "max_tokens": 500,
-   * "temperature": 0.7
-   * }
-   *
-   * Output Schema:
-   * {
-   * "agent_execution_id": "agx-abc123",
-   * "response": "The customer feedback indicates...",
-   * "metadata": { "tokens_used": 450, "model": "gpt-4" }
-   * }
-   *
-   * Use Cases:
-   * - Content generation (write email, generate report)
-   * - Data analysis (analyze customer feedback, classify support tickets)
-   * - Decision making (should we approve this request?)
-   * - Code generation (generate deployment script)
-   *
-   * Error Cases:
-   * - Agent execution timeout
-   * - Agent execution failed (prompt too long, API error)
-   * - Agent not found (invalid agent_instance_id)
+   * &#64;internal
+   * Calls an AgentInstance and waits for the agent execution to complete.
    * </pre>
    *
    * <code>WORKFLOW_TASK_AGENT_INVOCATION = 1;</code>
@@ -346,33 +145,8 @@ public enum WorkflowTaskType
    * <pre>
    * Wait for human approval before proceeding.
    *
-   * This task pauses the workflow and waits for one or more users to approve or reject.
-   *
-   * Input Schema:
-   * {
-   * "approvers": ["usr-admin-1", "usr-admin-2"],
-   * "message": "Approve account creation for {{workflow.input.email}}?",
-   * "timeout_hours": 24,
-   * "require_all_approvers": false
-   * }
-   *
-   * Output Schema:
-   * {
-   * "approved": true,
-   * "approved_by": "usr-admin-1",
-   * "approved_at": "2025-01-11T15:22:33Z",
-   * "comment": "Looks good, approved"
-   * }
-   *
-   * Use Cases:
-   * - Manual approval gates (approve deployment, approve budget)
-   * - Compliance workflows (legal review, security review)
-   * - Escalation workflows (escalate to manager if amount &gt; $10,000)
-   *
-   * Error Cases:
-   * - Timeout (no approval received within timeout_hours)
-   * - Rejected (approver explicitly rejected)
-   * - Approver not found (invalid user ID)
+   * &#64;internal
+   * Pauses the workflow and waits for one or more users to approve or reject.
    * </pre>
    *
    * <code>WORKFLOW_TASK_APPROVAL = 2;</code>
@@ -380,47 +154,10 @@ public enum WorkflowTaskType
   public static final int WORKFLOW_TASK_APPROVAL_VALUE = 2;
   /**
    * <pre>
-   * Make an HTTP or gRPC API call to an external service.
+   * Call an external HTTP or gRPC API.
    *
-   * This task sends a request to an external API and captures the response.
-   *
-   * Input Schema:
-   * {
-   * "method": "POST",
-   * "url": "https://api.stripe.com/v1/customers",
-   * "headers": {
-   * "Authorization": "Bearer {{env.STRIPE_API_KEY}}",
-   * "Content-Type": "application/json"
-   * },
-   * "body": {
-   * "email": "{{workflow.input.email}}",
-   * "name": "{{workflow.input.name}}"
-   * },
-   * "timeout_seconds": 30
-   * }
-   *
-   * Output Schema:
-   * {
-   * "status_code": 200,
-   * "headers": { "x-request-id": "req-xyz789" },
-   * "body": {
-   * "id": "cus-abc123",
-   * "email": "customer&#64;example.com",
-   * "created": 1704988800
-   * }
-   * }
-   *
-   * Use Cases:
-   * - Create resources in external systems (create Stripe customer, create GitHub issue)
-   * - Fetch data from APIs (get weather data, get stock prices)
-   * - Send notifications (Slack, email, SMS)
-   * - Trigger webhooks (notify external systems of workflow completion)
-   *
-   * Error Cases:
-   * - Network error (connection timeout, DNS failure)
-   * - HTTP error (4xx, 5xx status codes)
-   * - Timeout (API took longer than timeout_seconds)
-   * - Invalid response (malformed JSON, unexpected schema)
+   * &#64;internal
+   * Sends a request to an external API and captures the response.
    * </pre>
    *
    * <code>WORKFLOW_TASK_API_CALL = 3;</code>
@@ -430,30 +167,8 @@ public enum WorkflowTaskType
    * <pre>
    * Evaluate a condition and branch to different paths.
    *
-   * This task evaluates a boolean expression and determines which tasks to execute next.
-   *
-   * Input Schema:
-   * {
-   * "condition": "{{tasks.validate_email.output.valid}} == true",
-   * "if_true": ["task-create-account", "task-send-welcome"],
-   * "if_false": ["task-send-error-email"]
-   * }
-   *
-   * Output Schema:
-   * {
-   * "condition_result": true,
-   * "executed_branch": "if_true",
-   * "executed_tasks": ["task-create-account", "task-send-welcome"]
-   * }
-   *
-   * Use Cases:
-   * - Branching logic (if email is valid, create account; else send error)
-   * - Feature flags (if beta_enabled, execute beta_tasks; else execute stable_tasks)
-   * - Environment-specific behavior (if env == prod, use prod_config; else use dev_config)
-   *
-   * Error Cases:
-   * - Invalid expression (syntax error in condition)
-   * - Missing variables (referenced variable doesn't exist)
+   * &#64;internal
+   * Evaluates a boolean expression and determines which tasks to execute next.
    * </pre>
    *
    * <code>WORKFLOW_TASK_CONDITIONAL = 4;</code>
@@ -463,39 +178,8 @@ public enum WorkflowTaskType
    * <pre>
    * Execute multiple sub-tasks concurrently.
    *
-   * This task spawns multiple tasks that run in parallel and waits for all to complete.
-   *
-   * Input Schema:
-   * {
-   * "tasks": [
-   * { "task_id": "send-email", "task_type": "api_call", "input": {...} },
-   * { "task_id": "send-sms", "task_type": "api_call", "input": {...} },
-   * { "task_id": "send-slack", "task_type": "api_call", "input": {...} }
-   * ],
-   * "wait_for_all": true,
-   * "fail_on_any_failure": false
-   * }
-   *
-   * Output Schema:
-   * {
-   * "total_tasks": 3,
-   * "successful_tasks": 2,
-   * "failed_tasks": 1,
-   * "results": [
-   * { "task_id": "send-email", "status": "completed", "output": {...} },
-   * { "task_id": "send-sms", "status": "failed", "error": "..." },
-   * { "task_id": "send-slack", "status": "completed", "output": {...} }
-   * ]
-   * }
-   *
-   * Use Cases:
-   * - Fan-out operations (send notifications to multiple channels)
-   * - Parallel data processing (process multiple files concurrently)
-   * - Multi-region deployments (deploy to US, EU, APAC in parallel)
-   *
-   * Error Cases:
-   * - One or more sub-tasks failed (if fail_on_any_failure is true)
-   * - Timeout (sub-tasks took longer than allowed)
+   * &#64;internal
+   * Spawns multiple tasks that run in parallel and waits for all to complete.
    * </pre>
    *
    * <code>WORKFLOW_TASK_PARALLEL = 5;</code>
@@ -505,28 +189,8 @@ public enum WorkflowTaskType
    * <pre>
    * Transform data between tasks.
    *
-   * This task applies transformations to data (map, filter, aggregate, format).
-   *
-   * Input Schema:
-   * {
-   * "expression": "{{tasks.fetch_customers.output.customers | map('email')}}",
-   * "output_variable": "customer_emails"
-   * }
-   *
-   * Output Schema:
-   * {
-   * "result": ["customer1&#64;example.com", "customer2&#64;example.com", "customer3&#64;example.com"]
-   * }
-   *
-   * Use Cases:
-   * - Data extraction (extract email addresses from customer objects)
-   * - Data formatting (convert timestamps to different formats)
-   * - Data aggregation (sum order totals, calculate averages)
-   * - Data filtering (filter customers by region)
-   *
-   * Error Cases:
-   * - Invalid expression (syntax error)
-   * - Type mismatch (trying to apply number operation to string)
+   * &#64;internal
+   * Applies transformations to data (map, filter, aggregate, format).
    * </pre>
    *
    * <code>WORKFLOW_TASK_TRANSFORM = 6;</code>
@@ -536,18 +200,8 @@ public enum WorkflowTaskType
    * <pre>
    * Execute custom task logic defined by plugins.
    *
-   * This task type allows extending workflows with custom business logic
-   * that doesn't fit into other task types.
-   *
-   * Input Schema: Plugin-specific (defined by the custom plugin)
-   * Output Schema: Plugin-specific (defined by the custom plugin)
-   *
-   * Use Cases:
-   * - Domain-specific operations (calculate shipping costs, validate addresses)
-   * - Integration with proprietary systems (legacy database queries)
-   * - Complex business rules (pricing calculations, eligibility checks)
-   *
-   * Error Cases: Plugin-specific
+   * &#64;internal
+   * Input/output schemas are plugin-specific.
    * </pre>
    *
    * <code>WORKFLOW_TASK_CUSTOM = 7;</code>

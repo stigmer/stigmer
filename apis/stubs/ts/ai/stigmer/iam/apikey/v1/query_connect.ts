@@ -44,6 +44,11 @@ export const ApiKeyQueryController = {
     /**
      * List all API keys belonging to the authenticated user.
      *
+     * Returns only the keys owned by the identity account in the auth header.
+     *
+     * @internal
+     * Scoped to the caller's own keys, so authorization is skipped.
+     *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findAll
      */
     findAll: {

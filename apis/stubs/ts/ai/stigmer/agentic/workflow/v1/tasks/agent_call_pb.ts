@@ -17,11 +17,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@
   fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIrkCChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SCwoDb3JnGAIgASgJEh8KB21lc3NhZ2UYAyABKAlCDrpIB8gBAXICEAHYhSwBEk8KA2VudhgEIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudENhbGxUYXNrQ29uZmlnLkVudkVudHJ5EkoKBmNvbmZpZxgFIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudEV4ZWN1dGlvbkNvbmZpZxoqCghFbnZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBOg7qiywKYWdlbnRfY2FsbCLDAQoUQWdlbnRFeGVjdXRpb25Db25maWcSDQoFbW9kZWwYASABKAkSGwoHdGltZW91dBgCIAEoBUIKukgHGgUYkBwoARIkCgt0ZW1wZXJhdHVyZRgDIAEoAkIPukgMCgodAACAPy0AAAAAElkKEmNvbnRleHRfbWFuYWdlbWVudBgEIAEoCzI9LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db250ZXh0TWFuYWdlbWVudENvbmZpZ2IGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
- * AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.
+ * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
  *
- * This enables workflows to invoke AI agents as tasks, delegating complex
- * operations to specialized agents with their own skills and context.
- *
+ * @internal
  * The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
  * Resolution order:
  * 1. If org is specified: look in that org's agents
@@ -143,9 +141,11 @@ export type AgentExecutionConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks
 
   /**
    * Context management configuration for this agent invocation.
-   *
    * Controls automatic summarization behavior for long-running conversations.
    * When specified, overrides model defaults from the Model Registry.
+   *
+   * @internal
+   * @since Phase 3 (Context Summarization Architecture)
    *
    * Use cases:
    * - Disable summarization for short-lived agents
@@ -158,8 +158,6 @@ export type AgentExecutionConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks
    *     context_management:
    *       custom_trigger_threshold: 150000
    *       custom_target_tokens: 120000
-   *
-   * @since Phase 3 (Context Summarization Architecture)
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4;
    */

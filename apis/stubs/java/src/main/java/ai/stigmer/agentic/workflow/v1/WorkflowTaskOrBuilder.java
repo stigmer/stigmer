@@ -51,9 +51,9 @@ public interface WorkflowTaskOrBuilder extends
 
   /**
    * <pre>
-   * Task-specific configuration (dynamic typed).
-   * Structure depends on `kind` value.
+   * Task-specific configuration whose structure depends on the `kind` field.
    *
+   * &#64;internal
    * Backend unmarshals this Struct to the appropriate proto message:
    * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
    * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -78,9 +78,9 @@ public interface WorkflowTaskOrBuilder extends
   boolean hasTaskConfig();
   /**
    * <pre>
-   * Task-specific configuration (dynamic typed).
-   * Structure depends on `kind` value.
+   * Task-specific configuration whose structure depends on the `kind` field.
    *
+   * &#64;internal
    * Backend unmarshals this Struct to the appropriate proto message:
    * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
    * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -105,9 +105,9 @@ public interface WorkflowTaskOrBuilder extends
   com.google.protobuf.Struct getTaskConfig();
   /**
    * <pre>
-   * Task-specific configuration (dynamic typed).
-   * Structure depends on `kind` value.
+   * Task-specific configuration whose structure depends on the `kind` field.
    *
+   * &#64;internal
    * Backend unmarshals this Struct to the appropriate proto message:
    * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
    * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig

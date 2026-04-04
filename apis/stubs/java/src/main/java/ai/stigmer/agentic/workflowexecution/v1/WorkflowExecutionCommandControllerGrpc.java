@@ -553,7 +553,8 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution with full state.
+     * Update an existing workflow execution with full state.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -657,43 +658,42 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval for a child agent's tool execution (HITL Phase 5.3).
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentExecution that
      * is waiting for approval. The child is identified by the child_agent_execution_id
      * in status.pending_approval.
-     * ## Behavior
      * When a workflow invokes an agent that requires tool approval, the approval
      * request surfaces at the workflow level via status.pending_approval. Users can
      * submit their decision through this RPC, which forwards it to the child agent.
      * &#64;internal
      * The approval is forwarded to the child via AgentExecution.submitApproval RPC,
      * ensuring consistent validation and Temporal workflow signaling.
-     * ## Preconditions
+     * Preconditions:
      * - status.pending_approval must be populated
      * - tool_call_id must match status.pending_approval.tool_call_id
      * - status.pending_approval.child_agent_execution_id must not be empty
      * - User must have can_edit permission on the workflow execution
-     * ## State Transitions
+     * State Transitions
      * After successful approval:
      * - Approval is forwarded to child AgentExecution
      * - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
      * - Child agent clears its pending_approval, which triggers signal to parent
      * - WorkflowExecution.status.pending_approval is eventually cleared
      * - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
-     * ## Approval Actions
+     * Approval Actions
      * - APPROVE: Tool executes with the provided arguments
      * - SKIP: Tool execution is skipped, agent continues with skip message
      * - REJECT: Agent execution fails with rejection error
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: No pending approval, or child agent not waiting
      * - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
      * - UNAVAILABLE: Failed to forward to child agent (transient error)
-     * ## Idempotency
+     * Idempotency
      * If the same approval is submitted twice (same workflow execution, tool_call_id,
      * and action), the second call is a no-op if the approval was already processed.
-     * ## Alternative: Direct Agent Approval
+     * Alternative: Direct Agent Approval
      * Users can also submit approvals directly via AgentExecution.submitApproval
      * using the child_agent_execution_id. Both paths are equivalent and result
      * in the same state transitions.
@@ -707,7 +707,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete a workflow execution.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -723,7 +723,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * before the workflow is fully started.
      * &#64;internal
      * Uses Temporal's SignalWithStart API internally for race-proof delivery.
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a signalable phase
      * 2. Uses Temporal SignalWithStart for atomic delivery:
      *    - If workflow exists → sends signal immediately
@@ -731,17 +731,17 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 3. Signal is delivered to workflow's signal channel
      * 4. LISTEN task waiting for this signal will unblock and continue
      * 5. Returns the current WorkflowExecution state
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * - User must have can_edit permission on the workflow execution
-     * ## Race-Proof Delivery (SignalWithStart)
+     * Race-Proof Delivery (SignalWithStart)
      * This RPC uses Temporal's SignalWithStart API to handle the race condition
      * where a signal might arrive before the workflow is fully started:
      * - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
      * - SignalWithStart atomically: starts workflow if needed, then sends signal
      * - Guarantees signal delivery even in race conditions
-     * ## Signal Matching
+     * Signal Matching
      * The signal_name must match the signal ID defined in the workflow's LISTEN task:
      * Workflow YAML:
      *   - waitForPayment:
@@ -753,12 +753,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *               type: signal
      * API Call:
      *   { "signal_name": "payment_confirmed", "payload": {...} }
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: execution_id or signal_name is empty
-     * ## Example Request
+     * Example Request
      * {
      *   "execution_id": "wfx_abc123xyz456",
      *   "signal_name": "payment_confirmed",
@@ -768,7 +768,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *     "currency": "USD"
      *   }
      * }
-     * ## Example Response
+     * Example Response
      * Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
      * as the workflow continues after receiving the signal).
      * &#64;since Gap B1 (Signal-With-Start for race-proof event delivery)
@@ -787,34 +787,34 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * resource cleanup, notifications) before transitioning to the CANCELLED phase.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a cancellable phase
      * 2. Sends cancellation signal to Temporal workflow
      * 3. Workflow code receives the signal and can perform cleanup
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
-     * ## Idempotency
+     * Idempotency
      * Cancelling an already-cancelled execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
      * This ensures safe retry of cancel requests.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Customer requested cancellation - order no longer needed"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -839,41 +839,41 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Use this for stuck or unresponsive workflows that don't respond to cancellation.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a terminable phase
      * 2. Force-kills workflow via Temporal (no signal sent to workflow)
      * 3. Execution transitions to EXECUTION_TERMINATED phase immediately
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot terminate already-terminal executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
-     * ## Terminated vs Cancelled
+     * Terminated vs Cancelled
      * | Aspect | cancel | terminate |
      * |--------|--------|-----------|
      * | Signal to workflow | Yes (can handle) | No |
      * | Cleanup opportunity | Yes | No |
      * | Use case | Normal stop | Stuck workflows |
      * | Can recover? | No | No |
-     * ## Idempotency
+     * Idempotency
      * Terminating an already-terminated execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Workflow stuck for 2 hours, not responding to cancel"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -899,36 +899,36 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * "retry and resume" semantics without duplicating side effects.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Identifies the last successful checkpoint in workflow history
      * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
      * 4. Execution transitions from FAILED to IN_PROGRESS phase
      * 5. Workflow continues from where it failed
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
      * - CANCELLED executions cannot be recovered (intentional user action)
      * - COMPLETED executions don't need recovery
-     * ## State Transitions
+     * State Transitions
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
      * - Completed tasks: Preserved (not re-executed)
      * - Failed tasks: Reset to pending, will be retried
-     * ## Recovery vs Restart
+     * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
      * | Completed work | Preserved | Lost (re-executed) |
      * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
      * | Use case | Resume after fix | Start fresh |
-     * ## Idempotency
+     * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
      * the current execution state.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION:
@@ -936,12 +936,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   - Execution is TERMINATED (cannot recover)
      *   - Execution is CANCELLED (cannot recover)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Stripe API recovered, resuming payment processing"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -969,7 +969,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * the execution is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
      * 3. Workflow receives signal and sets pauseRequested flag
@@ -977,15 +977,15 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Execution transitions to EXECUTION_PAUSED phase
      * 6. Workflow waits for resume signal (no resources consumed)
      * 7. Returns updated WorkflowExecution with PAUSED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → PAUSED
      * - status.completed_at: NOT set (execution is not finished)
      * - Running activities: Gracefully cancelled, checkpoint saved
      * - LangGraph state: Preserved via thread_id checkpoint
-     * ## Paused vs Cancelled
+     * Paused vs Cancelled
      * | Aspect | pause | cancel |
      * |--------|-------|--------|
      * | Terminal state? | No | Yes |
@@ -993,27 +993,27 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * | Checkpoint saved? | Yes | Best-effort |
      * | Progress preserved? | Yes | No |
      * | Use case | Temporary stop, maintenance | Permanent stop |
-     * ## Agent Activity Behavior
+     * Agent Activity Behavior
      * When pause is signaled to a workflow running an agent:
      * 1. Workflow cancels the running activity gracefully
      * 2. Python activity catches CancelledError
      * 3. LangGraph saves final checkpoint automatically
      * 4. Activity returns with paused status
      * 5. On resume, activity loads from checkpoint and continues
-     * ## Idempotency
+     * Idempotency
      * Pausing an already-paused execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Pausing for scheduled maintenance window"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -1039,7 +1039,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
      * 3. Workflow receives signal and sets resumeSignalReceived flag
@@ -1047,33 +1047,33 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Activity detects resume and loads from LangGraph checkpoint
      * 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
      * 7. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PAUSED phase
      * - Cannot resume non-paused executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PAUSED → IN_PROGRESS
      * - Activities: Re-invoked, load from checkpoint
      * - LangGraph state: Loaded from checkpoint via thread_id
-     * ## Resume Behavior
+     * Resume Behavior
      * When resume is signaled to a paused workflow:
      * 1. Java workflow unblocks from Workflow.await()
      * 2. Workflow re-invokes the activity with same parameters
      * 3. Python activity reads thread_id from heartbeat_details
      * 4. LangGraph loads checkpoint using thread_id
      * 5. Agent continues from exact position where it was paused
-     * ## Idempotency
+     * Idempotency
      * Resuming an already-running execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is not in PAUSED phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -1257,7 +1257,8 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution with full state.
+     * Update an existing workflow execution with full state.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -1363,43 +1364,42 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval for a child agent's tool execution (HITL Phase 5.3).
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentExecution that
      * is waiting for approval. The child is identified by the child_agent_execution_id
      * in status.pending_approval.
-     * ## Behavior
      * When a workflow invokes an agent that requires tool approval, the approval
      * request surfaces at the workflow level via status.pending_approval. Users can
      * submit their decision through this RPC, which forwards it to the child agent.
      * &#64;internal
      * The approval is forwarded to the child via AgentExecution.submitApproval RPC,
      * ensuring consistent validation and Temporal workflow signaling.
-     * ## Preconditions
+     * Preconditions:
      * - status.pending_approval must be populated
      * - tool_call_id must match status.pending_approval.tool_call_id
      * - status.pending_approval.child_agent_execution_id must not be empty
      * - User must have can_edit permission on the workflow execution
-     * ## State Transitions
+     * State Transitions
      * After successful approval:
      * - Approval is forwarded to child AgentExecution
      * - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
      * - Child agent clears its pending_approval, which triggers signal to parent
      * - WorkflowExecution.status.pending_approval is eventually cleared
      * - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
-     * ## Approval Actions
+     * Approval Actions
      * - APPROVE: Tool executes with the provided arguments
      * - SKIP: Tool execution is skipped, agent continues with skip message
      * - REJECT: Agent execution fails with rejection error
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: No pending approval, or child agent not waiting
      * - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
      * - UNAVAILABLE: Failed to forward to child agent (transient error)
-     * ## Idempotency
+     * Idempotency
      * If the same approval is submitted twice (same workflow execution, tool_call_id,
      * and action), the second call is a no-op if the approval was already processed.
-     * ## Alternative: Direct Agent Approval
+     * Alternative: Direct Agent Approval
      * Users can also submit approvals directly via AgentExecution.submitApproval
      * using the child_agent_execution_id. Both paths are equivalent and result
      * in the same state transitions.
@@ -1414,7 +1414,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete a workflow execution.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -1431,7 +1431,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * before the workflow is fully started.
      * &#64;internal
      * Uses Temporal's SignalWithStart API internally for race-proof delivery.
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a signalable phase
      * 2. Uses Temporal SignalWithStart for atomic delivery:
      *    - If workflow exists → sends signal immediately
@@ -1439,17 +1439,17 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 3. Signal is delivered to workflow's signal channel
      * 4. LISTEN task waiting for this signal will unblock and continue
      * 5. Returns the current WorkflowExecution state
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * - User must have can_edit permission on the workflow execution
-     * ## Race-Proof Delivery (SignalWithStart)
+     * Race-Proof Delivery (SignalWithStart)
      * This RPC uses Temporal's SignalWithStart API to handle the race condition
      * where a signal might arrive before the workflow is fully started:
      * - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
      * - SignalWithStart atomically: starts workflow if needed, then sends signal
      * - Guarantees signal delivery even in race conditions
-     * ## Signal Matching
+     * Signal Matching
      * The signal_name must match the signal ID defined in the workflow's LISTEN task:
      * Workflow YAML:
      *   - waitForPayment:
@@ -1461,12 +1461,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *               type: signal
      * API Call:
      *   { "signal_name": "payment_confirmed", "payload": {...} }
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: execution_id or signal_name is empty
-     * ## Example Request
+     * Example Request
      * {
      *   "execution_id": "wfx_abc123xyz456",
      *   "signal_name": "payment_confirmed",
@@ -1476,7 +1476,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *     "currency": "USD"
      *   }
      * }
-     * ## Example Response
+     * Example Response
      * Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
      * as the workflow continues after receiving the signal).
      * &#64;since Gap B1 (Signal-With-Start for race-proof event delivery)
@@ -1496,34 +1496,34 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * resource cleanup, notifications) before transitioning to the CANCELLED phase.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a cancellable phase
      * 2. Sends cancellation signal to Temporal workflow
      * 3. Workflow code receives the signal and can perform cleanup
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
-     * ## Idempotency
+     * Idempotency
      * Cancelling an already-cancelled execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
      * This ensures safe retry of cancel requests.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Customer requested cancellation - order no longer needed"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -1549,41 +1549,41 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Use this for stuck or unresponsive workflows that don't respond to cancellation.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a terminable phase
      * 2. Force-kills workflow via Temporal (no signal sent to workflow)
      * 3. Execution transitions to EXECUTION_TERMINATED phase immediately
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot terminate already-terminal executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
-     * ## Terminated vs Cancelled
+     * Terminated vs Cancelled
      * | Aspect | cancel | terminate |
      * |--------|--------|-----------|
      * | Signal to workflow | Yes (can handle) | No |
      * | Cleanup opportunity | Yes | No |
      * | Use case | Normal stop | Stuck workflows |
      * | Can recover? | No | No |
-     * ## Idempotency
+     * Idempotency
      * Terminating an already-terminated execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Workflow stuck for 2 hours, not responding to cancel"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -1610,36 +1610,36 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * "retry and resume" semantics without duplicating side effects.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Identifies the last successful checkpoint in workflow history
      * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
      * 4. Execution transitions from FAILED to IN_PROGRESS phase
      * 5. Workflow continues from where it failed
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
      * - CANCELLED executions cannot be recovered (intentional user action)
      * - COMPLETED executions don't need recovery
-     * ## State Transitions
+     * State Transitions
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
      * - Completed tasks: Preserved (not re-executed)
      * - Failed tasks: Reset to pending, will be retried
-     * ## Recovery vs Restart
+     * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
      * | Completed work | Preserved | Lost (re-executed) |
      * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
      * | Use case | Resume after fix | Start fresh |
-     * ## Idempotency
+     * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
      * the current execution state.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION:
@@ -1647,12 +1647,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   - Execution is TERMINATED (cannot recover)
      *   - Execution is CANCELLED (cannot recover)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Stripe API recovered, resuming payment processing"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -1681,7 +1681,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * the execution is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
      * 3. Workflow receives signal and sets pauseRequested flag
@@ -1689,15 +1689,15 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Execution transitions to EXECUTION_PAUSED phase
      * 6. Workflow waits for resume signal (no resources consumed)
      * 7. Returns updated WorkflowExecution with PAUSED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → PAUSED
      * - status.completed_at: NOT set (execution is not finished)
      * - Running activities: Gracefully cancelled, checkpoint saved
      * - LangGraph state: Preserved via thread_id checkpoint
-     * ## Paused vs Cancelled
+     * Paused vs Cancelled
      * | Aspect | pause | cancel |
      * |--------|-------|--------|
      * | Terminal state? | No | Yes |
@@ -1705,27 +1705,27 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * | Checkpoint saved? | Yes | Best-effort |
      * | Progress preserved? | Yes | No |
      * | Use case | Temporary stop, maintenance | Permanent stop |
-     * ## Agent Activity Behavior
+     * Agent Activity Behavior
      * When pause is signaled to a workflow running an agent:
      * 1. Workflow cancels the running activity gracefully
      * 2. Python activity catches CancelledError
      * 3. LangGraph saves final checkpoint automatically
      * 4. Activity returns with paused status
      * 5. On resume, activity loads from checkpoint and continues
-     * ## Idempotency
+     * Idempotency
      * Pausing an already-paused execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Pausing for scheduled maintenance window"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -1752,7 +1752,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
      * 3. Workflow receives signal and sets resumeSignalReceived flag
@@ -1760,33 +1760,33 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Activity detects resume and loads from LangGraph checkpoint
      * 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
      * 7. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PAUSED phase
      * - Cannot resume non-paused executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PAUSED → IN_PROGRESS
      * - Activities: Re-invoked, load from checkpoint
      * - LangGraph state: Loaded from checkpoint via thread_id
-     * ## Resume Behavior
+     * Resume Behavior
      * When resume is signaled to a paused workflow:
      * 1. Java workflow unblocks from Workflow.await()
      * 2. Workflow re-invokes the activity with same parameters
      * 3. Python activity reads thread_id from heartbeat_details
      * 4. LangGraph loads checkpoint using thread_id
      * 5. Agent continues from exact position where it was paused
-     * ## Idempotency
+     * Idempotency
      * Resuming an already-running execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is not in PAUSED phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -1946,7 +1946,8 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution with full state.
+     * Update an existing workflow execution with full state.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -2050,43 +2051,42 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval for a child agent's tool execution (HITL Phase 5.3).
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentExecution that
      * is waiting for approval. The child is identified by the child_agent_execution_id
      * in status.pending_approval.
-     * ## Behavior
      * When a workflow invokes an agent that requires tool approval, the approval
      * request surfaces at the workflow level via status.pending_approval. Users can
      * submit their decision through this RPC, which forwards it to the child agent.
      * &#64;internal
      * The approval is forwarded to the child via AgentExecution.submitApproval RPC,
      * ensuring consistent validation and Temporal workflow signaling.
-     * ## Preconditions
+     * Preconditions:
      * - status.pending_approval must be populated
      * - tool_call_id must match status.pending_approval.tool_call_id
      * - status.pending_approval.child_agent_execution_id must not be empty
      * - User must have can_edit permission on the workflow execution
-     * ## State Transitions
+     * State Transitions
      * After successful approval:
      * - Approval is forwarded to child AgentExecution
      * - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
      * - Child agent clears its pending_approval, which triggers signal to parent
      * - WorkflowExecution.status.pending_approval is eventually cleared
      * - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
-     * ## Approval Actions
+     * Approval Actions
      * - APPROVE: Tool executes with the provided arguments
      * - SKIP: Tool execution is skipped, agent continues with skip message
      * - REJECT: Agent execution fails with rejection error
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: No pending approval, or child agent not waiting
      * - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
      * - UNAVAILABLE: Failed to forward to child agent (transient error)
-     * ## Idempotency
+     * Idempotency
      * If the same approval is submitted twice (same workflow execution, tool_call_id,
      * and action), the second call is a no-op if the approval was already processed.
-     * ## Alternative: Direct Agent Approval
+     * Alternative: Direct Agent Approval
      * Users can also submit approvals directly via AgentExecution.submitApproval
      * using the child_agent_execution_id. Both paths are equivalent and result
      * in the same state transitions.
@@ -2100,7 +2100,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete a workflow execution.
      * </pre>
      */
     public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution delete(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -2116,7 +2116,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * before the workflow is fully started.
      * &#64;internal
      * Uses Temporal's SignalWithStart API internally for race-proof delivery.
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a signalable phase
      * 2. Uses Temporal SignalWithStart for atomic delivery:
      *    - If workflow exists → sends signal immediately
@@ -2124,17 +2124,17 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 3. Signal is delivered to workflow's signal channel
      * 4. LISTEN task waiting for this signal will unblock and continue
      * 5. Returns the current WorkflowExecution state
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * - User must have can_edit permission on the workflow execution
-     * ## Race-Proof Delivery (SignalWithStart)
+     * Race-Proof Delivery (SignalWithStart)
      * This RPC uses Temporal's SignalWithStart API to handle the race condition
      * where a signal might arrive before the workflow is fully started:
      * - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
      * - SignalWithStart atomically: starts workflow if needed, then sends signal
      * - Guarantees signal delivery even in race conditions
-     * ## Signal Matching
+     * Signal Matching
      * The signal_name must match the signal ID defined in the workflow's LISTEN task:
      * Workflow YAML:
      *   - waitForPayment:
@@ -2146,12 +2146,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *               type: signal
      * API Call:
      *   { "signal_name": "payment_confirmed", "payload": {...} }
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: execution_id or signal_name is empty
-     * ## Example Request
+     * Example Request
      * {
      *   "execution_id": "wfx_abc123xyz456",
      *   "signal_name": "payment_confirmed",
@@ -2161,7 +2161,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *     "currency": "USD"
      *   }
      * }
-     * ## Example Response
+     * Example Response
      * Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
      * as the workflow continues after receiving the signal).
      * &#64;since Gap B1 (Signal-With-Start for race-proof event delivery)
@@ -2180,34 +2180,34 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * resource cleanup, notifications) before transitioning to the CANCELLED phase.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a cancellable phase
      * 2. Sends cancellation signal to Temporal workflow
      * 3. Workflow code receives the signal and can perform cleanup
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
-     * ## Idempotency
+     * Idempotency
      * Cancelling an already-cancelled execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
      * This ensures safe retry of cancel requests.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Customer requested cancellation - order no longer needed"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -2232,41 +2232,41 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Use this for stuck or unresponsive workflows that don't respond to cancellation.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a terminable phase
      * 2. Force-kills workflow via Temporal (no signal sent to workflow)
      * 3. Execution transitions to EXECUTION_TERMINATED phase immediately
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot terminate already-terminal executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
-     * ## Terminated vs Cancelled
+     * Terminated vs Cancelled
      * | Aspect | cancel | terminate |
      * |--------|--------|-----------|
      * | Signal to workflow | Yes (can handle) | No |
      * | Cleanup opportunity | Yes | No |
      * | Use case | Normal stop | Stuck workflows |
      * | Can recover? | No | No |
-     * ## Idempotency
+     * Idempotency
      * Terminating an already-terminated execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Workflow stuck for 2 hours, not responding to cancel"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -2292,36 +2292,36 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * "retry and resume" semantics without duplicating side effects.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Identifies the last successful checkpoint in workflow history
      * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
      * 4. Execution transitions from FAILED to IN_PROGRESS phase
      * 5. Workflow continues from where it failed
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
      * - CANCELLED executions cannot be recovered (intentional user action)
      * - COMPLETED executions don't need recovery
-     * ## State Transitions
+     * State Transitions
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
      * - Completed tasks: Preserved (not re-executed)
      * - Failed tasks: Reset to pending, will be retried
-     * ## Recovery vs Restart
+     * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
      * | Completed work | Preserved | Lost (re-executed) |
      * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
      * | Use case | Resume after fix | Start fresh |
-     * ## Idempotency
+     * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
      * the current execution state.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION:
@@ -2329,12 +2329,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   - Execution is TERMINATED (cannot recover)
      *   - Execution is CANCELLED (cannot recover)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Stripe API recovered, resuming payment processing"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -2362,7 +2362,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * the execution is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
      * 3. Workflow receives signal and sets pauseRequested flag
@@ -2370,15 +2370,15 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Execution transitions to EXECUTION_PAUSED phase
      * 6. Workflow waits for resume signal (no resources consumed)
      * 7. Returns updated WorkflowExecution with PAUSED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → PAUSED
      * - status.completed_at: NOT set (execution is not finished)
      * - Running activities: Gracefully cancelled, checkpoint saved
      * - LangGraph state: Preserved via thread_id checkpoint
-     * ## Paused vs Cancelled
+     * Paused vs Cancelled
      * | Aspect | pause | cancel |
      * |--------|-------|--------|
      * | Terminal state? | No | Yes |
@@ -2386,27 +2386,27 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * | Checkpoint saved? | Yes | Best-effort |
      * | Progress preserved? | Yes | No |
      * | Use case | Temporary stop, maintenance | Permanent stop |
-     * ## Agent Activity Behavior
+     * Agent Activity Behavior
      * When pause is signaled to a workflow running an agent:
      * 1. Workflow cancels the running activity gracefully
      * 2. Python activity catches CancelledError
      * 3. LangGraph saves final checkpoint automatically
      * 4. Activity returns with paused status
      * 5. On resume, activity loads from checkpoint and continues
-     * ## Idempotency
+     * Idempotency
      * Pausing an already-paused execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Pausing for scheduled maintenance window"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -2432,7 +2432,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
      * 3. Workflow receives signal and sets resumeSignalReceived flag
@@ -2440,33 +2440,33 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Activity detects resume and loads from LangGraph checkpoint
      * 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
      * 7. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PAUSED phase
      * - Cannot resume non-paused executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PAUSED → IN_PROGRESS
      * - Activities: Re-invoked, load from checkpoint
      * - LangGraph state: Loaded from checkpoint via thread_id
-     * ## Resume Behavior
+     * Resume Behavior
      * When resume is signaled to a paused workflow:
      * 1. Java workflow unblocks from Workflow.await()
      * 2. Workflow re-invokes the activity with same parameters
      * 3. Python activity reads thread_id from heartbeat_details
      * 4. LangGraph loads checkpoint using thread_id
      * 5. Agent continues from exact position where it was paused
-     * ## Idempotency
+     * Idempotency
      * Resuming an already-running execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is not in PAUSED phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -2625,7 +2625,8 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution with full state.
+     * Update an existing workflow execution with full state.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -2729,43 +2730,42 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval for a child agent's tool execution (HITL Phase 5.3).
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentExecution that
      * is waiting for approval. The child is identified by the child_agent_execution_id
      * in status.pending_approval.
-     * ## Behavior
      * When a workflow invokes an agent that requires tool approval, the approval
      * request surfaces at the workflow level via status.pending_approval. Users can
      * submit their decision through this RPC, which forwards it to the child agent.
      * &#64;internal
      * The approval is forwarded to the child via AgentExecution.submitApproval RPC,
      * ensuring consistent validation and Temporal workflow signaling.
-     * ## Preconditions
+     * Preconditions:
      * - status.pending_approval must be populated
      * - tool_call_id must match status.pending_approval.tool_call_id
      * - status.pending_approval.child_agent_execution_id must not be empty
      * - User must have can_edit permission on the workflow execution
-     * ## State Transitions
+     * State Transitions
      * After successful approval:
      * - Approval is forwarded to child AgentExecution
      * - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
      * - Child agent clears its pending_approval, which triggers signal to parent
      * - WorkflowExecution.status.pending_approval is eventually cleared
      * - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
-     * ## Approval Actions
+     * Approval Actions
      * - APPROVE: Tool executes with the provided arguments
      * - SKIP: Tool execution is skipped, agent continues with skip message
      * - REJECT: Agent execution fails with rejection error
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: No pending approval, or child agent not waiting
      * - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
      * - UNAVAILABLE: Failed to forward to child agent (transient error)
-     * ## Idempotency
+     * Idempotency
      * If the same approval is submitted twice (same workflow execution, tool_call_id,
      * and action), the second call is a no-op if the approval was already processed.
-     * ## Alternative: Direct Agent Approval
+     * Alternative: Direct Agent Approval
      * Users can also submit approvals directly via AgentExecution.submitApproval
      * using the child_agent_execution_id. Both paths are equivalent and result
      * in the same state transitions.
@@ -2779,7 +2779,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete a workflow execution.
      * </pre>
      */
     public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution delete(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -2795,7 +2795,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * before the workflow is fully started.
      * &#64;internal
      * Uses Temporal's SignalWithStart API internally for race-proof delivery.
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a signalable phase
      * 2. Uses Temporal SignalWithStart for atomic delivery:
      *    - If workflow exists → sends signal immediately
@@ -2803,17 +2803,17 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 3. Signal is delivered to workflow's signal channel
      * 4. LISTEN task waiting for this signal will unblock and continue
      * 5. Returns the current WorkflowExecution state
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * - User must have can_edit permission on the workflow execution
-     * ## Race-Proof Delivery (SignalWithStart)
+     * Race-Proof Delivery (SignalWithStart)
      * This RPC uses Temporal's SignalWithStart API to handle the race condition
      * where a signal might arrive before the workflow is fully started:
      * - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
      * - SignalWithStart atomically: starts workflow if needed, then sends signal
      * - Guarantees signal delivery even in race conditions
-     * ## Signal Matching
+     * Signal Matching
      * The signal_name must match the signal ID defined in the workflow's LISTEN task:
      * Workflow YAML:
      *   - waitForPayment:
@@ -2825,12 +2825,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *               type: signal
      * API Call:
      *   { "signal_name": "payment_confirmed", "payload": {...} }
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: execution_id or signal_name is empty
-     * ## Example Request
+     * Example Request
      * {
      *   "execution_id": "wfx_abc123xyz456",
      *   "signal_name": "payment_confirmed",
@@ -2840,7 +2840,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *     "currency": "USD"
      *   }
      * }
-     * ## Example Response
+     * Example Response
      * Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
      * as the workflow continues after receiving the signal).
      * &#64;since Gap B1 (Signal-With-Start for race-proof event delivery)
@@ -2859,34 +2859,34 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * resource cleanup, notifications) before transitioning to the CANCELLED phase.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a cancellable phase
      * 2. Sends cancellation signal to Temporal workflow
      * 3. Workflow code receives the signal and can perform cleanup
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
-     * ## Idempotency
+     * Idempotency
      * Cancelling an already-cancelled execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
      * This ensures safe retry of cancel requests.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Customer requested cancellation - order no longer needed"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -2911,41 +2911,41 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Use this for stuck or unresponsive workflows that don't respond to cancellation.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a terminable phase
      * 2. Force-kills workflow via Temporal (no signal sent to workflow)
      * 3. Execution transitions to EXECUTION_TERMINATED phase immediately
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot terminate already-terminal executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
-     * ## Terminated vs Cancelled
+     * Terminated vs Cancelled
      * | Aspect | cancel | terminate |
      * |--------|--------|-----------|
      * | Signal to workflow | Yes (can handle) | No |
      * | Cleanup opportunity | Yes | No |
      * | Use case | Normal stop | Stuck workflows |
      * | Can recover? | No | No |
-     * ## Idempotency
+     * Idempotency
      * Terminating an already-terminated execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Workflow stuck for 2 hours, not responding to cancel"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -2971,36 +2971,36 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * "retry and resume" semantics without duplicating side effects.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Identifies the last successful checkpoint in workflow history
      * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
      * 4. Execution transitions from FAILED to IN_PROGRESS phase
      * 5. Workflow continues from where it failed
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
      * - CANCELLED executions cannot be recovered (intentional user action)
      * - COMPLETED executions don't need recovery
-     * ## State Transitions
+     * State Transitions
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
      * - Completed tasks: Preserved (not re-executed)
      * - Failed tasks: Reset to pending, will be retried
-     * ## Recovery vs Restart
+     * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
      * | Completed work | Preserved | Lost (re-executed) |
      * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
      * | Use case | Resume after fix | Start fresh |
-     * ## Idempotency
+     * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
      * the current execution state.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION:
@@ -3008,12 +3008,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   - Execution is TERMINATED (cannot recover)
      *   - Execution is CANCELLED (cannot recover)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Stripe API recovered, resuming payment processing"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -3041,7 +3041,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * the execution is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
      * 3. Workflow receives signal and sets pauseRequested flag
@@ -3049,15 +3049,15 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Execution transitions to EXECUTION_PAUSED phase
      * 6. Workflow waits for resume signal (no resources consumed)
      * 7. Returns updated WorkflowExecution with PAUSED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → PAUSED
      * - status.completed_at: NOT set (execution is not finished)
      * - Running activities: Gracefully cancelled, checkpoint saved
      * - LangGraph state: Preserved via thread_id checkpoint
-     * ## Paused vs Cancelled
+     * Paused vs Cancelled
      * | Aspect | pause | cancel |
      * |--------|-------|--------|
      * | Terminal state? | No | Yes |
@@ -3065,27 +3065,27 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * | Checkpoint saved? | Yes | Best-effort |
      * | Progress preserved? | Yes | No |
      * | Use case | Temporary stop, maintenance | Permanent stop |
-     * ## Agent Activity Behavior
+     * Agent Activity Behavior
      * When pause is signaled to a workflow running an agent:
      * 1. Workflow cancels the running activity gracefully
      * 2. Python activity catches CancelledError
      * 3. LangGraph saves final checkpoint automatically
      * 4. Activity returns with paused status
      * 5. On resume, activity loads from checkpoint and continues
-     * ## Idempotency
+     * Idempotency
      * Pausing an already-paused execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Pausing for scheduled maintenance window"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -3111,7 +3111,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
      * 3. Workflow receives signal and sets resumeSignalReceived flag
@@ -3119,33 +3119,33 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Activity detects resume and loads from LangGraph checkpoint
      * 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
      * 7. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PAUSED phase
      * - Cannot resume non-paused executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PAUSED → IN_PROGRESS
      * - Activities: Re-invoked, load from checkpoint
      * - LangGraph state: Loaded from checkpoint via thread_id
-     * ## Resume Behavior
+     * Resume Behavior
      * When resume is signaled to a paused workflow:
      * 1. Java workflow unblocks from Workflow.await()
      * 2. Workflow re-invokes the activity with same parameters
      * 3. Python activity reads thread_id from heartbeat_details
      * 4. LangGraph loads checkpoint using thread_id
      * 5. Agent continues from exact position where it was paused
-     * ## Idempotency
+     * Idempotency
      * Resuming an already-running execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is not in PAUSED phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -3305,7 +3305,8 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution with full state.
+     * Update an existing workflow execution with full state.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -3411,43 +3412,42 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval for a child agent's tool execution (HITL Phase 5.3).
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentExecution that
      * is waiting for approval. The child is identified by the child_agent_execution_id
      * in status.pending_approval.
-     * ## Behavior
      * When a workflow invokes an agent that requires tool approval, the approval
      * request surfaces at the workflow level via status.pending_approval. Users can
      * submit their decision through this RPC, which forwards it to the child agent.
      * &#64;internal
      * The approval is forwarded to the child via AgentExecution.submitApproval RPC,
      * ensuring consistent validation and Temporal workflow signaling.
-     * ## Preconditions
+     * Preconditions:
      * - status.pending_approval must be populated
      * - tool_call_id must match status.pending_approval.tool_call_id
      * - status.pending_approval.child_agent_execution_id must not be empty
      * - User must have can_edit permission on the workflow execution
-     * ## State Transitions
+     * State Transitions
      * After successful approval:
      * - Approval is forwarded to child AgentExecution
      * - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
      * - Child agent clears its pending_approval, which triggers signal to parent
      * - WorkflowExecution.status.pending_approval is eventually cleared
      * - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
-     * ## Approval Actions
+     * Approval Actions
      * - APPROVE: Tool executes with the provided arguments
      * - SKIP: Tool execution is skipped, agent continues with skip message
      * - REJECT: Agent execution fails with rejection error
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: No pending approval, or child agent not waiting
      * - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
      * - UNAVAILABLE: Failed to forward to child agent (transient error)
-     * ## Idempotency
+     * Idempotency
      * If the same approval is submitted twice (same workflow execution, tool_call_id,
      * and action), the second call is a no-op if the approval was already processed.
-     * ## Alternative: Direct Agent Approval
+     * Alternative: Direct Agent Approval
      * Users can also submit approvals directly via AgentExecution.submitApproval
      * using the child_agent_execution_id. Both paths are equivalent and result
      * in the same state transitions.
@@ -3462,7 +3462,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete a workflow execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> delete(
@@ -3479,7 +3479,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * before the workflow is fully started.
      * &#64;internal
      * Uses Temporal's SignalWithStart API internally for race-proof delivery.
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a signalable phase
      * 2. Uses Temporal SignalWithStart for atomic delivery:
      *    - If workflow exists → sends signal immediately
@@ -3487,17 +3487,17 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 3. Signal is delivered to workflow's signal channel
      * 4. LISTEN task waiting for this signal will unblock and continue
      * 5. Returns the current WorkflowExecution state
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
      * - User must have can_edit permission on the workflow execution
-     * ## Race-Proof Delivery (SignalWithStart)
+     * Race-Proof Delivery (SignalWithStart)
      * This RPC uses Temporal's SignalWithStart API to handle the race condition
      * where a signal might arrive before the workflow is fully started:
      * - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
      * - SignalWithStart atomically: starts workflow if needed, then sends signal
      * - Guarantees signal delivery even in race conditions
-     * ## Signal Matching
+     * Signal Matching
      * The signal_name must match the signal ID defined in the workflow's LISTEN task:
      * Workflow YAML:
      *   - waitForPayment:
@@ -3509,12 +3509,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *               type: signal
      * API Call:
      *   { "signal_name": "payment_confirmed", "payload": {...} }
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Workflow execution doesn't exist
      * - PERMISSION_DENIED: User doesn't have can_edit permission
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: execution_id or signal_name is empty
-     * ## Example Request
+     * Example Request
      * {
      *   "execution_id": "wfx_abc123xyz456",
      *   "signal_name": "payment_confirmed",
@@ -3524,7 +3524,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *     "currency": "USD"
      *   }
      * }
-     * ## Example Response
+     * Example Response
      * Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
      * as the workflow continues after receiving the signal).
      * &#64;since Gap B1 (Signal-With-Start for race-proof event delivery)
@@ -3544,34 +3544,34 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * resource cleanup, notifications) before transitioning to the CANCELLED phase.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a cancellable phase
      * 2. Sends cancellation signal to Temporal workflow
      * 3. Workflow code receives the signal and can perform cleanup
      * 4. Execution transitions to EXECUTION_CANCELLED phase
      * 5. Returns updated WorkflowExecution with new phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → CANCELLED
      * - status.completed_at: Set to current timestamp
      * - In-progress tasks: May complete cleanup or be interrupted
-     * ## Idempotency
+     * Idempotency
      * Cancelling an already-cancelled execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
      * This ensures safe retry of cancel requests.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Customer requested cancellation - order no longer needed"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -3597,41 +3597,41 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * Use this for stuck or unresponsive workflows that don't respond to cancellation.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a terminable phase
      * 2. Force-kills workflow via Temporal (no signal sent to workflow)
      * 3. Execution transitions to EXECUTION_TERMINATED phase immediately
      * 4. No cleanup callbacks or defer blocks are executed
      * 5. Returns updated WorkflowExecution with TERMINATED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot terminate already-terminal executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → TERMINATED
      * - status.completed_at: Set to current timestamp
      * - status.error: May contain termination reason
      * - In-progress tasks: Stopped abruptly (no cleanup)
-     * ## Terminated vs Cancelled
+     * Terminated vs Cancelled
      * | Aspect | cancel | terminate |
      * |--------|--------|-----------|
      * | Signal to workflow | Yes (can handle) | No |
      * | Cleanup opportunity | Yes | No |
      * | Use case | Normal stop | Stuck workflows |
      * | Can recover? | No | No |
-     * ## Idempotency
+     * Idempotency
      * Terminating an already-terminated execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Workflow stuck for 2 hours, not responding to cancel"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -3658,36 +3658,36 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * "retry and resume" semantics without duplicating side effects.
      * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Identifies the last successful checkpoint in workflow history
      * 3. Creates new Temporal run from that checkpoint via ResetWorkflow
      * 4. Execution transitions from FAILED to IN_PROGRESS phase
      * 5. Workflow continues from where it failed
      * 6. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (intentional hard stop)
      * - CANCELLED executions cannot be recovered (intentional user action)
      * - COMPLETED executions don't need recovery
-     * ## State Transitions
+     * State Transitions
      * - status.phase: FAILED → IN_PROGRESS
      * - status.completed_at: Cleared (execution is running again)
      * - status.error: Cleared (no longer failed)
      * - Completed tasks: Preserved (not re-executed)
      * - Failed tasks: Reset to pending, will be retried
-     * ## Recovery vs Restart
+     * Recovery vs Restart
      * | Aspect | recover | Create new execution |
      * |--------|---------|----------------------|
      * | Completed work | Preserved | Lost (re-executed) |
      * | Side effects | Not duplicated | May duplicate |
      * | Execution ID | Same | New ID |
      * | Use case | Resume after fix | Start fresh |
-     * ## Idempotency
+     * Idempotency
      * If recovery already succeeded (execution is now IN_PROGRESS from a
      * previous recover call), the call succeeds as a no-op and returns
      * the current execution state.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION:
@@ -3695,12 +3695,12 @@ public final class WorkflowExecutionCommandControllerGrpc {
      *   - Execution is TERMINATED (cannot recover)
      *   - Execution is CANCELLED (cannot recover)
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Stripe API recovered, resuming payment processing"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -3729,7 +3729,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * the execution is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
      * 3. Workflow receives signal and sets pauseRequested flag
@@ -3737,15 +3737,15 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Execution transitions to EXECUTION_PAUSED phase
      * 6. Workflow waits for resume signal (no resources consumed)
      * 7. Returns updated WorkflowExecution with PAUSED phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
      * - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PENDING/IN_PROGRESS → PAUSED
      * - status.completed_at: NOT set (execution is not finished)
      * - Running activities: Gracefully cancelled, checkpoint saved
      * - LangGraph state: Preserved via thread_id checkpoint
-     * ## Paused vs Cancelled
+     * Paused vs Cancelled
      * | Aspect | pause | cancel |
      * |--------|-------|--------|
      * | Terminal state? | No | Yes |
@@ -3753,27 +3753,27 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * | Checkpoint saved? | Yes | Best-effort |
      * | Progress preserved? | Yes | No |
      * | Use case | Temporary stop, maintenance | Permanent stop |
-     * ## Agent Activity Behavior
+     * Agent Activity Behavior
      * When pause is signaled to a workflow running an agent:
      * 1. Workflow cancels the running activity gracefully
      * 2. Python activity catches CancelledError
      * 3. LangGraph saves final checkpoint automatically
      * 4. Activity returns with paused status
      * 5. On resume, activity loads from checkpoint and continues
-     * ## Idempotency
+     * Idempotency
      * Pausing an already-paused execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is in a terminal phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456",
      *   "reason": "Pausing for scheduled maintenance window"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
@@ -3800,7 +3800,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * &#64;internal
-     * ## Behavior
+     * Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
      * 3. Workflow receives signal and sets resumeSignalReceived flag
@@ -3808,33 +3808,33 @@ public final class WorkflowExecutionCommandControllerGrpc {
      * 5. Activity detects resume and loads from LangGraph checkpoint
      * 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
      * 7. Returns updated WorkflowExecution with IN_PROGRESS phase
-     * ## Preconditions
+     * Preconditions
      * - Execution must be in EXECUTION_PAUSED phase
      * - Cannot resume non-paused executions
-     * ## State Transitions
+     * State Transitions
      * - status.phase: PAUSED → IN_PROGRESS
      * - Activities: Re-invoked, load from checkpoint
      * - LangGraph state: Loaded from checkpoint via thread_id
-     * ## Resume Behavior
+     * Resume Behavior
      * When resume is signaled to a paused workflow:
      * 1. Java workflow unblocks from Workflow.await()
      * 2. Workflow re-invokes the activity with same parameters
      * 3. Python activity reads thread_id from heartbeat_details
      * 4. LangGraph loads checkpoint using thread_id
      * 5. Agent continues from exact position where it was paused
-     * ## Idempotency
+     * Idempotency
      * Resuming an already-running execution succeeds as a no-op.
      * The call returns the current execution state without side effects.
-     * ## Error Cases
+     * Error Cases
      * - NOT_FOUND: Execution with given ID doesn't exist
      * - PERMISSION_DENIED: User lacks can_edit permission on the execution
      * - FAILED_PRECONDITION: Execution is not in PAUSED phase
      * - INVALID_ARGUMENT: ID is empty or malformed
-     * ## Example Request
+     * Example Request
      * {
      *   "id": "wfx_abc123xyz456"
      * }
-     * ## Example Response
+     * Example Response
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",

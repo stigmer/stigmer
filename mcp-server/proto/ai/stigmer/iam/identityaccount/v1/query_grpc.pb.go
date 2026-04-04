@@ -37,6 +37,11 @@ type IdentityAccountQueryControllerClient interface {
 	// Get an identity account by its unique identifier.
 	Get(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Get the identity account of the currently authenticated user.
+	//
+	// Returns the full identity account for the caller based on the auth header.
+	//
+	// @internal
+	// Scoped to the caller's own account, so authorization is skipped.
 	WhoAmI(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Get an identity account by email address.
 	GetByEmail(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*IdentityAccount, error)
@@ -128,6 +133,11 @@ type IdentityAccountQueryControllerServer interface {
 	// Get an identity account by its unique identifier.
 	Get(context.Context, *IdentityAccountId) (*IdentityAccount, error)
 	// Get the identity account of the currently authenticated user.
+	//
+	// Returns the full identity account for the caller based on the auth header.
+	//
+	// @internal
+	// Scoped to the caller's own account, so authorization is skipped.
 	WhoAmI(context.Context, *emptypb.Empty) (*IdentityAccount, error)
 	// Get an identity account by email address.
 	GetByEmail(context.Context, *IdentityAccountEmail) (*IdentityAccount, error)

@@ -13,172 +13,217 @@ export const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission: G
 
 /**
  * ApiResourceIamPermission defines the permissions and structural relations
- * used in the Stigmer authorization model. Each value maps to an FGA relation
- * name that appears either in RPC authorization annotations or in FGA tuple
- * creation logic.
+ * used in the Stigmer authorization model.
+ *
+ * Each value maps to an FGA relation name that appears either in RPC
+ * authorization annotations or in FGA tuple creation logic.
+ *
+ * @internal
+ * Removed: operator (5), platform (6), can_update_status (28).
+ * These values are reserved to prevent accidental reuse.
  *
  * @generated from enum ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission
  */
 export enum ApiResourceIamPermission {
   /**
+   * Default unspecified value.
+   *
    * @generated from enum value: unspecified = 0;
    */
   unspecified = 0,
 
   /**
-   * Basic CRUD permissions
+   * Permission to create a resource.
    *
    * @generated from enum value: create = 1;
    */
   create = 1,
 
   /**
+   * Permission to delete a resource.
+   *
    * @generated from enum value: can_delete = 2;
    */
   can_delete = 2,
 
   /**
+   * Permission to view a resource.
+   *
    * @generated from enum value: can_view = 3;
    */
   can_view = 3,
 
   /**
+   * Permission to edit a resource.
+   *
    * @generated from enum value: can_edit = 4;
    */
   can_edit = 4,
 
   /**
-   * Platform-level permissions
+   * Permission to access the back-office admin console.
    *
    * @generated from enum value: login_to_back_office = 7;
    */
   login_to_back_office = 7,
 
   /**
-   * IAM policy management permissions
+   * Permission to grant or revoke access on a resource.
    *
    * @generated from enum value: can_grant_access = 8;
    */
   can_grant_access = 8,
 
   /**
+   * Permission to view access policies on a resource.
+   *
    * @generated from enum value: can_view_access = 9;
    */
   can_view_access = 9,
 
   /**
-   * Resource ownership and membership
+   * Owner relation granting full control of a resource.
    *
    * @generated from enum value: owner = 10;
    */
   owner = 10,
 
   /**
+   * Member relation granting membership-level access to a resource.
+   *
    * @generated from enum value: member = 11;
    */
   member = 11,
 
   /**
+   * Viewer relation granting read-only access to a resource.
+   *
    * @generated from enum value: viewer = 26;
    */
   viewer = 26,
 
   /**
-   * Structural relations (parent links)
+   * Structural relation linking a resource to its owning identity account.
    *
    * @generated from enum value: identity_account = 12;
    */
   identity_account = 12,
 
   /**
+   * Structural relation linking a resource to its owning organization.
+   *
    * @generated from enum value: organization = 13;
    */
   organization = 13,
 
   /**
+   * Structural relation linking an execution to its parent session.
+   *
    * @generated from enum value: session = 14;
    */
   session = 14,
 
   /**
+   * Structural relation linking an instance or session to its parent agent.
+   *
    * @generated from enum value: agent = 15;
    */
   agent = 15,
 
   /**
-   * Resource-specific creation permissions
+   * Permission to create an agent within an organization.
    *
    * @generated from enum value: can_create_agent = 16;
    */
   can_create_agent = 16,
 
   /**
+   * Permission to create a workflow within an organization.
+   *
    * @generated from enum value: can_create_workflow = 17;
    */
   can_create_workflow = 17,
 
   /**
+   * Permission to create a session for an agent.
+   *
    * @generated from enum value: can_create_session = 18;
    */
   can_create_session = 18,
 
   /**
+   * Permission to create an execution within a session.
+   *
    * @generated from enum value: can_create_execution_in = 19;
    */
   can_create_execution_in = 19,
 
   /**
+   * Permission to create an agent instance.
+   *
    * @generated from enum value: can_create_instance = 20;
    */
   can_create_instance = 20,
 
   /**
+   * Permission to create a skill within an organization.
+   *
    * @generated from enum value: can_create_skill = 21;
    */
   can_create_skill = 21,
 
   /**
+   * Permission to create a project within an organization.
+   *
    * @generated from enum value: can_create_project = 23;
    */
   can_create_project = 23,
 
   /**
+   * Permission to create an identity provider within an organization.
+   *
    * @generated from enum value: can_create_idp = 24;
    */
   can_create_idp = 24,
 
   /**
+   * Permission to create an environment within an organization.
+   *
    * @generated from enum value: can_create_environment = 27;
    */
   can_create_environment = 27,
 
   /**
-   * Resource-specific operation permissions
+   * Permission to execute an agent or workflow.
    *
    * @generated from enum value: can_execute = 22;
    */
   can_execute = 22,
 
   /**
-   * Secret access permissions
+   * Permission to read secret values from an environment.
    *
    * @generated from enum value: can_read_secrets = 25;
    */
   can_read_secrets = 25,
 
   /**
-   * Platform-level operational permissions (checked against platform:stigmer)
+   * Platform-level permission to bootstrap IAM policies during resource creation.
    *
    * @generated from enum value: can_bootstrap_iam = 29;
    */
   can_bootstrap_iam = 29,
 
   /**
+   * Platform-level permission to manage identity accounts.
+   *
    * @generated from enum value: can_manage_identity_accounts = 30;
    */
   can_manage_identity_accounts = 30,
 
   /**
+   * Platform-level permission to update agent execution status.
+   *
    * @generated from enum value: can_update_execution_status = 31;
    */
   can_update_execution_status = 31,

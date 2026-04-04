@@ -14,15 +14,8 @@ public interface WorkflowIdOrBuilder extends
    * <pre>
    * Workflow or WorkflowInstance identifier.
    *
-   * Can be either:
-   * - Workflow ID (wf_{slug}): Filter by workflow template
-   * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
-   *
-   * Examples:
-   * - "wf_customer-onboarding" (all instances of this workflow)
-   * - "wfi_customer-onboarding-prod" (specific instance)
-   *
-   * Validation: Required field, cannot be empty
+   * &#64;internal
+   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -33,15 +26,8 @@ public interface WorkflowIdOrBuilder extends
    * <pre>
    * Workflow or WorkflowInstance identifier.
    *
-   * Can be either:
-   * - Workflow ID (wf_{slug}): Filter by workflow template
-   * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
-   *
-   * Examples:
-   * - "wf_customer-onboarding" (all instances of this workflow)
-   * - "wfi_customer-onboarding-prod" (specific instance)
-   *
-   * Validation: Required field, cannot be empty
+   * &#64;internal
+   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

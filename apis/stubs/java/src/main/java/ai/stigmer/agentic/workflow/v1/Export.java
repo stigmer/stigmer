@@ -7,7 +7,9 @@ package ai.stigmer.agentic.workflow.v1;
 
 /**
  * <pre>
- * Export defines how to save task output to context.
+ * Export defines how task output is saved to the workflow context.
+ *
+ * &#64;internal
  * Maps to the `export:` block in Zigflow DSL.
  *
  * Examples:
@@ -64,8 +66,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object as_ = "";
   /**
    * <pre>
-   * Expression defining how to export output.
-   * Uses Zigflow expression syntax: ${...}
+   * Expression defining how to export output using ${...} syntax.
    * </pre>
    *
    * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>
@@ -86,8 +87,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Expression defining how to export output.
-   * Uses Zigflow expression syntax: ${...}
+   * Expression defining how to export output using ${...} syntax.
    * </pre>
    *
    * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>
@@ -266,7 +266,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Export defines how to save task output to context.
+   * Export defines how task output is saved to the workflow context.
+   *
+   * &#64;internal
    * Maps to the `export:` block in Zigflow DSL.
    *
    * Examples:
@@ -415,8 +417,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object as_ = "";
     /**
      * <pre>
-     * Expression defining how to export output.
-     * Uses Zigflow expression syntax: ${...}
+     * Expression defining how to export output using ${...} syntax.
      * </pre>
      *
      * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>
@@ -436,8 +437,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Expression defining how to export output.
-     * Uses Zigflow expression syntax: ${...}
+     * Expression defining how to export output using ${...} syntax.
      * </pre>
      *
      * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>
@@ -458,8 +458,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Expression defining how to export output.
-     * Uses Zigflow expression syntax: ${...}
+     * Expression defining how to export output using ${...} syntax.
      * </pre>
      *
      * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>
@@ -476,8 +475,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Expression defining how to export output.
-     * Uses Zigflow expression syntax: ${...}
+     * Expression defining how to export output using ${...} syntax.
      * </pre>
      *
      * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>
@@ -491,8 +489,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Expression defining how to export output.
-     * Uses Zigflow expression syntax: ${...}
+     * Expression defining how to export output using ${...} syntax.
      * </pre>
      *
      * <code>string as = 1 [json_name = "as", (.buf.validate.field) = { ... }</code>

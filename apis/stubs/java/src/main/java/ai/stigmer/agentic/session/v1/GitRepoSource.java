@@ -9,12 +9,14 @@ package ai.stigmer.agentic.session.v1;
  * <pre>
  * GitRepoSource provisions a workspace by cloning a git repository.
  *
+ * Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
+ *
+ * &#64;internal
  * Authentication: The provisioner resolves GITHUB_TOKEN from the merged
  * environment (Agent defaults &lt; Environment &lt; ExecutionContext.runtime_env)
  * and injects it into the clone URL. The token is consumed by provisioning
  * and stripped before forwarding to the agent runtime (see AD-05).
- *
- * HTTPS only for MVP. SSH key authentication is a future enhancement.
+ * SSH key authentication is a future enhancement.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.GitRepoSource}
@@ -69,9 +71,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object url_ = "";
   /**
    * <pre>
-   * HTTPS clone URL (required).
-   * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-   * Example: "https://github.com/acme/my-app.git"
+   * HTTPS clone URL for the repository.
    * </pre>
    *
    * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -92,9 +92,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * HTTPS clone URL (required).
-   * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-   * Example: "https://github.com/acme/my-app.git"
+   * HTTPS clone URL for the repository.
    * </pre>
    *
    * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -120,9 +118,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object branch_ = "";
   /**
    * <pre>
-   * Branch to clone (optional).
+   * Branch to clone.
+   *
    * When empty, the repository's default branch is used.
-   * Example: "main", "develop", "feature/workspace-support"
    * </pre>
    *
    * <code>string branch = 2 [json_name = "branch"];</code>
@@ -143,9 +141,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Branch to clone (optional).
+   * Branch to clone.
+   *
    * When empty, the repository's default branch is used.
-   * Example: "main", "develop", "feature/workspace-support"
    * </pre>
    *
    * <code>string branch = 2 [json_name = "branch"];</code>
@@ -171,13 +169,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object commit_ = "";
   /**
    * <pre>
-   * Commit SHA to checkout after cloning (optional).
-   * When set, the workspace is checked out at this exact commit (detached HEAD).
+   * Commit SHA to checkout after cloning.
+   *
+   * When set, the workspace is checked out at this exact commit.
    * When both branch and commit are set, the branch is cloned first, then
-   * the commit is checked out -- this allows shallow clones of a specific
-   * commit on a known branch.
-   * When only commit is set (no branch), a full clone is required to
-   * locate the commit.
+   * the commit is checked out.
    * </pre>
    *
    * <code>string commit = 3 [json_name = "commit"];</code>
@@ -198,13 +194,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Commit SHA to checkout after cloning (optional).
-   * When set, the workspace is checked out at this exact commit (detached HEAD).
+   * Commit SHA to checkout after cloning.
+   *
+   * When set, the workspace is checked out at this exact commit.
    * When both branch and commit are set, the branch is cloned first, then
-   * the commit is checked out -- this allows shallow clones of a specific
-   * commit on a known branch.
-   * When only commit is set (no branch), a full clone is required to
-   * locate the commit.
+   * the commit is checked out.
    * </pre>
    *
    * <code>string commit = 3 [json_name = "commit"];</code>
@@ -229,14 +223,14 @@ private static final long serialVersionUID = 0L;
   private int depth_ = 0;
   /**
    * <pre>
-   * Clone depth (optional).
+   * Number of commits to include in the clone history.
    *
-   * Presence semantics:
-   * - Absent (not set): shallow clone with depth 1 (fast default).
-   * - 0: full clone with complete history.
-   * - N &gt; 0: shallow clone with depth N.
+   * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+   * a full clone with complete history.
    *
+   * &#64;internal
    * Uses proto3 optional to distinguish "not set" from "set to 0."
+   * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
    * </pre>
    *
    * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -248,14 +242,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Clone depth (optional).
+   * Number of commits to include in the clone history.
    *
-   * Presence semantics:
-   * - Absent (not set): shallow clone with depth 1 (fast default).
-   * - 0: full clone with complete history.
-   * - N &gt; 0: shallow clone with depth N.
+   * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+   * a full clone with complete history.
    *
+   * &#64;internal
    * Uses proto3 optional to distinguish "not set" from "set to 0."
+   * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
    * </pre>
    *
    * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -270,22 +264,20 @@ private static final long serialVersionUID = 0L;
   private int writeBackMode_ = 0;
   /**
    * <pre>
-   * Controls whether the platform automatically creates a branch and
-   * pull request from the agent's file changes during execution.
+   * Controls whether the platform creates a branch and pull request from the agent's file changes.
    *
+   * &#64;internal
    * This is a platform-level workflow, not an agent-level decision. The
    * agent focuses on making code changes; the platform packages them
    * incrementally — the PR appears the moment the first file is written
    * and the diff grows in real time as the agent works.
    *
-   * Requires git credentials to be configured during workspace provisioning
-   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * Requires GITHUB_TOKEN in the execution environment. If credentials
    * are not available, the write-back is silently skipped regardless of
    * this setting.
    *
    * Default (UNSPECIFIED): platform decides. Currently defaults to
-   * write-back enabled when git credentials are available. Set an
-   * explicit mode to override.
+   * write-back enabled when git credentials are available.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
@@ -296,22 +288,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Controls whether the platform automatically creates a branch and
-   * pull request from the agent's file changes during execution.
+   * Controls whether the platform creates a branch and pull request from the agent's file changes.
    *
+   * &#64;internal
    * This is a platform-level workflow, not an agent-level decision. The
    * agent focuses on making code changes; the platform packages them
    * incrementally — the PR appears the moment the first file is written
    * and the diff grows in real time as the agent works.
    *
-   * Requires git credentials to be configured during workspace provisioning
-   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * Requires GITHUB_TOKEN in the execution environment. If credentials
    * are not available, the write-back is silently skipped regardless of
    * this setting.
    *
    * Default (UNSPECIFIED): platform decides. Currently defaults to
-   * write-back enabled when git credentials are available. Set an
-   * explicit mode to override.
+   * write-back enabled when git credentials are available.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
@@ -528,12 +518,14 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * GitRepoSource provisions a workspace by cloning a git repository.
    *
+   * Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
+   *
+   * &#64;internal
    * Authentication: The provisioner resolves GITHUB_TOKEN from the merged
    * environment (Agent defaults &lt; Environment &lt; ExecutionContext.runtime_env)
    * and injects it into the clone URL. The token is consumed by provisioning
    * and stripped before forwarding to the agent runtime (see AD-05).
-   *
-   * HTTPS only for MVP. SSH key authentication is a future enhancement.
+   * SSH key authentication is a future enhancement.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.GitRepoSource}
@@ -731,9 +723,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object url_ = "";
     /**
      * <pre>
-     * HTTPS clone URL (required).
-     * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-     * Example: "https://github.com/acme/my-app.git"
+     * HTTPS clone URL for the repository.
      * </pre>
      *
      * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -753,9 +743,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * HTTPS clone URL (required).
-     * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-     * Example: "https://github.com/acme/my-app.git"
+     * HTTPS clone URL for the repository.
      * </pre>
      *
      * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -776,9 +764,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * HTTPS clone URL (required).
-     * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-     * Example: "https://github.com/acme/my-app.git"
+     * HTTPS clone URL for the repository.
      * </pre>
      *
      * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -795,9 +781,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * HTTPS clone URL (required).
-     * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-     * Example: "https://github.com/acme/my-app.git"
+     * HTTPS clone URL for the repository.
      * </pre>
      *
      * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -811,9 +795,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * HTTPS clone URL (required).
-     * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-     * Example: "https://github.com/acme/my-app.git"
+     * HTTPS clone URL for the repository.
      * </pre>
      *
      * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -833,9 +815,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object branch_ = "";
     /**
      * <pre>
-     * Branch to clone (optional).
+     * Branch to clone.
+     *
      * When empty, the repository's default branch is used.
-     * Example: "main", "develop", "feature/workspace-support"
      * </pre>
      *
      * <code>string branch = 2 [json_name = "branch"];</code>
@@ -855,9 +837,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Branch to clone (optional).
+     * Branch to clone.
+     *
      * When empty, the repository's default branch is used.
-     * Example: "main", "develop", "feature/workspace-support"
      * </pre>
      *
      * <code>string branch = 2 [json_name = "branch"];</code>
@@ -878,9 +860,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Branch to clone (optional).
+     * Branch to clone.
+     *
      * When empty, the repository's default branch is used.
-     * Example: "main", "develop", "feature/workspace-support"
      * </pre>
      *
      * <code>string branch = 2 [json_name = "branch"];</code>
@@ -897,9 +879,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Branch to clone (optional).
+     * Branch to clone.
+     *
      * When empty, the repository's default branch is used.
-     * Example: "main", "develop", "feature/workspace-support"
      * </pre>
      *
      * <code>string branch = 2 [json_name = "branch"];</code>
@@ -913,9 +895,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Branch to clone (optional).
+     * Branch to clone.
+     *
      * When empty, the repository's default branch is used.
-     * Example: "main", "develop", "feature/workspace-support"
      * </pre>
      *
      * <code>string branch = 2 [json_name = "branch"];</code>
@@ -935,13 +917,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object commit_ = "";
     /**
      * <pre>
-     * Commit SHA to checkout after cloning (optional).
-     * When set, the workspace is checked out at this exact commit (detached HEAD).
+     * Commit SHA to checkout after cloning.
+     *
+     * When set, the workspace is checked out at this exact commit.
      * When both branch and commit are set, the branch is cloned first, then
-     * the commit is checked out -- this allows shallow clones of a specific
-     * commit on a known branch.
-     * When only commit is set (no branch), a full clone is required to
-     * locate the commit.
+     * the commit is checked out.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit"];</code>
@@ -961,13 +941,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Commit SHA to checkout after cloning (optional).
-     * When set, the workspace is checked out at this exact commit (detached HEAD).
+     * Commit SHA to checkout after cloning.
+     *
+     * When set, the workspace is checked out at this exact commit.
      * When both branch and commit are set, the branch is cloned first, then
-     * the commit is checked out -- this allows shallow clones of a specific
-     * commit on a known branch.
-     * When only commit is set (no branch), a full clone is required to
-     * locate the commit.
+     * the commit is checked out.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit"];</code>
@@ -988,13 +966,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Commit SHA to checkout after cloning (optional).
-     * When set, the workspace is checked out at this exact commit (detached HEAD).
+     * Commit SHA to checkout after cloning.
+     *
+     * When set, the workspace is checked out at this exact commit.
      * When both branch and commit are set, the branch is cloned first, then
-     * the commit is checked out -- this allows shallow clones of a specific
-     * commit on a known branch.
-     * When only commit is set (no branch), a full clone is required to
-     * locate the commit.
+     * the commit is checked out.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit"];</code>
@@ -1011,13 +987,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Commit SHA to checkout after cloning (optional).
-     * When set, the workspace is checked out at this exact commit (detached HEAD).
+     * Commit SHA to checkout after cloning.
+     *
+     * When set, the workspace is checked out at this exact commit.
      * When both branch and commit are set, the branch is cloned first, then
-     * the commit is checked out -- this allows shallow clones of a specific
-     * commit on a known branch.
-     * When only commit is set (no branch), a full clone is required to
-     * locate the commit.
+     * the commit is checked out.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit"];</code>
@@ -1031,13 +1005,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Commit SHA to checkout after cloning (optional).
-     * When set, the workspace is checked out at this exact commit (detached HEAD).
+     * Commit SHA to checkout after cloning.
+     *
+     * When set, the workspace is checked out at this exact commit.
      * When both branch and commit are set, the branch is cloned first, then
-     * the commit is checked out -- this allows shallow clones of a specific
-     * commit on a known branch.
-     * When only commit is set (no branch), a full clone is required to
-     * locate the commit.
+     * the commit is checked out.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit"];</code>
@@ -1057,14 +1029,14 @@ private static final long serialVersionUID = 0L;
     private int depth_ ;
     /**
      * <pre>
-     * Clone depth (optional).
+     * Number of commits to include in the clone history.
      *
-     * Presence semantics:
-     * - Absent (not set): shallow clone with depth 1 (fast default).
-     * - 0: full clone with complete history.
-     * - N &gt; 0: shallow clone with depth N.
+     * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+     * a full clone with complete history.
      *
+     * &#64;internal
      * Uses proto3 optional to distinguish "not set" from "set to 0."
+     * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
      * </pre>
      *
      * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -1076,14 +1048,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Clone depth (optional).
+     * Number of commits to include in the clone history.
      *
-     * Presence semantics:
-     * - Absent (not set): shallow clone with depth 1 (fast default).
-     * - 0: full clone with complete history.
-     * - N &gt; 0: shallow clone with depth N.
+     * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+     * a full clone with complete history.
      *
+     * &#64;internal
      * Uses proto3 optional to distinguish "not set" from "set to 0."
+     * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
      * </pre>
      *
      * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -1095,14 +1067,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Clone depth (optional).
+     * Number of commits to include in the clone history.
      *
-     * Presence semantics:
-     * - Absent (not set): shallow clone with depth 1 (fast default).
-     * - 0: full clone with complete history.
-     * - N &gt; 0: shallow clone with depth N.
+     * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+     * a full clone with complete history.
      *
+     * &#64;internal
      * Uses proto3 optional to distinguish "not set" from "set to 0."
+     * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
      * </pre>
      *
      * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -1118,14 +1090,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Clone depth (optional).
+     * Number of commits to include in the clone history.
      *
-     * Presence semantics:
-     * - Absent (not set): shallow clone with depth 1 (fast default).
-     * - 0: full clone with complete history.
-     * - N &gt; 0: shallow clone with depth N.
+     * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+     * a full clone with complete history.
      *
+     * &#64;internal
      * Uses proto3 optional to distinguish "not set" from "set to 0."
+     * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
      * </pre>
      *
      * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -1141,22 +1113,20 @@ private static final long serialVersionUID = 0L;
     private int writeBackMode_ = 0;
     /**
      * <pre>
-     * Controls whether the platform automatically creates a branch and
-     * pull request from the agent's file changes during execution.
+     * Controls whether the platform creates a branch and pull request from the agent's file changes.
      *
+     * &#64;internal
      * This is a platform-level workflow, not an agent-level decision. The
      * agent focuses on making code changes; the platform packages them
      * incrementally — the PR appears the moment the first file is written
      * and the diff grows in real time as the agent works.
      *
-     * Requires git credentials to be configured during workspace provisioning
-     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * Requires GITHUB_TOKEN in the execution environment. If credentials
      * are not available, the write-back is silently skipped regardless of
      * this setting.
      *
      * Default (UNSPECIFIED): platform decides. Currently defaults to
-     * write-back enabled when git credentials are available. Set an
-     * explicit mode to override.
+     * write-back enabled when git credentials are available.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
@@ -1167,22 +1137,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Controls whether the platform automatically creates a branch and
-     * pull request from the agent's file changes during execution.
+     * Controls whether the platform creates a branch and pull request from the agent's file changes.
      *
+     * &#64;internal
      * This is a platform-level workflow, not an agent-level decision. The
      * agent focuses on making code changes; the platform packages them
      * incrementally — the PR appears the moment the first file is written
      * and the diff grows in real time as the agent works.
      *
-     * Requires git credentials to be configured during workspace provisioning
-     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * Requires GITHUB_TOKEN in the execution environment. If credentials
      * are not available, the write-back is silently skipped regardless of
      * this setting.
      *
      * Default (UNSPECIFIED): platform decides. Currently defaults to
-     * write-back enabled when git credentials are available. Set an
-     * explicit mode to override.
+     * write-back enabled when git credentials are available.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
@@ -1198,22 +1166,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Controls whether the platform automatically creates a branch and
-     * pull request from the agent's file changes during execution.
+     * Controls whether the platform creates a branch and pull request from the agent's file changes.
      *
+     * &#64;internal
      * This is a platform-level workflow, not an agent-level decision. The
      * agent focuses on making code changes; the platform packages them
      * incrementally — the PR appears the moment the first file is written
      * and the diff grows in real time as the agent works.
      *
-     * Requires git credentials to be configured during workspace provisioning
-     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * Requires GITHUB_TOKEN in the execution environment. If credentials
      * are not available, the write-back is silently skipped regardless of
      * this setting.
      *
      * Default (UNSPECIFIED): platform decides. Currently defaults to
-     * write-back enabled when git credentials are available. Set an
-     * explicit mode to override.
+     * write-back enabled when git credentials are available.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
@@ -1226,22 +1192,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Controls whether the platform automatically creates a branch and
-     * pull request from the agent's file changes during execution.
+     * Controls whether the platform creates a branch and pull request from the agent's file changes.
      *
+     * &#64;internal
      * This is a platform-level workflow, not an agent-level decision. The
      * agent focuses on making code changes; the platform packages them
      * incrementally — the PR appears the moment the first file is written
      * and the diff grows in real time as the agent works.
      *
-     * Requires git credentials to be configured during workspace provisioning
-     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * Requires GITHUB_TOKEN in the execution environment. If credentials
      * are not available, the write-back is silently skipped regardless of
      * this setting.
      *
      * Default (UNSPECIFIED): platform decides. Currently defaults to
-     * write-back enabled when git credentials are available. Set an
-     * explicit mode to override.
+     * write-back enabled when git credentials are available.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
@@ -1257,22 +1221,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Controls whether the platform automatically creates a branch and
-     * pull request from the agent's file changes during execution.
+     * Controls whether the platform creates a branch and pull request from the agent's file changes.
      *
+     * &#64;internal
      * This is a platform-level workflow, not an agent-level decision. The
      * agent focuses on making code changes; the platform packages them
      * incrementally — the PR appears the moment the first file is written
      * and the diff grows in real time as the agent works.
      *
-     * Requires git credentials to be configured during workspace provisioning
-     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * Requires GITHUB_TOKEN in the execution environment. If credentials
      * are not available, the write-back is silently skipped regardless of
      * this setting.
      *
      * Default (UNSPECIFIED): platform decides. Currently defaults to
-     * write-back enabled when git credentials are available. Set an
-     * explicit mode to override.
+     * write-back enabled when git credentials are available.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>

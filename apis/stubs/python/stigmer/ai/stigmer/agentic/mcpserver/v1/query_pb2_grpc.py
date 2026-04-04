@@ -8,8 +8,8 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class McpServerQueryControllerStub(object):
     """McpServerQueryController provides read operations for MCP server resources.
-    All read operations require appropriate authorization based on the resource's scope.
 
+    @internal
     Authorization model:
     - Platform-scoped: Anyone can view (public marketplace)
     - Organization-scoped: Org members can view
@@ -36,8 +36,8 @@ class McpServerQueryControllerStub(object):
 
 class McpServerQueryControllerServicer(object):
     """McpServerQueryController provides read operations for MCP server resources.
-    All read operations require appropriate authorization based on the resource's scope.
 
+    @internal
     Authorization model:
     - Platform-scoped: Anyone can view (public marketplace)
     - Organization-scoped: Org members can view
@@ -47,9 +47,7 @@ class McpServerQueryControllerServicer(object):
     def get(self, request, context):
         """Get an MCP server by its unique identifier.
 
-        Input: ApiResourceId containing the MCP server's system-generated ID.
-        Returns: The full McpServer resource including metadata, spec, and status.
-
+        @internal
         Authorization: Requires can_view permission on the mcp_server resource.
         The caller must have access based on the resource's scope:
         - Platform: All authenticated users
@@ -63,15 +61,10 @@ class McpServerQueryControllerServicer(object):
     def getByReference(self, request, context):
         """Get an MCP server by reference (scope + org + slug).
 
-        Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-        Returns: The full McpServer resource.
+        Preferred method for looking up MCP servers by name/slug rather than
+        system-generated ID.
 
-        This is the preferred method for looking up MCP servers by name/slug
-        rather than system-generated ID. Useful for:
-        - Resolving references from Agent.mcp_server_usages
-        - CLI lookups by name
-        - Cross-scope resolution (platform vs org vs personal)
-
+        @internal
         Authorization: Custom authorization in handler.
         The handler performs scope-aware authorization based on the reference.
         """
@@ -102,8 +95,8 @@ def add_McpServerQueryControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class McpServerQueryController(object):
     """McpServerQueryController provides read operations for MCP server resources.
-    All read operations require appropriate authorization based on the resource's scope.
 
+    @internal
     Authorization model:
     - Platform-scoped: Anyone can view (public marketplace)
     - Organization-scoped: Org members can view

@@ -11,24 +11,44 @@ public interface OrganizationsOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.tenancy.organization.v1.Organization> 
       getEntriesList();
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.tenancy.organization.v1.Organization getEntries(int index);
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   int getEntriesCount();
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.tenancy.organization.v1.OrganizationOrBuilder> 
       getEntriesOrBuilderList();
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.tenancy.organization.v1.OrganizationOrBuilder getEntriesOrBuilder(

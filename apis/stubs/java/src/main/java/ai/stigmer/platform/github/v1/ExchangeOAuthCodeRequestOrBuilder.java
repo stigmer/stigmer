@@ -12,7 +12,7 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
 
   /**
    * <pre>
-   * The authorization code received from GitHub's OAuth redirect.
+   * Authorization code received from GitHub's OAuth redirect callback.
    * </pre>
    *
    * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
   java.lang.String getCode();
   /**
    * <pre>
-   * The authorization code received from GitHub's OAuth redirect.
+   * Authorization code received from GitHub's OAuth redirect callback.
    * </pre>
    *
    * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -32,7 +32,7 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
 
   /**
    * <pre>
-   * The state value from the original authorize request, for CSRF verification.
+   * State value from the original authorize response, for CSRF verification.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -41,7 +41,7 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
   java.lang.String getState();
   /**
    * <pre>
-   * The state value from the original authorize request, for CSRF verification.
+   * State value from the original authorize response, for CSRF verification.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -52,8 +52,10 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
 
   /**
    * <pre>
-   * The redirect_uri used in the original authorize request.
-   * GitHub requires this to match for the token exchange.
+   * Redirect URI used in the original authorize request.
+   *
+   * &#64;internal
+   * GitHub requires this to match the value from the authorize step.
    * </pre>
    *
    * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -62,8 +64,10 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
   java.lang.String getRedirectUri();
   /**
    * <pre>
-   * The redirect_uri used in the original authorize request.
-   * GitHub requires this to match for the token exchange.
+   * Redirect URI used in the original authorize request.
+   *
+   * &#64;internal
+   * GitHub requires this to match the value from the authorize step.
    * </pre>
    *
    * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>

@@ -24,9 +24,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks.
+// CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.
 //
-// CALL_ACTIVITY tasks execute Temporal activities.
+// @internal
+// Executes Temporal activities.
 //
 // YAML Example:
 //   - taskName:
@@ -40,7 +41,9 @@ const (
 type CallActivityTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Activity name to execute.
-	// Must match registered Temporal activity.
+	//
+	// @internal
+	// Must match a registered Temporal activity.
 	Activity string `protobuf:"bytes,1,opt,name=activity,proto3" json:"activity,omitempty"`
 	// Activity input (optional).
 	// Can be any JSON structure.

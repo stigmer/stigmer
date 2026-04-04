@@ -34,16 +34,23 @@ class IdentityProviderQueryControllerServicer(object):
 
     def get(self, request, context):
         """Get an identity provider by its unique identifier.
+
+        @internal
+        Authorization: Requires can_view permission on the identity provider resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def getByReference(self, request, context):
-        """Get an identity provider by reference (org + slug).
+        """Get an identity provider by its organization-scoped reference (org/slug).
+
+        Resolves a human-readable reference like "acme/planton-cloud" to the full
+        IdentityProvider resource.
 
         @internal
-        Custom authorization in handler.
+        Custom authorization in handler — checks both direct resource access
+        and organization-level visibility permissions.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
