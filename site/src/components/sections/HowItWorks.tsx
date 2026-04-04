@@ -78,8 +78,7 @@ function HowItWorks({ className, ...props }: HowItWorksProps) {
         <FadeInUp delay={0.3}>
           <div className="text-center mt-12">
             <Button asChild variant="outline" size="lg">
-              {/* TODO: Phase 3 — update to /docs/getting-started/quickstart */}
-              <Link href="/docs">
+              <Link href="/docs/getting-started/quickstart">
                 Get Started
                 <Icon name="arrow-right" size="sm" />
               </Link>

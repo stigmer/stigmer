@@ -41,8 +41,7 @@ function FinalCTA({ className, ...props }: FinalCTAProps) {
                 </a>
               </Button>
               <Button asChild variant="outline" size="lg">
-                {/* TODO: Phase 7 — update to /docs/sdks/typescript */}
-                <Link href="/docs">
+                <Link href="/docs/sdk">
                   View SDKs
                 </Link>
               </Button>
