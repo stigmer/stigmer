@@ -61,6 +61,7 @@ import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { AgentSpecSchema, McpServerUsageSchema, SubAgentSchema, McpAccessSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
@@ -83,6 +84,7 @@ import { fixtures, samples, type FixtureSpec } from "@stigmer/react/demo";
 
 export interface PreviewConfig {
   /** The SDK component to render. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous component registry; type safety is per-config, not at the registry boundary
   readonly component: ComponentType<any>;
   /** Fixture specs passed to `buildScenario()` for the demo client. */
   readonly fixtures: FixtureSpec[];
@@ -210,8 +212,7 @@ function buildRichAgent() {
 
   const now = BigInt(Math.floor(Date.now() / 1000));
   const threeDaysAgo = now - BigInt(3 * 24 * 60 * 60);
-  agent.status = {
-    $typeName: agent.status?.$typeName ?? "ai.stigmer.agentic.agent.v1.AgentStatus" as any,
+  agent.status = create(AgentStatusSchema, {
     audit: create(ApiResourceAuditSchema, {
       specAudit: create(ApiResourceAuditInfoSchema, {
         createdAt: { seconds: threeDaysAgo, nanos: 0 },
@@ -219,7 +220,7 @@ function buildRichAgent() {
       }),
     }),
     defaultInstanceId: "",
-  };
+  });
 
   return agent;
 }
@@ -250,7 +251,6 @@ function buildMcpToolCall() {
 
 function buildSampleExecution() {
   const toolCall = buildSampleToolCall();
-  const mcpToolCall = buildMcpToolCall();
 
   const exec = samples.agentExecution({
     phase: ExecutionPhase.EXECUTION_COMPLETED,

@@ -10,7 +10,6 @@ import type { Domain, Hook, Component, TypeDef, Field } from "./model";
 import {
   escapeJsString,
   renderCommentParts,
-  toAnchor,
 } from "./mdx-utils";
 
 // ---------------------------------------------------------------------------

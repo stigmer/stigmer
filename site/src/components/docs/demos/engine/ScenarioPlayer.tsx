@@ -107,8 +107,6 @@ export function ScenarioPlayer<T>({
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
 
-  const playbackComplete = !playing && stepIndex >= lastIndex;
-
   const pendingAdvanceRef = useRef<(() => void) | null>(null);
 
   const handleClipEnded = useCallback(() => {
