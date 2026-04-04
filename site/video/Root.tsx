@@ -1,6 +1,6 @@
 import { Composition } from "remotion";
 import { HelloWorld } from "./compositions/HelloWorld";
-import { DemoVideo, type DemoVideoProps } from "./compositions/DemoVideo";
+import { DemoVideo } from "./compositions/DemoVideo";
 import { computeTimeline } from "./lib/timeline";
 import type { NarrationManifest } from "@/components/docs/demos/engine/narration";
 
@@ -70,7 +70,7 @@ export const RemotionRoot: React.FC = () => {
         height={HEIGHT}
       />
       {scenarios.map(({ id, timeline }) => (
-        <Composition<DemoVideoProps>
+        <Composition
           key={id}
           id={id}
           component={DemoVideo}

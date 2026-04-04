@@ -15,6 +15,7 @@ const eslintConfig = [
     ignores: [
       "node_modules/**",
       ".next/**",
+      ".source/**",
       "out/**",
       "build/**",
       "next-env.d.ts",
@@ -22,13 +23,18 @@ const eslintConfig = [
   },
   {
     rules: {
-      // Strict rules for production quality
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "prefer-const": "error",
       "no-console": ["warn", { allow: ["warn", "error"] }],
+    },
+  },
+  {
+    files: ["scripts/**/*.ts"],
+    rules: {
+      "no-console": "off",
     },
   },
 ];
