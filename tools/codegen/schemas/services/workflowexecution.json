@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Create and trigger a new workflow execution.\n\n This RPC creates a WorkflowExecution resource and immediately triggers it for execution.\n The workflow execution engine picks up the execution and begins processing tasks.\n\n @internal\n Input Validation:\n - metadata.org must be specified\n - spec.workflow_instance_id is required and must reference an existing WorkflowInstance\n - api_version must be exactly \"agentic.stigmer.ai/v1\"\n - kind must be exactly \"WorkflowExecution\"\n\n Authorization:\n Custom authorization verifies:\n 1. User has \"execute\" permission on the referenced WorkflowInstance\n 2. User has access to all referenced Environments (from WorkflowInstance)\n 3. User has access to all referenced Secrets (from runtime_env secret_refs)\n\n Execution Flow:\n 1. Validate input (proto validation + business rules)\n 2. Check authorization (user can execute WorkflowInstance)\n 3. Create WorkflowExecution resource in database\n 4. Set initial status.phase = EXECUTION_PENDING\n 5. Trigger workflow in execution engine (Temporal)\n 6. Return WorkflowExecution with status.phase = EXECUTION_PENDING or EXECUTION_IN_PROGRESS\n\n Status After Create:\n - status.phase: EXECUTION_PENDING (or EXECUTION_IN_PROGRESS if already picked up)\n - status.audit.created_at: Current timestamp\n - status.audit.created_by: Authenticated user ID\n - status.started_at: Not set yet (set when phase transitions to IN_PROGRESS)\n\n Use Cases:\n\n 1. API-Triggered Execution:\n - User calls API to execute a workflow\n - Input: WorkflowExecution with spec.workflow_instance_id and spec.trigger_message\n - Output: WorkflowExecution with generated ID and PENDING status\n\n 2. Webhook-Triggered Execution:\n - External system (Stripe, GitHub, etc.) sends webhook\n - Webhook handler creates WorkflowExecution with webhook payload in spec.trigger_message\n - spec.trigger_metadata captures webhook source, event type, timestamp\n\n 3. Scheduled Execution:\n - Scheduler service creates WorkflowExecution at scheduled time\n - spec.trigger_metadata includes schedule ID and cron expression\n\n 4. UI-Triggered Execution:\n - User clicks \"Execute\" button in web console\n - UI creates WorkflowExecution with user-provided inputs\n\n 5. Workflow Chaining (Workflow A triggers Workflow B):\n - Workflow A completes, creates WorkflowExecution for Workflow B\n - spec.trigger_message contains output from Workflow A\n - spec.trigger_metadata includes parent workflow execution ID\n\n Error Cases:\n\n - INVALID_ARGUMENT:\n   - workflow_instance_id is missing or invalid\n   - org is missing\n   - api_version or kind is incorrect\n\n - PERMISSION_DENIED:\n   - User doesn't have \"execute\" permission on WorkflowInstance\n   - User doesn't have access to referenced Environments\n   - User doesn't have access to referenced Secrets\n\n - NOT_FOUND:\n   - Referenced WorkflowInstance doesn't exist\n   - Referenced Environment doesn't exist\n   - Referenced Secret doesn't exist\n\n - FAILED_PRECONDITION:\n   - WorkflowInstance is in invalid state (e.g., archived, disabled)\n   - Too many concurrent executions (quota exceeded)\n\n Example Request:\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": {\n     \"name\": \"customer-onboarding-20250111-143022\",\n     \"org\": \"acme\"\n   },\n   \"spec\": {\n     \"workflow_instance_id\": \"wfi-customer-onboarding-prod\",\n     \"trigger_message\": \"New signup: john.doe@example.com\",\n     \"trigger_metadata\": {\n       \"source\": \"api\",\n       \"caller_id\": \"usr-jane-admin\",\n       \"timestamp\": \"2025-01-11T14:30:22Z\"\n     },\n     \"runtime_env\": {\n       \"CUSTOMER_EMAIL\": { \"value\": \"john.doe@example.com\" }\n     }\n   }\n }\n\n Example Response:\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": {\n     \"id\": \"wfx-abc123xyz456\",  // Auto-generated\n     \"name\": \"customer-onboarding-20250111-143022\",\n     \"org\": \"acme\"\n   },\n   \"spec\": { ... },  // Same as request\n   \"status\": {\n     \"phase\": 1,  // EXECUTION_PENDING\n     \"audit\": {\n       \"created_at\": \"2025-01-11T14:30:22Z\",\n       \"created_by\": \"usr-jane-admin\"\n     }\n   }\n }"
+          "description": "Create and trigger a new workflow execution.\n\n This RPC creates a WorkflowExecution resource and immediately triggers it for execution.\n The workflow execution engine picks up the execution and begins processing tasks.\n\n @internal\n Input Validation:\n - metadata.org must be specified\n - spec.workflow_instance_id is required and must reference an existing WorkflowInstance\n - api_version must be exactly \"agentic.stigmer.ai/v1\"\n - kind must be exactly \"WorkflowExecution\"\n\n Authorization:\n Custom authorization verifies:\n 1. User has \"execute\" permission on the referenced WorkflowInstance\n 2. User has access to all referenced Environments (from WorkflowInstance)\n 3. User has access to all referenced Secrets (from runtime_env secret_refs)\n\n Execution Flow:\n 1. Validate input (proto validation + business rules)\n 2. Check authorization (user can execute WorkflowInstance)\n 3. Create WorkflowExecution resource in database\n 4. Set initial status.phase = EXECUTION_PENDING\n 5. Trigger workflow in execution engine (Temporal)\n 6. Return WorkflowExecution with status.phase = EXECUTION_PENDING or EXECUTION_IN_PROGRESS\n\n Status After Create:\n - status.phase: EXECUTION_PENDING (or EXECUTION_IN_PROGRESS if already picked up)\n - status.audit.created_at: Current timestamp\n - status.audit.created_by: Authenticated user ID\n - status.started_at: Not set yet (set when phase transitions to IN_PROGRESS)\n\n Use Cases:\n\n 1. API-Triggered Execution:\n - User calls API to execute a workflow\n - Input: WorkflowExecution with spec.workflow_instance_id and spec.trigger_message\n - Output: WorkflowExecution with generated ID and PENDING status\n\n 2. Webhook-Triggered Execution:\n - External system (Stripe, GitHub, etc.) sends webhook\n - Webhook handler creates WorkflowExecution with webhook payload in spec.trigger_message\n - spec.trigger_metadata captures webhook source, event type, timestamp\n\n 3. Scheduled Execution:\n - Scheduler service creates WorkflowExecution at scheduled time\n - spec.trigger_metadata includes schedule ID and cron expression\n\n 4. UI-Triggered Execution:\n - User clicks \"Execute\" button in web console\n - UI creates WorkflowExecution with user-provided inputs\n\n 5. Workflow Chaining (Workflow A triggers Workflow B):\n - Workflow A completes, creates WorkflowExecution for Workflow B\n - spec.trigger_message contains output from Workflow A\n - spec.trigger_metadata includes parent workflow execution ID\n\n Error Cases:\n\n - INVALID_ARGUMENT:\n   - workflow_instance_id is missing or invalid\n   - org is missing\n   - api_version or kind is incorrect\n\n - PERMISSION_DENIED:\n   - User doesn't have \"execute\" permission on WorkflowInstance\n   - User doesn't have access to referenced Environments\n   - User doesn't have access to referenced Secrets\n\n - NOT_FOUND:\n   - Referenced WorkflowInstance doesn't exist\n   - Referenced Environment doesn't exist\n   - Referenced Secret doesn't exist\n\n - FAILED_PRECONDITION:\n   - WorkflowInstance is in invalid state (e.g., archived, disabled)\n   - Too many concurrent executions (quota exceeded)\n\n Example Request:\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": {\n     \"name\": \"customer-onboarding-20250111-143022\",\n     \"org\": \"acme\"\n   },\n   \"spec\": {\n     \"workflow_instance_id\": \"wfi_customer-onboarding-prod\",\n     \"trigger_message\": \"New signup: john.doe@example.com\",\n     \"trigger_metadata\": {\n       \"source\": \"api\",\n       \"caller_id\": \"usr-jane-admin\",\n       \"timestamp\": \"2025-01-11T14:30:22Z\"\n     },\n     \"runtime_env\": {\n       \"CUSTOMER_EMAIL\": { \"value\": \"john.doe@example.com\" }\n     }\n   }\n }\n\n Example Response:\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": {\n     \"id\": \"wfx_abc123xyz456\",  // Auto-generated\n     \"name\": \"customer-onboarding-20250111-143022\",\n     \"org\": \"acme\"\n   },\n   \"spec\": { ... },  // Same as request\n   \"status\": {\n     \"phase\": 1,  // EXECUTION_PENDING\n     \"audit\": {\n       \"created_at\": \"2025-01-11T14:30:22Z\",\n       \"created_by\": \"usr-jane-admin\"\n     }\n   }\n }"
         },
         {
           "name": "Update",
@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Update execution status during workflow execution.\n\n @internal\n System-level RPC used by workflow-runner to send progressive status updates\n (messages, task states, phase, etc.). Optimized for frequent status updates\n and merges status fields with existing state.\n\n This RPC is used by the workflow execution engine (Temporal) to update the status\n of a running workflow execution. Users cannot call this RPC directly.\n\n What Can Be Updated:\n - status.phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)\n - status.tasks (update task statuses, outputs, errors)\n - status.output (set final workflow output when COMPLETED)\n - status.error (set error message when FAILED)\n - status.started_at (set when execution starts)\n - status.completed_at (set when execution finishes)\n\n What Cannot Be Updated:\n - spec.* (user inputs are immutable after creation)\n - metadata.id (resource ID is immutable)\n - status.audit.created_at (creation timestamp is immutable)\n\n Authorization:\n Custom authorization verifies:\n 1. Caller is the workflow runner service (system identity, not a user)\n 2. Only status fields are being modified (spec and metadata unchanged)\n\n Update Flow:\n 1. Workflow runner executes a task\n 2. Task completes/fails\n 3. Workflow runner calls updateStatus() with:\n    - Updated status.tasks (new task status, output/error)\n    - Updated status.phase (if all tasks done)\n 4. Backend validates and persists update\n 5. Backend broadcasts update via WebSocket (for real-time UI updates)\n\n Use Cases:\n\n 1. Task Started:\n - Workflow runner updates status.tasks[i].status = IN_PROGRESS\n\n 2. Task Completed:\n - Workflow runner updates status.tasks[i].status = COMPLETED\n - Workflow runner sets status.tasks[i].output\n\n 3. Task Failed:\n - Workflow runner updates status.tasks[i].status = FAILED\n - Workflow runner sets status.tasks[i].error\n - Workflow runner updates status.phase = EXECUTION_FAILED\n - Workflow runner sets status.error\n - Workflow runner sets status.completed_at\n\n 4. Workflow Completed:\n - Workflow runner updates status.phase = EXECUTION_COMPLETED\n - Workflow runner sets status.output\n - Workflow runner sets status.completed_at\n\n 5. Workflow Cancelled:\n - Workflow runner receives cancellation signal\n - Workflow runner updates status.phase = EXECUTION_CANCELLED\n - Workflow runner sets status.completed_at\n\n Error Cases:\n\n - PERMISSION_DENIED:\n   - Caller is not the workflow runner service (users cannot update status)\n\n - INVALID_ARGUMENT:\n   - Trying to modify spec or metadata (only status can be updated)\n   - Invalid phase transition (e.g., COMPLETED → IN_PROGRESS)\n\n - NOT_FOUND:\n   - WorkflowExecution with given ID doesn't exist\n\n Example Request (Task Completed):\n {\n   \"metadata\": {\n     \"id\": \"wfx-abc123xyz456\"\n   },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"completed_tasks\": 1,\n     \"tasks\": [\n       {\n         \"task_id\": \"task-1\",\n         \"task_name\": \"validate_email\",\n         \"status\": 3,  // WORKFLOW_TASK_COMPLETED\n         \"output\": { \"valid\": true },\n         \"completed_at\": \"2025-01-11T14:30:27Z\"\n       },\n       {\n         \"task_id\": \"task-2\",\n         \"task_name\": \"create_account\",\n         \"status\": 2,  // WORKFLOW_TASK_IN_PROGRESS\n         \"timestamp\": \"2025-01-11T14:30:27Z\"\n       }\n     ]\n   }\n }"
+          "description": "Update execution status during workflow execution.\n\n @internal\n System-level RPC used by workflow-runner to send progressive status updates\n (messages, task states, phase, etc.). Optimized for frequent status updates\n and merges status fields with existing state.\n\n This RPC is used by the workflow execution engine (Temporal) to update the status\n of a running workflow execution. Users cannot call this RPC directly.\n\n What Can Be Updated:\n - status.phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)\n - status.tasks (update task statuses, outputs, errors)\n - status.output (set final workflow output when COMPLETED)\n - status.error (set error message when FAILED)\n - status.started_at (set when execution starts)\n - status.completed_at (set when execution finishes)\n\n What Cannot Be Updated:\n - spec.* (user inputs are immutable after creation)\n - metadata.id (resource ID is immutable)\n - status.audit.created_at (creation timestamp is immutable)\n\n Authorization:\n Custom authorization verifies:\n 1. Caller is the workflow runner service (system identity, not a user)\n 2. Only status fields are being modified (spec and metadata unchanged)\n\n Update Flow:\n 1. Workflow runner executes a task\n 2. Task completes/fails\n 3. Workflow runner calls updateStatus() with:\n    - Updated status.tasks (new task status, output/error)\n    - Updated status.phase (if all tasks done)\n 4. Backend validates and persists update\n 5. Backend broadcasts update via WebSocket (for real-time UI updates)\n\n Use Cases:\n\n 1. Task Started:\n - Workflow runner updates status.tasks[i].status = IN_PROGRESS\n\n 2. Task Completed:\n - Workflow runner updates status.tasks[i].status = COMPLETED\n - Workflow runner sets status.tasks[i].output\n\n 3. Task Failed:\n - Workflow runner updates status.tasks[i].status = FAILED\n - Workflow runner sets status.tasks[i].error\n - Workflow runner updates status.phase = EXECUTION_FAILED\n - Workflow runner sets status.error\n - Workflow runner sets status.completed_at\n\n 4. Workflow Completed:\n - Workflow runner updates status.phase = EXECUTION_COMPLETED\n - Workflow runner sets status.output\n - Workflow runner sets status.completed_at\n\n 5. Workflow Cancelled:\n - Workflow runner receives cancellation signal\n - Workflow runner updates status.phase = EXECUTION_CANCELLED\n - Workflow runner sets status.completed_at\n\n Error Cases:\n\n - PERMISSION_DENIED:\n   - Caller is not the workflow runner service (users cannot update status)\n\n - INVALID_ARGUMENT:\n   - Trying to modify spec or metadata (only status can be updated)\n   - Invalid phase transition (e.g., COMPLETED → IN_PROGRESS)\n\n - NOT_FOUND:\n   - WorkflowExecution with given ID doesn't exist\n\n Example Request (Task Completed):\n {\n   \"metadata\": {\n     \"id\": \"wfx_abc123xyz456\"\n   },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"completed_tasks\": 1,\n     \"tasks\": [\n       {\n         \"task_id\": \"task-1\",\n         \"task_name\": \"validate_email\",\n         \"status\": 3,  // WORKFLOW_TASK_COMPLETED\n         \"output\": { \"valid\": true },\n         \"completed_at\": \"2025-01-11T14:30:27Z\"\n       },\n       {\n         \"task_id\": \"task-2\",\n         \"task_name\": \"create_account\",\n         \"status\": 2,  // WORKFLOW_TASK_IN_PROGRESS\n         \"timestamp\": \"2025-01-11T14:30:27Z\"\n       }\n     ]\n   }\n }"
         },
         {
           "name": "SubmitApproval",
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.SendSignalInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Send a signal to a running workflow execution.\n\n Delivers a signal to a workflow execution, typically to unblock a LISTEN task.\n Delivery is race-proof: the signal is guaranteed to arrive even if sent\n before the workflow is fully started.\n\n @internal\n Uses Temporal's SignalWithStart API internally for race-proof delivery.\n\n ## Behavior\n\n 1. Validates execution exists and is in a signalable phase\n 2. Uses Temporal SignalWithStart for atomic delivery:\n    - If workflow exists → sends signal immediately\n    - If workflow not started yet → starts workflow, then sends signal\n 3. Signal is delivered to workflow's signal channel\n 4. LISTEN task waiting for this signal will unblock and continue\n 5. Returns the current WorkflowExecution state\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n - User must have can_edit permission on the workflow execution\n\n ## Race-Proof Delivery (SignalWithStart)\n\n This RPC uses Temporal's SignalWithStart API to handle the race condition\n where a signal might arrive before the workflow is fully started:\n - Traditional SignalWorkflow fails with \"WorkflowNotFound\" if called too early\n - SignalWithStart atomically: starts workflow if needed, then sends signal\n - Guarantees signal delivery even in race conditions\n\n ## Signal Matching\n\n The signal_name must match the signal ID defined in the workflow's LISTEN task:\n\n Workflow YAML:\n   - waitForPayment:\n       listen:\n         to:\n           one:\n             with:\n               id: payment_confirmed  # \u003c-- signal_name must match this\n               type: signal\n\n API Call:\n   { \"signal_name\": \"payment_confirmed\", \"payload\": {...} }\n\n ## Error Cases\n\n - NOT_FOUND: Workflow execution doesn't exist\n - PERMISSION_DENIED: User doesn't have can_edit permission\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: execution_id or signal_name is empty\n\n ## Example Request\n\n {\n   \"execution_id\": \"wfx-abc123xyz456\",\n   \"signal_name\": \"payment_confirmed\",\n   \"payload\": {\n     \"transaction_id\": \"txn_123\",\n     \"amount\": 99.99,\n     \"currency\": \"USD\"\n   }\n }\n\n ## Example Response\n\n Returns the current WorkflowExecution state (phase may still be IN_PROGRESS\n as the workflow continues after receiving the signal).\n\n @since Gap B1 (Signal-With-Start for race-proof event delivery)"
+          "description": "Send a signal to a running workflow execution.\n\n Delivers a signal to a workflow execution, typically to unblock a LISTEN task.\n Delivery is race-proof: the signal is guaranteed to arrive even if sent\n before the workflow is fully started.\n\n @internal\n Uses Temporal's SignalWithStart API internally for race-proof delivery.\n\n ## Behavior\n\n 1. Validates execution exists and is in a signalable phase\n 2. Uses Temporal SignalWithStart for atomic delivery:\n    - If workflow exists → sends signal immediately\n    - If workflow not started yet → starts workflow, then sends signal\n 3. Signal is delivered to workflow's signal channel\n 4. LISTEN task waiting for this signal will unblock and continue\n 5. Returns the current WorkflowExecution state\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n - User must have can_edit permission on the workflow execution\n\n ## Race-Proof Delivery (SignalWithStart)\n\n This RPC uses Temporal's SignalWithStart API to handle the race condition\n where a signal might arrive before the workflow is fully started:\n - Traditional SignalWorkflow fails with \"WorkflowNotFound\" if called too early\n - SignalWithStart atomically: starts workflow if needed, then sends signal\n - Guarantees signal delivery even in race conditions\n\n ## Signal Matching\n\n The signal_name must match the signal ID defined in the workflow's LISTEN task:\n\n Workflow YAML:\n   - waitForPayment:\n       listen:\n         to:\n           one:\n             with:\n               id: payment_confirmed  # \u003c-- signal_name must match this\n               type: signal\n\n API Call:\n   { \"signal_name\": \"payment_confirmed\", \"payload\": {...} }\n\n ## Error Cases\n\n - NOT_FOUND: Workflow execution doesn't exist\n - PERMISSION_DENIED: User doesn't have can_edit permission\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: execution_id or signal_name is empty\n\n ## Example Request\n\n {\n   \"execution_id\": \"wfx_abc123xyz456\",\n   \"signal_name\": \"payment_confirmed\",\n   \"payload\": {\n     \"transaction_id\": \"txn_123\",\n     \"amount\": 99.99,\n     \"currency\": \"USD\"\n   }\n }\n\n ## Example Response\n\n Returns the current WorkflowExecution state (phase may still be IN_PROGRESS\n as the workflow continues after receiving the signal).\n\n @since Gap B1 (Signal-With-Start for race-proof event delivery)"
         },
         {
           "name": "Cancel",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Cancel a running workflow execution gracefully.\n\n Sends a cancellation signal to the workflow. The workflow code can handle\n the cancellation signal to perform cleanup (e.g., compensation logic,\n resource cleanup, notifications) before transitioning to the CANCELLED phase.\n\n @internal\n Temporal Equivalent: `temporal workflow cancel --workflow-id \u003cid\u003e`\n\n ## Behavior\n\n 1. Validates execution exists and is in a cancellable phase\n 2. Sends cancellation signal to Temporal workflow\n 3. Workflow code receives the signal and can perform cleanup\n 4. Execution transitions to EXECUTION_CANCELLED phase\n 5. Returns updated WorkflowExecution with new phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → CANCELLED\n - status.completed_at: Set to current timestamp\n - In-progress tasks: May complete cleanup or be interrupted\n\n ## Idempotency\n\n Cancelling an already-cancelled execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n This ensures safe retry of cancel requests.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx-abc123xyz456\",\n   \"reason\": \"Customer requested cancellation - order no longer needed\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 5,  // EXECUTION_CANCELLED\n     \"completed_at\": \"2026-02-07T18:30:00Z\"\n   }\n }"
+          "description": "Cancel a running workflow execution gracefully.\n\n Sends a cancellation signal to the workflow. The workflow code can handle\n the cancellation signal to perform cleanup (e.g., compensation logic,\n resource cleanup, notifications) before transitioning to the CANCELLED phase.\n\n @internal\n Temporal Equivalent: `temporal workflow cancel --workflow-id \u003cid\u003e`\n\n ## Behavior\n\n 1. Validates execution exists and is in a cancellable phase\n 2. Sends cancellation signal to Temporal workflow\n 3. Workflow code receives the signal and can perform cleanup\n 4. Execution transitions to EXECUTION_CANCELLED phase\n 5. Returns updated WorkflowExecution with new phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → CANCELLED\n - status.completed_at: Set to current timestamp\n - In-progress tasks: May complete cleanup or be interrupted\n\n ## Idempotency\n\n Cancelling an already-cancelled execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n This ensures safe retry of cancel requests.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Customer requested cancellation - order no longer needed\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 5,  // EXECUTION_CANCELLED\n     \"completed_at\": \"2026-02-07T18:30:00Z\"\n   }\n }"
         },
         {
           "name": "Terminate",
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Terminate a workflow execution immediately.\n\n Force-stops the workflow without allowing cleanup. Unlike cancel,\n the workflow code cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive workflows that don't respond to cancellation.\n\n @internal\n Temporal Equivalent: `temporal workflow terminate --workflow-id \u003cid\u003e`\n\n ## Behavior\n\n 1. Validates execution exists and is in a terminable phase\n 2. Force-kills workflow via Temporal (no signal sent to workflow)\n 3. Execution transitions to EXECUTION_TERMINATED phase immediately\n 4. No cleanup callbacks or defer blocks are executed\n 5. Returns updated WorkflowExecution with TERMINATED phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot terminate already-terminal executions\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → TERMINATED\n - status.completed_at: Set to current timestamp\n - status.error: May contain termination reason\n - In-progress tasks: Stopped abruptly (no cleanup)\n\n ## Terminated vs Cancelled\n\n | Aspect | cancel | terminate |\n |--------|--------|-----------|\n | Signal to workflow | Yes (can handle) | No |\n | Cleanup opportunity | Yes | No |\n | Use case | Normal stop | Stuck workflows |\n | Can recover? | No | No |\n\n ## Idempotency\n\n Terminating an already-terminated execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx-abc123xyz456\",\n   \"reason\": \"Workflow stuck for 2 hours, not responding to cancel\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 6,  // EXECUTION_TERMINATED\n     \"completed_at\": \"2026-02-07T18:35:00Z\",\n     \"error\": \"Terminated by operator: Workflow stuck for 2 hours\"\n   }\n }"
+          "description": "Terminate a workflow execution immediately.\n\n Force-stops the workflow without allowing cleanup. Unlike cancel,\n the workflow code cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive workflows that don't respond to cancellation.\n\n @internal\n Temporal Equivalent: `temporal workflow terminate --workflow-id \u003cid\u003e`\n\n ## Behavior\n\n 1. Validates execution exists and is in a terminable phase\n 2. Force-kills workflow via Temporal (no signal sent to workflow)\n 3. Execution transitions to EXECUTION_TERMINATED phase immediately\n 4. No cleanup callbacks or defer blocks are executed\n 5. Returns updated WorkflowExecution with TERMINATED phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot terminate already-terminal executions\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → TERMINATED\n - status.completed_at: Set to current timestamp\n - status.error: May contain termination reason\n - In-progress tasks: Stopped abruptly (no cleanup)\n\n ## Terminated vs Cancelled\n\n | Aspect | cancel | terminate |\n |--------|--------|-----------|\n | Signal to workflow | Yes (can handle) | No |\n | Cleanup opportunity | Yes | No |\n | Use case | Normal stop | Stuck workflows |\n | Can recover? | No | No |\n\n ## Idempotency\n\n Terminating an already-terminated execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Workflow stuck for 2 hours, not responding to cancel\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 6,  // EXECUTION_TERMINATED\n     \"completed_at\": \"2026-02-07T18:35:00Z\",\n     \"error\": \"Terminated by operator: Workflow stuck for 2 hours\"\n   }\n }"
         },
         {
           "name": "Recover",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Recover a failed workflow execution from the last checkpoint.\n\n Resumes execution from the last successful point. Completed work is\n preserved - successful tasks are NOT re-executed. This enables\n \"retry and resume\" semantics without duplicating side effects.\n\n @internal\n Temporal Equivalent: `temporal workflow reset --workflow-id \u003cid\u003e --type LastWorkflowTask`\n\n ## Behavior\n\n 1. Validates execution is in FAILED phase (recoverable)\n 2. Identifies the last successful checkpoint in workflow history\n 3. Creates new Temporal run from that checkpoint via ResetWorkflow\n 4. Execution transitions from FAILED to IN_PROGRESS phase\n 5. Workflow continues from where it failed\n 6. Returns updated WorkflowExecution with IN_PROGRESS phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (intentional hard stop)\n - CANCELLED executions cannot be recovered (intentional user action)\n - COMPLETED executions don't need recovery\n\n ## State Transitions\n\n - status.phase: FAILED → IN_PROGRESS\n - status.completed_at: Cleared (execution is running again)\n - status.error: Cleared (no longer failed)\n - Completed tasks: Preserved (not re-executed)\n - Failed tasks: Reset to pending, will be retried\n\n ## Recovery vs Restart\n\n | Aspect | recover | Create new execution |\n |--------|---------|----------------------|\n | Completed work | Preserved | Lost (re-executed) |\n | Side effects | Not duplicated | May duplicate |\n | Execution ID | Same | New ID |\n | Use case | Resume after fix | Start fresh |\n\n ## Idempotency\n\n If recovery already succeeded (execution is now IN_PROGRESS from a\n previous recover call), the call succeeds as a no-op and returns\n the current execution state.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION:\n   - Execution is not in FAILED phase\n   - Execution is TERMINATED (cannot recover)\n   - Execution is CANCELLED (cannot recover)\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx-abc123xyz456\",\n   \"reason\": \"Stripe API recovered, resuming payment processing\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2026-02-07T10:00:00Z\",\n     \"tasks\": [\n       { \"task_id\": \"task-1\", \"status\": 3 },  // COMPLETED (preserved)\n       { \"task_id\": \"task-2\", \"status\": 2 }   // IN_PROGRESS (resumed)\n     ]\n   }\n }"
+          "description": "Recover a failed workflow execution from the last checkpoint.\n\n Resumes execution from the last successful point. Completed work is\n preserved - successful tasks are NOT re-executed. This enables\n \"retry and resume\" semantics without duplicating side effects.\n\n @internal\n Temporal Equivalent: `temporal workflow reset --workflow-id \u003cid\u003e --type LastWorkflowTask`\n\n ## Behavior\n\n 1. Validates execution is in FAILED phase (recoverable)\n 2. Identifies the last successful checkpoint in workflow history\n 3. Creates new Temporal run from that checkpoint via ResetWorkflow\n 4. Execution transitions from FAILED to IN_PROGRESS phase\n 5. Workflow continues from where it failed\n 6. Returns updated WorkflowExecution with IN_PROGRESS phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (intentional hard stop)\n - CANCELLED executions cannot be recovered (intentional user action)\n - COMPLETED executions don't need recovery\n\n ## State Transitions\n\n - status.phase: FAILED → IN_PROGRESS\n - status.completed_at: Cleared (execution is running again)\n - status.error: Cleared (no longer failed)\n - Completed tasks: Preserved (not re-executed)\n - Failed tasks: Reset to pending, will be retried\n\n ## Recovery vs Restart\n\n | Aspect | recover | Create new execution |\n |--------|---------|----------------------|\n | Completed work | Preserved | Lost (re-executed) |\n | Side effects | Not duplicated | May duplicate |\n | Execution ID | Same | New ID |\n | Use case | Resume after fix | Start fresh |\n\n ## Idempotency\n\n If recovery already succeeded (execution is now IN_PROGRESS from a\n previous recover call), the call succeeds as a no-op and returns\n the current execution state.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION:\n   - Execution is not in FAILED phase\n   - Execution is TERMINATED (cannot recover)\n   - Execution is CANCELLED (cannot recover)\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Stripe API recovered, resuming payment processing\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2026-02-07T10:00:00Z\",\n     \"tasks\": [\n       { \"task_id\": \"task-1\", \"status\": 3 },  // COMPLETED (preserved)\n       { \"task_id\": \"task-2\", \"status\": 2 }   // IN_PROGRESS (resumed)\n     ]\n   }\n }"
         },
         {
           "name": "Pause",
@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Pause a running workflow execution.\n\n Temporarily stops the workflow at its current checkpoint. Unlike cancel,\n the execution is NOT terminal and can be resumed later from where it left off.\n The workflow gracefully checkpoints and exits, preserving all progress.\n\n @internal\n\n ## Behavior\n\n 1. Validates execution exists and is in a pausable phase\n 2. Sends \"pause\" signal to Temporal workflow\n 3. Workflow receives signal and sets pauseRequested flag\n 4. Running activities are gracefully cancelled (checkpoints saved)\n 5. Execution transitions to EXECUTION_PAUSED phase\n 6. Workflow waits for resume signal (no resources consumed)\n 7. Returns updated WorkflowExecution with PAUSED phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → PAUSED\n - status.completed_at: NOT set (execution is not finished)\n - Running activities: Gracefully cancelled, checkpoint saved\n - LangGraph state: Preserved via thread_id checkpoint\n\n ## Paused vs Cancelled\n\n | Aspect | pause | cancel |\n |--------|-------|--------|\n | Terminal state? | No | Yes |\n | Can resume? | Yes (via resume RPC) | No |\n | Checkpoint saved? | Yes | Best-effort |\n | Progress preserved? | Yes | No |\n | Use case | Temporary stop, maintenance | Permanent stop |\n\n ## Agent Activity Behavior\n\n When pause is signaled to a workflow running an agent:\n 1. Workflow cancels the running activity gracefully\n 2. Python activity catches CancelledError\n 3. LangGraph saves final checkpoint automatically\n 4. Activity returns with paused status\n 5. On resume, activity loads from checkpoint and continues\n\n ## Idempotency\n\n Pausing an already-paused execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx-abc123xyz456\",\n   \"reason\": \"Pausing for scheduled maintenance window\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 7,  // EXECUTION_PAUSED\n     \"started_at\": \"2026-02-07T10:00:00Z\"\n     // Note: completed_at is NOT set (execution can be resumed)\n   }\n }\n\n @since Gap A3 (Pause/Resume Propagation)"
+          "description": "Pause a running workflow execution.\n\n Temporarily stops the workflow at its current checkpoint. Unlike cancel,\n the execution is NOT terminal and can be resumed later from where it left off.\n The workflow gracefully checkpoints and exits, preserving all progress.\n\n @internal\n\n ## Behavior\n\n 1. Validates execution exists and is in a pausable phase\n 2. Sends \"pause\" signal to Temporal workflow\n 3. Workflow receives signal and sets pauseRequested flag\n 4. Running activities are gracefully cancelled (checkpoints saved)\n 5. Execution transitions to EXECUTION_PAUSED phase\n 6. Workflow waits for resume signal (no resources consumed)\n 7. Returns updated WorkflowExecution with PAUSED phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → PAUSED\n - status.completed_at: NOT set (execution is not finished)\n - Running activities: Gracefully cancelled, checkpoint saved\n - LangGraph state: Preserved via thread_id checkpoint\n\n ## Paused vs Cancelled\n\n | Aspect | pause | cancel |\n |--------|-------|--------|\n | Terminal state? | No | Yes |\n | Can resume? | Yes (via resume RPC) | No |\n | Checkpoint saved? | Yes | Best-effort |\n | Progress preserved? | Yes | No |\n | Use case | Temporary stop, maintenance | Permanent stop |\n\n ## Agent Activity Behavior\n\n When pause is signaled to a workflow running an agent:\n 1. Workflow cancels the running activity gracefully\n 2. Python activity catches CancelledError\n 3. LangGraph saves final checkpoint automatically\n 4. Activity returns with paused status\n 5. On resume, activity loads from checkpoint and continues\n\n ## Idempotency\n\n Pausing an already-paused execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Pausing for scheduled maintenance window\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 7,  // EXECUTION_PAUSED\n     \"started_at\": \"2026-02-07T10:00:00Z\"\n     // Note: completed_at is NOT set (execution can be resumed)\n   }\n }\n\n @since Gap A3 (Pause/Resume Propagation)"
         },
         {
           "name": "Resume",
@@ -93,7 +93,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Resume a paused workflow execution.\n\n Continues execution from the checkpoint where it was paused. The workflow\n re-invokes activities with the same thread_id, which loads from checkpoint\n and continues from where it left off.\n\n @internal\n\n ## Behavior\n\n 1. Validates execution is in EXECUTION_PAUSED phase\n 2. Sends \"resume\" signal to Temporal workflow\n 3. Workflow receives signal and sets resumeSignalReceived flag\n 4. Workflow re-invokes activity with same execution context\n 5. Activity detects resume and loads from LangGraph checkpoint\n 6. Execution transitions back to EXECUTION_IN_PROGRESS phase\n 7. Returns updated WorkflowExecution with IN_PROGRESS phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PAUSED phase\n - Cannot resume non-paused executions\n\n ## State Transitions\n\n - status.phase: PAUSED → IN_PROGRESS\n - Activities: Re-invoked, load from checkpoint\n - LangGraph state: Loaded from checkpoint via thread_id\n\n ## Resume Behavior\n\n When resume is signaled to a paused workflow:\n 1. Java workflow unblocks from Workflow.await()\n 2. Workflow re-invokes the activity with same parameters\n 3. Python activity reads thread_id from heartbeat_details\n 4. LangGraph loads checkpoint using thread_id\n 5. Agent continues from exact position where it was paused\n\n ## Idempotency\n\n Resuming an already-running execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is not in PAUSED phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx-abc123xyz456\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2026-02-07T10:00:00Z\"\n   }\n }\n\n @since Gap A3 (Pause/Resume Propagation)"
+          "description": "Resume a paused workflow execution.\n\n Continues execution from the checkpoint where it was paused. The workflow\n re-invokes activities with the same thread_id, which loads from checkpoint\n and continues from where it left off.\n\n @internal\n\n ## Behavior\n\n 1. Validates execution is in EXECUTION_PAUSED phase\n 2. Sends \"resume\" signal to Temporal workflow\n 3. Workflow receives signal and sets resumeSignalReceived flag\n 4. Workflow re-invokes activity with same execution context\n 5. Activity detects resume and loads from LangGraph checkpoint\n 6. Execution transitions back to EXECUTION_IN_PROGRESS phase\n 7. Returns updated WorkflowExecution with IN_PROGRESS phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PAUSED phase\n - Cannot resume non-paused executions\n\n ## State Transitions\n\n - status.phase: PAUSED → IN_PROGRESS\n - Activities: Re-invoked, load from checkpoint\n - LangGraph state: Loaded from checkpoint via thread_id\n\n ## Resume Behavior\n\n When resume is signaled to a paused workflow:\n 1. Java workflow unblocks from Workflow.await()\n 2. Workflow re-invokes the activity with same parameters\n 3. Python activity reads thread_id from heartbeat_details\n 4. LangGraph loads checkpoint using thread_id\n 5. Agent continues from exact position where it was paused\n\n ## Idempotency\n\n Resuming an already-running execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is not in PAUSED phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n ## Example Request\n\n {\n   \"id\": \"wfx_abc123xyz456\"\n }\n\n ## Example Response\n\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2026-02-07T10:00:00Z\"\n   }\n }\n\n @since Gap A3 (Pause/Resume Propagation)"
         }
       ]
     },
@@ -107,7 +107,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId",
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-          "description": "Get a single workflow execution by ID.\n\n Retrieves the complete WorkflowExecution resource including:\n - spec: User inputs (workflow_instance_id, trigger_message, etc.)\n - status: Current execution state (phase, tasks, progress_events, output/error)\n - metadata: Resource identification (id, name, labels, tags)\n\n @internal\n Authorization:\n Standard authorization checks that user has \"get\" permission on the WorkflowExecution.\n Permission is granted if:\n - User created the execution (metadata.audit.created_by matches user)\n - User has organization-level \"workflow_execution:get\" permission\n - User has explicit permission via IamPolicy\n\n Use Cases:\n\n 1. View Execution Details:\n - User clicks on an execution in the UI\n - UI calls get() to fetch full details\n - UI displays execution status, tasks, progress, output/error\n\n 2. Poll for Completion:\n - Client triggers execution via create()\n - Client periodically calls get() to check if phase is terminal\n - Client retrieves output when phase == EXECUTION_COMPLETED\n\n 3. Debug Failed Execution:\n - User sees execution failed\n - User calls get() to inspect status.error and status.tasks\n - User checks status.tasks[] for task-level execution details\n\n 4. Retry Failed Execution:\n - User calls get() to retrieve failed execution's spec\n - User creates new execution with same spec values\n - New execution retries with identical inputs\n\n Error Cases:\n\n - NOT_FOUND:\n   - No WorkflowExecution exists with the given ID\n\n - PERMISSION_DENIED:\n   - User doesn't have \"get\" permission on this WorkflowExecution\n   - WorkflowExecution belongs to different organization\n\n Example Request:\n {\n   \"value\": \"wfx-abc123xyz456\"\n }\n\n Example Response:\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": {\n     \"id\": \"wfx-abc123xyz456\",\n     \"name\": \"customer-onboarding-20250111-143022\",\n     \"org\": \"acme\"\n   },\n   \"spec\": {\n     \"workflow_instance_id\": \"wfi-customer-onboarding-prod\",\n     \"trigger_message\": \"New signup: john.doe@example.com\"\n   },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"total_tasks\": 3,\n     \"completed_tasks\": 1,\n     \"tasks\": [ ... ],\n     \"started_at\": \"2025-01-11T14:30:22Z\"\n   }\n }"
+          "description": "Get a single workflow execution by ID.\n\n Retrieves the complete WorkflowExecution resource including:\n - spec: User inputs (workflow_instance_id, trigger_message, etc.)\n - status: Current execution state (phase, tasks, progress_events, output/error)\n - metadata: Resource identification (id, name, labels, tags)\n\n @internal\n Authorization:\n Standard authorization checks that user has \"get\" permission on the WorkflowExecution.\n Permission is granted if:\n - User created the execution (metadata.audit.created_by matches user)\n - User has organization-level \"workflow_execution:get\" permission\n - User has explicit permission via IamPolicy\n\n Use Cases:\n\n 1. View Execution Details:\n - User clicks on an execution in the UI\n - UI calls get() to fetch full details\n - UI displays execution status, tasks, progress, output/error\n\n 2. Poll for Completion:\n - Client triggers execution via create()\n - Client periodically calls get() to check if phase is terminal\n - Client retrieves output when phase == EXECUTION_COMPLETED\n\n 3. Debug Failed Execution:\n - User sees execution failed\n - User calls get() to inspect status.error and status.tasks\n - User checks status.tasks[] for task-level execution details\n\n 4. Retry Failed Execution:\n - User calls get() to retrieve failed execution's spec\n - User creates new execution with same spec values\n - New execution retries with identical inputs\n\n Error Cases:\n\n - NOT_FOUND:\n   - No WorkflowExecution exists with the given ID\n\n - PERMISSION_DENIED:\n   - User doesn't have \"get\" permission on this WorkflowExecution\n   - WorkflowExecution belongs to different organization\n\n Example Request:\n {\n   \"value\": \"wfx_abc123xyz456\"\n }\n\n Example Response:\n {\n   \"api_version\": \"agentic.stigmer.ai/v1\",\n   \"kind\": \"WorkflowExecution\",\n   \"metadata\": {\n     \"id\": \"wfx_abc123xyz456\",\n     \"name\": \"customer-onboarding-20250111-143022\",\n     \"org\": \"acme\"\n   },\n   \"spec\": {\n     \"workflow_instance_id\": \"wfi_customer-onboarding-prod\",\n     \"trigger_message\": \"New signup: john.doe@example.com\"\n   },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"total_tasks\": 3,\n     \"completed_tasks\": 1,\n     \"tasks\": [ ... ],\n     \"started_at\": \"2025-01-11T14:30:22Z\"\n   }\n }"
         },
         {
           "name": "List",
@@ -115,7 +115,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest",
           "outputType": "WorkflowExecutionList",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList",
-          "description": "List workflow executions with pagination and optional filtering.\n\n Returns a paginated list of WorkflowExecution resources that the user has access to.\n Results are automatically filtered based on user's permissions and owner scope.\n\n @internal\n Authorization:\n Custom authorization filters results to only include executions the user can access:\n - Organization users: Only executions in their organization\n - Users with cross-org access: Public executions from other orgs\n\n Pagination:\n - page_size: Maximum number of results to return (default: 50, max: 100)\n - page_token: Opaque token from previous response for next page\n - Returns total_pages count for UI pagination\n\n Filtering:\n - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)\n - tags: Filter by resource tags (AND logic - must match all tags)\n\n Sorting:\n Results are sorted by created_at descending (newest first).\n\n Use Cases:\n\n 1. Execution History Dashboard:\n - UI displays list of all recent executions\n - User can filter by status (show only failed, show only in-progress)\n - User can page through historical executions\n\n 2. Monitor Active Executions:\n - UI calls list(phase=EXECUTION_IN_PROGRESS) to show running executions\n - UI displays progress for each execution (completed_tasks / total_tasks)\n - UI refreshes list periodically to show updates\n\n 3. Audit and Compliance:\n - Admin lists all executions for a time period\n - Admin filters by tags (environment, team, project)\n - Admin exports execution history for audit logs\n\n 4. Debug and Troubleshooting:\n - Developer lists failed executions (phase=EXECUTION_FAILED)\n - Developer inspects error messages and retry patterns\n - Developer identifies systematic failures\n\n Error Cases:\n\n - INVALID_ARGUMENT:\n   - page_size is negative or exceeds maximum\n   - Invalid page_token (expired, corrupted)\n\n Example Request (Filter for failed executions):\n {\n   \"page_size\": 20,\n   \"phase\": 4,  // EXECUTION_FAILED\n   \"tags\": [\"environment:production\"]\n }\n\n Example Response:\n {\n   \"total_pages\": 3,\n   \"entries\": [\n     {\n       \"metadata\": { \"id\": \"wfx-failed-1\", ... },\n       \"status\": { \"phase\": 4, \"error\": \"Task failed: API timeout\", ... }\n     },\n     {\n       \"metadata\": { \"id\": \"wfx-failed-2\", ... },\n       \"status\": { \"phase\": 4, \"error\": \"Task failed: Rate limit\", ... }\n     }\n   ]\n }"
+          "description": "List workflow executions with pagination and optional filtering.\n\n Returns a paginated list of WorkflowExecution resources that the user has access to.\n Results are automatically filtered based on user's permissions and owner scope.\n\n @internal\n Authorization:\n Custom authorization filters results to only include executions the user can access:\n - Organization users: Only executions in their organization\n - Users with cross-org access: Public executions from other orgs\n\n Pagination:\n - page_size: Maximum number of results to return (default: 50, max: 100)\n - page_token: Opaque token from previous response for next page\n - Returns total_pages count for UI pagination\n\n Filtering:\n - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)\n - tags: Filter by resource tags (AND logic - must match all tags)\n\n Sorting:\n Results are sorted by created_at descending (newest first).\n\n Use Cases:\n\n 1. Execution History Dashboard:\n - UI displays list of all recent executions\n - User can filter by status (show only failed, show only in-progress)\n - User can page through historical executions\n\n 2. Monitor Active Executions:\n - UI calls list(phase=EXECUTION_IN_PROGRESS) to show running executions\n - UI displays progress for each execution (completed_tasks / total_tasks)\n - UI refreshes list periodically to show updates\n\n 3. Audit and Compliance:\n - Admin lists all executions for a time period\n - Admin filters by tags (environment, team, project)\n - Admin exports execution history for audit logs\n\n 4. Debug and Troubleshooting:\n - Developer lists failed executions (phase=EXECUTION_FAILED)\n - Developer inspects error messages and retry patterns\n - Developer identifies systematic failures\n\n Error Cases:\n\n - INVALID_ARGUMENT:\n   - page_size is negative or exceeds maximum\n   - Invalid page_token (expired, corrupted)\n\n Example Request (Filter for failed executions):\n {\n   \"page_size\": 20,\n   \"phase\": 4,  // EXECUTION_FAILED\n   \"tags\": [\"environment:production\"]\n }\n\n Example Response:\n {\n   \"total_pages\": 3,\n   \"entries\": [\n     {\n       \"metadata\": { \"id\": \"wfx_failed-1\", ... },\n       \"status\": { \"phase\": 4, \"error\": \"Task failed: API timeout\", ... }\n     },\n     {\n       \"metadata\": { \"id\": \"wfx_failed-2\", ... },\n       \"status\": { \"phase\": 4, \"error\": \"Task failed: Rate limit\", ... }\n     }\n   ]\n }"
         },
         {
           "name": "ListByWorkflow",
@@ -123,7 +123,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest",
           "outputType": "WorkflowExecutionList",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList",
-          "description": "List all executions for a specific Workflow or WorkflowInstance.\n\n Returns executions filtered by a specific Workflow ID.\n This is useful for viewing execution history of a particular workflow.\n\n @internal\n Authorization:\n Custom authorization verifies:\n 1. User has access to the referenced Workflow or WorkflowInstance\n 2. Results are filtered to only include executions user can access\n\n Pagination:\n - page_size: Maximum number of results to return (default: 50, max: 100)\n - page_token: Opaque token from previous response for next page\n\n Sorting:\n Results are sorted by created_at descending (newest first).\n\n Use Cases:\n\n 1. Workflow Execution History:\n - User views a Workflow in the UI\n - UI calls listByWorkflow(workflow_id) to show all executions\n - UI displays timeline of executions with success/failure indicators\n\n 2. Performance Analysis:\n - Developer wants to analyze workflow performance over time\n - Developer calls listByWorkflow() to get all executions\n - Developer calculates average duration, success rate, failure patterns\n\n 3. Retry Analysis:\n - User sees failed execution\n - User calls listByWorkflow() to see if other executions also failed\n - User determines if failure is systematic or one-off\n\n 4. Workflow Testing:\n - Developer tests a workflow with multiple executions\n - Developer calls listByWorkflow() to see all test runs\n - Developer compares outputs across executions\n\n Error Cases:\n\n - INVALID_ARGUMENT:\n   - workflow_id is empty or invalid format\n   - page_size is negative or exceeds maximum\n\n - PERMISSION_DENIED:\n   - User doesn't have access to the referenced Workflow/WorkflowInstance\n\n - NOT_FOUND:\n   - No Workflow or WorkflowInstance exists with the given ID\n\n Example Request:\n {\n   \"workflow_id\": \"wfi-customer-onboarding-prod\",\n   \"page_size\": 50\n }\n\n Example Response:\n {\n   \"total_pages\": 5,\n   \"entries\": [\n     {\n       \"metadata\": { \"id\": \"wfx-latest\", \"created_at\": \"2025-01-11T14:30:22Z\" },\n       \"status\": { \"phase\": 3, ... }  // COMPLETED\n     },\n     {\n       \"metadata\": { \"id\": \"wfx-previous\", \"created_at\": \"2025-01-11T10:15:00Z\" },\n       \"status\": { \"phase\": 4, ... }  // FAILED\n     }\n   ]\n }"
+          "description": "List all executions for a specific Workflow or WorkflowInstance.\n\n Returns executions filtered by a specific Workflow ID.\n This is useful for viewing execution history of a particular workflow.\n\n @internal\n Authorization:\n Custom authorization verifies:\n 1. User has access to the referenced Workflow or WorkflowInstance\n 2. Results are filtered to only include executions user can access\n\n Pagination:\n - page_size: Maximum number of results to return (default: 50, max: 100)\n - page_token: Opaque token from previous response for next page\n\n Sorting:\n Results are sorted by created_at descending (newest first).\n\n Use Cases:\n\n 1. Workflow Execution History:\n - User views a Workflow in the UI\n - UI calls listByWorkflow(workflow_id) to show all executions\n - UI displays timeline of executions with success/failure indicators\n\n 2. Performance Analysis:\n - Developer wants to analyze workflow performance over time\n - Developer calls listByWorkflow() to get all executions\n - Developer calculates average duration, success rate, failure patterns\n\n 3. Retry Analysis:\n - User sees failed execution\n - User calls listByWorkflow() to see if other executions also failed\n - User determines if failure is systematic or one-off\n\n 4. Workflow Testing:\n - Developer tests a workflow with multiple executions\n - Developer calls listByWorkflow() to see all test runs\n - Developer compares outputs across executions\n\n Error Cases:\n\n - INVALID_ARGUMENT:\n   - workflow_id is empty or invalid format\n   - page_size is negative or exceeds maximum\n\n - PERMISSION_DENIED:\n   - User doesn't have access to the referenced Workflow/WorkflowInstance\n\n - NOT_FOUND:\n   - No Workflow or WorkflowInstance exists with the given ID\n\n Example Request:\n {\n   \"workflow_id\": \"wfi_customer-onboarding-prod\",\n   \"page_size\": 50\n }\n\n Example Response:\n {\n   \"total_pages\": 5,\n   \"entries\": [\n     {\n       \"metadata\": { \"id\": \"wfx_latest\", \"created_at\": \"2025-01-11T14:30:22Z\" },\n       \"status\": { \"phase\": 3, ... }  // COMPLETED\n     },\n     {\n       \"metadata\": { \"id\": \"wfx_previous\", \"created_at\": \"2025-01-11T10:15:00Z\" },\n       \"status\": { \"phase\": 4, ... }  // FAILED\n     }\n   ]\n }"
         },
         {
           "name": "Subscribe",
@@ -132,7 +132,458 @@
           "outputType": "WorkflowExecution",
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
           "serverStreaming": true,
-          "description": "Subscribe to real-time updates for a specific workflow execution (server streaming).\n\n Opens a bidirectional stream that pushes WorkflowExecution updates as they occur.\n Client receives updates when:\n - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)\n - Tasks start or complete\n - Progress events are appended\n - Output or error fields are set\n\n @internal\n Authorization:\n Standard authorization checks that user has \"get\" permission on the WorkflowExecution.\n This is the same permission check as get() RPC.\n\n Stream Lifecycle:\n 1. Client sends SubscribeWorkflowExecutionRequest with execution_id\n 2. Server validates authorization\n 3. Server sends initial WorkflowExecution (current state)\n 4. Server streams updates as execution progresses\n 5. Server closes stream when execution reaches terminal state (COMPLETED/FAILED/CANCELLED)\n 6. Client can close stream early (e.g., user navigates away from page)\n\n Update Frequency:\n - Updates are sent immediately when execution state changes\n - No polling necessary (server pushes updates)\n - Typical update latency: \u003c 100ms\n\n Use Cases:\n\n 1. Real-Time Progress Monitoring:\n - User triggers an execution from UI\n - UI subscribes to execution updates\n - UI displays live progress: tasks completing, progress bar updating\n - UI shows final output when execution completes\n\n 2. Long-Running Workflow Monitoring:\n - Workflow takes hours to complete (e.g., data processing)\n - UI subscribes and shows live progress\n - User can leave page, come back, and reconnect to same execution\n\n 3. Debugging with Live Updates:\n - Developer triggers test execution\n - Developer subscribes to watch execution progress\n - Developer sees exactly which task is running and when failures occur\n\n 4. Multi-User Collaboration:\n - Multiple users watching same execution\n - All users receive same updates simultaneously\n - All users see consistent view of execution state\n\n Stream Message Format:\n Each message is a complete WorkflowExecution resource with updated status.\n\n Error Cases:\n\n - NOT_FOUND:\n   - No WorkflowExecution exists with the given ID\n\n - PERMISSION_DENIED:\n   - User doesn't have \"get\" permission on this WorkflowExecution\n\n - DEADLINE_EXCEEDED:\n   - Client timeout (client should reconnect)\n\n - UNAVAILABLE:\n   - Server unavailable (client should retry with backoff)\n\n Example Request:\n {\n   \"execution_id\": \"wfx-abc123xyz456\"\n }\n\n Example Stream (sequence of messages):\n\n Message 1 (initial state):\n {\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 1,  // EXECUTION_PENDING\n     \"total_tasks\": 3,\n     \"completed_tasks\": 0\n   }\n }\n\n Message 2 (execution started):\n {\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2025-01-11T14:30:22Z\"\n   }\n }\n\n Message 3 (task 1 completed):\n {\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"completed_tasks\": 1,\n     \"tasks\": [\n       { \"task_id\": \"task-1\", \"status\": 3, \"output\": { ... } }\n     ]\n   }\n }\n\n Message 4 (execution completed):\n {\n   \"metadata\": { \"id\": \"wfx-abc123xyz456\" },\n   \"status\": {\n     \"phase\": 3,  // EXECUTION_COMPLETED\n     \"completed_tasks\": 3,\n     \"output\": { ... },\n     \"completed_at\": \"2025-01-11T14:35:47Z\"\n   }\n }\n [Stream closes]"
+          "description": "Subscribe to real-time updates for a specific workflow execution (server streaming).\n\n Opens a bidirectional stream that pushes WorkflowExecution updates as they occur.\n Client receives updates when:\n - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)\n - Tasks start or complete\n - Progress events are appended\n - Output or error fields are set\n\n @internal\n Authorization:\n Standard authorization checks that user has \"get\" permission on the WorkflowExecution.\n This is the same permission check as get() RPC.\n\n Stream Lifecycle:\n 1. Client sends SubscribeWorkflowExecutionRequest with execution_id\n 2. Server validates authorization\n 3. Server sends initial WorkflowExecution (current state)\n 4. Server streams updates as execution progresses\n 5. Server closes stream when execution reaches terminal state (COMPLETED/FAILED/CANCELLED)\n 6. Client can close stream early (e.g., user navigates away from page)\n\n Update Frequency:\n - Updates are sent immediately when execution state changes\n - No polling necessary (server pushes updates)\n - Typical update latency: \u003c 100ms\n\n Use Cases:\n\n 1. Real-Time Progress Monitoring:\n - User triggers an execution from UI\n - UI subscribes to execution updates\n - UI displays live progress: tasks completing, progress bar updating\n - UI shows final output when execution completes\n\n 2. Long-Running Workflow Monitoring:\n - Workflow takes hours to complete (e.g., data processing)\n - UI subscribes and shows live progress\n - User can leave page, come back, and reconnect to same execution\n\n 3. Debugging with Live Updates:\n - Developer triggers test execution\n - Developer subscribes to watch execution progress\n - Developer sees exactly which task is running and when failures occur\n\n 4. Multi-User Collaboration:\n - Multiple users watching same execution\n - All users receive same updates simultaneously\n - All users see consistent view of execution state\n\n Stream Message Format:\n Each message is a complete WorkflowExecution resource with updated status.\n\n Error Cases:\n\n - NOT_FOUND:\n   - No WorkflowExecution exists with the given ID\n\n - PERMISSION_DENIED:\n   - User doesn't have \"get\" permission on this WorkflowExecution\n\n - DEADLINE_EXCEEDED:\n   - Client timeout (client should reconnect)\n\n - UNAVAILABLE:\n   - Server unavailable (client should retry with backoff)\n\n Example Request:\n {\n   \"execution_id\": \"wfx_abc123xyz456\"\n }\n\n Example Stream (sequence of messages):\n\n Message 1 (initial state):\n {\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 1,  // EXECUTION_PENDING\n     \"total_tasks\": 3,\n     \"completed_tasks\": 0\n   }\n }\n\n Message 2 (execution started):\n {\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2025-01-11T14:30:22Z\"\n   }\n }\n\n Message 3 (task 1 completed):\n {\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"completed_tasks\": 1,\n     \"tasks\": [\n       { \"task_id\": \"task-1\", \"status\": 3, \"output\": { ... } }\n     ]\n   }\n }\n\n Message 4 (execution completed):\n {\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 3,  // EXECUTION_COMPLETED\n     \"completed_tasks\": 3,\n     \"output\": { ... },\n     \"completed_at\": \"2025-01-11T14:35:47Z\"\n   }\n }\n [Stream closes]"
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "WorkflowExecutionUpdateStatusInput",
+      "description": "Input message for updateStatus RPC.\n Contains only the execution ID and the status fields to be updated.\n This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the workflow execution to update (required).\n Format: \"wex_abc123xyz456\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Status",
+          "jsonName": "status",
+          "protoField": "status",
+          "type": {
+            "kind": "message",
+            "messageType": "WorkflowExecutionStatus"
+          },
+          "description": "Status fields to update.\n The handler will merge these status fields with the existing execution's status.\n Only the fields present in this status object will be updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "SubmitWorkflowApprovalInput",
+      "description": "Input message for submitApproval RPC (HITL Phase 5.3).\n\n Forwards an approval decision to a child AgentExecution that is waiting for\n approval. The child execution ID is resolved from status.pending_approval.child_agent_execution_id.\n\n ## Usage\n\n When a workflow task invokes an agent that requires tool approval, the approval\n request surfaces at the workflow level via WorkflowExecution.status.pending_approval.\n This message captures the user's decision to forward to the child agent.\n\n ## Example\n\n {\n   \"execution_id\": \"wfx_abc123xyz456\",\n   \"tool_call_id\": \"call_tool789\",\n   \"action\": \"APPROVAL_ACTION_APPROVE\",\n   \"comment\": \"Verified safe to execute\"\n }\n\n ## Validation\n\n - execution_id: Required, must reference an existing WorkflowExecution\n - tool_call_id: Required, must match status.pending_approval.tool_call_id\n - action: Required, must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)\n - comment: Optional, stored in audit trail\n\n @since Phase 5.3 (Approval Forwarding)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the workflow execution.\n Format: \"wfx_abc123xyz456\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ToolCallId",
+          "jsonName": "toolCallId",
+          "protoField": "tool_call_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the tool call to approve/skip/reject.\n Must match status.pending_approval.tool_call_id exactly.\n Format: Tool call ID from agent runtime (e.g., \"call_abc123\")",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "protoField": "action",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalAction",
+            "enumValues": [
+              "APPROVAL_ACTION_APPROVE",
+              "APPROVAL_ACTION_SKIP",
+              "APPROVAL_ACTION_REJECT"
+            ]
+          },
+          "description": "User's decision: APPROVE, SKIP, or REJECT.\n APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.\n\n Actions:\n - APPROVE: Tool executes with the provided arguments\n - SKIP: Tool execution is skipped, agent receives skip message\n - REJECT: Agent execution fails with rejection error",
+          "required": false
+        },
+        {
+          "name": "Comment",
+          "jsonName": "comment",
+          "protoField": "comment",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional reason/comment for the decision.\n Stored in audit trail for compliance and debugging.\n\n Examples:\n   - \"Verified the target repository is safe to delete\" (on APPROVE)\n   - \"Will handle this operation manually\" (on SKIP)\n   - \"Unexpected target - this looks like the wrong repository\" (on REJECT)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SendSignalInput",
+      "description": "SendSignalInput requests delivery of a signal to a workflow execution.\n\n Sends a signal to a running workflow execution, typically to unblock a LISTEN task.\n Uses Temporal's SignalWithStart API internally for race-proof delivery - if the\n workflow hasn't started yet, it will be started first and then receive the signal.\n\n ## Behavior\n\n 1. Validates execution exists and is in a signalable phase\n 2. Uses Temporal SignalWithStart for atomic delivery:\n    - If workflow exists → sends signal immediately\n    - If workflow not started yet → starts workflow, then sends signal\n 3. Signal is delivered to workflow's signal channel\n 4. LISTEN task waiting for this signal will unblock and continue\n 5. Returns the current WorkflowExecution state\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n - User must have can_edit permission on the workflow execution\n\n ## Race-Proof Delivery\n\n SignalWithStart solves the race condition where a signal might arrive before\n the Temporal workflow is fully started. Without it, SignalWorkflow fails with\n \"WorkflowNotFound\" if called too early. SignalWithStart handles both cases\n atomically, ensuring signals are never lost.\n\n ## Use Cases\n\n - External system events (webhooks, CDC) triggering workflow continuation\n - Human-in-the-loop approvals via external systems\n - Integration with third-party services that send callbacks\n - Testing LISTEN tasks during development\n\n ## Example\n\n {\n   \"execution_id\": \"wfx_abc123xyz456\",\n   \"signal_name\": \"payment_confirmed\",\n   \"payload\": {\n     \"transaction_id\": \"txn_123\",\n     \"amount\": 99.99,\n     \"currency\": \"USD\"\n   }\n }\n\n @since Gap B1 (Signal-With-Start)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.SendSignalInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow execution ID to send the signal to.\n\n Format: \"wfx_{ulid}\" (auto-generated unique identifier)\n Example: \"wfx_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "SignalName",
+          "jsonName": "signalName",
+          "protoField": "signal_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Signal name to send.\n\n Must match the signal ID defined in the workflow's LISTEN task.\n Signal names are case-sensitive and should follow snake_case convention.\n\n Examples:\n - \"payment_confirmed\"\n - \"approval_received\"\n - \"external_event\"\n - \"verification_complete\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Payload",
+          "jsonName": "payload",
+          "protoField": "payload",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "Signal payload data.\n\n JSON-serializable data to send with the signal. The payload is delivered\n to the workflow and can be accessed by the LISTEN task.\n\n Optional - signals can be sent without payload if they just need to\n unblock the workflow without passing data.\n\n Examples:\n - { \"status\": \"approved\", \"approver\": \"jane@example.com\" }\n - { \"transaction_id\": \"txn_123\", \"amount\": 99.99 }\n - { \"verified\": true }\n\n Note: Use google.protobuf.Struct for arbitrary JSON payloads.",
+          "required": false
+        },
+        {
+          "name": "IdempotencyKey",
+          "jsonName": "idempotencyKey",
+          "protoField": "idempotency_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Idempotency key for deduplication of signal delivery.\n\n Optional - if not provided, signal is processed without dedupe protection.\n When provided, duplicate signals with the same key (within the TTL window)\n return the cached response instead of re-delivering the signal.\n\n ## Format Recommendations\n\n - Webhook sources: \"{source}:{event_id}\" (e.g., \"stripe:evt_1234567890\")\n - API callers: Client-generated UUID (e.g., \"550e8400-e29b-41d4-a716-446655440000\")\n - Scheduled events: \"{schedule_id}:{timestamp}\" (e.g., \"sched_abc:2026-02-08T12:00:00Z\")\n\n ## Scope\n\n Keys are scoped to the organization to prevent cross-org collisions.\n The effective key stored is: \"{org_id}:{idempotency_key}\"\n\n ## TTL (Time-To-Live)\n\n Keys expire after 24 hours by default. After expiration, the same key\n can be reused and will trigger a new signal delivery. This aligns with\n industry standards (e.g., Stripe's 24-hour idempotency window).\n\n ## Behavior on Duplicate\n\n When a duplicate key is detected:\n - The signal is NOT re-delivered to the workflow\n - The original WorkflowExecution state is returned (idempotent response)\n - No error is returned (success with cached result)\n\n ## Use Cases\n\n 1. Webhook retry protection: Stripe/GitHub may retry webhooks on timeout\n 2. Client retry safety: API clients can safely retry on network errors\n 3. At-least-once to effectively-once: Convert retries into safe operations\n\n Example: \"stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT\"\n\n @since Gap B2 (Event Dedupe)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CancelWorkflowExecutionInput",
+      "description": "CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.\n\n Cancellation sends a signal to the workflow, allowing it to clean up gracefully.\n The workflow code can handle the cancellation signal (e.g., via defer blocks,\n compensation logic) before the execution transitions to CANCELLED phase.\n\n ## Behavior\n\n - Sends cancellation signal to Temporal via CancelWorkflow API\n - Workflow code receives the signal and can perform cleanup\n - Execution transitions to EXECUTION_CANCELLED phase after cleanup\n - In-progress tasks may complete or be interrupted depending on workflow logic\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - User must have can_edit permission on the workflow execution\n\n ## Idempotency\n\n If the execution is already cancelled (phase == EXECUTION_CANCELLED),\n the call succeeds as a no-op and returns the current execution state.\n\n ## Use Cases\n\n - User realizes they triggered the wrong workflow\n - Business decision to stop a long-running process\n - Graceful shutdown before maintenance window\n - Cancel stuck workflow that is still responsive\n\n ## Example\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Customer requested cancellation - no longer needed\"\n }",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow execution ID to cancel.\n\n Format: \"wfx_{ulid}\" (auto-generated unique identifier)\n Example: \"wfx_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for cancellation.\n\n Stored in the audit trail and passed to Temporal for operational debugging.\n Optional but strongly recommended for compliance and troubleshooting.\n\n Examples:\n - \"Customer requested cancellation\"\n - \"Incorrect workflow triggered by mistake\"\n - \"Superseded by newer execution wfx_def456\"\n - \"Pre-maintenance shutdown\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "TerminateWorkflowExecutionInput",
+      "description": "TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.\n\n Termination forcefully kills the workflow without allowing cleanup.\n Unlike cancellation, the workflow code cannot respond to termination -\n it is stopped immediately. Use this for stuck or unresponsive workflows.\n\n ## Behavior\n\n - Force-kills workflow via Temporal TerminateWorkflow API\n - Workflow code does NOT receive any signal (cannot clean up)\n - Execution transitions to EXECUTION_TERMINATED phase immediately\n - All in-progress tasks are stopped abruptly\n - No compensation or defer blocks are executed\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - User must have can_edit permission on the workflow execution\n\n ## Idempotency\n\n If the execution is already terminated (phase == EXECUTION_TERMINATED),\n the call succeeds as a no-op and returns the current execution state.\n\n ## Terminated vs Cancelled\n\n | Aspect | Cancel | Terminate |\n |--------|--------|-----------|\n | Signal | Workflow receives cancellation signal | No signal sent |\n | Cleanup | Workflow can clean up gracefully | No cleanup possible |\n | Use case | Normal cancellation | Stuck/unresponsive workflows |\n | Recovery | Cannot recover | Cannot recover |\n\n ## Use Cases\n\n - Workflow is stuck and not responding to cancellation\n - Workflow is consuming excessive resources (infinite loop, memory leak)\n - Emergency stop for misbehaving workflow\n - Workflow has a bug causing it to ignore cancellation signals\n\n ## Example\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Workflow stuck for 2 hours, not responding to cancel\"\n }",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow execution ID to terminate.\n\n Format: \"wfx_{ulid}\" (auto-generated unique identifier)\n Example: \"wfx_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for termination.\n\n Stored in the audit trail and passed to Temporal for operational debugging.\n Optional but strongly recommended - termination is a drastic action\n and the reason helps with post-incident analysis.\n\n Examples:\n - \"Workflow stuck for 2 hours, not responding to cancel\"\n - \"Infinite loop detected, consuming 100% CPU\"\n - \"Emergency stop - incorrect data being processed\"\n - \"Cancel failed after 3 attempts, force terminating\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RecoverWorkflowExecutionInput",
+      "description": "RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.\n\n Recovery resumes execution from the last successful checkpoint, preserving\n all completed work. This uses Temporal's Reset functionality to continue\n the workflow without re-executing successful steps.\n\n ## Behavior\n\n - Uses Temporal ResetWorkflow API to resume from last successful point\n - Completed tasks are preserved - NOT re-executed\n - Creates a new Temporal run in the same workflow ID chain\n - Execution transitions from FAILED back to IN_PROGRESS phase\n - Workflow continues from where it failed\n\n ## Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (use case: data corruption risk)\n - CANCELLED executions cannot be recovered (intentional user action)\n - User must have can_edit permission on the workflow execution\n\n ## Idempotency\n\n If recovery is already in progress (execution moved to IN_PROGRESS after\n a previous recover call), the call succeeds as a no-op and returns current state.\n\n ## Recovery vs Restart\n\n | Aspect | Recover | Restart (create new) |\n |--------|---------|----------------------|\n | Completed work | Preserved | Lost (re-executed) |\n | Side effects | Not duplicated | May duplicate |\n | Execution ID | Same | New ID |\n | Use case | Resume after fix | Start fresh |\n\n ## Use Cases\n\n - Workflow failed due to transient error (network timeout, rate limit)\n - External dependency was down but is now available\n - Bug was fixed and workflow should continue from failure point\n - Retry after investigating and fixing the root cause\n\n ## Example\n\n {\n   \"id\": \"wfx_abc123xyz456\",\n   \"reason\": \"Stripe API was down, now recovered - resuming payment processing\"\n }",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow execution ID to recover.\n\n Must be in FAILED phase. TERMINATED and CANCELLED executions\n cannot be recovered.\n\n Format: \"wfx_{ulid}\" (auto-generated unique identifier)\n Example: \"wfx_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for recovery.\n\n Stored in the audit trail for operational debugging and compliance.\n Helps track why the recovery was needed and what was fixed.\n\n Examples:\n - \"Stripe API recovered, resuming payment processing\"\n - \"Fixed typo in email template, continuing workflow\"\n - \"Increased timeout for slow API, retrying\"\n - \"Root cause identified and fixed in config\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PauseWorkflowExecutionInput",
+      "description": "PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.\n\n Pauses the workflow at its current checkpoint. Unlike cancel, the execution\n is NOT terminal and can be resumed later from where it left off.\n\n ## Behavior\n\n When a workflow is paused:\n 1. A \"pause\" signal is sent to the Temporal workflow\n 2. Running activities are gracefully cancelled (checkpoint saved)\n 3. Execution transitions to EXECUTION_PAUSED phase\n 4. Workflow waits for resume signal (no resources consumed)\n\n ## Resume Flow\n\n The paused workflow can be resumed via the resume RPC:\n 1. Resume signal unblocks the workflow\n 2. Activities are re-invoked with same thread_id\n 3. LangGraph loads from checkpoint automatically\n 4. Execution continues from exact pause point\n\n @since Gap A3 (Pause/Resume Propagation)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow execution ID to pause.\n\n Must be in PENDING or IN_PROGRESS phase. Cannot pause\n executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).\n\n Format: \"wfx_{ulid}\" (auto-generated unique identifier)\n Example: \"wfx_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for pausing.\n\n Stored in the audit trail for operational debugging and compliance.\n Helps track why the pause was needed.\n\n Examples:\n - \"Pausing for scheduled maintenance window\"\n - \"User requested pause to review progress\"\n - \"Pausing due to rate limit concerns\"\n - \"Emergency pause - investigating issue\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ResumeWorkflowExecutionInput",
+      "description": "ResumeWorkflowExecutionInput requests resuming a paused workflow execution.\n\n Continues execution from the checkpoint where it was paused. The workflow\n re-invokes activities with the same thread_id, which loads from checkpoint\n and continues from where it left off.\n\n ## Behavior\n\n When a workflow is resumed:\n 1. A \"resume\" signal is sent to the paused Temporal workflow\n 2. Workflow unblocks from its wait state\n 3. Activities are re-invoked with same execution context\n 4. LangGraph loads checkpoint using thread_id\n 5. Execution continues from exact pause point\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PAUSED phase\n - Cannot resume non-paused executions\n\n @since Gap A3 (Pause/Resume Propagation)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow execution ID to resume.\n\n Must be in PAUSED phase. Cannot resume executions\n that are not paused.\n\n Format: \"wfx_{ulid}\" (auto-generated unique identifier)\n Example: \"wfx_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListWorkflowExecutionsRequest",
+      "description": "ListWorkflowExecutionsRequest specifies parameters for listing workflow executions.\n\n Supports pagination and filtering to help users find specific executions.\n Used by the list() RPC to retrieve executions across all workflows.\n\n Common Use Cases:\n - List all recent executions (no filters)\n - List all in-progress executions (phase filter)\n - List all failed executions (phase filter)\n - List executions for specific environment (tags filter)\n - Page through execution history (pagination)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of executions to return per page.\n\n Default: 50 (if not specified or 0)\n Maximum: 100 (backend enforces this limit)\n\n Recommendation: Use 20-50 for UI lists, 100 for bulk exports\n\n Example: page_size=20 returns up to 20 executions",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.\n\n Opaque string generated by the server to represent a cursor in the result set.\n\n Pagination Flow:\n 1. Initial request: page_token is empty (or not set)\n 2. Server returns first page + page_token for next page\n 3. Subsequent request: include page_token from previous response\n 4. Server returns next page + new page_token\n 5. When page_token is empty in response, no more pages available\n\n Example:\n Request 1: { page_size: 50 }\n Response 1: { entries: [...], page_token: \"eyJvZmZzZXQiOjUwfQ==\" }\n Request 2: { page_size: 50, page_token: \"eyJvZmZzZXQiOjUwfQ==\" }\n Response 2: { entries: [...], page_token: \"\" }  // Last page\n\n Note: page_token is opaque - clients should not parse or modify it.",
+          "required": false
+        },
+        {
+          "name": "Phase",
+          "jsonName": "phase",
+          "protoField": "phase",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase",
+            "enumValues": [
+              "EXECUTION_PENDING",
+              "EXECUTION_IN_PROGRESS",
+              "EXECUTION_COMPLETED",
+              "EXECUTION_FAILED",
+              "EXECUTION_CANCELLED",
+              "EXECUTION_TERMINATED",
+              "EXECUTION_PAUSED"
+            ]
+          },
+          "description": "Filter by execution phase (optional).\n\n Limits results to executions in a specific phase.\n If not specified (or EXECUTION_PHASE_UNSPECIFIED), all phases are included.\n\n Common Filters:\n - EXECUTION_IN_PROGRESS: Show only running executions\n - EXECUTION_FAILED: Show only failed executions (for debugging)\n - EXECUTION_COMPLETED: Show only successful executions\n\n Example Use Cases:\n - Monitor dashboard: phase=EXECUTION_IN_PROGRESS\n - Debug dashboard: phase=EXECUTION_FAILED\n - Success audit: phase=EXECUTION_COMPLETED\n\n Example: phase=2 (EXECUTION_IN_PROGRESS)",
+          "required": false
+        },
+        {
+          "name": "Tags",
+          "jsonName": "tags",
+          "protoField": "tags",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Filter by resource tags (optional).\n\n Limits results to executions that have ALL specified tags (AND logic).\n Tags are key-value pairs stored in metadata.tags.\n\n Tag Format: \"key:value\" or \"key\" (for boolean tags)\n Example tags:\n - \"environment:production\"\n - \"team:backend\"\n - \"critical\"\n - \"region:us-west-2\"\n\n Filtering Logic:\n If tags=[\"environment:production\", \"team:backend\"], result must have BOTH tags.\n\n Example Use Cases:\n - List production executions: tags=[\"environment:production\"]\n - List backend team's critical executions: tags=[\"team:backend\", \"critical\"]\n - List executions in specific region: tags=[\"region:us-west-2\"]\n\n Example:\n tags: [\"environment:production\", \"critical\"]",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "WorkflowExecutionList",
+      "description": "WorkflowExecutionList contains a paginated list of workflow executions.\n\n This message is returned by list operations (list, list_by_workflow).\n It includes pagination metadata to help clients navigate through large result sets.\n\n Pagination Pattern:\n 1. Client sends request with page_size (e.g., 50)\n 2. Server returns up to page_size entries + total_pages count\n 3. Client displays entries and \"Page 1 of N\" indicator\n 4. Client can request next page using page_token from response\n\n Example Usage:\n Response for page 1:\n {\n   \"total_pages\": 10,\n   \"entries\": [ execution1, execution2, ... execution50 ]\n }",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalPages",
+          "jsonName": "totalPages",
+          "protoField": "total_pages",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of pages available for this query.\n\n Calculated as: ceil(total_matching_executions / page_size)\n\n Example: If 237 executions match and page_size=50, total_pages=5\n\n Use Cases:\n - Display pagination UI (\"Page 1 of 5\")\n - Disable \"Next\" button when on last page\n - Show total result count (total_pages * page_size approximation)\n\n Note: total_pages may change between requests if new executions are created\n or deleted, or if filters change.",
+          "required": false
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "WorkflowExecution"
+            }
+          },
+          "description": "Workflow executions in the current page.\n\n Contains up to page_size WorkflowExecution resources.\n May contain fewer than page_size if:\n - This is the last page (fewer remaining results)\n - Fewer results match the filter criteria\n\n Executions are sorted by created_at descending (newest first).\n\n Example:\n entries: [\n   { metadata: { id: \"wfx_newest\", created_at: \"2025-01-11T14:30:22Z\" }, ... },\n   { metadata: { id: \"wfx_second\", created_at: \"2025-01-11T10:15:00Z\" }, ... },\n   { metadata: { id: \"wfx_third\", created_at: \"2025-01-10T22:05:33Z\" }, ... }\n ]",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListWorkflowExecutionsByWorkflowRequest",
+      "description": "ListWorkflowExecutionsByWorkflowRequest lists all executions for a specific workflow.\n\n Filters executions by Workflow or WorkflowInstance ID.\n Used to view execution history for a particular workflow.\n\n Difference from ListWorkflowExecutionsRequest:\n - ListWorkflowExecutionsRequest: Lists executions across ALL workflows (with optional filters)\n - ListWorkflowExecutionsByWorkflowRequest: Lists executions for ONE specific workflow\n\n Use Cases:\n - Workflow details page: Show execution history for this workflow\n - Workflow testing: View all test runs of this workflow\n - Performance analysis: Analyze execution patterns for this workflow",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "WorkflowId",
+          "jsonName": "workflowId",
+          "protoField": "workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow or WorkflowInstance ID to filter by.\n\n Can be either:\n - Workflow ID (wf_{slug}): Lists all executions of any instance\n - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance\n\n Examples:\n - \"wf_customer-onboarding\" (all instances: prod, dev, staging)\n - \"wfi_customer-onboarding-prod\" (only prod instance)\n\n Validation: Required field, cannot be empty\n\n Error Cases:\n - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists\n - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of executions to return per page.\n\n Default: 50 (if not specified or 0)\n Maximum: 100 (backend enforces this limit)\n\n Example: page_size=20 returns up to 20 executions",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.\n\n Same pagination semantics as ListWorkflowExecutionsRequest.page_token.\n\n Example:\n Request 1: { workflow_id: \"wfi_prod\", page_size: 50 }\n Response 1: { entries: [...], page_token: \"abc123\" }\n Request 2: { workflow_id: \"wfi_prod\", page_size: 50, page_token: \"abc123\" }",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SubscribeWorkflowExecutionRequest",
+      "description": "SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.\n\n Opens a server-side streaming RPC that pushes WorkflowExecution updates\n as the execution progresses through its lifecycle.\n\n Stream Behavior:\n 1. Client sends this request with execution_id\n 2. Server validates authorization (user must have \"get\" permission)\n 3. Server sends initial WorkflowExecution (current state)\n 4. Server streams updates as execution state changes\n 5. Server closes stream when execution reaches terminal state\n\n Use Cases:\n - Real-time progress monitoring in UI\n - Live dashboards showing execution status\n - Debugging with live updates\n - Multi-user collaborative monitoring",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Execution ID to subscribe to.\n\n Format: \"wfx_{unique-suffix}\"\n Example: \"wfx_abc123xyz456\"\n\n Validation: Required field, cannot be empty\n\n Error Cases:\n - NOT_FOUND: No WorkflowExecution with this ID exists\n - PERMISSION_DENIED: User doesn't have \"get\" permission on this execution\n\n Example:\n execution_id: \"wfx_abc123xyz456\"\n\n After subscription starts, client receives:\n - Initial message: Current state of execution\n - Update messages: Changes to status.phase, status.tasks, etc.\n - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)\n - Stream closes automatically after final message",
+          "required": true,
+          "validation": {
+            "required": true
+          }
         }
       ]
     }

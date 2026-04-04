@@ -100,27 +100,47 @@ Authorization: Custom authorization in handler. The handler performs scope-aware
 <SDKTabs>
 <Tab value="Go">
 ```go
-mcpServer, err := client.McpServer.GetByReference(ctx, input)
+mcpServer, err := client.McpServer.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const mcpServer = await stigmer.mcpServer.getByReference(input);
+const mcpServer = await stigmer.mcpServer.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.get_by_reference(input)
+mcpServer = client.mcp_server.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().getByReference(input);
+McpServer mcpServer = client.mcpServer().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `McpServer`
 
@@ -140,8 +160,17 @@ Authorization: Custom authorization in handler. The handler determines whether t
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
-  Name: "my-mcp-server",
-  Org:  "acme",
+  Name:                 "my-mcp-server",
+  Org:                  "acme",
+  Slug:                 "...",
+  Labels:               map[string]string{},
+  Description:          "...",
+  IconUrl:              "...",
+  Stdio:                &stigmer.StdioServerConfigInput{},
+  Http:                 &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools:  []string{},
+  EnvSpec:              &stigmer.EnvSpecInput{},
+  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
 })
 ```
 </Tab>
@@ -150,6 +179,15 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
 const mcpServer = await stigmer.mcpServer.apply({
   name: "my-mcp-server",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  iconUrl: "...",
+  stdio: {},
+  http: {},
+  defaultEnabledTools: [],
+  envSpec: {},
+  defaultToolApprovals: [],
 });
 ```
 </Tab>
@@ -158,6 +196,15 @@ const mcpServer = await stigmer.mcpServer.apply({
 mcpServer = client.mcp_server.apply(McpServerInput(
     name="my-mcp-server",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    icon_url="...",
+    stdio=None,
+    http=None,
+    default_enabled_tools=[],
+    env_spec=None,
+    default_tool_approvals=[],
 ))
 ```
 </Tab>
@@ -166,6 +213,15 @@ mcpServer = client.mcp_server.apply(McpServerInput(
 McpServer mcpServer = client.mcpServer().apply(McpServerInput.builder()
     .name("my-mcp-server")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .iconUrl("...")
+    .stdio(null)
+    .http(null)
+    .defaultEnabledTools(List.of())
+    .envSpec(null)
+    .defaultToolApprovals(List.of())
     .build());
 ```
 </Tab>
@@ -189,8 +245,17 @@ Authorization: Custom authorization in handler. Requires permission to create MC
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
-  Name: "my-mcp-server",
-  Org:  "acme",
+  Name:                 "my-mcp-server",
+  Org:                  "acme",
+  Slug:                 "...",
+  Labels:               map[string]string{},
+  Description:          "...",
+  IconUrl:              "...",
+  Stdio:                &stigmer.StdioServerConfigInput{},
+  Http:                 &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools:  []string{},
+  EnvSpec:              &stigmer.EnvSpecInput{},
+  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
 })
 ```
 </Tab>
@@ -199,6 +264,15 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
 const mcpServer = await stigmer.mcpServer.create({
   name: "my-mcp-server",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  iconUrl: "...",
+  stdio: {},
+  http: {},
+  defaultEnabledTools: [],
+  envSpec: {},
+  defaultToolApprovals: [],
 });
 ```
 </Tab>
@@ -207,6 +281,15 @@ const mcpServer = await stigmer.mcpServer.create({
 mcpServer = client.mcp_server.create(McpServerInput(
     name="my-mcp-server",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    icon_url="...",
+    stdio=None,
+    http=None,
+    default_enabled_tools=[],
+    env_spec=None,
+    default_tool_approvals=[],
 ))
 ```
 </Tab>
@@ -215,6 +298,15 @@ mcpServer = client.mcp_server.create(McpServerInput(
 McpServer mcpServer = client.mcpServer().create(McpServerInput.builder()
     .name("my-mcp-server")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .iconUrl("...")
+    .stdio(null)
+    .http(null)
+    .defaultEnabledTools(List.of())
+    .envSpec(null)
+    .defaultToolApprovals(List.of())
     .build());
 ```
 </Tab>
@@ -236,8 +328,17 @@ Authorization: Requires can_edit permission on the mcp_server resource. Only the
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
-  Name: "my-mcp-server",
-  Org:  "acme",
+  Name:                 "my-mcp-server",
+  Org:                  "acme",
+  Slug:                 "...",
+  Labels:               map[string]string{},
+  Description:          "...",
+  IconUrl:              "...",
+  Stdio:                &stigmer.StdioServerConfigInput{},
+  Http:                 &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools:  []string{},
+  EnvSpec:              &stigmer.EnvSpecInput{},
+  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
 })
 ```
 </Tab>
@@ -246,6 +347,15 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
 const mcpServer = await stigmer.mcpServer.update({
   name: "my-mcp-server",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  iconUrl: "...",
+  stdio: {},
+  http: {},
+  defaultEnabledTools: [],
+  envSpec: {},
+  defaultToolApprovals: [],
 });
 ```
 </Tab>
@@ -254,6 +364,15 @@ const mcpServer = await stigmer.mcpServer.update({
 mcpServer = client.mcp_server.update(McpServerInput(
     name="my-mcp-server",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    icon_url="...",
+    stdio=None,
+    http=None,
+    default_enabled_tools=[],
+    env_spec=None,
+    default_tool_approvals=[],
 ))
 ```
 </Tab>
@@ -262,6 +381,15 @@ mcpServer = client.mcp_server.update(McpServerInput(
 McpServer mcpServer = client.mcpServer().update(McpServerInput.builder()
     .name("my-mcp-server")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .iconUrl("...")
+    .stdio(null)
+    .http(null)
+    .defaultEnabledTools(List.of())
+    .envSpec(null)
+    .defaultToolApprovals(List.of())
     .build());
 ```
 </Tab>
@@ -286,27 +414,39 @@ Authorization: Requires can_edit permission on the mcp_server resource.
 <SDKTabs>
 <Tab value="Go">
 ```go
-mcpServer, err := client.McpServer.UpdateDiscoveredCapabilities(ctx, input)
+mcpServer, err := client.McpServer.UpdateDiscoveredCapabilities(ctx, &stigmer.UpdateDiscoveredCapabilitiesInput{
+  McpServerId:            "...",
+  DiscoveredCapabilities: &stigmer.DiscoveredCapabilitiesInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const mcpServer = await stigmer.mcpServer.updateDiscoveredCapabilities(input);
+const mcpServer = await stigmer.mcpServer.updateDiscoveredCapabilities({
+  mcpServerId: "...",
+  discoveredCapabilities: {},
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.update_discovered_capabilities(input)
+mcpServer = client.mcp_server.update_discovered_capabilities(UpdateDiscoveredCapabilitiesInput(
+    mcp_server_id="...",
+    discovered_capabilities=None,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().updateDiscoveredCapabilities(input);
+McpServer mcpServer = client.mcpServer().updateDiscoveredCapabilities(UpdateDiscoveredCapabilitiesInput.builder()
+    .mcpServerId("...")
+    .discoveredCapabilities(null)
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `UpdateDiscoveredCapabilitiesInput`
+**Parameters**: [`UpdateDiscoveredCapabilitiesInput`](#updatediscoveredcapabilitiesinput)
 
 **Returns**: `McpServer`
 
@@ -321,27 +461,39 @@ Authorization: Requires can_edit permission on the mcp_server resource.
 <SDKTabs>
 <Tab value="Go">
 ```go
-mcpServer, err := client.McpServer.UpdateVisibility(ctx, input)
+mcpServer, err := client.McpServer.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const mcpServer = await stigmer.mcpServer.updateVisibility(input);
+const mcpServer = await stigmer.mcpServer.updateVisibility({
+  resourceId: "...",
+  visibility: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.update_visibility(input)
+mcpServer = client.mcp_server.update_visibility(UpdateVisibilityInput(
+    resource_id="...",
+    visibility="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().updateVisibility(input);
+McpServer mcpServer = client.mcpServer().updateVisibility(UpdateVisibilityInput.builder()
+    .resourceId("...")
+    .visibility("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `UpdateVisibilityInput`
+**Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
 
 **Returns**: `McpServer`
 
@@ -403,27 +555,39 @@ The RPC blocks until discovery completes (up to ~30 seconds) and returns the upd
 <SDKTabs>
 <Tab value="Go">
 ```go
-mcpServer, err := client.McpServer.DiscoverCapabilities(ctx, input)
+mcpServer, err := client.McpServer.DiscoverCapabilities(ctx, &stigmer.DiscoverCapabilitiesInput{
+  McpServerId: "...",
+  RuntimeEnv:  map[string]string{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const mcpServer = await stigmer.mcpServer.discoverCapabilities(input);
+const mcpServer = await stigmer.mcpServer.discoverCapabilities({
+  mcpServerId: "...",
+  runtimeEnv: {},
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.discover_capabilities(input)
+mcpServer = client.mcp_server.discover_capabilities(DiscoverCapabilitiesInput(
+    mcp_server_id="...",
+    runtime_env={},
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().discoverCapabilities(input);
+McpServer mcpServer = client.mcpServer().discoverCapabilities(DiscoverCapabilitiesInput.builder()
+    .mcpServerId("...")
+    .runtimeEnv(Map.of())
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `DiscoverCapabilitiesInput`
+**Parameters**: [`DiscoverCapabilitiesInput`](#discovercapabilitiesinput)
 
 **Returns**: `McpServer`
 
@@ -482,6 +646,52 @@ ToolApprovalPolicy defines approval requirements for a specific tool.
   type={{
     toolName: { type: "string", description: "Name of the tool (must match tools/list from MCP server exactly)." },
     message: { type: "string", description: "Human-readable message shown to user when approval is requested." },
+  }}
+/>
+
+### UpdateVisibilityInput
+
+Input for updating the visibility of any API resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource." },
+  }}
+/>
+
+### UpdateDiscoveredCapabilitiesInput
+
+UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.
+
+<TypeTable
+  type={{
+    mcpServerId: { type: "string", description: "System-generated ID of the MCP server to update.", required: true },
+    discoveredCapabilities: { type: "DiscoveredCapabilitiesInput", description: "Discovered tools and resource templates to store.", required: true },
+  }}
+/>
+
+### DiscoverCapabilitiesInput
+
+DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
+
+<TypeTable
+  type={{
+    mcpServerId: { type: "string", description: "System-generated ID of the MCP server to discover.", required: true },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time discovery." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 

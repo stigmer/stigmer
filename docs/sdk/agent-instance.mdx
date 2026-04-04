@@ -87,29 +87,41 @@ Get all instances of a specific agent template. Returns only instances the calle
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.AgentInstance.GetByAgent(ctx, input)
+result, err := client.AgentInstance.GetByAgent(ctx, &stigmer.GetAgentInstancesByAgentRequest{
+  AgentId:  "...",
+  PageInfo: &stigmer.PageInfoInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.agentInstance.getByAgent(input);
+const result = await stigmer.agentInstance.getByAgent({
+  agentId: "...",
+  pageInfo: {},
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agent_instance.get_by_agent(input)
+result = client.agent_instance.get_by_agent(GetAgentInstancesByAgentRequest(
+    agent_id="...",
+    page_info=None,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstanceList result = client.agentInstance().getByAgent(input);
+AgentInstanceList result = client.agentInstance().getByAgent(GetAgentInstancesByAgentRequest.builder()
+    .agentId("...")
+    .pageInfo(null)
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `GetAgentInstancesByAgentRequest`
+**Parameters**: [`GetAgentInstancesByAgentRequest`](#getagentinstancesbyagentrequest)
 
-**Returns**: `AgentInstanceList`
+**Returns**: [`AgentInstanceList`](#agentinstancelist)
 
 ### getByReference
 
@@ -118,27 +130,47 @@ Get an agent instance by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="Go">
 ```go
-agentInstance, err := client.AgentInstance.GetByReference(ctx, input)
+agentInstance, err := client.AgentInstance.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agentInstance = await stigmer.agentInstance.getByReference(input);
+const agentInstance = await stigmer.agentInstance.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instance.get_by_reference(input)
+agentInstance = client.agent_instance.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstance agentInstance = client.agentInstance().getByReference(input);
+AgentInstance agentInstance = client.agentInstance().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `AgentInstance`
 
@@ -149,29 +181,45 @@ List agent instances with optional label filtering.
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.AgentInstance.List(ctx, input)
+result, err := client.AgentInstance.List(ctx, &stigmer.ListAgentInstancesRequest{
+  Org:      "...",
+  Labels:   map[string]string{},
+  PageInfo: &stigmer.PageInfoInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.agentInstance.list(input);
+const result = await stigmer.agentInstance.list({
+  org: "...",
+  labels: {},
+  pageInfo: {},
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agent_instance.list(input)
+result = client.agent_instance.list(ListAgentInstancesRequest(
+    org="...",
+    labels={},
+    page_info=None,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstanceList result = client.agentInstance().list(input);
+AgentInstanceList result = client.agentInstance().list(ListAgentInstancesRequest.builder()
+    .org("...")
+    .labels(Map.of())
+    .pageInfo(null)
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ListAgentInstancesRequest`
+**Parameters**: [`ListAgentInstancesRequest`](#listagentinstancesrequest)
 
-**Returns**: `AgentInstanceList`
+**Returns**: [`AgentInstanceList`](#agentinstancelist)
 
 ### apply
 
@@ -181,8 +229,13 @@ Create or update an agent instance. The authorization and state-operation are de
 <Tab value="Go">
 ```go
 agentInstance, err := client.AgentInstance.Apply(ctx, &stigmer.AgentInstanceInput{
-  Name: "my-agent-instance",
-  Org:  "acme",
+  Name:            "my-agent-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentId:         "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -191,6 +244,11 @@ agentInstance, err := client.AgentInstance.Apply(ctx, &stigmer.AgentInstanceInpu
 const agentInstance = await stigmer.agentInstance.apply({
   name: "my-agent-instance",
   org: "acme",
+  slug: "...",
+  labels: {},
+  agentId: "...",
+  description: "...",
+  environmentRefs: [],
 });
 ```
 </Tab>
@@ -199,6 +257,11 @@ const agentInstance = await stigmer.agentInstance.apply({
 agentInstance = client.agent_instance.apply(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
+    slug="...",
+    labels={},
+    agent_id="...",
+    description="...",
+    environment_refs=[],
 ))
 ```
 </Tab>
@@ -207,6 +270,11 @@ agentInstance = client.agent_instance.apply(AgentInstanceInput(
 AgentInstance agentInstance = client.agentInstance().apply(AgentInstanceInput.builder()
     .name("my-agent-instance")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .agentId("...")
+    .description("...")
+    .environmentRefs(List.of())
     .build());
 ```
 </Tab>
@@ -226,8 +294,13 @@ Public agents allow any authenticated user to create instances (cross-org allowe
 <Tab value="Go">
 ```go
 agentInstance, err := client.AgentInstance.Create(ctx, &stigmer.AgentInstanceInput{
-  Name: "my-agent-instance",
-  Org:  "acme",
+  Name:            "my-agent-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentId:         "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -236,6 +309,11 @@ agentInstance, err := client.AgentInstance.Create(ctx, &stigmer.AgentInstanceInp
 const agentInstance = await stigmer.agentInstance.create({
   name: "my-agent-instance",
   org: "acme",
+  slug: "...",
+  labels: {},
+  agentId: "...",
+  description: "...",
+  environmentRefs: [],
 });
 ```
 </Tab>
@@ -244,6 +322,11 @@ const agentInstance = await stigmer.agentInstance.create({
 agentInstance = client.agent_instance.create(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
+    slug="...",
+    labels={},
+    agent_id="...",
+    description="...",
+    environment_refs=[],
 ))
 ```
 </Tab>
@@ -252,6 +335,11 @@ agentInstance = client.agent_instance.create(AgentInstanceInput(
 AgentInstance agentInstance = client.agentInstance().create(AgentInstanceInput.builder()
     .name("my-agent-instance")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .agentId("...")
+    .description("...")
+    .environmentRefs(List.of())
     .build());
 ```
 </Tab>
@@ -269,8 +357,13 @@ Update an instance with full state. Used to update entire instance configuration
 <Tab value="Go">
 ```go
 agentInstance, err := client.AgentInstance.Update(ctx, &stigmer.AgentInstanceInput{
-  Name: "my-agent-instance",
-  Org:  "acme",
+  Name:            "my-agent-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentId:         "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -279,6 +372,11 @@ agentInstance, err := client.AgentInstance.Update(ctx, &stigmer.AgentInstanceInp
 const agentInstance = await stigmer.agentInstance.update({
   name: "my-agent-instance",
   org: "acme",
+  slug: "...",
+  labels: {},
+  agentId: "...",
+  description: "...",
+  environmentRefs: [],
 });
 ```
 </Tab>
@@ -287,6 +385,11 @@ const agentInstance = await stigmer.agentInstance.update({
 agentInstance = client.agent_instance.update(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
+    slug="...",
+    labels={},
+    agent_id="...",
+    description="...",
+    environment_refs=[],
 ))
 ```
 </Tab>
@@ -295,6 +398,11 @@ agentInstance = client.agent_instance.update(AgentInstanceInput(
 AgentInstance agentInstance = client.agentInstance().update(AgentInstanceInput.builder()
     .name("my-agent-instance")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .agentId("...")
+    .description("...")
+    .environmentRefs(List.of())
     .build());
 ```
 </Tab>
@@ -354,6 +462,53 @@ Input for creating or updating an Agent Instance.
     agentId: { type: "string", description: "Reference to the Agent template this instance deploys." },
     description: { type: "string", description: "Human-readable description for this instance." },
     environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources (can be multiple)." },
+  }}
+/>
+
+### GetAgentInstancesByAgentRequest
+
+GetAgentInstancesByAgentRequest gets all instances of a specific agent template.
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "Agent ID to filter by (required).", required: true },
+    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+  }}
+/>
+
+### AgentInstanceList
+
+AgentInstanceList represents a list of agent instances.
+
+<TypeTable
+  type={{
+    totalCount: { type: "number", description: "Total count of instances." },
+    items: { type: "AgentInstanceInput[]", description: "List of instances." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### ListAgentInstancesRequest
+
+ListAgentInstancesRequest specifies parameters for listing agent instances.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization to list agent instances for (required)." },
+    labels: { type: "Record<string, string>", description: "Filter by metadata labels (optional)." },
+    pageInfo: { type: "PageInfoInput", description: "Pagination options (optional)." },
   }}
 />
 

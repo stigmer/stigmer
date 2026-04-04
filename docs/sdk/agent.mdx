@@ -107,27 +107,47 @@ Get an agent by its organization-scoped reference (org/slug). Resolves a human-r
 <SDKTabs>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.GetByReference(ctx, input)
+agent, err := client.Agent.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agent = await stigmer.agent.getByReference(input);
+const agent = await stigmer.agent.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.get_by_reference(input)
+agent = client.agent.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().getByReference(input);
+Agent agent = client.agent().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `Agent`
 
@@ -142,27 +162,35 @@ Returns NOT_FOUND if no default agent is configured.
 <SDKTabs>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.GetDefault(ctx, input)
+agent, err := client.Agent.GetDefault(ctx, &stigmer.GetDefaultAgentRequest{
+  Org: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agent = await stigmer.agent.getDefault(input);
+const agent = await stigmer.agent.getDefault({
+  org: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.get_default(input)
+agent = client.agent.get_default(GetDefaultAgentRequest(
+    org="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().getDefault(input);
+Agent agent = client.agent().getDefault(GetDefaultAgentRequest.builder()
+    .org("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `GetDefaultAgentRequest`
+**Parameters**: [`GetDefaultAgentRequest`](#getdefaultagentrequest)
 
 **Returns**: `Agent`
 
@@ -174,8 +202,17 @@ Create or update an agent.
 <Tab value="Go">
 ```go
 agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
-  Name: "my-agent",
-  Org:  "acme",
+  Name:            "my-agent",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  Description:     "...",
+  IconUrl:         "...",
+  Instructions:    "...",
+  McpServerUsages: []stigmer.McpServerUsageInput{},
+  SkillRefs:       []stigmer.ResourceRef{},
+  SubAgents:       []stigmer.SubAgentInput{},
+  EnvSpec:         &stigmer.EnvSpecInput{},
 })
 ```
 </Tab>
@@ -184,6 +221,15 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
 const agent = await stigmer.agent.apply({
   name: "my-agent",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  iconUrl: "...",
+  instructions: "...",
+  mcpServerUsages: [],
+  skillRefs: [],
+  subAgents: [],
+  envSpec: {},
 });
 ```
 </Tab>
@@ -192,6 +238,15 @@ const agent = await stigmer.agent.apply({
 agent = client.agent.apply(AgentInput(
     name="my-agent",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    icon_url="...",
+    instructions="...",
+    mcp_server_usages=[],
+    skill_refs=[],
+    sub_agents=[],
+    env_spec=None,
 ))
 ```
 </Tab>
@@ -200,6 +255,15 @@ agent = client.agent.apply(AgentInput(
 Agent agent = client.agent().apply(AgentInput.builder()
     .name("my-agent")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .iconUrl("...")
+    .instructions("...")
+    .mcpServerUsages(List.of())
+    .skillRefs(List.of())
+    .subAgents(List.of())
+    .envSpec(null)
     .build());
 ```
 </Tab>
@@ -217,8 +281,17 @@ Create an agent.
 <Tab value="Go">
 ```go
 agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
-  Name: "my-agent",
-  Org:  "acme",
+  Name:            "my-agent",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  Description:     "...",
+  IconUrl:         "...",
+  Instructions:    "...",
+  McpServerUsages: []stigmer.McpServerUsageInput{},
+  SkillRefs:       []stigmer.ResourceRef{},
+  SubAgents:       []stigmer.SubAgentInput{},
+  EnvSpec:         &stigmer.EnvSpecInput{},
 })
 ```
 </Tab>
@@ -227,6 +300,15 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
 const agent = await stigmer.agent.create({
   name: "my-agent",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  iconUrl: "...",
+  instructions: "...",
+  mcpServerUsages: [],
+  skillRefs: [],
+  subAgents: [],
+  envSpec: {},
 });
 ```
 </Tab>
@@ -235,6 +317,15 @@ const agent = await stigmer.agent.create({
 agent = client.agent.create(AgentInput(
     name="my-agent",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    icon_url="...",
+    instructions="...",
+    mcp_server_usages=[],
+    skill_refs=[],
+    sub_agents=[],
+    env_spec=None,
 ))
 ```
 </Tab>
@@ -243,6 +334,15 @@ agent = client.agent.create(AgentInput(
 Agent agent = client.agent().create(AgentInput.builder()
     .name("my-agent")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .iconUrl("...")
+    .instructions("...")
+    .mcpServerUsages(List.of())
+    .skillRefs(List.of())
+    .subAgents(List.of())
+    .envSpec(null)
     .build());
 ```
 </Tab>
@@ -260,8 +360,17 @@ Update an existing agent.
 <Tab value="Go">
 ```go
 agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
-  Name: "my-agent",
-  Org:  "acme",
+  Name:            "my-agent",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  Description:     "...",
+  IconUrl:         "...",
+  Instructions:    "...",
+  McpServerUsages: []stigmer.McpServerUsageInput{},
+  SkillRefs:       []stigmer.ResourceRef{},
+  SubAgents:       []stigmer.SubAgentInput{},
+  EnvSpec:         &stigmer.EnvSpecInput{},
 })
 ```
 </Tab>
@@ -270,6 +379,15 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
 const agent = await stigmer.agent.update({
   name: "my-agent",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  iconUrl: "...",
+  instructions: "...",
+  mcpServerUsages: [],
+  skillRefs: [],
+  subAgents: [],
+  envSpec: {},
 });
 ```
 </Tab>
@@ -278,6 +396,15 @@ const agent = await stigmer.agent.update({
 agent = client.agent.update(AgentInput(
     name="my-agent",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    icon_url="...",
+    instructions="...",
+    mcp_server_usages=[],
+    skill_refs=[],
+    sub_agents=[],
+    env_spec=None,
 ))
 ```
 </Tab>
@@ -286,6 +413,15 @@ agent = client.agent.update(AgentInput(
 Agent agent = client.agent().update(AgentInput.builder()
     .name("my-agent")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .iconUrl("...")
+    .instructions("...")
+    .mcpServerUsages(List.of())
+    .skillRefs(List.of())
+    .subAgents(List.of())
+    .envSpec(null)
     .build());
 ```
 </Tab>
@@ -304,27 +440,39 @@ This is a targeted metadata update — it only modifies metadata.visibility, lea
 <SDKTabs>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.UpdateVisibility(ctx, input)
+agent, err := client.Agent.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agent = await stigmer.agent.updateVisibility(input);
+const agent = await stigmer.agent.updateVisibility({
+  resourceId: "...",
+  visibility: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.update_visibility(input)
+agent = client.agent.update_visibility(UpdateVisibilityInput(
+    resource_id="...",
+    visibility="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().updateVisibility(input);
+Agent agent = client.agent().updateVisibility(UpdateVisibilityInput.builder()
+    .resourceId("...")
+    .visibility("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `UpdateVisibilityInput`
+**Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
 
 **Returns**: `Agent`
 
@@ -377,9 +525,9 @@ Input for creating or updating an Agent.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     description: { type: "string", description: "Human-readable description for UI and marketplace display." },
     iconUrl: { type: "string", description: "Icon URL for marketplace and UI display." },
-    instructions: { type: "string", description: "Instructions defining the agent's behavior and personality." },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers this Agent can use." },
-    skillRefs: { type: "ResourceRef[]", description: "Skill resources providing agent knowledge." },
+    instructions: { type: "string", description: "System prompt defining the agent's behavior and personality." },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers this agent can use." },
+    skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent." },
     subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to." },
     envSpec: { type: "EnvSpecInput", description: "Environment variables required by the agent." },
   }}
@@ -387,12 +535,12 @@ Input for creating or updating an Agent.
 
 ### McpServerUsageInput
 
-McpServerUsage declares that this Agent uses a McpServer resource.
+McpServerUsage declares that this agent uses a McpServer resource.
 
 <TypeTable
   type={{
     mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", required: true },
-    enabledTools: { type: "string[]", description: "Tools to enable from this MCP server for this Agent." },
+    enabledTools: { type: "string[]", description: "Tools to enable from this MCP server for this agent." },
     toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools." },
   }}
 />
@@ -405,7 +553,7 @@ ToolApprovalOverride allows per-agent customization of approval requirements.
   type={{
     toolName: { type: "string", description: "Name of the tool to override." },
     requiresApproval: { type: "boolean", description: "Whether this tool requires approval for this agent." },
-    message: { type: "string", description: "Optional: Custom approval message for this agent." },
+    message: { type: "string", description: "Custom approval message shown to the reviewer." },
   }}
 />
 
@@ -416,22 +564,56 @@ SubAgent defines a specialized agent that the parent can delegate to.
 <TypeTable
   type={{
     name: { type: "string", description: "Unique name of the sub-agent within the parent agent.", required: true },
-    description: { type: "string", description: "Description of what this sub-agent specializes in." },
-    instructions: { type: "string", description: "Behavior instructions for this sub-agent." },
+    description: { type: "string", description: "What this sub-agent specializes in." },
+    instructions: { type: "string", description: "System prompt for this sub-agent." },
     mcpAccess: { type: "McpAccessInput[]", description: "MCP server access grants for this sub-agent." },
-    skillRefs: { type: "ResourceRef[]", description: "Skill resources for this sub-agent's knowledge." },
+    skillRefs: { type: "ResourceRef[]", description: "Skill resources for this sub-agent." },
     modelOverride: { type: "string", description: "Model override for this sub-agent." },
   }}
 />
 
 ### McpAccessInput
 
-McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
+McpAccess grants a sub-agent access to one of the parent's MCP servers.
 
 <TypeTable
   type={{
     mcpServer: { type: "string", description: "Slug of the McpServer to grant access to.", required: true },
-    enabledTools: { type: "string[]", description: "Tools this SubAgent can use from this MCP server." },
+    enabledTools: { type: "string[]", description: "Tools this sub-agent can use from this MCP server." },
+  }}
+/>
+
+### UpdateVisibilityInput
+
+Input for updating the visibility of any API resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### GetDefaultAgentRequest
+
+GetDefaultAgentRequest is the input for retrieving the platform default agent.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug for authorization scoping." },
   }}
 />
 

@@ -12,12 +12,23 @@ import (
 	"unicode"
 )
 
+// MethodTypeSchema describes a proto message type used as a method parameter
+// or return value, extracted by proto2schema for SDK documentation.
+type MethodTypeSchema struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	ProtoType   string         `json:"protoType"`
+	ProtoFile   string         `json:"protoFile"`
+	Fields      []*FieldSchema `json:"fields"`
+}
+
 type ServiceSchemaFile struct {
 	Resource     string              `json:"resource"`
 	Package      string              `json:"package"`
 	GoImportPath string              `json:"goImportPath"`
 	Services     []ServiceDefinition `json:"services"`
 	ListVia      string              `json:"listVia,omitempty"`
+	MethodTypes  []MethodTypeSchema  `json:"methodTypes,omitempty"`
 }
 
 type ServiceDefinition struct {
@@ -44,6 +55,7 @@ type sdkResourceConfig struct {
 	idType       string
 	specSchema   string
 	apiVersion   string
+	idPrefix     string
 }
 
 // metaFieldNames are fields that always come from ApiResourceMetadata.

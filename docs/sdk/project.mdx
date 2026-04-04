@@ -91,27 +91,47 @@ Get a project by reference (org/name).
 <SDKTabs>
 <Tab value="Go">
 ```go
-project, err := client.Project.GetByReference(ctx, input)
+project, err := client.Project.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const project = await stigmer.project.getByReference(input);
+const project = await stigmer.project.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-project = client.project.get_by_reference(input)
+project = client.project.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Project project = client.project().getByReference(input);
+Project project = client.project().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `Project`
 
@@ -123,8 +143,13 @@ Create or update a project. The authorization and state-operation are determined
 <Tab value="Go">
 ```go
 project, err := client.Project.Apply(ctx, &stigmer.ProjectInput{
-  Name: "my-project",
-  Org:  "acme",
+  Name:        "my-project",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  EntryPoint:  "...",
+  Description: "...",
+  Members:     []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -133,6 +158,11 @@ project, err := client.Project.Apply(ctx, &stigmer.ProjectInput{
 const project = await stigmer.project.apply({
   name: "my-project",
   org: "acme",
+  slug: "...",
+  labels: {},
+  entryPoint: "...",
+  description: "...",
+  members: [],
 });
 ```
 </Tab>
@@ -141,6 +171,11 @@ const project = await stigmer.project.apply({
 project = client.project.apply(ProjectInput(
     name="my-project",
     org="acme",
+    slug="...",
+    labels={},
+    entry_point="...",
+    description="...",
+    members=[],
 ))
 ```
 </Tab>
@@ -149,6 +184,11 @@ project = client.project.apply(ProjectInput(
 Project project = client.project().apply(ProjectInput.builder()
     .name("my-project")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .entryPoint("...")
+    .description("...")
+    .members(List.of())
     .build());
 ```
 </Tab>
@@ -168,8 +208,13 @@ Authorization: - Organization-scoped projects: Caller must have can_create_proje
 <Tab value="Go">
 ```go
 project, err := client.Project.Create(ctx, &stigmer.ProjectInput{
-  Name: "my-project",
-  Org:  "acme",
+  Name:        "my-project",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  EntryPoint:  "...",
+  Description: "...",
+  Members:     []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -178,6 +223,11 @@ project, err := client.Project.Create(ctx, &stigmer.ProjectInput{
 const project = await stigmer.project.create({
   name: "my-project",
   org: "acme",
+  slug: "...",
+  labels: {},
+  entryPoint: "...",
+  description: "...",
+  members: [],
 });
 ```
 </Tab>
@@ -186,6 +236,11 @@ const project = await stigmer.project.create({
 project = client.project.create(ProjectInput(
     name="my-project",
     org="acme",
+    slug="...",
+    labels={},
+    entry_point="...",
+    description="...",
+    members=[],
 ))
 ```
 </Tab>
@@ -194,6 +249,11 @@ project = client.project.create(ProjectInput(
 Project project = client.project().create(ProjectInput.builder()
     .name("my-project")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .entryPoint("...")
+    .description("...")
+    .members(List.of())
     .build());
 ```
 </Tab>
@@ -211,8 +271,13 @@ Update an existing project.
 <Tab value="Go">
 ```go
 project, err := client.Project.Update(ctx, &stigmer.ProjectInput{
-  Name: "my-project",
-  Org:  "acme",
+  Name:        "my-project",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  EntryPoint:  "...",
+  Description: "...",
+  Members:     []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -221,6 +286,11 @@ project, err := client.Project.Update(ctx, &stigmer.ProjectInput{
 const project = await stigmer.project.update({
   name: "my-project",
   org: "acme",
+  slug: "...",
+  labels: {},
+  entryPoint: "...",
+  description: "...",
+  members: [],
 });
 ```
 </Tab>
@@ -229,6 +299,11 @@ const project = await stigmer.project.update({
 project = client.project.update(ProjectInput(
     name="my-project",
     org="acme",
+    slug="...",
+    labels={},
+    entry_point="...",
+    description="...",
+    members=[],
 ))
 ```
 </Tab>
@@ -237,6 +312,11 @@ project = client.project.update(ProjectInput(
 Project project = client.project().update(ProjectInput.builder()
     .name("my-project")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .entryPoint("...")
+    .description("...")
+    .members(List.of())
     .build());
 ```
 </Tab>
@@ -296,6 +376,19 @@ Input for creating or updating a Project.
     entryPoint: { type: "string", description: "Entry point file for SDK synthesis." },
     description: { type: "string", description: "Human-readable description of the project." },
     members: { type: "ResourceRef[]", description: "References to resources managed by this project." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 

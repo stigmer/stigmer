@@ -99,29 +99,53 @@ Get usage report for an agent (all sessions for an agent in a time range). Retur
 <SDKTabs>
 <Tab value="Go">
 ```go
-getAgentUsageReportOutput, err := client.AgentExecution.GetAgentUsageReport(ctx, input)
+getAgentUsageReportOutput, err := client.AgentExecution.GetAgentUsageReport(ctx, &stigmer.GetAgentUsageReportInput{
+  AgentId:   "...",
+  FromDate:  "...",
+  ToDate:    "...",
+  PageSize:  0,
+  PageToken: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const getAgentUsageReportOutput = await stigmer.agentExecution.getAgentUsageReport(input);
+const getAgentUsageReportOutput = await stigmer.agentExecution.getAgentUsageReport({
+  agentId: "...",
+  fromDate: "...",
+  toDate: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-getAgentUsageReportOutput = client.agent_execution.get_agent_usage_report(input)
+getAgentUsageReportOutput = client.agent_execution.get_agent_usage_report(GetAgentUsageReportInput(
+    agent_id="...",
+    from_date="...",
+    to_date="...",
+    page_size=0,
+    page_token="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetAgentUsageReportOutput getAgentUsageReportOutput = client.agentExecution().getAgentUsageReport(input);
+GetAgentUsageReportOutput getAgentUsageReportOutput = client.agentExecution().getAgentUsageReport(GetAgentUsageReportInput.builder()
+    .agentId("...")
+    .fromDate("...")
+    .toDate("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `GetAgentUsageReportInput`
+**Parameters**: [`GetAgentUsageReportInput`](#getagentusagereportinput)
 
-**Returns**: `GetAgentUsageReportOutput`
+**Returns**: [`GetAgentUsageReportOutput`](#getagentusagereportoutput)
 
 ### getArtifactContent
 
@@ -134,29 +158,49 @@ For direct file downloads, use getArtifactDownloadUrl instead — it returns a p
 <SDKTabs>
 <Tab value="Go">
 ```go
-getArtifactContentResponse, err := client.AgentExecution.GetArtifactContent(ctx, input)
+getArtifactContentResponse, err := client.AgentExecution.GetArtifactContent(ctx, &stigmer.GetArtifactContentRequest{
+  ExecutionId: "...",
+  StorageKey:  "...",
+  MaxBytes:    0,
+  EntryPath:   "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const getArtifactContentResponse = await stigmer.agentExecution.getArtifactContent(input);
+const getArtifactContentResponse = await stigmer.agentExecution.getArtifactContent({
+  executionId: "...",
+  storageKey: "...",
+  maxBytes: 0,
+  entryPath: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-getArtifactContentResponse = client.agent_execution.get_artifact_content(input)
+getArtifactContentResponse = client.agent_execution.get_artifact_content(GetArtifactContentRequest(
+    execution_id="...",
+    storage_key="...",
+    max_bytes=0,
+    entry_path="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetArtifactContentResponse getArtifactContentResponse = client.agentExecution().getArtifactContent(input);
+GetArtifactContentResponse getArtifactContentResponse = client.agentExecution().getArtifactContent(GetArtifactContentRequest.builder()
+    .executionId("...")
+    .storageKey("...")
+    .maxBytes(0)
+    .entryPath("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `GetArtifactContentRequest`
+**Parameters**: [`GetArtifactContentRequest`](#getartifactcontentrequest)
 
-**Returns**: `GetArtifactContentResponse`
+**Returns**: [`GetArtifactContentResponse`](#getartifactcontentresponse)
 
 ### getArtifactDownloadUrl
 
@@ -167,29 +211,41 @@ Returns a time-limited URL for downloading an artifact published by an agent dur
 <SDKTabs>
 <Tab value="Go">
 ```go
-getArtifactDownloadUrlResponse, err := client.AgentExecution.GetArtifactDownloadUrl(ctx, input)
+getArtifactDownloadUrlResponse, err := client.AgentExecution.GetArtifactDownloadUrl(ctx, &stigmer.GetArtifactDownloadUrlRequest{
+  ExecutionId: "...",
+  StorageKey:  "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const getArtifactDownloadUrlResponse = await stigmer.agentExecution.getArtifactDownloadUrl(input);
+const getArtifactDownloadUrlResponse = await stigmer.agentExecution.getArtifactDownloadUrl({
+  executionId: "...",
+  storageKey: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-getArtifactDownloadUrlResponse = client.agent_execution.get_artifact_download_url(input)
+getArtifactDownloadUrlResponse = client.agent_execution.get_artifact_download_url(GetArtifactDownloadUrlRequest(
+    execution_id="...",
+    storage_key="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.agentExecution().getArtifactDownloadUrl(input);
+GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.agentExecution().getArtifactDownloadUrl(GetArtifactDownloadUrlRequest.builder()
+    .executionId("...")
+    .storageKey("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `GetArtifactDownloadUrlRequest`
+**Parameters**: [`GetArtifactDownloadUrlRequest`](#getartifactdownloadurlrequest)
 
-**Returns**: `GetArtifactDownloadUrlResponse`
+**Returns**: [`GetArtifactDownloadUrlResponse`](#getartifactdownloadurlresponse)
 
 ### getOrgUsageReport
 
@@ -198,29 +254,45 @@ Get usage report for an organization (all agents in a time range). Returns org-w
 <SDKTabs>
 <Tab value="Go">
 ```go
-getOrgUsageReportOutput, err := client.AgentExecution.GetOrgUsageReport(ctx, input)
+getOrgUsageReportOutput, err := client.AgentExecution.GetOrgUsageReport(ctx, &stigmer.GetOrgUsageReportInput{
+  OrgId:    "...",
+  FromDate: "...",
+  ToDate:   "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const getOrgUsageReportOutput = await stigmer.agentExecution.getOrgUsageReport(input);
+const getOrgUsageReportOutput = await stigmer.agentExecution.getOrgUsageReport({
+  orgId: "...",
+  fromDate: "...",
+  toDate: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-getOrgUsageReportOutput = client.agent_execution.get_org_usage_report(input)
+getOrgUsageReportOutput = client.agent_execution.get_org_usage_report(GetOrgUsageReportInput(
+    org_id="...",
+    from_date="...",
+    to_date="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetOrgUsageReportOutput getOrgUsageReportOutput = client.agentExecution().getOrgUsageReport(input);
+GetOrgUsageReportOutput getOrgUsageReportOutput = client.agentExecution().getOrgUsageReport(GetOrgUsageReportInput.builder()
+    .orgId("...")
+    .fromDate("...")
+    .toDate("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `GetOrgUsageReportInput`
+**Parameters**: [`GetOrgUsageReportInput`](#getorgusagereportinput)
 
-**Returns**: `GetOrgUsageReportOutput`
+**Returns**: [`GetOrgUsageReportOutput`](#getorgusagereportoutput)
 
 ### getSessionUsageReport
 
@@ -229,29 +301,37 @@ Get usage report for a session (all executions in a session). Returns aggregated
 <SDKTabs>
 <Tab value="Go">
 ```go
-getSessionUsageReportOutput, err := client.AgentExecution.GetSessionUsageReport(ctx, input)
+getSessionUsageReportOutput, err := client.AgentExecution.GetSessionUsageReport(ctx, &stigmer.GetSessionUsageReportInput{
+  SessionId: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const getSessionUsageReportOutput = await stigmer.agentExecution.getSessionUsageReport(input);
+const getSessionUsageReportOutput = await stigmer.agentExecution.getSessionUsageReport({
+  sessionId: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-getSessionUsageReportOutput = client.agent_execution.get_session_usage_report(input)
+getSessionUsageReportOutput = client.agent_execution.get_session_usage_report(GetSessionUsageReportInput(
+    session_id="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetSessionUsageReportOutput getSessionUsageReportOutput = client.agentExecution().getSessionUsageReport(input);
+GetSessionUsageReportOutput getSessionUsageReportOutput = client.agentExecution().getSessionUsageReport(GetSessionUsageReportInput.builder()
+    .sessionId("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `GetSessionUsageReportInput`
+**Parameters**: [`GetSessionUsageReportInput`](#getsessionusagereportinput)
 
-**Returns**: `GetSessionUsageReportOutput`
+**Returns**: [`GetSessionUsageReportOutput`](#getsessionusagereportoutput)
 
 ### list
 
@@ -260,29 +340,49 @@ List all agent executions with pagination and optional filtering.
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.AgentExecution.List(ctx, input)
+result, err := client.AgentExecution.List(ctx, &stigmer.ListAgentExecutionsRequest{
+  PageSize:  0,
+  PageToken: "...",
+  Phase:     "...",
+  Tags:      []string{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.agentExecution.list(input);
+const result = await stigmer.agentExecution.list({
+  pageSize: 0,
+  pageToken: "...",
+  phase: "...",
+  tags: [],
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agent_execution.list(input)
+result = client.agent_execution.list(ListAgentExecutionsRequest(
+    page_size=0,
+    page_token="...",
+    phase="...",
+    tags=[],
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecutionList result = client.agentExecution().list(input);
+AgentExecutionList result = client.agentExecution().list(ListAgentExecutionsRequest.builder()
+    .pageSize(0)
+    .pageToken("...")
+    .phase("...")
+    .tags(List.of())
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ListAgentExecutionsRequest`
+**Parameters**: [`ListAgentExecutionsRequest`](#listagentexecutionsrequest)
 
-**Returns**: `AgentExecutionList`
+**Returns**: [`AgentExecutionList`](#agentexecutionlist)
 
 ### listBySession
 
@@ -291,29 +391,45 @@ List all executions in a specific session.
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.AgentExecution.ListBySession(ctx, input)
+result, err := client.AgentExecution.ListBySession(ctx, &stigmer.ListAgentExecutionsBySessionRequest{
+  SessionId: "...",
+  PageSize:  0,
+  PageToken: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.agentExecution.listBySession(input);
+const result = await stigmer.agentExecution.listBySession({
+  sessionId: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agent_execution.list_by_session(input)
+result = client.agent_execution.list_by_session(ListAgentExecutionsBySessionRequest(
+    session_id="...",
+    page_size=0,
+    page_token="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecutionList result = client.agentExecution().listBySession(input);
+AgentExecutionList result = client.agentExecution().listBySession(ListAgentExecutionsBySessionRequest.builder()
+    .sessionId("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ListAgentExecutionsBySessionRequest`
+**Parameters**: [`ListAgentExecutionsBySessionRequest`](#listagentexecutionsbysessionrequest)
 
-**Returns**: `AgentExecutionList`
+**Returns**: [`AgentExecutionList`](#agentexecutionlist)
 
 ### subscribe
 
@@ -373,8 +489,20 @@ Create and trigger a new agent execution. Session is optional — can be provide
 <Tab value="Go">
 ```go
 agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
-  Name: "my-agent-execution",
-  Org:  "acme",
+  Name:              "my-agent-execution",
+  Org:               "acme",
+  Slug:              "...",
+  Labels:            map[string]string{},
+  SessionId:         "...",
+  AgentId:           "...",
+  Message:           "...",
+  ExecutionConfig:   &stigmer.ExecutionConfigInput{},
+  RuntimeEnv:        map[string]string{},
+  CallbackToken:     "...",
+  AutoApproveAll:    false,
+  ParentWorkflowId:  "...",
+  Attachments:       []stigmer.AttachmentInput{},
+  WorkspaceFileRefs: []string{},
 })
 ```
 </Tab>
@@ -383,6 +511,18 @@ agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecution
 const agentExecution = await stigmer.agentExecution.create({
   name: "my-agent-execution",
   org: "acme",
+  slug: "...",
+  labels: {},
+  sessionId: "...",
+  agentId: "...",
+  message: "...",
+  executionConfig: {},
+  runtimeEnv: {},
+  callbackToken: "...",
+  autoApproveAll: false,
+  parentWorkflowId: "...",
+  attachments: [],
+  workspaceFileRefs: [],
 });
 ```
 </Tab>
@@ -391,6 +531,18 @@ const agentExecution = await stigmer.agentExecution.create({
 agentExecution = client.agent_execution.create(AgentExecutionInput(
     name="my-agent-execution",
     org="acme",
+    slug="...",
+    labels={},
+    session_id="...",
+    agent_id="...",
+    message="...",
+    execution_config=None,
+    runtime_env={},
+    callback_token="...",
+    auto_approve_all=False,
+    parent_workflow_id="...",
+    attachments=[],
+    workspace_file_refs=[],
 ))
 ```
 </Tab>
@@ -399,6 +551,18 @@ agentExecution = client.agent_execution.create(AgentExecutionInput(
 AgentExecution agentExecution = client.agentExecution().create(AgentExecutionInput.builder()
     .name("my-agent-execution")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .sessionId("...")
+    .agentId("...")
+    .message("...")
+    .executionConfig(null)
+    .runtimeEnv(Map.of())
+    .callbackToken("...")
+    .autoApproveAll(false)
+    .parentWorkflowId("...")
+    .attachments(List.of())
+    .workspaceFileRefs(List.of())
     .build());
 ```
 </Tab>
@@ -416,8 +580,20 @@ Update an execution with full state. Used by users to update execution configura
 <Tab value="Go">
 ```go
 agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecutionInput{
-  Name: "my-agent-execution",
-  Org:  "acme",
+  Name:              "my-agent-execution",
+  Org:               "acme",
+  Slug:              "...",
+  Labels:            map[string]string{},
+  SessionId:         "...",
+  AgentId:           "...",
+  Message:           "...",
+  ExecutionConfig:   &stigmer.ExecutionConfigInput{},
+  RuntimeEnv:        map[string]string{},
+  CallbackToken:     "...",
+  AutoApproveAll:    false,
+  ParentWorkflowId:  "...",
+  Attachments:       []stigmer.AttachmentInput{},
+  WorkspaceFileRefs: []string{},
 })
 ```
 </Tab>
@@ -426,6 +602,18 @@ agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecution
 const agentExecution = await stigmer.agentExecution.update({
   name: "my-agent-execution",
   org: "acme",
+  slug: "...",
+  labels: {},
+  sessionId: "...",
+  agentId: "...",
+  message: "...",
+  executionConfig: {},
+  runtimeEnv: {},
+  callbackToken: "...",
+  autoApproveAll: false,
+  parentWorkflowId: "...",
+  attachments: [],
+  workspaceFileRefs: [],
 });
 ```
 </Tab>
@@ -434,6 +622,18 @@ const agentExecution = await stigmer.agentExecution.update({
 agentExecution = client.agent_execution.update(AgentExecutionInput(
     name="my-agent-execution",
     org="acme",
+    slug="...",
+    labels={},
+    session_id="...",
+    agent_id="...",
+    message="...",
+    execution_config=None,
+    runtime_env={},
+    callback_token="...",
+    auto_approve_all=False,
+    parent_workflow_id="...",
+    attachments=[],
+    workspace_file_refs=[],
 ))
 ```
 </Tab>
@@ -442,6 +642,18 @@ agentExecution = client.agent_execution.update(AgentExecutionInput(
 AgentExecution agentExecution = client.agentExecution().update(AgentExecutionInput.builder()
     .name("my-agent-execution")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .sessionId("...")
+    .agentId("...")
+    .message("...")
+    .executionConfig(null)
+    .runtimeEnv(Map.of())
+    .callbackToken("...")
+    .autoApproveAll(false)
+    .parentWorkflowId("...")
+    .attachments(List.of())
+    .workspaceFileRefs(List.of())
     .build());
 ```
 </Tab>
@@ -458,27 +670,39 @@ Update execution status during agent execution.
 <SDKTabs>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.UpdateStatus(ctx, input)
+agentExecution, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExecutionUpdateStatusInput{
+  ExecutionId: "...",
+  Status:      &stigmer.AgentExecutionStatusInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.updateStatus(input);
+const agentExecution = await stigmer.agentExecution.updateStatus({
+  executionId: "...",
+  status: {},
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.update_status(input)
+agentExecution = client.agent_execution.update_status(AgentExecutionUpdateStatusInput(
+    execution_id="...",
+    status=None,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().updateStatus(input);
+AgentExecution agentExecution = client.agentExecution().updateStatus(AgentExecutionUpdateStatusInput.builder()
+    .executionId("...")
+    .status(null)
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `AgentExecutionUpdateStatusInput`
+**Parameters**: [`AgentExecutionUpdateStatusInput`](#agentexecutionupdatestatusinput)
 
 **Returns**: `AgentExecution`
 
@@ -526,27 +750,39 @@ Temporarily stops the agent at its current checkpoint. Unlike cancel, the execut
 <SDKTabs>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.Pause(ctx, input)
+agentExecution, err := client.AgentExecution.Pause(ctx, &stigmer.PauseAgentExecutionInput{
+  Id:     "...",
+  Reason: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.pause(input);
+const agentExecution = await stigmer.agentExecution.pause({
+  id: "...",
+  reason: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.pause(input)
+agentExecution = client.agent_execution.pause(PauseAgentExecutionInput(
+    id="...",
+    reason="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().pause(input);
+AgentExecution agentExecution = client.agentExecution().pause(PauseAgentExecutionInput.builder()
+    .id("...")
+    .reason("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `PauseAgentExecutionInput`
+**Parameters**: [`PauseAgentExecutionInput`](#pauseagentexecutioninput)
 
 **Returns**: `AgentExecution`
 
@@ -559,27 +795,35 @@ Continues execution from the checkpoint where it was paused. The agent re-invoke
 <SDKTabs>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.Resume(ctx, input)
+agentExecution, err := client.AgentExecution.Resume(ctx, &stigmer.ResumeAgentExecutionInput{
+  Id: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.resume(input);
+const agentExecution = await stigmer.agentExecution.resume({
+  id: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.resume(input)
+agentExecution = client.agent_execution.resume(ResumeAgentExecutionInput(
+    id="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().resume(input);
+AgentExecution agentExecution = client.agentExecution().resume(ResumeAgentExecutionInput.builder()
+    .id("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ResumeAgentExecutionInput`
+**Parameters**: [`ResumeAgentExecutionInput`](#resumeagentexecutioninput)
 
 **Returns**: `AgentExecution`
 
@@ -592,27 +836,39 @@ Sends a cancellation signal to the agent execution. The agent can handle the can
 <SDKTabs>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.Cancel(ctx, input)
+agentExecution, err := client.AgentExecution.Cancel(ctx, &stigmer.CancelAgentExecutionInput{
+  Id:     "...",
+  Reason: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.cancel(input);
+const agentExecution = await stigmer.agentExecution.cancel({
+  id: "...",
+  reason: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.cancel(input)
+agentExecution = client.agent_execution.cancel(CancelAgentExecutionInput(
+    id="...",
+    reason="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().cancel(input);
+AgentExecution agentExecution = client.agentExecution().cancel(CancelAgentExecutionInput.builder()
+    .id("...")
+    .reason("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `CancelAgentExecutionInput`
+**Parameters**: [`CancelAgentExecutionInput`](#cancelagentexecutioninput)
 
 **Returns**: `AgentExecution`
 
@@ -625,27 +881,39 @@ Force-stops the agent execution without allowing cleanup. Unlike cancel, the age
 <SDKTabs>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.Terminate(ctx, input)
+agentExecution, err := client.AgentExecution.Terminate(ctx, &stigmer.TerminateAgentExecutionInput{
+  Id:     "...",
+  Reason: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.terminate(input);
+const agentExecution = await stigmer.agentExecution.terminate({
+  id: "...",
+  reason: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.terminate(input)
+agentExecution = client.agent_execution.terminate(TerminateAgentExecutionInput(
+    id="...",
+    reason="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().terminate(input);
+AgentExecution agentExecution = client.agentExecution().terminate(TerminateAgentExecutionInput.builder()
+    .id("...")
+    .reason("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `TerminateAgentExecutionInput`
+**Parameters**: [`TerminateAgentExecutionInput`](#terminateagentexecutioninput)
 
 **Returns**: `AgentExecution`
 
@@ -658,27 +926,35 @@ Resumes execution from the last checkpoint. Completed work is preserved - succes
 <SDKTabs>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.Recover(ctx, input)
+agentExecution, err := client.AgentExecution.Recover(ctx, &stigmer.RecoverAgentExecutionInput{
+  Id: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.recover(input);
+const agentExecution = await stigmer.agentExecution.recover({
+  id: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.recover(input)
+agentExecution = client.agent_execution.recover(RecoverAgentExecutionInput(
+    id="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().recover(input);
+AgentExecution agentExecution = client.agentExecution().recover(RecoverAgentExecutionInput.builder()
+    .id("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `RecoverAgentExecutionInput`
+**Parameters**: [`RecoverAgentExecutionInput`](#recoveragentexecutioninput)
 
 **Returns**: `AgentExecution`
 
@@ -689,27 +965,47 @@ Submit approval decision for a pending tool call (HITL Phase 1).
 <SDKTabs>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.SubmitApproval(ctx, input)
+agentExecution, err := client.AgentExecution.SubmitApproval(ctx, &stigmer.SubmitApprovalInput{
+  AgentExecutionId: "...",
+  ToolCallId:       "...",
+  Action:           "...",
+  Comment:          "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.submitApproval(input);
+const agentExecution = await stigmer.agentExecution.submitApproval({
+  agentExecutionId: "...",
+  toolCallId: "...",
+  action: "...",
+  comment: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.submit_approval(input)
+agentExecution = client.agent_execution.submit_approval(SubmitApprovalInput(
+    agent_execution_id="...",
+    tool_call_id="...",
+    action="...",
+    comment="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().submitApproval(input);
+AgentExecution agentExecution = client.agentExecution().submitApproval(SubmitApprovalInput.builder()
+    .agentExecutionId("...")
+    .toolCallId("...")
+    .action("...")
+    .comment("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `SubmitApprovalInput`
+**Parameters**: [`SubmitApprovalInput`](#submitapprovalinput)
 
 **Returns**: `AgentExecution`
 
@@ -722,29 +1018,45 @@ Pre-uploads files to artifact storage before creating an execution. The returned
 <SDKTabs>
 <Tab value="Go">
 ```go
-uploadAttachmentResponse, err := client.AgentExecution.UploadAttachment(ctx, input)
+uploadAttachmentResponse, err := client.AgentExecution.UploadAttachment(ctx, &stigmer.UploadAttachmentRequest{
+  Filename:    "...",
+  Content:     "...",
+  ContentType: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const uploadAttachmentResponse = await stigmer.agentExecution.uploadAttachment(input);
+const uploadAttachmentResponse = await stigmer.agentExecution.uploadAttachment({
+  filename: "...",
+  content: "...",
+  contentType: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-uploadAttachmentResponse = client.agent_execution.upload_attachment(input)
+uploadAttachmentResponse = client.agent_execution.upload_attachment(UploadAttachmentRequest(
+    filename="...",
+    content="...",
+    content_type="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-UploadAttachmentResponse uploadAttachmentResponse = client.agentExecution().uploadAttachment(input);
+UploadAttachmentResponse uploadAttachmentResponse = client.agentExecution().uploadAttachment(UploadAttachmentRequest.builder()
+    .filename("...")
+    .content("...")
+    .contentType("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `UploadAttachmentRequest`
+**Parameters**: [`UploadAttachmentRequest`](#uploadattachmentrequest)
 
-**Returns**: `UploadAttachmentResponse`
+**Returns**: [`UploadAttachmentResponse`](#uploadattachmentresponse)
 
 ## Types
 
@@ -809,6 +1121,277 @@ Attachment represents a file attached to an agent execution.
     contentType: { type: "string", description: "MIME type for content negotiation (optional)." },
     extract: { type: "boolean", description: "When true, the attachment is a zip archive that should be extracted at mount_path rather than written as a single file." },
     localPath: { type: "string", description: "Absolute filesystem path to the original file on the CLI host (optional)." },
+  }}
+/>
+
+### AgentExecutionUpdateStatusInput
+
+Input message for updateStatus RPC.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "ID of the agent execution to update (required)." },
+    status: { type: "AgentExecutionStatusInput", description: "Status fields to update.", required: true },
+  }}
+/>
+
+### SubmitApprovalInput
+
+Input for submitting an approval decision (HITL Phase 1).
+
+<TypeTable
+  type={{
+    agentExecutionId: { type: "string", description: "ID of the agent execution." },
+    toolCallId: { type: "string", description: "ID of the tool call to approve/skip/reject." },
+    action: { type: "ApprovalAction", description: "User's decision: APPROVE, SKIP, or REJECT." },
+    comment: { type: "string", description: "Optional reason/comment for the decision." },
+  }}
+/>
+
+### CancelAgentExecutionInput
+
+CancelAgentExecutionInput requests graceful cancellation of an agent execution.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Agent execution ID to cancel." },
+    reason: { type: "string", description: "Human-readable reason for cancellation." },
+  }}
+/>
+
+### TerminateAgentExecutionInput
+
+TerminateAgentExecutionInput requests immediate termination of an agent execution.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Agent execution ID to terminate." },
+    reason: { type: "string", description: "Human-readable reason for termination." },
+  }}
+/>
+
+### RecoverAgentExecutionInput
+
+RecoverAgentExecutionInput requests recovery of a failed agent execution.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Agent execution ID to recover." },
+  }}
+/>
+
+### PauseAgentExecutionInput
+
+PauseAgentExecutionInput requests temporarily pausing an agent execution.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Agent execution ID to pause." },
+    reason: { type: "string", description: "Human-readable reason for pausing." },
+  }}
+/>
+
+### ResumeAgentExecutionInput
+
+ResumeAgentExecutionInput requests resuming a paused agent execution.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Agent execution ID to resume." },
+  }}
+/>
+
+### UploadAttachmentRequest
+
+UploadAttachmentRequest uploads a file attachment for use in an agent execution.
+
+<TypeTable
+  type={{
+    filename: { type: "string", description: "Original filename of the attachment." },
+    content: { type: "Uint8Array", description: "Binary content of the file.", required: true },
+    contentType: { type: "string", description: "MIME type of the file content." },
+  }}
+/>
+
+### UploadAttachmentResponse
+
+UploadAttachmentResponse returns the storage key for the uploaded attachment.
+
+<TypeTable
+  type={{
+    storageKey: { type: "string", description: "Storage key for the uploaded attachment." },
+  }}
+/>
+
+### ListAgentExecutionsRequest
+
+ListAgentExecutionsRequest specifies parameters for listing executions.
+
+<TypeTable
+  type={{
+    pageSize: { type: "number", description: "Maximum number of executions to return per page." },
+    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+    phase: { type: "ExecutionPhase", description: "Filter by execution phase (optional)." },
+    tags: { type: "string[]", description: "Filter by tags (optional)." },
+  }}
+/>
+
+### AgentExecutionList
+
+AgentExecutionList contains a paginated list of agent executions.
+
+<TypeTable
+  type={{
+    totalPages: { type: "number", description: "Total number of pages available." },
+    entries: { type: "AgentExecutionInput[]", description: "Agent executions in the current page." },
+  }}
+/>
+
+### ListAgentExecutionsBySessionRequest
+
+ListAgentExecutionsBySessionRequest lists all executions in a session.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "Session ID to filter by.", required: true },
+    pageSize: { type: "number", description: "Maximum number of executions to return per page." },
+    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+  }}
+/>
+
+### GetArtifactDownloadUrlRequest
+
+GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "ID of the agent execution that produced the artifact." },
+    storageKey: { type: "string", description: "Storage key of the artifact to download." },
+  }}
+/>
+
+### GetArtifactDownloadUrlResponse
+
+GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
+
+<TypeTable
+  type={{
+    downloadUrl: { type: "string", description: "Presigned URL for downloading the artifact." },
+    expiresAt: { type: "string", description: "ISO 8601 timestamp when the download URL expires." },
+  }}
+/>
+
+### GetArtifactContentRequest
+
+GetArtifactContentRequest reads the raw content of an execution artifact.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "ID of the agent execution that produced the artifact." },
+    storageKey: { type: "string", description: "Storage key of the artifact to read." },
+    maxBytes: { type: "number", description: "Maximum number of bytes to return." },
+    entryPath: { type: "string", description: "For directory artifacts (ZIPs): extract a specific file by its path within the archive instead of returning the raw ZIP bytes." },
+  }}
+/>
+
+### GetArtifactContentResponse
+
+GetArtifactContentResponse returns the raw content of an execution artifact.
+
+<TypeTable
+  type={{
+    content: { type: "Uint8Array", description: "Raw artifact content (up to max_bytes)." },
+    contentType: { type: "string", description: "Detected content type based on file extension." },
+    totalSizeBytes: { type: "number", description: "Actual total size of the artifact in bytes." },
+    truncated: { type: "boolean", description: "Whether the content was truncated to fit within max_bytes." },
+  }}
+/>
+
+### GetSessionUsageReportInput
+
+GetSessionUsageReportInput requests a usage report for a single session.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "Session ID to get usage report for." },
+  }}
+/>
+
+### GetSessionUsageReportOutput
+
+GetSessionUsageReportOutput returns aggregated usage for a session.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "Session identifier." },
+    executionCount: { type: "number", description: "Total number of executions in this session." },
+    totalUsage: { type: "UsageMetricsInput", description: "Aggregated usage across all executions in this session." },
+    executions: { type: "ExecutionUsageSummaryInput[]", description: "Per-execution breakdown (ordered chronologically)." },
+    modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the entire session." },
+    totalSummarizationCostUsd: { type: "number", description: "Total summarization cost across all executions." },
+    firstExecutionAt: { type: "string", description: "ISO 8601 timestamp of the first execution in this session." },
+    lastExecutionAt: { type: "string", description: "ISO 8601 timestamp of the most recent execution in this session." },
+  }}
+/>
+
+### GetAgentUsageReportInput
+
+GetAgentUsageReportInput requests a usage report for a specific agent.
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "Agent ID to get usage report for." },
+    fromDate: { type: "string", description: "Start of time range filter (ISO 8601, inclusive)." },
+    toDate: { type: "string", description: "End of time range filter (ISO 8601, inclusive)." },
+    pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
+    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+  }}
+/>
+
+### GetAgentUsageReportOutput
+
+GetAgentUsageReportOutput returns aggregated usage for an agent.
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "Agent identifier." },
+    agentName: { type: "string", description: "Human-readable agent name for display." },
+    totalUsage: { type: "UsageMetricsInput", description: "Aggregated usage within the time range." },
+    modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the agent's executions." },
+    sessions: { type: "SessionUsageSummaryInput[]", description: "Per-session breakdown within the time range." },
+    totalSessions: { type: "number", description: "Total number of sessions within the time range." },
+    totalExecutions: { type: "number", description: "Total number of executions within the time range." },
+    totalCostUsd: { type: "number", description: "Total cost in USD within the time range." },
+    nextPageToken: { type: "string", description: "Token for the next page of sessions (empty if no more pages)." },
+  }}
+/>
+
+### GetOrgUsageReportInput
+
+GetOrgUsageReportInput requests a usage report for an entire organization.
+
+<TypeTable
+  type={{
+    orgId: { type: "string", description: "Organization ID." },
+    fromDate: { type: "string", description: "Start of time range filter (ISO 8601, inclusive, required)." },
+    toDate: { type: "string", description: "End of time range filter (ISO 8601, inclusive, required)." },
+  }}
+/>
+
+### GetOrgUsageReportOutput
+
+GetOrgUsageReportOutput returns aggregated usage for an organization.
+
+<TypeTable
+  type={{
+    orgId: { type: "string", description: "Organization identifier." },
+    totalAgents: { type: "number", description: "Total distinct agents with executions in the time range." },
+    totalSessions: { type: "number", description: "Total sessions across all agents in the time range." },
+    totalExecutions: { type: "number", description: "Total executions across all agents in the time range." },
+    totalCostUsd: { type: "number", description: "Total cost in USD across the organization in the time range." },
+    modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the organization." },
+    topAgentsByCost: { type: "AgentUsageSummaryInput[]", description: "Top agents by cost (top 10), ordered by estimated_cost_usd descending." },
+    dailyCosts: { type: "DailyCostEntryInput[]", description: "Daily cost trend within the time range, ordered chronologically." },
   }}
 />
 

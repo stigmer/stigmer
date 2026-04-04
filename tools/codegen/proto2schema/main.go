@@ -105,6 +105,7 @@ type ServiceSchemaFile struct {
 	GoImportPath string              `json:"goImportPath"`
 	Services     []ServiceDefinition `json:"services"`
 	ListVia      string              `json:"listVia,omitempty"`
+	MethodTypes  []TypeSchema        `json:"methodTypes,omitempty"`
 }
 
 // ServiceDefinition describes a single gRPC service (e.g., AgentQueryController).
@@ -1168,6 +1169,7 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 	}
 
 	var schema ServiceSchemaFile
+	var resourceType string
 	for _, fd := range fileDescriptors {
 		if schema.Package == "" {
 			schema.Package = fd.GetPackage()
@@ -1193,10 +1195,85 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 			}
 			if len(svcDef.Methods) > 0 {
 				schema.Services = append(schema.Services, svcDef)
+				if svcDef.Role == "command" && len(svcDef.Methods) > 0 {
+					resourceType = svcDef.Methods[0].OutputType
+				}
 			}
 		}
 	}
+
+	schema.MethodTypes = collectMethodTypes(fileDescriptors, &schema, resourceType)
+
 	return &schema, nil
+}
+
+// collectMethodTypes extracts TypeSchema entries for input/output message types
+// used by service methods that aren't already covered by the spec-based type
+// generation or the doc generator's special-case handling (Empty, ID wrappers,
+// the resource type itself, and delete inputs).
+func collectMethodTypes(fileDescriptors []*desc.FileDescriptor, schema *ServiceSchemaFile, resourceType string) []TypeSchema {
+	seen := make(map[string]bool)
+	var result []TypeSchema
+
+	// Build a map of FQN → message descriptor from all services' methods,
+	// using the method descriptors which already resolve imported types.
+	msgDescMap := make(map[string]*desc.MessageDescriptor)
+	for _, fd := range fileDescriptors {
+		for _, svc := range fd.GetServices() {
+			for _, method := range svc.GetMethods() {
+				in := method.GetInputType()
+				out := method.GetOutputType()
+				msgDescMap[in.GetFullyQualifiedName()] = in
+				msgDescMap[out.GetFullyQualifiedName()] = out
+			}
+		}
+	}
+
+	for _, svc := range schema.Services {
+		for _, m := range svc.Methods {
+			for _, fqn := range []string{m.InputFullType, m.OutputFullType} {
+				shortName := fqn[strings.LastIndex(fqn, ".")+1:]
+
+				if seen[shortName] {
+					continue
+				}
+
+				if shouldSkipMethodType(shortName, fqn, resourceType) {
+					continue
+				}
+
+				msgDesc, ok := msgDescMap[fqn]
+				if !ok {
+					continue
+				}
+
+				seen[shortName] = true
+				ts := parseSharedType(msgDesc, msgDesc.GetFile())
+				result = append(result, *ts)
+			}
+		}
+	}
+
+	return result
+}
+
+// shouldSkipMethodType returns true for types that the SDK doc generator
+// already handles with built-in rendering (ID params, empty types, resource
+// wrappers, and delete inputs).
+func shouldSkipMethodType(shortName, fqn, resourceType string) bool {
+	if fqn == "google.protobuf.Empty" {
+		return true
+	}
+	if shortName == resourceType {
+		return true
+	}
+	if strings.HasSuffix(shortName, "Id") || strings.HasSuffix(shortName, "ID") {
+		return true
+	}
+	if shortName == "ApiResourceDeleteInput" {
+		return true
+	}
+	return false
 }
 
 // generateSDKServiceSchemas auto-discovers all resources with gRPC services

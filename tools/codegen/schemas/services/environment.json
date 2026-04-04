@@ -95,5 +95,317 @@
         }
       ]
     }
+  ],
+  "methodTypes": [
+    {
+      "name": "UpdateEnvironmentVariablesRequest",
+      "description": "Request to add or update specific variables in an environment.\n Server-side merge: existing variables not included in this request are preserved.\n For secret variables, the new value replaces the old one (re-encrypted server-side).",
+      "protoType": "ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
+      "fields": [
+        {
+          "name": "EnvironmentId",
+          "jsonName": "environmentId",
+          "protoField": "environment_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The environment resource ID.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Variables",
+          "jsonName": "variables",
+          "protoField": "variables",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "message",
+              "messageType": "EnvironmentValue"
+            }
+          },
+          "description": "Variables to add or update. Keys that already exist are overwritten.\n Keys not present in this map are left unchanged.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RemoveEnvironmentVariablesRequest",
+      "description": "Request to remove specific variables from an environment by key.",
+      "protoType": "ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
+      "fields": [
+        {
+          "name": "EnvironmentId",
+          "jsonName": "environmentId",
+          "protoField": "environment_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The environment resource ID.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Keys",
+          "jsonName": "keys",
+          "protoField": "keys",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.",
+          "required": false,
+          "validation": {
+            "minItems": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "identity_provider",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"web-search\", \"code-reviewer\").\n Length: 1-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "EnvironmentSecretValueInput",
+      "description": "Input for retrieving a single unredacted secret value from an environment.\n Returns the decrypted value for exactly one key. Single-key retrieval by design:\n limits blast radius if intercepted, enables per-key audit trails, and matches\n the industry-standard \"reveal\" UX pattern (AWS, GitHub, 1Password).",
+      "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
+      "fields": [
+        {
+          "name": "EnvironmentId",
+          "jsonName": "environmentId",
+          "protoField": "environment_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The environment resource ID.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Key",
+          "jsonName": "key",
+          "protoField": "key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The key within EnvironmentSpec.data to retrieve the unredacted value for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "EnvironmentValue",
+      "description": "EnvironmentValue represents a single configuration or secret value.",
+      "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentValue",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
+      "fields": [
+        {
+          "name": "Value",
+          "jsonName": "value",
+          "protoField": "value",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The actual value.\n - If is_secret=true: This value is encrypted at rest and redacted in logs\n - If is_secret=false: This value is stored as plaintext\n Note: Value can be empty when defining environment variables in specs.\n       Actual values are typically provided at runtime during execution.",
+          "required": false
+        },
+        {
+          "name": "IsSecret",
+          "jsonName": "isSecret",
+          "protoField": "is_secret",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether this value should be treated as a secret.\n When true:\n - Value is encrypted at rest\n - Value is redacted in logs\n - Value requires special permissions to read\n When false:\n - Value is stored as plaintext\n - Value is visible in audit logs",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional description for documentation.\n Example: \"AWS access key for S3 bucket access\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListEnvironmentsRequest",
+      "description": "ListEnvironmentsRequest specifies parameters for listing environments.",
+      "protoType": "ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization to list environments for (required).",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Filter by metadata labels (optional). AND semantics: resource must match ALL labels.\n Example: {\"stigmer.ai/personal\": \"true\"} returns only personal environments.",
+          "required": false
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options (optional).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EnvironmentList",
+      "description": "EnvironmentList contains a paginated list of environments.",
+      "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentList",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total count of matching environments.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Environment"
+            }
+          },
+          "description": "Environments in the current page.",
+          "required": false
+        }
+      ]
+    }
   ]
 }

@@ -79,5 +79,158 @@
         }
       ]
     }
+  ],
+  "methodTypes": [
+    {
+      "name": "FindApiResourcesRequest",
+      "description": "Input for find (list) operations with pagination",
+      "protoType": "ai.stigmer.commons.apiresource.FindApiResourcesRequest",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization ID to filter by",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string"
+          },
+          "description": "API resource kind (optional filter)",
+          "required": false
+        },
+        {
+          "name": "Page",
+          "jsonName": "page",
+          "protoField": "page",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination info",
+          "required": false
+        },
+        {
+          "name": "PageNumber",
+          "jsonName": "pageNumber",
+          "protoField": "page_number",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Page number (1-indexed) - deprecated, use page.num",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of items per page (default: 20, max: 100) - deprecated, use page.size",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "OrganizationList",
+      "description": "Response for paginated list query",
+      "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationList",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalPages",
+          "jsonName": "totalPages",
+          "protoField": "total_pages",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "total number of pages",
+          "required": false
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Organization"
+            }
+          },
+          "description": "organizations in current page",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "description": "List of organizations (unbounded)",
+      "protoType": "ai.stigmer.tenancy.organization.v1.Organizations",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Organization"
+            }
+          },
+          "description": "",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "OrganizationExternalLookup",
+      "description": "Input for looking up a platform-managed organization by its external platform coordinates.\n Used by integrating platforms to find the Stigmer organization mapped to their own org.",
+      "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
+      "fields": [
+        {
+          "name": "IdentityProviderRef",
+          "jsonName": "identityProviderRef",
+          "protoField": "identity_provider_ref",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceReference"
+          },
+          "description": "Reference to the IdentityProvider (org + slug) that manages this organization.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "ExternalOrgId",
+          "jsonName": "externalOrgId",
+          "protoField": "external_org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The external platform's organization identifier.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    }
   ]
 }

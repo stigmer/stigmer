@@ -85,27 +85,35 @@ Get an ExecutionContext by the execution ID it belongs to.
 <SDKTabs>
 <Tab value="Go">
 ```go
-executionContext, err := client.ExecutionContext.GetByExecutionId(ctx, input)
+executionContext, err := client.ExecutionContext.GetByExecutionId(ctx, &stigmer.ExecutionContextExecutionIdInput{
+  ExecutionId: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const executionContext = await stigmer.executionContext.getByExecutionId(input);
+const executionContext = await stigmer.executionContext.getByExecutionId({
+  executionId: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.get_by_execution_id(input)
+executionContext = client.execution_context.get_by_execution_id(ExecutionContextExecutionIdInput(
+    execution_id="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().getByExecutionId(input);
+ExecutionContext executionContext = client.executionContext().getByExecutionId(ExecutionContextExecutionIdInput.builder()
+    .executionId("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ExecutionContextExecutionIdInput`
+**Parameters**: [`ExecutionContextExecutionIdInput`](#executioncontextexecutionidinput)
 
 **Returns**: `ExecutionContext`
 
@@ -116,27 +124,47 @@ Get an ExecutionContext by reference (slug-based lookup).
 <SDKTabs>
 <Tab value="Go">
 ```go
-executionContext, err := client.ExecutionContext.GetByReference(ctx, input)
+executionContext, err := client.ExecutionContext.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const executionContext = await stigmer.executionContext.getByReference(input);
+const executionContext = await stigmer.executionContext.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.get_by_reference(input)
+executionContext = client.execution_context.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().getByReference(input);
+ExecutionContext executionContext = client.executionContext().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `ExecutionContext`
 
@@ -148,8 +176,12 @@ Create or update an ExecutionContext. The authorization and state-operation are 
 <Tab value="Go">
 ```go
 executionContext, err := client.ExecutionContext.Apply(ctx, &stigmer.ExecutionContextInput{
-  Name: "my-execution-context",
-  Org:  "acme",
+  Name:        "my-execution-context",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  ExecutionId: "...",
+  Data:        map[string]string{},
 })
 ```
 </Tab>
@@ -158,6 +190,10 @@ executionContext, err := client.ExecutionContext.Apply(ctx, &stigmer.ExecutionCo
 const executionContext = await stigmer.executionContext.apply({
   name: "my-execution-context",
   org: "acme",
+  slug: "...",
+  labels: {},
+  executionId: "...",
+  data: {},
 });
 ```
 </Tab>
@@ -166,6 +202,10 @@ const executionContext = await stigmer.executionContext.apply({
 executionContext = client.execution_context.apply(ExecutionContextInput(
     name="my-execution-context",
     org="acme",
+    slug="...",
+    labels={},
+    execution_id="...",
+    data={},
 ))
 ```
 </Tab>
@@ -174,6 +214,10 @@ executionContext = client.execution_context.apply(ExecutionContextInput(
 ExecutionContext executionContext = client.executionContext().apply(ExecutionContextInput.builder()
     .name("my-execution-context")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .executionId("...")
+    .data(Map.of())
     .build());
 ```
 </Tab>
@@ -191,8 +235,12 @@ Create a new ExecutionContext for an execution.
 <Tab value="Go">
 ```go
 executionContext, err := client.ExecutionContext.Create(ctx, &stigmer.ExecutionContextInput{
-  Name: "my-execution-context",
-  Org:  "acme",
+  Name:        "my-execution-context",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  ExecutionId: "...",
+  Data:        map[string]string{},
 })
 ```
 </Tab>
@@ -201,6 +249,10 @@ executionContext, err := client.ExecutionContext.Create(ctx, &stigmer.ExecutionC
 const executionContext = await stigmer.executionContext.create({
   name: "my-execution-context",
   org: "acme",
+  slug: "...",
+  labels: {},
+  executionId: "...",
+  data: {},
 });
 ```
 </Tab>
@@ -209,6 +261,10 @@ const executionContext = await stigmer.executionContext.create({
 executionContext = client.execution_context.create(ExecutionContextInput(
     name="my-execution-context",
     org="acme",
+    slug="...",
+    labels={},
+    execution_id="...",
+    data={},
 ))
 ```
 </Tab>
@@ -217,6 +273,10 @@ executionContext = client.execution_context.create(ExecutionContextInput(
 ExecutionContext executionContext = client.executionContext().create(ExecutionContextInput.builder()
     .name("my-execution-context")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .executionId("...")
+    .data(Map.of())
     .build());
 ```
 </Tab>
@@ -281,6 +341,29 @@ Input for creating or updating an Execution Context.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     executionId: { type: "string", description: "The execution ID this context belongs to." },
     data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing both configuration and secrets." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### ExecutionContextExecutionIdInput
+
+ExecutionContextExecutionIdInput is used to look up an ExecutionContext by the execution ID it belongs to (e.g., AgentExecution ID or WorkflowExecution ID).
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "The workflow or agent execution ID to look up." },
   }}
 />
 

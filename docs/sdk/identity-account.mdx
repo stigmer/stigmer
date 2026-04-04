@@ -114,7 +114,7 @@ ApiResourceAuditActor apiResourceAuditActor = client.identityAccount().getActorI
 |-----------|------|-------------|
 | `id` | `string` | Identity Account identifier. |
 
-**Returns**: `ApiResourceAuditActor`
+**Returns**: [`ApiResourceAuditActor`](#apiresourceauditactor)
 
 ### getByEmail
 
@@ -123,27 +123,35 @@ Get an identity account by email address.
 <SDKTabs>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.GetByEmail(ctx, input)
+identityAccount, err := client.IdentityAccount.GetByEmail(ctx, &stigmer.IdentityAccountEmail{
+  Value: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const identityAccount = await stigmer.identityAccount.getByEmail(input);
+const identityAccount = await stigmer.identityAccount.getByEmail({
+  value: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.get_by_email(input)
+identityAccount = client.identity_account.get_by_email(IdentityAccountEmail(
+    value="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().getByEmail(input);
+IdentityAccount identityAccount = client.identityAccount().getByEmail(IdentityAccountEmail.builder()
+    .value("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `IdentityAccountEmail`
+**Parameters**: [`IdentityAccountEmail`](#identityaccountemail)
 
 **Returns**: `IdentityAccount`
 
@@ -190,8 +198,18 @@ Create a new identity account.
 <Tab value="Go">
 ```go
 identityAccount, err := client.IdentityAccount.Create(ctx, &stigmer.IdentityAccountInput{
-  Name: "my-identity-account",
-  Org:  "acme",
+  Name:                "my-identity-account",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  IdpId:               "...",
+  Email:               "...",
+  FirstName:           "...",
+  LastName:            "...",
+  PictureUrl:          "...",
+  IsMachineAccount:    false,
+  ProvisioningMode:    "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -200,6 +218,16 @@ identityAccount, err := client.IdentityAccount.Create(ctx, &stigmer.IdentityAcco
 const identityAccount = await stigmer.identityAccount.create({
   name: "my-identity-account",
   org: "acme",
+  slug: "...",
+  labels: {},
+  idpId: "...",
+  email: "...",
+  firstName: "...",
+  lastName: "...",
+  pictureUrl: "...",
+  isMachineAccount: false,
+  provisioningMode: "...",
+  identityProviderRef: {},
 });
 ```
 </Tab>
@@ -208,6 +236,16 @@ const identityAccount = await stigmer.identityAccount.create({
 identityAccount = client.identity_account.create(IdentityAccountInput(
     name="my-identity-account",
     org="acme",
+    slug="...",
+    labels={},
+    idp_id="...",
+    email="...",
+    first_name="...",
+    last_name="...",
+    picture_url="...",
+    is_machine_account=False,
+    provisioning_mode="...",
+    identity_provider_ref=None,
 ))
 ```
 </Tab>
@@ -216,6 +254,16 @@ identityAccount = client.identity_account.create(IdentityAccountInput(
 IdentityAccount identityAccount = client.identityAccount().create(IdentityAccountInput.builder()
     .name("my-identity-account")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .idpId("...")
+    .email("...")
+    .firstName("...")
+    .lastName("...")
+    .pictureUrl("...")
+    .isMachineAccount(false)
+    .provisioningMode("...")
+    .identityProviderRef(null)
     .build());
 ```
 </Tab>
@@ -233,8 +281,18 @@ Update an existing identity account.
 <Tab value="Go">
 ```go
 identityAccount, err := client.IdentityAccount.Update(ctx, &stigmer.IdentityAccountInput{
-  Name: "my-identity-account",
-  Org:  "acme",
+  Name:                "my-identity-account",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  IdpId:               "...",
+  Email:               "...",
+  FirstName:           "...",
+  LastName:            "...",
+  PictureUrl:          "...",
+  IsMachineAccount:    false,
+  ProvisioningMode:    "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -243,6 +301,16 @@ identityAccount, err := client.IdentityAccount.Update(ctx, &stigmer.IdentityAcco
 const identityAccount = await stigmer.identityAccount.update({
   name: "my-identity-account",
   org: "acme",
+  slug: "...",
+  labels: {},
+  idpId: "...",
+  email: "...",
+  firstName: "...",
+  lastName: "...",
+  pictureUrl: "...",
+  isMachineAccount: false,
+  provisioningMode: "...",
+  identityProviderRef: {},
 });
 ```
 </Tab>
@@ -251,6 +319,16 @@ const identityAccount = await stigmer.identityAccount.update({
 identityAccount = client.identity_account.update(IdentityAccountInput(
     name="my-identity-account",
     org="acme",
+    slug="...",
+    labels={},
+    idp_id="...",
+    email="...",
+    first_name="...",
+    last_name="...",
+    picture_url="...",
+    is_machine_account=False,
+    provisioning_mode="...",
+    identity_provider_ref=None,
 ))
 ```
 </Tab>
@@ -259,6 +337,16 @@ identityAccount = client.identity_account.update(IdentityAccountInput(
 IdentityAccount identityAccount = client.identityAccount().update(IdentityAccountInput.builder()
     .name("my-identity-account")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .idpId("...")
+    .email("...")
+    .firstName("...")
+    .lastName("...")
+    .pictureUrl("...")
+    .isMachineAccount(false)
+    .provisioningMode("...")
+    .identityProviderRef(null)
     .build());
 ```
 </Tab>
@@ -310,27 +398,35 @@ Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
 <SDKTabs>
 <Tab value="Go">
 ```go
-empty, err := client.IdentityAccount.SimulateSignupWebhook(ctx, input)
+empty, err := client.IdentityAccount.SimulateSignupWebhook(ctx, &stigmer.IdentityAccountEmail{
+  Value: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const empty = await stigmer.identityAccount.simulateSignupWebhook(input);
+const empty = await stigmer.identityAccount.simulateSignupWebhook({
+  value: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-empty = client.identity_account.simulate_signup_webhook(input)
+empty = client.identity_account.simulate_signup_webhook(IdentityAccountEmail(
+    value="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Empty empty = client.identityAccount().simulateSignupWebhook(input);
+Empty empty = client.identityAccount().simulateSignupWebhook(IdentityAccountEmail.builder()
+    .value("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `IdentityAccountEmail`
+**Parameters**: [`IdentityAccountEmail`](#identityaccountemail)
 
 **Returns**: `void`
 
@@ -383,6 +479,27 @@ Input for creating or updating an Identity Account.
     isMachineAccount: { type: "boolean", description: "Indicates if this is a machine account used for inter-service communication." },
     provisioningMode: { type: "IdentityAccountProvisioningMode", description: "How this identity account was provisioned." },
     identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that provisioned this account." },
+  }}
+/>
+
+### IdentityAccountEmail
+
+wrapper for email of the identity account.
+
+<TypeTable
+  type={{
+    value: { type: "string", description: "", required: true },
+  }}
+/>
+
+### ApiResourceAuditActor
+
+ApiResourceAuditActor represents the entity that performed an action.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Unique identifier of the actor." },
+    avatar: { type: "string", description: "URL to the actor's avatar image." },
   }}
 />
 

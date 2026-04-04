@@ -176,5 +176,1031 @@
         }
       ]
     }
+  ],
+  "methodTypes": [
+    {
+      "name": "AgentExecutionUpdateStatusInput",
+      "description": "Input message for updateStatus RPC.\n Contains only the execution ID and the status fields to be updated.\n This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution to update (required).\n Format: \"aex_abc123xyz456\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Status",
+          "jsonName": "status",
+          "protoField": "status",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentExecutionStatus"
+          },
+          "description": "Status fields to update.\n The handler will merge these status fields with the existing execution's status.\n Only the fields present in this status object will be updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "SubmitApprovalInput",
+      "description": "Input for submitting an approval decision (HITL Phase 1).\n\n All required fields must be provided. The handler validates:\n 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase\n 2. The tool_call_id matches status.pending_approval.tool_call_id\n 3. The action is a valid non-UNSPECIFIED enum value\n\n Example:\n   {\n     \"agent_execution_id\": \"aex_abc123xyz456\",\n     \"tool_call_id\": \"call_def789\",\n     \"action\": \"APPROVAL_ACTION_APPROVE\",\n     \"comment\": \"Verified safe to execute\"\n   }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentExecutionId",
+          "jsonName": "agentExecutionId",
+          "protoField": "agent_execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution.\n Format: \"aex_abc123xyz456\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ToolCallId",
+          "jsonName": "toolCallId",
+          "protoField": "tool_call_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the tool call to approve/skip/reject.\n Must match status.pending_approval.tool_call_id exactly.\n Format: Tool call ID from agent runtime (e.g., \"call_abc123\")",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "protoField": "action",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalAction",
+            "enumValues": [
+              "APPROVAL_ACTION_APPROVE",
+              "APPROVAL_ACTION_SKIP",
+              "APPROVAL_ACTION_REJECT"
+            ]
+          },
+          "description": "User's decision: APPROVE, SKIP, or REJECT.\n APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.",
+          "required": false
+        },
+        {
+          "name": "Comment",
+          "jsonName": "comment",
+          "protoField": "comment",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional reason/comment for the decision.\n Stored in audit trail for compliance and debugging.\n Examples:\n   - \"Verified the target repository is safe to delete\" (on APPROVE)\n   - \"Will handle this operation manually\" (on SKIP)\n   - \"Unexpected target - this looks like the wrong repository\" (on REJECT)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CancelAgentExecutionInput",
+      "description": "CancelAgentExecutionInput requests graceful cancellation of an agent execution.\n\n Cancellation sends a signal to the agent execution, allowing it to clean up\n gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,\n report status) before the execution transitions to CANCELLED phase.\n\n ## Behavior\n\n - Sends cancellation signal to Temporal via CancelWorkflow API\n - Agent activity receives cancellation and saves checkpoint\n - Execution transitions to EXECUTION_CANCELLED phase after cleanup\n - LangGraph checkpoint is preserved for potential future recovery\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - User must have can_edit permission on the agent execution\n\n ## Idempotency\n\n If the execution is already cancelled (phase == EXECUTION_CANCELLED),\n the call succeeds as a no-op and returns the current execution state.\n\n ## Use Cases\n\n - User realizes they provided incorrect input to the agent\n - Business decision to stop a long-running agent task\n - Graceful shutdown before maintenance window\n - Cancel agent that is taking too long\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\",\n   \"reason\": \"User requested cancellation - task no longer needed\"\n }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to cancel.\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for cancellation.\n\n Stored in the audit trail and passed to Temporal for operational debugging.\n Optional but strongly recommended for compliance and troubleshooting.\n\n Examples:\n - \"User requested cancellation\"\n - \"Incorrect input provided to agent\"\n - \"Superseded by newer execution\"\n - \"Pre-maintenance shutdown\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "TerminateAgentExecutionInput",
+      "description": "TerminateAgentExecutionInput requests immediate termination of an agent execution.\n\n Termination forcefully kills the agent execution without allowing cleanup.\n Unlike cancellation, the agent cannot respond to termination - it is stopped\n immediately. Use this for stuck or unresponsive agent executions.\n\n ## Behavior\n\n - Force-kills workflow via Temporal TerminateWorkflow API\n - Agent activity does NOT receive any signal (cannot clean up)\n - Execution transitions to EXECUTION_TERMINATED phase immediately\n - All in-progress tool calls are stopped abruptly\n - LangGraph checkpoint may be incomplete\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - User must have can_edit permission on the agent execution\n\n ## Idempotency\n\n If the execution is already terminated (phase == EXECUTION_TERMINATED),\n the call succeeds as a no-op and returns the current execution state.\n\n ## Terminated vs Cancelled\n\n | Aspect | Cancel | Terminate |\n |--------|--------|-----------|\n | Signal | Agent receives cancellation signal | No signal sent |\n | Cleanup | Agent can save checkpoint | No cleanup possible |\n | Use case | Normal cancellation | Stuck/unresponsive agents |\n | Recovery | Cannot recover | Cannot recover |\n\n ## Use Cases\n\n - Agent is stuck and not responding to cancellation\n - Agent is in an infinite loop\n - Emergency stop for misbehaving agent\n - Agent has a bug causing it to ignore cancellation signals\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\",\n   \"reason\": \"Agent stuck in infinite loop, not responding to cancel\"\n }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to terminate.\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for termination.\n\n Stored in the audit trail and passed to Temporal for operational debugging.\n Optional but strongly recommended - termination is a drastic action\n and the reason helps with post-incident analysis.\n\n Examples:\n - \"Agent stuck for 30 minutes, not responding to cancel\"\n - \"Infinite loop detected in tool calls\"\n - \"Emergency stop - agent making unexpected API calls\"\n - \"Cancel failed after 3 attempts, force terminating\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RecoverAgentExecutionInput",
+      "description": "RecoverAgentExecutionInput requests recovery of a failed agent execution.\n\n Recovery resumes execution from the last LangGraph checkpoint, preserving\n all completed work. The agent continues from where it failed without\n re-executing successful steps.\n\n ## Behavior\n\n - Uses Temporal ResetWorkflow API to resume from last successful point\n - LangGraph checkpoint is loaded using the preserved thread_id\n - Completed tool calls are NOT re-executed\n - Execution transitions from FAILED back to IN_PROGRESS phase\n - Agent continues from where it failed\n\n ## Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (incomplete checkpoint)\n - CANCELLED executions cannot be recovered (intentional user action)\n - User must have can_edit permission on the agent execution\n\n ## Idempotency\n\n If recovery is already in progress (execution moved to IN_PROGRESS after\n a previous recover call), the call succeeds as a no-op and returns current state.\n\n ## Use Cases\n\n - Agent failed due to transient error (network timeout, rate limit)\n - External API was down but is now available\n - Bug was fixed and agent should continue from failure point\n - Retry after investigating and fixing the root cause\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\"\n }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to recover.\n\n Must be in FAILED phase. TERMINATED and CANCELLED executions\n cannot be recovered.\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "PauseAgentExecutionInput",
+      "description": "PauseAgentExecutionInput requests temporarily pausing an agent execution.\n\n Pauses the agent at its current checkpoint. Unlike cancel, the execution\n is NOT terminal and can be resumed later from where it left off.\n\n ## Behavior\n\n When an agent is paused:\n 1. A \"pause\" signal is sent to the Temporal workflow\n 2. Running activity is gracefully cancelled (checkpoint saved)\n 3. LangGraph auto-saves checkpoint on cancellation\n 4. Execution transitions to EXECUTION_PAUSED phase\n 5. Workflow waits for resume signal (no resources consumed)\n\n ## Resume Flow\n\n The paused agent can be resumed via the resume RPC:\n 1. Resume signal unblocks the workflow\n 2. Activity is re-invoked with same thread_id\n 3. LangGraph loads from checkpoint automatically\n 4. Agent continues from exact pause point\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot pause already paused or terminal executions\n\n ## Use Cases\n\n - User wants to review agent progress before continuing\n - Scheduled maintenance window requires pausing work\n - Rate limit concerns require throttling agent work\n - Need to modify agent configuration before continuing\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\",\n   \"reason\": \"Pausing to review progress before continuing\"\n }\n\n @since Agent Execution Lifecycle",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to pause.\n\n Must be in PENDING or IN_PROGRESS phase. Cannot pause\n executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for pausing.\n\n Stored in the audit trail for operational debugging and compliance.\n Helps track why the pause was needed.\n\n Examples:\n - \"Pausing for scheduled maintenance window\"\n - \"User requested pause to review progress\"\n - \"Pausing due to rate limit concerns\"\n - \"Emergency pause - investigating issue\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ResumeAgentExecutionInput",
+      "description": "ResumeAgentExecutionInput requests resuming a paused agent execution.\n\n Continues execution from the checkpoint where it was paused. The agent\n re-invokes activities with the same thread_id, which loads from checkpoint\n and continues from where it left off.\n\n ## Behavior\n\n When an agent is resumed:\n 1. A \"resume\" signal is sent to the paused Temporal workflow\n 2. Workflow unblocks from its wait state\n 3. Activity is re-invoked with same execution context\n 4. LangGraph loads checkpoint using thread_id\n 5. Agent continues from exact pause point\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PAUSED phase\n - Cannot resume non-paused executions\n\n ## Idempotency\n\n If the execution is not paused (already IN_PROGRESS),\n the call succeeds as a no-op and returns the current execution state.\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\"\n }\n\n @since Agent Execution Lifecycle",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to resume.\n\n Must be in PAUSED phase. Cannot resume executions\n that are not paused.\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "UploadAttachmentRequest",
+      "description": "UploadAttachmentRequest uploads a file attachment for use in an agent execution.\n\n This endpoint allows CLI and other clients to pre-upload large files (\u003e4MB)\n to artifact storage before creating an agent execution. The returned storage_key\n can then be used in the Attachment message when creating the execution.\n\n ## Storage\n\n Files are uploaded to: attachments/{ulid}/{filename}\n The ULID ensures unique paths and allows for future cleanup policies.\n\n ## Authorization\n\n This endpoint does not require authorization. The storage_key returned acts\n as a capability token - knowing the key grants access to the content. This\n simplifies the upload flow while maintaining security through obscurity\n of the storage path.\n\n ## Use Cases\n\n - CLI uploading files before agent execution\n - Pre-uploading large datasets for agent processing\n - Uploading binary files that cannot be embedded inline\n\n ## Example\n\n Request:\n {\n   \"filename\": \"dataset.csv\",\n   \"content\": \u003cbinary data\u003e,\n   \"content_type\": \"text/csv\"\n }\n\n Response:\n {\n   \"storage_key\": \"attachments/01HGXXX.../dataset.csv\"\n }\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Filename",
+          "jsonName": "filename",
+          "protoField": "filename",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Original filename of the attachment.\n\n Used in the storage path and for display purposes.\n Should not contain path separators or special characters.\n\n Examples: \"dataset.csv\", \"config.json\", \"report.pdf\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "Binary content of the file.\n\n Maximum size depends on gRPC message limits (typically 4MB).\n For very large files, consider chunked upload (future enhancement).\n\n Validation: Required, cannot be empty",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "ContentType",
+          "jsonName": "contentType",
+          "protoField": "content_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "MIME type of the file content.\n\n Used for Content-Type header when downloading.\n If not provided, will be guessed from filename extension.\n\n Examples: \"text/csv\", \"application/json\", \"application/pdf\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UploadAttachmentResponse",
+      "description": "UploadAttachmentResponse returns the storage key for the uploaded attachment.\n\n The storage_key should be used in the Attachment message when creating\n an agent execution. The key is opaque to clients - do not parse or\n construct keys manually.\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage key for the uploaded attachment.\n\n Use this key in Attachment.storage_key when creating an execution.\n The key includes a unique identifier and the filename.\n\n Format: \"attachments/{ulid}/{filename}\"\n Example: \"attachments/01HGXXX123ABC/dataset.csv\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListAgentExecutionsRequest",
+      "description": "ListAgentExecutionsRequest specifies parameters for listing executions.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of executions to return per page.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.",
+          "required": false
+        },
+        {
+          "name": "Phase",
+          "jsonName": "phase",
+          "protoField": "phase",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ExecutionPhase",
+            "enumValues": [
+              "EXECUTION_PENDING",
+              "EXECUTION_IN_PROGRESS",
+              "EXECUTION_COMPLETED",
+              "EXECUTION_FAILED",
+              "EXECUTION_CANCELLED",
+              "EXECUTION_TERMINATED",
+              "EXECUTION_WAITING_FOR_APPROVAL",
+              "EXECUTION_PAUSED"
+            ]
+          },
+          "description": "Filter by execution phase (optional).",
+          "required": false
+        },
+        {
+          "name": "Tags",
+          "jsonName": "tags",
+          "protoField": "tags",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Filter by tags (optional).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionList",
+      "description": "AgentExecutionList contains a paginated list of agent executions.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionList",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalPages",
+          "jsonName": "totalPages",
+          "protoField": "total_pages",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of pages available.",
+          "required": false
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentExecution"
+            }
+          },
+          "description": "Agent executions in the current page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListAgentExecutionsBySessionRequest",
+      "description": "ListAgentExecutionsBySessionRequest lists all executions in a session.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Session ID to filter by.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of executions to return per page.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactDownloadUrlRequest",
+      "description": "GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.\n\n This endpoint generates presigned URLs for artifacts published by agents\n during execution. The URLs are time-limited and can be used for direct\n HTTP download without authentication.\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can only\n access artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified execution.\n Storage keys must start with \"artifacts/{execution_id}/\" to prevent path\n traversal attacks where a user could request URLs for other executions'\n artifacts.\n\n ## Use Cases\n\n - CLI downloading agent-created files\n - Web UI providing download links for artifacts\n - Refreshing expired download URLs\n\n ## Example\n\n Request:\n {\n   \"execution_id\": \"aex_abc123xyz456\",\n   \"storage_key\": \"artifacts/aex_abc123xyz456/generated-skill.zip\"\n }\n\n Response:\n {\n   \"download_url\": \"https://r2.example.com/...\",\n   \"expires_at\": \"2026-02-20T10:30:00Z\"\n }\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution that produced the artifact.\n\n Used for authorization (can_view check) and storage_key validation.\n\n Format: \"aex_{ulid}\"\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage key of the artifact to download.\n\n Must be an artifact from the specified execution. The storage_key\n is validated to start with \"artifacts/{execution_id}/\" to prevent\n access to other executions' artifacts.\n\n Obtain this value from ExecutionArtifact.storage_key in the execution status.\n\n Format: \"artifacts/{execution_id}/{filename}\"\n Example: \"artifacts/aex_abc123xyz456/generated-skill.zip\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactDownloadUrlResponse",
+      "description": "GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.\n\n The download_url can be used with a simple HTTP GET request to download\n the artifact. No authentication headers are required - the URL contains\n embedded authorization.\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "DownloadUrl",
+          "jsonName": "downloadUrl",
+          "protoField": "download_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Presigned URL for downloading the artifact.\n\n Valid for direct HTTP GET request without authentication.\n The URL includes embedded authorization that expires at expires_at.\n\n Example: \"https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=...\"",
+          "required": false
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the download URL expires.\n\n After this time, the URL will no longer work and a new URL\n must be requested via this endpoint.\n\n Default expiration: 7 days from generation.\n\n Example: \"2026-02-20T10:30:00Z\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactContentRequest",
+      "description": "GetArtifactContentRequest reads the raw content of an execution artifact.\n\n Unlike getArtifactDownloadUrl (which returns a presigned URL for direct\n browser download), this endpoint returns the artifact bytes through the\n Stigmer API. This eliminates CORS concerns for SDK consumers who need to\n read artifact content programmatically — e.g., for YAML parsing, resource\n detection, or in-app preview rendering.\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can only\n read artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified execution.\n Storage keys must start with \"artifacts/{execution_id}/\" to prevent path\n traversal attacks where a user could request content from other executions'\n artifacts.\n\n ## Size Limit\n\n The server enforces a maximum content size (default: 512 KB). If the\n artifact exceeds max_bytes, the response contains the first max_bytes of\n content with truncated=true. Callers can use total_size_bytes to decide\n whether to offer a full download via getArtifactDownloadUrl instead.\n\n ## Use Cases\n\n - Web UI reading YAML artifacts for Stigmer resource detection\n - SDK consumers rendering artifact previews in embedded components\n - CLI inspecting artifact content without a separate HTTP download\n\n ## Example\n\n Request:\n {\n   \"execution_id\": \"aex_abc123xyz456\",\n   \"storage_key\": \"artifacts/aex_abc123xyz456/pr-review-agent.yaml\"\n }\n\n Response:\n {\n   \"content\": \u003cbytes\u003e,\n   \"content_type\": \"text/yaml\",\n   \"total_size_bytes\": 1842,\n   \"truncated\": false\n }\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution that produced the artifact.\n\n Used for authorization (can_view check) and storage_key validation.\n\n Format: \"aex_{ulid}\"\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage key of the artifact to read.\n\n Must be an artifact from the specified execution. The storage_key\n is validated to start with \"artifacts/{execution_id}/\" to prevent\n access to other executions' artifacts.\n\n Obtain this value from ExecutionArtifact.storage_key in the execution status.\n\n Format: \"artifacts/{execution_id}/{filename}\"\n Example: \"artifacts/aex_abc123xyz456/pr-review-agent.yaml\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "MaxBytes",
+          "jsonName": "maxBytes",
+          "protoField": "max_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Maximum number of bytes to return.\n\n If the artifact is larger than this limit, the response will contain\n the first max_bytes of content with truncated=true.\n\n When 0 or unset, the server applies a default limit (512 KB).\n The server may also enforce a hard upper bound regardless of this value.\n\n Example: 524288 (512 KB)",
+          "required": false
+        },
+        {
+          "name": "EntryPath",
+          "jsonName": "entryPath",
+          "protoField": "entry_path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "For directory artifacts (ZIPs): extract a specific file by its\n path within the archive instead of returning the raw ZIP bytes.\n\n When empty, returns the full artifact content (existing behavior).\n When set for a FILE artifact, this field is ignored.\n\n The path must match an entry in the archive exactly (case-sensitive).\n Use the paths from ExecutionArtifact.entries to discover valid values.\n\n Example: \"SKILL.md\", \"scripts/init_skill.py\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactContentResponse",
+      "description": "GetArtifactContentResponse returns the raw content of an execution artifact.\n\n The content field contains the artifact bytes (up to max_bytes). For text\n artifacts, clients decode via TextDecoder or equivalent. The content_type\n field provides a hint for rendering (detected by file extension).\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "Raw artifact content (up to max_bytes).\n\n For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.\n For binary artifacts, this contains raw bytes — but callers should\n generally use getArtifactDownloadUrl for binary downloads instead.",
+          "required": false
+        },
+        {
+          "name": "ContentType",
+          "jsonName": "contentType",
+          "protoField": "content_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Detected content type based on file extension.\n\n Examples: \"text/yaml\", \"text/plain\", \"application/json\",\n \"application/zip\" (for directory artifacts).\n\n This is a best-effort detection — not based on content inspection.",
+          "required": false
+        },
+        {
+          "name": "TotalSizeBytes",
+          "jsonName": "totalSizeBytes",
+          "protoField": "total_size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Actual total size of the artifact in bytes.\n\n May be larger than len(content) when truncated=true.\n Callers can use this to show \"showing 512 KB of 2.1 MB\" messages\n or to decide whether to offer a full download link.",
+          "required": false
+        },
+        {
+          "name": "Truncated",
+          "jsonName": "truncated",
+          "protoField": "truncated",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the content was truncated to fit within max_bytes.\n\n When true, content contains only the first max_bytes of the artifact.\n The full artifact can be downloaded via getArtifactDownloadUrl.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetSessionUsageReportInput",
+      "description": "GetSessionUsageReportInput requests a usage report for a single session.\n Aggregates cost and token data across all executions in the session.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Session ID to get usage report for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetSessionUsageReportOutput",
+      "description": "GetSessionUsageReportOutput returns aggregated usage for a session.\n\n Provides both the session-level totals and per-execution breakdown,\n enabling drill-down from \"this session cost $0.90\" to \"execution #3\n cost $0.12 because it used claude-sonnet-4.\"",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Session identifier.",
+          "required": false
+        },
+        {
+          "name": "ExecutionCount",
+          "jsonName": "executionCount",
+          "protoField": "execution_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of executions in this session.",
+          "required": false
+        },
+        {
+          "name": "TotalUsage",
+          "jsonName": "totalUsage",
+          "protoField": "total_usage",
+          "type": {
+            "kind": "message",
+            "messageType": "UsageMetrics"
+          },
+          "description": "Aggregated usage across all executions in this session.",
+          "required": false
+        },
+        {
+          "name": "Executions",
+          "jsonName": "executions",
+          "protoField": "executions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ExecutionUsageSummary"
+            }
+          },
+          "description": "Per-execution breakdown (ordered chronologically).",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown across the entire session.",
+          "required": false
+        },
+        {
+          "name": "TotalSummarizationCostUsd",
+          "jsonName": "totalSummarizationCostUsd",
+          "protoField": "total_summarization_cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Total summarization cost across all executions.",
+          "required": false
+        },
+        {
+          "name": "FirstExecutionAt",
+          "jsonName": "firstExecutionAt",
+          "protoField": "first_execution_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the first execution in this session.",
+          "required": false
+        },
+        {
+          "name": "LastExecutionAt",
+          "jsonName": "lastExecutionAt",
+          "protoField": "last_execution_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the most recent execution in this session.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetAgentUsageReportInput",
+      "description": "GetAgentUsageReportInput requests a usage report for a specific agent.\n Aggregates cost and token data across all sessions for the agent within\n a time range.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent ID to get usage report for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "FromDate",
+          "jsonName": "fromDate",
+          "protoField": "from_date",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Start of time range filter (ISO 8601, inclusive).\n Example: \"2026-03-01\"",
+          "required": false
+        },
+        {
+          "name": "ToDate",
+          "jsonName": "toDate",
+          "protoField": "to_date",
+          "type": {
+            "kind": "string"
+          },
+          "description": "End of time range filter (ISO 8601, inclusive).\n Example: \"2026-03-13\"",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of sessions to return per page.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetAgentUsageReportOutput",
+      "description": "GetAgentUsageReportOutput returns aggregated usage for an agent.\n\n Provides agent-level totals, per-model breakdown, and per-session\n summaries within the requested time range.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent identifier.",
+          "required": false
+        },
+        {
+          "name": "AgentName",
+          "jsonName": "agentName",
+          "protoField": "agent_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable agent name for display.",
+          "required": false
+        },
+        {
+          "name": "TotalUsage",
+          "jsonName": "totalUsage",
+          "protoField": "total_usage",
+          "type": {
+            "kind": "message",
+            "messageType": "UsageMetrics"
+          },
+          "description": "Aggregated usage within the time range.",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown across the agent's executions.",
+          "required": false
+        },
+        {
+          "name": "Sessions",
+          "jsonName": "sessions",
+          "protoField": "sessions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SessionUsageSummary"
+            }
+          },
+          "description": "Per-session breakdown within the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalSessions",
+          "jsonName": "totalSessions",
+          "protoField": "total_sessions",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of sessions within the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalExecutions",
+          "jsonName": "totalExecutions",
+          "protoField": "total_executions",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of executions within the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalCostUsd",
+          "jsonName": "totalCostUsd",
+          "protoField": "total_cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Total cost in USD within the time range.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for the next page of sessions (empty if no more pages).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetOrgUsageReportInput",
+      "description": "GetOrgUsageReportInput requests a usage report for an entire organization.\n Aggregates cost and token data across all agents and sessions within a\n time range.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization ID.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "FromDate",
+          "jsonName": "fromDate",
+          "protoField": "from_date",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Start of time range filter (ISO 8601, inclusive, required).\n Example: \"2026-03-01\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ToDate",
+          "jsonName": "toDate",
+          "protoField": "to_date",
+          "type": {
+            "kind": "string"
+          },
+          "description": "End of time range filter (ISO 8601, inclusive, required).\n Example: \"2026-03-13\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetOrgUsageReportOutput",
+      "description": "GetOrgUsageReportOutput returns aggregated usage for an organization.\n\n Provides org-level totals, per-model breakdown, top agents by cost,\n and a daily cost trend for capacity planning and budget monitoring.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization identifier.",
+          "required": false
+        },
+        {
+          "name": "TotalAgents",
+          "jsonName": "totalAgents",
+          "protoField": "total_agents",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total distinct agents with executions in the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalSessions",
+          "jsonName": "totalSessions",
+          "protoField": "total_sessions",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total sessions across all agents in the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalExecutions",
+          "jsonName": "totalExecutions",
+          "protoField": "total_executions",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total executions across all agents in the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalCostUsd",
+          "jsonName": "totalCostUsd",
+          "protoField": "total_cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Total cost in USD across the organization in the time range.",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown across the organization.",
+          "required": false
+        },
+        {
+          "name": "TopAgentsByCost",
+          "jsonName": "topAgentsByCost",
+          "protoField": "top_agents_by_cost",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentUsageSummary"
+            }
+          },
+          "description": "Top agents by cost (top 10), ordered by estimated_cost_usd descending.",
+          "required": false
+        },
+        {
+          "name": "DailyCosts",
+          "jsonName": "dailyCosts",
+          "protoField": "daily_costs",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DailyCostEntry"
+            }
+          },
+          "description": "Daily cost trend within the time range, ordered chronologically.",
+          "required": false
+        }
+      ]
+    }
   ]
 }
