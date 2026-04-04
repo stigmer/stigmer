@@ -114,5 +114,7 @@ jobs:
             --fallback-extensions mdx
             --scheme https
             --scheme http
+            --exclude 'https://api\.stigmer\.ai'
+            --exclude 'github\.com/stigmer/skills\.git'
             docs/
           fail: true

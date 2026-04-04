@@ -187,7 +187,7 @@ libs-build:
 web-build:
 	npm run build -w client-apps/web
 
-check: tidy fix lint lint-docs format-docs-check libs-build web-build docs-build build test ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check check-links libs-build web-build docs-build build test ## Run full CI gate locally
 
 # ─── Docs Linting ─────────────────────────────
 
@@ -218,7 +218,22 @@ format-docs-check: ## Check documentation formatting (CI, no writes)
 	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
 
 check-links: ## Check for broken links in documentation
-	@lychee --no-progress $(DOCS_SOURCES)
+	@command -v lychee >/dev/null 2>&1 || { \
+		echo ""; \
+		echo "error: lychee is not installed."; \
+		echo ""; \
+		echo "  brew install lychee   — macOS"; \
+		echo "  cargo install lychee  — any platform"; \
+		echo "  https://lychee.cli.rs — manual install"; \
+		echo ""; \
+		exit 1; \
+	}
+	@lychee --no-progress --exclude-path docs/_archive \
+		--root-dir . --fallback-extensions mdx \
+		--scheme https --scheme http \
+		--exclude 'https://api\.stigmer\.ai' \
+		--exclude 'github\.com/stigmer/skills\.git' \
+		docs/
 
 # ─── Dependencies ─────────────────────────────
 
