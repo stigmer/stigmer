@@ -273,50 +273,6 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolCallStatus.UNRECOGNIZED : result;
   }
 
-  public static final int COMPONENT_METADATA_FIELD_NUMBER = 6;
-  private ai.stigmer.agentic.agentexecution.v1.ComponentMetadata componentMetadata_;
-  /**
-   * <pre>
-   * Optional metadata to guide frontend UI component rendering.
-   * Set by Python worker based on tool name or explicitly by agents.
-   * Example: kubectl_get_pods → component_type="terminal"
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-   * @return Whether the componentMetadata field is set.
-   */
-  @java.lang.Override
-  public boolean hasComponentMetadata() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <pre>
-   * Optional metadata to guide frontend UI component rendering.
-   * Set by Python worker based on tool name or explicitly by agents.
-   * Example: kubectl_get_pods → component_type="terminal"
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-   * @return The componentMetadata.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ComponentMetadata getComponentMetadata() {
-    return componentMetadata_ == null ? ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.getDefaultInstance() : componentMetadata_;
-  }
-  /**
-   * <pre>
-   * Optional metadata to guide frontend UI component rendering.
-   * Set by Python worker based on tool name or explicitly by agents.
-   * Example: kubectl_get_pods → component_type="terminal"
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ComponentMetadataOrBuilder getComponentMetadataOrBuilder() {
-    return componentMetadata_ == null ? ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.getDefaultInstance() : componentMetadata_;
-  }
-
   public static final int STARTED_AT_FIELD_NUMBER = 7;
   @SuppressWarnings("serial")
   private volatile java.lang.Object startedAt_ = "";
@@ -953,9 +909,6 @@ private static final long serialVersionUID = 0L;
     if (status_ != ai.stigmer.agentic.agentexecution.v1.ToolCallStatus.TOOL_CALL_STATUS_UNSPECIFIED.getNumber()) {
       output.writeEnum(5, status_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(6, getComponentMetadata());
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(startedAt_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, startedAt_);
     }
@@ -1020,10 +973,6 @@ private static final long serialVersionUID = 0L;
     if (status_ != ai.stigmer.agentic.agentexecution.v1.ToolCallStatus.TOOL_CALL_STATUS_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(5, status_);
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(6, getComponentMetadata());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(startedAt_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, startedAt_);
@@ -1095,11 +1044,6 @@ private static final long serialVersionUID = 0L;
     if (!getResult()
         .equals(other.getResult())) return false;
     if (status_ != other.status_) return false;
-    if (hasComponentMetadata() != other.hasComponentMetadata()) return false;
-    if (hasComponentMetadata()) {
-      if (!getComponentMetadata()
-          .equals(other.getComponentMetadata())) return false;
-    }
     if (!getStartedAt()
         .equals(other.getStartedAt())) return false;
     if (!getCompletedAt()
@@ -1147,10 +1091,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getResult().hashCode();
     hash = (37 * hash) + STATUS_FIELD_NUMBER;
     hash = (53 * hash) + status_;
-    if (hasComponentMetadata()) {
-      hash = (37 * hash) + COMPONENT_METADATA_FIELD_NUMBER;
-      hash = (53 * hash) + getComponentMetadata().hashCode();
-    }
     hash = (37 * hash) + STARTED_AT_FIELD_NUMBER;
     hash = (53 * hash) + getStartedAt().hashCode();
     hash = (37 * hash) + COMPLETED_AT_FIELD_NUMBER;
@@ -1314,7 +1254,6 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetArgsFieldBuilder();
-        internalGetComponentMetadataFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1330,11 +1269,6 @@ private static final long serialVersionUID = 0L;
       }
       result_ = "";
       status_ = 0;
-      componentMetadata_ = null;
-      if (componentMetadataBuilder_ != null) {
-        componentMetadataBuilder_.dispose();
-        componentMetadataBuilder_ = null;
-      }
       startedAt_ = "";
       completedAt_ = "";
       error_ = "";
@@ -1401,48 +1335,42 @@ private static final long serialVersionUID = 0L;
         result.status_ = status_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.componentMetadata_ = componentMetadataBuilder_ == null
-            ? componentMetadata_
-            : componentMetadataBuilder_.build();
-        to_bitField0_ |= 0x00000002;
-      }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.startedAt_ = startedAt_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.completedAt_ = completedAt_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.error_ = error_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.requiresApproval_ = requiresApproval_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.approvalMessage_ = approvalMessage_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.approvalRequestedAt_ = approvalRequestedAt_;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.approvalDecidedAt_ = approvalDecidedAt_;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.approvedBy_ = approvedBy_;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.approvalAction_ = approvalAction_;
       }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.isStreaming_ = isStreaming_;
       }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
+      if (((from_bitField0_ & 0x00008000) != 0)) {
         result.streamingSource_ = streamingSource_;
       }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
+      if (((from_bitField0_ & 0x00010000) != 0)) {
         result.mcpServerSlug_ = mcpServerSlug_;
       }
-      if (((from_bitField0_ & 0x00040000) != 0)) {
+      if (((from_bitField0_ & 0x00020000) != 0)) {
         result.argsPreview_ = argsPreview_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1481,22 +1409,19 @@ private static final long serialVersionUID = 0L;
       if (other.status_ != 0) {
         setStatusValue(other.getStatusValue());
       }
-      if (other.hasComponentMetadata()) {
-        mergeComponentMetadata(other.getComponentMetadata());
-      }
       if (!other.getStartedAt().isEmpty()) {
         startedAt_ = other.startedAt_;
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       if (!other.getCompletedAt().isEmpty()) {
         completedAt_ = other.completedAt_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       if (!other.getError().isEmpty()) {
         error_ = other.error_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       if (other.getRequiresApproval() != false) {
@@ -1504,22 +1429,22 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getApprovalMessage().isEmpty()) {
         approvalMessage_ = other.approvalMessage_;
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       if (!other.getApprovalRequestedAt().isEmpty()) {
         approvalRequestedAt_ = other.approvalRequestedAt_;
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       if (!other.getApprovalDecidedAt().isEmpty()) {
         approvalDecidedAt_ = other.approvalDecidedAt_;
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       if (!other.getApprovedBy().isEmpty()) {
         approvedBy_ = other.approvedBy_;
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       if (other.approvalAction_ != 0) {
@@ -1533,12 +1458,12 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getMcpServerSlug().isEmpty()) {
         mcpServerSlug_ = other.mcpServerSlug_;
-        bitField0_ |= 0x00020000;
+        bitField0_ |= 0x00010000;
         onChanged();
       }
       if (!other.getArgsPreview().isEmpty()) {
         argsPreview_ = other.argsPreview_;
-        bitField0_ |= 0x00040000;
+        bitField0_ |= 0x00020000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1594,76 +1519,69 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
-            case 50: {
-              input.readMessage(
-                  internalGetComponentMetadataFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000020;
-              break;
-            } // case 50
             case 58: {
               startedAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 58
             case 66: {
               completedAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 66
             case 74: {
               error_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 74
             case 80: {
               requiresApproval_ = input.readBool();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 80
             case 90: {
               approvalMessage_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 90
             case 98: {
               approvalRequestedAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 98
             case 106: {
               approvalDecidedAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00000800;
               break;
             } // case 106
             case 114: {
               approvedBy_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00001000;
               break;
             } // case 114
             case 120: {
               approvalAction_ = input.readEnum();
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 120
             case 128: {
               isStreaming_ = input.readBool();
-              bitField0_ |= 0x00008000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 128
             case 138: {
               mcpServerSlug_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00020000;
+              bitField0_ |= 0x00010000;
               break;
             } // case 138
             case 146: {
               argsPreview_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00040000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 146
             case 152: {
               streamingSource_ = input.readEnum();
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 152
             default: {
@@ -2188,181 +2106,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.ComponentMetadata componentMetadata_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ComponentMetadata, ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.Builder, ai.stigmer.agentic.agentexecution.v1.ComponentMetadataOrBuilder> componentMetadataBuilder_;
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     * @return Whether the componentMetadata field is set.
-     */
-    public boolean hasComponentMetadata() {
-      return ((bitField0_ & 0x00000020) != 0);
-    }
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     * @return The componentMetadata.
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ComponentMetadata getComponentMetadata() {
-      if (componentMetadataBuilder_ == null) {
-        return componentMetadata_ == null ? ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.getDefaultInstance() : componentMetadata_;
-      } else {
-        return componentMetadataBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     */
-    public Builder setComponentMetadata(ai.stigmer.agentic.agentexecution.v1.ComponentMetadata value) {
-      if (componentMetadataBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        componentMetadata_ = value;
-      } else {
-        componentMetadataBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     */
-    public Builder setComponentMetadata(
-        ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.Builder builderForValue) {
-      if (componentMetadataBuilder_ == null) {
-        componentMetadata_ = builderForValue.build();
-      } else {
-        componentMetadataBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     */
-    public Builder mergeComponentMetadata(ai.stigmer.agentic.agentexecution.v1.ComponentMetadata value) {
-      if (componentMetadataBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0) &&
-          componentMetadata_ != null &&
-          componentMetadata_ != ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.getDefaultInstance()) {
-          getComponentMetadataBuilder().mergeFrom(value);
-        } else {
-          componentMetadata_ = value;
-        }
-      } else {
-        componentMetadataBuilder_.mergeFrom(value);
-      }
-      if (componentMetadata_ != null) {
-        bitField0_ |= 0x00000020;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     */
-    public Builder clearComponentMetadata() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      componentMetadata_ = null;
-      if (componentMetadataBuilder_ != null) {
-        componentMetadataBuilder_.dispose();
-        componentMetadataBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.Builder getComponentMetadataBuilder() {
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return internalGetComponentMetadataFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ComponentMetadataOrBuilder getComponentMetadataOrBuilder() {
-      if (componentMetadataBuilder_ != null) {
-        return componentMetadataBuilder_.getMessageOrBuilder();
-      } else {
-        return componentMetadata_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.getDefaultInstance() : componentMetadata_;
-      }
-    }
-    /**
-     * <pre>
-     * Optional metadata to guide frontend UI component rendering.
-     * Set by Python worker based on tool name or explicitly by agents.
-     * Example: kubectl_get_pods → component_type="terminal"
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ComponentMetadata, ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.Builder, ai.stigmer.agentic.agentexecution.v1.ComponentMetadataOrBuilder> 
-        internalGetComponentMetadataFieldBuilder() {
-      if (componentMetadataBuilder_ == null) {
-        componentMetadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.ComponentMetadata, ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.Builder, ai.stigmer.agentic.agentexecution.v1.ComponentMetadataOrBuilder>(
-                getComponentMetadata(),
-                getParentForChildren(),
-                isClean());
-        componentMetadata_ = null;
-      }
-      return componentMetadataBuilder_;
-    }
-
     private java.lang.Object startedAt_ = "";
     /**
      * <pre>
@@ -2418,7 +2161,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       startedAt_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2432,7 +2175,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearStartedAt() {
       startedAt_ = getDefaultInstance().getStartedAt();
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -2450,7 +2193,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       startedAt_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2510,7 +2253,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       completedAt_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2524,7 +2267,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearCompletedAt() {
       completedAt_ = getDefaultInstance().getCompletedAt();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -2542,7 +2285,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       completedAt_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2602,7 +2345,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       error_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2616,7 +2359,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearError() {
       error_ = getDefaultInstance().getError();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       onChanged();
       return this;
     }
@@ -2634,7 +2377,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       error_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2678,7 +2421,7 @@ private static final long serialVersionUID = 0L;
     public Builder setRequiresApproval(boolean value) {
 
       requiresApproval_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2698,7 +2441,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearRequiresApproval() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       requiresApproval_ = false;
       onChanged();
       return this;
@@ -2783,7 +2526,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       approvalMessage_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -2805,7 +2548,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearApprovalMessage() {
       approvalMessage_ = getDefaultInstance().getApprovalMessage();
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       onChanged();
       return this;
     }
@@ -2831,7 +2574,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       approvalMessage_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -2900,7 +2643,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       approvalRequestedAt_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -2917,7 +2660,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearApprovalRequestedAt() {
       approvalRequestedAt_ = getDefaultInstance().getApprovalRequestedAt();
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       onChanged();
       return this;
     }
@@ -2938,7 +2681,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       approvalRequestedAt_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3004,7 +2747,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       approvalDecidedAt_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -3020,7 +2763,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearApprovalDecidedAt() {
       approvalDecidedAt_ = getDefaultInstance().getApprovalDecidedAt();
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       onChanged();
       return this;
     }
@@ -3040,7 +2783,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       approvalDecidedAt_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -3109,7 +2852,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       approvedBy_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -3126,7 +2869,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearApprovedBy() {
       approvedBy_ = getDefaultInstance().getApprovedBy();
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00001000);
       onChanged();
       return this;
     }
@@ -3147,7 +2890,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       approvedBy_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -3186,7 +2929,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setApprovalActionValue(int value) {
       approvalAction_ = value;
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -3224,7 +2967,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setApprovalAction(ai.stigmer.agentic.agentexecution.v1.ApprovalAction value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       approvalAction_ = value.getNumber();
       onChanged();
       return this;
@@ -3243,7 +2986,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearApprovalAction() {
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       approvalAction_ = 0;
       onChanged();
       return this;
@@ -3288,7 +3031,7 @@ private static final long serialVersionUID = 0L;
     public Builder setIsStreaming(boolean value) {
 
       isStreaming_ = value;
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -3308,7 +3051,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearIsStreaming() {
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       isStreaming_ = false;
       onChanged();
       return this;
@@ -3358,7 +3101,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setStreamingSourceValue(int value) {
       streamingSource_ = value;
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -3406,7 +3149,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setStreamingSource(ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       streamingSource_ = value.getNumber();
       onChanged();
       return this;
@@ -3430,7 +3173,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearStreamingSource() {
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       streamingSource_ = 0;
       onChanged();
       return this;
@@ -3512,7 +3255,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       mcpServerSlug_ = value;
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -3533,7 +3276,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearMcpServerSlug() {
       mcpServerSlug_ = getDefaultInstance().getMcpServerSlug();
-      bitField0_ = (bitField0_ & ~0x00020000);
+      bitField0_ = (bitField0_ & ~0x00010000);
       onChanged();
       return this;
     }
@@ -3558,7 +3301,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       mcpServerSlug_ = value;
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -3636,7 +3379,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       argsPreview_ = value;
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -3656,7 +3399,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearArgsPreview() {
       argsPreview_ = getDefaultInstance().getArgsPreview();
-      bitField0_ = (bitField0_ & ~0x00040000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       onChanged();
       return this;
     }
@@ -3680,7 +3423,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       argsPreview_ = value;
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }

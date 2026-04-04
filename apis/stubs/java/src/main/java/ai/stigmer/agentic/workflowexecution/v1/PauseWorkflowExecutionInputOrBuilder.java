@@ -17,8 +17,8 @@ public interface PauseWorkflowExecutionInputOrBuilder extends
    * Must be in PENDING or IN_PROGRESS phase. Cannot pause
    * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -34,8 +34,8 @@ public interface PauseWorkflowExecutionInputOrBuilder extends
    * Must be in PENDING or IN_PROGRESS phase. Cannot pause
    * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>

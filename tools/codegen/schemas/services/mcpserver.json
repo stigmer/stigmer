@@ -283,6 +283,171 @@
       ]
     }
   ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Agentic - System-level audit trails and versioning"
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "IAM - Identity and Access Management"
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": ""
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": ""
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "IAM - External identity provider configuration"
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Tenancy - Platform and organizational resources"
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": ""
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "Agentic - AI agent management"
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": ""
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": ""
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": ""
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": ""
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": ""
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Agentic - Workflow orchestration"
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": ""
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": ""
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": ""
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": ""
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Tenancy - Project management (aggregate root for resource lifecycle)"
+        }
+      ]
+    },
+    {
+      "name": "ValidationState",
+      "description": "ValidationState represents the structural validity of an MCP server definition.\n This is NOT runtime health — it only indicates whether the definition is valid.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.ValidationState",
+      "values": [
+        {
+          "name": "valid",
+          "number": 1,
+          "description": "The MCP server definition is structurally valid.\n All required fields are present and have valid values.\n The definition can be referenced by agents."
+        },
+        {
+          "name": "invalid",
+          "number": 2,
+          "description": "The MCP server definition is invalid.\n Check validation_message for details on what's wrong.\n The definition should be corrected before use."
+        }
+      ]
+    },
+    {
+      "name": "DiscoverySource",
+      "description": "DiscoverySource identifies how discovered capabilities were obtained.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
+      "values": [
+        {
+          "name": "seedpack",
+          "number": 1,
+          "description": "Statically defined in the seedpack (built-in servers with known tool sets)."
+        },
+        {
+          "name": "cli",
+          "number": 2,
+          "description": "Discovered by the CLI via `stigmer discover mcp-server \u003cname\u003e`.\n The CLI connects to the MCP server locally and pushes results to the server."
+        },
+        {
+          "name": "agent_runner",
+          "number": 3,
+          "description": "Discovered by the agent-runner at runtime (future)."
+        },
+        {
+          "name": "api",
+          "number": 4,
+          "description": "Discovered via the discoverCapabilities RPC (web console or API).\n The backend delegates to the agent-runner via a Temporal workflow."
+        }
+      ]
+    }
+  ],
   "resourceDescription": "McpServer represents a reusable MCP (Model Context Protocol) server configuration.\n MCP servers provide tools and capabilities to AI agents via a standardized protocol.\n\n Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:\n - Can be referenced by multiple agents (reusability)\n - Has proper access control via FGA (authorization)\n - Can be discovered in the marketplace (discoverability)\n - Belongs to an organization with PUBLIC/PRIVATE visibility\n\n Lifecycle:\n 1. Create McpServer definition (this resource) with server type and env requirements\n 2. Reference in Agent via mcp_server_usages\n 3. Create AgentInstance with environment_ref providing actual secrets\n 4. Agent runner resolves McpServer, gets secrets from Environment, starts server\n\n Example YAML:\n   apiVersion: agentic.stigmer.ai/v1\n   kind: McpServer\n   metadata:\n     name: github\n     scope: platform\n   spec:\n     description: \"GitHub MCP server for repository operations\"\n     stdio:\n       command: npx\n       args: [\"-y\", \"@modelcontextprotocol/server-github\"]\n     env_spec:\n       data:\n         GITHUB_TOKEN:\n           is_secret: true\n           description: \"GitHub personal access token\"",
   "statusType": {
     "name": "McpServerStatus",
@@ -340,107 +505,6 @@
     ]
   },
   "statusNestedTypes": [
-    {
-      "name": "DiscoveredCapabilities",
-      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an\n MCP server. This is a point-in-time snapshot — the server's actual capabilities\n may change if tools are added or removed.\n\n IMPORTANT — Tools vs Resource Templates:\n These are two fundamentally different MCP capability types:\n\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     These are the ONLY names valid for use in Agent `enabled_tools`,\n     McpServer `default_enabled_tools`, and `tool_approval_overrides`.\n\n   - resource_templates: Read-only data endpoints accessed by URI template\n     (e.g., cloud-resource-schema://{kind}). These are NOT callable tools.\n     Resource template names must NEVER appear in `enabled_tools` or\n     `default_enabled_tools` — doing so causes a fatal runtime error because\n     the agent-runner cannot find them in the tools registry.\n\n When authoring Agent YAML, always select tool names from `tools` only.\n Resource templates serve a different purpose (data discovery) and are\n accessed through MCP resource reads, not tool calls.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
-      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
-      "fields": [
-        {
-          "name": "Tools",
-          "jsonName": "tools",
-          "protoField": "tools",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "DiscoveredTool"
-            }
-          },
-          "description": "Tools reported by the MCP server via tools/list.\n These are callable actions. Only names from this list may be used in\n Agent `enabled_tools` and McpServer `default_enabled_tools`.",
-          "required": false
-        },
-        {
-          "name": "ResourceTemplates",
-          "jsonName": "resourceTemplates",
-          "protoField": "resource_templates",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "DiscoveredResourceTemplate"
-            }
-          },
-          "description": "Resource templates reported by the MCP server via resources/templates/list.\n These are read-only data endpoints, NOT callable tools.\n Resource template names must NOT be placed in `enabled_tools` —\n they are accessed via MCP resource reads, not tool invocations.",
-          "required": false
-        },
-        {
-          "name": "LastDiscoveredAt",
-          "jsonName": "lastDiscoveredAt",
-          "protoField": "last_discovered_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "When this snapshot was captured.",
-          "required": false
-        },
-        {
-          "name": "DiscoveredBy",
-          "jsonName": "discoveredBy",
-          "protoField": "discovered_by",
-          "type": {
-            "kind": "string",
-            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
-            "enumValues": [
-              "seedpack",
-              "cli",
-              "agent_runner",
-              "api"
-            ]
-          },
-          "description": "How this snapshot was produced.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "DiscoveredTool",
-      "description": "DiscoveredTool describes a single tool reported by an MCP server.\n\n Maps directly to the MCP protocol's Tool type from tools/list:\n   - name: unique tool identifier within the server\n   - description: human-readable explanation of what the tool does\n   - input_schema: JSON Schema describing the tool's expected input",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredTool",
-      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
-      "fields": [
-        {
-          "name": "Name",
-          "jsonName": "name",
-          "protoField": "name",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Unique tool name within the MCP server (case-sensitive).\n Example: \"search\", \"get_agent\", \"apply_mcp_server\"",
-          "required": false
-        },
-        {
-          "name": "Description",
-          "jsonName": "description",
-          "protoField": "description",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Human-readable description of the tool's purpose.",
-          "required": false
-        },
-        {
-          "name": "InputSchema",
-          "jsonName": "inputSchema",
-          "protoField": "input_schema",
-          "type": {
-            "kind": "struct"
-          },
-          "description": "JSON Schema describing the tool's input parameters.\n Stored as a Struct for natural representation in YAML/JSON and to allow\n inspection without string parsing. This is the raw schema from the MCP\n server's tools/list response.",
-          "required": false
-        }
-      ]
-    },
     {
       "name": "DiscoveredResourceTemplate",
       "description": "DiscoveredResourceTemplate describes a parameterized resource template\n reported by an MCP server via resources/templates/list.\n\n Resource templates use URI templates (RFC 6570) with placeholders that\n clients fill in to access specific resources.\n\n Example:\n   uri_template: \"stigmer://agents/{org}/{slug}\"\n   name: \"stigmer_agent\"\n   description: \"Full definition of a Stigmer agent\"\n   mime_type: \"application/json\"",
@@ -603,6 +667,107 @@
             "kind": "string"
           },
           "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredCapabilities",
+      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an\n MCP server. This is a point-in-time snapshot — the server's actual capabilities\n may change if tools are added or removed.\n\n IMPORTANT — Tools vs Resource Templates:\n These are two fundamentally different MCP capability types:\n\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     These are the ONLY names valid for use in Agent `enabled_tools`,\n     McpServer `default_enabled_tools`, and `tool_approval_overrides`.\n\n   - resource_templates: Read-only data endpoints accessed by URI template\n     (e.g., cloud-resource-schema://{kind}). These are NOT callable tools.\n     Resource template names must NEVER appear in `enabled_tools` or\n     `default_enabled_tools` — doing so causes a fatal runtime error because\n     the agent-runner cannot find them in the tools registry.\n\n When authoring Agent YAML, always select tool names from `tools` only.\n Resource templates serve a different purpose (data discovery) and are\n accessed through MCP resource reads, not tool calls.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Tools",
+          "jsonName": "tools",
+          "protoField": "tools",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredTool"
+            }
+          },
+          "description": "Tools reported by the MCP server via tools/list.\n These are callable actions. Only names from this list may be used in\n Agent `enabled_tools` and McpServer `default_enabled_tools`.",
+          "required": false
+        },
+        {
+          "name": "ResourceTemplates",
+          "jsonName": "resourceTemplates",
+          "protoField": "resource_templates",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredResourceTemplate"
+            }
+          },
+          "description": "Resource templates reported by the MCP server via resources/templates/list.\n These are read-only data endpoints, NOT callable tools.\n Resource template names must NOT be placed in `enabled_tools` —\n they are accessed via MCP resource reads, not tool invocations.",
+          "required": false
+        },
+        {
+          "name": "LastDiscoveredAt",
+          "jsonName": "lastDiscoveredAt",
+          "protoField": "last_discovered_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When this snapshot was captured.",
+          "required": false
+        },
+        {
+          "name": "DiscoveredBy",
+          "jsonName": "discoveredBy",
+          "protoField": "discovered_by",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
+            "enumValues": [
+              "seedpack",
+              "cli",
+              "agent_runner",
+              "api"
+            ]
+          },
+          "description": "How this snapshot was produced.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredTool",
+      "description": "DiscoveredTool describes a single tool reported by an MCP server.\n\n Maps directly to the MCP protocol's Tool type from tools/list:\n   - name: unique tool identifier within the server\n   - description: human-readable explanation of what the tool does\n   - input_schema: JSON Schema describing the tool's expected input",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredTool",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique tool name within the MCP server (case-sensitive).\n Example: \"search\", \"get_agent\", \"apply_mcp_server\"",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description of the tool's purpose.",
+          "required": false
+        },
+        {
+          "name": "InputSchema",
+          "jsonName": "inputSchema",
+          "protoField": "input_schema",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "JSON Schema describing the tool's input parameters.\n Stored as a Struct for natural representation in YAML/JSON and to allow\n inspection without string parsing. This is the raw schema from the MCP\n server's tools/list response.",
           "required": false
         }
       ]

@@ -38,7 +38,7 @@ type IamPolicy struct {
 	// resource-kind
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// metadata
-	// id format: iamp-<ulid>
+	// id format: iamp_<ulid>
 	// name: human-readable identifier (e.g., "john-vpc-admin")
 	// org: organization this policy belongs to
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`

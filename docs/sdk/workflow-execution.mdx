@@ -859,7 +859,7 @@ Input message for submitApproval RPC (HITL Phase 5.3).
   type={{
     executionId: { type: "string", description: "ID of the workflow execution." },
     toolCallId: { type: "string", description: "ID of the tool call to approve/skip/reject." },
-    action: { type: "ApprovalAction", description: "User's decision: APPROVE, SKIP, or REJECT." },
+    action: { type: "ApprovalAction", description: "User's decision: APPROVE, SKIP, or REJECT.", typeDescriptionLink: "#approvalaction" },
     comment: { type: "string", description: "Optional reason/comment for the decision." },
   }}
 />
@@ -939,7 +939,7 @@ ListWorkflowExecutionsRequest specifies parameters for listing workflow executio
   type={{
     pageSize: { type: "number", description: "Maximum number of executions to return per page." },
     pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
-    phase: { type: "ExecutionPhase", description: "Filter by execution phase (optional)." },
+    phase: { type: "ExecutionPhase", description: "Filter by execution phase (optional).", typeDescriptionLink: "#executionphase" },
     tags: { type: "string[]", description: "Filter by resource tags (optional)." },
   }}
 />
@@ -998,7 +998,7 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
 <TypeTable
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.) Always at field 99 for consistency across all Stigmer API resources.", typeDescriptionLink: "#apiresourceaudit" },
-    phase: { type: "ExecutionPhase", description: "Current execution lifecycle phase." },
+    phase: { type: "ExecutionPhase", description: "Current execution lifecycle phase.", typeDescriptionLink: "#executionphase" },
     tasks: { type: "WorkflowTask[]", description: "Workflow tasks with their execution state (source of truth for progress).", typeDescriptionLink: "#workflowtask" },
     output: { type: "object", description: "Workflow output (JSON structure)." },
     error: { type: "string", description: "Error message if execution failed." },
@@ -1006,17 +1006,6 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
     completedAt: { type: "string", description: "ISO 8601 timestamp when execution completed, failed, or was cancelled." },
     temporalWorkflowId: { type: "string", description: "Temporal workflow ID (if using Temporal as execution engine)." },
     pendingApprovals: { type: "WorkflowPendingApproval[]", description: "Pending approvals from child agent tool executions (HITL).", typeDescriptionLink: "#workflowpendingapproval" },
-  }}
-/>
-
-### ApiResourceAudit
-
-ApiResourceAudit contains both spec-level and status-level audit details.
-
-<TypeTable
-  type={{
-    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
-    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
   }}
 />
 
@@ -1053,10 +1042,10 @@ WorkflowTask represents a single task within a workflow execution.
   type={{
     taskId: { type: "string", description: "Unique task identifier within this workflow execution." },
     taskName: { type: "string", description: "Human-readable task name." },
-    taskType: { type: "WorkflowTaskType", description: "Type of task (agent invocation, API call, approval, etc.)." },
+    taskType: { type: "WorkflowTaskType", description: "Type of task (agent invocation, API call, approval, etc.).", typeDescriptionLink: "#workflowtasktype" },
     input: { type: "object", description: "Task input parameters (JSON structure)." },
     output: { type: "object", description: "Task output results (JSON structure)." },
-    status: { type: "WorkflowTaskStatus", description: "Current task execution status." },
+    status: { type: "WorkflowTaskStatus", description: "Current task execution status.", typeDescriptionLink: "#workflowtaskstatus" },
     startedAt: { type: "string", description: "ISO 8601 timestamp when task started executing." },
     completedAt: { type: "string", description: "ISO 8601 timestamp when task completed, failed, or was skipped." },
     error: { type: "string", description: "Error message if task failed." },
@@ -1092,4 +1081,75 @@ PendingApproval is a UI-facing projection computed server-side from tool call st
     subAgentSubject: { type: "string", description: "Concise subject/description of the sub-agent's task (3-10 words)." },
   }}
 />
+
+### ApiResourceAudit
+
+ApiResourceAudit contains both spec-level and status-level audit details.
+
+<TypeTable
+  type={{
+    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
+    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
+  }}
+/>
+
+### ApprovalAction
+
+ApprovalAction represents the user's decision on an approval request.
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
+| `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
+| `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
+
+### ExecutionPhase
+
+ExecutionPhase defines the lifecycle phase of a workflow execution.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_PENDING` | Execution created, waiting to start. |
+| `EXECUTION_IN_PROGRESS` | Execution is actively running tasks. |
+| `EXECUTION_COMPLETED` | Execution completed successfully. |
+| `EXECUTION_FAILED` | Execution failed with an error. |
+| `EXECUTION_CANCELLED` | Execution was cancelled by user or system. |
+| `EXECUTION_TERMINATED` | Execution was force-stopped immediately. |
+| `EXECUTION_PAUSED` | Execution was paused by user and can be resumed. |
+
+### WorkflowTaskType
+
+WorkflowTaskType defines the type of workflow task.
+
+| Value | Description |
+|-------|-------------|
+| `WORKFLOW_TASK_AGENT_INVOCATION` | Invoke an AI agent with a prompt. |
+| `WORKFLOW_TASK_APPROVAL` | Wait for human approval before proceeding. |
+| `WORKFLOW_TASK_API_CALL` | Make an HTTP or gRPC API call to an external service. |
+| `WORKFLOW_TASK_CONDITIONAL` | Evaluate a condition and branch to different paths. |
+| `WORKFLOW_TASK_PARALLEL` | Execute multiple sub-tasks concurrently. |
+| `WORKFLOW_TASK_TRANSFORM` | Transform data between tasks. |
+| `WORKFLOW_TASK_CUSTOM` | Execute custom task logic defined by plugins. |
+
+### WorkflowTaskStatus
+
+WorkflowTaskStatus defines the execution status of a workflow task.
+
+| Value | Description |
+|-------|-------------|
+| `WORKFLOW_TASK_PENDING` | Task is waiting to execute. |
+| `WORKFLOW_TASK_IN_PROGRESS` | Task is currently executing. |
+| `WORKFLOW_TASK_COMPLETED` | Task finished successfully. |
+| `WORKFLOW_TASK_FAILED` | Task failed during execution. |
+| `WORKFLOW_TASK_SKIPPED` | Task was skipped due to conditional logic. |
+| `WORKFLOW_TASK_WAITING_APPROVAL` | Task is waiting for approval from child agent (HITL Phase 1). |
+
+### ApiResourceVisibility
+
+Visibility controls who can access an API resource.
+
+| Value | Description |
+|-------|-------------|
+| `visibility_private` | Only members of the owning organization can access. |
+| `visibility_public` | Anyone can access (read) this resource. |
 

@@ -264,19 +264,19 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - WorkflowExecution belongs to different organization
      * Example Request:
      * {
-     *   "value": "wfx-abc123xyz456"
+     *   "value": "wfx_abc123xyz456"
      * }
      * Example Response:
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
      *   "metadata": {
-     *     "id": "wfx-abc123xyz456",
+     *     "id": "wfx_abc123xyz456",
      *     "name": "customer-onboarding-20250111-143022",
      *     "org": "acme"
      *   },
      *   "spec": {
-     *     "workflow_instance_id": "wfi-customer-onboarding-prod",
+     *     "workflow_instance_id": "wfi_customer-onboarding-prod",
      *     "trigger_message": "New signup: john.doe&#64;example.com"
      *   },
      *   "status": {
@@ -345,11 +345,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 3,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-failed-1", ... },
+     *       "metadata": { "id": "wfx_failed-1", ... },
      *       "status": { "phase": 4, "error": "Task failed: API timeout", ... }
      *     },
      *     {
-     *       "metadata": { "id": "wfx-failed-2", ... },
+     *       "metadata": { "id": "wfx_failed-2", ... },
      *       "status": { "phase": 4, "error": "Task failed: Rate limit", ... }
      *     }
      *   ]
@@ -403,7 +403,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - No Workflow or WorkflowInstance exists with the given ID
      * Example Request:
      * {
-     *   "workflow_id": "wfi-customer-onboarding-prod",
+     *   "workflow_id": "wfi_customer-onboarding-prod",
      *   "page_size": 50
      * }
      * Example Response:
@@ -411,11 +411,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 5,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-latest", "created_at": "2025-01-11T14:30:22Z" },
+     *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
      *       "status": { "phase": 3, ... }  // COMPLETED
      *     },
      *     {
-     *       "metadata": { "id": "wfx-previous", "created_at": "2025-01-11T10:15:00Z" },
+     *       "metadata": { "id": "wfx_previous", "created_at": "2025-01-11T10:15:00Z" },
      *       "status": { "phase": 4, ... }  // FAILED
      *     }
      *   ]
@@ -482,12 +482,12 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - Server unavailable (client should retry with backoff)
      * Example Request:
      * {
-     *   "execution_id": "wfx-abc123xyz456"
+     *   "execution_id": "wfx_abc123xyz456"
      * }
      * Example Stream (sequence of messages):
      * Message 1 (initial state):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 1,  // EXECUTION_PENDING
      *     "total_tasks": 3,
@@ -496,7 +496,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 2 (execution started):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "started_at": "2025-01-11T14:30:22Z"
@@ -504,7 +504,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 3 (task 1 completed):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "completed_tasks": 1,
@@ -515,7 +515,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 4 (execution completed):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 3,  // EXECUTION_COMPLETED
      *     "completed_tasks": 3,
@@ -624,19 +624,19 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - WorkflowExecution belongs to different organization
      * Example Request:
      * {
-     *   "value": "wfx-abc123xyz456"
+     *   "value": "wfx_abc123xyz456"
      * }
      * Example Response:
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
      *   "metadata": {
-     *     "id": "wfx-abc123xyz456",
+     *     "id": "wfx_abc123xyz456",
      *     "name": "customer-onboarding-20250111-143022",
      *     "org": "acme"
      *   },
      *   "spec": {
-     *     "workflow_instance_id": "wfi-customer-onboarding-prod",
+     *     "workflow_instance_id": "wfi_customer-onboarding-prod",
      *     "trigger_message": "New signup: john.doe&#64;example.com"
      *   },
      *   "status": {
@@ -706,11 +706,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 3,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-failed-1", ... },
+     *       "metadata": { "id": "wfx_failed-1", ... },
      *       "status": { "phase": 4, "error": "Task failed: API timeout", ... }
      *     },
      *     {
-     *       "metadata": { "id": "wfx-failed-2", ... },
+     *       "metadata": { "id": "wfx_failed-2", ... },
      *       "status": { "phase": 4, "error": "Task failed: Rate limit", ... }
      *     }
      *   ]
@@ -765,7 +765,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - No Workflow or WorkflowInstance exists with the given ID
      * Example Request:
      * {
-     *   "workflow_id": "wfi-customer-onboarding-prod",
+     *   "workflow_id": "wfi_customer-onboarding-prod",
      *   "page_size": 50
      * }
      * Example Response:
@@ -773,11 +773,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 5,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-latest", "created_at": "2025-01-11T14:30:22Z" },
+     *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
      *       "status": { "phase": 3, ... }  // COMPLETED
      *     },
      *     {
-     *       "metadata": { "id": "wfx-previous", "created_at": "2025-01-11T10:15:00Z" },
+     *       "metadata": { "id": "wfx_previous", "created_at": "2025-01-11T10:15:00Z" },
      *       "status": { "phase": 4, ... }  // FAILED
      *     }
      *   ]
@@ -845,12 +845,12 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - Server unavailable (client should retry with backoff)
      * Example Request:
      * {
-     *   "execution_id": "wfx-abc123xyz456"
+     *   "execution_id": "wfx_abc123xyz456"
      * }
      * Example Stream (sequence of messages):
      * Message 1 (initial state):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 1,  // EXECUTION_PENDING
      *     "total_tasks": 3,
@@ -859,7 +859,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 2 (execution started):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "started_at": "2025-01-11T14:30:22Z"
@@ -867,7 +867,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 3 (task 1 completed):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "completed_tasks": 1,
@@ -878,7 +878,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 4 (execution completed):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 3,  // EXECUTION_COMPLETED
      *     "completed_tasks": 3,
@@ -964,19 +964,19 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - WorkflowExecution belongs to different organization
      * Example Request:
      * {
-     *   "value": "wfx-abc123xyz456"
+     *   "value": "wfx_abc123xyz456"
      * }
      * Example Response:
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
      *   "metadata": {
-     *     "id": "wfx-abc123xyz456",
+     *     "id": "wfx_abc123xyz456",
      *     "name": "customer-onboarding-20250111-143022",
      *     "org": "acme"
      *   },
      *   "spec": {
-     *     "workflow_instance_id": "wfi-customer-onboarding-prod",
+     *     "workflow_instance_id": "wfi_customer-onboarding-prod",
      *     "trigger_message": "New signup: john.doe&#64;example.com"
      *   },
      *   "status": {
@@ -1045,11 +1045,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 3,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-failed-1", ... },
+     *       "metadata": { "id": "wfx_failed-1", ... },
      *       "status": { "phase": 4, "error": "Task failed: API timeout", ... }
      *     },
      *     {
-     *       "metadata": { "id": "wfx-failed-2", ... },
+     *       "metadata": { "id": "wfx_failed-2", ... },
      *       "status": { "phase": 4, "error": "Task failed: Rate limit", ... }
      *     }
      *   ]
@@ -1103,7 +1103,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - No Workflow or WorkflowInstance exists with the given ID
      * Example Request:
      * {
-     *   "workflow_id": "wfi-customer-onboarding-prod",
+     *   "workflow_id": "wfi_customer-onboarding-prod",
      *   "page_size": 50
      * }
      * Example Response:
@@ -1111,11 +1111,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 5,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-latest", "created_at": "2025-01-11T14:30:22Z" },
+     *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
      *       "status": { "phase": 3, ... }  // COMPLETED
      *     },
      *     {
-     *       "metadata": { "id": "wfx-previous", "created_at": "2025-01-11T10:15:00Z" },
+     *       "metadata": { "id": "wfx_previous", "created_at": "2025-01-11T10:15:00Z" },
      *       "status": { "phase": 4, ... }  // FAILED
      *     }
      *   ]
@@ -1182,12 +1182,12 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - Server unavailable (client should retry with backoff)
      * Example Request:
      * {
-     *   "execution_id": "wfx-abc123xyz456"
+     *   "execution_id": "wfx_abc123xyz456"
      * }
      * Example Stream (sequence of messages):
      * Message 1 (initial state):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 1,  // EXECUTION_PENDING
      *     "total_tasks": 3,
@@ -1196,7 +1196,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 2 (execution started):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "started_at": "2025-01-11T14:30:22Z"
@@ -1204,7 +1204,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 3 (task 1 completed):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "completed_tasks": 1,
@@ -1215,7 +1215,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 4 (execution completed):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 3,  // EXECUTION_COMPLETED
      *     "completed_tasks": 3,
@@ -1302,19 +1302,19 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - WorkflowExecution belongs to different organization
      * Example Request:
      * {
-     *   "value": "wfx-abc123xyz456"
+     *   "value": "wfx_abc123xyz456"
      * }
      * Example Response:
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
      *   "metadata": {
-     *     "id": "wfx-abc123xyz456",
+     *     "id": "wfx_abc123xyz456",
      *     "name": "customer-onboarding-20250111-143022",
      *     "org": "acme"
      *   },
      *   "spec": {
-     *     "workflow_instance_id": "wfi-customer-onboarding-prod",
+     *     "workflow_instance_id": "wfi_customer-onboarding-prod",
      *     "trigger_message": "New signup: john.doe&#64;example.com"
      *   },
      *   "status": {
@@ -1383,11 +1383,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 3,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-failed-1", ... },
+     *       "metadata": { "id": "wfx_failed-1", ... },
      *       "status": { "phase": 4, "error": "Task failed: API timeout", ... }
      *     },
      *     {
-     *       "metadata": { "id": "wfx-failed-2", ... },
+     *       "metadata": { "id": "wfx_failed-2", ... },
      *       "status": { "phase": 4, "error": "Task failed: Rate limit", ... }
      *     }
      *   ]
@@ -1441,7 +1441,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - No Workflow or WorkflowInstance exists with the given ID
      * Example Request:
      * {
-     *   "workflow_id": "wfi-customer-onboarding-prod",
+     *   "workflow_id": "wfi_customer-onboarding-prod",
      *   "page_size": 50
      * }
      * Example Response:
@@ -1449,11 +1449,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 5,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-latest", "created_at": "2025-01-11T14:30:22Z" },
+     *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
      *       "status": { "phase": 3, ... }  // COMPLETED
      *     },
      *     {
-     *       "metadata": { "id": "wfx-previous", "created_at": "2025-01-11T10:15:00Z" },
+     *       "metadata": { "id": "wfx_previous", "created_at": "2025-01-11T10:15:00Z" },
      *       "status": { "phase": 4, ... }  // FAILED
      *     }
      *   ]
@@ -1520,12 +1520,12 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - Server unavailable (client should retry with backoff)
      * Example Request:
      * {
-     *   "execution_id": "wfx-abc123xyz456"
+     *   "execution_id": "wfx_abc123xyz456"
      * }
      * Example Stream (sequence of messages):
      * Message 1 (initial state):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 1,  // EXECUTION_PENDING
      *     "total_tasks": 3,
@@ -1534,7 +1534,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 2 (execution started):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "started_at": "2025-01-11T14:30:22Z"
@@ -1542,7 +1542,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 3 (task 1 completed):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "completed_tasks": 1,
@@ -1553,7 +1553,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * }
      * Message 4 (execution completed):
      * {
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 3,  // EXECUTION_COMPLETED
      *     "completed_tasks": 3,
@@ -1639,19 +1639,19 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - WorkflowExecution belongs to different organization
      * Example Request:
      * {
-     *   "value": "wfx-abc123xyz456"
+     *   "value": "wfx_abc123xyz456"
      * }
      * Example Response:
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
      *   "metadata": {
-     *     "id": "wfx-abc123xyz456",
+     *     "id": "wfx_abc123xyz456",
      *     "name": "customer-onboarding-20250111-143022",
      *     "org": "acme"
      *   },
      *   "spec": {
-     *     "workflow_instance_id": "wfi-customer-onboarding-prod",
+     *     "workflow_instance_id": "wfi_customer-onboarding-prod",
      *     "trigger_message": "New signup: john.doe&#64;example.com"
      *   },
      *   "status": {
@@ -1721,11 +1721,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 3,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-failed-1", ... },
+     *       "metadata": { "id": "wfx_failed-1", ... },
      *       "status": { "phase": 4, "error": "Task failed: API timeout", ... }
      *     },
      *     {
-     *       "metadata": { "id": "wfx-failed-2", ... },
+     *       "metadata": { "id": "wfx_failed-2", ... },
      *       "status": { "phase": 4, "error": "Task failed: Rate limit", ... }
      *     }
      *   ]
@@ -1780,7 +1780,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   - No Workflow or WorkflowInstance exists with the given ID
      * Example Request:
      * {
-     *   "workflow_id": "wfi-customer-onboarding-prod",
+     *   "workflow_id": "wfi_customer-onboarding-prod",
      *   "page_size": 50
      * }
      * Example Response:
@@ -1788,11 +1788,11 @@ public final class WorkflowExecutionQueryControllerGrpc {
      *   "total_pages": 5,
      *   "entries": [
      *     {
-     *       "metadata": { "id": "wfx-latest", "created_at": "2025-01-11T14:30:22Z" },
+     *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
      *       "status": { "phase": 3, ... }  // COMPLETED
      *     },
      *     {
-     *       "metadata": { "id": "wfx-previous", "created_at": "2025-01-11T10:15:00Z" },
+     *       "metadata": { "id": "wfx_previous", "created_at": "2025-01-11T10:15:00Z" },
      *       "status": { "phase": 4, ... }  // FAILED
      *     }
      *   ]

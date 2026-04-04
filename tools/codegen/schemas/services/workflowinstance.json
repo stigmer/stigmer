@@ -221,5 +221,126 @@
       ]
     }
   ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Agentic - System-level audit trails and versioning"
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "IAM - Identity and Access Management"
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": ""
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": ""
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "IAM - External identity provider configuration"
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Tenancy - Platform and organizational resources"
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": ""
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "Agentic - AI agent management"
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": ""
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": ""
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": ""
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": ""
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": ""
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Agentic - Workflow orchestration"
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": ""
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": ""
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": ""
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": ""
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Tenancy - Project management (aggregate root for resource lifecycle)"
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    }
+  ],
   "resourceDescription": "WorkflowInstance represents a configured deployment of a Workflow template.\n\n WorkflowInstance is the \"Instance\" layer in the Template→Instance→Execution pattern.\n It binds a reusable Workflow template to specific environments containing credentials,\n configuration, and secrets needed for execution.\n\n A WorkflowInstance:\n - References a Workflow template (the orchestration blueprint)\n - Binds one or more Environment resources (configuration + secrets)\n - Can be executed multiple times via WorkflowExecution resources\n - Can be platform-scoped (global defaults), org-scoped (team instances), or user-scoped (personal)\n\n Example use case:\n Workflow \"deploy-to-cloud\" (template) → WorkflowInstance \"prod-deploy\" (with aws-prod-env)\n → WorkflowExecution \"prod-deploy-20250111-001\" (specific run)\n\n This separation allows:\n - Workflow templates to be reusable across teams/environments\n - Instances to maintain stateful configuration with secrets\n - Executions to track individual runs with results"
 }

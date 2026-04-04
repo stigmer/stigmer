@@ -24,51 +24,29 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AgentSpec defines the configurable properties of an AI agent.
-// This is the "Template" layer - declares capabilities and requirements.
+// AgentSpec defines the configurable properties of an agent.
 //
-// Example YAML:
-//
-//	apiVersion: agentic.stigmer.ai/v1
-//	kind: Agent
-//	metadata:
-//	  name: engineering-assistant
-//	  slug: eng-assistant
-//	spec:
-//	  description: "Helps engineering teams with code review"
-//	  instructions: "You are an engineering assistant..."
-//	  mcp_server_usages:
-//	    - mcp_server_ref:
-//	        kind: mcp_server
-//	        slug: github
-//	      enabled_tools: [search_code, create_pr]
-//	  skill_refs:
-//	    - kind: skill
-//	      slug: code-review-best-practices
+// @internal
+// This is the "Template" layer — declares capabilities and requirements.
+// The overview.md file provides the SDK-facing description and example YAML.
 type AgentSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable description for UI and marketplace display.
-	// Should explain what this agent does and its primary capabilities.
 	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
 	// Icon URL for marketplace and UI display.
-	// Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
+	// Must be a publicly accessible URL to an image (SVG, PNG, or JPEG).
 	IconUrl string `protobuf:"bytes,2,opt,name=icon_url,json=iconUrl,proto3" json:"icon_url,omitempty"`
-	// Instructions defining the agent's behavior and personality.
-	// This is the agent's system prompt - the core logic that shapes its responses.
-	// Should be at least 10 characters to ensure meaningful instructions.
+	// System prompt defining the agent's behavior and personality.
 	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
-	// MCP servers this Agent can use.
-	// Each usage references a McpServer resource by its ref.
-	// The slug from each reference must be unique within this Agent.
+	// MCP servers this agent can use.
+	// Each entry must reference a unique McpServer resource by slug.
 	McpServerUsages []*McpServerUsage `protobuf:"bytes,4,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
-	// Skill resources providing agent knowledge.
-	// Skills are injected into the agent's context as additional capabilities.
+	// Skill resources providing additional knowledge to the agent.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Sub-agents that can be delegated to.
-	// Sub-agents inherit the parent's MCP server usages but can have restricted access.
+	// Sub-agents can access a subset of the parent's MCP servers and tools.
 	SubAgents []*SubAgent `protobuf:"bytes,6,rep,name=sub_agents,json=subAgents,proto3" json:"sub_agents,omitempty"`
 	// Environment variables required by the agent.
-	// Uses the shared EnvironmentSpec for consistent env var handling across resources.
 	EnvSpec       *v1.EnvironmentSpec `protobuf:"bytes,7,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -154,57 +132,30 @@ func (x *AgentSpec) GetEnvSpec() *v1.EnvironmentSpec {
 }
 
 // SubAgent defines a specialized agent that the parent can delegate to.
-// SubAgents have restricted access to the parent's MCP servers.
 //
-// Permission Model:
-// - SubAgent can only access MCP servers that parent has in mcp_server_usages
-// - SubAgent tools must be a subset of parent's enabled tools (can restrict, not expand)
-// - SubAgent skills can reference any Skill resource (independent of parent)
+// A sub-agent can only access MCP servers that the parent has in
+// mcp_server_usages, and its tools must be a subset of the parent's
+// enabled tools. Skills are independent of the parent.
 //
-// Example YAML:
-//
-//	sub_agents:
-//	  - name: code-reviewer
-//	    description: "Reviews code changes for quality and security"
-//	    instructions: "You review code changes. Focus on security..."
-//	    mcp_access:
-//	      - mcp_server: github
-//	        enabled_tools: [search_code, get_file]
-//	    skill_refs:
-//	      - kind: skill
-//	        slug: code-review-best-practices
+// @internal
+// Permission model enforced at execution time by the delegation handler.
 type SubAgent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique name of the sub-agent within the parent agent.
-	// Used for delegation routing and logging.
-	// Examples: "code-reviewer", "researcher", "writer"
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Description of what this sub-agent specializes in.
-	// Helps the parent agent decide when to delegate to this sub-agent.
-	// Example: "Reviews code changes for security issues and best practices"
+	// What this sub-agent specializes in.
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	// Behavior instructions for this sub-agent.
-	// Defines the sub-agent's personality, expertise, and constraints.
-	// Should be at least 10 characters to ensure meaningful instructions.
+	// System prompt for this sub-agent.
 	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
 	// MCP server access grants for this sub-agent.
-	// Each McpAccess references a parent's McpServerUsage by slug and
-	// optionally restricts which tools are available.
-	// Sub-agent can only use MCP servers listed here.
+	// Each entry references a parent McpServerUsage by slug and optionally
+	// restricts which tools are available.
 	McpAccess []*McpAccess `protobuf:"bytes,4,rep,name=mcp_access,json=mcpAccess,proto3" json:"mcp_access,omitempty"`
-	// Skill resources for this sub-agent's knowledge.
-	// Skills provide domain-specific knowledge and capabilities.
+	// Skill resources for this sub-agent.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Model override for this sub-agent.
-	// When set, this sub-agent uses this model instead of the parent's model.
-	// Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-	//
-	// Examples:
-	//   - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-	//   - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-	//   - Code review sub-agent keeps parent model (leave empty)
-	//
-	// When empty: inherits the parent agent's model (current behavior).
+	// When set, uses this model instead of the parent's model.
+	// When empty, inherits the parent agent's model.
 	ModelOverride string `protobuf:"bytes,6,opt,name=model_override,json=modelOverride,proto3" json:"model_override,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -282,69 +233,31 @@ func (x *SubAgent) GetModelOverride() string {
 	return ""
 }
 
-// McpServerUsage declares that this Agent uses a McpServer resource.
-// The slug from mcp_server_ref becomes the identifier for SubAgent access.
+// McpServerUsage declares that this agent uses a McpServer resource.
 //
+// The slug from mcp_server_ref identifies this server for SubAgent access
+// grants via McpAccess.
+//
+// @internal
 // Design principle: Users already named their McpServer with a slug.
-// We use that slug as the identifier - no extra naming required.
-//
-// Example YAML:
-//
-//	mcp_server_usages:
-//	  - mcp_server_ref:
-//	      kind: mcp_server
-//	      slug: github
-//	    enabled_tools: [search_code, get_file, create_pr]
-//	    tool_approval_overrides:
-//	      - tool_name: delete_repository
-//	        requires_approval: false  # Trust this agent
-//	  - mcp_server_ref:
-//	      org: acme-corp
-//	      kind: mcp_server
-//	      slug: internal-tools
+// We use that slug as the identifier — no extra naming required.
 type McpServerUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the McpServer resource.
-	// Must reference a resource with kind=mcp_server (44).
-	// The slug from this reference is how SubAgents identify this server.
 	McpServerRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=mcp_server_ref,json=mcpServerRef,proto3" json:"mcp_server_ref,omitempty"`
-	// Tools to enable from this MCP server for this Agent.
-	// This defines the maximum tool set - SubAgents can only restrict further.
-	// Empty list = use McpServer's default_enabled_tools (or all if not specified).
+	// Tools to enable from this MCP server for this agent.
+	// Empty list uses the McpServer's default_enabled_tools.
+	// Sub-agents can only restrict this set further, not expand it.
 	//
+	// @internal
 	// Tool names must match exactly what the MCP server reports via tools/list.
-	// IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-	// Do NOT include names from `discovered_capabilities.resource_templates` —
+	// Only names from discovered_capabilities.tools are valid here.
+	// Do NOT include names from discovered_capabilities.resource_templates —
 	// resource templates are read-only data endpoints, not callable tools.
 	// Including a resource template name here causes a fatal runtime error.
 	EnabledTools []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
 	// Override approval requirements for specific tools.
-	//
-	// These overrides take precedence over McpServer.default_tool_approvals,
-	// allowing per-agent customization of the approval policy.
-	//
-	// Use cases:
-	// - Disable approval for a trusted automation agent
-	// - Add approval for a tool that doesn't have default approval
-	// - Customize the approval message for this agent's context
-	//
-	// Example (trusted deployment agent - disable defaults):
-	//
-	//	tool_approval_overrides:
-	//	  - tool_name: "delete_repository"
-	//	    requires_approval: false  # Trust this agent for deletions
-	//	  - tool_name: "force_push"
-	//	    requires_approval: false  # Trust this agent for force pushes
-	//
-	// Example (stricter approval for customer-facing agent):
-	//
-	//	tool_approval_overrides:
-	//	  - tool_name: "send_email"
-	//	    requires_approval: true
-	//	    message: "Send customer communication: {{args.subject}}"
-	//	  - tool_name: "create_ticket"
-	//	    requires_approval: true
-	//	    message: "Create support ticket for customer"
+	// Takes precedence over McpServer.default_tool_approvals.
 	ToolApprovalOverrides []*ToolApprovalOverride `protobuf:"bytes,3,rep,name=tool_approval_overrides,json=toolApprovalOverrides,proto3" json:"tool_approval_overrides,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -401,31 +314,20 @@ func (x *McpServerUsage) GetToolApprovalOverrides() []*ToolApprovalOverride {
 	return nil
 }
 
-// McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
-// Uses the same slug that identifies the McpServer resource.
+// McpAccess grants a sub-agent access to one of the parent's MCP servers.
 //
-// Permission model:
-// - SubAgent can only access servers that parent has in mcp_server_usages
-// - SubAgent tools must be a subset of parent's enabled tools
-//
-// Example YAML:
-//
-//	sub_agents:
-//	  - name: code-reviewer
-//	    mcp_access:
-//	      - mcp_server: github
-//	        enabled_tools: [search_code, get_file]
-//	      - mcp_server: slack
-//	        # enabled_tools empty = all tools from parent
+// @internal
+// Permission model enforced at execution time: sub-agent can only access
+// servers in the parent's mcp_server_usages, and tools must be a subset
+// of the parent's enabled_tools.
 type McpAccess struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Slug of the McpServer to grant access to.
-	// Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+	// Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
 	McpServer string `protobuf:"bytes,1,opt,name=mcp_server,json=mcpServer,proto3" json:"mcp_server,omitempty"`
-	// Tools this SubAgent can use from this MCP server.
+	// Tools this sub-agent can use from this MCP server.
 	// Must be a subset of the parent's enabled_tools for this server.
-	// Empty list = all tools that parent has enabled (no additional restriction).
-	// Only MCP tool names are valid — never include resource template names.
+	// Empty list grants access to all tools the parent has enabled.
 	EnabledTools  []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -477,56 +379,30 @@ func (x *McpAccess) GetEnabledTools() []string {
 
 // ToolApprovalOverride allows per-agent customization of approval requirements.
 //
-// ## Override Semantics
+// Set requires_approval to true to require approval even when the McpServer
+// has no default, or to false to skip approval even when the McpServer
+// requires it. These overrides take precedence over
+// McpServer.default_tool_approvals but can be bypassed at execution time
+// by AgentExecution.auto_approve_all.
 //
-// - requires_approval=true: Tool requires approval (even if MCP has no default)
-// - requires_approval=false: Tool does NOT require approval (overrides MCP default)
+// @internal
+// Policy chain (lowest to highest priority):
+// 1. McpServer.default_tool_approvals — platform/org defaults
+// 2. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
+// 3. AgentExecution.auto_approve_all — runtime bypass
 //
-// ## Message Inheritance
-//
-// When requires_approval=true and message is empty:
-// - If McpServer has default_tool_approvals for this tool, uses that message
-// - Otherwise, auto-generates: "Execute tool: {tool_name}"
-//
-// When message is provided, it overrides any McpServer default message.
-//
-// ## Policy Chain Position
-//
-// This sits in the middle of the approval policy chain:
-// 1. McpServer.default_tool_approvals - Platform/org defaults (lowest priority)
-// 2. Agent.McpServerUsage.tool_approval_overrides (this message) - Per-agent customization
-// 3. AgentExecution.auto_approve_all - Runtime bypass (highest priority)
-//
-// ## Validation
-//
-// The tool_name should match a tool in the referenced McpServer's tools/list.
 // Invalid tool names are silently ignored (no approval applied).
 // This allows forward-compatibility when MCP servers add/remove tools.
 type ToolApprovalOverride struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Name of the tool to override.
-	// Must match exactly (case-sensitive) with MCP server's tool name.
-	// Example: "delete_repository", "send_email", "execute_sql"
 	ToolName string `protobuf:"bytes,1,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
 	// Whether this tool requires approval for this agent.
-	//
-	// false: No approval needed (overrides any McpServer default)
-	// true: Approval required (even if McpServer has no default)
-	//
-	// Note: This can be further overridden at execution time by
-	// AgentExecutionSpec.auto_approve_all=true
 	RequiresApproval bool `protobuf:"varint,2,opt,name=requires_approval,json=requiresApproval,proto3" json:"requires_approval,omitempty"`
-	// Optional: Custom approval message for this agent.
-	// Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-	//
-	// If empty and requires_approval=true:
-	// - Uses McpServer's default message for this tool (if exists)
-	// - Otherwise auto-generates: "Execute tool: {tool_name}"
-	//
-	// Guidelines for effective messages:
-	//   - Be specific to this agent's context
-	//   - Include the most important argument values
-	//   - Keep under 100 characters for UI display
+	// Custom approval message shown to the reviewer.
+	// Supports {{args.field}} placeholders.
+	// When empty, falls back to the McpServer default or auto-generates
+	// "Execute tool: {tool_name}".
 	Message       string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

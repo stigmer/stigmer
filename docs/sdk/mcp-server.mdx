@@ -679,7 +679,7 @@ Input for updating the visibility of any API resource.
 <TypeTable
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
-    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource." },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "#apiresourcevisibility" },
   }}
 />
 
@@ -712,7 +712,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -738,35 +738,10 @@ McpServerStatus represents the system-managed state of an MCP server definition.
 
 <TypeTable
   type={{
-    validationState: { type: "ValidationState", description: "Validation state of the MCP server definition." },
+    validationState: { type: "ValidationState", description: "Validation state of the MCP server definition.", typeDescriptionLink: "#validationstate" },
     validationMessage: { type: "string", description: "Human-readable validation message." },
     discoveredCapabilities: { type: "DiscoveredCapabilities", description: "Tools and resource templates discovered from the MCP server.", typeDescriptionLink: "#discoveredcapabilities" },
     audit: { type: "ApiResourceAudit", description: "Standard audit information tracking creation and modification.", typeDescriptionLink: "#apiresourceaudit" },
-  }}
-/>
-
-### DiscoveredCapabilities
-
-DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
-
-<TypeTable
-  type={{
-    tools: { type: "DiscoveredTool[]", description: "Tools reported by the MCP server via tools/list.", typeDescriptionLink: "#discoveredtool" },
-    resourceTemplates: { type: "DiscoveredResourceTemplate[]", description: "Resource templates reported by the MCP server via resources/templates/list.", typeDescriptionLink: "#discoveredresourcetemplate" },
-    lastDiscoveredAt: { type: "string", description: "When this snapshot was captured." },
-    discoveredBy: { type: "DiscoverySource", description: "How this snapshot was produced." },
-  }}
-/>
-
-### DiscoveredTool
-
-DiscoveredTool describes a single tool reported by an MCP server.
-
-<TypeTable
-  type={{
-    name: { type: "string", description: "Unique tool name within the MCP server (case-sensitive)." },
-    description: { type: "string", description: "Human-readable description of the tool's purpose." },
-    inputSchema: { type: "object", description: "JSON Schema describing the tool's input parameters." },
   }}
 />
 
@@ -818,4 +793,84 @@ ApiResourceAuditActor represents the entity that performed an action.
     avatar: { type: "string", description: "URL to the actor's avatar image." },
   }}
 />
+
+### DiscoveredCapabilities
+
+DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
+
+<TypeTable
+  type={{
+    tools: { type: "DiscoveredTool[]", description: "Tools reported by the MCP server via tools/list.", typeDescriptionLink: "#discoveredtool" },
+    resourceTemplates: { type: "DiscoveredResourceTemplate[]", description: "Resource templates reported by the MCP server via resources/templates/list.", typeDescriptionLink: "#discoveredresourcetemplate" },
+    lastDiscoveredAt: { type: "string", description: "When this snapshot was captured." },
+    discoveredBy: { type: "DiscoverySource", description: "How this snapshot was produced.", typeDescriptionLink: "#discoverysource" },
+  }}
+/>
+
+### DiscoveredTool
+
+DiscoveredTool describes a single tool reported by an MCP server.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "Unique tool name within the MCP server (case-sensitive)." },
+    description: { type: "string", description: "Human-readable description of the tool's purpose." },
+    inputSchema: { type: "object", description: "JSON Schema describing the tool's input parameters." },
+  }}
+/>
+
+### ApiResourceVisibility
+
+Visibility controls who can access an API resource.
+
+| Value | Description |
+|-------|-------------|
+| `visibility_private` | Only members of the owning organization can access. |
+| `visibility_public` | Anyone can access (read) this resource. |
+
+### ApiResourceKind
+
+API resource kinds for Stigmer.
+
+| Value | Description |
+|-------|-------------|
+| `api_resource_version` | Agentic - System-level audit trails and versioning. |
+| `iam_policy` | IAM - Identity and Access Management. |
+| `identity_account` |  |
+| `api_key` |  |
+| `identity_provider` | IAM - External identity provider configuration. |
+| `organization` | Tenancy - Platform and organizational resources. |
+| `platform` |  |
+| `agent` | Agentic - AI agent management. |
+| `agent_execution` |  |
+| `session` |  |
+| `skill` |  |
+| `mcp_server` |  |
+| `agent_instance` |  |
+| `workflow` | Agentic - Workflow orchestration. |
+| `workflow_instance` |  |
+| `workflow_execution` |  |
+| `environment` |  |
+| `execution_context` |  |
+| `project` | Tenancy - Project management (aggregate root for resource lifecycle). |
+
+### ValidationState
+
+ValidationState represents the structural validity of an MCP server definition.
+
+| Value | Description |
+|-------|-------------|
+| `valid` | The MCP server definition is structurally valid. |
+| `invalid` | The MCP server definition is invalid. |
+
+### DiscoverySource
+
+DiscoverySource identifies how discovered capabilities were obtained.
+
+| Value | Description |
+|-------|-------------|
+| `seedpack` | Statically defined in the seedpack (built-in servers with known tool sets). |
+| `cli` | Discovered by the CLI via `stigmer discover mcp-server <name>`. |
+| `agent_runner` | Discovered by the agent-runner at runtime (future). |
+| `api` | Discovered via the discoverCapabilities RPC (web console or API). |
 

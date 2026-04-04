@@ -110,7 +110,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-generated unique identifier (UUID).
    *
-   * Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+   * Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
    * Use this for subsequent API calls to get/update/delete the resource.
    * </pre>
    *
@@ -134,7 +134,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-generated unique identifier (UUID).
    *
-   * Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+   * Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
    * Use this for subsequent API calls to get/update/delete the resource.
    * </pre>
    *
@@ -1352,7 +1352,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated unique identifier (UUID).
      *
-     * Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+     * Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
      * Use this for subsequent API calls to get/update/delete the resource.
      * </pre>
      *
@@ -1375,7 +1375,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated unique identifier (UUID).
      *
-     * Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+     * Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
      * Use this for subsequent API calls to get/update/delete the resource.
      * </pre>
      *
@@ -1399,7 +1399,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated unique identifier (UUID).
      *
-     * Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+     * Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
      * Use this for subsequent API calls to get/update/delete the resource.
      * </pre>
      *
@@ -1419,7 +1419,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated unique identifier (UUID).
      *
-     * Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+     * Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
      * Use this for subsequent API calls to get/update/delete the resource.
      * </pre>
      *
@@ -1436,7 +1436,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated unique identifier (UUID).
      *
-     * Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+     * Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
      * Use this for subsequent API calls to get/update/delete the resource.
      * </pre>
      *

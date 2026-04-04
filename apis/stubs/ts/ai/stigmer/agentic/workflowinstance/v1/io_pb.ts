@@ -29,7 +29,7 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_io: GenFile = /*@__PURE
  * - get: Retrieve a specific instance by ID
  * - delete: Remove a specific instance by ID
  *
- * Format: Resource ID string (e.g., "wfi-abc123")
+ * Format: Resource ID string (e.g., "wfi_abc123")
  * Validation: Required field (must not be empty)
  *
  * @generated from message ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId
@@ -37,7 +37,7 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_io: GenFile = /*@__PURE
 export type WorkflowInstanceId = Message<"ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId"> & {
   /**
    * The workflow instance resource ID.
-   * Example: "wfi-abc123"
+   * Example: "wfi_abc123"
    *
    * @generated from field: string value = 1;
    */
@@ -69,7 +69,7 @@ export type GetWorkflowInstancesByWorkflowRequest = Message<"ai.stigmer.agentic.
    * Workflow template ID to filter by.
    *
    * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
+   * Format: Workflow resource ID (e.g., "wfl_abc123")
    * Validation: Required field
    *
    * @generated from field: string workflow_id = 1;

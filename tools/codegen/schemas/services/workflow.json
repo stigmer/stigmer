@@ -149,6 +149,226 @@
       ]
     }
   ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Agentic - System-level audit trails and versioning"
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "IAM - Identity and Access Management"
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": ""
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": ""
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "IAM - External identity provider configuration"
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Tenancy - Platform and organizational resources"
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": ""
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "Agentic - AI agent management"
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": ""
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": ""
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": ""
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": ""
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": ""
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Agentic - Workflow orchestration"
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": ""
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": ""
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": ""
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": ""
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Tenancy - Project management (aggregate root for resource lifecycle)"
+        }
+      ]
+    },
+    {
+      "name": "ValidationState",
+      "description": "ValidationState represents the current state of serverless workflow validation",
+      "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ValidationState",
+      "values": [
+        {
+          "name": "PENDING",
+          "number": 1,
+          "description": "Validation has been triggered but not yet completed\n This is the initial state when a workflow is created"
+        },
+        {
+          "name": "VALID",
+          "number": 2,
+          "description": "Validation completed successfully - workflow structure is valid\n The generated YAML is stored and can be used for execution"
+        },
+        {
+          "name": "INVALID",
+          "number": 3,
+          "description": "Validation completed but found errors - workflow structure is invalid\n The workflow cannot be executed until errors are fixed\n Errors are listed in the 'errors' field"
+        },
+        {
+          "name": "FAILED",
+          "number": 4,
+          "description": "Validation process itself failed (system error, not user error)\n Examples: Temporal workflow crashed, activity timeout, etc.\n User should retry validation or contact support"
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    },
+    {
+      "name": "WorkflowTaskKind",
+      "description": "WorkflowTaskKind defines all supported task types in workflows.\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}",
+      "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",
+      "values": [
+        {
+          "name": "set_vars",
+          "number": 1,
+          "description": "set_vars: Set variables in workflow state.\n Config: {\"variables\": {\"key\": \"value\", ...}}"
+        },
+        {
+          "name": "http_call",
+          "number": 2,
+          "description": "http_call: Make HTTP requests (GET, POST, PUT, DELETE, PATCH).\n Config: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}"
+        },
+        {
+          "name": "grpc_call",
+          "number": 3,
+          "description": "grpc_call: Make gRPC requests.\n Config: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}"
+        },
+        {
+          "name": "activity_call",
+          "number": 4,
+          "description": "activity_call: Execute Temporal activities.\n Config: {\"activity\": \"ActivityName\", \"input\": {...}}"
+        },
+        {
+          "name": "switch_case",
+          "number": 5,
+          "description": "switch_case: Conditional branching based on expressions.\n Config: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}"
+        },
+        {
+          "name": "for_each",
+          "number": 6,
+          "description": "for_each: Iterate over collections (forEach loop).\n Config: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}"
+        },
+        {
+          "name": "fork",
+          "number": 7,
+          "description": "fork: Parallel execution of multiple branches.\n Config: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}"
+        },
+        {
+          "name": "try_catch",
+          "number": 8,
+          "description": "try_catch: Error handling (try/catch block).\n Config: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}"
+        },
+        {
+          "name": "listen",
+          "number": 9,
+          "description": "listen: Wait for external signals/events.\n Config: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}"
+        },
+        {
+          "name": "wait",
+          "number": 10,
+          "description": "wait: Sleep/delay (Temporal timer).\n Config: {\"seconds\": 5}"
+        },
+        {
+          "name": "raise_error",
+          "number": 11,
+          "description": "raise_error: Raise errors/exceptions.\n Config: {\"error\": \"ErrorType\", \"message\": \"${...}\"}"
+        },
+        {
+          "name": "run_workflow",
+          "number": 12,
+          "description": "run_workflow: Execute sub-workflows.\n Config: {\"workflow\": \"workflow-name\", \"input\": {...}}"
+        },
+        {
+          "name": "agent_call",
+          "number": 13,
+          "description": "agent_call: Invoke AI agents as tasks.\n Allows workflows to delegate complex operations to specialized agents.\n Config: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}, \"config\": {...}}"
+        }
+      ]
+    }
+  ],
   "resourceDescription": "Workflow represents a workflow orchestration definition.",
   "statusType": {
     "name": "WorkflowStatus",
@@ -191,36 +411,6 @@
     ]
   },
   "statusNestedTypes": [
-    {
-      "name": "ApiResourceAudit",
-      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "SpecAudit",
-          "jsonName": "specAudit",
-          "protoField": "spec_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's specification (desired state).",
-          "required": false
-        },
-        {
-          "name": "StatusAudit",
-          "jsonName": "statusAudit",
-          "protoField": "status_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's status (actual state).",
-          "required": false
-        }
-      ]
-    },
     {
       "name": "ApiResourceAuditInfo",
       "description": "ApiResourceAuditInfo contains detailed audit information.",
@@ -386,6 +576,36 @@
             "kind": "string"
           },
           "description": "Temporal workflow ID for the validation workflow\n Format: \"validate-workflow-{workflow_id}\"\n Useful for tracking/debugging validation progress",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
           "required": false
         }
       ]

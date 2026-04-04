@@ -48,7 +48,7 @@ type WorkflowInstanceQueryControllerClient interface {
 	// Retrieves a specific WorkflowInstance using its unique resource identifier.
 	//
 	// Input:
-	// WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
+	// WorkflowInstanceId with the instance ID (e.g., "wfi_abc123")
 	//
 	// Returns:
 	// Complete WorkflowInstance resource with:
@@ -77,10 +77,10 @@ type WorkflowInstanceQueryControllerClient interface {
 	// Useful for discovering all configured deployments of a workflow.
 	//
 	// Example Use Case:
-	// Workflow "deploy-to-cloud" (wfl-123) has instances:
-	// - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
-	// - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
-	// - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+	// Workflow "deploy-to-cloud" (wfl_123) has instances:
+	// - "prod-deploy" (wfi_abc) - Production deployment with aws-prod-env
+	// - "staging-deploy" (wfi_def) - Staging deployment with aws-staging-env
+	// - "dev-deploy" (wfi_ghi) - Development deployment with aws-dev-env
 	//
 	// @internal
 	//
@@ -111,7 +111,7 @@ type WorkflowInstanceQueryControllerClient interface {
 	// Get a workflow instance by flexible reference (ID or slug).
 	//
 	// Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-	// - By ID: {id: "wfi-abc123"}
+	// - By ID: {id: "wfi_abc123"}
 	// - By slug: {slug: "prod-deploy"}
 	// - By name: {name: "Production Deploy"}
 	//
@@ -201,7 +201,7 @@ type WorkflowInstanceQueryControllerServer interface {
 	// Retrieves a specific WorkflowInstance using its unique resource identifier.
 	//
 	// Input:
-	// WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
+	// WorkflowInstanceId with the instance ID (e.g., "wfi_abc123")
 	//
 	// Returns:
 	// Complete WorkflowInstance resource with:
@@ -230,10 +230,10 @@ type WorkflowInstanceQueryControllerServer interface {
 	// Useful for discovering all configured deployments of a workflow.
 	//
 	// Example Use Case:
-	// Workflow "deploy-to-cloud" (wfl-123) has instances:
-	// - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
-	// - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
-	// - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+	// Workflow "deploy-to-cloud" (wfl_123) has instances:
+	// - "prod-deploy" (wfi_abc) - Production deployment with aws-prod-env
+	// - "staging-deploy" (wfi_def) - Staging deployment with aws-staging-env
+	// - "dev-deploy" (wfi_ghi) - Development deployment with aws-dev-env
 	//
 	// @internal
 	//
@@ -264,7 +264,7 @@ type WorkflowInstanceQueryControllerServer interface {
 	// Get a workflow instance by flexible reference (ID or slug).
 	//
 	// Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-	// - By ID: {id: "wfi-abc123"}
+	// - By ID: {id: "wfi_abc123"}
 	// - By slug: {slug: "prod-deploy"}
 	// - By name: {name: "Production Deploy"}
 	//

@@ -15,12 +15,12 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * Workflow or WorkflowInstance ID to filter by.
    *
    * Can be either:
-   * - Workflow ID (wf-{slug}): Lists all executions of any instance
-   * - WorkflowInstance ID (wfi-{slug}): Lists executions of specific instance
+   * - Workflow ID (wf_{slug}): Lists all executions of any instance
+   * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
    *
    * Examples:
-   * - "wf-customer-onboarding" (all instances: prod, dev, staging)
-   * - "wfi-customer-onboarding-prod" (only prod instance)
+   * - "wf_customer-onboarding" (all instances: prod, dev, staging)
+   * - "wfi_customer-onboarding-prod" (only prod instance)
    *
    * Validation: Required field, cannot be empty
    *
@@ -38,12 +38,12 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * Workflow or WorkflowInstance ID to filter by.
    *
    * Can be either:
-   * - Workflow ID (wf-{slug}): Lists all executions of any instance
-   * - WorkflowInstance ID (wfi-{slug}): Lists executions of specific instance
+   * - Workflow ID (wf_{slug}): Lists all executions of any instance
+   * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
    *
    * Examples:
-   * - "wf-customer-onboarding" (all instances: prod, dev, staging)
-   * - "wfi-customer-onboarding-prod" (only prod instance)
+   * - "wf_customer-onboarding" (all instances: prod, dev, staging)
+   * - "wfi_customer-onboarding-prod" (only prod instance)
    *
    * Validation: Required field, cannot be empty
    *
@@ -80,9 +80,9 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
    *
    * Example:
-   * Request 1: { workflow_id: "wfi-prod", page_size: 50 }
+   * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
    * Response 1: { entries: [...], page_token: "abc123" }
-   * Request 2: { workflow_id: "wfi-prod", page_size: 50, page_token: "abc123" }
+   * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -96,9 +96,9 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
    *
    * Example:
-   * Request 1: { workflow_id: "wfi-prod", page_size: 50 }
+   * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
    * Response 1: { entries: [...], page_token: "abc123" }
-   * Request 2: { workflow_id: "wfi-prod", page_size: 50, page_token: "abc123" }
+   * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>

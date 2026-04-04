@@ -9,29 +9,18 @@ package ai.stigmer.agentic.agent.v1;
  * <pre>
  * ToolApprovalOverride allows per-agent customization of approval requirements.
  *
- * ## Override Semantics
+ * Set requires_approval to true to require approval even when the McpServer
+ * has no default, or to false to skip approval even when the McpServer
+ * requires it. These overrides take precedence over
+ * McpServer.default_tool_approvals but can be bypassed at execution time
+ * by AgentExecution.auto_approve_all.
  *
- * - requires_approval=true: Tool requires approval (even if MCP has no default)
- * - requires_approval=false: Tool does NOT require approval (overrides MCP default)
+ * &#64;internal
+ * Policy chain (lowest to highest priority):
+ * 1. McpServer.default_tool_approvals — platform/org defaults
+ * 2. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
+ * 3. AgentExecution.auto_approve_all — runtime bypass
  *
- * ## Message Inheritance
- *
- * When requires_approval=true and message is empty:
- * - If McpServer has default_tool_approvals for this tool, uses that message
- * - Otherwise, auto-generates: "Execute tool: {tool_name}"
- *
- * When message is provided, it overrides any McpServer default message.
- *
- * ## Policy Chain Position
- *
- * This sits in the middle of the approval policy chain:
- * 1. McpServer.default_tool_approvals - Platform/org defaults (lowest priority)
- * 2. Agent.McpServerUsage.tool_approval_overrides (this message) - Per-agent customization
- * 3. AgentExecution.auto_approve_all - Runtime bypass (highest priority)
- *
- * ## Validation
- *
- * The tool_name should match a tool in the referenced McpServer's tools/list.
  * Invalid tool names are silently ignored (no approval applied).
  * This allows forward-compatibility when MCP servers add/remove tools.
  * </pre>
@@ -86,8 +75,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Name of the tool to override.
-   * Must match exactly (case-sensitive) with MCP server's tool name.
-   * Example: "delete_repository", "send_email", "execute_sql"
    * </pre>
    *
    * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -109,8 +96,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Name of the tool to override.
-   * Must match exactly (case-sensitive) with MCP server's tool name.
-   * Example: "delete_repository", "send_email", "execute_sql"
    * </pre>
    *
    * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -136,12 +121,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether this tool requires approval for this agent.
-   *
-   * false: No approval needed (overrides any McpServer default)
-   * true: Approval required (even if McpServer has no default)
-   *
-   * Note: This can be further overridden at execution time by
-   * AgentExecutionSpec.auto_approve_all=true
    * </pre>
    *
    * <code>bool requires_approval = 2 [json_name = "requiresApproval"];</code>
@@ -157,17 +136,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object message_ = "";
   /**
    * <pre>
-   * Optional: Custom approval message for this agent.
-   * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-   *
-   * If empty and requires_approval=true:
-   * - Uses McpServer's default message for this tool (if exists)
-   * - Otherwise auto-generates: "Execute tool: {tool_name}"
-   *
-   * Guidelines for effective messages:
-   * - Be specific to this agent's context
-   * - Include the most important argument values
-   * - Keep under 100 characters for UI display
+   * Custom approval message shown to the reviewer.
+   * Supports {{args.field}} placeholders.
+   * When empty, falls back to the McpServer default or auto-generates
+   * "Execute tool: {tool_name}".
    * </pre>
    *
    * <code>string message = 3 [json_name = "message"];</code>
@@ -188,17 +160,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional: Custom approval message for this agent.
-   * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-   *
-   * If empty and requires_approval=true:
-   * - Uses McpServer's default message for this tool (if exists)
-   * - Otherwise auto-generates: "Execute tool: {tool_name}"
-   *
-   * Guidelines for effective messages:
-   * - Be specific to this agent's context
-   * - Include the most important argument values
-   * - Keep under 100 characters for UI display
+   * Custom approval message shown to the reviewer.
+   * Supports {{args.field}} placeholders.
+   * When empty, falls back to the McpServer default or auto-generates
+   * "Execute tool: {tool_name}".
    * </pre>
    *
    * <code>string message = 3 [json_name = "message"];</code>
@@ -401,29 +366,18 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ToolApprovalOverride allows per-agent customization of approval requirements.
    *
-   * ## Override Semantics
+   * Set requires_approval to true to require approval even when the McpServer
+   * has no default, or to false to skip approval even when the McpServer
+   * requires it. These overrides take precedence over
+   * McpServer.default_tool_approvals but can be bypassed at execution time
+   * by AgentExecution.auto_approve_all.
    *
-   * - requires_approval=true: Tool requires approval (even if MCP has no default)
-   * - requires_approval=false: Tool does NOT require approval (overrides MCP default)
+   * &#64;internal
+   * Policy chain (lowest to highest priority):
+   * 1. McpServer.default_tool_approvals — platform/org defaults
+   * 2. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
+   * 3. AgentExecution.auto_approve_all — runtime bypass
    *
-   * ## Message Inheritance
-   *
-   * When requires_approval=true and message is empty:
-   * - If McpServer has default_tool_approvals for this tool, uses that message
-   * - Otherwise, auto-generates: "Execute tool: {tool_name}"
-   *
-   * When message is provided, it overrides any McpServer default message.
-   *
-   * ## Policy Chain Position
-   *
-   * This sits in the middle of the approval policy chain:
-   * 1. McpServer.default_tool_approvals - Platform/org defaults (lowest priority)
-   * 2. Agent.McpServerUsage.tool_approval_overrides (this message) - Per-agent customization
-   * 3. AgentExecution.auto_approve_all - Runtime bypass (highest priority)
-   *
-   * ## Validation
-   *
-   * The tool_name should match a tool in the referenced McpServer's tools/list.
    * Invalid tool names are silently ignored (no approval applied).
    * This allows forward-compatibility when MCP servers add/remove tools.
    * </pre>
@@ -595,8 +549,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the tool to override.
-     * Must match exactly (case-sensitive) with MCP server's tool name.
-     * Example: "delete_repository", "send_email", "execute_sql"
      * </pre>
      *
      * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -617,8 +569,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the tool to override.
-     * Must match exactly (case-sensitive) with MCP server's tool name.
-     * Example: "delete_repository", "send_email", "execute_sql"
      * </pre>
      *
      * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -640,8 +590,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the tool to override.
-     * Must match exactly (case-sensitive) with MCP server's tool name.
-     * Example: "delete_repository", "send_email", "execute_sql"
      * </pre>
      *
      * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -659,8 +607,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the tool to override.
-     * Must match exactly (case-sensitive) with MCP server's tool name.
-     * Example: "delete_repository", "send_email", "execute_sql"
      * </pre>
      *
      * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -675,8 +621,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the tool to override.
-     * Must match exactly (case-sensitive) with MCP server's tool name.
-     * Example: "delete_repository", "send_email", "execute_sql"
      * </pre>
      *
      * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -697,12 +641,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this tool requires approval for this agent.
-     *
-     * false: No approval needed (overrides any McpServer default)
-     * true: Approval required (even if McpServer has no default)
-     *
-     * Note: This can be further overridden at execution time by
-     * AgentExecutionSpec.auto_approve_all=true
      * </pre>
      *
      * <code>bool requires_approval = 2 [json_name = "requiresApproval"];</code>
@@ -715,12 +653,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this tool requires approval for this agent.
-     *
-     * false: No approval needed (overrides any McpServer default)
-     * true: Approval required (even if McpServer has no default)
-     *
-     * Note: This can be further overridden at execution time by
-     * AgentExecutionSpec.auto_approve_all=true
      * </pre>
      *
      * <code>bool requires_approval = 2 [json_name = "requiresApproval"];</code>
@@ -737,12 +669,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this tool requires approval for this agent.
-     *
-     * false: No approval needed (overrides any McpServer default)
-     * true: Approval required (even if McpServer has no default)
-     *
-     * Note: This can be further overridden at execution time by
-     * AgentExecutionSpec.auto_approve_all=true
      * </pre>
      *
      * <code>bool requires_approval = 2 [json_name = "requiresApproval"];</code>
@@ -758,17 +684,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object message_ = "";
     /**
      * <pre>
-     * Optional: Custom approval message for this agent.
-     * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-     *
-     * If empty and requires_approval=true:
-     * - Uses McpServer's default message for this tool (if exists)
-     * - Otherwise auto-generates: "Execute tool: {tool_name}"
-     *
-     * Guidelines for effective messages:
-     * - Be specific to this agent's context
-     * - Include the most important argument values
-     * - Keep under 100 characters for UI display
+     * Custom approval message shown to the reviewer.
+     * Supports {{args.field}} placeholders.
+     * When empty, falls back to the McpServer default or auto-generates
+     * "Execute tool: {tool_name}".
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -788,17 +707,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional: Custom approval message for this agent.
-     * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-     *
-     * If empty and requires_approval=true:
-     * - Uses McpServer's default message for this tool (if exists)
-     * - Otherwise auto-generates: "Execute tool: {tool_name}"
-     *
-     * Guidelines for effective messages:
-     * - Be specific to this agent's context
-     * - Include the most important argument values
-     * - Keep under 100 characters for UI display
+     * Custom approval message shown to the reviewer.
+     * Supports {{args.field}} placeholders.
+     * When empty, falls back to the McpServer default or auto-generates
+     * "Execute tool: {tool_name}".
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -819,17 +731,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional: Custom approval message for this agent.
-     * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-     *
-     * If empty and requires_approval=true:
-     * - Uses McpServer's default message for this tool (if exists)
-     * - Otherwise auto-generates: "Execute tool: {tool_name}"
-     *
-     * Guidelines for effective messages:
-     * - Be specific to this agent's context
-     * - Include the most important argument values
-     * - Keep under 100 characters for UI display
+     * Custom approval message shown to the reviewer.
+     * Supports {{args.field}} placeholders.
+     * When empty, falls back to the McpServer default or auto-generates
+     * "Execute tool: {tool_name}".
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -846,17 +751,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional: Custom approval message for this agent.
-     * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-     *
-     * If empty and requires_approval=true:
-     * - Uses McpServer's default message for this tool (if exists)
-     * - Otherwise auto-generates: "Execute tool: {tool_name}"
-     *
-     * Guidelines for effective messages:
-     * - Be specific to this agent's context
-     * - Include the most important argument values
-     * - Keep under 100 characters for UI display
+     * Custom approval message shown to the reviewer.
+     * Supports {{args.field}} placeholders.
+     * When empty, falls back to the McpServer default or auto-generates
+     * "Execute tool: {tool_name}".
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -870,17 +768,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional: Custom approval message for this agent.
-     * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-     *
-     * If empty and requires_approval=true:
-     * - Uses McpServer's default message for this tool (if exists)
-     * - Otherwise auto-generates: "Execute tool: {tool_name}"
-     *
-     * Guidelines for effective messages:
-     * - Be specific to this agent's context
-     * - Include the most important argument values
-     * - Keep under 100 characters for UI display
+     * Custom approval message shown to the reviewer.
+     * Supports {{args.field}} placeholders.
+     * When empty, falls back to the McpServer default or auto-generates
+     * "Execute tool: {tool_name}".
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>

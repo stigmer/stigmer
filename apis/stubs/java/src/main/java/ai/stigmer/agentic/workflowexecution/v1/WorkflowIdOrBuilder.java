@@ -15,12 +15,12 @@ public interface WorkflowIdOrBuilder extends
    * Workflow or WorkflowInstance identifier.
    *
    * Can be either:
-   * - Workflow ID (wf-{slug}): Filter by workflow template
-   * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+   * - Workflow ID (wf_{slug}): Filter by workflow template
+   * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
    *
    * Examples:
-   * - "wf-customer-onboarding" (all instances of this workflow)
-   * - "wfi-customer-onboarding-prod" (specific instance)
+   * - "wf_customer-onboarding" (all instances of this workflow)
+   * - "wfi_customer-onboarding-prod" (specific instance)
    *
    * Validation: Required field, cannot be empty
    * </pre>
@@ -34,12 +34,12 @@ public interface WorkflowIdOrBuilder extends
    * Workflow or WorkflowInstance identifier.
    *
    * Can be either:
-   * - Workflow ID (wf-{slug}): Filter by workflow template
-   * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+   * - Workflow ID (wf_{slug}): Filter by workflow template
+   * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
    *
    * Examples:
-   * - "wf-customer-onboarding" (all instances of this workflow)
-   * - "wfi-customer-onboarding-prod" (specific instance)
+   * - "wf_customer-onboarding" (all instances of this workflow)
+   * - "wfi_customer-onboarding-prod" (specific instance)
    *
    * Validation: Required field, cannot be empty
    * </pre>

@@ -34,11 +34,14 @@ const (
 // AgentCommandController handles write operations for AI agents.
 type AgentCommandControllerClient interface {
 	// Create or update an agent.
+	//
+	// @internal
 	// The authorization and state-operation are determined depending on whether the agent
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
-	// Create a new agent.
+	// Create an agent.
 	//
+	// @internal
 	// Authorization:
 	// - Organization-scoped agents: Caller must have can_create_agent permission in the organization
 	// - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -52,6 +55,7 @@ type AgentCommandControllerClient interface {
 	// make an agent publicly accessible or to revoke public access without
 	// sending the entire agent resource (avoiding read-modify-write races).
 	//
+	// @internal
 	// Authorization: Requires can_edit permission on the agent resource.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
@@ -123,11 +127,14 @@ func (c *agentCommandControllerClient) Delete(ctx context.Context, in *AgentId, 
 // AgentCommandController handles write operations for AI agents.
 type AgentCommandControllerServer interface {
 	// Create or update an agent.
+	//
+	// @internal
 	// The authorization and state-operation are determined depending on whether the agent
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *Agent) (*Agent, error)
-	// Create a new agent.
+	// Create an agent.
 	//
+	// @internal
 	// Authorization:
 	// - Organization-scoped agents: Caller must have can_create_agent permission in the organization
 	// - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -141,6 +148,7 @@ type AgentCommandControllerServer interface {
 	// make an agent publicly accessible or to revoke public access without
 	// sending the entire agent resource (avoiding read-modify-write races).
 	//
+	// @internal
 	// Authorization: Requires can_edit permission on the agent resource.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error)
 	// Delete an agent.

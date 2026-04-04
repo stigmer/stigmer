@@ -88,7 +88,7 @@ type WorkflowExecution struct {
 	// is typically PRIVATE for executions since they contain runtime data.
 	//
 	// Naming Pattern:
-	// - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+	// - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
 	// - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
 	// - Slug Format: Same as name, URL-safe
 	//
@@ -110,7 +110,7 @@ type WorkflowExecution struct {
 	// Example:
 	//
 	//	spec {
-	//	  workflow_instance_id: "wfi-customer-onboarding-prod"
+	//	  workflow_instance_id: "wfi_customer-onboarding-prod"
 	//	  trigger_message: "New customer: customer-email@example.com"
 	//	  trigger_metadata: {
 	//	    "source": "api"
@@ -411,7 +411,7 @@ type WorkflowExecutionStatus struct {
 	// - Signaling or cancelling Temporal workflows
 	//
 	// Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-	// Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+	// Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
 	//
 	// This field is optional and only relevant when Temporal is used as the execution engine.
 	// Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.

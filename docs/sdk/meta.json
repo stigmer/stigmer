@@ -5,6 +5,7 @@
     "agent-execution",
     "agent-instance",
     "api-key",
+    "commons",
     "environment",
     "execution-context",
     "iam-policy",

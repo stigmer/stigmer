@@ -143,10 +143,6 @@ type ToolCall struct {
 	Result string `protobuf:"bytes,4,opt,name=result,proto3" json:"result,omitempty"`
 	// Status of the tool call execution.
 	Status ToolCallStatus `protobuf:"varint,5,opt,name=status,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ToolCallStatus" json:"status,omitempty"`
-	// Optional metadata to guide frontend UI component rendering.
-	// Set by Python worker based on tool name or explicitly by agents.
-	// Example: kubectl_get_pods → component_type="terminal"
-	ComponentMetadata *ComponentMetadata `protobuf:"bytes,6,opt,name=component_metadata,json=componentMetadata,proto3" json:"component_metadata,omitempty"`
 	// ISO 8601 timestamp when the tool call started.
 	StartedAt string `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// ISO 8601 timestamp when the tool call completed or failed.
@@ -303,13 +299,6 @@ func (x *ToolCall) GetStatus() ToolCallStatus {
 	return ToolCallStatus_TOOL_CALL_STATUS_UNSPECIFIED
 }
 
-func (x *ToolCall) GetComponentMetadata() *ComponentMetadata {
-	if x != nil {
-		return x.ComponentMetadata
-	}
-	return nil
-}
-
 func (x *ToolCall) GetStartedAt() string {
 	if x != nil {
 		return x.StartedAt
@@ -401,87 +390,6 @@ func (x *ToolCall) GetArgsPreview() string {
 	return ""
 }
 
-// Metadata to guide frontend UI component rendering for tool calls.
-// All fields are optional - if not set, frontend uses default rendering logic.
-type ComponentMetadata struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Type of UI component to render for this tool call.
-	// Examples: "terminal", "preview", "form", "approval", "diagram", "progress"
-	// Frontend maps these to React Flow node types (TerminalNode, PreviewNode, etc.).
-	ComponentType string `protobuf:"bytes,1,opt,name=component_type,json=componentType,proto3" json:"component_type,omitempty"`
-	// Optional group identifier for related tool calls.
-	// Tool calls with the same group_id can be aggregated into a single UI component.
-	// Example: Multiple kubectl commands in a deployment workflow.
-	ComponentGroup string `protobuf:"bytes,2,opt,name=component_group,json=componentGroup,proto3" json:"component_group,omitempty"`
-	// Optional layout hint for canvas positioning.
-	// Examples: "inline", "full-width", "sidebar", "floating"
-	LayoutHint string `protobuf:"bytes,3,opt,name=layout_hint,json=layoutHint,proto3" json:"layout_hint,omitempty"`
-	// Flexible metadata for component-specific configuration.
-	// Frontend components can read this for custom behavior.
-	// Example: {"syntax": "yaml", "readonly": true} for file preview
-	Metadata      *structpb.Struct `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ComponentMetadata) Reset() {
-	*x = ComponentMetadata{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ComponentMetadata) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ComponentMetadata) ProtoMessage() {}
-
-func (x *ComponentMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ComponentMetadata.ProtoReflect.Descriptor instead.
-func (*ComponentMetadata) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ComponentMetadata) GetComponentType() string {
-	if x != nil {
-		return x.ComponentType
-	}
-	return ""
-}
-
-func (x *ComponentMetadata) GetComponentGroup() string {
-	if x != nil {
-		return x.ComponentGroup
-	}
-	return ""
-}
-
-func (x *ComponentMetadata) GetLayoutHint() string {
-	if x != nil {
-		return x.LayoutHint
-	}
-	return ""
-}
-
-func (x *ComponentMetadata) GetMetadata() *structpb.Struct {
-	if x != nil {
-		return x.Metadata
-	}
-	return nil
-}
-
 var File_ai_stigmer_agentic_agentexecution_v1_message_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
@@ -496,14 +404,13 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
 	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\x12U\n" +
 	"\vllm_metrics\x18\a \x01(\v24.ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsR\n" +
-	"llmMetrics\"\x9f\a\n" +
+	"llmMetrics\"\xd1\x06\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
 	"\x04args\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x04args\x12\x16\n" +
 	"\x06result\x18\x04 \x01(\tR\x06result\x12V\n" +
-	"\x06status\x18\x05 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ToolCallStatusB\b\xbaH\x05\x82\x01\x02\x10\x01R\x06status\x12f\n" +
-	"\x12component_metadata\x18\x06 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ComponentMetadataR\x11componentMetadata\x12\x1d\n" +
+	"\x06status\x18\x05 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ToolCallStatusB\b\xbaH\x05\x82\x01\x02\x10\x01R\x06status\x12\x1d\n" +
 	"\n" +
 	"started_at\x18\a \x01(\tR\tstartedAt\x12!\n" +
 	"\fcompleted_at\x18\b \x01(\tR\vcompletedAt\x12\x14\n" +
@@ -519,13 +426,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\fis_streaming\x18\x10 \x01(\bR\visStreaming\x12h\n" +
 	"\x10streaming_source\x18\x13 \x01(\x0e2=.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSourceR\x0fstreamingSource\x12&\n" +
 	"\x0fmcp_server_slug\x18\x11 \x01(\tR\rmcpServerSlug\x12!\n" +
-	"\fargs_preview\x18\x12 \x01(\tR\vargsPreview\"\xb9\x01\n" +
-	"\x11ComponentMetadata\x12%\n" +
-	"\x0ecomponent_type\x18\x01 \x01(\tR\rcomponentType\x12'\n" +
-	"\x0fcomponent_group\x18\x02 \x01(\tR\x0ecomponentGroup\x12\x1f\n" +
-	"\vlayout_hint\x18\x03 \x01(\tR\n" +
-	"layoutHint\x123\n" +
-	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadataB\xcc\x02\n" +
+	"\fargs_preview\x18\x12 \x01(\tR\vargsPreviewJ\x04\b\x06\x10\aR\x12component_metadataB\xcc\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\fMessageProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -540,34 +441,31 @@ func file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescGZIP() []byt
 	return file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_agentexecution_v1_message_proto_goTypes = []any{
 	(*AgentMessage)(nil),         // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage
 	(*ToolCall)(nil),             // 1: ai.stigmer.agentic.agentexecution.v1.ToolCall
-	(*ComponentMetadata)(nil),    // 2: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
-	(MessageType)(0),             // 3: ai.stigmer.agentic.agentexecution.v1.MessageType
-	(*structpb.Struct)(nil),      // 4: google.protobuf.Struct
-	(*LlmCallMetrics)(nil),       // 5: ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics
-	(ToolCallStatus)(0),          // 6: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(ApprovalAction)(0),          // 7: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(ToolCallStreamingSource)(0), // 8: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	(MessageType)(0),             // 2: ai.stigmer.agentic.agentexecution.v1.MessageType
+	(*structpb.Struct)(nil),      // 3: google.protobuf.Struct
+	(*LlmCallMetrics)(nil),       // 4: ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics
+	(ToolCallStatus)(0),          // 5: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(ApprovalAction)(0),          // 6: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(ToolCallStreamingSource)(0), // 7: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
 }
 var file_ai_stigmer_agentic_agentexecution_v1_message_proto_depIdxs = []int32{
-	3,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
-	1,  // 1: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	4,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
-	5,  // 3: ai.stigmer.agentic.agentexecution.v1.AgentMessage.llm_metrics:type_name -> ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics
-	4,  // 4: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
-	6,  // 5: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	2,  // 6: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
-	7,  // 7: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	8,  // 8: ai.stigmer.agentic.agentexecution.v1.ToolCall.streaming_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
-	4,  // 9: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
+	1, // 1: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	3, // 2: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
+	4, // 3: ai.stigmer.agentic.agentexecution.v1.AgentMessage.llm_metrics:type_name -> ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics
+	3, // 4: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
+	5, // 5: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	6, // 6: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	7, // 7: ai.stigmer.agentic.agentexecution.v1.ToolCall.streaming_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() }
@@ -583,7 +481,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

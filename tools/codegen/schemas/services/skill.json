@@ -351,6 +351,149 @@
       ]
     }
   ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Agentic - System-level audit trails and versioning"
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "IAM - Identity and Access Management"
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": ""
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": ""
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "IAM - External identity provider configuration"
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Tenancy - Platform and organizational resources"
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": ""
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "Agentic - AI agent management"
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": ""
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": ""
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": ""
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": ""
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": ""
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Agentic - Workflow orchestration"
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": ""
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": ""
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": ""
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": ""
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Tenancy - Project management (aggregate root for resource lifecycle)"
+        }
+      ]
+    },
+    {
+      "name": "SkillState",
+      "description": "SkillState represents the lifecycle state of a skill.",
+      "protoType": "ai.stigmer.agentic.skill.v1.SkillState",
+      "values": [
+        {
+          "name": "SKILL_STATE_UPLOADING",
+          "number": 1,
+          "description": "Skill artifact is being uploaded to storage."
+        },
+        {
+          "name": "SKILL_STATE_READY",
+          "number": 2,
+          "description": "Skill is ready to be used by agents."
+        },
+        {
+          "name": "SKILL_STATE_FAILED",
+          "number": 3,
+          "description": "Skill upload or processing failed."
+        }
+      ]
+    }
+  ],
   "resourceDescription": "Skill represents a versioned, reusable unit of agent capability.\n Skills contain tools, scripts, and documentation that agents can use.\n Each skill version is immutably identified by a content hash.",
   "statusType": {
     "name": "SkillStatus",
@@ -422,6 +565,88 @@
     ]
   },
   "statusNestedTypes": [
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GitProvenance",
+      "description": "GitProvenance tracks the git origin of skill artifacts.\n This is system-detected metadata, not user-specified configuration.\n Populated by CLI during push based on:\n - Local push: auto-detected from directory's git context\n - Git push: resolved from user-provided URL/ref",
+      "protoType": "ai.stigmer.agentic.skill.v1.GitProvenance",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/status.proto",
+      "fields": [
+        {
+          "name": "RemoteUrl",
+          "jsonName": "remoteUrl",
+          "protoField": "remote_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Git remote URL.\n For local push: detected \"origin\" remote URL\n For git push: the user-provided repository URL\n Example: \"https://github.com/stigmer/skills.git\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Ref",
+          "jsonName": "ref",
+          "protoField": "ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Original git reference (for display purposes).\n For local push: detected branch name (e.g., \"main\") or empty if detached HEAD\n For git push: the user-provided ref (e.g., \"v1.0.0\", \"main\")\n This preserves user intent for display while commit provides immutability.",
+          "required": false
+        },
+        {
+          "name": "Commit",
+          "jsonName": "commit",
+          "protoField": "commit",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resolved commit SHA (for reproducibility).\n Always populated - this is the immutable version reference.\n Full 40-character SHA ensures exact reproducibility.\n Example: \"abc123def456789012345678901234567890abcd\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Subdir",
+          "jsonName": "subdir",
+          "protoField": "subdir",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Subdirectory path relative to repo root.\n Empty if skill is at repo root.\n Example: \"skills/calculator\"",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "ApiResourceAudit",
       "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
@@ -508,88 +733,6 @@
             "kind": "string"
           },
           "description": "Type of the last event (e.g., \"created\", \"updated\").",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAuditActor",
-      "description": "ApiResourceAuditActor represents the entity that performed an action.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "Id",
-          "jsonName": "id",
-          "protoField": "id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Unique identifier of the actor.",
-          "required": false
-        },
-        {
-          "name": "Avatar",
-          "jsonName": "avatar",
-          "protoField": "avatar",
-          "type": {
-            "kind": "string"
-          },
-          "description": "URL to the actor's avatar image.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "GitProvenance",
-      "description": "GitProvenance tracks the git origin of skill artifacts.\n This is system-detected metadata, not user-specified configuration.\n Populated by CLI during push based on:\n - Local push: auto-detected from directory's git context\n - Git push: resolved from user-provided URL/ref",
-      "protoType": "ai.stigmer.agentic.skill.v1.GitProvenance",
-      "protoFile": "apis/ai/stigmer/agentic/skill/v1/status.proto",
-      "fields": [
-        {
-          "name": "RemoteUrl",
-          "jsonName": "remoteUrl",
-          "protoField": "remote_url",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Git remote URL.\n For local push: detected \"origin\" remote URL\n For git push: the user-provided repository URL\n Example: \"https://github.com/stigmer/skills.git\"",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        },
-        {
-          "name": "Ref",
-          "jsonName": "ref",
-          "protoField": "ref",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Original git reference (for display purposes).\n For local push: detected branch name (e.g., \"main\") or empty if detached HEAD\n For git push: the user-provided ref (e.g., \"v1.0.0\", \"main\")\n This preserves user intent for display while commit provides immutability.",
-          "required": false
-        },
-        {
-          "name": "Commit",
-          "jsonName": "commit",
-          "protoField": "commit",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Resolved commit SHA (for reproducibility).\n Always populated - this is the immutable version reference.\n Full 40-character SHA ensures exact reproducibility.\n Example: \"abc123def456789012345678901234567890abcd\"",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        },
-        {
-          "name": "Subdir",
-          "jsonName": "subdir",
-          "protoField": "subdir",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Subdirectory path relative to repo root.\n Empty if skill is at repo root.\n Example: \"skills/calculator\"",
           "required": false
         }
       ]

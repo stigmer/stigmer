@@ -250,8 +250,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * - Created timestamp (status.audit.created_at)
      * - Initial version (status.audit.version = 1)
      * Example:
-     * Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-     * Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
+     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     default void create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -397,8 +397,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * - Created timestamp (status.audit.created_at)
      * - Initial version (status.audit.version = 1)
      * Example:
-     * Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-     * Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
+     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     public void create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -525,8 +525,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * - Created timestamp (status.audit.created_at)
      * - Initial version (status.audit.version = 1)
      * Example:
-     * Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-     * Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
+     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) throws io.grpc.StatusException {
@@ -650,8 +650,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * - Created timestamp (status.audit.created_at)
      * - Initial version (status.audit.version = 1)
      * Example:
-     * Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-     * Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
+     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) {
@@ -776,8 +776,8 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * - Created timestamp (status.audit.created_at)
      * - Initial version (status.audit.version = 1)
      * Example:
-     * Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-     * Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+     * Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
+     * Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> create(

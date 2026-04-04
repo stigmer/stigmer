@@ -14,8 +14,8 @@ public interface SubscribeWorkflowExecutionRequestOrBuilder extends
    * <pre>
    * Execution ID to subscribe to.
    *
-   * Format: "wfx-{unique-suffix}"
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{unique-suffix}"
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required field, cannot be empty
    *
@@ -24,7 +24,7 @@ public interface SubscribeWorkflowExecutionRequestOrBuilder extends
    * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
    *
    * Example:
-   * execution_id: "wfx-abc123xyz456"
+   * execution_id: "wfx_abc123xyz456"
    *
    * After subscription starts, client receives:
    * - Initial message: Current state of execution
@@ -41,8 +41,8 @@ public interface SubscribeWorkflowExecutionRequestOrBuilder extends
    * <pre>
    * Execution ID to subscribe to.
    *
-   * Format: "wfx-{unique-suffix}"
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{unique-suffix}"
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required field, cannot be empty
    *
@@ -51,7 +51,7 @@ public interface SubscribeWorkflowExecutionRequestOrBuilder extends
    * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
    *
    * Example:
-   * execution_id: "wfx-abc123xyz456"
+   * execution_id: "wfx_abc123xyz456"
    *
    * After subscription starts, client receives:
    * - Initial message: Current state of execution

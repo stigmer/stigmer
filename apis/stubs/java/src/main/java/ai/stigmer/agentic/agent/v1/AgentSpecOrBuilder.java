@@ -13,7 +13,6 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Human-readable description for UI and marketplace display.
-   * Should explain what this agent does and its primary capabilities.
    * </pre>
    *
    * <code>string description = 1 [json_name = "description"];</code>
@@ -23,7 +22,6 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Human-readable description for UI and marketplace display.
-   * Should explain what this agent does and its primary capabilities.
    * </pre>
    *
    * <code>string description = 1 [json_name = "description"];</code>
@@ -35,7 +33,7 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Icon URL for marketplace and UI display.
-   * Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
+   * Must be a publicly accessible URL to an image (SVG, PNG, or JPEG).
    * </pre>
    *
    * <code>string icon_url = 2 [json_name = "iconUrl"];</code>
@@ -45,7 +43,7 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Icon URL for marketplace and UI display.
-   * Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
+   * Must be a publicly accessible URL to an image (SVG, PNG, or JPEG).
    * </pre>
    *
    * <code>string icon_url = 2 [json_name = "iconUrl"];</code>
@@ -56,9 +54,7 @@ public interface AgentSpecOrBuilder extends
 
   /**
    * <pre>
-   * Instructions defining the agent's behavior and personality.
-   * This is the agent's system prompt - the core logic that shapes its responses.
-   * Should be at least 10 characters to ensure meaningful instructions.
+   * System prompt defining the agent's behavior and personality.
    * </pre>
    *
    * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -67,9 +63,7 @@ public interface AgentSpecOrBuilder extends
   java.lang.String getInstructions();
   /**
    * <pre>
-   * Instructions defining the agent's behavior and personality.
-   * This is the agent's system prompt - the core logic that shapes its responses.
-   * Should be at least 10 characters to ensure meaningful instructions.
+   * System prompt defining the agent's behavior and personality.
    * </pre>
    *
    * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -80,9 +74,8 @@ public interface AgentSpecOrBuilder extends
 
   /**
    * <pre>
-   * MCP servers this Agent can use.
-   * Each usage references a McpServer resource by its ref.
-   * The slug from each reference must be unique within this Agent.
+   * MCP servers this agent can use.
+   * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -91,9 +84,8 @@ public interface AgentSpecOrBuilder extends
       getMcpServerUsagesList();
   /**
    * <pre>
-   * MCP servers this Agent can use.
-   * Each usage references a McpServer resource by its ref.
-   * The slug from each reference must be unique within this Agent.
+   * MCP servers this agent can use.
+   * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -101,9 +93,8 @@ public interface AgentSpecOrBuilder extends
   ai.stigmer.agentic.agent.v1.McpServerUsage getMcpServerUsages(int index);
   /**
    * <pre>
-   * MCP servers this Agent can use.
-   * Each usage references a McpServer resource by its ref.
-   * The slug from each reference must be unique within this Agent.
+   * MCP servers this agent can use.
+   * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -111,9 +102,8 @@ public interface AgentSpecOrBuilder extends
   int getMcpServerUsagesCount();
   /**
    * <pre>
-   * MCP servers this Agent can use.
-   * Each usage references a McpServer resource by its ref.
-   * The slug from each reference must be unique within this Agent.
+   * MCP servers this agent can use.
+   * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -122,9 +112,8 @@ public interface AgentSpecOrBuilder extends
       getMcpServerUsagesOrBuilderList();
   /**
    * <pre>
-   * MCP servers this Agent can use.
-   * Each usage references a McpServer resource by its ref.
-   * The slug from each reference must be unique within this Agent.
+   * MCP servers this agent can use.
+   * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -134,8 +123,7 @@ public interface AgentSpecOrBuilder extends
 
   /**
    * <pre>
-   * Skill resources providing agent knowledge.
-   * Skills are injected into the agent's context as additional capabilities.
+   * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -144,8 +132,7 @@ public interface AgentSpecOrBuilder extends
       getSkillRefsList();
   /**
    * <pre>
-   * Skill resources providing agent knowledge.
-   * Skills are injected into the agent's context as additional capabilities.
+   * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -153,8 +140,7 @@ public interface AgentSpecOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceReference getSkillRefs(int index);
   /**
    * <pre>
-   * Skill resources providing agent knowledge.
-   * Skills are injected into the agent's context as additional capabilities.
+   * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -162,8 +148,7 @@ public interface AgentSpecOrBuilder extends
   int getSkillRefsCount();
   /**
    * <pre>
-   * Skill resources providing agent knowledge.
-   * Skills are injected into the agent's context as additional capabilities.
+   * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -172,8 +157,7 @@ public interface AgentSpecOrBuilder extends
       getSkillRefsOrBuilderList();
   /**
    * <pre>
-   * Skill resources providing agent knowledge.
-   * Skills are injected into the agent's context as additional capabilities.
+   * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -184,7 +168,7 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents inherit the parent's MCP server usages but can have restricted access.
+   * Sub-agents can access a subset of the parent's MCP servers and tools.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -194,7 +178,7 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents inherit the parent's MCP server usages but can have restricted access.
+   * Sub-agents can access a subset of the parent's MCP servers and tools.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -203,7 +187,7 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents inherit the parent's MCP server usages but can have restricted access.
+   * Sub-agents can access a subset of the parent's MCP servers and tools.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -212,7 +196,7 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents inherit the parent's MCP server usages but can have restricted access.
+   * Sub-agents can access a subset of the parent's MCP servers and tools.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -222,7 +206,7 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents inherit the parent's MCP server usages but can have restricted access.
+   * Sub-agents can access a subset of the parent's MCP servers and tools.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -233,7 +217,6 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Environment variables required by the agent.
-   * Uses the shared EnvironmentSpec for consistent env var handling across resources.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7 [json_name = "envSpec"];</code>
@@ -243,7 +226,6 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Environment variables required by the agent.
-   * Uses the shared EnvironmentSpec for consistent env var handling across resources.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7 [json_name = "envSpec"];</code>
@@ -253,7 +235,6 @@ public interface AgentSpecOrBuilder extends
   /**
    * <pre>
    * Environment variables required by the agent.
-   * Uses the shared EnvironmentSpec for consistent env var handling across resources.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7 [json_name = "envSpec"];</code>

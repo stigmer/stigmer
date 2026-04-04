@@ -70,7 +70,7 @@ private static final long serialVersionUID = 0L;
    * Workflow template ID to filter by.
    *
    * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
+   * Format: Workflow resource ID (e.g., "wfl_abc123")
    * Validation: Required field
    * </pre>
    *
@@ -95,7 +95,7 @@ private static final long serialVersionUID = 0L;
    * Workflow template ID to filter by.
    *
    * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
+   * Format: Workflow resource ID (e.g., "wfl_abc123")
    * Validation: Required field
    * </pre>
    *
@@ -539,7 +539,7 @@ private static final long serialVersionUID = 0L;
      * Workflow template ID to filter by.
      *
      * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Required field
      * </pre>
      *
@@ -563,7 +563,7 @@ private static final long serialVersionUID = 0L;
      * Workflow template ID to filter by.
      *
      * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Required field
      * </pre>
      *
@@ -588,7 +588,7 @@ private static final long serialVersionUID = 0L;
      * Workflow template ID to filter by.
      *
      * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Required field
      * </pre>
      *
@@ -609,7 +609,7 @@ private static final long serialVersionUID = 0L;
      * Workflow template ID to filter by.
      *
      * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Required field
      * </pre>
      *
@@ -627,7 +627,7 @@ private static final long serialVersionUID = 0L;
      * Workflow template ID to filter by.
      *
      * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Required field
      * </pre>
      *

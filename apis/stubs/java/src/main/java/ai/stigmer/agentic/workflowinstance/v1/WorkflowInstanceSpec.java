@@ -78,10 +78,10 @@ private static final long serialVersionUID = 0L;
    * This links the instance to a reusable orchestration blueprint.
    * The Workflow defines which AgentInstances to orchestrate and in what order.
    *
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
+   * Format: Workflow resource ID (e.g., "wfl_abc123")
    * Validation: Minimum length of 1 character (required field)
    *
-   * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
+   * Example: "wfl_abc123" (references a Workflow named "deploy-to-cloud")
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -107,10 +107,10 @@ private static final long serialVersionUID = 0L;
    * This links the instance to a reusable orchestration blueprint.
    * The Workflow defines which AgentInstances to orchestrate and in what order.
    *
-   * Format: Workflow resource ID (e.g., "wfl-abc123")
+   * Format: Workflow resource ID (e.g., "wfl_abc123")
    * Validation: Minimum length of 1 character (required field)
    *
-   * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
+   * Example: "wfl_abc123" (references a Workflow named "deploy-to-cloud")
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -230,7 +230,7 @@ private static final long serialVersionUID = 0L;
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -268,7 +268,7 @@ private static final long serialVersionUID = 0L;
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -307,7 +307,7 @@ private static final long serialVersionUID = 0L;
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -345,7 +345,7 @@ private static final long serialVersionUID = 0L;
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -383,7 +383,7 @@ private static final long serialVersionUID = 0L;
    * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
    *
    * References use ApiResourceReference which supports:
-   * - By ID: {id: "env-abc123"}
+   * - By ID: {id: "env_abc123"}
    * - By slug: {slug: "aws-prod-env"}
    *
    * At execution time, the WorkflowExecution runtime merges these environments
@@ -818,10 +818,10 @@ private static final long serialVersionUID = 0L;
      * This links the instance to a reusable orchestration blueprint.
      * The Workflow defines which AgentInstances to orchestrate and in what order.
      *
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Minimum length of 1 character (required field)
      *
-     * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
+     * Example: "wfl_abc123" (references a Workflow named "deploy-to-cloud")
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -846,10 +846,10 @@ private static final long serialVersionUID = 0L;
      * This links the instance to a reusable orchestration blueprint.
      * The Workflow defines which AgentInstances to orchestrate and in what order.
      *
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Minimum length of 1 character (required field)
      *
-     * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
+     * Example: "wfl_abc123" (references a Workflow named "deploy-to-cloud")
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -875,10 +875,10 @@ private static final long serialVersionUID = 0L;
      * This links the instance to a reusable orchestration blueprint.
      * The Workflow defines which AgentInstances to orchestrate and in what order.
      *
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Minimum length of 1 character (required field)
      *
-     * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
+     * Example: "wfl_abc123" (references a Workflow named "deploy-to-cloud")
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -900,10 +900,10 @@ private static final long serialVersionUID = 0L;
      * This links the instance to a reusable orchestration blueprint.
      * The Workflow defines which AgentInstances to orchestrate and in what order.
      *
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Minimum length of 1 character (required field)
      *
-     * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
+     * Example: "wfl_abc123" (references a Workflow named "deploy-to-cloud")
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -922,10 +922,10 @@ private static final long serialVersionUID = 0L;
      * This links the instance to a reusable orchestration blueprint.
      * The Workflow defines which AgentInstances to orchestrate and in what order.
      *
-     * Format: Workflow resource ID (e.g., "wfl-abc123")
+     * Format: Workflow resource ID (e.g., "wfl_abc123")
      * Validation: Minimum length of 1 character (required field)
      *
-     * Example: "wfl-abc123" (references a Workflow named "deploy-to-cloud")
+     * Example: "wfl_abc123" (references a Workflow named "deploy-to-cloud")
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -1131,7 +1131,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1172,7 +1172,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1213,7 +1213,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1254,7 +1254,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1302,7 +1302,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1347,7 +1347,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1394,7 +1394,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1442,7 +1442,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1487,7 +1487,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1532,7 +1532,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1578,7 +1578,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1622,7 +1622,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1666,7 +1666,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1704,7 +1704,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1745,7 +1745,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1787,7 +1787,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1825,7 +1825,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments
@@ -1864,7 +1864,7 @@ private static final long serialVersionUID = 0L;
      * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
      *
      * References use ApiResourceReference which supports:
-     * - By ID: {id: "env-abc123"}
+     * - By ID: {id: "env_abc123"}
      * - By slug: {slug: "aws-prod-env"}
      *
      * At execution time, the WorkflowExecution runtime merges these environments

@@ -130,7 +130,7 @@ private static final long serialVersionUID = 0L;
    *
    * Example (task completed update):
    * execution: {
-   * metadata: { id: "wfx-abc123" },
+   * metadata: { id: "wfx_abc123" },
    * status: {
    * completed_tasks: 1,
    * tasks: [
@@ -160,7 +160,7 @@ private static final long serialVersionUID = 0L;
    *
    * Example (task completed update):
    * execution: {
-   * metadata: { id: "wfx-abc123" },
+   * metadata: { id: "wfx_abc123" },
    * status: {
    * completed_tasks: 1,
    * tasks: [
@@ -190,7 +190,7 @@ private static final long serialVersionUID = 0L;
    *
    * Example (task completed update):
    * execution: {
-   * metadata: { id: "wfx-abc123" },
+   * metadata: { id: "wfx_abc123" },
    * status: {
    * completed_tasks: 1,
    * tasks: [
@@ -825,7 +825,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [
@@ -854,7 +854,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [
@@ -887,7 +887,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [
@@ -925,7 +925,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [
@@ -961,7 +961,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [
@@ -1004,7 +1004,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [
@@ -1039,7 +1039,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [
@@ -1069,7 +1069,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [
@@ -1102,7 +1102,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example (task completed update):
      * execution: {
-     * metadata: { id: "wfx-abc123" },
+     * metadata: { id: "wfx_abc123" },
      * status: {
      * completed_tasks: 1,
      * tasks: [

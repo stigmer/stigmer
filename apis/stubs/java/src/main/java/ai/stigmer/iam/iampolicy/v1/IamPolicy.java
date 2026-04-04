@@ -161,7 +161,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * metadata
-   * id format: iamp-&lt;ulid&gt;
+   * id format: iamp_&lt;ulid&gt;
    * name: human-readable identifier (e.g., "john-vpc-admin")
    * org: organization this policy belongs to
    * </pre>
@@ -176,7 +176,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * metadata
-   * id format: iamp-&lt;ulid&gt;
+   * id format: iamp_&lt;ulid&gt;
    * name: human-readable identifier (e.g., "john-vpc-admin")
    * org: organization this policy belongs to
    * </pre>
@@ -191,7 +191,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * metadata
-   * id format: iamp-&lt;ulid&gt;
+   * id format: iamp_&lt;ulid&gt;
    * name: human-readable identifier (e.g., "john-vpc-admin")
    * org: organization this policy belongs to
    * </pre>
@@ -919,7 +919,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>
@@ -933,7 +933,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>
@@ -951,7 +951,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>
@@ -974,7 +974,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>
@@ -995,7 +995,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>
@@ -1023,7 +1023,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>
@@ -1043,7 +1043,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>
@@ -1058,7 +1058,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>
@@ -1076,7 +1076,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * metadata
-     * id format: iamp-&lt;ulid&gt;
+     * id format: iamp_&lt;ulid&gt;
      * name: human-readable identifier (e.g., "john-vpc-admin")
      * org: organization this policy belongs to
      * </pre>

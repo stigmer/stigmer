@@ -112,9 +112,9 @@ private static final long serialVersionUID = 0L;
    *
    * Example:
    * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+   * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+   * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+   * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
    * ]
    * </pre>
    *
@@ -137,9 +137,9 @@ private static final long serialVersionUID = 0L;
    *
    * Example:
    * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+   * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+   * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+   * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
    * ]
    * </pre>
    *
@@ -163,9 +163,9 @@ private static final long serialVersionUID = 0L;
    *
    * Example:
    * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+   * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+   * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+   * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
    * ]
    * </pre>
    *
@@ -188,9 +188,9 @@ private static final long serialVersionUID = 0L;
    *
    * Example:
    * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+   * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+   * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+   * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
    * ]
    * </pre>
    *
@@ -213,9 +213,9 @@ private static final long serialVersionUID = 0L;
    *
    * Example:
    * entries: [
-   * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-   * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-   * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+   * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+   * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+   * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
    * ]
    * </pre>
    *
@@ -722,9 +722,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -750,9 +750,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -778,9 +778,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -806,9 +806,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -841,9 +841,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -873,9 +873,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -907,9 +907,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -942,9 +942,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -974,9 +974,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1006,9 +1006,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1039,9 +1039,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1070,9 +1070,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1101,9 +1101,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1126,9 +1126,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1154,9 +1154,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1183,9 +1183,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1208,9 +1208,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *
@@ -1234,9 +1234,9 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * entries: [
-     * { metadata: { id: "wfx-newest", created_at: "2025-01-11T14:30:22Z" }, ... },
-     * { metadata: { id: "wfx-second", created_at: "2025-01-11T10:15:00Z" }, ... },
-     * { metadata: { id: "wfx-third", created_at: "2025-01-10T22:05:33Z" }, ... }
+     * { metadata: { id: "wfx_newest", created_at: "2025-01-11T14:30:22Z" }, ... },
+     * { metadata: { id: "wfx_second", created_at: "2025-01-11T10:15:00Z" }, ... },
+     * { metadata: { id: "wfx_third", created_at: "2025-01-10T22:05:33Z" }, ... }
      * ]
      * </pre>
      *

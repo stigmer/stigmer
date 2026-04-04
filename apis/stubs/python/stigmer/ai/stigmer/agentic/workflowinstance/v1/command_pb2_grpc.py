@@ -94,8 +94,8 @@ class WorkflowInstanceCommandControllerServicer(object):
         - Initial version (status.audit.version = 1)
 
         Example:
-        Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-        Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+        Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
+        Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

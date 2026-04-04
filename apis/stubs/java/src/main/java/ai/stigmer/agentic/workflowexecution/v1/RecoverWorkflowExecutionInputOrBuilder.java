@@ -17,8 +17,8 @@ public interface RecoverWorkflowExecutionInputOrBuilder extends
    * Must be in FAILED phase. TERMINATED and CANCELLED executions
    * cannot be recovered.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -34,8 +34,8 @@ public interface RecoverWorkflowExecutionInputOrBuilder extends
    * Must be in FAILED phase. TERMINATED and CANCELLED executions
    * cannot be recovered.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>

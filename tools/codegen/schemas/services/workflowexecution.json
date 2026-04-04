@@ -588,6 +588,168 @@
       ]
     }
   ],
+  "enumTypes": [
+    {
+      "name": "ApprovalAction",
+      "description": "ApprovalAction represents the user's decision on an approval request.\n\n ## Action Semantics\n\n - APPROVE: Execute the tool normally, continue execution\n - SKIP: Return \"skipped by user\" message to LLM, continue execution\n - REJECT: Fail the execution immediately with rejection error\n\n ## LLM Behavior on Skip\n\n When a tool is skipped, the LLM receives a message like:\n \"Tool 'delete_repository' was skipped by user. Please proceed without this operation.\"\n This allows the LLM to adapt its plan while preserving execution continuity.\n\n ## Usage\n\n Used in:\n - ToolCall.approval_action: Records the decision made\n - SubmitApprovalInput.action: User's submitted decision",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalAction",
+      "values": [
+        {
+          "name": "APPROVAL_ACTION_APPROVE",
+          "number": 1,
+          "description": "Execute the tool normally.\n Tool transitions from WAITING_APPROVAL to RUNNING, then executes.\n Execution phase returns to IN_PROGRESS."
+        },
+        {
+          "name": "APPROVAL_ACTION_SKIP",
+          "number": 2,
+          "description": "Skip tool execution, continue without it.\n Tool transitions to SKIPPED status.\n LLM receives: \"Tool '{name}' was skipped by user. Please proceed without this operation.\"\n Execution continues - this is NOT a failure."
+        },
+        {
+          "name": "APPROVAL_ACTION_REJECT",
+          "number": 3,
+          "description": "Reject tool execution, fail the entire execution.\n Execution phase transitions to FAILED.\n Error message includes rejection reason from user's comment."
+        }
+      ]
+    },
+    {
+      "name": "ExecutionPhase",
+      "description": "ExecutionPhase defines the lifecycle phase of a workflow execution.\n\n Workflow executions progress through distinct phases from creation to completion.\n Phases are used for:\n - UI status indicators (progress bars, badges, icons)\n - Filtering and querying executions (show only in-progress, show only failed)\n - Alerting and notifications (notify on failure, notify on completion)\n - Retry and recovery logic (retry failed executions)\n - Resource cleanup (delete completed executions after retention period)\n\n Phase Transitions:\n\n Normal flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED\n\n Failure flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED\n\n Cancellation flow:\n EXECUTION_PENDING → EXECUTION_CANCELLED\n EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED\n\n Termination flow (force stop):\n EXECUTION_PENDING → EXECUTION_TERMINATED\n EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED\n\n Pause/Resume flow:\n EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n Terminal States:\n - EXECUTION_COMPLETED: Workflow finished successfully\n - EXECUTION_FAILED: Workflow encountered an error\n - EXECUTION_CANCELLED: Workflow was stopped gracefully by user or system\n - EXECUTION_TERMINATED: Workflow was force-stopped immediately\n\n Non-Terminal States:\n - EXECUTION_PAUSED: Workflow temporarily stopped, can be resumed\n\n Once a workflow reaches a terminal state, it cannot transition to another phase.",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase",
+      "values": [
+        {
+          "name": "EXECUTION_PENDING",
+          "number": 1,
+          "description": "Execution created, waiting to start.\n\n The WorkflowExecution resource has been created but the workflow runner\n (Temporal) has not yet picked it up for execution.\n\n Typical duration: \u003c 1 second (unless workflow runner is overloaded)\n\n Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED, EXECUTION_TERMINATED"
+        },
+        {
+          "name": "EXECUTION_IN_PROGRESS",
+          "number": 2,
+          "description": "Execution is actively running tasks.\n\n The workflow runner is processing tasks in the workflow definition.\n Tasks may be executing sequentially, in parallel, or conditionally.\n\n While in this phase:\n - tasks[] list is populated and updated as tasks progress\n - Each task transitions through PENDING → IN_PROGRESS → COMPLETED/FAILED\n - UI polls or receives WebSocket updates to show real-time progress\n\n Typical duration: Seconds to hours (depends on workflow complexity)\n\n Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED, EXECUTION_TERMINATED"
+        },
+        {
+          "name": "EXECUTION_COMPLETED",
+          "number": 3,
+          "description": "Execution completed successfully.\n\n All tasks in the workflow executed successfully.\n The workflow produced a final output (if defined).\n\n Terminal state - execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - output field is populated (if workflow produces output)\n - All tasks have status WORKFLOW_TASK_COMPLETED or WORKFLOW_TASK_SKIPPED\n\n Use Cases:\n - Display success badge in UI\n - Trigger downstream workflows (workflow chaining)\n - Archive execution results\n - Delete execution after retention period (e.g., 30 days)"
+        },
+        {
+          "name": "EXECUTION_FAILED",
+          "number": 4,
+          "description": "Execution failed with an error.\n\n One or more tasks failed, or the workflow encountered an unrecoverable error.\n\n Terminal state - execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - error field is populated with failure description\n - At least one task has status WORKFLOW_TASK_FAILED\n\n Use Cases:\n - Display error badge in UI\n - Send failure alerts/notifications\n - Trigger retry logic (if configured)\n - Debug failed workflows (inspect tasks[], error messages)\n\n Common Failure Causes:\n - Task timeout (task took longer than max allowed time)\n - API call failed (external service returned error)\n - Agent invocation failed (agent execution error)\n - Validation error (invalid task input or output)\n - Resource exhausted (quota exceeded, rate limited)"
+        },
+        {
+          "name": "EXECUTION_CANCELLED",
+          "number": 5,
+          "description": "Execution was cancelled by user or system.\n\n The workflow was explicitly stopped before completion.\n Cancellation can happen in PENDING or IN_PROGRESS phases.\n\n Terminal state - execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - In-progress tasks are stopped (status changes to WORKFLOW_TASK_FAILED or remains IN_PROGRESS)\n - Pending tasks remain in WORKFLOW_TASK_PENDING state\n\n Use Cases:\n - User manually cancels execution from UI\n - System cancels due to timeout (workflow-level timeout, not task-level)\n - System cancels due to resource constraints (too many concurrent executions)\n - Emergency stop for misbehaving workflows\n\n Cancellation vs Failure:\n - Cancelled: User or system intentionally stopped the workflow\n - Failed: Workflow encountered an error during execution"
+        },
+        {
+          "name": "EXECUTION_TERMINATED",
+          "number": 6,
+          "description": "Execution was force-stopped immediately.\n\n Unlike CANCELLED (graceful stop with cleanup opportunity), TERMINATED\n means the workflow was killed immediately without giving workflow code\n a chance to clean up. This is used for stuck or unresponsive workflows.\n\n Terminal state - execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - error field may contain termination reason\n - In-progress tasks are stopped abruptly\n - No cleanup callbacks are executed\n\n Use Cases:\n - Force-stop stuck workflows that don't respond to cancellation\n - Emergency stop for workflows consuming excessive resources\n - Kill workflows with infinite loops or deadlocks\n\n Terminated vs Cancelled:\n - Terminated: Immediate kill, no cleanup, use when workflow is unresponsive\n - Cancelled: Graceful stop, cleanup allowed, use when you want controlled shutdown\n\n Recovery:\n - Terminated executions CANNOT be recovered (unlike FAILED)\n - Use terminate only when cancel doesn't work"
+        },
+        {
+          "name": "EXECUTION_PAUSED",
+          "number": 7,
+          "description": "Execution was paused by user and can be resumed.\n\n The workflow was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the execution is not terminal.\n\n Pause flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED\n EXECUTION_PENDING → EXECUTION_PAUSED (rare, but allowed)\n\n Resume flow:\n EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n NOT a terminal state - execution can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - Checkpoints are saved (LangGraph thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Use Cases:\n - Pause long-running workflows during maintenance windows\n - User wants to review progress before continuing\n - Resource conservation (pause idle workflows)\n - Wait for external conditions before continuing\n\n Paused vs Cancelled:\n - Paused: Temporary stop, can resume from checkpoint, execution continues\n - Cancelled: Permanent stop, cannot resume, execution is terminated\n\n Resume behavior:\n - Workflow re-invokes activity with same thread_id\n - Activity loads from LangGraph checkpoint\n - Execution continues from where it was paused"
+        }
+      ]
+    },
+    {
+      "name": "WorkflowTaskType",
+      "description": "WorkflowTaskType defines the type of workflow task.\n\n Tasks are the atomic units of work within a workflow. Each task type has:\n - Specific input/output schema expectations\n - Specific execution behavior\n - Specific error handling and retry policies\n\n Task types enable workflows to orchestrate diverse operations:\n - Invoke AI agents with prompts\n - Call external APIs (REST, GraphQL, gRPC)\n - Wait for human approvals\n - Execute conditional branching\n - Run tasks in parallel\n - Transform data between tasks\n - Execute custom plugin logic",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType",
+      "values": [
+        {
+          "name": "WORKFLOW_TASK_AGENT_INVOCATION",
+          "number": 1,
+          "description": "Invoke an AI agent with a prompt.\n\n This task type calls an AgentInstance and waits for the agent execution to complete.\n\n Input Schema:\n {\n   \"agent_instance_id\": \"agi-customer-support\",\n   \"prompt\": \"Analyze this feedback: {{workflow.input.feedback}}\",\n   \"max_tokens\": 500,\n   \"temperature\": 0.7\n }\n\n Output Schema:\n {\n   \"agent_execution_id\": \"agx-abc123\",\n   \"response\": \"The customer feedback indicates...\",\n   \"metadata\": { \"tokens_used\": 450, \"model\": \"gpt-4\" }\n }\n\n Use Cases:\n - Content generation (write email, generate report)\n - Data analysis (analyze customer feedback, classify support tickets)\n - Decision making (should we approve this request?)\n - Code generation (generate deployment script)\n\n Error Cases:\n - Agent execution timeout\n - Agent execution failed (prompt too long, API error)\n - Agent not found (invalid agent_instance_id)"
+        },
+        {
+          "name": "WORKFLOW_TASK_APPROVAL",
+          "number": 2,
+          "description": "Wait for human approval before proceeding.\n\n This task pauses the workflow and waits for one or more users to approve or reject.\n\n Input Schema:\n {\n   \"approvers\": [\"usr-admin-1\", \"usr-admin-2\"],\n   \"message\": \"Approve account creation for {{workflow.input.email}}?\",\n   \"timeout_hours\": 24,\n   \"require_all_approvers\": false\n }\n\n Output Schema:\n {\n   \"approved\": true,\n   \"approved_by\": \"usr-admin-1\",\n   \"approved_at\": \"2025-01-11T15:22:33Z\",\n   \"comment\": \"Looks good, approved\"\n }\n\n Use Cases:\n - Manual approval gates (approve deployment, approve budget)\n - Compliance workflows (legal review, security review)\n - Escalation workflows (escalate to manager if amount \u003e $10,000)\n\n Error Cases:\n - Timeout (no approval received within timeout_hours)\n - Rejected (approver explicitly rejected)\n - Approver not found (invalid user ID)"
+        },
+        {
+          "name": "WORKFLOW_TASK_API_CALL",
+          "number": 3,
+          "description": "Make an HTTP or gRPC API call to an external service.\n\n This task sends a request to an external API and captures the response.\n\n Input Schema:\n {\n   \"method\": \"POST\",\n   \"url\": \"https://api.stripe.com/v1/customers\",\n   \"headers\": {\n     \"Authorization\": \"Bearer {{env.STRIPE_API_KEY}}\",\n     \"Content-Type\": \"application/json\"\n   },\n   \"body\": {\n     \"email\": \"{{workflow.input.email}}\",\n     \"name\": \"{{workflow.input.name}}\"\n   },\n   \"timeout_seconds\": 30\n }\n\n Output Schema:\n {\n   \"status_code\": 200,\n   \"headers\": { \"x-request-id\": \"req-xyz789\" },\n   \"body\": {\n     \"id\": \"cus-abc123\",\n     \"email\": \"customer@example.com\",\n     \"created\": 1704988800\n   }\n }\n\n Use Cases:\n - Create resources in external systems (create Stripe customer, create GitHub issue)\n - Fetch data from APIs (get weather data, get stock prices)\n - Send notifications (Slack, email, SMS)\n - Trigger webhooks (notify external systems of workflow completion)\n\n Error Cases:\n - Network error (connection timeout, DNS failure)\n - HTTP error (4xx, 5xx status codes)\n - Timeout (API took longer than timeout_seconds)\n - Invalid response (malformed JSON, unexpected schema)"
+        },
+        {
+          "name": "WORKFLOW_TASK_CONDITIONAL",
+          "number": 4,
+          "description": "Evaluate a condition and branch to different paths.\n\n This task evaluates a boolean expression and determines which tasks to execute next.\n\n Input Schema:\n {\n   \"condition\": \"{{tasks.validate_email.output.valid}} == true\",\n   \"if_true\": [\"task-create-account\", \"task-send-welcome\"],\n   \"if_false\": [\"task-send-error-email\"]\n }\n\n Output Schema:\n {\n   \"condition_result\": true,\n   \"executed_branch\": \"if_true\",\n   \"executed_tasks\": [\"task-create-account\", \"task-send-welcome\"]\n }\n\n Use Cases:\n - Branching logic (if email is valid, create account; else send error)\n - Feature flags (if beta_enabled, execute beta_tasks; else execute stable_tasks)\n - Environment-specific behavior (if env == prod, use prod_config; else use dev_config)\n\n Error Cases:\n - Invalid expression (syntax error in condition)\n - Missing variables (referenced variable doesn't exist)"
+        },
+        {
+          "name": "WORKFLOW_TASK_PARALLEL",
+          "number": 5,
+          "description": "Execute multiple sub-tasks concurrently.\n\n This task spawns multiple tasks that run in parallel and waits for all to complete.\n\n Input Schema:\n {\n   \"tasks\": [\n     { \"task_id\": \"send-email\", \"task_type\": \"api_call\", \"input\": {...} },\n     { \"task_id\": \"send-sms\", \"task_type\": \"api_call\", \"input\": {...} },\n     { \"task_id\": \"send-slack\", \"task_type\": \"api_call\", \"input\": {...} }\n   ],\n   \"wait_for_all\": true,\n   \"fail_on_any_failure\": false\n }\n\n Output Schema:\n {\n   \"total_tasks\": 3,\n   \"successful_tasks\": 2,\n   \"failed_tasks\": 1,\n   \"results\": [\n     { \"task_id\": \"send-email\", \"status\": \"completed\", \"output\": {...} },\n     { \"task_id\": \"send-sms\", \"status\": \"failed\", \"error\": \"...\" },\n     { \"task_id\": \"send-slack\", \"status\": \"completed\", \"output\": {...} }\n   ]\n }\n\n Use Cases:\n - Fan-out operations (send notifications to multiple channels)\n - Parallel data processing (process multiple files concurrently)\n - Multi-region deployments (deploy to US, EU, APAC in parallel)\n\n Error Cases:\n - One or more sub-tasks failed (if fail_on_any_failure is true)\n - Timeout (sub-tasks took longer than allowed)"
+        },
+        {
+          "name": "WORKFLOW_TASK_TRANSFORM",
+          "number": 6,
+          "description": "Transform data between tasks.\n\n This task applies transformations to data (map, filter, aggregate, format).\n\n Input Schema:\n {\n   \"expression\": \"{{tasks.fetch_customers.output.customers | map('email')}}\",\n   \"output_variable\": \"customer_emails\"\n }\n\n Output Schema:\n {\n   \"result\": [\"customer1@example.com\", \"customer2@example.com\", \"customer3@example.com\"]\n }\n\n Use Cases:\n - Data extraction (extract email addresses from customer objects)\n - Data formatting (convert timestamps to different formats)\n - Data aggregation (sum order totals, calculate averages)\n - Data filtering (filter customers by region)\n\n Error Cases:\n - Invalid expression (syntax error)\n - Type mismatch (trying to apply number operation to string)"
+        },
+        {
+          "name": "WORKFLOW_TASK_CUSTOM",
+          "number": 7,
+          "description": "Execute custom task logic defined by plugins.\n\n This task type allows extending workflows with custom business logic\n that doesn't fit into other task types.\n\n Input Schema: Plugin-specific (defined by the custom plugin)\n Output Schema: Plugin-specific (defined by the custom plugin)\n\n Use Cases:\n - Domain-specific operations (calculate shipping costs, validate addresses)\n - Integration with proprietary systems (legacy database queries)\n - Complex business rules (pricing calculations, eligibility checks)\n\n Error Cases: Plugin-specific"
+        }
+      ]
+    },
+    {
+      "name": "WorkflowTaskStatus",
+      "description": "WorkflowTaskStatus defines the execution status of a workflow task.\n\n Tasks progress through statuses as the workflow executes.\n Task statuses are used for:\n - UI task lists (show checkmarks, spinners, error icons)\n - Progress calculation (completed_tasks / total_tasks)\n - Debugging failed workflows (which task failed, what was the error)\n - Retry logic (retry failed tasks)\n\n Status Transitions:\n\n Normal flow:\n WORKFLOW_TASK_PENDING → WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_COMPLETED\n\n Failure flow:\n WORKFLOW_TASK_PENDING → WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_FAILED\n\n Skip flow (conditional):\n WORKFLOW_TASK_PENDING → WORKFLOW_TASK_SKIPPED\n\n Approval flow (HITL, for agent invocation tasks):\n WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_WAITING_APPROVAL → WORKFLOW_TASK_IN_PROGRESS\n                                                            ↘ WORKFLOW_TASK_FAILED (on reject)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus",
+      "values": [
+        {
+          "name": "WORKFLOW_TASK_PENDING",
+          "number": 1,
+          "description": "Task is waiting to execute.\n\n The task has been created but has not started executing yet.\n This happens when:\n - Task dependencies have not completed (waiting for previous tasks)\n - Workflow is in EXECUTION_PENDING phase (not started yet)\n - Task is queued behind other tasks (sequential execution)\n\n While in this status:\n - started_at and completed_at are not set\n - input is populated (task knows what it will execute)\n - output is not populated (task hasn't executed yet)\n\n Next statuses: WORKFLOW_TASK_IN_PROGRESS, WORKFLOW_TASK_SKIPPED"
+        },
+        {
+          "name": "WORKFLOW_TASK_IN_PROGRESS",
+          "number": 2,
+          "description": "Task is currently executing.\n\n The workflow runner is actively processing this task.\n The task is performing its specific operation:\n - Calling an API\n - Invoking an agent\n - Waiting for approval\n - Transforming data\n\n While in this status:\n - started_at is set\n - completed_at is not set\n - output is not populated yet (waiting for task to finish)\n\n Typical duration: Milliseconds to hours (depends on task type)\n - API calls: \u003c 10 seconds\n - Agent invocations: 10-60 seconds\n - Approvals: Hours to days\n\n Next statuses: WORKFLOW_TASK_COMPLETED, WORKFLOW_TASK_FAILED"
+        },
+        {
+          "name": "WORKFLOW_TASK_COMPLETED",
+          "number": 3,
+          "description": "Task finished successfully.\n\n The task executed its operation and produced a successful result.\n\n When this status is reached:\n - completed_at is set\n - output is populated with task results\n - error is not set\n\n Next statuses: None (terminal state for this task)"
+        },
+        {
+          "name": "WORKFLOW_TASK_FAILED",
+          "number": 4,
+          "description": "Task failed during execution.\n\n The task encountered an error and could not complete successfully.\n\n When this status is reached:\n - completed_at is set\n - error is populated with failure description\n - output is not populated (task didn't produce valid output)\n\n Common Failure Causes by Task Type:\n\n WORKFLOW_TASK_API_CALL:\n - Network timeout\n - HTTP 4xx/5xx errors\n - Invalid response format\n\n WORKFLOW_TASK_AGENT_INVOCATION:\n - Agent execution timeout\n - Agent execution error\n - Prompt too long (exceeds token limit)\n\n WORKFLOW_TASK_APPROVAL:\n - Timeout (no approval within timeout_hours)\n - Explicit rejection\n\n WORKFLOW_TASK_TRANSFORM:\n - Invalid expression syntax\n - Type mismatch\n\n Impact:\n - If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured)\n - Failed tasks can be retried (if retry policy is configured)\n\n Next statuses: None (terminal state for this task)"
+        },
+        {
+          "name": "WORKFLOW_TASK_SKIPPED",
+          "number": 5,
+          "description": "Task was skipped due to conditional logic.\n\n The task was not executed because a conditional task determined it should be skipped.\n\n When this status is reached:\n - started_at is not set (task never started)\n - completed_at may be set (time when skip was determined)\n - output is not populated (task didn't execute)\n - error is not set (skip is not an error)\n\n Example:\n Conditional task: if email_valid == false, skip \"create_account\" task\n\n Impact:\n - Skipped tasks don't cause workflow failure\n - Skipped tasks count toward completed_tasks (for progress calculation)\n\n Next statuses: None (terminal state for this task)"
+        },
+        {
+          "name": "WORKFLOW_TASK_WAITING_APPROVAL",
+          "number": 6,
+          "description": "Task is waiting for approval from child agent (HITL Phase 1).\n\n This status is set when:\n - task_type == WORKFLOW_TASK_AGENT_INVOCATION\n - The invoked AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL\n\n The workflow runner detects this by polling or watching the child execution.\n When the child's approval is submitted, the task returns to IN_PROGRESS.\n\n While in this status:\n - started_at is set (task started before agent needed approval)\n - completed_at is not set (task is not done)\n - The child AgentExecution.status.pending_approval contains approval details\n\n UI should show: \"Agent is waiting for tool approval\"\n with details from the child execution's pending_approval field.\n\n Approval can be submitted through:\n - AgentExecution.SubmitApproval (direct to child agent)\n - WorkflowExecution API (forwarded to child - future work)\n\n This is NOT a terminal state - workflow resumes after approval decision.\n\n Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)"
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    }
+  ],
   "resourceDescription": "WorkflowExecution represents a single runtime invocation of a WorkflowInstance.\n\n WorkflowExecution is the \"Execution\" layer in the Template→Instance→Execution pattern.\n It captures the complete lifecycle of a workflow run, from initial trigger through\n task-by-task execution to final completion or failure.\n\n A WorkflowExecution:\n - References a WorkflowInstance (which contains configuration and environment bindings)\n - Is triggered by a user action, API call, webhook, or scheduled event\n - Executes tasks sequentially or in parallel based on the workflow definition\n - Tracks real-time progress through tasks and phases\n - Captures outputs, errors, and execution metadata\n - Is ephemeral - deleted after completion based on retention policies\n\n Execution Pattern:\n Workflow \"customer-onboarding\" (template)\n   → WorkflowInstance \"acme-onboarding\" (with prod-env)\n     → WorkflowExecution \"acme-onboarding-20250111-143022\" (specific run)\n       - Phase: IN_PROGRESS\n       - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]\n       - Progress: 1/3 tasks completed\n\n Use Cases:\n - Track workflow execution progress in real-time\n - Debug failed workflows with full execution history\n - Audit workflow runs for compliance and analysis\n - Monitor workflow performance and duration\n - Retry failed executions with same inputs\n\n Separation of Concerns:\n - User Inputs (spec): workflow_instance_id, trigger_message, trigger_metadata, runtime_env\n - System State (status): phase, tasks, output, timestamps, errors\n\n This separation ensures:\n - Clear boundary between what users control (spec) and what the system manages (status)\n - Status can be updated independently during execution without modifying user inputs\n - Execution can be retried by creating a new WorkflowExecution with the same spec",
   "statusType": {
     "name": "WorkflowExecutionStatus",
@@ -707,36 +869,6 @@
     ]
   },
   "statusNestedTypes": [
-    {
-      "name": "ApiResourceAudit",
-      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "SpecAudit",
-          "jsonName": "specAudit",
-          "protoField": "spec_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's specification (desired state).",
-          "required": false
-        },
-        {
-          "name": "StatusAudit",
-          "jsonName": "statusAudit",
-          "protoField": "status_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's status (actual state).",
-          "required": false
-        }
-      ]
-    },
     {
       "name": "ApiResourceAuditInfo",
       "description": "ApiResourceAuditInfo contains detailed audit information.",
@@ -1075,6 +1207,36 @@
             "kind": "string"
           },
           "description": "Concise subject/description of the sub-agent's task (3-10 words).\n Copied from SubAgentExecution.subject when from_sub_agent is true.\n Enables UI to show a meaningful label like \"Explore CLI rendering code\"\n instead of the generic agent type name.\n Empty when from_sub_agent is false or subject is not available.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
           "required": false
         }
       ]

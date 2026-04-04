@@ -291,7 +291,7 @@ type SearchResult struct {
 	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,1,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
 	// System-generated unique identifier (UUID).
 	//
-	// Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+	// Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
 	// Use this for subsequent API calls to get/update/delete the resource.
 	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// Human-readable display name.

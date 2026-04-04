@@ -15,7 +15,7 @@ export const file_ai_stigmer_agentic_agent_v1_status: GenFile = /*@__PURE__*/
   fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEiawoLQWdlbnRTdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIbChNkZWZhdWx0X2luc3RhbmNlX2lkGAEgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
- * AgentStatus contains system-managed state for an Agent resource.
+ * AgentStatus contains system-managed state for an agent.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.AgentStatus
  */
@@ -28,10 +28,10 @@ export type AgentStatus = Message<"ai.stigmer.agentic.agent.v1.AgentStatus"> & {
   audit?: ApiResourceAudit;
 
   /**
-   * ID of the default agent instance created automatically for this agent.
-   * Every agent has exactly one default instance that requires no configuration.
-   * This instance has no environment variables and uses all agent defaults.
-   * Created automatically when the agent is created.
+   * ID of the default agent instance.
+   * Every agent has exactly one default instance that uses all agent defaults
+   * and requires no additional configuration. Created automatically when the
+   * agent is created.
    *
    * @generated from field: string default_instance_id = 1;
    */

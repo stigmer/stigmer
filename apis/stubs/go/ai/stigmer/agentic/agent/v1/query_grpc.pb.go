@@ -42,17 +42,15 @@ type AgentQueryControllerClient interface {
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Agent, error)
 	// Get the platform default agent.
 	//
-	// Resolves the agent labeled stigmer.ai/default-agent: "true" with
-	// visibility_public. Returns the full Agent resource including
-	// status.default_instance_id for session creation.
+	// Returns the default agent for the platform, including
+	// status.default_instance_id for creating a session. Use this
+	// to start a conversation without selecting an agent first.
 	//
-	// Used by frontends to enable session-first UX where users start
-	// a conversation without explicitly selecting an agent.
-	//
-	// Error: NOT_FOUND if no default agent is configured.
+	// Returns NOT_FOUND if no default agent is configured.
 	//
 	// @internal
-	// Custom authorization in handler.
+	// Resolves the agent labeled stigmer.ai/default-agent: "true" with
+	// visibility_public. Custom authorization in handler.
 	GetDefault(ctx context.Context, in *GetDefaultAgentRequest, opts ...grpc.CallOption) (*Agent, error)
 }
 
@@ -111,17 +109,15 @@ type AgentQueryControllerServer interface {
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error)
 	// Get the platform default agent.
 	//
-	// Resolves the agent labeled stigmer.ai/default-agent: "true" with
-	// visibility_public. Returns the full Agent resource including
-	// status.default_instance_id for session creation.
+	// Returns the default agent for the platform, including
+	// status.default_instance_id for creating a session. Use this
+	// to start a conversation without selecting an agent first.
 	//
-	// Used by frontends to enable session-first UX where users start
-	// a conversation without explicitly selecting an agent.
-	//
-	// Error: NOT_FOUND if no default agent is configured.
+	// Returns NOT_FOUND if no default agent is configured.
 	//
 	// @internal
-	// Custom authorization in handler.
+	// Resolves the agent labeled stigmer.ai/default-agent: "true" with
+	// visibility_public. Custom authorization in handler.
 	GetDefault(context.Context, *GetDefaultAgentRequest) (*Agent, error)
 }
 
