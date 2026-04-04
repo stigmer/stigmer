@@ -124,8 +124,13 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	(cd sdk/react && npm run typedoc:json) && \
 	(cd site && REACT_SDK_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-react-sdk-docs) && \
-	diff -rq "$$tmpdir" docs/sdk/react/ > /dev/null 2>&1; \
-	rc=$$?; rm -rf "$$tmpdir"; \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/sdk/react/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
 	if [ $$rc -ne 0 ]; then \
 		echo "error: React SDK docs are stale — run 'make gen-react-sdk-docs'"; exit 1; \
 	fi; \
