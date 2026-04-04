@@ -13,44 +13,79 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: 2026-04-04 (Session 6)
-**Status**: Proto documentation cleanup complete for workflow resource; T06 pending
+**Last Session**: 2026-04-04 (Session 7)
+**Status**: T06 in progress -- SDK Overview page complete, streaming guide and React SDK page pending
 **Active Task**: T06 (Manual pages -- SDK overview, streaming guide, React SDK docs)
 
-## Session Progress (2026-04-04, Session 6)
+## Session Progress (2026-04-04, Session 7)
 
 ### Completed
-- **Workflow proto documentation cleanup**: Cleaned all 21 workflow proto files (core resource, 13 task configs, serverless validation) to match agent resource quality standard
-  - Applied `@internal` markers to hide Zigflow DSL, Temporal, and Planton references from SDK docs
-  - Rewrote all 13 `WorkflowTaskKind` enum values with concise descriptions
-  - Fixed RPC, message, and field comments across all files
-  - Created `apis/ai/stigmer/agentic/workflow/docs/overview.md`
-  - Regenerated workflow schemas and `docs/sdk/workflow.mdx`
-  - Verified zero internal terminology leaks in generated output
+- **SDK Overview page** (`docs/sdk/index.mdx`): Hand-written Reference page serving as the SDK Reference section landing page
+  - Installation commands for all 4 languages
+  - Authentication with API key + TypeScript `getAccessToken` for dynamic tokens
+  - Client configuration with per-language option tables
+  - Resource access pattern showing naming conventions across all 4 languages
+  - Error handling with types, classification helpers, and practical examples per language
+  - Pagination pattern with `pageSize`/`pageToken`
+  - Streaming preview with subscribe examples, linking to dedicated streaming guide
+  - "What's next" cards linking to streaming guide, React SDK, and Agent reference
 
-### Key Decisions (Session 6)
-- **Zigflow → workflow DSL**: Internal "Zigflow DSL" replaced with generic "workflow DSL" in SDK-facing comments
-- **YAML examples behind @internal**: Per document_writer guidelines, proto comment YAML examples moved behind `@internal`
-- **Agent protos = gold standard**: Used agent resource proto comments as reference for all workflow comment structure
+### Key Decisions (Session 7)
+- **Error handling examples**: Showed one example per language (not just one) because the error APIs genuinely differ across SDKs
+- **TypeScript `getAccessToken`**: Included as a documented option since Reference pages should cover all configuration options
+- **Accessor names**: Used correct names from actual SDK source (Python plural `client.agents`, Java plural `client.agents()`) rather than matching the generated resource pages which have a codegen bug using singular names
+- **Configuration tables**: Per-language option tables rather than cross-language, since each language has different options
+
+### Discovery: Python/Java Accessor Name Bug
+The generated SDK reference pages use singular accessor names for Python (`client.session.get(...)`) and Java (`client.session().get(...)`), but the actual SDK source uses plural names (`client.sessions.get(...)` and `client.sessions().get(...)`). The quickstart uses the correct plural names. This is a codegen bug in `sdk_docs.go` that should be fixed separately.
 
 ## Next Steps
 
-1. **T06**: Manual pages -- SDK overview, streaming guide, React SDK docs
-2. **Commit remaining unstaged changes**: workflowexecution proto cleanup + regenerated SDK docs/schemas for all resources need separate commits
-3. **Consider**: workflowexecution proto documentation cleanup (changes exist but are uncommitted)
+1. **T06 (continued)**: Write `docs/sdk/streaming.mdx` -- Streaming how-to guide
+2. **T06 (continued)**: Write `docs/sdk/react.mdx` -- React SDK reference
+3. **T06 (continued)**: Update `docs/sdk/meta.json` to add streaming and react pages with Resources separator
+4. **T06 (continued)**: Verify `index.mdx` renders as section landing page in Fumadocs
+5. **Follow-up**: Fix Python/Java accessor name bug in `sdk_docs.go` codegen (separate task)
 
 ## Context for Resume
 
-### Unstaged Changes
-There are unstaged changes in the working tree from this and adjacent sessions:
-- `apis/ai/stigmer/agentic/workflowexecution/v1/*.proto` -- proto doc cleanup (4 files)
-- `apis/ai/stigmer/agentic/workflowexecution/docs/overview.md` -- new overview
-- `docs/sdk/*.mdx` -- regenerated SDK docs for ~15 resources
-- `tools/codegen/schemas/services/*.json` -- regenerated service schemas
-- `proto2schema` -- untracked directory
+### Working Tree
+Clean -- all changes committed.
 
-### Committed in Session 6
-- `decb028c` -- `docs(apis/workflow): clean proto comments for SDK docs and add overview` (48 files)
+### Committed in Session 7
+- `9715d12c` -- `docs(sdk): add SDK Overview landing page for SDK Reference section`
+
+### Plan Reference
+The full T06 plan is in:
+```
+/Users/suresh/.cursor/plans/t06_sdk_manual_pages_9d43630c.plan.md
+```
+
+### Streaming Guide (next page to write)
+Diataxis type: **How-to guide**. Covers:
+- Subscribing to AgentExecution and WorkflowExecution
+- Reading execution snapshots (status.messages, status.phase, status.progress)
+- Detecting completion per language
+- Error handling in streams
+- Uses `<SDKTabs>` with all 4 languages
+
+### React SDK Page (third page to write)
+Diataxis type: **Reference**. Covers:
+- `@stigmer/react` installation and peer deps
+- `StigmerProvider` setup with `deploymentMode`
+- `useStigmer()` hook
+- Key hooks (session, execution, resource)
+- Key components (composer, message thread, detail views)
+- Styles import
+
+### Key Source Files for Remaining Work
+- `sdk/typescript/src/gen/agentexecution.ts` -- TS subscribe method
+- `sdk/go/internal/gen/agentexecution.go` -- Go subscribe method
+- `sdk/python/src/stigmer/_gen/_agentexecution.py` -- Python subscribe method
+- `sdk/java/src/main/java/ai/stigmer/sdk/gen/AgentExecutionClient.java` -- Java subscribe
+- `sdk/react/src/index.ts` -- React SDK public exports
+- `sdk/react/src/provider.tsx` -- StigmerProvider implementation
+- `docs/sdk/agent-execution.mdx` -- Generated page for reference
 
 ### Full Codegen Chain (after T07)
 ```
@@ -87,7 +122,7 @@ make gen-sdk-docs-check
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260403.03.sdk-docs-auto-generation/checkpoints/2026-04-04-session-6.md
+_projects/2026-04/20260403.03.sdk-docs-auto-generation/checkpoints/2026-04-04-session-7.md
 ```
 
 ### 2. Task Plans
@@ -105,18 +140,17 @@ _projects/2026-04/20260403.03.sdk-docs-auto-generation/tasks/
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-04-session-6.md`
-2. [ ] Check current task status in `tasks/`
-3. [ ] Review unstaged changes: `git status` (workflowexecution protos + regenerated docs)
-4. [ ] Review `tools/codegen/generator/sdk_docs.go` to understand the generator
-5. [ ] Review any new design decisions in `design-decisions/`
-6. [ ] Continue with T06 (manual pages) or commit remaining unstaged changes
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-04-session-7.md`
+2. [ ] Review `docs/sdk/index.mdx` (SDK Overview page written in session 7)
+3. [ ] Check `git status` -- working tree should be clean
+4. [ ] Continue T06: write `docs/sdk/streaming.mdx` next
+5. [ ] Then write `docs/sdk/react.mdx`
+6. [ ] Then update `docs/sdk/meta.json`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T06" - Start the manual pages task
-- "Commit the workflowexecution changes" - Stage and commit the remaining proto cleanup
+- "Continue with T06" - Write the streaming guide next
 - "Show project status" - Get overview of progress
 - "Run the SDK docs generator" - `make gen-sdk-docs`
 - "Check SDK docs freshness" - `make gen-sdk-docs-check`
