@@ -233,6 +233,7 @@ check-links: ## Check for broken links in documentation
 		--scheme https --scheme http \
 		--exclude 'https://api\.stigmer\.ai' \
 		--exclude 'github\.com/stigmer/skills\.git' \
+		--exclude 'https://platform\.openai\.com' \
 		docs/
 
 # ─── Dependencies ─────────────────────────────

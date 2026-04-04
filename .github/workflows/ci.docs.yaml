@@ -116,5 +116,6 @@ jobs:
             --scheme http
             --exclude 'https://api\.stigmer\.ai'
             --exclude 'github\.com/stigmer/skills\.git'
+            --exclude 'https://platform\.openai\.com'
             docs/
           fail: true
