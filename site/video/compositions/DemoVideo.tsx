@@ -12,7 +12,7 @@ import { SCENARIO_REGISTRY } from "@/components/docs/demos/scenarios/registry";
 import { DEMO_VIDEO_SHELL_HEIGHT } from "@/components/docs/demos/shared/tokens";
 import type { Timeline } from "../lib/timeline";
 
-interface DemoVideoProps {
+export interface DemoVideoProps {
   scenarioId: string;
   timeline: Timeline;
 }
