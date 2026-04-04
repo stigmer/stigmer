@@ -1413,8 +1413,8 @@ AgentExecution represents a single agent execution instance (conversational).
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "AgentExecutionInput", description: "Resource specification. See [`AgentExecutionInput`](#agentexecutioninput).", typeDescriptionLink: "#agentexecutioninput" },
     status: { type: "AgentExecutionStatus", description: "System-managed state. See [`AgentExecutionStatus`](#agentexecutionstatus).", typeDescriptionLink: "#agentexecutionstatus" },
   }}
@@ -1426,7 +1426,7 @@ AgentExecutionStatus contains all execution results and state.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
     messages: { type: "AgentMessage[]", description: "Sequential stream of execution events: AI messages, tool calls, and system notifications.", typeDescriptionLink: "#agentmessage" },
     phase: { type: "ExecutionPhase", description: "Current execution lifecycle phase.", typeDescriptionLink: "#executionphase" },
     subAgentExecutions: { type: "SubAgentExecution[]", description: "Sub-agent executions invoked during this execution.", typeDescriptionLink: "#subagentexecution" },
@@ -1472,17 +1472,6 @@ ExecutionArtifact represents a file or directory published by an agent.
     expiresAt: { type: "string", description: "ISO 8601 timestamp when the download URL expires." },
     entries: { type: "string[]", description: "Relative file paths within a directory artifact's archive." },
     contentHash: { type: "string", description: "SHA-256 hex digest of the uploaded artifact bytes." },
-  }}
-/>
-
-### ApiResourceAuditActor
-
-ApiResourceAuditActor represents the entity that performed an action.
-
-<TypeTable
-  type={{
-    id: { type: "string", description: "Unique identifier of the actor." },
-    avatar: { type: "string", description: "URL to the actor's avatar image." },
   }}
 />
 
@@ -1554,20 +1543,6 @@ Setup progress reported by the agent-runner during the EXECUTION_PENDING phase.
   }}
 />
 
-### ApiResourceAuditInfo
-
-ApiResourceAuditInfo contains detailed audit information.
-
-<TypeTable
-  type={{
-    createdBy: { type: "ApiResourceAuditActor", description: "Actor who created this resource.", typeDescriptionLink: "#apiresourceauditactor" },
-    createdAt: { type: "string", description: "Timestamp when the resource was created." },
-    updatedBy: { type: "ApiResourceAuditActor", description: "Actor who last updated this resource.", typeDescriptionLink: "#apiresourceauditactor" },
-    updatedAt: { type: "string", description: "Timestamp when the resource was last updated." },
-    event: { type: "string", description: "Type of the last event (e.g., \"created\", \"updated\")." },
-  }}
-/>
-
 ### AgentMessage
 
 Represents a single message in the agent conversation.
@@ -1601,17 +1576,6 @@ Metrics for a single LLM API call during execution.
     durationMs: { type: "number", description: "Wall-clock duration of this LLM call in milliseconds." },
     timestamp: { type: "string", description: "ISO 8601 timestamp when this LLM call started." },
     totalTokens: { type: "number", description: "Total tokens involved in this call." },
-  }}
-/>
-
-### ApiResourceAudit
-
-ApiResourceAudit contains both spec-level and status-level audit details.
-
-<TypeTable
-  type={{
-    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
-    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
   }}
 />
 
@@ -1814,13 +1778,4 @@ TodoStatus defines the status of a todo item.
 | `TODO_IN_PROGRESS` |  |
 | `TODO_COMPLETED` |  |
 | `TODO_CANCELLED` |  |
-
-### ApiResourceVisibility
-
-Visibility controls who can access an API resource.
-
-| Value | Description |
-|-------|-------------|
-| `visibility_private` | Only members of the owning organization can access. |
-| `visibility_public` | Anyone can access (read) this resource. |
 

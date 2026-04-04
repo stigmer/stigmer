@@ -416,7 +416,7 @@ Input for updating the visibility of any API resource.
 <TypeTable
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
-    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "#apiresourcevisibility" },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/commons#apiresourcevisibility" },
   }}
 />
 
@@ -427,7 +427,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -460,8 +460,8 @@ Skill represents a versioned, reusable unit of agent capability.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "SkillInput", description: "Resource specification. See [`SkillInput`](#skillinput).", typeDescriptionLink: "#skillinput" },
     status: { type: "SkillStatus", description: "System-managed state. See [`SkillStatus`](#skillstatus).", typeDescriptionLink: "#skillstatus" },
   }}
@@ -473,22 +473,11 @@ SkillStatus represents the system-managed state of a skill.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information tracking creation and modification.", typeDescriptionLink: "#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information tracking creation and modification.", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
     versionHash: { type: "string", description: "SHA256 hash of the skill artifact Zip file." },
     artifactStorageKey: { type: "string", description: "Storage location key for the skill artifact." },
     state: { type: "SkillState", description: "Current lifecycle state of the skill.", typeDescriptionLink: "#skillstate" },
     gitProvenance: { type: "GitProvenance", description: "Git provenance tracking where the skill artifacts originated from.", typeDescriptionLink: "#gitprovenance" },
-  }}
-/>
-
-### ApiResourceAuditActor
-
-ApiResourceAuditActor represents the entity that performed an action.
-
-<TypeTable
-  type={{
-    id: { type: "string", description: "Unique identifier of the actor." },
-    avatar: { type: "string", description: "URL to the actor's avatar image." },
   }}
 />
 
@@ -504,66 +493,6 @@ GitProvenance tracks the git origin of skill artifacts.
     subdir: { type: "string", description: "Subdirectory path relative to repo root." },
   }}
 />
-
-### ApiResourceAudit
-
-ApiResourceAudit contains both spec-level and status-level audit details.
-
-<TypeTable
-  type={{
-    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
-    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
-  }}
-/>
-
-### ApiResourceAuditInfo
-
-ApiResourceAuditInfo contains detailed audit information.
-
-<TypeTable
-  type={{
-    createdBy: { type: "ApiResourceAuditActor", description: "Actor who created this resource.", typeDescriptionLink: "#apiresourceauditactor" },
-    createdAt: { type: "string", description: "Timestamp when the resource was created." },
-    updatedBy: { type: "ApiResourceAuditActor", description: "Actor who last updated this resource.", typeDescriptionLink: "#apiresourceauditactor" },
-    updatedAt: { type: "string", description: "Timestamp when the resource was last updated." },
-    event: { type: "string", description: "Type of the last event (e.g., \"created\", \"updated\")." },
-  }}
-/>
-
-### ApiResourceVisibility
-
-Visibility controls who can access an API resource.
-
-| Value | Description |
-|-------|-------------|
-| `visibility_private` | Only members of the owning organization can access. |
-| `visibility_public` | Anyone can access (read) this resource. |
-
-### ApiResourceKind
-
-API resource kinds for Stigmer.
-
-| Value | Description |
-|-------|-------------|
-| `api_resource_version` | Agentic - System-level audit trails and versioning. |
-| `iam_policy` | IAM - Identity and Access Management. |
-| `identity_account` |  |
-| `api_key` |  |
-| `identity_provider` | IAM - External identity provider configuration. |
-| `organization` | Tenancy - Platform and organizational resources. |
-| `platform` |  |
-| `agent` | Agentic - AI agent management. |
-| `agent_execution` |  |
-| `session` |  |
-| `skill` |  |
-| `mcp_server` |  |
-| `agent_instance` |  |
-| `workflow` | Agentic - Workflow orchestration. |
-| `workflow_instance` |  |
-| `workflow_execution` |  |
-| `environment` |  |
-| `execution_context` |  |
-| `project` | Tenancy - Project management (aggregate root for resource lifecycle). |
 
 ### SkillState
 

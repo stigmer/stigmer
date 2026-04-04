@@ -93,7 +93,6 @@ func runSDKDocsGeneration(schemaDir, outputDir, apisDir string) error {
 	}
 
 	// Generate commons page if commons.json exists
-	commonsPath := filepath.Join(servicesDir, "commons.json")
 	if data, err := os.ReadFile(commonsPath); err == nil {
 		var commonsSchema CommonsSchemaFile
 		if err := json.Unmarshal(data, &commonsSchema); err != nil {
@@ -278,7 +277,7 @@ func generateSDKDocPage(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSc
 	for i := range schema.MethodTypes {
 		methodTypeMap[schema.MethodTypes[i].Name] = &schema.MethodTypes[i]
 	}
-	docWriteMethods(&buf, schema, cfg, clientField, goField, pyField, hasInputType, documentedTypes, specSchema, methodTypeMap)
+	docWriteMethodsWithCommons(&buf, schema, cfg, clientField, goField, pyField, hasInputType, documentedTypes, specSchema, methodTypeMap, commonsTypes)
 
 	// Types — shared emitted set prevents duplicate sections when a type
 	// appears in both spec nested types and method types.
@@ -353,6 +352,18 @@ func docWriteClientAccess(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 // Methods section
 // =========================================================================
 
+func docWriteMethodsWithCommons(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, clientField, goField, pyField string, hasInputType bool, documentedTypes map[string]bool, specSchema *TaskConfigSchema, methodTypeMap map[string]*MethodTypeSchema, commonsTypes map[string]bool) {
+	methods := docCollectMethods(schema)
+	docSortMethods(methods)
+
+	buf.WriteString("## Methods\n\n")
+	docWriteMethodOverview(buf, methods)
+
+	for i := range methods {
+		docWriteMethodWithCommons(buf, &methods[i], cfg, clientField, goField, pyField, hasInputType, documentedTypes, specSchema, methodTypeMap, commonsTypes)
+	}
+}
+
 func docWriteMethods(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, clientField, goField, pyField string, hasInputType bool, documentedTypes map[string]bool, specSchema *TaskConfigSchema, methodTypeMap map[string]*MethodTypeSchema) {
 	methods := docCollectMethods(schema)
 	docSortMethods(methods)
@@ -362,6 +373,65 @@ func docWriteMethods(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResour
 
 	for i := range methods {
 		docWriteMethod(buf, &methods[i], cfg, clientField, goField, pyField, hasInputType, documentedTypes, specSchema, methodTypeMap)
+	}
+}
+
+func docWriteMethodWithCommons(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, clientField, goField, pyField string, hasInputType bool, documentedTypes map[string]bool, specSchema *TaskConfigSchema, methodTypeMap map[string]*MethodTypeSchema, commonsTypes map[string]bool) {
+	tsName := tsMethodName(m.Name)
+	pyName := pascalToSnake(m.Name)
+	resultVar := docVarName(m.OutputType)
+	inputTypeName := cfg.inputPrefix + "Input"
+
+	emptyInput := isEmptyType(m.InputFullType)
+	emptyOutput := isEmptyType(m.OutputFullType)
+	idInput := isIDType(m.InputType)
+	resourceInput := m.InputType == cfg.protoResType
+	deleteInput := m.InputType == "ApiResourceDeleteInput"
+
+	fmt.Fprintf(buf, "### %s\n\n", tsName)
+
+	if m.ServerStreaming {
+		buf.WriteString("> **Server Streaming** — This method returns a stream of updates, not a single response.\n\n")
+	}
+
+	if m.Description != "" {
+		content := docSDKContent(m.Description)
+		if content != "" {
+			buf.WriteString(docEscapeMDX(content))
+			buf.WriteString("\n\n")
+		}
+	}
+
+	buf.WriteString("<SDKTabs>\n")
+	docWriteMethodSigs(buf, m, cfg, clientField, goField, pyField, tsName, pyName, resultVar, inputTypeName, emptyInput, emptyOutput, idInput, resourceInput, deleteInput, hasInputType, specSchema, methodTypeMap)
+	buf.WriteString("</SDKTabs>\n\n")
+
+	switch {
+	case emptyInput:
+	case idInput:
+		buf.WriteString("**Parameters**\n\n")
+		buf.WriteString("| Parameter | Type | Description |\n")
+		buf.WriteString("|-----------|------|-------------|\n")
+		fmt.Fprintf(buf, "| `id` | `string` | %s identifier. |\n\n", docDisplayName(cfg.protoResType))
+	case resourceInput && hasInputType:
+		fmt.Fprintf(buf, "**Parameters**: [`%s`](#%s)\n\n", inputTypeName, strings.ToLower(inputTypeName))
+	case deleteInput:
+		buf.WriteString("**Parameters**\n\n")
+		buf.WriteString("| Parameter | Type | Description |\n")
+		buf.WriteString("|-----------|------|-------------|\n")
+		buf.WriteString("| `resourceId` | `string` | ID of the resource to delete. |\n")
+		buf.WriteString("| `versionMessage` | `string` | Optional deletion reason. |\n")
+		buf.WriteString("| `force` | `boolean` | Force delete even if resource is in use. |\n\n")
+	default:
+		fmt.Fprintf(buf, "**Parameters**: %s\n\n", docTypeRefWithCommons(m.InputType, documentedTypes, commonsTypes))
+	}
+
+	if emptyOutput {
+		buf.WriteString("**Returns**: `void`\n\n")
+	} else if m.ServerStreaming {
+		fmt.Fprintf(buf, "**Returns**: Stream&lt;%s&gt;\n\n", docTypeRefWithCommons(m.OutputType, documentedTypes, commonsTypes))
+	} else {
+		fmt.Fprintf(buf, "**Returns**: %s\n\n", docTypeRefWithCommons(m.OutputType, documentedTypes, commonsTypes))
 	}
 }
 
@@ -904,6 +974,49 @@ func docWriteTypeFieldWithCommons(buf *bytes.Buffer, f *FieldSchema, documentedT
 	fmt.Fprintf(buf, "    %s: { %s },\n", fieldName, strings.Join(props, ", "))
 }
 
+func docWriteNestedTypeWithCommons(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool, documentedTypes map[string]bool, commonsTypes map[string]bool) {
+	var msgName string
+	switch {
+	case f.Type.Kind == "message":
+		msgName = f.Type.MessageType
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
+		msgName = f.Type.ElementType.MessageType
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.Kind == "message":
+		msgName = f.Type.ValueType.MessageType
+	default:
+		return
+	}
+
+	inputName := docInputDisplayName(msgName)
+	if emitted[inputName] {
+		return
+	}
+	ts, ok := typeMap[msgName]
+	if !ok {
+		return
+	}
+	emitted[inputName] = true
+
+	fmt.Fprintf(buf, "### %s\n\n", inputName)
+
+	if ts.Description != "" {
+		buf.WriteString(docEscapeMDX(docFirstSentence(docStripInternal(ts.Description))))
+		buf.WriteString("\n\n")
+	}
+
+	if len(ts.Fields) > 0 {
+		buf.WriteString("<TypeTable\n  type={{\n")
+		for _, field := range ts.Fields {
+			docWriteTypeFieldWithCommons(buf, field, documentedTypes, commonsTypes)
+		}
+		buf.WriteString("  }}\n/>\n\n")
+	}
+
+	for _, field := range ts.Fields {
+		docWriteNestedTypeWithCommons(buf, field, typeMap, emitted, documentedTypes, commonsTypes)
+	}
+}
+
 func docWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool, documentedTypes map[string]bool) {
 	var msgName string
 	switch {
@@ -1038,6 +1151,43 @@ func docCollectNestedTypeNames(f *FieldSchema, typeMap map[string]*TypeSchema, s
 // method parameters or return values that aren't covered by spec-based types.
 // The emitted set tracks type headings already rendered by the spec types
 // section, preventing duplicates when a type appears in both contexts.
+func docWriteMethodTypesWithCommons(buf *bytes.Buffer, methodTypes []MethodTypeSchema, documentedTypes map[string]bool, emitted map[string]bool, commonsTypes map[string]bool) {
+	for i := range methodTypes {
+		mt := &methodTypes[i]
+
+		if commonsTypes[mt.Name] {
+			continue
+		}
+
+		heading := mt.Name
+		if isSpecialType(mt.Name) {
+			heading = docInputDisplayName(mt.Name)
+		}
+		if emitted[heading] {
+			continue
+		}
+		emitted[heading] = true
+
+		fmt.Fprintf(buf, "### %s\n\n", heading)
+
+		if mt.Description != "" {
+			content := docFirstSentence(docStripInternal(mt.Description))
+			if content != "" {
+				buf.WriteString(docEscapeMDX(content))
+				buf.WriteString("\n\n")
+			}
+		}
+
+		if len(mt.Fields) > 0 {
+			buf.WriteString("<TypeTable\n  type={{\n")
+			for _, field := range mt.Fields {
+				docWriteTypeFieldWithCommons(buf, field, documentedTypes, commonsTypes)
+			}
+			buf.WriteString("  }}\n/>\n\n")
+		}
+	}
+}
+
 func docWriteMethodTypes(buf *bytes.Buffer, methodTypes []MethodTypeSchema, documentedTypes map[string]bool, emitted map[string]bool) {
 	for i := range methodTypes {
 		mt := &methodTypes[i]
@@ -1075,6 +1225,14 @@ func docWriteMethodTypes(buf *bytes.Buffer, methodTypes []MethodTypeSchema, docu
 // has a documented section on the page, or as plain backtick code otherwise.
 // Special types are mapped to their SDK display names (e.g.,
 // ApiResourceReference -> ResourceRef) before lookup.
+func docTypeRefWithCommons(typeName string, documentedTypes map[string]bool, commonsTypes map[string]bool) string {
+	if commonsTypes[typeName] {
+		anchor := strings.ToLower(typeName)
+		return fmt.Sprintf("[`%s`](/docs/sdk/commons#%s)", typeName, anchor)
+	}
+	return docTypeRef(typeName, documentedTypes)
+}
+
 func docTypeRef(typeName string, documentedTypes map[string]bool) string {
 	if documentedTypes[typeName] {
 		anchor := strings.ToLower(typeName)
@@ -1145,6 +1303,72 @@ func docWriteResponseTypeFieldWithCommons(buf *bytes.Buffer, f *FieldSchema, doc
 	fmt.Fprintf(buf, "    %s: { %s },\n", fieldName, strings.Join(props, ", "))
 }
 
+// docWriteResourceAndStatusTypesWithCommons renders the resource type and its
+// status sub-type with cross-page links for commons types.
+func docWriteResourceAndStatusTypesWithCommons(buf *bytes.Buffer, cfg sdkResourceConfig, schema *ServiceSchemaFile, documentedTypes map[string]bool, commonsTypes map[string]bool) {
+	inputTypeName := cfg.inputPrefix + "Input"
+	statusTypeName := cfg.protoResType + "Status"
+
+	fmt.Fprintf(buf, "### %s\n\n", cfg.protoResType)
+	if schema.ResourceDescription != "" {
+		content := docFirstSentence(docStripInternal(schema.ResourceDescription))
+		if content != "" {
+			buf.WriteString(docEscapeMDX(content))
+			buf.WriteString("\n\n")
+		}
+	}
+
+	specRef := docTypeRef(inputTypeName, documentedTypes)
+	statusRef := docTypeRef(statusTypeName, documentedTypes)
+
+	specLink := ""
+	if documentedTypes[inputTypeName] {
+		specLink = fmt.Sprintf(", typeDescriptionLink: \"#%s\"", strings.ToLower(inputTypeName))
+	}
+	statusLink := ""
+	if documentedTypes[statusTypeName] {
+		statusLink = fmt.Sprintf(", typeDescriptionLink: \"#%s\"", strings.ToLower(statusTypeName))
+	}
+
+	metadataLink := ""
+	if commonsTypes["ApiResourceMetadata"] {
+		metadataLink = ", typeDescriptionLink: \"/docs/sdk/commons#apiresourcemetadata\""
+	}
+
+	kindLink := ""
+	if commonsTypes["ApiResourceKind"] {
+		kindLink = ", typeDescriptionLink: \"/docs/sdk/commons#apiresourcekind\""
+	}
+
+	buf.WriteString("<TypeTable\n  type={{\n")
+	fmt.Fprintf(buf, "    apiVersion: { type: \"string\", description: \"API version for this resource type.\" },\n")
+	fmt.Fprintf(buf, "    kind: { type: \"ApiResourceKind\", description: \"Resource kind identifier.\"%s },\n", kindLink)
+	fmt.Fprintf(buf, "    metadata: { type: \"ApiResourceMetadata\", description: \"Resource metadata including id, name, org, slug, labels, visibility, and timestamps.\"%s },\n", metadataLink)
+	fmt.Fprintf(buf, "    spec: { type: \"%s\", description: \"Resource specification. See %s.\"%s },\n", inputTypeName, specRef, specLink)
+	fmt.Fprintf(buf, "    status: { type: \"%s\", description: \"System-managed state. See %s.\"%s },\n", statusTypeName, statusRef, statusLink)
+	buf.WriteString("  }}\n/>\n\n")
+
+	if schema.StatusType != nil {
+		fmt.Fprintf(buf, "### %s\n\n", schema.StatusType.Name)
+		if schema.StatusType.Description != "" {
+			content := docFirstSentence(docStripInternal(schema.StatusType.Description))
+			if content != "" {
+				buf.WriteString(docEscapeMDX(content))
+				buf.WriteString("\n\n")
+			}
+		}
+		if len(schema.StatusType.Fields) > 0 {
+			buf.WriteString("<TypeTable\n  type={{\n")
+			for _, field := range schema.StatusType.Fields {
+				docWriteResponseTypeFieldWithCommons(buf, field, documentedTypes, commonsTypes)
+			}
+			buf.WriteString("  }}\n/>\n\n")
+		}
+	}
+
+	docWriteStatusNestedTypesWithCommons(buf, schema.StatusNestedTypes, documentedTypes, commonsTypes)
+}
+
 // docWriteResourceAndStatusTypes renders the resource type and its status
 // sub-type as TypeTable sections at the end of the Types block.
 func docWriteResourceAndStatusTypes(buf *bytes.Buffer, cfg sdkResourceConfig, schema *ServiceSchemaFile, documentedTypes map[string]bool) {
@@ -1200,6 +1424,35 @@ func docWriteResourceAndStatusTypes(buf *bytes.Buffer, cfg sdkResourceConfig, sc
 	}
 
 	docWriteStatusNestedTypes(buf, schema.StatusNestedTypes, documentedTypes)
+}
+
+// docWriteStatusNestedTypesWithCommons renders TypeTable sections for types
+// nested inside the status type, skipping types that live on the commons page.
+func docWriteStatusNestedTypesWithCommons(buf *bytes.Buffer, types []MethodTypeSchema, documentedTypes map[string]bool, commonsTypes map[string]bool) {
+	emitted := make(map[string]bool)
+	for i := range types {
+		nt := &types[i]
+		if emitted[nt.Name] || commonsTypes[nt.Name] {
+			continue
+		}
+		emitted[nt.Name] = true
+
+		fmt.Fprintf(buf, "### %s\n\n", nt.Name)
+		if nt.Description != "" {
+			content := docFirstSentence(docStripInternal(nt.Description))
+			if content != "" {
+				buf.WriteString(docEscapeMDX(content))
+				buf.WriteString("\n\n")
+			}
+		}
+		if len(nt.Fields) > 0 {
+			buf.WriteString("<TypeTable\n  type={{\n")
+			for _, field := range nt.Fields {
+				docWriteResponseTypeFieldWithCommons(buf, field, documentedTypes, commonsTypes)
+			}
+			buf.WriteString("  }}\n/>\n\n")
+		}
+	}
 }
 
 // docWriteStatusNestedTypes renders TypeTable sections for types nested inside
