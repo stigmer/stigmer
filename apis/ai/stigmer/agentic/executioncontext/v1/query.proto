@@ -8,8 +8,9 @@ import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 
-// ExecutionContextQueryController provides read operations for ExecutionContext resources.
+// ExecutionContextQueryController handles read operations for ExecutionContext resources.
 //
+// @internal
 // Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
 // ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
 // FGA model. Authorization is derived from the parent execution:
@@ -37,7 +38,7 @@ service ExecutionContextQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
-  // Get an ExecutionContext by the execution ID it belongs to.
+  // Get the ExecutionContext for a given execution ID.
   //
   // @internal
   // Primary lookup method used by runners to retrieve the merged environment
