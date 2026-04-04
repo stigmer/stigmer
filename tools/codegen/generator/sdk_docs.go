@@ -167,19 +167,21 @@ func generateSDKDocPage(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSc
 	}
 	docWriteMethods(&buf, schema, cfg, clientField, goField, pyField, hasInputType, documentedTypes, specSchema, methodTypeMap)
 
-	// Types
+	// Types — shared emitted set prevents duplicate sections when a type
+	// appears in both spec nested types and method types.
+	typeEmitted := make(map[string]bool)
 	if specSchema != nil {
 		typeMap := make(map[string]*TypeSchema)
 		for _, t := range specTypes {
 			typeMap[t.Name] = t
 		}
-		docWriteTypes(&buf, cfg, specSchema, typeMap)
+		docWriteTypes(&buf, cfg, specSchema, typeMap, documentedTypes, typeEmitted)
 	} else {
 		buf.WriteString("## Types\n\n")
 	}
 
 	if len(schema.MethodTypes) > 0 {
-		docWriteMethodTypes(&buf, schema.MethodTypes, documentedTypes)
+		docWriteMethodTypes(&buf, schema.MethodTypes, documentedTypes, typeEmitted)
 	}
 
 	docWriteResourceAndStatusTypes(&buf, cfg, schema, documentedTypes)
@@ -697,7 +699,7 @@ func docWriteMethodOverview(buf *bytes.Buffer, methods []MethodSchema) {
 // Types section
 // =========================================================================
 
-func docWriteTypes(buf *bytes.Buffer, cfg sdkResourceConfig, specSchema *TaskConfigSchema, typeMap map[string]*TypeSchema) {
+func docWriteTypes(buf *bytes.Buffer, cfg sdkResourceConfig, specSchema *TaskConfigSchema, typeMap map[string]*TypeSchema, documentedTypes map[string]bool, emitted map[string]bool) {
 	buf.WriteString("## Types\n\n")
 
 	inputName := cfg.inputPrefix + "Input"
@@ -713,35 +715,39 @@ func docWriteTypes(buf *bytes.Buffer, cfg sdkResourceConfig, specSchema *TaskCon
 	}
 
 	buf.WriteString("<TypeTable\n  type={{\n")
-	// Metadata fields present on every resource input
 	buf.WriteString("    name: { type: \"string\", description: \"Resource name.\", required: true },\n")
 	buf.WriteString("    slug: { type: \"string\", description: \"URL-friendly identifier.\" },\n")
 	buf.WriteString("    org: { type: \"string\", description: \"Organization slug.\", required: true },\n")
 	buf.WriteString("    labels: { type: \"Record<string, string>\", description: \"Key-value labels.\" },\n")
 	for _, f := range specFields {
-		docWriteTypeField(buf, f)
+		docWriteTypeField(buf, f, documentedTypes)
 	}
 	buf.WriteString("  }}\n/>\n\n")
 
-	// Nested types referenced by spec fields
-	emitted := make(map[string]bool)
 	for _, f := range specFields {
-		docWriteNestedType(buf, f, typeMap, emitted)
+		docWriteNestedType(buf, f, typeMap, emitted, documentedTypes)
 	}
 }
 
-func docWriteTypeField(buf *bytes.Buffer, f *FieldSchema) {
+func docWriteTypeField(buf *bytes.Buffer, f *FieldSchema, documentedTypes map[string]bool) {
 	fieldName := tsProtoFieldName(f.ProtoField)
 	fieldType := docTypeString(&f.Type)
 	desc := docEscapeJSString(docFirstSentence(docStripInternal(f.Description)))
-	if f.Required {
-		fmt.Fprintf(buf, "    %s: { type: \"%s\", description: \"%s\", required: true },\n", fieldName, fieldType, desc)
-	} else {
-		fmt.Fprintf(buf, "    %s: { type: \"%s\", description: \"%s\" },\n", fieldName, fieldType, desc)
+	link := docFieldTypeLink(&f.Type, documentedTypes)
+
+	var props []string
+	props = append(props, fmt.Sprintf("type: \"%s\"", fieldType))
+	props = append(props, fmt.Sprintf("description: \"%s\"", desc))
+	if link != "" {
+		props = append(props, fmt.Sprintf("typeDescriptionLink: \"%s\"", link))
 	}
+	if f.Required {
+		props = append(props, "required: true")
+	}
+	fmt.Fprintf(buf, "    %s: { %s },\n", fieldName, strings.Join(props, ", "))
 }
 
-func docWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool) {
+func docWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool, documentedTypes map[string]bool) {
 	var msgName string
 	switch {
 	case f.Type.Kind == "message":
@@ -754,16 +760,16 @@ func docWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*T
 		return
 	}
 
-	if isSpecialType(msgName) || emitted[msgName] {
+	inputName := docInputDisplayName(msgName)
+	if emitted[inputName] {
 		return
 	}
 	ts, ok := typeMap[msgName]
 	if !ok {
 		return
 	}
-	emitted[msgName] = true
+	emitted[inputName] = true
 
-	inputName := msgName + "Input"
 	fmt.Fprintf(buf, "### %s\n\n", inputName)
 
 	if ts.Description != "" {
@@ -774,13 +780,13 @@ func docWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*T
 	if len(ts.Fields) > 0 {
 		buf.WriteString("<TypeTable\n  type={{\n")
 		for _, field := range ts.Fields {
-			docWriteTypeField(buf, field)
+			docWriteTypeField(buf, field, documentedTypes)
 		}
 		buf.WriteString("  }}\n/>\n\n")
 	}
 
 	for _, field := range ts.Fields {
-		docWriteNestedType(buf, field, typeMap, emitted)
+		docWriteNestedType(buf, field, typeMap, emitted, documentedTypes)
 	}
 }
 
@@ -822,7 +828,16 @@ func docBuildDocumentedTypeSet(cfg sdkResourceConfig, schema *ServiceSchemaFile,
 	}
 
 	for i := range schema.MethodTypes {
-		set[schema.MethodTypes[i].Name] = true
+		name := schema.MethodTypes[i].Name
+		if isSpecialType(name) {
+			set[docInputDisplayName(name)] = true
+		} else {
+			set[name] = true
+		}
+	}
+
+	for i := range schema.StatusNestedTypes {
+		set[schema.StatusNestedTypes[i].Name] = true
 	}
 
 	return set
@@ -843,10 +858,7 @@ func docCollectNestedTypeNames(f *FieldSchema, typeMap map[string]*TypeSchema, s
 		return
 	}
 
-	if isSpecialType(msgName) {
-		return
-	}
-	inputName := msgName + "Input"
+	inputName := docInputDisplayName(msgName)
 	if set[inputName] {
 		return
 	}
@@ -863,11 +875,22 @@ func docCollectNestedTypeNames(f *FieldSchema, typeMap map[string]*TypeSchema, s
 
 // docWriteMethodTypes renders TypeTable sections for proto types used as
 // method parameters or return values that aren't covered by spec-based types.
-func docWriteMethodTypes(buf *bytes.Buffer, methodTypes []MethodTypeSchema, documentedTypes map[string]bool) {
+// The emitted set tracks type headings already rendered by the spec types
+// section, preventing duplicates when a type appears in both contexts.
+func docWriteMethodTypes(buf *bytes.Buffer, methodTypes []MethodTypeSchema, documentedTypes map[string]bool, emitted map[string]bool) {
 	for i := range methodTypes {
 		mt := &methodTypes[i]
 
-		fmt.Fprintf(buf, "### %s\n\n", mt.Name)
+		heading := mt.Name
+		if isSpecialType(mt.Name) {
+			heading = docInputDisplayName(mt.Name)
+		}
+		if emitted[heading] {
+			continue
+		}
+		emitted[heading] = true
+
+		fmt.Fprintf(buf, "### %s\n\n", heading)
 
 		if mt.Description != "" {
 			content := docFirstSentence(docStripInternal(mt.Description))
@@ -880,7 +903,7 @@ func docWriteMethodTypes(buf *bytes.Buffer, methodTypes []MethodTypeSchema, docu
 		if len(mt.Fields) > 0 {
 			buf.WriteString("<TypeTable\n  type={{\n")
 			for _, field := range mt.Fields {
-				docWriteTypeField(buf, field)
+				docWriteTypeField(buf, field, documentedTypes)
 			}
 			buf.WriteString("  }}\n/>\n\n")
 		}
@@ -889,10 +912,19 @@ func docWriteMethodTypes(buf *bytes.Buffer, methodTypes []MethodTypeSchema, docu
 
 // docTypeRef renders a type name as a clickable markdown link if the type
 // has a documented section on the page, or as plain backtick code otherwise.
+// Special types are mapped to their SDK display names (e.g.,
+// ApiResourceReference -> ResourceRef) before lookup.
 func docTypeRef(typeName string, documentedTypes map[string]bool) string {
 	if documentedTypes[typeName] {
 		anchor := strings.ToLower(typeName)
 		return fmt.Sprintf("[`%s`](#%s)", typeName, anchor)
+	}
+	if isSpecialType(typeName) {
+		mapped := docInputDisplayName(typeName)
+		if documentedTypes[mapped] {
+			anchor := strings.ToLower(mapped)
+			return fmt.Sprintf("[`%s`](#%s)", mapped, anchor)
+		}
 	}
 	return fmt.Sprintf("`%s`", typeName)
 }
@@ -930,15 +962,22 @@ func docResponseTypeString(ts *TypeSpec) string {
 
 // docWriteResponseTypeField emits a single field entry inside a <TypeTable>
 // using response-oriented type names (no "Input" suffix for messages).
-func docWriteResponseTypeField(buf *bytes.Buffer, f *FieldSchema) {
+func docWriteResponseTypeField(buf *bytes.Buffer, f *FieldSchema, documentedTypes map[string]bool) {
 	fieldName := tsProtoFieldName(f.ProtoField)
 	fieldType := docResponseTypeString(&f.Type)
 	desc := docEscapeJSString(docFirstSentence(docStripInternal(f.Description)))
-	if f.Required {
-		fmt.Fprintf(buf, "    %s: { type: \"%s\", description: \"%s\", required: true },\n", fieldName, fieldType, desc)
-	} else {
-		fmt.Fprintf(buf, "    %s: { type: \"%s\", description: \"%s\" },\n", fieldName, fieldType, desc)
+	link := docResponseFieldTypeLink(&f.Type, documentedTypes)
+
+	var props []string
+	props = append(props, fmt.Sprintf("type: \"%s\"", fieldType))
+	props = append(props, fmt.Sprintf("description: \"%s\"", desc))
+	if link != "" {
+		props = append(props, fmt.Sprintf("typeDescriptionLink: \"%s\"", link))
 	}
+	if f.Required {
+		props = append(props, "required: true")
+	}
+	fmt.Fprintf(buf, "    %s: { %s },\n", fieldName, strings.Join(props, ", "))
 }
 
 // docWriteResourceAndStatusTypes renders the resource type and its status
@@ -960,15 +999,23 @@ func docWriteResourceAndStatusTypes(buf *bytes.Buffer, cfg sdkResourceConfig, sc
 	specRef := docTypeRef(inputTypeName, documentedTypes)
 	statusRef := docTypeRef(statusTypeName, documentedTypes)
 
+	specLink := ""
+	if documentedTypes[inputTypeName] {
+		specLink = fmt.Sprintf(", typeDescriptionLink: \"#%s\"", strings.ToLower(inputTypeName))
+	}
+	statusLink := ""
+	if documentedTypes[statusTypeName] {
+		statusLink = fmt.Sprintf(", typeDescriptionLink: \"#%s\"", strings.ToLower(statusTypeName))
+	}
+
 	buf.WriteString("<TypeTable\n  type={{\n")
 	buf.WriteString("    apiVersion: { type: \"string\", description: \"API version for this resource type.\" },\n")
 	buf.WriteString("    kind: { type: \"string\", description: \"Resource kind identifier.\" },\n")
 	buf.WriteString("    metadata: { type: \"ApiResourceMetadata\", description: \"Resource metadata including id, name, org, slug, labels, visibility, and timestamps.\" },\n")
-	fmt.Fprintf(buf, "    spec: { type: \"%s\", description: \"Resource specification. See %s.\" },\n", inputTypeName, specRef)
-	fmt.Fprintf(buf, "    status: { type: \"%s\", description: \"System-managed state. See %s.\" },\n", statusTypeName, statusRef)
+	fmt.Fprintf(buf, "    spec: { type: \"%s\", description: \"Resource specification. See %s.\"%s },\n", inputTypeName, specRef, specLink)
+	fmt.Fprintf(buf, "    status: { type: \"%s\", description: \"System-managed state. See %s.\"%s },\n", statusTypeName, statusRef, statusLink)
 	buf.WriteString("  }}\n/>\n\n")
 
-	// ### AgentStatus (status type, only when it has non-audit fields)
 	if schema.StatusType != nil {
 		fmt.Fprintf(buf, "### %s\n\n", schema.StatusType.Name)
 		if schema.StatusType.Description != "" {
@@ -981,7 +1028,38 @@ func docWriteResourceAndStatusTypes(buf *bytes.Buffer, cfg sdkResourceConfig, sc
 		if len(schema.StatusType.Fields) > 0 {
 			buf.WriteString("<TypeTable\n  type={{\n")
 			for _, field := range schema.StatusType.Fields {
-				docWriteResponseTypeField(buf, field)
+				docWriteResponseTypeField(buf, field, documentedTypes)
+			}
+			buf.WriteString("  }}\n/>\n\n")
+		}
+	}
+
+	docWriteStatusNestedTypes(buf, schema.StatusNestedTypes, documentedTypes)
+}
+
+// docWriteStatusNestedTypes renders TypeTable sections for types nested inside
+// the status type (e.g., ApiResourceAudit, ApiResourceAuditInfo).
+func docWriteStatusNestedTypes(buf *bytes.Buffer, types []MethodTypeSchema, documentedTypes map[string]bool) {
+	emitted := make(map[string]bool)
+	for i := range types {
+		nt := &types[i]
+		if emitted[nt.Name] {
+			continue
+		}
+		emitted[nt.Name] = true
+
+		fmt.Fprintf(buf, "### %s\n\n", nt.Name)
+		if nt.Description != "" {
+			content := docFirstSentence(docStripInternal(nt.Description))
+			if content != "" {
+				buf.WriteString(docEscapeMDX(content))
+				buf.WriteString("\n\n")
+			}
+		}
+		if len(nt.Fields) > 0 {
+			buf.WriteString("<TypeTable\n  type={{\n")
+			for _, field := range nt.Fields {
+				docWriteResponseTypeField(buf, field, documentedTypes)
 			}
 			buf.WriteString("  }}\n/>\n\n")
 		}
@@ -1340,6 +1418,64 @@ func docOverviewSummary(desc string) string {
 // =========================================================================
 // Type formatting
 // =========================================================================
+
+// docInputDisplayName maps a proto message name to its SDK input display name.
+// Special types have friendly names (e.g., ApiResourceReference -> ResourceRef);
+// all others get the standard "Input" suffix.
+func docInputDisplayName(msgName string) string {
+	switch msgName {
+	case "EnvironmentSpec":
+		return "EnvSpecInput"
+	case "EnvironmentValue", "ExecutionValue":
+		return "EnvVarInput"
+	case "ApiResourceReference":
+		return "ResourceRef"
+	default:
+		return msgName + "Input"
+	}
+}
+
+// docFieldTypeLink returns a same-page anchor link (e.g., "#resourceref") if
+// the field's message type has a documented section on this page, or empty
+// string otherwise. Handles direct message, array-of-message, and
+// map-value-of-message fields.
+func docFieldTypeLink(ts *TypeSpec, documentedTypes map[string]bool) string {
+	var msgName string
+	switch {
+	case ts.Kind == "message":
+		msgName = ts.MessageType
+	case ts.Kind == "array" && ts.ElementType != nil && ts.ElementType.Kind == "message":
+		msgName = ts.ElementType.MessageType
+	case ts.Kind == "map" && ts.ValueType != nil && ts.ValueType.Kind == "message":
+		msgName = ts.ValueType.MessageType
+	default:
+		return ""
+	}
+	displayName := docInputDisplayName(msgName)
+	if documentedTypes[displayName] {
+		return "#" + strings.ToLower(displayName)
+	}
+	return ""
+}
+
+// docResponseFieldTypeLink returns a same-page anchor link for a response-type
+// field. Unlike docFieldTypeLink, response fields use raw proto names (no
+// "Input" suffix), so the lookup checks the raw message name directly.
+func docResponseFieldTypeLink(ts *TypeSpec, documentedTypes map[string]bool) string {
+	var typeName string
+	switch {
+	case ts.Kind == "message":
+		typeName = ts.MessageType
+	case ts.Kind == "array" && ts.ElementType != nil && ts.ElementType.Kind == "message":
+		typeName = ts.ElementType.MessageType
+	default:
+		return ""
+	}
+	if documentedTypes[typeName] {
+		return "#" + strings.ToLower(typeName)
+	}
+	return ""
+}
 
 // docTypeString converts a TypeSpec into a human-readable type string
 // suitable for SDK reference documentation.

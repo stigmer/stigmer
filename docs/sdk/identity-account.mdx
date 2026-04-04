@@ -478,7 +478,20 @@ Input for creating or updating an Identity Account.
     pictureUrl: { type: "string", description: "URL of the profile picture." },
     isMachineAccount: { type: "boolean", description: "Indicates if this is a machine account used for inter-service communication." },
     provisioningMode: { type: "IdentityAccountProvisioningMode", description: "How this identity account was provisioned." },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that provisioned this account." },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that provisioned this account.", typeDescriptionLink: "#resourceref" },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 
@@ -512,7 +525,7 @@ identity-account for user accounts.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "IdentityAccountInput", description: "Resource specification. See [`IdentityAccountInput`](#identityaccountinput)." },
+    spec: { type: "IdentityAccountInput", description: "Resource specification. See [`IdentityAccountInput`](#identityaccountinput).", typeDescriptionLink: "#identityaccountinput" },
     status: { type: "IdentityAccountStatus", description: "System-managed state. See `IdentityAccountStatus`." },
   }}
 />

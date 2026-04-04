@@ -127,7 +127,7 @@ Workflow workflow = client.workflow().getByReference(ApiResourceReference.builde
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ApiResourceReference`](#apiresourcereference)
+**Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`Workflow`](#workflow)
 
@@ -382,9 +382,9 @@ Input for creating or updating a Workflow.
     org: { type: "string", description: "Organization slug.", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     description: { type: "string", description: "Human-readable description for UI and marketplace display." },
-    document: { type: "WorkflowDocumentInput", description: "Workflow document metadata (DSL version, namespace, name, version).", required: true },
-    tasks: { type: "WorkflowTaskInput[]", description: "Ordered list of tasks that make up this workflow." },
-    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the workflow." },
+    document: { type: "WorkflowDocumentInput", description: "Workflow document metadata (DSL version, namespace, name, version).", typeDescriptionLink: "#workflowdocumentinput", required: true },
+    tasks: { type: "WorkflowTaskInput[]", description: "Ordered list of tasks that make up this workflow.", typeDescriptionLink: "#workflowtaskinput" },
+    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the workflow.", typeDescriptionLink: "#envspecinput" },
   }}
 />
 
@@ -411,8 +411,8 @@ WorkflowTask represents a single task in the workflow.
     name: { type: "string", description: "Task name/identifier (must be unique within workflow).", required: true },
     kind: { type: "WorkflowTaskKind", description: "Task type (determines how to interpret task_config).", required: true },
     taskConfig: { type: "object", description: "Task-specific configuration (dynamic typed).", required: true },
-    export: { type: "ExportInput", description: "Export configuration (how to save task output to context)." },
-    flow: { type: "FlowControlInput", description: "Flow control (which task executes next)." },
+    export: { type: "ExportInput", description: "Export configuration (how to save task output to context).", typeDescriptionLink: "#exportinput" },
+    flow: { type: "FlowControlInput", description: "Flow control (which task executes next).", typeDescriptionLink: "#flowcontrolinput" },
   }}
 />
 
@@ -436,7 +436,30 @@ FlowControl defines which task executes next.
   }}
 />
 
-### ApiResourceReference
+### EnvSpecInput
+
+EnvironmentSpec defines a collection of configuration and secrets.
+
+<TypeTable
+  type={{
+    description: { type: "string", description: "Human-readable description of this environment." },
+    data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing both configuration and secrets.", typeDescriptionLink: "#envvarinput" },
+  }}
+/>
+
+### EnvVarInput
+
+EnvironmentValue represents a single configuration or secret value.
+
+<TypeTable
+  type={{
+    value: { type: "string", description: "The actual value." },
+    isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
+    description: { type: "string", description: "Optional description for documentation." },
+  }}
+/>
+
+### ResourceRef
 
 Generic reference to any API resource by org and slug.
 
@@ -458,8 +481,8 @@ Workflow represents a workflow orchestration definition.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "WorkflowInput", description: "Resource specification. See [`WorkflowInput`](#workflowinput)." },
-    status: { type: "WorkflowStatus", description: "System-managed state. See [`WorkflowStatus`](#workflowstatus)." },
+    spec: { type: "WorkflowInput", description: "Resource specification. See [`WorkflowInput`](#workflowinput).", typeDescriptionLink: "#workflowinput" },
+    status: { type: "WorkflowStatus", description: "System-managed state. See [`WorkflowStatus`](#workflowstatus).", typeDescriptionLink: "#workflowstatus" },
   }}
 />
 
@@ -469,9 +492,60 @@ WorkflowStatus contains system-managed state for a Workflow resource.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.)." },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "#apiresourceaudit" },
     defaultInstanceId: { type: "string", description: "ID of the default workflow instance created automatically for this workflow." },
-    serverlessWorkflowValidation: { type: "ServerlessWorkflowValidation", description: "Serverless Workflow YAML generation and validation state." },
+    serverlessWorkflowValidation: { type: "ServerlessWorkflowValidation", description: "Serverless Workflow YAML generation and validation state.", typeDescriptionLink: "#serverlessworkflowvalidation" },
+  }}
+/>
+
+### ApiResourceAudit
+
+ApiResourceAudit contains both spec-level and status-level audit details.
+
+<TypeTable
+  type={{
+    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
+    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
+  }}
+/>
+
+### ApiResourceAuditInfo
+
+ApiResourceAuditInfo contains detailed audit information.
+
+<TypeTable
+  type={{
+    createdBy: { type: "ApiResourceAuditActor", description: "Actor who created this resource.", typeDescriptionLink: "#apiresourceauditactor" },
+    createdAt: { type: "string", description: "Timestamp when the resource was created." },
+    updatedBy: { type: "ApiResourceAuditActor", description: "Actor who last updated this resource.", typeDescriptionLink: "#apiresourceauditactor" },
+    updatedAt: { type: "string", description: "Timestamp when the resource was last updated." },
+    event: { type: "string", description: "Type of the last event (e.g., \"created\", \"updated\")." },
+  }}
+/>
+
+### ApiResourceAuditActor
+
+ApiResourceAuditActor represents the entity that performed an action.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Unique identifier of the actor." },
+    avatar: { type: "string", description: "URL to the actor's avatar image." },
+  }}
+/>
+
+### ServerlessWorkflowValidation
+
+ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
+
+<TypeTable
+  type={{
+    state: { type: "ValidationState", description: "Current validation state." },
+    yaml: { type: "string", description: "Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format) This YAML may contain runtime expressions for environment variables: Example: ${ .env.API_BASE_URL }." },
+    errors: { type: "string[]", description: "Validation errors (empty if valid) Examples: - \"Invalid YAML syntax at line 15\" - \"Unknown task type 'invalid_task'\" - \"Missing required field: document.namespace\"." },
+    warnings: { type: "string[]", description: "Non-fatal warnings Examples: - \"Environment variable API_KEY referenced but not defined\" - \"Task 'fetchData' has no error handling\"." },
+    validatedAt: { type: "string", description: "When validation was performed Null if validation hasn't completed yet." },
+    validationWorkflowId: { type: "string", description: "Temporal workflow ID for the validation workflow Format: \"validate-workflow-{workflow_id}\" Useful for tracking/debugging validation progress." },
   }}
 />
 

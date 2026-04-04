@@ -129,7 +129,7 @@ IdentityProvider identityProvider = client.identityProvider().getByReference(Api
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ApiResourceReference`](#apiresourcereference)
+**Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`IdentityProvider`](#identityprovider)
 
@@ -420,7 +420,7 @@ Input for creating or updating an Identity Provider.
   }}
 />
 
-### ApiResourceReference
+### ResourceRef
 
 Generic reference to any API resource by org and slug.
 
@@ -442,7 +442,7 @@ IdentityProvider represents an external platform's trust relationship with Stigm
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "IdentityProviderInput", description: "Resource specification. See [`IdentityProviderInput`](#identityproviderinput)." },
+    spec: { type: "IdentityProviderInput", description: "Resource specification. See [`IdentityProviderInput`](#identityproviderinput).", typeDescriptionLink: "#identityproviderinput" },
     status: { type: "IdentityProviderStatus", description: "System-managed state. See `IdentityProviderStatus`." },
   }}
 />

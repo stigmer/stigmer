@@ -482,9 +482,22 @@ Input for creating or updating an Organization.
     description: { type: "string", description: "description for the organization." },
     logoUrl: { type: "string", description: "public url for the organization logo (optional)." },
     managementMode: { type: "ManagementMode", description: "How this organization is operated." },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that authenticates requests for this organization." },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that authenticates requests for this organization.", typeDescriptionLink: "#resourceref" },
     externalOrgId: { type: "string", description: "External platform's organization identifier for reverse mapping." },
     isPersonal: { type: "boolean", description: "Whether this is a personal organization, auto-created during identity provisioning." },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 
@@ -509,7 +522,7 @@ Response for paginated list query.
 <TypeTable
   type={{
     totalPages: { type: "number", description: "total number of pages." },
-    entries: { type: "OrganizationInput[]", description: "organizations in current page." },
+    entries: { type: "OrganizationInput[]", description: "organizations in current page.", typeDescriptionLink: "#organizationinput" },
   }}
 />
 
@@ -519,7 +532,7 @@ List of organizations (unbounded).
 
 <TypeTable
   type={{
-    entries: { type: "OrganizationInput[]", description: "" },
+    entries: { type: "OrganizationInput[]", description: "", typeDescriptionLink: "#organizationinput" },
   }}
 />
 
@@ -529,7 +542,7 @@ Input for looking up a platform-managed organization by its external platform co
 
 <TypeTable
   type={{
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider (org + slug) that manages this organization.", required: true },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider (org + slug) that manages this organization.", typeDescriptionLink: "#resourceref", required: true },
     externalOrgId: { type: "string", description: "The external platform's organization identifier." },
   }}
 />
@@ -543,7 +556,7 @@ Organization is the top-level container for all Stigmer resources.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "OrganizationInput", description: "Resource specification. See [`OrganizationInput`](#organizationinput)." },
+    spec: { type: "OrganizationInput", description: "Resource specification. See [`OrganizationInput`](#organizationinput).", typeDescriptionLink: "#organizationinput" },
     status: { type: "OrganizationStatus", description: "System-managed state. See `OrganizationStatus`." },
   }}
 />

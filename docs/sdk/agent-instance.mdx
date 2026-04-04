@@ -170,7 +170,7 @@ AgentInstance agentInstance = client.agentInstance().getByReference(ApiResourceR
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ApiResourceReference`](#apiresourcereference)
+**Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`AgentInstance`](#agentinstance)
 
@@ -461,7 +461,20 @@ Input for creating or updating an Agent Instance.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     agentId: { type: "string", description: "Reference to the Agent template this instance deploys." },
     description: { type: "string", description: "Human-readable description for this instance." },
-    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources (can be multiple)." },
+    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources (can be multiple).", typeDescriptionLink: "#resourceref" },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 
@@ -483,20 +496,7 @@ AgentInstanceList represents a list of agent instances.
 <TypeTable
   type={{
     totalCount: { type: "number", description: "Total count of instances." },
-    items: { type: "AgentInstanceInput[]", description: "List of instances." },
-  }}
-/>
-
-### ApiResourceReference
-
-Generic reference to any API resource by org and slug.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
-    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
-    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+    items: { type: "AgentInstanceInput[]", description: "List of instances.", typeDescriptionLink: "#agentinstanceinput" },
   }}
 />
 
@@ -521,7 +521,7 @@ AgentInstance represents a configured deployment of an Agent template.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "AgentInstanceInput", description: "Resource specification. See [`AgentInstanceInput`](#agentinstanceinput)." },
+    spec: { type: "AgentInstanceInput", description: "Resource specification. See [`AgentInstanceInput`](#agentinstanceinput).", typeDescriptionLink: "#agentinstanceinput" },
     status: { type: "AgentInstanceStatus", description: "System-managed state. See `AgentInstanceStatus`." },
   }}
 />

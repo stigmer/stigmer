@@ -824,8 +824,19 @@ Input for creating or updating a Workflow Execution.
     workflowId: { type: "string", description: "ID of the Workflow template to execute (optional)." },
     triggerMessage: { type: "string", description: "Input message or payload for the workflow." },
     triggerMetadata: { type: "Record<string, string>", description: "Trigger context metadata." },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Runtime environment variables and secrets (execution-scoped)." },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Runtime environment variables and secrets (execution-scoped).", typeDescriptionLink: "#envvarinput" },
     callbackToken: { type: "Uint8Array", description: "Callback token for async activity completion (optional)." },
+  }}
+/>
+
+### EnvVarInput
+
+ExecutionValue represents a single runtime configuration or secret value.
+
+<TypeTable
+  type={{
+    value: { type: "string", description: "The actual value." },
+    isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
   }}
 />
 
@@ -940,7 +951,7 @@ WorkflowExecutionList contains a paginated list of workflow executions.
 <TypeTable
   type={{
     totalPages: { type: "number", description: "Total number of pages available for this query." },
-    entries: { type: "WorkflowExecutionInput[]", description: "Workflow executions in the current page." },
+    entries: { type: "WorkflowExecutionInput[]", description: "Workflow executions in the current page.", typeDescriptionLink: "#workflowexecutioninput" },
   }}
 />
 
@@ -975,8 +986,8 @@ WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "WorkflowExecutionInput", description: "Resource specification. See [`WorkflowExecutionInput`](#workflowexecutioninput)." },
-    status: { type: "WorkflowExecutionStatus", description: "System-managed state. See [`WorkflowExecutionStatus`](#workflowexecutionstatus)." },
+    spec: { type: "WorkflowExecutionInput", description: "Resource specification. See [`WorkflowExecutionInput`](#workflowexecutioninput).", typeDescriptionLink: "#workflowexecutioninput" },
+    status: { type: "WorkflowExecutionStatus", description: "System-managed state. See [`WorkflowExecutionStatus`](#workflowexecutionstatus).", typeDescriptionLink: "#workflowexecutionstatus" },
   }}
 />
 
@@ -986,15 +997,99 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.) Always at field 99 for consistency across all Stigmer API resources." },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.) Always at field 99 for consistency across all Stigmer API resources.", typeDescriptionLink: "#apiresourceaudit" },
     phase: { type: "ExecutionPhase", description: "Current execution lifecycle phase." },
-    tasks: { type: "WorkflowTask[]", description: "Workflow tasks with their execution state (source of truth for progress)." },
+    tasks: { type: "WorkflowTask[]", description: "Workflow tasks with their execution state (source of truth for progress).", typeDescriptionLink: "#workflowtask" },
     output: { type: "object", description: "Workflow output (JSON structure)." },
     error: { type: "string", description: "Error message if execution failed." },
     startedAt: { type: "string", description: "ISO 8601 timestamp when execution started." },
     completedAt: { type: "string", description: "ISO 8601 timestamp when execution completed, failed, or was cancelled." },
     temporalWorkflowId: { type: "string", description: "Temporal workflow ID (if using Temporal as execution engine)." },
-    pendingApprovals: { type: "WorkflowPendingApproval[]", description: "Pending approvals from child agent tool executions (HITL)." },
+    pendingApprovals: { type: "WorkflowPendingApproval[]", description: "Pending approvals from child agent tool executions (HITL).", typeDescriptionLink: "#workflowpendingapproval" },
+  }}
+/>
+
+### ApiResourceAudit
+
+ApiResourceAudit contains both spec-level and status-level audit details.
+
+<TypeTable
+  type={{
+    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
+    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
+  }}
+/>
+
+### ApiResourceAuditInfo
+
+ApiResourceAuditInfo contains detailed audit information.
+
+<TypeTable
+  type={{
+    createdBy: { type: "ApiResourceAuditActor", description: "Actor who created this resource.", typeDescriptionLink: "#apiresourceauditactor" },
+    createdAt: { type: "string", description: "Timestamp when the resource was created." },
+    updatedBy: { type: "ApiResourceAuditActor", description: "Actor who last updated this resource.", typeDescriptionLink: "#apiresourceauditactor" },
+    updatedAt: { type: "string", description: "Timestamp when the resource was last updated." },
+    event: { type: "string", description: "Type of the last event (e.g., \"created\", \"updated\")." },
+  }}
+/>
+
+### ApiResourceAuditActor
+
+ApiResourceAuditActor represents the entity that performed an action.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Unique identifier of the actor." },
+    avatar: { type: "string", description: "URL to the actor's avatar image." },
+  }}
+/>
+
+### WorkflowTask
+
+WorkflowTask represents a single task within a workflow execution.
+
+<TypeTable
+  type={{
+    taskId: { type: "string", description: "Unique task identifier within this workflow execution." },
+    taskName: { type: "string", description: "Human-readable task name." },
+    taskType: { type: "WorkflowTaskType", description: "Type of task (agent invocation, API call, approval, etc.)." },
+    input: { type: "object", description: "Task input parameters (JSON structure)." },
+    output: { type: "object", description: "Task output results (JSON structure)." },
+    status: { type: "WorkflowTaskStatus", description: "Current task execution status." },
+    startedAt: { type: "string", description: "ISO 8601 timestamp when task started executing." },
+    completedAt: { type: "string", description: "ISO 8601 timestamp when task completed, failed, or was skipped." },
+    error: { type: "string", description: "Error message if task failed." },
+    metadata: { type: "object", description: "Task metadata (arbitrary JSON data)." },
+  }}
+/>
+
+### WorkflowPendingApproval
+
+WorkflowPendingApproval wraps a PendingApproval from a child agent execution with the routing information needed for workflow-level approval forwarding.
+
+<TypeTable
+  type={{
+    approval: { type: "PendingApproval", description: "The approval details projected from the child agent's tool call state.", typeDescriptionLink: "#pendingapproval" },
+    childAgentExecutionId: { type: "string", description: "Child agent execution to forward the approval to." },
+  }}
+/>
+
+### PendingApproval
+
+PendingApproval is a UI-facing projection computed server-side from tool call state in messages.
+
+<TypeTable
+  type={{
+    toolCallId: { type: "string", description: "ID of the tool call waiting for approval." },
+    toolName: { type: "string", description: "Name of the tool requiring approval." },
+    message: { type: "string", description: "Human-readable approval message for display." },
+    argsPreview: { type: "string", description: "Sanitized preview of tool arguments for informed decision-making." },
+    requestedAt: { type: "string", description: "ISO 8601 timestamp when the approval was requested." },
+    fromSubAgent: { type: "boolean", description: "True if this approval originates from a sub-agent." },
+    subAgentName: { type: "string", description: "Name of the sub-agent if from_sub_agent is true." },
+    mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
+    subAgentSubject: { type: "string", description: "Concise subject/description of the sub-agent's task (3-10 words)." },
   }}
 />
 

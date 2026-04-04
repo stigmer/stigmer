@@ -338,5 +338,274 @@
         "required": false
       }
     ]
-  }
+  },
+  "statusNestedTypes": [
+    {
+      "name": "DiscoveredCapabilities",
+      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an\n MCP server. This is a point-in-time snapshot — the server's actual capabilities\n may change if tools are added or removed.\n\n IMPORTANT — Tools vs Resource Templates:\n These are two fundamentally different MCP capability types:\n\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     These are the ONLY names valid for use in Agent `enabled_tools`,\n     McpServer `default_enabled_tools`, and `tool_approval_overrides`.\n\n   - resource_templates: Read-only data endpoints accessed by URI template\n     (e.g., cloud-resource-schema://{kind}). These are NOT callable tools.\n     Resource template names must NEVER appear in `enabled_tools` or\n     `default_enabled_tools` — doing so causes a fatal runtime error because\n     the agent-runner cannot find them in the tools registry.\n\n When authoring Agent YAML, always select tool names from `tools` only.\n Resource templates serve a different purpose (data discovery) and are\n accessed through MCP resource reads, not tool calls.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Tools",
+          "jsonName": "tools",
+          "protoField": "tools",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredTool"
+            }
+          },
+          "description": "Tools reported by the MCP server via tools/list.\n These are callable actions. Only names from this list may be used in\n Agent `enabled_tools` and McpServer `default_enabled_tools`.",
+          "required": false
+        },
+        {
+          "name": "ResourceTemplates",
+          "jsonName": "resourceTemplates",
+          "protoField": "resource_templates",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredResourceTemplate"
+            }
+          },
+          "description": "Resource templates reported by the MCP server via resources/templates/list.\n These are read-only data endpoints, NOT callable tools.\n Resource template names must NOT be placed in `enabled_tools` —\n they are accessed via MCP resource reads, not tool invocations.",
+          "required": false
+        },
+        {
+          "name": "LastDiscoveredAt",
+          "jsonName": "lastDiscoveredAt",
+          "protoField": "last_discovered_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When this snapshot was captured.",
+          "required": false
+        },
+        {
+          "name": "DiscoveredBy",
+          "jsonName": "discoveredBy",
+          "protoField": "discovered_by",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
+            "enumValues": [
+              "seedpack",
+              "cli",
+              "agent_runner",
+              "api"
+            ]
+          },
+          "description": "How this snapshot was produced.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredTool",
+      "description": "DiscoveredTool describes a single tool reported by an MCP server.\n\n Maps directly to the MCP protocol's Tool type from tools/list:\n   - name: unique tool identifier within the server\n   - description: human-readable explanation of what the tool does\n   - input_schema: JSON Schema describing the tool's expected input",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredTool",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique tool name within the MCP server (case-sensitive).\n Example: \"search\", \"get_agent\", \"apply_mcp_server\"",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description of the tool's purpose.",
+          "required": false
+        },
+        {
+          "name": "InputSchema",
+          "jsonName": "inputSchema",
+          "protoField": "input_schema",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "JSON Schema describing the tool's input parameters.\n Stored as a Struct for natural representation in YAML/JSON and to allow\n inspection without string parsing. This is the raw schema from the MCP\n server's tools/list response.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredResourceTemplate",
+      "description": "DiscoveredResourceTemplate describes a parameterized resource template\n reported by an MCP server via resources/templates/list.\n\n Resource templates use URI templates (RFC 6570) with placeholders that\n clients fill in to access specific resources.\n\n Example:\n   uri_template: \"stigmer://agents/{org}/{slug}\"\n   name: \"stigmer_agent\"\n   description: \"Full definition of a Stigmer agent\"\n   mime_type: \"application/json\"",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "UriTemplate",
+          "jsonName": "uriTemplate",
+          "protoField": "uri_template",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URI template with placeholders (RFC 6570).\n Example: \"stigmer://agents/{org}/{slug}\"",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identifier for this resource template.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description of the resource.",
+          "required": false
+        },
+        {
+          "name": "MimeType",
+          "jsonName": "mimeType",
+          "protoField": "mime_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "MIME type of the resource content.\n Example: \"application/json\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    }
+  ]
 }

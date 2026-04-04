@@ -156,7 +156,7 @@ WorkflowInstance workflowInstance = client.workflowInstance().getByReference(Api
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ApiResourceReference`](#apiresourcereference)
+**Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`WorkflowInstance`](#workflowinstance)
 
@@ -479,7 +479,20 @@ Input for creating or updating a Workflow Instance.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     workflowId: { type: "string", description: "Reference to the Workflow template this instance deploys." },
     description: { type: "string", description: "Human-readable description explaining what this instance is for." },
-    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources providing configuration and secrets." },
+    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources providing configuration and secrets.", typeDescriptionLink: "#resourceref" },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 
@@ -501,20 +514,7 @@ WorkflowInstanceList contains a paginated list of workflow instances.
 <TypeTable
   type={{
     totalPages: { type: "number", description: "Total number of pages available in the full result set." },
-    entries: { type: "WorkflowInstanceInput[]", description: "Workflow instances in the current page." },
-  }}
-/>
-
-### ApiResourceReference
-
-Generic reference to any API resource by org and slug.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
-    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
-    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+    entries: { type: "WorkflowInstanceInput[]", description: "Workflow instances in the current page.", typeDescriptionLink: "#workflowinstanceinput" },
   }}
 />
 
@@ -527,7 +527,7 @@ WorkflowInstance represents a configured deployment of a Workflow template.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "WorkflowInstanceInput", description: "Resource specification. See [`WorkflowInstanceInput`](#workflowinstanceinput)." },
+    spec: { type: "WorkflowInstanceInput", description: "Resource specification. See [`WorkflowInstanceInput`](#workflowinstanceinput).", typeDescriptionLink: "#workflowinstanceinput" },
     status: { type: "WorkflowInstanceStatus", description: "System-managed state. See `WorkflowInstanceStatus`." },
   }}
 />
