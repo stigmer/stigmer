@@ -123,30 +123,29 @@ mutations, and components for rendering UI.
 
 | Domain | Description | Hooks | Components |
 |--------|-------------|:-----:|:----------:|
-| Session | Conversation lifecycle, message history, artifacts, and usage. | 10 | — |
-| Execution | Real-time streaming, tool calls, approvals, messages, and artifacts. | 7 | 26 |
-| Composer | Unified message input with model selection, workspace, and attachments. | 1 | 1 |
-| Agent | Agent definitions, search, setup orchestration, picker, and detail view. | 6 | 3 |
-| Agent Instance | Deployed agent instances bound to an environment. | 4 | — |
-| MCP Server | Server connections, setup, credentials, tool selection, and approval policies. | 8 | 5 |
-| Skill | Knowledge attachments, search, picker, and detail view. | 4 | 2 |
-| Environment | Configuration, variables, secrets, and session environment pool. | 9 | 4 |
-| Workspace | File entries, folder browsing, and code editor. | 2 | 3 |
-| API Key | Key creation, listing, and deletion. Cloud only. | 3 | 3 |
-| Attachment | File upload handling and chip display. | 1 | 1 |
-| Organization | Organization creation. | 1 | 1 |
-| GitHub | OAuth connection, repository search, and picker. | 3 | 1 |
-| Library | Resource browsing, YAML detection, apply flow, and visibility. | 4 | 4 |
-| Models | Model registry data and selector. | 1 | 1 |
-| Error | Structured error display and secret-flow guidance. | — | 2 |
+| [Session](/docs/sdk/react/session) | Conversation lifecycle, message history, artifacts, and usage. | 10 | — |
+| [Execution](/docs/sdk/react/execution) | Real-time streaming, tool calls, approvals, messages, and artifacts. | 7 | 26 |
+| [Composer](/docs/sdk/react/composer) | Unified message input with model selection, workspace, and attachments. | 1 | 1 |
+| [Agent](/docs/sdk/react/agent) | Agent definitions, search, setup orchestration, picker, and detail view. | 6 | 3 |
+| [Agent Instance](/docs/sdk/react/agent-instance) | Deployed agent instances bound to an environment. | 4 | — |
+| [MCP Server](/docs/sdk/react/mcp-server) | Server connections, setup, credentials, tool selection, and approval policies. | 8 | 5 |
+| [Skill](/docs/sdk/react/skill) | Knowledge attachments, search, picker, and detail view. | 4 | 2 |
+| [Environment](/docs/sdk/react/environment) | Configuration, variables, secrets, and session environment pool. | 9 | 4 |
+| [Workspace](/docs/sdk/react/workspace) | File entries, folder browsing, and code editor. | 2 | 3 |
+| [API Key](/docs/sdk/react/api-key) | Key creation, listing, and deletion. Cloud only. | 3 | 3 |
+| [Attachment](/docs/sdk/react/attachment) | File upload handling and chip display. | 1 | 1 |
+| [Organization](/docs/sdk/react/organization) | Organization creation. | 1 | 1 |
+| [GitHub](/docs/sdk/react/github) | OAuth connection, repository search, and picker. | 3 | 1 |
+| [Library](/docs/sdk/react/library) | Resource browsing, YAML detection, apply flow, and visibility. | 4 | 4 |
+| [Models](/docs/sdk/react/models) | Model registry data and selector. | 1 | 1 |
+| [Error](/docs/sdk/react/error) | Structured error display and secret-flow guidance. | — | 2 |
 
 The table above excludes the core exports documented in earlier sections
 (`StigmerProvider`, `useStigmer`, deployment mode hooks, and
 `CloudFeatureNotice`).
 
-Detailed per-domain reference pages with full hook signatures and component
-props are planned. Every public export has TSDoc comments in the source files
-under `sdk/react/src/`.
+Each domain page documents every public hook signature, component props table,
+and type definition for that domain.
 
 ## What's next
 
