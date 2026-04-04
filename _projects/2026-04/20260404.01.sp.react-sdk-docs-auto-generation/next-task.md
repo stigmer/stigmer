@@ -101,9 +101,17 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Last Session**: 2026-04-04 (session 8) — T07 TSDoc backfill for remaining 12 domains
-**Current Task**: T07 COMPLETE — all tasks done
+**Last Session**: 2026-04-04 (session 9) — Fix CI lint failures and Makefile gaps
+**Current Task**: T07 COMPLETE — all tasks done; CI fixes applied
 **Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 COMPLETE, T07 COMPLETE
+
+### Session 9 Results (Fix CI lint failures and Makefile gaps) — COMPLETE
+Fixed two independent CI failures on `main` introduced during sessions 5-8:
+- **`pages-build`**: 4 ESLint errors in ScenarioPlayer.tsx and preview-configs.ts (unused vars, `as any`, `no-explicit-any`)
+- **`generate-protos`**: `make protos` included `gen-sdk-docs` requiring Node.js/TypeDoc, but CI only had Go/Buf
+- Root cause: root `lint` target did not cover the site's ESLint; `protos` conflated stubs with doc generation
+- Fixes: removed dead code, used idiomatic `create(AgentStatusSchema, ...)`, added justified eslint-disable, added `$(MAKE) -C site lint` to root `lint`, separated `protos` (stubs) from `codegen` (stubs + SDK docs)
+- Commit: `5ff86e6d fix: resolve CI lint failures and close Makefile lint/protos gap`
 
 ### Session 8 Results (T07 TSDoc backfill for remaining 12 domains) — COMPLETE
 Completed TSDoc backfill for all 12 remaining domains, achieving 100% coverage across the entire SDK. Key outcomes:
@@ -155,7 +163,7 @@ Wired the hand-written overview page to all 17 generated domain reference pages.
 Full TypeDoc-to-MDX generator built and integrated. Key outcomes:
 - 6 TypeScript modules (1,569 lines) in `site/scripts/generate-react-sdk-docs/`
 - Generates 17 domain pages (6,994 lines of MDX) + `meta.json`
-- Fully wired into `make protos` via composite `gen-sdk-docs` target
+- Fully wired into `make codegen` via composite `gen-sdk-docs` target (`make protos` is stubs-only as of session 9)
 - CI staleness check via `gen-react-sdk-docs-check`
 - All pages render in Fumadocs with proper sidebar navigation, breadcrumbs, TypeTable components
 - Edge cases fixed: domain misclassification, utility function detection, enum handling, aria-label MDX parsing, Fumadocs folder page convention
