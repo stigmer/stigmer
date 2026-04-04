@@ -8,13 +8,6 @@ import { useNarrationPlayback } from "./useNarrationPlayback";
 import { useVideoExport } from "./VideoExportContext";
 
 /**
- * Extra time (ms) added to narration-based step delays to compensate for
- * audio load/decode latency and minor gaps between Edge TTS word-boundary
- * metadata and actual MP3 duration. Only applied when narration is active.
- */
-const NARRATION_SAFETY_BUFFER_MS = 250;
-
-/**
  * A single step in a scenario timeline.
  *
  * @typeParam T - The data shape passed to the render function at this step.
@@ -93,11 +86,18 @@ export function ScenarioPlayer<T>({
 
   const playbackComplete = !playing && stepIndex >= lastIndex;
 
+  const pendingAdvanceRef = useRef<(() => void) | null>(null);
+
+  const handleClipEnded = useCallback(() => {
+    pendingAdvanceRef.current?.();
+  }, []);
+
   const { muted, toggleMute, audioRef } = useNarrationPlayback({
     manifest: narrationManifest,
     stepIndex,
     playing,
     initialMuted,
+    onClipEnded: handleClipEnded,
   });
 
   useEffect(() => {
@@ -139,6 +139,8 @@ export function ScenarioPlayer<T>({
 
   useEffect(() => {
     if (!playing || prefersReducedMotion) return;
+
+    // --- Final step: wait for narration to finish, then stop ---
     if (stepIndex >= lastIndex) {
       const finalNarrationMs =
         !muted && narrationManifest
@@ -146,29 +148,71 @@ export function ScenarioPlayer<T>({
           : 0;
 
       if (finalNarrationMs > 0) {
-        const timer = setTimeout(
-          () => setPlaying(false),
-          finalNarrationMs + NARRATION_SAFETY_BUFFER_MS,
-        );
-        return () => clearTimeout(timer);
+        pendingAdvanceRef.current = () => setPlaying(false);
+        const safety = setTimeout(() => {
+          pendingAdvanceRef.current = null;
+          setPlaying(false);
+        }, finalNarrationMs + 2000);
+        return () => {
+          clearTimeout(safety);
+          pendingAdvanceRef.current = null;
+        };
       }
 
       setPlaying(false);
       return;
     }
 
+    // --- Non-final step ---
     const nextIndex = stepIndex + 1;
     const baseDelay = steps[nextIndex].delayMs;
     const narrationDuration =
       !muted && narrationManifest
         ? (narrationManifest.steps[stepIndex]?.durationMs ?? 0)
         : 0;
-    const effectiveDuration =
-      narrationDuration > 0
-        ? narrationDuration + NARRATION_SAFETY_BUFFER_MS
-        : 0;
-    const delay = Math.max(baseDelay, effectiveDuration);
-    const timer = setTimeout(() => setStepIndex(nextIndex), delay);
+
+    if (narrationDuration > 0) {
+      // Event-driven: advance when *both* the clip finishes and
+      // the minimum baseDelay has elapsed.
+      let clipDone = false;
+      let baseDelayDone = false;
+      let fired = false;
+
+      const advance = () => {
+        if (fired) return;
+        fired = true;
+        pendingAdvanceRef.current = null;
+        setStepIndex(nextIndex);
+      };
+
+      const tryAdvance = () => {
+        if (clipDone && baseDelayDone) advance();
+      };
+
+      pendingAdvanceRef.current = () => {
+        clipDone = true;
+        tryAdvance();
+      };
+
+      const baseTimer = setTimeout(() => {
+        baseDelayDone = true;
+        tryAdvance();
+      }, baseDelay);
+
+      const safetyTimer = setTimeout(
+        advance,
+        Math.max(baseDelay, narrationDuration) + 2000,
+      );
+
+      return () => {
+        clearTimeout(baseTimer);
+        clearTimeout(safetyTimer);
+        pendingAdvanceRef.current = null;
+      };
+    }
+
+    // No narration — advance after base delay
+    const timer = setTimeout(() => setStepIndex(nextIndex), baseDelay);
     return () => clearTimeout(timer);
   }, [playing, stepIndex, steps, lastIndex, prefersReducedMotion, muted, narrationManifest]);
 
