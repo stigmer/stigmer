@@ -361,8 +361,8 @@ api-key for user-account or machine-account.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "ApiKeyInput", description: "Resource specification. See [`ApiKeyInput`](#apikeyinput).", typeDescriptionLink: "#apikeyinput" },
     status: { type: "ApiKeyStatus", description: "System-managed state. See [`ApiKeyStatus`](#apikeystatus).", typeDescriptionLink: "#apikeystatus" },
   }}
@@ -372,53 +372,8 @@ api-key for user-account or machine-account.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "audit.", typeDescriptionLink: "#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "audit.", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
     lastUsedAt: { type: "string", description: "last used timestamp for the api-key." },
   }}
 />
-
-### ApiResourceAudit
-
-ApiResourceAudit contains both spec-level and status-level audit details.
-
-<TypeTable
-  type={{
-    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
-    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
-  }}
-/>
-
-### ApiResourceAuditInfo
-
-ApiResourceAuditInfo contains detailed audit information.
-
-<TypeTable
-  type={{
-    createdBy: { type: "ApiResourceAuditActor", description: "Actor who created this resource.", typeDescriptionLink: "#apiresourceauditactor" },
-    createdAt: { type: "string", description: "Timestamp when the resource was created." },
-    updatedBy: { type: "ApiResourceAuditActor", description: "Actor who last updated this resource.", typeDescriptionLink: "#apiresourceauditactor" },
-    updatedAt: { type: "string", description: "Timestamp when the resource was last updated." },
-    event: { type: "string", description: "Type of the last event (e.g., \"created\", \"updated\")." },
-  }}
-/>
-
-### ApiResourceAuditActor
-
-ApiResourceAuditActor represents the entity that performed an action.
-
-<TypeTable
-  type={{
-    id: { type: "string", description: "Unique identifier of the actor." },
-    avatar: { type: "string", description: "URL to the actor's avatar image." },
-  }}
-/>
-
-### ApiResourceVisibility
-
-Visibility controls who can access an API resource.
-
-| Value | Description |
-|-------|-------------|
-| `visibility_private` | Only members of the owning organization can access. |
-| `visibility_public` | Anyone can access (read) this resource. |
 

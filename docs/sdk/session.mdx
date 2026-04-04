@@ -637,7 +637,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -719,21 +719,12 @@ Session represents a multi-turn conversation thread with an agent.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "SessionInput", description: "Resource specification. See [`SessionInput`](#sessioninput).", typeDescriptionLink: "#sessioninput" },
     status: { type: "SessionStatus", description: "System-managed state. See `SessionStatus`." },
   }}
 />
-
-### ApiResourceVisibility
-
-Visibility controls who can access an API resource.
-
-| Value | Description |
-|-------|-------------|
-| `visibility_private` | Only members of the owning organization can access. |
-| `visibility_public` | Anyone can access (read) this resource. |
 
 ### GitWriteBackMode
 
@@ -742,30 +733,4 @@ GitWriteBackMode controls the platform's git workflow for a git-backed workspace
 | Value | Description |
 |-------|-------------|
 | `GIT_WRITE_BACK_BRANCH_AND_PR` | After execution completes, the platform automatically: 1. |
-
-### ApiResourceKind
-
-API resource kinds for Stigmer.
-
-| Value | Description |
-|-------|-------------|
-| `api_resource_version` | Agentic - System-level audit trails and versioning. |
-| `iam_policy` | IAM - Identity and Access Management. |
-| `identity_account` |  |
-| `api_key` |  |
-| `identity_provider` | IAM - External identity provider configuration. |
-| `organization` | Tenancy - Platform and organizational resources. |
-| `platform` |  |
-| `agent` | Agentic - AI agent management. |
-| `agent_execution` |  |
-| `session` |  |
-| `skill` |  |
-| `mcp_server` |  |
-| `agent_instance` |  |
-| `workflow` | Agentic - Workflow orchestration. |
-| `workflow_instance` |  |
-| `workflow_execution` |  |
-| `environment` |  |
-| `execution_context` |  |
-| `project` | Tenancy - Project management (aggregate root for resource lifecycle). |
 

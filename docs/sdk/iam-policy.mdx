@@ -569,19 +569,10 @@ IamPolicy represents a binding between a principal (who), a resource (what), and
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "IamPolicyInput", description: "Resource specification. See [`IamPolicyInput`](#iampolicyinput).", typeDescriptionLink: "#iampolicyinput" },
     status: { type: "IamPolicyStatus", description: "System-managed state. See `IamPolicyStatus`." },
   }}
 />
-
-### ApiResourceVisibility
-
-Visibility controls who can access an API resource.
-
-| Value | Description |
-|-------|-------------|
-| `visibility_private` | Only members of the owning organization can access. |
-| `visibility_public` | Anyone can access (read) this resource. |
 

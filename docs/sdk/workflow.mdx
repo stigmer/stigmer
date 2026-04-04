@@ -466,7 +466,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -479,8 +479,8 @@ Workflow represents a workflow orchestration definition.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "WorkflowInput", description: "Resource specification. See [`WorkflowInput`](#workflowinput).", typeDescriptionLink: "#workflowinput" },
     status: { type: "WorkflowStatus", description: "System-managed state. See [`WorkflowStatus`](#workflowstatus).", typeDescriptionLink: "#workflowstatus" },
   }}
@@ -492,34 +492,9 @@ WorkflowStatus contains system-managed state for a Workflow resource.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
     defaultInstanceId: { type: "string", description: "ID of the default workflow instance created automatically for this workflow." },
     serverlessWorkflowValidation: { type: "ServerlessWorkflowValidation", description: "Serverless Workflow YAML generation and validation state.", typeDescriptionLink: "#serverlessworkflowvalidation" },
-  }}
-/>
-
-### ApiResourceAuditInfo
-
-ApiResourceAuditInfo contains detailed audit information.
-
-<TypeTable
-  type={{
-    createdBy: { type: "ApiResourceAuditActor", description: "Actor who created this resource.", typeDescriptionLink: "#apiresourceauditactor" },
-    createdAt: { type: "string", description: "Timestamp when the resource was created." },
-    updatedBy: { type: "ApiResourceAuditActor", description: "Actor who last updated this resource.", typeDescriptionLink: "#apiresourceauditactor" },
-    updatedAt: { type: "string", description: "Timestamp when the resource was last updated." },
-    event: { type: "string", description: "Type of the last event (e.g., \"created\", \"updated\")." },
-  }}
-/>
-
-### ApiResourceAuditActor
-
-ApiResourceAuditActor represents the entity that performed an action.
-
-<TypeTable
-  type={{
-    id: { type: "string", description: "Unique identifier of the actor." },
-    avatar: { type: "string", description: "URL to the actor's avatar image." },
   }}
 />
 
@@ -538,43 +513,6 @@ ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and
   }}
 />
 
-### ApiResourceAudit
-
-ApiResourceAudit contains both spec-level and status-level audit details.
-
-<TypeTable
-  type={{
-    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
-    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
-  }}
-/>
-
-### ApiResourceKind
-
-API resource kinds for Stigmer.
-
-| Value | Description |
-|-------|-------------|
-| `api_resource_version` | Agentic - System-level audit trails and versioning. |
-| `iam_policy` | IAM - Identity and Access Management. |
-| `identity_account` |  |
-| `api_key` |  |
-| `identity_provider` | IAM - External identity provider configuration. |
-| `organization` | Tenancy - Platform and organizational resources. |
-| `platform` |  |
-| `agent` | Agentic - AI agent management. |
-| `agent_execution` |  |
-| `session` |  |
-| `skill` |  |
-| `mcp_server` |  |
-| `agent_instance` |  |
-| `workflow` | Agentic - Workflow orchestration. |
-| `workflow_instance` |  |
-| `workflow_execution` |  |
-| `environment` |  |
-| `execution_context` |  |
-| `project` | Tenancy - Project management (aggregate root for resource lifecycle). |
-
 ### ValidationState
 
 ValidationState represents the current state of serverless workflow validation.
@@ -585,15 +523,6 @@ ValidationState represents the current state of serverless workflow validation.
 | `VALID` | Validation completed successfully - workflow structure is valid The generated YAML is stored and can be used for execution. |
 | `INVALID` | Validation completed but found errors - workflow structure is invalid The workflow cannot be executed until errors are fixed Errors are listed in the 'errors' field. |
 | `FAILED` | Validation process itself failed (system error, not user error) Examples: Temporal workflow crashed, activity timeout, etc. User should retry validation or contact support. |
-
-### ApiResourceVisibility
-
-Visibility controls who can access an API resource.
-
-| Value | Description |
-|-------|-------------|
-| `visibility_private` | Only members of the owning organization can access. |
-| `visibility_public` | Anyone can access (read) this resource. |
 
 ### WorkflowTaskKind
 
