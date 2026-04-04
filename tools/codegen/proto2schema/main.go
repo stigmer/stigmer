@@ -123,9 +123,9 @@ type ServiceSchemaFile struct {
 	ListVia             string              `json:"listVia,omitempty"`
 	MethodTypes         []TypeSchema        `json:"methodTypes,omitempty"`
 	EnumTypes           []EnumSchema        `json:"enumTypes,omitempty"`
-	ResourceDescription  string              `json:"resourceDescription,omitempty"`
-	StatusType           *TypeSchema         `json:"statusType,omitempty"`
-	StatusNestedTypes    []TypeSchema        `json:"statusNestedTypes,omitempty"`
+	ResourceDescription string              `json:"resourceDescription,omitempty"`
+	StatusType          *TypeSchema         `json:"statusType,omitempty"`
+	StatusNestedTypes   []TypeSchema        `json:"statusNestedTypes,omitempty"`
 }
 
 // ServiceDefinition describes a single gRPC service (e.g., AgentQueryController).
