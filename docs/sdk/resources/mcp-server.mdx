@@ -663,7 +663,7 @@ Input for updating the visibility of any API resource.
 <TypeTable
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
-    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/commons#apiresourcevisibility" },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
   }}
 />
 
@@ -696,7 +696,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -710,7 +710,7 @@ McpServer represents a reusable MCP (Model Context Protocol) server configuratio
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "McpServerInput", description: "Resource specification. See [`McpServerInput`](#mcpserverinput).", typeDescriptionLink: "#mcpserverinput" },
     status: { type: "McpServerStatus", description: "System-managed state. See [`McpServerStatus`](#mcpserverstatus).", typeDescriptionLink: "#mcpserverstatus" },
   }}
@@ -725,7 +725,7 @@ McpServerStatus represents the system-managed state of an MCP server definition.
     validationState: { type: "ValidationState", description: "Validation state of the MCP server definition.", typeDescriptionLink: "#validationstate" },
     validationMessage: { type: "string", description: "Human-readable validation message." },
     discoveredCapabilities: { type: "DiscoveredCapabilities", description: "Tools and resource templates discovered from the MCP server.", typeDescriptionLink: "#discoveredcapabilities" },
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />
 

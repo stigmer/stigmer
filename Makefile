@@ -95,7 +95,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 
 gen-sdk-docs: ## Generate SDK reference docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
-		--schema-dir tools/codegen/schemas --output-dir docs/sdk --apis-dir apis
+		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
 
 gen-sdk-docs-check: ## Verify SDK docs are up to date (CI, no writes)
 	@tmpdir=$$(mktemp -d) && \
@@ -103,7 +103,7 @@ gen-sdk-docs-check: ## Verify SDK docs are up to date (CI, no writes)
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" --apis-dir apis && \
 	rc=0; \
 	for f in "$$tmpdir"/*; do \
-		if ! diff -q "$$f" "docs/sdk/$$(basename $$f)" > /dev/null 2>&1; then \
+		if ! diff -q "$$f" "docs/sdk/resources/$$(basename $$f)" > /dev/null 2>&1; then \
 			rc=1; break; \
 		fi; \
 	done; \

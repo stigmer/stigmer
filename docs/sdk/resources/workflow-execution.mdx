@@ -993,7 +993,7 @@ WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "WorkflowExecutionInput", description: "Resource specification. See [`WorkflowExecutionInput`](#workflowexecutioninput).", typeDescriptionLink: "#workflowexecutioninput" },
     status: { type: "WorkflowExecutionStatus", description: "System-managed state. See [`WorkflowExecutionStatus`](#workflowexecutionstatus).", typeDescriptionLink: "#workflowexecutionstatus" },
   }}
@@ -1005,7 +1005,7 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information including timestamps and created-by identity.", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information including timestamps and created-by identity.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     phase: { type: "ExecutionPhase", description: "Current execution lifecycle phase.", typeDescriptionLink: "#executionphase" },
     tasks: { type: "WorkflowTask[]", description: "Workflow tasks with their individual execution state.", typeDescriptionLink: "#workflowtask" },
     output: { type: "object", description: "Final workflow output, populated only when phase is EXECUTION_COMPLETED." },

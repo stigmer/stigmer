@@ -377,7 +377,7 @@ ApiKey provides programmatic access to the Stigmer API on behalf of an identity 
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "ApiKeyInput", description: "Resource specification. See [`ApiKeyInput`](#apikeyinput).", typeDescriptionLink: "#apikeyinput" },
     status: { type: "ApiKeyStatus", description: "System-managed state. See [`ApiKeyStatus`](#apikeystatus).", typeDescriptionLink: "#apikeystatus" },
   }}
@@ -389,7 +389,7 @@ ApiKeyStatus contains system-managed state for an API key.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     lastUsedAt: { type: "string", description: "Timestamp of the most recent API call made with this key." },
   }}
 />

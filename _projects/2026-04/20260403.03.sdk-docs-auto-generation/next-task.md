@@ -28,12 +28,12 @@ Drop this file into your conversation to quickly resume work on this project.
   - Cancel a stream (AbortSignal in TS, context cancellation in Go, iterator break in Python/Java)
   - Subscribe to a Workflow Execution (different input shape, task-based progress)
   - What's next cards linking to Agent Execution, Workflow Execution, and Connect Tools
-- **Updated `docs/sdk/meta.json`**: Added `"streaming"` page and `"---Resources---"` separator
+- **Updated `docs/sdk/meta.json`**: Added `"streaming"` page and `"resources"` collapsible folder
 
 ### Key Decisions (Session 8)
 - **Scope boundaries**: Focused on patterns not covered elsewhere (quickstart, connect-tools, generated reference pages). Did not duplicate type tables or approval handling.
 - **API asymmetry**: AgentExecution subscribe takes bare string ID; WorkflowExecution subscribe takes request object. Documented clearly with numbered differences.
-- **Resources separator**: Added `"---Resources---"` in meta.json to visually separate hand-written pages from auto-generated resource pages in the sidebar.
+- **Resources folder**: Resource pages moved to `docs/sdk/resources/` subdirectory, making them collapsible in the sidebar. Codegen now outputs to `docs/sdk/resources/`.
 - **Cancellation warning**: Added callout that cancelling a stream does not cancel the execution itself.
 
 ### Discovery: Go/Java Phase Constants Convention
@@ -51,7 +51,7 @@ The connect-tools tutorial uses convenience names (`stigmer.ExecutionCompleted`,
 Clean -- all SDK docs changes committed.
 
 ### Committed in Session 8
-- `[pending]` -- `docs(sdk): add Streaming how-to guide for SDK Reference section`
+- `0330f019` -- `docs(sdk): add Streaming how-to guide for SDK Reference section`
 
 ### Plan Reference
 The full T06 plan is in:
@@ -76,7 +76,7 @@ Diataxis type: **Reference**. Covers:
 ### Key Source Files for Remaining Work
 - `sdk/react/src/index.ts` -- React SDK public exports
 - `sdk/react/src/provider.tsx` -- StigmerProvider implementation
-- `docs/sdk/agent-execution.mdx` -- Generated page for reference
+- `docs/sdk/resources/agent-execution.mdx` -- Generated page for reference
 
 ### Full Codegen Chain (after T07)
 ```
