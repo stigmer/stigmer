@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Tabs } from "fumadocs-ui/components/tabs";
 
-const SDK_LANGUAGES = ["Go", "TypeScript", "Python", "Java"];
+const SDK_LANGUAGES = ["TypeScript", "Go", "Python", "Java"];
 
 interface SDKTabsProps {
   children: ReactNode;

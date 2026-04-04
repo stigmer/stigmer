@@ -1,6 +1,6 @@
 {
   "name": "McpAccess",
-  "description": "McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.\n Uses the same slug that identifies the McpServer resource.\n\n Permission model:\n - SubAgent can only access servers that parent has in mcp_server_usages\n - SubAgent tools must be a subset of parent's enabled tools\n\n Example YAML:\n   sub_agents:\n     - name: code-reviewer\n       mcp_access:\n         - mcp_server: github\n           enabled_tools: [search_code, get_file]\n         - mcp_server: slack\n           # enabled_tools empty = all tools from parent",
+  "description": "McpAccess grants a sub-agent access to one of the parent's MCP servers.\n\n @internal\n Permission model enforced at execution time: sub-agent can only access\n servers in the parent's mcp_server_usages, and tools must be a subset\n of the parent's enabled_tools.",
   "protoType": "ai.stigmer.agentic.agent.v1.McpAccess",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Slug of the McpServer to grant access to.\n Must match mcp_server_ref.slug from one of parent's mcp_server_usages.",
+      "description": "Slug of the McpServer to grant access to.\n Must match a mcp_server_ref.slug from the parent's mcp_server_usages.",
       "required": true,
       "validation": {
         "required": true
@@ -27,7 +27,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools this SubAgent can use from this MCP server.\n Must be a subset of the parent's enabled_tools for this server.\n Empty list = all tools that parent has enabled (no additional restriction).\n Only MCP tool names are valid — never include resource template names.",
+      "description": "Tools this sub-agent can use from this MCP server.\n Must be a subset of the parent's enabled_tools for this server.\n Empty list grants access to all tools the parent has enabled.",
       "required": false
     }
   ]

@@ -212,10 +212,10 @@ func docWriteClientAccess(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	buf.WriteString("## Client Access\n\n")
 	buf.WriteString("<SDKTabs>\n")
 
-	docWriteTab(buf, "Go", "go",
-		fmt.Sprintf("%s, err := client.%s.Get(ctx, \"%s\")", varName, goField, exampleID))
 	docWriteTab(buf, "TypeScript", "typescript",
 		fmt.Sprintf("const %s = await stigmer.%s.get(\"%s\");", varName, clientField, exampleID))
+	docWriteTab(buf, "Go", "go",
+		fmt.Sprintf("%s, err := client.%s.Get(ctx, \"%s\")", varName, goField, exampleID))
 	docWriteTab(buf, "Python", "python",
 		fmt.Sprintf("%s = client.%s.get(\"%s\")", varName, pyField, exampleID))
 	docWriteTab(buf, "Java", "java",
