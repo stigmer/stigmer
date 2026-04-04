@@ -101,9 +101,19 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Last Session**: 2026-04-04 (session 4) — T04 complete (overview page links wired to generated domain pages)
+**Last Session**: 2026-04-04 (session 5) — Component preview system for SDK reference docs
 **Current Task**: T05 (TSDoc backfill for priority domains)
-**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, T05 next
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, component previews COMPLETE, T05 next
+
+### Session 5 Results (component preview system) — COMPLETE
+Built a data-driven live component preview system for SDK reference pages. Key outcomes:
+- 3 new files: `preview-configs.ts` (registry), `ComponentPreview.tsx` (MDX component with click-to-reveal), `PreviewShell.tsx` (styled wrapper)
+- Click-to-reveal UX: collapsed toggle bar, deferred rendering on click
+- 5 components with previews: SessionComposer, ModelSelector, AgentDetailView, ErrorMessage, ApiKeyListPanel
+- MDX generator auto-emits `<ComponentPreview>` tags for registered components
+- SessionComposer shows full toolbar (Configure menu with Agent/MCP/Skills) at realistic width
+- Per-preview width control via `previewClassName` in config
+- See checkpoints/2026-04-04-session-5.md for full details
 
 ### T04 Results (overview page links) — COMPLETE
 Wired the hand-written overview page to all 17 generated domain reference pages. Key outcomes:
