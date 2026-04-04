@@ -10,14 +10,14 @@ API keys provide programmatic access to the Stigmer API. Each key is scoped to a
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-apiKey, err := client.ApiKey.Get(ctx, "key_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const apiKey = await stigmer.apiKey.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.Get(ctx, "key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -48,14 +48,14 @@ ApiKey apiKey = client.apiKey().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 Get an API key by its unique identifier.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-apiKey, err := client.ApiKey.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const apiKey = await stigmer.apiKey.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -76,25 +76,25 @@ ApiKey apiKey = client.apiKey().get(id);
 |-----------|------|-------------|
 | `id` | `string` | API Key identifier. |
 
-**Returns**: `ApiKey`
+**Returns**: [`ApiKey`](#apikey)
 
 ### getByKeyHash
 
 Get an API key by its hashed key value.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-apiKey, err := client.ApiKey.GetByKeyHash(ctx, &stigmer.ApiKeyHash{
-  Value: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const apiKey = await stigmer.apiKey.getByKeyHash({
   value: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.GetByKeyHash(ctx, &stigmer.ApiKeyHash{
+  Value: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -115,21 +115,21 @@ ApiKey apiKey = client.apiKey().getByKeyHash(ApiKeyHash.builder()
 
 **Parameters**: [`ApiKeyHash`](#apikeyhash)
 
-**Returns**: `ApiKey`
+**Returns**: [`ApiKey`](#apikey)
 
 ### findAll
 
 List all API keys belonging to the authenticated user.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-apiKeys, err := client.ApiKey.FindAll(ctx)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const apiKeys = await stigmer.apiKey.findAll();
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKeys, err := client.ApiKey.FindAll(ctx)
 ```
 </Tab>
 <Tab value="Python">
@@ -151,20 +151,6 @@ ApiKeys apiKeys = client.apiKey().findAll();
 Create a new API key for the authenticated user. Any authenticated user can create API keys.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-apiKey, err := client.ApiKey.Create(ctx, &stigmer.ApiKeyInput{
-  Name:         "my-api-key",
-  Org:          "acme",
-  Slug:         "...",
-  Labels:       map[string]string{},
-  KeyHash:      "...",
-  Fingerprint:  "...",
-  ExpiresAt:    "...",
-  NeverExpires: false,
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const apiKey = await stigmer.apiKey.create({
@@ -177,6 +163,20 @@ const apiKey = await stigmer.apiKey.create({
   expiresAt: "...",
   neverExpires: false,
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.Create(ctx, &stigmer.ApiKeyInput{
+  Name:         "my-api-key",
+  Org:          "acme",
+  Slug:         "...",
+  Labels:       map[string]string{},
+  KeyHash:      "...",
+  Fingerprint:  "...",
+  ExpiresAt:    "...",
+  NeverExpires: false,
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -211,27 +211,13 @@ ApiKey apiKey = client.apiKey().create(ApiKeyInput.builder()
 
 **Parameters**: [`ApiKeyInput`](#apikeyinput)
 
-**Returns**: `ApiKey`
+**Returns**: [`ApiKey`](#apikey)
 
 ### update
 
 Update an existing API key.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-apiKey, err := client.ApiKey.Update(ctx, &stigmer.ApiKeyInput{
-  Name:         "my-api-key",
-  Org:          "acme",
-  Slug:         "...",
-  Labels:       map[string]string{},
-  KeyHash:      "...",
-  Fingerprint:  "...",
-  ExpiresAt:    "...",
-  NeverExpires: false,
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const apiKey = await stigmer.apiKey.update({
@@ -244,6 +230,20 @@ const apiKey = await stigmer.apiKey.update({
   expiresAt: "...",
   neverExpires: false,
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.Update(ctx, &stigmer.ApiKeyInput{
+  Name:         "my-api-key",
+  Org:          "acme",
+  Slug:         "...",
+  Labels:       map[string]string{},
+  KeyHash:      "...",
+  Fingerprint:  "...",
+  ExpiresAt:    "...",
+  NeverExpires: false,
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -278,21 +278,21 @@ ApiKey apiKey = client.apiKey().update(ApiKeyInput.builder()
 
 **Parameters**: [`ApiKeyInput`](#apikeyinput)
 
-**Returns**: `ApiKey`
+**Returns**: [`ApiKey`](#apikey)
 
 ### delete
 
 Delete an API key.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-apiKey, err := client.ApiKey.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const apiKey = await stigmer.apiKey.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -313,7 +313,7 @@ ApiKey apiKey = client.apiKey().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | API Key identifier. |
 
-**Returns**: `ApiKey`
+**Returns**: [`ApiKey`](#apikey)
 
 ## Types
 
@@ -351,6 +351,29 @@ wrapper to get list of api keys.
 <TypeTable
   type={{
     entries: { type: "ApiKeyInput[]", description: "" },
+  }}
+/>
+
+### ApiKey
+
+api-key for user-account or machine-account.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "ApiKeyInput", description: "Resource specification. See [`ApiKeyInput`](#apikeyinput)." },
+    status: { type: "ApiKeyStatus", description: "System-managed state. See [`ApiKeyStatus`](#apikeystatus)." },
+  }}
+/>
+
+### ApiKeyStatus
+
+<TypeTable
+  type={{
+    audit: { type: "ApiResourceAudit", description: "audit." },
+    lastUsedAt: { type: "string", description: "last used timestamp for the api-key." },
   }}
 />
 

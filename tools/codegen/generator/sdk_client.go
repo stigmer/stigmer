@@ -23,12 +23,14 @@ type MethodTypeSchema struct {
 }
 
 type ServiceSchemaFile struct {
-	Resource     string              `json:"resource"`
-	Package      string              `json:"package"`
-	GoImportPath string              `json:"goImportPath"`
-	Services     []ServiceDefinition `json:"services"`
-	ListVia      string              `json:"listVia,omitempty"`
-	MethodTypes  []MethodTypeSchema  `json:"methodTypes,omitempty"`
+	Resource            string              `json:"resource"`
+	Package             string              `json:"package"`
+	GoImportPath        string              `json:"goImportPath"`
+	Services            []ServiceDefinition `json:"services"`
+	ListVia             string              `json:"listVia,omitempty"`
+	MethodTypes         []MethodTypeSchema  `json:"methodTypes,omitempty"`
+	ResourceDescription string              `json:"resourceDescription,omitempty"`
+	StatusType          *MethodTypeSchema   `json:"statusType,omitempty"`
 }
 
 type ServiceDefinition struct {

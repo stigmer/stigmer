@@ -220,5 +220,6 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "WorkflowInstance represents a configured deployment of a Workflow template.\n\n WorkflowInstance is the \"Instance\" layer in the Template→Instance→Execution pattern.\n It binds a reusable Workflow template to specific environments containing credentials,\n configuration, and secrets needed for execution.\n\n A WorkflowInstance:\n - References a Workflow template (the orchestration blueprint)\n - Binds one or more Environment resources (configuration + secrets)\n - Can be executed multiple times via WorkflowExecution resources\n - Can be platform-scoped (global defaults), org-scoped (team instances), or user-scoped (personal)\n\n Example use case:\n Workflow \"deploy-to-cloud\" (template) → WorkflowInstance \"prod-deploy\" (with aws-prod-env)\n → WorkflowExecution \"prod-deploy-20250111-001\" (specific run)\n\n This separation allows:\n - Workflow templates to be reusable across teams/environments\n - Instances to maintain stateful configuration with secrets\n - Executions to track individual runs with results"
 }

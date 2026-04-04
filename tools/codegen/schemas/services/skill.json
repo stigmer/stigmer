@@ -350,5 +350,75 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "Skill represents a versioned, reusable unit of agent capability.\n Skills contain tools, scripts, and documentation that agents can use.\n Each skill version is immutably identified by a content hash.",
+  "statusType": {
+    "name": "SkillStatus",
+    "description": "SkillStatus represents the system-managed state of a skill.\n This represents observed state managed by the system.",
+    "protoType": "ai.stigmer.agentic.skill.v1.SkillStatus",
+    "protoFile": "apis/ai/stigmer/agentic/skill/v1/status.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information tracking creation and modification.\n Field 99 follows Stigmer convention for audit placement.",
+        "required": false
+      },
+      {
+        "name": "VersionHash",
+        "jsonName": "versionHash",
+        "protoField": "version_hash",
+        "type": {
+          "kind": "string"
+        },
+        "description": "SHA256 hash of the skill artifact Zip file.\n This is the content fingerprint and serves as the immutable version identifier.\n Calculated by the system from the uploaded artifact.",
+        "required": false,
+        "validation": {
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      {
+        "name": "ArtifactStorageKey",
+        "jsonName": "artifactStorageKey",
+        "protoField": "artifact_storage_key",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Storage location key for the skill artifact.\n Format varies based on storage backend:\n - Local: \"\u003chash\u003e.zip\"\n - Cloud: \"skills/\u003cslug\u003e_\u003chash\u003e.zip\"\n This is determined by the system based on storage configuration.",
+        "required": false
+      },
+      {
+        "name": "State",
+        "jsonName": "state",
+        "protoField": "state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.skill.v1.SkillState",
+          "enumValues": [
+            "SKILL_STATE_UPLOADING",
+            "SKILL_STATE_READY",
+            "SKILL_STATE_FAILED"
+          ]
+        },
+        "description": "Current lifecycle state of the skill.",
+        "required": false
+      },
+      {
+        "name": "GitProvenance",
+        "jsonName": "gitProvenance",
+        "protoField": "git_provenance",
+        "type": {
+          "kind": "message",
+          "messageType": "GitProvenance"
+        },
+        "description": "Git provenance tracking where the skill artifacts originated from.\n Populated by CLI during push, provides traceability and enables\n \"view on GitHub\" links and reproducible deployments.\n Absent when pushed from a non-git directory.",
+        "required": false
+      }
+    ]
+  }
 }

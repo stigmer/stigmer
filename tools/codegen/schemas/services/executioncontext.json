@@ -169,5 +169,6 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "ExecutionContext represents ephemeral runtime configuration and secrets.\n Created during execution, deleted when execution completes.\n Used for B2B scenarios where secrets are injected at runtime (e.g., Plant \u0026 Cloud)."
 }

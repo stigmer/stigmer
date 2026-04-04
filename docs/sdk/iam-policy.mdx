@@ -10,14 +10,14 @@ It specifies WHO (principal) gets WHAT permission (relation) on WHICH resource.
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-iamPolicy, err := client.IamPolicy.Get(ctx, "iamp_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const iamPolicy = await stigmer.iamPolicy.get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+iamPolicy, err := client.IamPolicy.Get(ctx, "iamp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -50,14 +50,14 @@ IamPolicy iamPolicy = client.iamPolicy().get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 Get an IAM policy by its unique identifier.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-iamPolicy, err := client.IamPolicy.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const iamPolicy = await stigmer.iamPolicy.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+iamPolicy, err := client.IamPolicy.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -78,7 +78,7 @@ IamPolicy iamPolicy = client.iamPolicy().get(id);
 |-----------|------|-------------|
 | `id` | `string` | IAM Policy identifier. |
 
-**Returns**: `IamPolicy`
+**Returns**: [`IamPolicy`](#iampolicy)
 
 ### listAuthorizedPrincipalIds
 
@@ -91,16 +91,6 @@ Use Cases: - Resource access audit (who can access this?) - Team discovery for r
 Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.IamPolicy.ListAuthorizedPrincipalIds(ctx, &stigmer.ListAuthorizedPrincipalIdsInput{
-  Resource:           &stigmer.ApiResourceRefInput{},
-  PrincipalKind:      "...",
-  Relation:           "...",
-  ContextualPolicies: []stigmer.IamPolicySpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.iamPolicy.listAuthorizedPrincipalIds({
@@ -109,6 +99,16 @@ const result = await stigmer.iamPolicy.listAuthorizedPrincipalIds({
   relation: "...",
   contextualPolicies: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.IamPolicy.ListAuthorizedPrincipalIds(ctx, &stigmer.ListAuthorizedPrincipalIdsInput{
+  Resource:           &stigmer.ApiResourceRefInput{},
+  PrincipalKind:      "...",
+  Relation:           "...",
+  ContextualPolicies: []stigmer.IamPolicySpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -148,16 +148,6 @@ Use Cases: - Resource list filtering in dropdowns - Permission-based navigation 
 Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relation Output: AuthorizedResourceIdsList containing all accessible resource IDs
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.IamPolicy.ListAuthorizedResourceIds(ctx, &stigmer.ListAuthorizedResourceIdsInput{
-  Principal:          &stigmer.ApiResourceRefInput{},
-  ResourceKind:       "...",
-  Relation:           "...",
-  ContextualPolicies: []stigmer.IamPolicySpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.iamPolicy.listAuthorizedResourceIds({
@@ -166,6 +156,16 @@ const result = await stigmer.iamPolicy.listAuthorizedResourceIds({
   relation: "...",
   contextualPolicies: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.IamPolicy.ListAuthorizedResourceIds(ctx, &stigmer.ListAuthorizedResourceIdsInput{
+  Principal:          &stigmer.ApiResourceRefInput{},
+  ResourceKind:       "...",
+  Relation:           "...",
+  ContextualPolicies: []stigmer.IamPolicySpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -201,15 +201,6 @@ Create a new IAM policy
 Creates a single IAM policy that grants a principal access to a resource with a specific relation. This is the fundamental operation for establishing permissions.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-iamPolicy, err := client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
-  Principal: &stigmer.ApiResourceRefInput{},
-  Resource:  &stigmer.ApiResourceRefInput{},
-  Relation:  "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const iamPolicy = await stigmer.iamPolicy.create({
@@ -217,6 +208,15 @@ const iamPolicy = await stigmer.iamPolicy.create({
   resource: {},
   relation: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+iamPolicy, err := client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+  Principal: &stigmer.ApiResourceRefInput{},
+  Resource:  &stigmer.ApiResourceRefInput{},
+  Relation:  "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -241,7 +241,7 @@ IamPolicy iamPolicy = client.iamPolicy().create(IamPolicySpec.builder()
 
 **Parameters**: [`IamPolicySpec`](#iampolicyspec)
 
-**Returns**: `IamPolicy`
+**Returns**: [`IamPolicy`](#iampolicy)
 
 ### delete
 
@@ -250,15 +250,6 @@ Delete a single IAM policy by spec
 Removes an existing IAM policy by matching the principal, resource, and relation. This is a surgical operation — it removes one specific policy without affecting others.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-iamPolicy, err := client.IamPolicy.Delete(ctx, &stigmer.IamPolicySpec{
-  Principal: &stigmer.ApiResourceRefInput{},
-  Resource:  &stigmer.ApiResourceRefInput{},
-  Relation:  "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const iamPolicy = await stigmer.iamPolicy.delete({
@@ -266,6 +257,15 @@ const iamPolicy = await stigmer.iamPolicy.delete({
   resource: {},
   relation: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+iamPolicy, err := client.IamPolicy.Delete(ctx, &stigmer.IamPolicySpec{
+  Principal: &stigmer.ApiResourceRefInput{},
+  Resource:  &stigmer.ApiResourceRefInput{},
+  Relation:  "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -290,7 +290,7 @@ IamPolicy iamPolicy = client.iamPolicy().delete(IamPolicySpec.builder()
 
 **Parameters**: [`IamPolicySpec`](#iampolicyspec)
 
-**Returns**: `IamPolicy`
+**Returns**: [`IamPolicy`](#iampolicy)
 
 ### bootstrapPolicy
 
@@ -299,15 +299,6 @@ Bootstrap IAM policy during resource creation
 Creates IAM policies during resource creation when standard authorization cannot work yet because no tuples exist.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-iamPolicy, err := client.IamPolicy.BootstrapPolicy(ctx, &stigmer.IamPolicySpec{
-  Principal: &stigmer.ApiResourceRefInput{},
-  Resource:  &stigmer.ApiResourceRefInput{},
-  Relation:  "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const iamPolicy = await stigmer.iamPolicy.bootstrapPolicy({
@@ -315,6 +306,15 @@ const iamPolicy = await stigmer.iamPolicy.bootstrapPolicy({
   resource: {},
   relation: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+iamPolicy, err := client.IamPolicy.BootstrapPolicy(ctx, &stigmer.IamPolicySpec{
+  Principal: &stigmer.ApiResourceRefInput{},
+  Resource:  &stigmer.ApiResourceRefInput{},
+  Relation:  "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -339,7 +339,7 @@ IamPolicy iamPolicy = client.iamPolicy().bootstrapPolicy(IamPolicySpec.builder()
 
 **Parameters**: [`IamPolicySpec`](#iampolicyspec)
 
-**Returns**: `IamPolicy`
+**Returns**: [`IamPolicy`](#iampolicy)
 
 ### checkAuthorization
 
@@ -354,20 +354,20 @@ Use Cases: - Pre-flight UI checks before showing buttons/actions - API request a
 Input: CheckAuthorizationInput with policy spec and optional contextual policies Output: CheckAuthorizationResult with is_authorized boolean
 
 <SDKTabs>
-<Tab value="Go">
-```go
-checkAuthorizationResult, err := client.IamPolicy.CheckAuthorization(ctx, &stigmer.CheckAuthorizationInput{
-  Policy:             &stigmer.IamPolicySpecInput{},
-  ContextualPolicies: []stigmer.IamPolicySpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const checkAuthorizationResult = await stigmer.iamPolicy.checkAuthorization({
   policy: {},
   contextualPolicies: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+checkAuthorizationResult, err := client.IamPolicy.CheckAuthorization(ctx, &stigmer.CheckAuthorizationInput{
+  Policy:             &stigmer.IamPolicySpecInput{},
+  ContextualPolicies: []stigmer.IamPolicySpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -399,15 +399,6 @@ Cleanup all IAM policies for a deleted resource.
 Removes all IAM policies associated with a deleted resource.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-empty, err := client.IamPolicy.CleanupResourcePolicies(ctx, &stigmer.ApiResourceRef{
-  Kind:     "...",
-  Id:       "...",
-  Relation: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const empty = await stigmer.iamPolicy.cleanupResourcePolicies({
@@ -415,6 +406,15 @@ const empty = await stigmer.iamPolicy.cleanupResourcePolicies({
   id: "...",
   relation: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+empty, err := client.IamPolicy.CleanupResourcePolicies(ctx, &stigmer.ApiResourceRef{
+  Kind:     "...",
+  Id:       "...",
+  Relation: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -559,6 +559,20 @@ AuthorizedPrincipalIdsList contains all principal IDs that can access a resource
 <TypeTable
   type={{
     principalIds: { type: "string[]", description: "" },
+  }}
+/>
+
+### IamPolicy
+
+IamPolicy represents a binding between a principal (who), a resource (what), and a relation/permission (how).
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "IamPolicyInput", description: "Resource specification. See [`IamPolicyInput`](#iampolicyinput)." },
+    status: { type: "IamPolicyStatus", description: "System-managed state. See `IamPolicyStatus`." },
   }}
 />
 

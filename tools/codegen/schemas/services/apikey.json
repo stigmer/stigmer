@@ -108,5 +108,35 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "api-key for user-account or machine-account",
+  "statusType": {
+    "name": "ApiKeyStatus",
+    "description": "",
+    "protoType": "ai.stigmer.iam.apikey.v1.ApiKeyStatus",
+    "protoFile": "apis/ai/stigmer/iam/apikey/v1/api.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "audit",
+        "required": false
+      },
+      {
+        "name": "LastUsedAt",
+        "jsonName": "lastUsedAt",
+        "protoField": "last_used_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "last used timestamp for the api-key",
+        "required": false
+      }
+    ]
+  }
 }

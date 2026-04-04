@@ -276,5 +276,6 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "AgentInstance represents a configured deployment of an Agent template."
 }

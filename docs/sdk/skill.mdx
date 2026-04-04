@@ -12,14 +12,14 @@ Note: Source/provenance information is NOT stored here - it's in SkillStatus as 
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-skill, err := client.Skill.Get(ctx, "skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+skill, err := client.Skill.Get(ctx, "skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -51,14 +51,14 @@ Skill skill = client.skill().get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 Get a single skill by ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-skill, err := client.Skill.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+skill, err := client.Skill.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -79,25 +79,25 @@ Skill skill = client.skill().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Skill identifier. |
 
-**Returns**: `Skill`
+**Returns**: [`Skill`](#skill)
 
 ### getArtifact
 
 Download skill artifact from storage by its storage key. Returns the ZIP file containing SKILL.md and implementation files.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-getArtifactResponse, err := client.Skill.GetArtifact(ctx, &stigmer.GetArtifactRequest{
-  ArtifactStorageKey: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const getArtifactResponse = await stigmer.skill.getArtifact({
   artifactStorageKey: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+getArtifactResponse, err := client.Skill.GetArtifact(ctx, &stigmer.GetArtifactRequest{
+  ArtifactStorageKey: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -127,16 +127,6 @@ Get a skill by API resource reference with version support.
 Version resolution (via ApiResourceReference.version field): - Empty/"latest" → Returns current version from main collection - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag - SHA256 hash (64 hex chars) → Returns exact immutable version
 
 <SDKTabs>
-<Tab value="Go">
-```go
-skill, err := client.Skill.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.getByReference({
@@ -145,6 +135,16 @@ const skill = await stigmer.skill.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+skill, err := client.Skill.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -171,7 +171,7 @@ Skill skill = client.skill().getByReference(ApiResourceReference.builder()
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `Skill`
+**Returns**: [`Skill`](#skill)
 
 ### updateVisibility
 
@@ -182,20 +182,20 @@ This is a targeted metadata update — it only modifies metadata.visibility, lea
 Authorization: Requires can_edit permission on the skill resource.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-skill, err := client.Skill.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
-  ResourceId: "...",
-  Visibility: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.updateVisibility({
   resourceId: "...",
   visibility: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+skill, err := client.Skill.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -218,21 +218,21 @@ Skill skill = client.skill().updateVisibility(UpdateVisibilityInput.builder()
 
 **Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
 
-**Returns**: `Skill`
+**Returns**: [`Skill`](#skill)
 
 ### delete
 
 Delete a skill and all its versions. This removes the skill from the main collection but preserves audit history.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-skill, err := client.Skill.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+skill, err := client.Skill.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -253,7 +253,7 @@ Skill skill = client.skill().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Skill identifier. |
 
-**Returns**: `Skill`
+**Returns**: [`Skill`](#skill)
 
 ### push
 
@@ -262,16 +262,6 @@ Push (upload) a skill artifact. This operation creates a new skill if it doesn't
 Authorization: - Organization-scoped skills: Caller must have can_create_skill permission in the organization - Platform-scoped skills: Caller must be a platform operator
 
 <SDKTabs>
-<Tab value="Go">
-```go
-skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
-  Org:           "...",
-  Artifact:      "...",
-  Tag:           "...",
-  GitProvenance: &stigmer.GitProvenanceInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.push({
@@ -280,6 +270,16 @@ const skill = await stigmer.skill.push({
   tag: "...",
   gitProvenance: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
+  Org:           "...",
+  Artifact:      "...",
+  Tag:           "...",
+  GitProvenance: &stigmer.GitProvenanceInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -306,7 +306,7 @@ Skill skill = client.skill().push(PushSkillRequest.builder()
 
 **Parameters**: [`PushSkillRequest`](#pushskillrequest)
 
-**Returns**: `Skill`
+**Returns**: [`Skill`](#skill)
 
 ### pushFromExecutionArtifact
 
@@ -319,16 +319,6 @@ The caller must have can_view on the referenced execution AND can_create_skill i
 Returns: The created or updated Skill resource
 
 <SDKTabs>
-<Tab value="Go">
-```go
-skill, err := client.Skill.PushFromExecutionArtifact(ctx, &stigmer.PushSkillFromExecutionArtifactRequest{
-  Org:         "...",
-  ExecutionId: "...",
-  StorageKey:  "...",
-  Tag:         "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.pushFromExecutionArtifact({
@@ -337,6 +327,16 @@ const skill = await stigmer.skill.pushFromExecutionArtifact({
   storageKey: "...",
   tag: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+skill, err := client.Skill.PushFromExecutionArtifact(ctx, &stigmer.PushSkillFromExecutionArtifactRequest{
+  Org:         "...",
+  ExecutionId: "...",
+  StorageKey:  "...",
+  Tag:         "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -363,7 +363,7 @@ Skill skill = client.skill().pushFromExecutionArtifact(PushSkillFromExecutionArt
 
 **Parameters**: [`PushSkillFromExecutionArtifactRequest`](#pushskillfromexecutionartifactrequest)
 
-**Returns**: `Skill`
+**Returns**: [`Skill`](#skill)
 
 ## Types
 
@@ -450,6 +450,34 @@ GetArtifactResponse contains the skill artifact content.
 <TypeTable
   type={{
     artifact: { type: "Uint8Array", description: "The skill artifact as a ZIP file (binary content)." },
+  }}
+/>
+
+### Skill
+
+Skill represents a versioned, reusable unit of agent capability.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "SkillInput", description: "Resource specification. See [`SkillInput`](#skillinput)." },
+    status: { type: "SkillStatus", description: "System-managed state. See [`SkillStatus`](#skillstatus)." },
+  }}
+/>
+
+### SkillStatus
+
+SkillStatus represents the system-managed state of a skill.
+
+<TypeTable
+  type={{
+    audit: { type: "ApiResourceAudit", description: "Standard audit information tracking creation and modification." },
+    versionHash: { type: "string", description: "SHA256 hash of the skill artifact Zip file." },
+    artifactStorageKey: { type: "string", description: "Storage location key for the skill artifact." },
+    state: { type: "SkillState", description: "Current lifecycle state of the skill." },
+    gitProvenance: { type: "GitProvenance", description: "Git provenance tracking where the skill artifacts originated from." },
   }}
 />
 

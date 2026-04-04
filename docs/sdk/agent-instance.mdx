@@ -10,14 +10,14 @@ This is the "Instance" layer - stateful configuration with secrets.
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentInstance, err := client.AgentInstance.Get(ctx, "ain_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentInstance = await stigmer.agentInstance.get("ain_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+agentInstance, err := client.AgentInstance.Get(ctx, "ain_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -50,14 +50,14 @@ AgentInstance agentInstance = client.agentInstance().get("ain_01j5q3k7m8r2s4tnz2
 Get a single agent instance by ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentInstance, err := client.AgentInstance.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentInstance = await stigmer.agentInstance.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+agentInstance, err := client.AgentInstance.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -78,27 +78,27 @@ AgentInstance agentInstance = client.agentInstance().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Agent Instance identifier. |
 
-**Returns**: `AgentInstance`
+**Returns**: [`AgentInstance`](#agentinstance)
 
 ### getByAgent
 
 Get all instances of a specific agent template. Returns only instances the caller has access to.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.AgentInstance.GetByAgent(ctx, &stigmer.GetAgentInstancesByAgentRequest{
-  AgentId:  "...",
-  PageInfo: &stigmer.PageInfoInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.agentInstance.getByAgent({
   agentId: "...",
   pageInfo: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.AgentInstance.GetByAgent(ctx, &stigmer.GetAgentInstancesByAgentRequest{
+  AgentId:  "...",
+  PageInfo: &stigmer.PageInfoInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -128,16 +128,6 @@ AgentInstanceList result = client.agentInstance().getByAgent(GetAgentInstancesBy
 Get an agent instance by its organization-scoped reference (org/slug).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentInstance, err := client.AgentInstance.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentInstance = await stigmer.agentInstance.getByReference({
@@ -146,6 +136,16 @@ const agentInstance = await stigmer.agentInstance.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentInstance, err := client.AgentInstance.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -172,22 +172,13 @@ AgentInstance agentInstance = client.agentInstance().getByReference(ApiResourceR
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `AgentInstance`
+**Returns**: [`AgentInstance`](#agentinstance)
 
 ### list
 
 List agent instances with optional label filtering.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.AgentInstance.List(ctx, &stigmer.ListAgentInstancesRequest{
-  Org:      "...",
-  Labels:   map[string]string{},
-  PageInfo: &stigmer.PageInfoInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.agentInstance.list({
@@ -195,6 +186,15 @@ const result = await stigmer.agentInstance.list({
   labels: {},
   pageInfo: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.AgentInstance.List(ctx, &stigmer.ListAgentInstancesRequest{
+  Org:      "...",
+  Labels:   map[string]string{},
+  PageInfo: &stigmer.PageInfoInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -226,19 +226,6 @@ AgentInstanceList result = client.agentInstance().list(ListAgentInstancesRequest
 Create or update an agent instance. The authorization and state-operation are determined depending on whether the agent instance is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentInstance, err := client.AgentInstance.Apply(ctx, &stigmer.AgentInstanceInput{
-  Name:            "my-agent-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentId:         "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentInstance = await stigmer.agentInstance.apply({
@@ -250,6 +237,19 @@ const agentInstance = await stigmer.agentInstance.apply({
   description: "...",
   environmentRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentInstance, err := client.AgentInstance.Apply(ctx, &stigmer.AgentInstanceInput{
+  Name:            "my-agent-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentId:         "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -282,7 +282,7 @@ AgentInstance agentInstance = client.agentInstance().apply(AgentInstanceInput.bu
 
 **Parameters**: [`AgentInstanceInput`](#agentinstanceinput)
 
-**Returns**: `AgentInstance`
+**Returns**: [`AgentInstance`](#agentinstance)
 
 ### create
 
@@ -291,19 +291,6 @@ Create a new agent instance with full state. Provide organization_id in metadata
 Public agents allow any authenticated user to create instances (cross-org allowed). Private agents restrict instance creation to org members and the agent owner.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentInstance, err := client.AgentInstance.Create(ctx, &stigmer.AgentInstanceInput{
-  Name:            "my-agent-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentId:         "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentInstance = await stigmer.agentInstance.create({
@@ -315,6 +302,19 @@ const agentInstance = await stigmer.agentInstance.create({
   description: "...",
   environmentRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentInstance, err := client.AgentInstance.Create(ctx, &stigmer.AgentInstanceInput{
+  Name:            "my-agent-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentId:         "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -347,26 +347,13 @@ AgentInstance agentInstance = client.agentInstance().create(AgentInstanceInput.b
 
 **Parameters**: [`AgentInstanceInput`](#agentinstanceinput)
 
-**Returns**: `AgentInstance`
+**Returns**: [`AgentInstance`](#agentinstance)
 
 ### update
 
 Update an instance with full state. Used to update entire instance configuration including metadata, spec, and secrets. No individual field updates - always provide complete state. Authorization: Only owner can update (can_edit permission)
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentInstance, err := client.AgentInstance.Update(ctx, &stigmer.AgentInstanceInput{
-  Name:            "my-agent-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentId:         "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentInstance = await stigmer.agentInstance.update({
@@ -378,6 +365,19 @@ const agentInstance = await stigmer.agentInstance.update({
   description: "...",
   environmentRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agentInstance, err := client.AgentInstance.Update(ctx, &stigmer.AgentInstanceInput{
+  Name:            "my-agent-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentId:         "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -410,21 +410,21 @@ AgentInstance agentInstance = client.agentInstance().update(AgentInstanceInput.b
 
 **Parameters**: [`AgentInstanceInput`](#agentinstanceinput)
 
-**Returns**: `AgentInstance`
+**Returns**: [`AgentInstance`](#agentinstance)
 
 ### delete
 
 Delete an agent instance. Authorization: Only owner can delete (can_delete permission)
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agentInstance, err := client.AgentInstance.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agentInstance = await stigmer.agentInstance.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+agentInstance, err := client.AgentInstance.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -445,7 +445,7 @@ AgentInstance agentInstance = client.agentInstance().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Agent Instance identifier. |
 
-**Returns**: `AgentInstance`
+**Returns**: [`AgentInstance`](#agentinstance)
 
 ## Types
 
@@ -509,6 +509,20 @@ ListAgentInstancesRequest specifies parameters for listing agent instances.
     org: { type: "string", description: "Organization to list agent instances for (required)." },
     labels: { type: "Record<string, string>", description: "Filter by metadata labels (optional)." },
     pageInfo: { type: "PageInfoInput", description: "Pagination options (optional)." },
+  }}
+/>
+
+### AgentInstance
+
+AgentInstance represents a configured deployment of an Agent template.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "AgentInstanceInput", description: "Resource specification. See [`AgentInstanceInput`](#agentinstanceinput)." },
+    status: { type: "AgentInstanceStatus", description: "System-managed state. See `AgentInstanceStatus`." },
   }}
 />
 

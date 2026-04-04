@@ -587,5 +587,123 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "WorkflowExecution represents a single runtime invocation of a WorkflowInstance.\n\n WorkflowExecution is the \"Execution\" layer in the Template→Instance→Execution pattern.\n It captures the complete lifecycle of a workflow run, from initial trigger through\n task-by-task execution to final completion or failure.\n\n A WorkflowExecution:\n - References a WorkflowInstance (which contains configuration and environment bindings)\n - Is triggered by a user action, API call, webhook, or scheduled event\n - Executes tasks sequentially or in parallel based on the workflow definition\n - Tracks real-time progress through tasks and phases\n - Captures outputs, errors, and execution metadata\n - Is ephemeral - deleted after completion based on retention policies\n\n Execution Pattern:\n Workflow \"customer-onboarding\" (template)\n   → WorkflowInstance \"acme-onboarding\" (with prod-env)\n     → WorkflowExecution \"acme-onboarding-20250111-143022\" (specific run)\n       - Phase: IN_PROGRESS\n       - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]\n       - Progress: 1/3 tasks completed\n\n Use Cases:\n - Track workflow execution progress in real-time\n - Debug failed workflows with full execution history\n - Audit workflow runs for compliance and analysis\n - Monitor workflow performance and duration\n - Retry failed executions with same inputs\n\n Separation of Concerns:\n - User Inputs (spec): workflow_instance_id, trigger_message, trigger_metadata, runtime_env\n - System State (status): phase, tasks, output, timestamps, errors\n\n This separation ensures:\n - Clear boundary between what users control (spec) and what the system manages (status)\n - Status can be updated independently during execution without modifying user inputs\n - Execution can be retried by creating a new WorkflowExecution with the same spec",
+  "statusType": {
+    "name": "WorkflowExecutionStatus",
+    "description": "WorkflowExecutionStatus contains all system-managed execution state and results.\n\n Everything populated during or after execution goes here, not in spec.\n This message follows the standard pattern: audit information at field 99, custom fields at 1-98.\n\n Status Lifecycle:\n 1. Created: audit.created_at set, phase = EXECUTION_PENDING\n 2. Started: started_at set, phase = EXECUTION_IN_PROGRESS, tasks populated\n 3. Progress: tasks updated as workflow runner sends status updates\n 4. Completed: completed_at set, phase = EXECUTION_COMPLETED, output populated\n 5. Failed: completed_at set, phase = EXECUTION_FAILED, error populated\n 6. Cancelled: completed_at set, phase = EXECUTION_CANCELLED\n\n The status is read-only to users and continuously updated by the workflow execution engine.\n\n Progress Tracking Pattern (Matches Agent Execution):\n - Agent execution: messages[], tool_calls[], sub_agent_executions[] (transformed from LLM streaming events)\n - Workflow execution: tasks[] (transformed from workflow task execution)\n - Both store structured state, not raw streaming events\n - Both use updateStatus RPC for progressive updates during execution",
+    "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus",
+    "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/api.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)\n Always at field 99 for consistency across all Stigmer API resources.\n\n Contains:\n - created_at: When this execution was created (ISO 8601 timestamp)\n - updated_at: Last time status was updated (ISO 8601 timestamp)\n - created_by: User or system that created this execution\n\n Example:\n audit {\n   created_at: \"2025-01-11T14:30:22Z\"\n   updated_at: \"2025-01-11T14:32:15Z\"\n   created_by: \"usr-john-doe\"\n }",
+        "required": false
+      },
+      {
+        "name": "Phase",
+        "jsonName": "phase",
+        "protoField": "phase",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase",
+          "enumValues": [
+            "EXECUTION_PENDING",
+            "EXECUTION_IN_PROGRESS",
+            "EXECUTION_COMPLETED",
+            "EXECUTION_FAILED",
+            "EXECUTION_CANCELLED",
+            "EXECUTION_TERMINATED",
+            "EXECUTION_PAUSED"
+          ]
+        },
+        "description": "Current execution lifecycle phase.\n\n Phases:\n - EXECUTION_PENDING: Execution created, waiting to start\n - EXECUTION_IN_PROGRESS: Actively executing tasks\n - EXECUTION_COMPLETED: Successfully completed all tasks\n - EXECUTION_FAILED: Failed during execution (see error field)\n - EXECUTION_CANCELLED: Cancelled by user or system\n\n Phase Transitions:\n PENDING → IN_PROGRESS → COMPLETED\n        ↓              ↘ FAILED\n        ↓              ↘ CANCELLED\n\n The phase is used for:\n - UI status indicators (progress bars, badges)\n - Filtering executions (show only failed, show only in-progress)\n - Alerting and notifications (notify on failure)\n - Retry logic (retry failed executions)\n\n Validation: Must be a defined enum value (no unspecified/unknown).",
+        "required": false
+      },
+      {
+        "name": "Tasks",
+        "jsonName": "tasks",
+        "protoField": "tasks",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "WorkflowTask"
+          }
+        },
+        "description": "Workflow tasks with their execution state (source of truth for progress).\n\n Tasks represent the atomic units of work within the workflow.\n Each task has:\n - task_id: Unique identifier within this execution\n - task_name: Human-readable name (e.g., \"validate_email\", \"send_notification\")\n - task_type: Type of task (agent_invocation, api_call, approval, etc.)\n - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)\n - input: Task input parameters (JSON structure)\n - output: Task output results (JSON structure, only for COMPLETED tasks)\n - error: Error message (only for FAILED tasks)\n - started_at: When task started executing\n - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)\n\n Tasks are populated as the workflow progresses through its task graph.\n The order in this list reflects the execution order (sequential or parallel).\n\n Progress Calculation:\n - Total tasks: tasks.length\n - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])\n - Progress percentage: (completed_tasks / total_tasks) * 100\n - Current task: tasks.find(status == IN_PROGRESS)\n\n Use Cases:\n - Display task-level progress in UI (which tasks are done, which are running)\n - Calculate overall progress (no need to store total_tasks/completed_tasks)\n - Debug task failures (inspect task inputs, outputs, errors)\n - Retry individual failed tasks (if workflow supports partial retry)\n - Audit task execution for compliance\n\n Example:\n tasks: [\n   {\n     task_id: \"task-1\"\n     task_name: \"validate_email\"\n     task_type: WORKFLOW_TASK_API_CALL\n     status: WORKFLOW_TASK_COMPLETED\n     started_at: \"2025-01-11T14:30:23Z\"\n     completed_at: \"2025-01-11T14:30:23.450Z\"\n     output: { \"valid\": true, \"domain\": \"example.com\" }\n   }\n   {\n     task_id: \"task-2\"\n     task_name: \"create_account\"\n     task_type: WORKFLOW_TASK_AGENT_INVOCATION\n     status: WORKFLOW_TASK_IN_PROGRESS\n     started_at: \"2025-01-11T14:30:24Z\"\n   }\n ]",
+        "required": false
+      },
+      {
+        "name": "Output",
+        "jsonName": "output",
+        "protoField": "output",
+        "type": {
+          "kind": "struct"
+        },
+        "description": "Workflow output (JSON structure).\n\n Contains the final result or payload produced by the workflow.\n Only populated when phase == EXECUTION_COMPLETED.\n\n The output structure is workflow-specific and defined by the Workflow template.\n Common patterns:\n - API response data (e.g., created user ID, order confirmation)\n - Aggregated results from multiple tasks\n - Links to generated artifacts (reports, files)\n - Summary statistics (items processed, duration)\n\n Example (customer onboarding workflow):\n output: {\n   \"customer_id\": \"cus-abc123\"\n   \"account_created\": true\n   \"welcome_email_sent\": true\n   \"trial_activated\": true\n   \"trial_expires_at\": \"2025-02-10T14:30:22Z\"\n }",
+        "required": false
+      },
+      {
+        "name": "Error",
+        "jsonName": "error",
+        "protoField": "error",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Error message if execution failed.\n\n Contains a human-readable description of what went wrong.\n Only populated when phase == EXECUTION_FAILED.\n\n Error message includes:\n - What failed (which task or workflow step)\n - Why it failed (validation error, API error, timeout, etc.)\n - How to fix it (if known)\n\n For detailed debugging, inspect tasks[].error for task-specific error messages.\n\n Example:\n error: \"Task 'create_account' failed: API rate limit exceeded (429). Retry after 60 seconds.\"",
+        "required": false
+      },
+      {
+        "name": "StartedAt",
+        "jsonName": "startedAt",
+        "protoField": "started_at",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ISO 8601 timestamp when execution started.\n\n Set when the workflow execution engine begins processing this execution.\n This is when phase transitions from PENDING to IN_PROGRESS.\n\n Format: \"YYYY-MM-DDTHH:MM:SSZ\" (UTC timezone)\n Example: \"2025-01-11T14:30:22Z\"\n\n Used for:\n - Calculating execution duration (completed_at - started_at)\n - Sorting executions by start time\n - Detecting stuck executions (started but not completed after X hours)",
+        "required": false
+      },
+      {
+        "name": "CompletedAt",
+        "jsonName": "completedAt",
+        "protoField": "completed_at",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ISO 8601 timestamp when execution completed, failed, or was cancelled.\n\n Set when the workflow reaches a terminal state:\n - EXECUTION_COMPLETED: Successfully finished\n - EXECUTION_FAILED: Failed during execution\n - EXECUTION_CANCELLED: Cancelled by user or system\n\n Not set for PENDING or IN_PROGRESS executions.\n\n Format: \"YYYY-MM-DDTHH:MM:SSZ\" (UTC timezone)\n Example: \"2025-01-11T14:35:47Z\"\n\n Used for:\n - Calculating execution duration (completed_at - started_at)\n - Retention policies (delete completed executions after 30 days)\n - SLA monitoring (alert if execution takes longer than expected)",
+        "required": false
+      },
+      {
+        "name": "TemporalWorkflowId",
+        "jsonName": "temporalWorkflowId",
+        "protoField": "temporal_workflow_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Temporal workflow ID (if using Temporal as execution engine).\n\n This is the workflow ID in the Temporal workflow engine, used for:\n - Correlation between Stigmer and Temporal (for debugging)\n - Querying Temporal directly (for advanced troubleshooting)\n - Signaling or cancelling Temporal workflows\n\n Format: Typically \"{workflow_instance_id}-{execution_id}\" or a UUID\n Example: \"wfi_prod-deploy-wfx_abc123xyz456\" or \"temporal-wf-uuid-12345\"\n\n This field is optional and only relevant when Temporal is used as the execution engine.\n Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.",
+        "required": false
+      },
+      {
+        "name": "PendingApprovals",
+        "jsonName": "pendingApprovals",
+        "protoField": "pending_approvals",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "WorkflowPendingApproval"
+          }
+        },
+        "description": "Pending approvals from child agent tool executions (HITL).\n\n Populated when workflow tasks invoke agents that enter\n EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval\n requests at the workflow level for UI visibility.\n\n ## Full-Replace Protocol\n\n The workflow-runner always sends the complete set of pending approvals\n via UpdateStatus. The server replaces the stored list unconditionally:\n - Non-empty list: child agent(s) need approval\n - Empty list: all approvals resolved, clear the field\n\n ## Parallel Agents\n\n When multiple child agents run in parallel, entries from different children\n accumulate in this list. Each entry's child_agent_execution_id distinguishes\n the source.",
+        "required": false
+      }
+    ]
+  }
 }

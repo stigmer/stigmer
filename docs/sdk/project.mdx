@@ -16,14 +16,14 @@ In both tracks, individual resources are applied first via their own RPCs (e.g.,
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-project, err := client.Project.Get(ctx, "prj_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const project = await stigmer.project.get("prj_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Get(ctx, "prj_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -54,14 +54,14 @@ Project project = client.project().get("prj_01j5q3k7m8r2s4tnz2hfp0q0c3");
 Get a single project by ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-project, err := client.Project.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const project = await stigmer.project.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -82,23 +82,13 @@ Project project = client.project().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Project identifier. |
 
-**Returns**: `Project`
+**Returns**: [`Project`](#project)
 
 ### getByReference
 
 Get a project by reference (org/name).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-project, err := client.Project.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const project = await stigmer.project.getByReference({
@@ -107,6 +97,16 @@ const project = await stigmer.project.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -133,26 +133,13 @@ Project project = client.project().getByReference(ApiResourceReference.builder()
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `Project`
+**Returns**: [`Project`](#project)
 
 ### apply
 
 Create or update a project. The authorization and state-operation are determined depending on whether the project is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-project, err := client.Project.Apply(ctx, &stigmer.ProjectInput{
-  Name:        "my-project",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  EntryPoint:  "...",
-  Description: "...",
-  Members:     []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const project = await stigmer.project.apply({
@@ -164,6 +151,19 @@ const project = await stigmer.project.apply({
   description: "...",
   members: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Apply(ctx, &stigmer.ProjectInput{
+  Name:        "my-project",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  EntryPoint:  "...",
+  Description: "...",
+  Members:     []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -196,7 +196,7 @@ Project project = client.project().apply(ProjectInput.builder()
 
 **Parameters**: [`ProjectInput`](#projectinput)
 
-**Returns**: `Project`
+**Returns**: [`Project`](#project)
 
 ### create
 
@@ -205,19 +205,6 @@ Create a new project.
 Authorization: - Organization-scoped projects: Caller must have can_create_project permission in the organization - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step)
 
 <SDKTabs>
-<Tab value="Go">
-```go
-project, err := client.Project.Create(ctx, &stigmer.ProjectInput{
-  Name:        "my-project",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  EntryPoint:  "...",
-  Description: "...",
-  Members:     []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const project = await stigmer.project.create({
@@ -229,6 +216,19 @@ const project = await stigmer.project.create({
   description: "...",
   members: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Create(ctx, &stigmer.ProjectInput{
+  Name:        "my-project",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  EntryPoint:  "...",
+  Description: "...",
+  Members:     []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -261,26 +261,13 @@ Project project = client.project().create(ProjectInput.builder()
 
 **Parameters**: [`ProjectInput`](#projectinput)
 
-**Returns**: `Project`
+**Returns**: [`Project`](#project)
 
 ### update
 
 Update an existing project.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-project, err := client.Project.Update(ctx, &stigmer.ProjectInput{
-  Name:        "my-project",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  EntryPoint:  "...",
-  Description: "...",
-  Members:     []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const project = await stigmer.project.update({
@@ -292,6 +279,19 @@ const project = await stigmer.project.update({
   description: "...",
   members: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Update(ctx, &stigmer.ProjectInput{
+  Name:        "my-project",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  EntryPoint:  "...",
+  Description: "...",
+  Members:     []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -324,21 +324,21 @@ Project project = client.project().update(ProjectInput.builder()
 
 **Parameters**: [`ProjectInput`](#projectinput)
 
-**Returns**: `Project`
+**Returns**: [`Project`](#project)
 
 ### delete
 
 Delete a project.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-project, err := client.Project.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const project = await stigmer.project.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -359,7 +359,7 @@ Project project = client.project().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Project identifier. |
 
-**Returns**: `Project`
+**Returns**: [`Project`](#project)
 
 ## Types
 
@@ -389,6 +389,31 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### Project
+
+Project is a lightweight membership tracker that groups related resources under a single unit of management with automatic orphan pruning.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "ProjectInput", description: "Resource specification. See [`ProjectInput`](#projectinput)." },
+    status: { type: "ProjectStatus", description: "System-managed state. See [`ProjectStatus`](#projectstatus)." },
+  }}
+/>
+
+### ProjectStatus
+
+ProjectStatus contains system-managed state for a Project.
+
+<TypeTable
+  type={{
+    lastReconciliation: { type: "ReconciliationSummary", description: "Reconciliation summary from the most recent Apply operation." },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, etc.) The updated_at field indicates when the project was last successfully applied." },
   }}
 />
 

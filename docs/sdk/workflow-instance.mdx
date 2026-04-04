@@ -14,14 +14,14 @@ Design Philosophy: WorkflowInstanceSpec separates "what to run" (Workflow) from 
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflowInstance, err := client.WorkflowInstance.Get(ctx, "win_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflowInstance = await stigmer.workflowInstance.get("win_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Get(ctx, "win_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -65,14 +65,14 @@ Use Cases: - Retrieve instance configuration before executing - View instance de
 Error: PERMISSION_DENIED if user lacks get permission Error: NOT_FOUND if instance ID doesn't exist
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflowInstance, err := client.WorkflowInstance.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflowInstance = await stigmer.workflowInstance.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -93,7 +93,7 @@ WorkflowInstance workflowInstance = client.workflowInstance().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Workflow Instance identifier. |
 
-**Returns**: `WorkflowInstance`
+**Returns**: [`WorkflowInstance`](#workflowinstance)
 
 ### getByReference
 
@@ -114,16 +114,6 @@ Example: Input: ApiResourceReference\{slug: "prod-deploy"\} Output: WorkflowInst
 Error: PERMISSION_DENIED if user lacks access Error: NOT_FOUND if reference doesn't resolve to an instance
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflowInstance, err := client.WorkflowInstance.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflowInstance = await stigmer.workflowInstance.getByReference({
@@ -132,6 +122,16 @@ const workflowInstance = await stigmer.workflowInstance.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -158,7 +158,7 @@ WorkflowInstance workflowInstance = client.workflowInstance().getByReference(Api
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `WorkflowInstance`
+**Returns**: [`WorkflowInstance`](#workflowinstance)
 
 ### getByWorkflow
 
@@ -169,20 +169,20 @@ Retrieves all WorkflowInstance resources that reference a specific Workflow temp
 Example Use Case: Workflow "deploy-to-cloud" (wfl_123) has instances: - "prod-deploy" (wfi_abc) - Production deployment with aws-prod-env - "staging-deploy" (wfi_def) - Staging deployment with aws-staging-env - "dev-deploy" (wfi_ghi) - Development deployment with aws-dev-env
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.WorkflowInstance.GetByWorkflow(ctx, &stigmer.GetWorkflowInstancesByWorkflowRequest{
-  WorkflowId: "...",
-  PageInfo:   &stigmer.PageInfoInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.workflowInstance.getByWorkflow({
   workflowId: "...",
   pageInfo: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.WorkflowInstance.GetByWorkflow(ctx, &stigmer.GetWorkflowInstancesByWorkflowRequest{
+  WorkflowId: "...",
+  PageInfo:   &stigmer.PageInfoInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -212,19 +212,6 @@ WorkflowInstanceList result = client.workflowInstance().getByWorkflow(GetWorkflo
 Create or update a workflow instance. The authorization and state-operation are determined depending on whether the workflow instance is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflowInstance, err := client.WorkflowInstance.Apply(ctx, &stigmer.WorkflowInstanceInput{
-  Name:            "my-workflow-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  WorkflowId:      "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflowInstance = await stigmer.workflowInstance.apply({
@@ -236,6 +223,19 @@ const workflowInstance = await stigmer.workflowInstance.apply({
   description: "...",
   environmentRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Apply(ctx, &stigmer.WorkflowInstanceInput{
+  Name:            "my-workflow-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  WorkflowId:      "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -268,7 +268,7 @@ WorkflowInstance workflowInstance = client.workflowInstance().apply(WorkflowInst
 
 **Parameters**: [`WorkflowInstanceInput`](#workflowinstanceinput)
 
-**Returns**: `WorkflowInstance`
+**Returns**: [`WorkflowInstance`](#workflowinstance)
 
 ### create
 
@@ -285,19 +285,6 @@ Returns: The created WorkflowInstance with: - Assigned resource ID (metadata.id)
 Example: Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"] Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflowInstance, err := client.WorkflowInstance.Create(ctx, &stigmer.WorkflowInstanceInput{
-  Name:            "my-workflow-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  WorkflowId:      "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflowInstance = await stigmer.workflowInstance.create({
@@ -309,6 +296,19 @@ const workflowInstance = await stigmer.workflowInstance.create({
   description: "...",
   environmentRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Create(ctx, &stigmer.WorkflowInstanceInput{
+  Name:            "my-workflow-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  WorkflowId:      "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -341,7 +341,7 @@ WorkflowInstance workflowInstance = client.workflowInstance().create(WorkflowIns
 
 **Parameters**: [`WorkflowInstanceInput`](#workflowinstanceinput)
 
-**Returns**: `WorkflowInstance`
+**Returns**: [`WorkflowInstance`](#workflowinstance)
 
 ### update
 
@@ -360,19 +360,6 @@ Returns: The updated WorkflowInstance with: - Incremented version number - Updat
 Error: PERMISSION_DENIED if user lacks update permission
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflowInstance, err := client.WorkflowInstance.Update(ctx, &stigmer.WorkflowInstanceInput{
-  Name:            "my-workflow-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  WorkflowId:      "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflowInstance = await stigmer.workflowInstance.update({
@@ -384,6 +371,19 @@ const workflowInstance = await stigmer.workflowInstance.update({
   description: "...",
   environmentRefs: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Update(ctx, &stigmer.WorkflowInstanceInput{
+  Name:            "my-workflow-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  WorkflowId:      "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -416,7 +416,7 @@ WorkflowInstance workflowInstance = client.workflowInstance().update(WorkflowIns
 
 **Parameters**: [`WorkflowInstanceInput`](#workflowinstanceinput)
 
-**Returns**: `WorkflowInstance`
+**Returns**: [`WorkflowInstance`](#workflowinstance)
 
 ### delete
 
@@ -435,14 +435,14 @@ Returns: The deleted WorkflowInstance (final state before deletion). Useful for 
 Error: PERMISSION_DENIED if user lacks delete permission Error: NOT_FOUND if instance ID doesn't exist
 
 <SDKTabs>
-<Tab value="Go">
-```go
-workflowInstance, err := client.WorkflowInstance.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const workflowInstance = await stigmer.workflowInstance.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -463,7 +463,7 @@ WorkflowInstance workflowInstance = client.workflowInstance().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Workflow Instance identifier. |
 
-**Returns**: `WorkflowInstance`
+**Returns**: [`WorkflowInstance`](#workflowinstance)
 
 ## Types
 
@@ -515,6 +515,20 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### WorkflowInstance
+
+WorkflowInstance represents a configured deployment of a Workflow template.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "WorkflowInstanceInput", description: "Resource specification. See [`WorkflowInstanceInput`](#workflowinstanceinput)." },
+    status: { type: "WorkflowInstanceStatus", description: "System-managed state. See `WorkflowInstanceStatus`." },
   }}
 />
 

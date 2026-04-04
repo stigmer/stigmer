@@ -30,14 +30,14 @@ spec:
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.Get(ctx, "agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Get(ctx, "agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -70,14 +70,14 @@ Agent agent = client.agent().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 Get a single agent by ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -98,23 +98,13 @@ Agent agent = client.agent().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Agent identifier. |
 
-**Returns**: `Agent`
+**Returns**: [`Agent`](#agent)
 
 ### getByReference
 
 Get an agent by its organization-scoped reference (org/slug). Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.getByReference({
@@ -123,6 +113,16 @@ const agent = await stigmer.agent.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -149,7 +149,7 @@ Agent agent = client.agent().getByReference(ApiResourceReference.builder()
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `Agent`
+**Returns**: [`Agent`](#agent)
 
 ### getDefault
 
@@ -160,18 +160,18 @@ Returns the default agent for the platform, including status.default_instance_id
 Returns NOT_FOUND if no default agent is configured.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.GetDefault(ctx, &stigmer.GetDefaultAgentRequest{
-  Org: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.getDefault({
   org: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.GetDefault(ctx, &stigmer.GetDefaultAgentRequest{
+  Org: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -192,30 +192,13 @@ Agent agent = client.agent().getDefault(GetDefaultAgentRequest.builder()
 
 **Parameters**: [`GetDefaultAgentRequest`](#getdefaultagentrequest)
 
-**Returns**: `Agent`
+**Returns**: [`Agent`](#agent)
 
 ### apply
 
 Create or update an agent.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
-  Name:            "my-agent",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  Description:     "...",
-  IconUrl:         "...",
-  Instructions:    "...",
-  McpServerUsages: []stigmer.McpServerUsageInput{},
-  SkillRefs:       []stigmer.ResourceRef{},
-  SubAgents:       []stigmer.SubAgentInput{},
-  EnvSpec:         &stigmer.EnvSpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.apply({
@@ -231,6 +214,23 @@ const agent = await stigmer.agent.apply({
   subAgents: [],
   envSpec: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
+  Name:            "my-agent",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  Description:     "...",
+  IconUrl:         "...",
+  Instructions:    "...",
+  McpServerUsages: []stigmer.McpServerUsageInput{},
+  SkillRefs:       []stigmer.ResourceRef{},
+  SubAgents:       []stigmer.SubAgentInput{},
+  EnvSpec:         &stigmer.EnvSpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -271,30 +271,13 @@ Agent agent = client.agent().apply(AgentInput.builder()
 
 **Parameters**: [`AgentInput`](#agentinput)
 
-**Returns**: `Agent`
+**Returns**: [`Agent`](#agent)
 
 ### create
 
 Create an agent.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
-  Name:            "my-agent",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  Description:     "...",
-  IconUrl:         "...",
-  Instructions:    "...",
-  McpServerUsages: []stigmer.McpServerUsageInput{},
-  SkillRefs:       []stigmer.ResourceRef{},
-  SubAgents:       []stigmer.SubAgentInput{},
-  EnvSpec:         &stigmer.EnvSpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.create({
@@ -310,6 +293,23 @@ const agent = await stigmer.agent.create({
   subAgents: [],
   envSpec: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
+  Name:            "my-agent",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  Description:     "...",
+  IconUrl:         "...",
+  Instructions:    "...",
+  McpServerUsages: []stigmer.McpServerUsageInput{},
+  SkillRefs:       []stigmer.ResourceRef{},
+  SubAgents:       []stigmer.SubAgentInput{},
+  EnvSpec:         &stigmer.EnvSpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -350,30 +350,13 @@ Agent agent = client.agent().create(AgentInput.builder()
 
 **Parameters**: [`AgentInput`](#agentinput)
 
-**Returns**: `Agent`
+**Returns**: [`Agent`](#agent)
 
 ### update
 
 Update an existing agent.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
-  Name:            "my-agent",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  Description:     "...",
-  IconUrl:         "...",
-  Instructions:    "...",
-  McpServerUsages: []stigmer.McpServerUsageInput{},
-  SkillRefs:       []stigmer.ResourceRef{},
-  SubAgents:       []stigmer.SubAgentInput{},
-  EnvSpec:         &stigmer.EnvSpecInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.update({
@@ -389,6 +372,23 @@ const agent = await stigmer.agent.update({
   subAgents: [],
   envSpec: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
+  Name:            "my-agent",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  Description:     "...",
+  IconUrl:         "...",
+  Instructions:    "...",
+  McpServerUsages: []stigmer.McpServerUsageInput{},
+  SkillRefs:       []stigmer.ResourceRef{},
+  SubAgents:       []stigmer.SubAgentInput{},
+  EnvSpec:         &stigmer.EnvSpecInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -429,7 +429,7 @@ Agent agent = client.agent().update(AgentInput.builder()
 
 **Parameters**: [`AgentInput`](#agentinput)
 
-**Returns**: `Agent`
+**Returns**: [`Agent`](#agent)
 
 ### updateVisibility
 
@@ -438,20 +438,20 @@ Update the visibility of an existing agent.
 This is a targeted metadata update — it only modifies metadata.visibility, leaving spec, status, and other metadata fields untouched. Use this to make an agent publicly accessible or to revoke public access without sending the entire agent resource (avoiding read-modify-write races).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
-  ResourceId: "...",
-  Visibility: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.updateVisibility({
   resourceId: "...",
   visibility: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -474,21 +474,21 @@ Agent agent = client.agent().updateVisibility(UpdateVisibilityInput.builder()
 
 **Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
 
-**Returns**: `Agent`
+**Returns**: [`Agent`](#agent)
 
 ### delete
 
 Delete an agent.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-agent, err := client.Agent.Delete(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const agent = await stigmer.agent.delete(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Delete(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -509,7 +509,7 @@ Agent agent = client.agent().delete(id);
 |-----------|------|-------------|
 | `id` | `string` | Agent identifier. |
 
-**Returns**: `Agent`
+**Returns**: [`Agent`](#agent)
 
 ## Types
 
@@ -614,6 +614,31 @@ GetDefaultAgentRequest is the input for retrieving the platform default agent.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization slug for authorization scoping." },
+  }}
+/>
+
+### Agent
+
+Agent defines an AI assistant's identity, tools, skills, and delegation model.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "AgentInput", description: "Resource specification. See [`AgentInput`](#agentinput)." },
+    status: { type: "AgentStatus", description: "System-managed state. See [`AgentStatus`](#agentstatus)." },
+  }}
+/>
+
+### AgentStatus
+
+AgentStatus contains system-managed state for an agent.
+
+<TypeTable
+  type={{
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.)." },
+    defaultInstanceId: { type: "string", description: "ID of the default agent instance." },
   }}
 />
 

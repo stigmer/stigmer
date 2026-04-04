@@ -1202,5 +1202,206 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "AgentExecution represents a single agent execution instance (conversational).\n Follows the standard pattern: spec contains user inputs, status contains execution results.",
+  "statusType": {
+    "name": "AgentExecutionStatus",
+    "description": "AgentExecutionStatus contains all execution results and state.\n Everything populated during or after execution goes here, not in spec.",
+    "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus",
+    "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/api.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      },
+      {
+        "name": "Messages",
+        "jsonName": "messages",
+        "protoField": "messages",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "AgentMessage"
+          }
+        },
+        "description": "Sequential stream of execution events: AI messages, tool calls, and system notifications.\n Ordered chronologically to reconstruct the complete execution flow.\n Each message captures what happened during execution (agent responses, tool invocations, progress updates).",
+        "required": false
+      },
+      {
+        "name": "Phase",
+        "jsonName": "phase",
+        "protoField": "phase",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.agentexecution.v1.ExecutionPhase",
+          "enumValues": [
+            "EXECUTION_PENDING",
+            "EXECUTION_IN_PROGRESS",
+            "EXECUTION_COMPLETED",
+            "EXECUTION_FAILED",
+            "EXECUTION_CANCELLED",
+            "EXECUTION_TERMINATED",
+            "EXECUTION_WAITING_FOR_APPROVAL",
+            "EXECUTION_PAUSED"
+          ]
+        },
+        "description": "Current execution lifecycle phase.\n Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)\n to terminal states (COMPLETED/FAILED/CANCELLED).",
+        "required": false
+      },
+      {
+        "name": "SubAgentExecutions",
+        "jsonName": "subAgentExecutions",
+        "protoField": "sub_agent_executions",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "SubAgentExecution"
+          }
+        },
+        "description": "Sub-agent executions invoked during this execution.\n Tracks when the main agent delegates work to specialized sub-agents.\n Ordered chronologically by invocation time.",
+        "required": false
+      },
+      {
+        "name": "Error",
+        "jsonName": "error",
+        "protoField": "error",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Error message if execution failed.\n Only populated when phase == EXECUTION_FAILED.",
+        "required": false
+      },
+      {
+        "name": "StartedAt",
+        "jsonName": "startedAt",
+        "protoField": "started_at",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ISO 8601 timestamp when execution started.\n Example: \"2025-01-10T10:30:00Z\"",
+        "required": false
+      },
+      {
+        "name": "CompletedAt",
+        "jsonName": "completedAt",
+        "protoField": "completed_at",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ISO 8601 timestamp when execution completed, failed, or was cancelled.\n Only populated for terminal states.",
+        "required": false
+      },
+      {
+        "name": "Todos",
+        "jsonName": "todos",
+        "protoField": "todos",
+        "type": {
+          "kind": "map",
+          "keyType": {
+            "kind": "string"
+          },
+          "valueType": {
+            "kind": "message",
+            "messageType": "TodoItem"
+          }
+        },
+        "description": "Todo list tracking multi-step tasks and progress for this execution.\n Updated via write_todos tool (if TodoListMiddleware is enabled).\n Each execution maintains its own snapshot of todos at execution time.\n Key: todo item ID, Value: todo item details",
+        "required": false
+      },
+      {
+        "name": "CallbackToken",
+        "jsonName": "callbackToken",
+        "protoField": "callback_token",
+        "type": {
+          "kind": "bytes"
+        },
+        "description": "Temporal callback token for async activity completion.\n\n When this AgentExecution is triggered from a Temporal activity (e.g., from a workflow\n that invokes an agent), the calling activity passes its task token here. The agent-runner\n is responsible for completing the external activity when the agent execution finishes.\n\n ## Token Handshake Pattern\n\n Same pattern as WorkflowExecution (see workflowexecution/v1/api.proto for details):\n 1. External activity extracts token and stores in AgentExecution.status\n 2. Activity returns activity.ErrResultPending (paused, thread freed)\n 3. Agent executes (seconds to minutes)\n 4. On completion: agent-runner completes external activity via token\n\n ## Why in Status\n\n - System-generated by Temporal, not user-provided\n - Runtime state, not configuration\n - Ephemeral, only relevant during execution\n\n ## Use Cases\n\n - **With token**: Agent invoked from workflow, workflow waits for completion\n - **Without token**: Agent runs independently (chat, API call)\n\n ## References\n\n - WorkflowExecution.spec.callback_token (field 7) - Same pattern\n - [ADR](docs/adr/20260122-async-agent-execution-temporal-token-handshake.md)",
+        "required": false
+      },
+      {
+        "name": "ResolvedContext",
+        "jsonName": "resolvedContext",
+        "protoField": "resolved_context",
+        "type": {
+          "kind": "message",
+          "messageType": "ResolvedExecutionContext"
+        },
+        "description": "Resolved execution context showing what resources the agent had access to.\n Populated once before streaming begins, after all resources are resolved.\n Immutable after initial population - represents the \"snapshot\" of resolved state.",
+        "required": false
+      },
+      {
+        "name": "PendingApprovals",
+        "jsonName": "pendingApprovals",
+        "protoField": "pending_approvals",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "PendingApproval"
+          }
+        },
+        "description": "Active pending approval requests for this execution.\n\n Computed server-side by the Go/Java UpdateStatus handlers on every write.\n The handler scans messages[].tool_calls and\n sub_agent_executions[].messages[].tool_calls, collecting entries where\n status == WAITING_APPROVAL \u0026\u0026 requires_approval == true, and projects\n them into PendingApproval entries.\n\n Because this field is recomputed (not merged), it is always consistent\n with the authoritative tool call state embedded in messages. No lifecycle\n state machine, no merge logic, no forward-only enforcement needed.\n\n Sub-agent approvals are included with from_sub_agent=true and\n sub_agent_name set, so the UI can attribute each approval to its origin.\n\n Lifecycle:\n 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message\n 2. UpdateStatus handler recomputes this field, entry appears\n 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL\n 4. User submits decisions via SubmitApproval RPC (one per tool call)\n 5. Agent resumes, ToolCall.status advances, next recompute drops the entry\n\n Empty when no approvals are pending.",
+        "required": false
+      },
+      {
+        "name": "ContextInfo",
+        "jsonName": "contextInfo",
+        "protoField": "context_info",
+        "type": {
+          "kind": "message",
+          "messageType": "ContextInfo"
+        },
+        "description": "Context window utilization and summarization tracking.\n\n Provides visibility into how the agent is using its context window and\n any summarization events that occurred during execution.\n\n Populated when context management is active (not disabled via config).\n Updated progressively during streaming as token counts change.\n\n Use cases:\n - **Monitoring**: Track context utilization across executions\n - **Debugging**: Understand why an execution hit context limits\n - **Cost optimization**: Identify executions with excessive summarization\n - **UX**: Show users their context window health\n\n @since Phase 3 (Context Summarization Architecture)",
+        "required": false
+      },
+      {
+        "name": "Artifacts",
+        "jsonName": "artifacts",
+        "protoField": "artifacts",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "ExecutionArtifact"
+          }
+        },
+        "description": "Files/directories published by the agent for download.\n\n When an agent creates artifacts (e.g., generated code, reports, skills),\n it can call the publish_artifact tool to make them downloadable.\n Each artifact includes a pre-signed URL for direct download.\n\n Artifacts are stored in R2 and URLs expire after a configured period.\n Use the execution download endpoint to refresh expired URLs.\n\n Ordered by creation time (oldest first).\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+        "required": false
+      },
+      {
+        "name": "WorkspaceWriteBacks",
+        "jsonName": "workspaceWriteBacks",
+        "protoField": "workspace_write_backs",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "WorkspaceWriteBack"
+          }
+        },
+        "description": "Git write-back outcomes for workspace entries that had changes.\n\n One entry per git-backed workspace entry where the agent modified\n files and write_back_mode was enabled on the GitRepoSource. Omitted\n for workspace entries with no changes, non-git sources, or disabled\n write-back mode.\n\n Populated during post-execution processing. Each entry tracks the\n write-back lifecycle (committed -\u003e pushed -\u003e PR created) and carries\n the PR URL for UI display.\n\n @since Platform-Owned Git Write-Back",
+        "required": false
+      },
+      {
+        "name": "SetupProgress",
+        "jsonName": "setupProgress",
+        "protoField": "setup_progress",
+        "type": {
+          "kind": "message",
+          "messageType": "SetupProgress"
+        },
+        "description": "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.\n Populated progressively as the worker completes setup steps (sandbox init,\n workspace provisioning, skill loading, MCP server connection, etc.).\n Only meaningful while phase == EXECUTION_PENDING. Cleared by the server\n when phase transitions away from PENDING.",
+        "required": false
+      }
+    ]
+  }
 }

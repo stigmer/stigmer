@@ -10,14 +10,14 @@ Created before AgentInstance or WorkflowInstance, referenced during instance cre
 ## Client Access
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environment, err := client.Environment.Get(ctx, "env_01j5q3k7m8r2s4tnz2hfp0q0c3")
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environment = await stigmer.environment.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.Get(ctx, "env_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
@@ -52,14 +52,14 @@ Environment environment = client.environment().get("env_01j5q3k7m8r2s4tnz2hfp0q0
 Get an Environment by ID.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environment, err := client.Environment.Get(ctx, id)
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environment = await stigmer.environment.get(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.Get(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
@@ -80,23 +80,13 @@ Environment environment = client.environment().get(id);
 |-----------|------|-------------|
 | `id` | `string` | Environment identifier. |
 
-**Returns**: `Environment`
+**Returns**: [`Environment`](#environment)
 
 ### getByReference
 
 Get an environment by its organization-scoped reference (org/slug).
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environment, err := client.Environment.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environment = await stigmer.environment.getByReference({
@@ -105,6 +95,16 @@ const environment = await stigmer.environment.getByReference({
   slug: "...",
   version: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -131,27 +131,27 @@ Environment environment = client.environment().getByReference(ApiResourceReferen
 
 **Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
-**Returns**: `Environment`
+**Returns**: [`Environment`](#environment)
 
 ### getSecretValue
 
 Get the unredacted value of a single secret key in an environment. Creator-only: requires can_read_secrets permission. Returns the EnvironmentValue with the decrypted value.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environmentValue, err := client.Environment.GetSecretValue(ctx, &stigmer.EnvironmentSecretValueInput{
-  EnvironmentId: "...",
-  Key:           "...",
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environmentValue = await stigmer.environment.getSecretValue({
   environmentId: "...",
   key: "...",
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+environmentValue, err := client.Environment.GetSecretValue(ctx, &stigmer.EnvironmentSecretValueInput{
+  EnvironmentId: "...",
+  Key:           "...",
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -181,15 +181,6 @@ EnvironmentValue environmentValue = client.environment().getSecretValue(Environm
 List environments with optional label filtering. Secret values are redacted in the response.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-result, err := client.Environment.List(ctx, &stigmer.ListEnvironmentsRequest{
-  Org:      "...",
-  Labels:   map[string]string{},
-  PageInfo: &stigmer.PageInfoInput{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.environment.list({
@@ -197,6 +188,15 @@ const result = await stigmer.environment.list({
   labels: {},
   pageInfo: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Environment.List(ctx, &stigmer.ListEnvironmentsRequest{
+  Org:      "...",
+  Labels:   map[string]string{},
+  PageInfo: &stigmer.PageInfoInput{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -228,18 +228,6 @@ EnvironmentList result = client.environment().list(ListEnvironmentsRequest.build
 Create or update an Environment resource. The authorization and state-operation are determined depending on whether the environment is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environment, err := client.Environment.Apply(ctx, &stigmer.EnvironmentInput{
-  Name:        "my-environment",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Description: "...",
-  Data:        map[string]string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environment = await stigmer.environment.apply({
@@ -250,6 +238,18 @@ const environment = await stigmer.environment.apply({
   description: "...",
   data: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.Apply(ctx, &stigmer.EnvironmentInput{
+  Name:        "my-environment",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Data:        map[string]string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -280,25 +280,13 @@ Environment environment = client.environment().apply(EnvironmentInput.builder()
 
 **Parameters**: [`EnvironmentInput`](#environmentinput)
 
-**Returns**: `Environment`
+**Returns**: [`Environment`](#environment)
 
 ### create
 
 Create a new Environment resource.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environment, err := client.Environment.Create(ctx, &stigmer.EnvironmentInput{
-  Name:        "my-environment",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Description: "...",
-  Data:        map[string]string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environment = await stigmer.environment.create({
@@ -309,6 +297,18 @@ const environment = await stigmer.environment.create({
   description: "...",
   data: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.Create(ctx, &stigmer.EnvironmentInput{
+  Name:        "my-environment",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Data:        map[string]string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -339,25 +339,13 @@ Environment environment = client.environment().create(EnvironmentInput.builder()
 
 **Parameters**: [`EnvironmentInput`](#environmentinput)
 
-**Returns**: `Environment`
+**Returns**: [`Environment`](#environment)
 
 ### update
 
 Update an existing Environment resource.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environment, err := client.Environment.Update(ctx, &stigmer.EnvironmentInput{
-  Name:        "my-environment",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Description: "...",
-  Data:        map[string]string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environment = await stigmer.environment.update({
@@ -368,6 +356,18 @@ const environment = await stigmer.environment.update({
   description: "...",
   data: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.Update(ctx, &stigmer.EnvironmentInput{
+  Name:        "my-environment",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Data:        map[string]string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -398,27 +398,27 @@ Environment environment = client.environment().update(EnvironmentInput.builder()
 
 **Parameters**: [`EnvironmentInput`](#environmentinput)
 
-**Returns**: `Environment`
+**Returns**: [`Environment`](#environment)
 
 ### updateVariables
 
 Add or update specific variables in an environment (server-side merge). Existing variables not included in the request are preserved unchanged.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environment, err := client.Environment.UpdateVariables(ctx, &stigmer.UpdateEnvironmentVariablesRequest{
-  EnvironmentId: "...",
-  Variables:     map[string]string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environment = await stigmer.environment.updateVariables({
   environmentId: "...",
   variables: {},
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.UpdateVariables(ctx, &stigmer.UpdateEnvironmentVariablesRequest{
+  EnvironmentId: "...",
+  Variables:     map[string]string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -441,23 +441,23 @@ Environment environment = client.environment().updateVariables(UpdateEnvironment
 
 **Parameters**: [`UpdateEnvironmentVariablesRequest`](#updateenvironmentvariablesrequest)
 
-**Returns**: `Environment`
+**Returns**: [`Environment`](#environment)
 
 ### delete
 
 Delete an Environment resource.
 
 <SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const environment = await stigmer.environment.delete({ resourceId: id });
+```
+</Tab>
 <Tab value="Go">
 ```go
 environment, err := client.Environment.Delete(ctx, &stigmer.DeleteResourceInput{
   ResourceID: id,
 })
-```
-</Tab>
-<Tab value="TypeScript">
-```typescript
-const environment = await stigmer.environment.delete({ resourceId: id });
 ```
 </Tab>
 <Tab value="Python">
@@ -482,27 +482,27 @@ Environment environment = client.environment().delete(DeleteResourceInput.builde
 | `versionMessage` | `string` | Optional deletion reason. |
 | `force` | `boolean` | Force delete even if resource is in use. |
 
-**Returns**: `Environment`
+**Returns**: [`Environment`](#environment)
 
 ### removeVariables
 
 Remove specific variables from an environment by key. Keys that don't exist are silently ignored.
 
 <SDKTabs>
-<Tab value="Go">
-```go
-environment, err := client.Environment.RemoveVariables(ctx, &stigmer.RemoveEnvironmentVariablesRequest{
-  EnvironmentId: "...",
-  Keys:          []string{},
-})
-```
-</Tab>
 <Tab value="TypeScript">
 ```typescript
 const environment = await stigmer.environment.removeVariables({
   environmentId: "...",
   keys: [],
 });
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.RemoveVariables(ctx, &stigmer.RemoveEnvironmentVariablesRequest{
+  EnvironmentId: "...",
+  Keys:          []string{},
+})
 ```
 </Tab>
 <Tab value="Python">
@@ -525,7 +525,7 @@ Environment environment = client.environment().removeVariables(RemoveEnvironment
 
 **Parameters**: [`RemoveEnvironmentVariablesRequest`](#removeenvironmentvariablesrequest)
 
-**Returns**: `Environment`
+**Returns**: [`Environment`](#environment)
 
 ## Types
 
@@ -622,6 +622,20 @@ EnvironmentList contains a paginated list of environments.
   type={{
     totalCount: { type: "number", description: "Total count of matching environments." },
     items: { type: "EnvironmentInput[]", description: "Environments in the current page." },
+  }}
+/>
+
+### Environment
+
+Environment represents a named collection of configuration and secrets.
+
+<TypeTable
+  type={{
+    apiVersion: { type: "string", description: "API version for this resource type." },
+    kind: { type: "string", description: "Resource kind identifier." },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
+    spec: { type: "EnvironmentInput", description: "Resource specification. See [`EnvironmentInput`](#environmentinput)." },
+    status: { type: "EnvironmentStatus", description: "System-managed state. See `EnvironmentStatus`." },
   }}
 />
 

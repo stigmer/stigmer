@@ -232,5 +232,6 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n Similar to GitHub organizations, all agents, workflows, sessions, and other\n resources are scoped under an organization. This enables multi-tenancy and\n proper resource isolation."
 }

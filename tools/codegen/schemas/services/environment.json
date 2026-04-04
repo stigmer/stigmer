@@ -407,5 +407,6 @@
         }
       ]
     }
-  ]
+  ],
+  "resourceDescription": "Environment represents a named collection of configuration and secrets.\n Environments are created before AgentInstance or WorkflowInstance and referenced during instance creation.\n Each key-value pair can be marked as secret or non-secret."
 }
