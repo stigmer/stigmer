@@ -203,7 +203,7 @@ private static final long serialVersionUID = 0L;
    * is typically PRIVATE for executions since they contain runtime data.
    *
    * Naming Pattern:
-   * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+   * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
    * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
    * - Slug Format: Same as name, URL-safe
    *
@@ -227,7 +227,7 @@ private static final long serialVersionUID = 0L;
    * is typically PRIVATE for executions since they contain runtime data.
    *
    * Naming Pattern:
-   * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+   * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
    * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
    * - Slug Format: Same as name, URL-safe
    *
@@ -251,7 +251,7 @@ private static final long serialVersionUID = 0L;
    * is typically PRIVATE for executions since they contain runtime data.
    *
    * Naming Pattern:
-   * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+   * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
    * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
    * - Slug Format: Same as name, URL-safe
    *
@@ -284,7 +284,7 @@ private static final long serialVersionUID = 0L;
    *
    * Example:
    * spec {
-   * workflow_instance_id: "wfi-customer-onboarding-prod"
+   * workflow_instance_id: "wfi_customer-onboarding-prod"
    * trigger_message: "New customer: customer-email&#64;example.com"
    * trigger_metadata: {
    * "source": "api"
@@ -320,7 +320,7 @@ private static final long serialVersionUID = 0L;
    *
    * Example:
    * spec {
-   * workflow_instance_id: "wfi-customer-onboarding-prod"
+   * workflow_instance_id: "wfi_customer-onboarding-prod"
    * trigger_message: "New customer: customer-email&#64;example.com"
    * trigger_metadata: {
    * "source": "api"
@@ -356,7 +356,7 @@ private static final long serialVersionUID = 0L;
    *
    * Example:
    * spec {
-   * workflow_instance_id: "wfi-customer-onboarding-prod"
+   * workflow_instance_id: "wfi_customer-onboarding-prod"
    * trigger_message: "New customer: customer-email&#64;example.com"
    * trigger_metadata: {
    * "source": "api"
@@ -1193,7 +1193,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1216,7 +1216,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1243,7 +1243,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1275,7 +1275,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1305,7 +1305,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1342,7 +1342,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1371,7 +1371,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1395,7 +1395,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1422,7 +1422,7 @@ private static final long serialVersionUID = 0L;
      * is typically PRIVATE for executions since they contain runtime data.
      *
      * Naming Pattern:
-     * - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+     * - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
      * - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
      * - Slug Format: Same as name, URL-safe
      *
@@ -1465,7 +1465,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"
@@ -1500,7 +1500,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"
@@ -1539,7 +1539,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"
@@ -1583,7 +1583,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"
@@ -1625,7 +1625,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"
@@ -1674,7 +1674,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"
@@ -1715,7 +1715,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"
@@ -1751,7 +1751,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"
@@ -1790,7 +1790,7 @@ private static final long serialVersionUID = 0L;
      *
      * Example:
      * spec {
-     * workflow_instance_id: "wfi-customer-onboarding-prod"
+     * workflow_instance_id: "wfi_customer-onboarding-prod"
      * trigger_message: "New customer: customer-email&#64;example.com"
      * trigger_metadata: {
      * "source": "api"

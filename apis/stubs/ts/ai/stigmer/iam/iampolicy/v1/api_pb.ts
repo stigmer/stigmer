@@ -48,7 +48,7 @@ export type IamPolicy = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicy"> & {
 
   /**
    * metadata
-   * id format: iamp-<ulid>
+   * id format: iamp_<ulid>
    * name: human-readable identifier (e.g., "john-vpc-admin")
    * org: organization this policy belongs to
    *

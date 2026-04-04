@@ -243,11 +243,11 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result:
-     *   Created IamPolicy with auto-generated ID (e.g., "iamp-01HQ...")
+     *   Created IamPolicy with auto-generated ID (e.g., "iamp_01HQ...")
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
@@ -277,8 +277,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Cleaning up individual policies
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result: The policy granting Alice viewer access to the organization is deleted
      * Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
@@ -313,8 +313,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Establishing initial authorization tuples for any newly created resource
      * Example:
      * Input:
-     *   principal: {kind: "organization", id: "org-demo-123"}
-     *   resource: {kind: "agent", id: "agt-abc-456"}
+     *   principal: {kind: "organization", id: "org_demo-123"}
+     *   resource: {kind: "agent", id: "agt_abc-456"}
      *   relation: "organization"
      * Result:
      *   Created IamPolicy establishing agent's organization scope
@@ -352,8 +352,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Preventing orphaned FGA tuples
      * - Maintaining authorization system integrity
      * Example:
-     * Input: {kind: "organization", id: "org-demo-123"}
-     * Result: All policies referencing org-demo-123 are deleted
+     * Input: {kind: "organization", id: "org_demo-123"}
+     * Result: All policies referencing org_demo-123 are deleted
      * Input: ApiResourceRef with resource kind and ID
      * Output: Empty (google.protobuf.Empty)
      * </pre>
@@ -435,11 +435,11 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result:
-     *   Created IamPolicy with auto-generated ID (e.g., "iamp-01HQ...")
+     *   Created IamPolicy with auto-generated ID (e.g., "iamp_01HQ...")
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
@@ -470,8 +470,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Cleaning up individual policies
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result: The policy granting Alice viewer access to the organization is deleted
      * Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
@@ -507,8 +507,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Establishing initial authorization tuples for any newly created resource
      * Example:
      * Input:
-     *   principal: {kind: "organization", id: "org-demo-123"}
-     *   resource: {kind: "agent", id: "agt-abc-456"}
+     *   principal: {kind: "organization", id: "org_demo-123"}
+     *   resource: {kind: "agent", id: "agt_abc-456"}
      *   relation: "organization"
      * Result:
      *   Created IamPolicy establishing agent's organization scope
@@ -547,8 +547,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Preventing orphaned FGA tuples
      * - Maintaining authorization system integrity
      * Example:
-     * Input: {kind: "organization", id: "org-demo-123"}
-     * Result: All policies referencing org-demo-123 are deleted
+     * Input: {kind: "organization", id: "org_demo-123"}
+     * Result: All policies referencing org_demo-123 are deleted
      * Input: ApiResourceRef with resource kind and ID
      * Output: Empty (google.protobuf.Empty)
      * </pre>
@@ -606,11 +606,11 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result:
-     *   Created IamPolicy with auto-generated ID (e.g., "iamp-01HQ...")
+     *   Created IamPolicy with auto-generated ID (e.g., "iamp_01HQ...")
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
@@ -640,8 +640,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Cleaning up individual policies
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result: The policy granting Alice viewer access to the organization is deleted
      * Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
@@ -676,8 +676,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Establishing initial authorization tuples for any newly created resource
      * Example:
      * Input:
-     *   principal: {kind: "organization", id: "org-demo-123"}
-     *   resource: {kind: "agent", id: "agt-abc-456"}
+     *   principal: {kind: "organization", id: "org_demo-123"}
+     *   resource: {kind: "agent", id: "agt_abc-456"}
      *   relation: "organization"
      * Result:
      *   Created IamPolicy establishing agent's organization scope
@@ -715,8 +715,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Preventing orphaned FGA tuples
      * - Maintaining authorization system integrity
      * Example:
-     * Input: {kind: "organization", id: "org-demo-123"}
-     * Result: All policies referencing org-demo-123 are deleted
+     * Input: {kind: "organization", id: "org_demo-123"}
+     * Result: All policies referencing org_demo-123 are deleted
      * Input: ApiResourceRef with resource kind and ID
      * Output: Empty (google.protobuf.Empty)
      * </pre>
@@ -773,11 +773,11 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result:
-     *   Created IamPolicy with auto-generated ID (e.g., "iamp-01HQ...")
+     *   Created IamPolicy with auto-generated ID (e.g., "iamp_01HQ...")
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
@@ -807,8 +807,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Cleaning up individual policies
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result: The policy granting Alice viewer access to the organization is deleted
      * Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
@@ -843,8 +843,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Establishing initial authorization tuples for any newly created resource
      * Example:
      * Input:
-     *   principal: {kind: "organization", id: "org-demo-123"}
-     *   resource: {kind: "agent", id: "agt-abc-456"}
+     *   principal: {kind: "organization", id: "org_demo-123"}
+     *   resource: {kind: "agent", id: "agt_abc-456"}
      *   relation: "organization"
      * Result:
      *   Created IamPolicy establishing agent's organization scope
@@ -882,8 +882,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Preventing orphaned FGA tuples
      * - Maintaining authorization system integrity
      * Example:
-     * Input: {kind: "organization", id: "org-demo-123"}
-     * Result: All policies referencing org-demo-123 are deleted
+     * Input: {kind: "organization", id: "org_demo-123"}
+     * Result: All policies referencing org_demo-123 are deleted
      * Input: ApiResourceRef with resource kind and ID
      * Output: Empty (google.protobuf.Empty)
      * </pre>
@@ -940,11 +940,11 @@ public final class IamPolicyCommandControllerGrpc {
      * - This ensures only resource owners/admins can grant access to their resources
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result:
-     *   Created IamPolicy with auto-generated ID (e.g., "iamp-01HQ...")
+     *   Created IamPolicy with auto-generated ID (e.g., "iamp_01HQ...")
      *   Alice can view (but not modify) the organization
      * Input: IamPolicySpec containing principal, resource, and relation
      * Output: The created IamPolicy with generated ID and metadata
@@ -975,8 +975,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Cleaning up individual policies
      * Example:
      * Input:
-     *   principal: {kind: "identity_account", id: "ia-alice-123"}
-     *   resource: {kind: "organization", id: "org-demo-456"}
+     *   principal: {kind: "identity_account", id: "ia_alice-123"}
+     *   resource: {kind: "organization", id: "org_demo-456"}
      *   relation: "viewer"
      * Result: The policy granting Alice viewer access to the organization is deleted
      * Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
@@ -1012,8 +1012,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Establishing initial authorization tuples for any newly created resource
      * Example:
      * Input:
-     *   principal: {kind: "organization", id: "org-demo-123"}
-     *   resource: {kind: "agent", id: "agt-abc-456"}
+     *   principal: {kind: "organization", id: "org_demo-123"}
+     *   resource: {kind: "agent", id: "agt_abc-456"}
      *   relation: "organization"
      * Result:
      *   Created IamPolicy establishing agent's organization scope
@@ -1052,8 +1052,8 @@ public final class IamPolicyCommandControllerGrpc {
      * - Preventing orphaned FGA tuples
      * - Maintaining authorization system integrity
      * Example:
-     * Input: {kind: "organization", id: "org-demo-123"}
-     * Result: All policies referencing org-demo-123 are deleted
+     * Input: {kind: "organization", id: "org_demo-123"}
+     * Result: All policies referencing org_demo-123 are deleted
      * Input: ApiResourceRef with resource kind and ID
      * Output: Empty (google.protobuf.Empty)
      * </pre>

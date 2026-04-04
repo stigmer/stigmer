@@ -13,7 +13,7 @@ public interface WorkflowInstanceIdOrBuilder extends
   /**
    * <pre>
    * The workflow instance resource ID.
-   * Example: "wfi-abc123"
+   * Example: "wfi_abc123"
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -23,7 +23,7 @@ public interface WorkflowInstanceIdOrBuilder extends
   /**
    * <pre>
    * The workflow instance resource ID.
-   * Example: "wfi-abc123"
+   * Example: "wfi_abc123"
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

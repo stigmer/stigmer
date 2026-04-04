@@ -14,8 +14,8 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
    * <pre>
    * Workflow execution ID to cancel.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -28,8 +28,8 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
    * <pre>
    * Workflow execution ID to cancel.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -50,7 +50,7 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
    * Examples:
    * - "Customer requested cancellation"
    * - "Incorrect workflow triggered by mistake"
-   * - "Superseded by newer execution wfx-def456"
+   * - "Superseded by newer execution wfx_def456"
    * - "Pre-maintenance shutdown"
    * </pre>
    *
@@ -68,7 +68,7 @@ public interface CancelWorkflowExecutionInputOrBuilder extends
    * Examples:
    * - "Customer requested cancellation"
    * - "Incorrect workflow triggered by mistake"
-   * - "Superseded by newer execution wfx-def456"
+   * - "Superseded by newer execution wfx_def456"
    * - "Pre-maintenance shutdown"
    * </pre>
    *

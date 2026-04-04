@@ -33,8 +33,9 @@ export const AgentIdSchema: GenMessage<AgentId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_io, 0);
 
 /**
- * GetDefaultAgentRequest provides org context for fetching the platform default agent.
+ * GetDefaultAgentRequest is the input for retrieving the platform default agent.
  *
+ * @internal
  * The handler resolves the default agent globally (by label stigmer.ai/default-agent: "true"
  * with visibility_public), but the org is needed for authorization scoping.
  *
@@ -42,6 +43,8 @@ export const AgentIdSchema: GenMessage<AgentId> = /*@__PURE__*/
  */
 export type GetDefaultAgentRequest = Message<"ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest"> & {
   /**
+   * Organization slug for authorization scoping.
+   *
    * @generated from field: string org = 1;
    */
   org: string;

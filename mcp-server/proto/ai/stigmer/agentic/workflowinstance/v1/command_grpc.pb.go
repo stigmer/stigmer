@@ -69,8 +69,8 @@ type WorkflowInstanceCommandControllerClient interface {
 	// - Initial version (status.audit.version = 1)
 	//
 	// Example:
-	// Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-	// Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+	// Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
+	// Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
 	Create(ctx context.Context, in *WorkflowInstance, opts ...grpc.CallOption) (*WorkflowInstance, error)
 	// Update an existing workflow instance.
 	//
@@ -218,8 +218,8 @@ type WorkflowInstanceCommandControllerServer interface {
 	// - Initial version (status.audit.version = 1)
 	//
 	// Example:
-	// Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
-	// Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+	// Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
+	// Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
 	Create(context.Context, *WorkflowInstance) (*WorkflowInstance, error)
 	// Update an existing workflow instance.
 	//

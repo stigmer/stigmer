@@ -50,7 +50,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * ## Example
  *
  * {
- * "id": "wfx-abc123xyz456",
+ * "id": "wfx_abc123xyz456",
  * "reason": "Workflow stuck for 2 hours, not responding to cancel"
  * }
  * </pre>
@@ -106,8 +106,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to terminate.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -132,8 +132,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to terminate.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -434,7 +434,7 @@ private static final long serialVersionUID = 0L;
    * ## Example
    *
    * {
-   * "id": "wfx-abc123xyz456",
+   * "id": "wfx_abc123xyz456",
    * "reason": "Workflow stuck for 2 hours, not responding to cancel"
    * }
    * </pre>
@@ -595,8 +595,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -620,8 +620,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -646,8 +646,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -668,8 +668,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -687,8 +687,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>

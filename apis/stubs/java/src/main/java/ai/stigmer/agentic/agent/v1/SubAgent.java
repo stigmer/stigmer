@@ -8,24 +8,13 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * SubAgent defines a specialized agent that the parent can delegate to.
- * SubAgents have restricted access to the parent's MCP servers.
  *
- * Permission Model:
- * - SubAgent can only access MCP servers that parent has in mcp_server_usages
- * - SubAgent tools must be a subset of parent's enabled tools (can restrict, not expand)
- * - SubAgent skills can reference any Skill resource (independent of parent)
+ * A sub-agent can only access MCP servers that the parent has in
+ * mcp_server_usages, and its tools must be a subset of the parent's
+ * enabled tools. Skills are independent of the parent.
  *
- * Example YAML:
- * sub_agents:
- * - name: code-reviewer
- * description: "Reviews code changes for quality and security"
- * instructions: "You review code changes. Focus on security..."
- * mcp_access:
- * - mcp_server: github
- * enabled_tools: [search_code, get_file]
- * skill_refs:
- * - kind: skill
- * slug: code-review-best-practices
+ * &#64;internal
+ * Permission model enforced at execution time by the delegation handler.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.SubAgent}
@@ -82,8 +71,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique name of the sub-agent within the parent agent.
-   * Used for delegation routing and logging.
-   * Examples: "code-reviewer", "researcher", "writer"
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -105,8 +92,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique name of the sub-agent within the parent agent.
-   * Used for delegation routing and logging.
-   * Examples: "code-reviewer", "researcher", "writer"
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -132,9 +117,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object description_ = "";
   /**
    * <pre>
-   * Description of what this sub-agent specializes in.
-   * Helps the parent agent decide when to delegate to this sub-agent.
-   * Example: "Reviews code changes for security issues and best practices"
+   * What this sub-agent specializes in.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -155,9 +138,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Description of what this sub-agent specializes in.
-   * Helps the parent agent decide when to delegate to this sub-agent.
-   * Example: "Reviews code changes for security issues and best practices"
+   * What this sub-agent specializes in.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -183,9 +164,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object instructions_ = "";
   /**
    * <pre>
-   * Behavior instructions for this sub-agent.
-   * Defines the sub-agent's personality, expertise, and constraints.
-   * Should be at least 10 characters to ensure meaningful instructions.
+   * System prompt for this sub-agent.
    * </pre>
    *
    * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -206,9 +185,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Behavior instructions for this sub-agent.
-   * Defines the sub-agent's personality, expertise, and constraints.
-   * Should be at least 10 characters to ensure meaningful instructions.
+   * System prompt for this sub-agent.
    * </pre>
    *
    * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -235,9 +212,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -249,9 +225,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -264,9 +239,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -278,9 +252,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -292,9 +265,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -310,8 +282,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_;
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -322,8 +293,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -335,8 +305,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -347,8 +316,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -359,8 +327,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -377,15 +344,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Model override for this sub-agent.
-   * When set, this sub-agent uses this model instead of the parent's model.
-   * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-   *
-   * Examples:
-   * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-   * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-   * - Code review sub-agent keeps parent model (leave empty)
-   *
-   * When empty: inherits the parent agent's model (current behavior).
+   * When set, uses this model instead of the parent's model.
+   * When empty, inherits the parent agent's model.
    * </pre>
    *
    * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -407,15 +367,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Model override for this sub-agent.
-   * When set, this sub-agent uses this model instead of the parent's model.
-   * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-   *
-   * Examples:
-   * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-   * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-   * - Code review sub-agent keeps parent model (leave empty)
-   *
-   * When empty: inherits the parent agent's model (current behavior).
+   * When set, uses this model instead of the parent's model.
+   * When empty, inherits the parent agent's model.
    * </pre>
    *
    * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -661,24 +614,13 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SubAgent defines a specialized agent that the parent can delegate to.
-   * SubAgents have restricted access to the parent's MCP servers.
    *
-   * Permission Model:
-   * - SubAgent can only access MCP servers that parent has in mcp_server_usages
-   * - SubAgent tools must be a subset of parent's enabled tools (can restrict, not expand)
-   * - SubAgent skills can reference any Skill resource (independent of parent)
+   * A sub-agent can only access MCP servers that the parent has in
+   * mcp_server_usages, and its tools must be a subset of the parent's
+   * enabled tools. Skills are independent of the parent.
    *
-   * Example YAML:
-   * sub_agents:
-   * - name: code-reviewer
-   * description: "Reviews code changes for quality and security"
-   * instructions: "You review code changes. Focus on security..."
-   * mcp_access:
-   * - mcp_server: github
-   * enabled_tools: [search_code, get_file]
-   * skill_refs:
-   * - kind: skill
-   * slug: code-review-best-practices
+   * &#64;internal
+   * Permission model enforced at execution time by the delegation handler.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.SubAgent}
@@ -978,8 +920,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique name of the sub-agent within the parent agent.
-     * Used for delegation routing and logging.
-     * Examples: "code-reviewer", "researcher", "writer"
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1000,8 +940,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique name of the sub-agent within the parent agent.
-     * Used for delegation routing and logging.
-     * Examples: "code-reviewer", "researcher", "writer"
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1023,8 +961,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique name of the sub-agent within the parent agent.
-     * Used for delegation routing and logging.
-     * Examples: "code-reviewer", "researcher", "writer"
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1042,8 +978,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique name of the sub-agent within the parent agent.
-     * Used for delegation routing and logging.
-     * Examples: "code-reviewer", "researcher", "writer"
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1058,8 +992,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique name of the sub-agent within the parent agent.
-     * Used for delegation routing and logging.
-     * Examples: "code-reviewer", "researcher", "writer"
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -1079,9 +1011,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object description_ = "";
     /**
      * <pre>
-     * Description of what this sub-agent specializes in.
-     * Helps the parent agent decide when to delegate to this sub-agent.
-     * Example: "Reviews code changes for security issues and best practices"
+     * What this sub-agent specializes in.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -1101,9 +1031,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Description of what this sub-agent specializes in.
-     * Helps the parent agent decide when to delegate to this sub-agent.
-     * Example: "Reviews code changes for security issues and best practices"
+     * What this sub-agent specializes in.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -1124,9 +1052,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Description of what this sub-agent specializes in.
-     * Helps the parent agent decide when to delegate to this sub-agent.
-     * Example: "Reviews code changes for security issues and best practices"
+     * What this sub-agent specializes in.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -1143,9 +1069,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Description of what this sub-agent specializes in.
-     * Helps the parent agent decide when to delegate to this sub-agent.
-     * Example: "Reviews code changes for security issues and best practices"
+     * What this sub-agent specializes in.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -1159,9 +1083,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Description of what this sub-agent specializes in.
-     * Helps the parent agent decide when to delegate to this sub-agent.
-     * Example: "Reviews code changes for security issues and best practices"
+     * What this sub-agent specializes in.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -1181,9 +1103,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object instructions_ = "";
     /**
      * <pre>
-     * Behavior instructions for this sub-agent.
-     * Defines the sub-agent's personality, expertise, and constraints.
-     * Should be at least 10 characters to ensure meaningful instructions.
+     * System prompt for this sub-agent.
      * </pre>
      *
      * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -1203,9 +1123,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Behavior instructions for this sub-agent.
-     * Defines the sub-agent's personality, expertise, and constraints.
-     * Should be at least 10 characters to ensure meaningful instructions.
+     * System prompt for this sub-agent.
      * </pre>
      *
      * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -1226,9 +1144,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Behavior instructions for this sub-agent.
-     * Defines the sub-agent's personality, expertise, and constraints.
-     * Should be at least 10 characters to ensure meaningful instructions.
+     * System prompt for this sub-agent.
      * </pre>
      *
      * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -1245,9 +1161,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Behavior instructions for this sub-agent.
-     * Defines the sub-agent's personality, expertise, and constraints.
-     * Should be at least 10 characters to ensure meaningful instructions.
+     * System prompt for this sub-agent.
      * </pre>
      *
      * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -1261,9 +1175,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Behavior instructions for this sub-agent.
-     * Defines the sub-agent's personality, expertise, and constraints.
-     * Should be at least 10 characters to ensure meaningful instructions.
+     * System prompt for this sub-agent.
      * </pre>
      *
      * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -1295,9 +1207,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1312,9 +1223,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1329,9 +1239,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1346,9 +1255,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1370,9 +1278,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1391,9 +1298,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1414,9 +1320,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1438,9 +1343,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1459,9 +1363,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1480,9 +1383,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1502,9 +1404,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1522,9 +1423,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1542,9 +1442,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1556,9 +1455,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1573,9 +1471,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1591,9 +1488,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1605,9 +1501,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1620,9 +1515,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * MCP server access grants for this sub-agent.
-     * Each McpAccess references a parent's McpServerUsage by slug and
-     * optionally restricts which tools are available.
-     * Sub-agent can only use MCP servers listed here.
+     * Each entry references a parent McpServerUsage by slug and optionally
+     * restricts which tools are available.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -1660,8 +1554,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1675,8 +1568,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1690,8 +1582,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1705,8 +1596,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1727,8 +1617,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1746,8 +1635,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1767,8 +1655,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1789,8 +1676,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1808,8 +1694,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1827,8 +1712,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1847,8 +1731,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1865,8 +1748,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1883,8 +1765,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1895,8 +1776,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1910,8 +1790,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1926,8 +1805,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1938,8 +1816,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1951,8 +1828,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Skill resources for this sub-agent's knowledge.
-     * Skills provide domain-specific knowledge and capabilities.
+     * Skill resources for this sub-agent.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -1980,15 +1856,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, this sub-agent uses this model instead of the parent's model.
-     * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-     *
-     * Examples:
-     * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-     * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-     * - Code review sub-agent keeps parent model (leave empty)
-     *
-     * When empty: inherits the parent agent's model (current behavior).
+     * When set, uses this model instead of the parent's model.
+     * When empty, inherits the parent agent's model.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -2009,15 +1878,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, this sub-agent uses this model instead of the parent's model.
-     * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-     *
-     * Examples:
-     * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-     * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-     * - Code review sub-agent keeps parent model (leave empty)
-     *
-     * When empty: inherits the parent agent's model (current behavior).
+     * When set, uses this model instead of the parent's model.
+     * When empty, inherits the parent agent's model.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -2039,15 +1901,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, this sub-agent uses this model instead of the parent's model.
-     * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-     *
-     * Examples:
-     * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-     * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-     * - Code review sub-agent keeps parent model (leave empty)
-     *
-     * When empty: inherits the parent agent's model (current behavior).
+     * When set, uses this model instead of the parent's model.
+     * When empty, inherits the parent agent's model.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -2065,15 +1920,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, this sub-agent uses this model instead of the parent's model.
-     * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-     *
-     * Examples:
-     * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-     * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-     * - Code review sub-agent keeps parent model (leave empty)
-     *
-     * When empty: inherits the parent agent's model (current behavior).
+     * When set, uses this model instead of the parent's model.
+     * When empty, inherits the parent agent's model.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -2088,15 +1936,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, this sub-agent uses this model instead of the parent's model.
-     * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-     *
-     * Examples:
-     * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-     * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-     * - Code review sub-agent keeps parent model (leave empty)
-     *
-     * When empty: inherits the parent agent's model (current behavior).
+     * When set, uses this model instead of the parent's model.
+     * When empty, inherits the parent agent's model.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>

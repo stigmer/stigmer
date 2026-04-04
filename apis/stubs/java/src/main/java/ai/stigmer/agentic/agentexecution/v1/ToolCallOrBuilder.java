@@ -118,39 +118,6 @@ public interface ToolCallOrBuilder extends
 
   /**
    * <pre>
-   * Optional metadata to guide frontend UI component rendering.
-   * Set by Python worker based on tool name or explicitly by agents.
-   * Example: kubectl_get_pods → component_type="terminal"
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-   * @return Whether the componentMetadata field is set.
-   */
-  boolean hasComponentMetadata();
-  /**
-   * <pre>
-   * Optional metadata to guide frontend UI component rendering.
-   * Set by Python worker based on tool name or explicitly by agents.
-   * Example: kubectl_get_pods → component_type="terminal"
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-   * @return The componentMetadata.
-   */
-  ai.stigmer.agentic.agentexecution.v1.ComponentMetadata getComponentMetadata();
-  /**
-   * <pre>
-   * Optional metadata to guide frontend UI component rendering.
-   * Set by Python worker based on tool name or explicitly by agents.
-   * Example: kubectl_get_pods → component_type="terminal"
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ComponentMetadata component_metadata = 6 [json_name = "componentMetadata"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.ComponentMetadataOrBuilder getComponentMetadataOrBuilder();
-
-  /**
-   * <pre>
    * ISO 8601 timestamp when the tool call started.
    * </pre>
    *

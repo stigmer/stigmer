@@ -13,8 +13,6 @@ public interface ToolApprovalOverrideOrBuilder extends
   /**
    * <pre>
    * Name of the tool to override.
-   * Must match exactly (case-sensitive) with MCP server's tool name.
-   * Example: "delete_repository", "send_email", "execute_sql"
    * </pre>
    *
    * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -24,8 +22,6 @@ public interface ToolApprovalOverrideOrBuilder extends
   /**
    * <pre>
    * Name of the tool to override.
-   * Must match exactly (case-sensitive) with MCP server's tool name.
-   * Example: "delete_repository", "send_email", "execute_sql"
    * </pre>
    *
    * <code>string tool_name = 1 [json_name = "toolName", (.buf.validate.field) = { ... }</code>
@@ -37,12 +33,6 @@ public interface ToolApprovalOverrideOrBuilder extends
   /**
    * <pre>
    * Whether this tool requires approval for this agent.
-   *
-   * false: No approval needed (overrides any McpServer default)
-   * true: Approval required (even if McpServer has no default)
-   *
-   * Note: This can be further overridden at execution time by
-   * AgentExecutionSpec.auto_approve_all=true
    * </pre>
    *
    * <code>bool requires_approval = 2 [json_name = "requiresApproval"];</code>
@@ -52,17 +42,10 @@ public interface ToolApprovalOverrideOrBuilder extends
 
   /**
    * <pre>
-   * Optional: Custom approval message for this agent.
-   * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-   *
-   * If empty and requires_approval=true:
-   * - Uses McpServer's default message for this tool (if exists)
-   * - Otherwise auto-generates: "Execute tool: {tool_name}"
-   *
-   * Guidelines for effective messages:
-   * - Be specific to this agent's context
-   * - Include the most important argument values
-   * - Keep under 100 characters for UI display
+   * Custom approval message shown to the reviewer.
+   * Supports {{args.field}} placeholders.
+   * When empty, falls back to the McpServer default or auto-generates
+   * "Execute tool: {tool_name}".
    * </pre>
    *
    * <code>string message = 3 [json_name = "message"];</code>
@@ -71,17 +54,10 @@ public interface ToolApprovalOverrideOrBuilder extends
   java.lang.String getMessage();
   /**
    * <pre>
-   * Optional: Custom approval message for this agent.
-   * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-   *
-   * If empty and requires_approval=true:
-   * - Uses McpServer's default message for this tool (if exists)
-   * - Otherwise auto-generates: "Execute tool: {tool_name}"
-   *
-   * Guidelines for effective messages:
-   * - Be specific to this agent's context
-   * - Include the most important argument values
-   * - Keep under 100 characters for UI display
+   * Custom approval message shown to the reviewer.
+   * Supports {{args.field}} placeholders.
+   * When empty, falls back to the McpServer default or auto-generates
+   * "Execute tool: {tool_name}".
    * </pre>
    *
    * <code>string message = 3 [json_name = "message"];</code>

@@ -46,7 +46,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * ## Example
  *
  * {
- * "execution_id": "wfx-abc123xyz456",
+ * "execution_id": "wfx_abc123xyz456",
  * "signal_name": "payment_confirmed",
  * "payload": {
  * "transaction_id": "txn_123",
@@ -111,8 +111,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to send the signal to.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -137,8 +137,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to send the signal to.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -663,7 +663,7 @@ private static final long serialVersionUID = 0L;
    * ## Example
    *
    * {
-   * "execution_id": "wfx-abc123xyz456",
+   * "execution_id": "wfx_abc123xyz456",
    * "signal_name": "payment_confirmed",
    * "payload": {
    * "transaction_id": "txn_123",
@@ -874,8 +874,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to send the signal to.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -899,8 +899,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to send the signal to.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -925,8 +925,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to send the signal to.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -947,8 +947,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to send the signal to.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -966,8 +966,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to send the signal to.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>

@@ -97,6 +97,22 @@ type Validation struct {
 	Enum      []string `json:"enum,omitempty"`
 }
 
+// EnumSchema describes a proto enum type referenced by resource fields,
+// extracted for SDK documentation.
+type EnumSchema struct {
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	ProtoType   string            `json:"protoType"`
+	Values      []EnumValueSchema `json:"values"`
+}
+
+// EnumValueSchema describes a single value within a proto enum.
+type EnumValueSchema struct {
+	Name        string `json:"name"`
+	Number      int32  `json:"number"`
+	Description string `json:"description"`
+}
+
 // ServiceSchemaFile represents all services for a single resource,
 // written to tools/codegen/schemas/services/<resource>.json.
 type ServiceSchemaFile struct {
@@ -106,6 +122,7 @@ type ServiceSchemaFile struct {
 	Services            []ServiceDefinition `json:"services"`
 	ListVia             string              `json:"listVia,omitempty"`
 	MethodTypes         []TypeSchema        `json:"methodTypes,omitempty"`
+	EnumTypes           []EnumSchema        `json:"enumTypes,omitempty"`
 	ResourceDescription  string              `json:"resourceDescription,omitempty"`
 	StatusType           *TypeSchema         `json:"statusType,omitempty"`
 	StatusNestedTypes    []TypeSchema        `json:"statusNestedTypes,omitempty"`
@@ -1114,6 +1131,119 @@ func writeSchemaFile(schema interface{}, outputPath string) error {
 	return os.WriteFile(outputPath, data, 0644)
 }
 
+// CommonsSchemaFile holds shared types and enums from the commons package,
+// written to tools/codegen/schemas/services/commons.json.
+type CommonsSchemaFile struct {
+	MessageTypes []TypeSchema `json:"messageTypes"`
+	EnumTypes    []EnumSchema `json:"enumTypes"`
+}
+
+// sdkFacingCommonsTypes is the curated set of commons message types that
+// should appear in SDK reference documentation. Internal types like
+// AuthorizationConfig and ApiResourceKindMeta are excluded.
+var sdkFacingCommonsTypes = map[string]bool{
+	"ApiResourceMetadata":        true,
+	"ApiResourceMetadataVersion": true,
+	"ApiResourceAudit":           true,
+	"ApiResourceAuditInfo":       true,
+	"ApiResourceAuditActor":      true,
+}
+
+// sdkFacingCommonsEnums is the curated set of commons enum types that
+// should appear in SDK reference documentation.
+var sdkFacingCommonsEnums = map[string]bool{
+	"ApiResourceVisibility": true,
+	"ApiResourceKind":       true,
+}
+
+// extractCommonsSchema parses the commons proto files and extracts SDK-facing
+// shared types and enums into a CommonsSchemaFile.
+func extractCommonsSchema(includeDir string, useBufCache bool) (*CommonsSchemaFile, error) {
+	commonsDirs := []string{
+		filepath.Join(includeDir, "ai", "stigmer", "commons", "apiresource"),
+		filepath.Join(includeDir, "ai", "stigmer", "commons", "apiresource", "apiresourcekind"),
+	}
+
+	var allProtoFiles []string
+	for _, dir := range commonsDirs {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			continue
+		}
+		files, err := findProtoFiles(dir)
+		if err != nil {
+			continue
+		}
+		allProtoFiles = append(allProtoFiles, files...)
+	}
+
+	if len(allProtoFiles) == 0 {
+		return nil, fmt.Errorf("no commons proto files found")
+	}
+
+	importPaths := []string{includeDir}
+	if useBufCache {
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			bufCachePath := filepath.Join(homeDir, ".cache", "buf", "v3", "modules", "b5", "buf.build", "bufbuild", "protovalidate")
+			if entries, err := os.ReadDir(bufCachePath); err == nil && len(entries) > 0 {
+				for _, entry := range entries {
+					if entry.IsDir() {
+						filesPath := filepath.Join(bufCachePath, entry.Name(), "files")
+						if _, err := os.Stat(filesPath); err == nil {
+							importPaths = append([]string{filesPath}, importPaths...)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	parser := &protoparse.Parser{
+		ImportPaths:           importPaths,
+		IncludeSourceCodeInfo: true,
+	}
+
+	var relativeFiles []string
+	for _, pf := range allProtoFiles {
+		relPath, err := filepath.Rel(includeDir, pf)
+		if err != nil {
+			continue
+		}
+		relativeFiles = append(relativeFiles, relPath)
+	}
+
+	fileDescriptors, err := parser.ParseFiles(relativeFiles...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse commons protos: %w", err)
+	}
+
+	schema := &CommonsSchemaFile{}
+	seenMsgs := make(map[string]bool)
+	seenEnums := make(map[string]bool)
+
+	for _, fd := range fileDescriptors {
+		for _, msg := range fd.GetMessageTypes() {
+			if sdkFacingCommonsTypes[msg.GetName()] && !seenMsgs[msg.GetName()] {
+				seenMsgs[msg.GetName()] = true
+				ts := parseSharedType(msg, fd)
+				schema.MessageTypes = append(schema.MessageTypes, *ts)
+				fmt.Printf("    Commons message: %s\n", msg.GetName())
+			}
+		}
+		for _, enumDesc := range fd.GetEnumTypes() {
+			if sdkFacingCommonsEnums[enumDesc.GetName()] && !seenEnums[enumDesc.GetName()] {
+				seenEnums[enumDesc.GetName()] = true
+				es := parseEnumSchema(enumDesc)
+				schema.EnumTypes = append(schema.EnumTypes, es)
+				fmt.Printf("    Commons enum: %s\n", enumDesc.GetName())
+			}
+		}
+	}
+
+	return schema, nil
+}
+
 // searchListResources are resources that use SearchService for listing.
 // This is a server-side indexing concern: only resources indexed in the
 // search system can use SearchService-backed listing.
@@ -1211,6 +1341,11 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 		extractResourceAndStatusSchemas(fileDescriptors, &schema, resourceType)
 	}
 
+	// Collect enum types from all message fields (spec, status, method types).
+	// This must run after MethodTypes and StatusNestedTypes are populated.
+	specTypes := make(map[string]*TypeSchema)
+	schema.EnumTypes = collectEnumTypes(fileDescriptors, &schema, specTypes)
+
 	return &schema, nil
 }
 
@@ -1281,6 +1416,208 @@ func shouldSkipMethodType(shortName, fqn, resourceType string) bool {
 		return true
 	}
 	return false
+}
+
+// collectEnumTypes gathers EnumSchema entries for all enum types referenced
+// by spec, status, and method type fields. Each enum is keyed by its
+// fully-qualified proto name to handle name collisions across packages
+// (e.g., ExecutionPhase in agentexecution vs workflowexecution).
+func collectEnumTypes(fileDescriptors []*desc.FileDescriptor, schema *ServiceSchemaFile, specTypes map[string]*TypeSchema) []EnumSchema {
+	seen := make(map[string]bool) // keyed by FQN
+	var result []EnumSchema
+
+	collectFromField := func(field *desc.FieldDescriptor) {
+		ts := extractTypeSpec(field)
+		collectEnumFromTypeSpec(&ts, field, seen, &result)
+	}
+
+	collectFromMessage := func(msg *desc.MessageDescriptor) {
+		for _, f := range msg.GetFields() {
+			collectFromField(f)
+		}
+	}
+
+	// Walk spec types
+	for _, st := range specTypes {
+		for _, f := range st.Fields {
+			if f.Type.EnumType != "" {
+				collectEnumFromFieldSchema(f, fileDescriptors, seen, &result)
+			}
+		}
+	}
+
+	// Walk method types
+	for _, mt := range schema.MethodTypes {
+		for _, f := range mt.Fields {
+			if f.Type.EnumType != "" {
+				collectEnumFromFieldSchema(f, fileDescriptors, seen, &result)
+			}
+		}
+	}
+
+	// Walk status type fields
+	if schema.StatusType != nil {
+		for _, f := range schema.StatusType.Fields {
+			if f.Type.EnumType != "" {
+				collectEnumFromFieldSchema(f, fileDescriptors, seen, &result)
+			}
+		}
+	}
+
+	// Walk status nested types
+	for _, nt := range schema.StatusNestedTypes {
+		for _, f := range nt.Fields {
+			if f.Type.EnumType != "" {
+				collectEnumFromFieldSchema(f, fileDescriptors, seen, &result)
+			}
+		}
+	}
+
+	// Walk resource message fields recursively (for types like ApiResourceMetadata
+	// that may reference enums not captured in the schemas above).
+	visited := make(map[string]bool)
+	var walkMessage func(msg *desc.MessageDescriptor)
+	walkMessage = func(msg *desc.MessageDescriptor) {
+		fqn := msg.GetFullyQualifiedName()
+		if visited[fqn] || strings.HasPrefix(fqn, "google.protobuf") {
+			return
+		}
+		visited[fqn] = true
+		collectFromMessage(msg)
+		for _, f := range msg.GetFields() {
+			if f.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
+				mt := f.GetMessageType()
+				if mt != nil && !mt.IsMapEntry() {
+					walkMessage(mt)
+				}
+			}
+		}
+	}
+
+	for _, fd := range fileDescriptors {
+		for _, svc := range fd.GetServices() {
+			for _, method := range svc.GetMethods() {
+				walkMessage(method.GetInputType())
+				walkMessage(method.GetOutputType())
+			}
+		}
+	}
+
+	return result
+}
+
+// collectEnumFromTypeSpec extracts an EnumSchema from a field descriptor when
+// the TypeSpec indicates an enum type.
+func collectEnumFromTypeSpec(ts *TypeSpec, field *desc.FieldDescriptor, seen map[string]bool, result *[]EnumSchema) {
+	var enumDesc *desc.EnumDescriptor
+
+	switch {
+	case ts.EnumType != "":
+		enumDesc = field.GetEnumType()
+	case ts.Kind == "array" && ts.ElementType != nil && ts.ElementType.EnumType != "":
+		enumDesc = field.GetEnumType()
+	default:
+		return
+	}
+
+	if enumDesc == nil {
+		return
+	}
+
+	fqn := fmt.Sprintf("%s.%s", enumDesc.GetFile().GetPackage(), enumDesc.GetName())
+	if seen[fqn] {
+		return
+	}
+	seen[fqn] = true
+
+	*result = append(*result, parseEnumSchema(enumDesc))
+}
+
+// collectEnumFromFieldSchema resolves an enum from FieldSchema.Type.EnumType
+// by finding the enum descriptor in the parsed file descriptors.
+func collectEnumFromFieldSchema(f *FieldSchema, fileDescriptors []*desc.FileDescriptor, seen map[string]bool, result *[]EnumSchema) {
+	enumFQN := resolveEnumFQN(&f.Type)
+	if enumFQN == "" || seen[enumFQN] {
+		return
+	}
+
+	enumName := enumFQN[strings.LastIndex(enumFQN, ".")+1:]
+	enumPkg := enumFQN[:strings.LastIndex(enumFQN, ".")]
+
+	for _, fd := range fileDescriptors {
+		enumDesc := findEnumInDependencies(fd, enumPkg, enumName)
+		if enumDesc != nil {
+			seen[enumFQN] = true
+			*result = append(*result, parseEnumSchema(enumDesc))
+			return
+		}
+	}
+}
+
+// resolveEnumFQN extracts the fully-qualified enum type name from a TypeSpec,
+// handling direct, array, and map-value enum references.
+func resolveEnumFQN(ts *TypeSpec) string {
+	if ts.EnumType != "" {
+		return ts.EnumType
+	}
+	if ts.Kind == "array" && ts.ElementType != nil && ts.ElementType.EnumType != "" {
+		return ts.ElementType.EnumType
+	}
+	if ts.Kind == "map" && ts.ValueType != nil && ts.ValueType.EnumType != "" {
+		return ts.ValueType.EnumType
+	}
+	return ""
+}
+
+// findEnumInDependencies searches a file descriptor and all its transitive
+// dependencies for an enum with the given package and name.
+func findEnumInDependencies(fd *desc.FileDescriptor, pkg, name string) *desc.EnumDescriptor {
+	if fd.GetPackage() == pkg {
+		for _, e := range fd.GetEnumTypes() {
+			if e.GetName() == name {
+				return e
+			}
+		}
+	}
+	for _, dep := range fd.GetDependencies() {
+		if result := findEnumInDependencies(dep, pkg, name); result != nil {
+			return result
+		}
+	}
+	return nil
+}
+
+// parseEnumSchema builds an EnumSchema from a proto enum descriptor.
+func parseEnumSchema(enumDesc *desc.EnumDescriptor) EnumSchema {
+	fqn := fmt.Sprintf("%s.%s", enumDesc.GetFile().GetPackage(), enumDesc.GetName())
+
+	var values []EnumValueSchema
+	for _, v := range enumDesc.GetValues() {
+		if v.GetNumber() == 0 {
+			continue
+		}
+		desc := ""
+		if si := v.GetSourceInfo(); si != nil {
+			desc = strings.TrimSpace(si.GetLeadingComments())
+		}
+		values = append(values, EnumValueSchema{
+			Name:        v.GetName(),
+			Number:      v.GetNumber(),
+			Description: desc,
+		})
+	}
+
+	enumComment := ""
+	if si := enumDesc.GetSourceInfo(); si != nil {
+		enumComment = strings.TrimSpace(si.GetLeadingComments())
+	}
+
+	return EnumSchema{
+		Name:        enumDesc.GetName(),
+		Description: enumComment,
+		ProtoType:   fqn,
+		Values:      values,
+	}
 }
 
 // extractResourceAndStatusSchemas populates the resource description and
@@ -1403,6 +1740,21 @@ func generateSDKServiceSchemas(includeDir, baseOutputDir string, useBufCache boo
 			if err := writeSchemaFile(schema, outputPath); err == nil {
 				fmt.Printf("   → services/search.json (%d methods)\n", countMethods(schema))
 			}
+		}
+	}
+
+	// Extract commons shared types and enums
+	fmt.Printf("   📄 Processing commons types\n")
+	commonsSchema, err := extractCommonsSchema(includeDir, useBufCache)
+	if err != nil {
+		fmt.Printf("   ⚠️  Error extracting commons: %v\n", err)
+	} else if commonsSchema != nil {
+		outputPath := filepath.Join(servicesDir, "commons.json")
+		if err := writeSchemaFile(commonsSchema, outputPath); err != nil {
+			fmt.Printf("   ❌ Error writing commons.json: %v\n", err)
+		} else {
+			fmt.Printf("   → services/commons.json (%d types, %d enums)\n",
+				len(commonsSchema.MessageTypes), len(commonsSchema.EnumTypes))
 		}
 	}
 

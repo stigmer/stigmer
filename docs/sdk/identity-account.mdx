@@ -477,7 +477,7 @@ Input for creating or updating an Identity Account.
     lastName: { type: "string", description: "Last name of the identity account." },
     pictureUrl: { type: "string", description: "URL of the profile picture." },
     isMachineAccount: { type: "boolean", description: "Indicates if this is a machine account used for inter-service communication." },
-    provisioningMode: { type: "IdentityAccountProvisioningMode", description: "How this identity account was provisioned." },
+    provisioningMode: { type: "IdentityAccountProvisioningMode", description: "How this identity account was provisioned.", typeDescriptionLink: "#identityaccountprovisioningmode" },
     identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that provisioned this account.", typeDescriptionLink: "#resourceref" },
   }}
 />
@@ -489,7 +489,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -529,4 +529,49 @@ identity-account for user accounts.
     status: { type: "IdentityAccountStatus", description: "System-managed state. See `IdentityAccountStatus`." },
   }}
 />
+
+### ApiResourceVisibility
+
+Visibility controls who can access an API resource.
+
+| Value | Description |
+|-------|-------------|
+| `visibility_private` | Only members of the owning organization can access. |
+| `visibility_public` | Anyone can access (read) this resource. |
+
+### IdentityAccountProvisioningMode
+
+IdentityAccountProvisioningMode defines how an identity account was created.
+
+| Value | Description |
+|-------|-------------|
+| `direct` |  |
+| `federated` |  |
+| `machine` |  |
+
+### ApiResourceKind
+
+API resource kinds for Stigmer.
+
+| Value | Description |
+|-------|-------------|
+| `api_resource_version` | Agentic - System-level audit trails and versioning. |
+| `iam_policy` | IAM - Identity and Access Management. |
+| `identity_account` |  |
+| `api_key` |  |
+| `identity_provider` | IAM - External identity provider configuration. |
+| `organization` | Tenancy - Platform and organizational resources. |
+| `platform` |  |
+| `agent` | Agentic - AI agent management. |
+| `agent_execution` |  |
+| `session` |  |
+| `skill` |  |
+| `mcp_server` |  |
+| `agent_instance` |  |
+| `workflow` | Agentic - Workflow orchestration. |
+| `workflow_instance` |  |
+| `workflow_execution` |  |
+| `environment` |  |
+| `execution_context` |  |
+| `project` | Tenancy - Project management (aggregate root for resource lifecycle). |
 

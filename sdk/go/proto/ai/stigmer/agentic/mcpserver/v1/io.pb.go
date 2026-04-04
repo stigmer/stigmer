@@ -29,8 +29,8 @@ type McpServerId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The unique identifier of the MCP server resource.
 	// This is the system-generated ID (metadata.id), not the slug.
-	// Format: "mcp-" followed by a unique identifier.
-	// Example: "mcp-abc123xyz"
+	// Format: "mcp_" followed by a unique identifier.
+	// Example: "mcp_abc123xyz"
 	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

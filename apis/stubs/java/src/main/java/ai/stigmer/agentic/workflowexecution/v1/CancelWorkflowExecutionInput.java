@@ -40,7 +40,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * ## Example
  *
  * {
- * "id": "wfx-abc123xyz456",
+ * "id": "wfx_abc123xyz456",
  * "reason": "Customer requested cancellation - no longer needed"
  * }
  * </pre>
@@ -96,8 +96,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to cancel.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -122,8 +122,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to cancel.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -159,7 +159,7 @@ private static final long serialVersionUID = 0L;
    * Examples:
    * - "Customer requested cancellation"
    * - "Incorrect workflow triggered by mistake"
-   * - "Superseded by newer execution wfx-def456"
+   * - "Superseded by newer execution wfx_def456"
    * - "Pre-maintenance shutdown"
    * </pre>
    *
@@ -189,7 +189,7 @@ private static final long serialVersionUID = 0L;
    * Examples:
    * - "Customer requested cancellation"
    * - "Incorrect workflow triggered by mistake"
-   * - "Superseded by newer execution wfx-def456"
+   * - "Superseded by newer execution wfx_def456"
    * - "Pre-maintenance shutdown"
    * </pre>
    *
@@ -412,7 +412,7 @@ private static final long serialVersionUID = 0L;
    * ## Example
    *
    * {
-   * "id": "wfx-abc123xyz456",
+   * "id": "wfx_abc123xyz456",
    * "reason": "Customer requested cancellation - no longer needed"
    * }
    * </pre>
@@ -573,8 +573,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -598,8 +598,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -624,8 +624,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -646,8 +646,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -665,8 +665,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -696,7 +696,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "Customer requested cancellation"
      * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
+     * - "Superseded by newer execution wfx_def456"
      * - "Pre-maintenance shutdown"
      * </pre>
      *
@@ -725,7 +725,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "Customer requested cancellation"
      * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
+     * - "Superseded by newer execution wfx_def456"
      * - "Pre-maintenance shutdown"
      * </pre>
      *
@@ -755,7 +755,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "Customer requested cancellation"
      * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
+     * - "Superseded by newer execution wfx_def456"
      * - "Pre-maintenance shutdown"
      * </pre>
      *
@@ -781,7 +781,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "Customer requested cancellation"
      * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
+     * - "Superseded by newer execution wfx_def456"
      * - "Pre-maintenance shutdown"
      * </pre>
      *
@@ -804,7 +804,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "Customer requested cancellation"
      * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
+     * - "Superseded by newer execution wfx_def456"
      * - "Pre-maintenance shutdown"
      * </pre>
      *

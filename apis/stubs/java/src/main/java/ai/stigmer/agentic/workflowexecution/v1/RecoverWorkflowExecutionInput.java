@@ -52,7 +52,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * ## Example
  *
  * {
- * "id": "wfx-abc123xyz456",
+ * "id": "wfx_abc123xyz456",
  * "reason": "Stripe API was down, now recovered - resuming payment processing"
  * }
  * </pre>
@@ -111,8 +111,8 @@ private static final long serialVersionUID = 0L;
    * Must be in FAILED phase. TERMINATED and CANCELLED executions
    * cannot be recovered.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -140,8 +140,8 @@ private static final long serialVersionUID = 0L;
    * Must be in FAILED phase. TERMINATED and CANCELLED executions
    * cannot be recovered.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -442,7 +442,7 @@ private static final long serialVersionUID = 0L;
    * ## Example
    *
    * {
-   * "id": "wfx-abc123xyz456",
+   * "id": "wfx_abc123xyz456",
    * "reason": "Stripe API was down, now recovered - resuming payment processing"
    * }
    * </pre>
@@ -606,8 +606,8 @@ private static final long serialVersionUID = 0L;
      * Must be in FAILED phase. TERMINATED and CANCELLED executions
      * cannot be recovered.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -634,8 +634,8 @@ private static final long serialVersionUID = 0L;
      * Must be in FAILED phase. TERMINATED and CANCELLED executions
      * cannot be recovered.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -663,8 +663,8 @@ private static final long serialVersionUID = 0L;
      * Must be in FAILED phase. TERMINATED and CANCELLED executions
      * cannot be recovered.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -688,8 +688,8 @@ private static final long serialVersionUID = 0L;
      * Must be in FAILED phase. TERMINATED and CANCELLED executions
      * cannot be recovered.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>
@@ -710,8 +710,8 @@ private static final long serialVersionUID = 0L;
      * Must be in FAILED phase. TERMINATED and CANCELLED executions
      * cannot be recovered.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{ulid}" (auto-generated unique identifier)
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required, cannot be empty
      * </pre>

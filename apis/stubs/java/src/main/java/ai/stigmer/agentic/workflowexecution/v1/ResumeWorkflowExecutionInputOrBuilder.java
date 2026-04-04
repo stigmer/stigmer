@@ -17,8 +17,8 @@ public interface ResumeWorkflowExecutionInputOrBuilder extends
    * Must be in PAUSED phase. Cannot resume executions
    * that are not paused.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>
@@ -34,8 +34,8 @@ public interface ResumeWorkflowExecutionInputOrBuilder extends
    * Must be in PAUSED phase. Cannot resume executions
    * that are not paused.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{ulid}" (auto-generated unique identifier)
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required, cannot be empty
    * </pre>

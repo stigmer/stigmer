@@ -62,7 +62,7 @@ public interface WorkflowExecutionUpdateOrBuilder extends
    *
    * Example (task completed update):
    * execution: {
-   * metadata: { id: "wfx-abc123" },
+   * metadata: { id: "wfx_abc123" },
    * status: {
    * completed_tasks: 1,
    * tasks: [
@@ -89,7 +89,7 @@ public interface WorkflowExecutionUpdateOrBuilder extends
    *
    * Example (task completed update):
    * execution: {
-   * metadata: { id: "wfx-abc123" },
+   * metadata: { id: "wfx_abc123" },
    * status: {
    * completed_tasks: 1,
    * tasks: [
@@ -116,7 +116,7 @@ public interface WorkflowExecutionUpdateOrBuilder extends
    *
    * Example (task completed update):
    * execution: {
-   * metadata: { id: "wfx-abc123" },
+   * metadata: { id: "wfx_abc123" },
    * status: {
    * completed_tasks: 1,
    * tasks: [

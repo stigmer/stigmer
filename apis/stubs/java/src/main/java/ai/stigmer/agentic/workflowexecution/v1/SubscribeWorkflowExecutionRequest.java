@@ -76,8 +76,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Execution ID to subscribe to.
    *
-   * Format: "wfx-{unique-suffix}"
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{unique-suffix}"
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required field, cannot be empty
    *
@@ -86,7 +86,7 @@ private static final long serialVersionUID = 0L;
    * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
    *
    * Example:
-   * execution_id: "wfx-abc123xyz456"
+   * execution_id: "wfx_abc123xyz456"
    *
    * After subscription starts, client receives:
    * - Initial message: Current state of execution
@@ -115,8 +115,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Execution ID to subscribe to.
    *
-   * Format: "wfx-{unique-suffix}"
-   * Example: "wfx-abc123xyz456"
+   * Format: "wfx_{unique-suffix}"
+   * Example: "wfx_abc123xyz456"
    *
    * Validation: Required field, cannot be empty
    *
@@ -125,7 +125,7 @@ private static final long serialVersionUID = 0L;
    * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
    *
    * Example:
-   * execution_id: "wfx-abc123xyz456"
+   * execution_id: "wfx_abc123xyz456"
    *
    * After subscription starts, client receives:
    * - Initial message: Current state of execution
@@ -471,8 +471,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{unique-suffix}"
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required field, cannot be empty
      *
@@ -481,7 +481,7 @@ private static final long serialVersionUID = 0L;
      * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
      *
      * Example:
-     * execution_id: "wfx-abc123xyz456"
+     * execution_id: "wfx_abc123xyz456"
      *
      * After subscription starts, client receives:
      * - Initial message: Current state of execution
@@ -509,8 +509,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{unique-suffix}"
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required field, cannot be empty
      *
@@ -519,7 +519,7 @@ private static final long serialVersionUID = 0L;
      * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
      *
      * Example:
-     * execution_id: "wfx-abc123xyz456"
+     * execution_id: "wfx_abc123xyz456"
      *
      * After subscription starts, client receives:
      * - Initial message: Current state of execution
@@ -548,8 +548,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{unique-suffix}"
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required field, cannot be empty
      *
@@ -558,7 +558,7 @@ private static final long serialVersionUID = 0L;
      * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
      *
      * Example:
-     * execution_id: "wfx-abc123xyz456"
+     * execution_id: "wfx_abc123xyz456"
      *
      * After subscription starts, client receives:
      * - Initial message: Current state of execution
@@ -583,8 +583,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{unique-suffix}"
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required field, cannot be empty
      *
@@ -593,7 +593,7 @@ private static final long serialVersionUID = 0L;
      * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
      *
      * Example:
-     * execution_id: "wfx-abc123xyz456"
+     * execution_id: "wfx_abc123xyz456"
      *
      * After subscription starts, client receives:
      * - Initial message: Current state of execution
@@ -615,8 +615,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
+     * Format: "wfx_{unique-suffix}"
+     * Example: "wfx_abc123xyz456"
      *
      * Validation: Required field, cannot be empty
      *
@@ -625,7 +625,7 @@ private static final long serialVersionUID = 0L;
      * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
      *
      * Example:
-     * execution_id: "wfx-abc123xyz456"
+     * execution_id: "wfx_abc123xyz456"
      *
      * After subscription starts, client receives:
      * - Initial message: Current state of execution

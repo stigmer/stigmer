@@ -67,13 +67,15 @@ func (x *AgentId) GetValue() string {
 	return ""
 }
 
-// GetDefaultAgentRequest provides org context for fetching the platform default agent.
+// GetDefaultAgentRequest is the input for retrieving the platform default agent.
 //
+// @internal
 // The handler resolves the default agent globally (by label stigmer.ai/default-agent: "true"
 // with visibility_public), but the org is needed for authorization scoping.
 type GetDefaultAgentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization slug for authorization scoping.
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

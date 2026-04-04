@@ -117,7 +117,7 @@ export const WorkflowExecutionCommandController = {
      *     "org": "acme"
      *   },
      *   "spec": {
-     *     "workflow_instance_id": "wfi-customer-onboarding-prod",
+     *     "workflow_instance_id": "wfi_customer-onboarding-prod",
      *     "trigger_message": "New signup: john.doe@example.com",
      *     "trigger_metadata": {
      *       "source": "api",
@@ -135,7 +135,7 @@ export const WorkflowExecutionCommandController = {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
      *   "metadata": {
-     *     "id": "wfx-abc123xyz456",  // Auto-generated
+     *     "id": "wfx_abc123xyz456",  // Auto-generated
      *     "name": "customer-onboarding-20250111-143022",
      *     "org": "acme"
      *   },
@@ -249,7 +249,7 @@ export const WorkflowExecutionCommandController = {
      * Example Request (Task Completed):
      * {
      *   "metadata": {
-     *     "id": "wfx-abc123xyz456"
+     *     "id": "wfx_abc123xyz456"
      *   },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
@@ -419,7 +419,7 @@ export const WorkflowExecutionCommandController = {
      * ## Example Request
      *
      * {
-     *   "execution_id": "wfx-abc123xyz456",
+     *   "execution_id": "wfx_abc123xyz456",
      *   "signal_name": "payment_confirmed",
      *   "payload": {
      *     "transaction_id": "txn_123",
@@ -488,7 +488,7 @@ export const WorkflowExecutionCommandController = {
      * ## Example Request
      *
      * {
-     *   "id": "wfx-abc123xyz456",
+     *   "id": "wfx_abc123xyz456",
      *   "reason": "Customer requested cancellation - order no longer needed"
      * }
      *
@@ -497,7 +497,7 @@ export const WorkflowExecutionCommandController = {
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 5,  // EXECUTION_CANCELLED
      *     "completed_at": "2026-02-07T18:30:00Z"
@@ -566,7 +566,7 @@ export const WorkflowExecutionCommandController = {
      * ## Example Request
      *
      * {
-     *   "id": "wfx-abc123xyz456",
+     *   "id": "wfx_abc123xyz456",
      *   "reason": "Workflow stuck for 2 hours, not responding to cancel"
      * }
      *
@@ -575,7 +575,7 @@ export const WorkflowExecutionCommandController = {
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 6,  // EXECUTION_TERMINATED
      *     "completed_at": "2026-02-07T18:35:00Z",
@@ -653,7 +653,7 @@ export const WorkflowExecutionCommandController = {
      * ## Example Request
      *
      * {
-     *   "id": "wfx-abc123xyz456",
+     *   "id": "wfx_abc123xyz456",
      *   "reason": "Stripe API recovered, resuming payment processing"
      * }
      *
@@ -662,7 +662,7 @@ export const WorkflowExecutionCommandController = {
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "started_at": "2026-02-07T10:00:00Z",
@@ -746,7 +746,7 @@ export const WorkflowExecutionCommandController = {
      * ## Example Request
      *
      * {
-     *   "id": "wfx-abc123xyz456",
+     *   "id": "wfx_abc123xyz456",
      *   "reason": "Pausing for scheduled maintenance window"
      * }
      *
@@ -755,7 +755,7 @@ export const WorkflowExecutionCommandController = {
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 7,  // EXECUTION_PAUSED
      *     "started_at": "2026-02-07T10:00:00Z"
@@ -827,7 +827,7 @@ export const WorkflowExecutionCommandController = {
      * ## Example Request
      *
      * {
-     *   "id": "wfx-abc123xyz456"
+     *   "id": "wfx_abc123xyz456"
      * }
      *
      * ## Example Response
@@ -835,7 +835,7 @@ export const WorkflowExecutionCommandController = {
      * {
      *   "api_version": "agentic.stigmer.ai/v1",
      *   "kind": "WorkflowExecution",
-     *   "metadata": { "id": "wfx-abc123xyz456" },
+     *   "metadata": { "id": "wfx_abc123xyz456" },
      *   "status": {
      *     "phase": 2,  // EXECUTION_IN_PROGRESS
      *     "started_at": "2026-02-07T10:00:00Z"

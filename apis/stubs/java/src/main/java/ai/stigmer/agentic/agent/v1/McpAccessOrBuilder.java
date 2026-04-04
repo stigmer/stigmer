@@ -13,7 +13,7 @@ public interface McpAccessOrBuilder extends
   /**
    * <pre>
    * Slug of the McpServer to grant access to.
-   * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+   * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
    * </pre>
    *
    * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -23,7 +23,7 @@ public interface McpAccessOrBuilder extends
   /**
    * <pre>
    * Slug of the McpServer to grant access to.
-   * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+   * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
    * </pre>
    *
    * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -34,10 +34,9 @@ public interface McpAccessOrBuilder extends
 
   /**
    * <pre>
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -47,10 +46,9 @@ public interface McpAccessOrBuilder extends
       getEnabledToolsList();
   /**
    * <pre>
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -59,10 +57,9 @@ public interface McpAccessOrBuilder extends
   int getEnabledToolsCount();
   /**
    * <pre>
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -72,10 +69,9 @@ public interface McpAccessOrBuilder extends
   java.lang.String getEnabledTools(int index);
   /**
    * <pre>
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>

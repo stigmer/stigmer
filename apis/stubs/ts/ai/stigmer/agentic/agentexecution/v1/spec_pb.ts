@@ -224,7 +224,7 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * ## Format
    *
    * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-   * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+   * Example: "stigmer/workflow-execution/invoke/wfx_abc123xyz456"
    *
    * ## When Empty
    *

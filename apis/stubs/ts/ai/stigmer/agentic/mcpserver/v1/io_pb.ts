@@ -27,8 +27,8 @@ export type McpServerId = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerId">
   /**
    * The unique identifier of the MCP server resource.
    * This is the system-generated ID (metadata.id), not the slug.
-   * Format: "mcp-" followed by a unique identifier.
-   * Example: "mcp-abc123xyz"
+   * Format: "mcp_" followed by a unique identifier.
+   * Example: "mcp_abc123xyz"
    *
    * @generated from field: string value = 1;
    */

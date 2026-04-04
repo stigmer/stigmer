@@ -386,7 +386,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -414,17 +414,6 @@ ProjectStatus contains system-managed state for a Project.
   type={{
     lastReconciliation: { type: "ReconciliationSummary", description: "Reconciliation summary from the most recent Apply operation.", typeDescriptionLink: "#reconciliationsummary" },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, etc.) The updated_at field indicates when the project was last successfully applied.", typeDescriptionLink: "#apiresourceaudit" },
-  }}
-/>
-
-### ApiResourceAudit
-
-ApiResourceAudit contains both spec-level and status-level audit details.
-
-<TypeTable
-  type={{
-    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
-    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
   }}
 />
 
@@ -472,9 +461,55 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
+
+### ApiResourceAudit
+
+ApiResourceAudit contains both spec-level and status-level audit details.
+
+<TypeTable
+  type={{
+    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
+    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
+  }}
+/>
+
+### ApiResourceKind
+
+API resource kinds for Stigmer.
+
+| Value | Description |
+|-------|-------------|
+| `api_resource_version` | Agentic - System-level audit trails and versioning. |
+| `iam_policy` | IAM - Identity and Access Management. |
+| `identity_account` |  |
+| `api_key` |  |
+| `identity_provider` | IAM - External identity provider configuration. |
+| `organization` | Tenancy - Platform and organizational resources. |
+| `platform` |  |
+| `agent` | Agentic - AI agent management. |
+| `agent_execution` |  |
+| `session` |  |
+| `skill` |  |
+| `mcp_server` |  |
+| `agent_instance` |  |
+| `workflow` | Agentic - Workflow orchestration. |
+| `workflow_instance` |  |
+| `workflow_execution` |  |
+| `environment` |  |
+| `execution_context` |  |
+| `project` | Tenancy - Project management (aggregate root for resource lifecycle). |
+
+### ApiResourceVisibility
+
+Visibility controls who can access an API resource.
+
+| Value | Description |
+|-------|-------------|
+| `visibility_private` | Only members of the owning organization can access. |
+| `visibility_public` | Anyone can access (read) this resource. |
 

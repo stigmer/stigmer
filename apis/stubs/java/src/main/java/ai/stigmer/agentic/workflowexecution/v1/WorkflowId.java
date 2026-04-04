@@ -11,12 +11,12 @@ package ai.stigmer.agentic.workflowexecution.v1;
  *
  * This wrapper is used to filter executions by a specific Workflow or WorkflowInstance.
  * It can accept either:
- * - Workflow ID (wf-{slug}): Lists all executions of any instance of this workflow
- * - WorkflowInstance ID (wfi-{slug}): Lists executions of a specific instance
+ * - Workflow ID (wf_{slug}): Lists all executions of any instance of this workflow
+ * - WorkflowInstance ID (wfi_{slug}): Lists executions of a specific instance
  *
  * Format Examples:
- * - Workflow ID: "wf-customer-onboarding"
- * - WorkflowInstance ID: "wfi-customer-onboarding-prod"
+ * - Workflow ID: "wf_customer-onboarding"
+ * - WorkflowInstance ID: "wfi_customer-onboarding-prod"
  *
  * Used By:
  * - list_by_workflow(ListWorkflowExecutionsByWorkflowRequest): Filter executions by workflow
@@ -73,12 +73,12 @@ private static final long serialVersionUID = 0L;
    * Workflow or WorkflowInstance identifier.
    *
    * Can be either:
-   * - Workflow ID (wf-{slug}): Filter by workflow template
-   * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+   * - Workflow ID (wf_{slug}): Filter by workflow template
+   * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
    *
    * Examples:
-   * - "wf-customer-onboarding" (all instances of this workflow)
-   * - "wfi-customer-onboarding-prod" (specific instance)
+   * - "wf_customer-onboarding" (all instances of this workflow)
+   * - "wfi_customer-onboarding-prod" (specific instance)
    *
    * Validation: Required field, cannot be empty
    * </pre>
@@ -104,12 +104,12 @@ private static final long serialVersionUID = 0L;
    * Workflow or WorkflowInstance identifier.
    *
    * Can be either:
-   * - Workflow ID (wf-{slug}): Filter by workflow template
-   * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+   * - Workflow ID (wf_{slug}): Filter by workflow template
+   * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
    *
    * Examples:
-   * - "wf-customer-onboarding" (all instances of this workflow)
-   * - "wfi-customer-onboarding-prod" (specific instance)
+   * - "wf_customer-onboarding" (all instances of this workflow)
+   * - "wfi_customer-onboarding-prod" (specific instance)
    *
    * Validation: Required field, cannot be empty
    * </pre>
@@ -294,12 +294,12 @@ private static final long serialVersionUID = 0L;
    *
    * This wrapper is used to filter executions by a specific Workflow or WorkflowInstance.
    * It can accept either:
-   * - Workflow ID (wf-{slug}): Lists all executions of any instance of this workflow
-   * - WorkflowInstance ID (wfi-{slug}): Lists executions of a specific instance
+   * - Workflow ID (wf_{slug}): Lists all executions of any instance of this workflow
+   * - WorkflowInstance ID (wfi_{slug}): Lists executions of a specific instance
    *
    * Format Examples:
-   * - Workflow ID: "wf-customer-onboarding"
-   * - WorkflowInstance ID: "wfi-customer-onboarding-prod"
+   * - Workflow ID: "wf_customer-onboarding"
+   * - WorkflowInstance ID: "wfi_customer-onboarding-prod"
    *
    * Used By:
    * - list_by_workflow(ListWorkflowExecutionsByWorkflowRequest): Filter executions by workflow
@@ -448,12 +448,12 @@ private static final long serialVersionUID = 0L;
      * Workflow or WorkflowInstance identifier.
      *
      * Can be either:
-     * - Workflow ID (wf-{slug}): Filter by workflow template
-     * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+     * - Workflow ID (wf_{slug}): Filter by workflow template
+     * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
      *
      * Examples:
-     * - "wf-customer-onboarding" (all instances of this workflow)
-     * - "wfi-customer-onboarding-prod" (specific instance)
+     * - "wf_customer-onboarding" (all instances of this workflow)
+     * - "wfi_customer-onboarding-prod" (specific instance)
      *
      * Validation: Required field, cannot be empty
      * </pre>
@@ -478,12 +478,12 @@ private static final long serialVersionUID = 0L;
      * Workflow or WorkflowInstance identifier.
      *
      * Can be either:
-     * - Workflow ID (wf-{slug}): Filter by workflow template
-     * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+     * - Workflow ID (wf_{slug}): Filter by workflow template
+     * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
      *
      * Examples:
-     * - "wf-customer-onboarding" (all instances of this workflow)
-     * - "wfi-customer-onboarding-prod" (specific instance)
+     * - "wf_customer-onboarding" (all instances of this workflow)
+     * - "wfi_customer-onboarding-prod" (specific instance)
      *
      * Validation: Required field, cannot be empty
      * </pre>
@@ -509,12 +509,12 @@ private static final long serialVersionUID = 0L;
      * Workflow or WorkflowInstance identifier.
      *
      * Can be either:
-     * - Workflow ID (wf-{slug}): Filter by workflow template
-     * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+     * - Workflow ID (wf_{slug}): Filter by workflow template
+     * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
      *
      * Examples:
-     * - "wf-customer-onboarding" (all instances of this workflow)
-     * - "wfi-customer-onboarding-prod" (specific instance)
+     * - "wf_customer-onboarding" (all instances of this workflow)
+     * - "wfi_customer-onboarding-prod" (specific instance)
      *
      * Validation: Required field, cannot be empty
      * </pre>
@@ -536,12 +536,12 @@ private static final long serialVersionUID = 0L;
      * Workflow or WorkflowInstance identifier.
      *
      * Can be either:
-     * - Workflow ID (wf-{slug}): Filter by workflow template
-     * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+     * - Workflow ID (wf_{slug}): Filter by workflow template
+     * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
      *
      * Examples:
-     * - "wf-customer-onboarding" (all instances of this workflow)
-     * - "wfi-customer-onboarding-prod" (specific instance)
+     * - "wf_customer-onboarding" (all instances of this workflow)
+     * - "wfi_customer-onboarding-prod" (specific instance)
      *
      * Validation: Required field, cannot be empty
      * </pre>
@@ -560,12 +560,12 @@ private static final long serialVersionUID = 0L;
      * Workflow or WorkflowInstance identifier.
      *
      * Can be either:
-     * - Workflow ID (wf-{slug}): Filter by workflow template
-     * - WorkflowInstance ID (wfi-{slug}): Filter by specific instance
+     * - Workflow ID (wf_{slug}): Filter by workflow template
+     * - WorkflowInstance ID (wfi_{slug}): Filter by specific instance
      *
      * Examples:
-     * - "wf-customer-onboarding" (all instances of this workflow)
-     * - "wfi-customer-onboarding-prod" (specific instance)
+     * - "wf_customer-onboarding" (all instances of this workflow)
+     * - "wfi_customer-onboarding-prod" (specific instance)
      *
      * Validation: Required field, cannot be empty
      * </pre>

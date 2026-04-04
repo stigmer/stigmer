@@ -572,7 +572,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * ## Format
    *
    * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-   * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+   * Example: "stigmer/workflow-execution/invoke/wfx_abc123xyz456"
    *
    * ## When Empty
    *
@@ -622,7 +622,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * ## Format
    *
    * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-   * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+   * Example: "stigmer/workflow-execution/invoke/wfx_abc123xyz456"
    *
    * ## When Empty
    *
@@ -2757,7 +2757,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * ## Format
      *
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+     * Example: "stigmer/workflow-execution/invoke/wfx_abc123xyz456"
      *
      * ## When Empty
      *
@@ -2806,7 +2806,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * ## Format
      *
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+     * Example: "stigmer/workflow-execution/invoke/wfx_abc123xyz456"
      *
      * ## When Empty
      *
@@ -2856,7 +2856,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * ## Format
      *
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+     * Example: "stigmer/workflow-execution/invoke/wfx_abc123xyz456"
      *
      * ## When Empty
      *
@@ -2902,7 +2902,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * ## Format
      *
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+     * Example: "stigmer/workflow-execution/invoke/wfx_abc123xyz456"
      *
      * ## When Empty
      *
@@ -2945,7 +2945,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * ## Format
      *
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+     * Example: "stigmer/workflow-execution/invoke/wfx_abc123xyz456"
      *
      * ## When Empty
      *

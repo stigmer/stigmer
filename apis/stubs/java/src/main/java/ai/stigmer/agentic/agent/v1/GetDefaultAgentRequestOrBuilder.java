@@ -11,11 +11,19 @@ public interface GetDefaultAgentRequestOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Organization slug for authorization scoping.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The org.
    */
   java.lang.String getOrg();
   /**
+   * <pre>
+   * Organization slug for authorization scoping.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The bytes for org.
    */

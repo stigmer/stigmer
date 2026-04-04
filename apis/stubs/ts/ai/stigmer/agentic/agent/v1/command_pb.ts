@@ -27,6 +27,8 @@ export const file_ai_stigmer_agentic_agent_v1_command: GenFile = /*@__PURE__*/
 export const AgentCommandController: GenService<{
   /**
    * Create or update an agent.
+   *
+   * @internal
    * The authorization and state-operation are determined depending on whether the agent
    * is going to be created or updated which is determined as part of the request execution.
    *
@@ -38,8 +40,9 @@ export const AgentCommandController: GenService<{
     output: typeof AgentSchema;
   },
   /**
-   * Create a new agent.
+   * Create an agent.
    *
+   * @internal
    * Authorization:
    * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
    * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -69,6 +72,7 @@ export const AgentCommandController: GenService<{
    * make an agent publicly accessible or to revoke public access without
    * sending the entire agent resource (avoiding read-modify-write races).
    *
+   * @internal
    * Authorization: Requires can_edit permission on the agent resource.
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.updateVisibility

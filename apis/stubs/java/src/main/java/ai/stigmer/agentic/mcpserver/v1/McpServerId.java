@@ -61,8 +61,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The unique identifier of the MCP server resource.
    * This is the system-generated ID (metadata.id), not the slug.
-   * Format: "mcp-" followed by a unique identifier.
-   * Example: "mcp-abc123xyz"
+   * Format: "mcp_" followed by a unique identifier.
+   * Example: "mcp_abc123xyz"
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -85,8 +85,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The unique identifier of the MCP server resource.
    * This is the system-generated ID (metadata.id), not the slug.
-   * Format: "mcp-" followed by a unique identifier.
-   * Example: "mcp-abc123xyz"
+   * Format: "mcp_" followed by a unique identifier.
+   * Example: "mcp_abc123xyz"
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -411,8 +411,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The unique identifier of the MCP server resource.
      * This is the system-generated ID (metadata.id), not the slug.
-     * Format: "mcp-" followed by a unique identifier.
-     * Example: "mcp-abc123xyz"
+     * Format: "mcp_" followed by a unique identifier.
+     * Example: "mcp_abc123xyz"
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -434,8 +434,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The unique identifier of the MCP server resource.
      * This is the system-generated ID (metadata.id), not the slug.
-     * Format: "mcp-" followed by a unique identifier.
-     * Example: "mcp-abc123xyz"
+     * Format: "mcp_" followed by a unique identifier.
+     * Example: "mcp_abc123xyz"
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -458,8 +458,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The unique identifier of the MCP server resource.
      * This is the system-generated ID (metadata.id), not the slug.
-     * Format: "mcp-" followed by a unique identifier.
-     * Example: "mcp-abc123xyz"
+     * Format: "mcp_" followed by a unique identifier.
+     * Example: "mcp_abc123xyz"
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -478,8 +478,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The unique identifier of the MCP server resource.
      * This is the system-generated ID (metadata.id), not the slug.
-     * Format: "mcp-" followed by a unique identifier.
-     * Example: "mcp-abc123xyz"
+     * Format: "mcp_" followed by a unique identifier.
+     * Example: "mcp_abc123xyz"
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -495,8 +495,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The unique identifier of the MCP server resource.
      * This is the system-generated ID (metadata.id), not the slug.
-     * Format: "mcp-" followed by a unique identifier.
-     * Example: "mcp-abc123xyz"
+     * Format: "mcp_" followed by a unique identifier.
+     * Example: "mcp_abc123xyz"
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

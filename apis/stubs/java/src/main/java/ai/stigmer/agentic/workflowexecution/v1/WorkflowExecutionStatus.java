@@ -850,7 +850,7 @@ private static final long serialVersionUID = 0L;
    * - Signaling or cancelling Temporal workflows
    *
    * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-   * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+   * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
    *
    * This field is optional and only relevant when Temporal is used as the execution engine.
    * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -882,7 +882,7 @@ private static final long serialVersionUID = 0L;
    * - Signaling or cancelling Temporal workflows
    *
    * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-   * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+   * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
    *
    * This field is optional and only relevant when Temporal is used as the execution engine.
    * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -4130,7 +4130,7 @@ private static final long serialVersionUID = 0L;
      * - Signaling or cancelling Temporal workflows
      *
      * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
      *
      * This field is optional and only relevant when Temporal is used as the execution engine.
      * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -4161,7 +4161,7 @@ private static final long serialVersionUID = 0L;
      * - Signaling or cancelling Temporal workflows
      *
      * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
      *
      * This field is optional and only relevant when Temporal is used as the execution engine.
      * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -4193,7 +4193,7 @@ private static final long serialVersionUID = 0L;
      * - Signaling or cancelling Temporal workflows
      *
      * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
      *
      * This field is optional and only relevant when Temporal is used as the execution engine.
      * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -4221,7 +4221,7 @@ private static final long serialVersionUID = 0L;
      * - Signaling or cancelling Temporal workflows
      *
      * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
      *
      * This field is optional and only relevant when Temporal is used as the execution engine.
      * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -4246,7 +4246,7 @@ private static final long serialVersionUID = 0L;
      * - Signaling or cancelling Temporal workflows
      *
      * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
      *
      * This field is optional and only relevant when Temporal is used as the execution engine.
      * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.

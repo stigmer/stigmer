@@ -19,33 +19,17 @@ export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
   fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxItYECglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EkQKCGVudl9zcGVjGAcgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U3BlYyLbAgoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChI6CgptY3BfYWNjZXNzGAQgAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcEFjY2VzcxKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJItUBCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLBIVCg1lbmFibGVkX3Rvb2xzGAIgAygJElIKF3Rvb2xfYXBwcm92YWxfb3ZlcnJpZGVzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlRvb2xBcHByb3ZhbE92ZXJyaWRlIj4KCU1jcEFjY2VzcxIaCgptY3Bfc2VydmVyGAEgASgJQga6SAPIAQESFQoNZW5hYmxlZF90b29scxgCIAMoCSJeChRUb29sQXBwcm92YWxPdmVycmlkZRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESGQoRcmVxdWlyZXNfYXBwcm92YWwYAiABKAgSDwoHbWVzc2FnZRgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
- * AgentSpec defines the configurable properties of an AI agent.
- * This is the "Template" layer - declares capabilities and requirements.
+ * AgentSpec defines the configurable properties of an agent.
  *
- * Example YAML:
- *   apiVersion: agentic.stigmer.ai/v1
- *   kind: Agent
- *   metadata:
- *     name: engineering-assistant
- *     slug: eng-assistant
- *   spec:
- *     description: "Helps engineering teams with code review"
- *     instructions: "You are an engineering assistant..."
- *     mcp_server_usages:
- *       - mcp_server_ref:
- *           kind: mcp_server
- *           slug: github
- *         enabled_tools: [search_code, create_pr]
- *     skill_refs:
- *       - kind: skill
- *         slug: code-review-best-practices
+ * @internal
+ * This is the "Template" layer — declares capabilities and requirements.
+ * The overview.md file provides the SDK-facing description and example YAML.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.AgentSpec
  */
 export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
   /**
    * Human-readable description for UI and marketplace display.
-   * Should explain what this agent does and its primary capabilities.
    *
    * @generated from field: string description = 1;
    */
@@ -53,33 +37,29 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
 
   /**
    * Icon URL for marketplace and UI display.
-   * Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
+   * Must be a publicly accessible URL to an image (SVG, PNG, or JPEG).
    *
    * @generated from field: string icon_url = 2;
    */
   iconUrl: string;
 
   /**
-   * Instructions defining the agent's behavior and personality.
-   * This is the agent's system prompt - the core logic that shapes its responses.
-   * Should be at least 10 characters to ensure meaningful instructions.
+   * System prompt defining the agent's behavior and personality.
    *
    * @generated from field: string instructions = 3;
    */
   instructions: string;
 
   /**
-   * MCP servers this Agent can use.
-   * Each usage references a McpServer resource by its ref.
-   * The slug from each reference must be unique within this Agent.
+   * MCP servers this agent can use.
+   * Each entry must reference a unique McpServer resource by slug.
    *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4;
    */
   mcpServerUsages: McpServerUsage[];
 
   /**
-   * Skill resources providing agent knowledge.
-   * Skills are injected into the agent's context as additional capabilities.
+   * Skill resources providing additional knowledge to the agent.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5;
    */
@@ -87,7 +67,7 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
 
   /**
    * Sub-agents that can be delegated to.
-   * Sub-agents inherit the parent's MCP server usages but can have restricted access.
+   * Sub-agents can access a subset of the parent's MCP servers and tools.
    *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6;
    */
@@ -95,7 +75,6 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
 
   /**
    * Environment variables required by the agent.
-   * Uses the shared EnvironmentSpec for consistent env var handling across resources.
    *
    * @generated from field: ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7;
    */
@@ -111,50 +90,33 @@ export const AgentSpecSchema: GenMessage<AgentSpec> = /*@__PURE__*/
 
 /**
  * SubAgent defines a specialized agent that the parent can delegate to.
- * SubAgents have restricted access to the parent's MCP servers.
  *
- * Permission Model:
- * - SubAgent can only access MCP servers that parent has in mcp_server_usages
- * - SubAgent tools must be a subset of parent's enabled tools (can restrict, not expand)
- * - SubAgent skills can reference any Skill resource (independent of parent)
+ * A sub-agent can only access MCP servers that the parent has in
+ * mcp_server_usages, and its tools must be a subset of the parent's
+ * enabled tools. Skills are independent of the parent.
  *
- * Example YAML:
- *   sub_agents:
- *     - name: code-reviewer
- *       description: "Reviews code changes for quality and security"
- *       instructions: "You review code changes. Focus on security..."
- *       mcp_access:
- *         - mcp_server: github
- *           enabled_tools: [search_code, get_file]
- *       skill_refs:
- *         - kind: skill
- *           slug: code-review-best-practices
+ * @internal
+ * Permission model enforced at execution time by the delegation handler.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.SubAgent
  */
 export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
   /**
    * Unique name of the sub-agent within the parent agent.
-   * Used for delegation routing and logging.
-   * Examples: "code-reviewer", "researcher", "writer"
    *
    * @generated from field: string name = 1;
    */
   name: string;
 
   /**
-   * Description of what this sub-agent specializes in.
-   * Helps the parent agent decide when to delegate to this sub-agent.
-   * Example: "Reviews code changes for security issues and best practices"
+   * What this sub-agent specializes in.
    *
    * @generated from field: string description = 2;
    */
   description: string;
 
   /**
-   * Behavior instructions for this sub-agent.
-   * Defines the sub-agent's personality, expertise, and constraints.
-   * Should be at least 10 characters to ensure meaningful instructions.
+   * System prompt for this sub-agent.
    *
    * @generated from field: string instructions = 3;
    */
@@ -162,17 +124,15 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
 
   /**
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4;
    */
   mcpAccess: McpAccess[];
 
   /**
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5;
    */
@@ -180,15 +140,8 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
 
   /**
    * Model override for this sub-agent.
-   * When set, this sub-agent uses this model instead of the parent's model.
-   * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-   *
-   * Examples:
-   *   - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-   *   - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-   *   - Code review sub-agent keeps parent model (leave empty)
-   *
-   * When empty: inherits the parent agent's model (current behavior).
+   * When set, uses this model instead of the parent's model.
+   * When empty, inherits the parent agent's model.
    *
    * @generated from field: string model_override = 6;
    */
@@ -203,46 +156,34 @@ export const SubAgentSchema: GenMessage<SubAgent> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
 
 /**
- * McpServerUsage declares that this Agent uses a McpServer resource.
- * The slug from mcp_server_ref becomes the identifier for SubAgent access.
+ * McpServerUsage declares that this agent uses a McpServer resource.
  *
+ * The slug from mcp_server_ref identifies this server for SubAgent access
+ * grants via McpAccess.
+ *
+ * @internal
  * Design principle: Users already named their McpServer with a slug.
- * We use that slug as the identifier - no extra naming required.
- *
- * Example YAML:
- *   mcp_server_usages:
- *     - mcp_server_ref:
- *         kind: mcp_server
- *         slug: github
- *       enabled_tools: [search_code, get_file, create_pr]
- *       tool_approval_overrides:
- *         - tool_name: delete_repository
- *           requires_approval: false  # Trust this agent
- *     - mcp_server_ref:
- *         org: acme-corp
- *         kind: mcp_server
- *         slug: internal-tools
+ * We use that slug as the identifier — no extra naming required.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.McpServerUsage
  */
 export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage"> & {
   /**
    * Reference to the McpServer resource.
-   * Must reference a resource with kind=mcp_server (44).
-   * The slug from this reference is how SubAgents identify this server.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1;
    */
   mcpServerRef?: ApiResourceReference;
 
   /**
-   * Tools to enable from this MCP server for this Agent.
-   * This defines the maximum tool set - SubAgents can only restrict further.
-   * Empty list = use McpServer's default_enabled_tools (or all if not specified).
+   * Tools to enable from this MCP server for this agent.
+   * Empty list uses the McpServer's default_enabled_tools.
+   * Sub-agents can only restrict this set further, not expand it.
    *
+   * @internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
    * Including a resource template name here causes a fatal runtime error.
    *
@@ -252,30 +193,7 @@ export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage
 
   /**
    * Override approval requirements for specific tools.
-   *
-   * These overrides take precedence over McpServer.default_tool_approvals,
-   * allowing per-agent customization of the approval policy.
-   *
-   * Use cases:
-   * - Disable approval for a trusted automation agent
-   * - Add approval for a tool that doesn't have default approval
-   * - Customize the approval message for this agent's context
-   *
-   * Example (trusted deployment agent - disable defaults):
-   *   tool_approval_overrides:
-   *     - tool_name: "delete_repository"
-   *       requires_approval: false  # Trust this agent for deletions
-   *     - tool_name: "force_push"
-   *       requires_approval: false  # Trust this agent for force pushes
-   *
-   * Example (stricter approval for customer-facing agent):
-   *   tool_approval_overrides:
-   *     - tool_name: "send_email"
-   *       requires_approval: true
-   *       message: "Send customer communication: {{args.subject}}"
-   *     - tool_name: "create_ticket"
-   *       requires_approval: true
-   *       message: "Create support ticket for customer"
+   * Takes precedence over McpServer.default_tool_approvals.
    *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3;
    */
@@ -290,38 +208,28 @@ export const McpServerUsageSchema: GenMessage<McpServerUsage> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 
 /**
- * McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
- * Uses the same slug that identifies the McpServer resource.
+ * McpAccess grants a sub-agent access to one of the parent's MCP servers.
  *
- * Permission model:
- * - SubAgent can only access servers that parent has in mcp_server_usages
- * - SubAgent tools must be a subset of parent's enabled tools
- *
- * Example YAML:
- *   sub_agents:
- *     - name: code-reviewer
- *       mcp_access:
- *         - mcp_server: github
- *           enabled_tools: [search_code, get_file]
- *         - mcp_server: slack
- *           # enabled_tools empty = all tools from parent
+ * @internal
+ * Permission model enforced at execution time: sub-agent can only access
+ * servers in the parent's mcp_server_usages, and tools must be a subset
+ * of the parent's enabled_tools.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.McpAccess
  */
 export type McpAccess = Message<"ai.stigmer.agentic.agent.v1.McpAccess"> & {
   /**
    * Slug of the McpServer to grant access to.
-   * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+   * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
    *
    * @generated from field: string mcp_server = 1;
    */
   mcpServer: string;
 
   /**
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    *
    * @generated from field: repeated string enabled_tools = 2;
    */
@@ -338,29 +246,18 @@ export const McpAccessSchema: GenMessage<McpAccess> = /*@__PURE__*/
 /**
  * ToolApprovalOverride allows per-agent customization of approval requirements.
  *
- * ## Override Semantics
+ * Set requires_approval to true to require approval even when the McpServer
+ * has no default, or to false to skip approval even when the McpServer
+ * requires it. These overrides take precedence over
+ * McpServer.default_tool_approvals but can be bypassed at execution time
+ * by AgentExecution.auto_approve_all.
  *
- * - requires_approval=true: Tool requires approval (even if MCP has no default)
- * - requires_approval=false: Tool does NOT require approval (overrides MCP default)
+ * @internal
+ * Policy chain (lowest to highest priority):
+ * 1. McpServer.default_tool_approvals — platform/org defaults
+ * 2. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
+ * 3. AgentExecution.auto_approve_all — runtime bypass
  *
- * ## Message Inheritance
- *
- * When requires_approval=true and message is empty:
- * - If McpServer has default_tool_approvals for this tool, uses that message
- * - Otherwise, auto-generates: "Execute tool: {tool_name}"
- *
- * When message is provided, it overrides any McpServer default message.
- *
- * ## Policy Chain Position
- *
- * This sits in the middle of the approval policy chain:
- * 1. McpServer.default_tool_approvals - Platform/org defaults (lowest priority)
- * 2. Agent.McpServerUsage.tool_approval_overrides (this message) - Per-agent customization
- * 3. AgentExecution.auto_approve_all - Runtime bypass (highest priority)
- *
- * ## Validation
- *
- * The tool_name should match a tool in the referenced McpServer's tools/list.
  * Invalid tool names are silently ignored (no approval applied).
  * This allows forward-compatibility when MCP servers add/remove tools.
  *
@@ -369,8 +266,6 @@ export const McpAccessSchema: GenMessage<McpAccess> = /*@__PURE__*/
 export type ToolApprovalOverride = Message<"ai.stigmer.agentic.agent.v1.ToolApprovalOverride"> & {
   /**
    * Name of the tool to override.
-   * Must match exactly (case-sensitive) with MCP server's tool name.
-   * Example: "delete_repository", "send_email", "execute_sql"
    *
    * @generated from field: string tool_name = 1;
    */
@@ -379,28 +274,15 @@ export type ToolApprovalOverride = Message<"ai.stigmer.agentic.agent.v1.ToolAppr
   /**
    * Whether this tool requires approval for this agent.
    *
-   * false: No approval needed (overrides any McpServer default)
-   * true: Approval required (even if McpServer has no default)
-   *
-   * Note: This can be further overridden at execution time by
-   * AgentExecutionSpec.auto_approve_all=true
-   *
    * @generated from field: bool requires_approval = 2;
    */
   requiresApproval: boolean;
 
   /**
-   * Optional: Custom approval message for this agent.
-   * Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
-   *
-   * If empty and requires_approval=true:
-   * - Uses McpServer's default message for this tool (if exists)
-   * - Otherwise auto-generates: "Execute tool: {tool_name}"
-   *
-   * Guidelines for effective messages:
-   *   - Be specific to this agent's context
-   *   - Include the most important argument values
-   *   - Keep under 100 characters for UI display
+   * Custom approval message shown to the reviewer.
+   * Supports {{args.field}} placeholders.
+   * When empty, falls back to the McpServer default or auto-generates
+   * "Execute tool: {tool_name}".
    *
    * @generated from field: string message = 3;
    */
