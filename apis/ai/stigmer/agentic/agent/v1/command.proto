@@ -13,12 +13,15 @@ service AgentCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = agent;
 
   // Create or update an agent.
+  //
+  // @internal
   // The authorization and state-operation are determined depending on whether the agent
   // is going to be created or updated which is determined as part of the request execution.
   rpc apply(Agent) returns (Agent);
 
-  // Create a new agent.
+  // Create an agent.
   //
+  // @internal
   // Authorization:
   // - Organization-scoped agents: Caller must have can_create_agent permission in the organization
   // - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -44,6 +47,7 @@ service AgentCommandController {
   // make an agent publicly accessible or to revoke public access without
   // sending the entire agent resource (avoiding read-modify-write races).
   //
+  // @internal
   // Authorization: Requires can_edit permission on the agent resource.
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Agent) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent;
