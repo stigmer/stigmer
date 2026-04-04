@@ -9,14 +9,14 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Replace the Playwright-based video export pipeline with Remotion for pixel-perfect video quality. Remotion renders each frame individually using headless Chrome, eliminating the VP8 quality degradation that plagues the current approach.
 **Goal**: Produce high-quality, crisp, readable demo scenario videos with proper audio synchronization using Remotion, replacing the Playwright recordVideo + FFmpeg pipeline.
 **Tech Stack**: TypeScript, React, Remotion, FFmpeg, Next.js
-**Components**: site/scripts/export-videos.ts, site/src/app/demos/export/[scenario]/ExportShell.tsx, site/src/components/docs/demos/engine/VideoExportContext.tsx, site/src/components/docs/demos/scenarios/registry.ts
+**Components**: site/scripts/render-videos.ts, site/video/webpack.ts, site/video/compositions/DemoVideo.tsx, site/video/Root.tsx, site/src/components/docs/demos/engine/TimeSource.tsx
 
 ## Current Status
 
 **Created**: 2026-04-03
-**Last Session**: 2026-04-04
+**Last Session**: 2026-04-04 (Session 3)
 **Current Task**: T01 — Replace Playwright Video Export with Remotion
-**Status**: IN PROGRESS — Phases 1–3 complete, Phase 4 next
+**Status**: IN PROGRESS — Phases 1–4 complete, Phase 5 next
 
 ## Phase Progress Summary
 
@@ -25,67 +25,56 @@ Drop this file into your conversation to quickly resume work on this project.
 | Phase 1 | Remotion Setup & Hello World | ✅ Complete |
 | Phase 2 | Scenario Composition | ✅ Complete |
 | Phase 3 | Audio Integration | ✅ Complete |
-| Phase 4 | Render Script | ⬜ Next |
-| Phase 5 | Cleanup & Validation | ⬜ Pending |
+| Phase 4 | Render Script | ✅ Complete |
+| Phase 5 | Cleanup & Validation | ⬜ Next |
 
-## Session Progress (2026-04-04, Session 2)
+## Session Progress (2026-04-04, Session 3)
 
 ### What Was Accomplished
 
-- **TimeSource context**: Created `engine/TimeSource.tsx` — React context providing frame-derived `currentTimeMs` and `stepStartTimesMs` to engine components
-- **ScenarioPlayer frame support**: Modified to consume TimeSource for deterministic step progression, bypassing all `setTimeout` effects in Remotion mode
-- **DemoVideo composition**: Created `video/compositions/DemoVideo.tsx` — wraps scenario components with TimeSource + VideoExport providers, virtual viewport (960×540 @ zoom 2×), and `<Audio>` sequences
-- **Timeline library**: Created `video/lib/timeline.ts` — pure function computing step frame offsets and audio clip positions from steps + manifest
-- **All 10 scenarios registered**: Updated `video/Root.tsx` with all scenario compositions and pre-computed timelines
-- **Video sizing**: Iterated on component sizing — settled on 91% vertical fill with `DEMO_VIDEO_SHELL_HEIGHT = 460px` and CSS variable override in AppShell
-- **Cursor fix**: Made `Cursor.tsx` TimeSource-aware with CSS zoom compensation for `getBoundingClientRect()` position calculations
-- **ESM resolution**: Added webpack `fullySpecified: false` rule in `remotion.config.ts` for `@stigmer/theme` extensionless imports
-- **All 10 videos rendered**: Successfully generated MP4s for all scenarios at `site/dist/videos/`
+- **Shared webpack override**: Extracted the webpack override from `remotion.config.ts` into `video/webpack.ts` — shared between the Remotion CLI and the programmatic render script, eliminating duplication
+- **Programmatic render script**: Created `scripts/render-videos.ts` using `@remotion/bundler` and `@remotion/renderer` API — bundles once, discovers compositions via `getCompositions()`, renders sequentially with progress reporting
+- **Makefile targets**: Added `render-videos` (all scenarios) and `render-video SCENARIO=<id>` (single scenario) targets depending only on `deps`, not `build`
+- **Smoke tested**: Rendered `tool-calls-playback` in 8.6s — verified H.264 1920×1080 30fps with AAC audio
 
 ### Key Decisions Made
 
-1. **TimeSource as context, not prop**: Engine components detect Remotion mode via context presence rather than props, avoiding prop-drilling through scenario components
-2. **Virtual viewport with CSS zoom**: 960×540 at zoom 2× preserves CSS layout while producing crisp 1920×1080 output
-3. **91% fill, not 100%**: User reviewed both options and preferred the subtle dark framing over edge-to-edge fill
-4. **Zoom compensation formula**: `(eRect - cRect) / (cRect.width / container.offsetWidth)` — robust to any zoom factor
+1. **`getCompositions()` for discovery**: Uses Remotion's runtime composition discovery instead of importing `PLAYBACK_SCENARIO_IDS` from the registry — avoids pulling React component modules into a Node.js script context
+2. **Sequential rendering**: `renderMedia` already parallelizes frame rendering internally; scenario-level parallelism would multiply memory usage without proportional speedup
+3. **No quality presets**: CRF 18 is fast enough for iteration and high enough for production; a `--draft` flag can be added later as a one-line change
+4. **`deps` only, not `build`**: Remotion bundles its own React app from source — no Next.js static export or `serve` step needed
 
 ### Files Modified/Created
 
 **New files:**
-- `site/src/components/docs/demos/engine/TimeSource.tsx`
-- `site/video/compositions/DemoVideo.tsx`
-- `site/video/lib/timeline.ts` (committed in Phase 1)
+- `site/video/webpack.ts` — shared webpack override (Tailwind v4, tsconfig paths, ESM fix)
+- `site/scripts/render-videos.ts` — programmatic render script
 
 **Modified files:**
-- `site/remotion.config.ts` — ESM resolution rule
-- `site/src/components/docs/demos/engine/Cursor.tsx` — TimeSource-aware positioning
-- `site/src/components/docs/demos/engine/ScenarioPlayer.tsx` — frame-driven step derivation
-- `site/src/components/docs/demos/shared/tokens.ts` — `DEMO_VIDEO_SHELL_HEIGHT`
-- `site/src/components/docs/demos/views/AppShell.tsx` — CSS variable for shell height
-- `site/video/Root.tsx` — all 10 scenario compositions
+- `site/remotion.config.ts` — simplified to import from `video/webpack.ts`
+- `site/package.json` — added `render-videos` script
+- `site/Makefile` — added `render-videos` and `render-video` targets
 
 ## Next Steps
 
-1. **Phase 4: Render Script** — Create `site/scripts/render-videos.ts` using `@remotion/renderer` programmatic API
-   - Single scenario rendering: `render-video SCENARIO=quickstart-playback`
-   - Batch rendering: `render-videos` (all scenarios)
-   - Add Makefile targets
-   - Output to `dist/videos/` (already gitignored)
-
-2. **Phase 5: Cleanup & Validation**
+1. **Phase 5: Cleanup & Validation**
    - Remove Playwright video recording code from `export-videos.ts`
    - Remove `serve` startup/shutdown from export pipeline
-   - Remove Playwright devDependency if no longer used
+   - Remove Playwright devDependency if no longer used elsewhere
+   - Remove old `export-videos` / `export-video` Makefile targets
+   - Remove `install-playwright` target
+   - Remove `.video-tmp` from clean target
    - Side-by-side quality comparison of old vs new output
-   - Update `package.json` scripts and `Makefile`
+   - Batch render all 10 scenarios with new script and verify
 
 ## Context for Resume
 
-- The `computeTimeline()` function in `video/lib/timeline.ts` is the bridge between narration manifests and Remotion frames — it pre-computes everything needed for deterministic rendering
+- The render script uses `getCompositions()` to discover scenario IDs from the bundle, filtering out the `HelloWorld` test composition — no hardcoded list
+- `video/webpack.ts` is the single source of truth for webpack overrides — both `remotion.config.ts` (CLI) and `render-videos.ts` (programmatic) import from it
+- The `computeTimeline()` function in `video/lib/timeline.ts` is the bridge between narration manifests and Remotion frames
 - ScenarioPlayer is fully backwards-compatible: when no TimeSource is present (live site), all behavior is unchanged
-- Cursor zoom compensation uses `cRect.width / container.offsetWidth` — this ratio equals the effective CSS zoom and works for any value, not just 2×
 - Videos are rendered to `site/dist/videos/` which is gitignored
-- The `site/video/lib/timeline.ts` was committed as part of Phase 1
+- Encoding: H.264, CRF 18, yuv420p, AAC audio — named constants in the script
 
 ## Essential Files to Review
 
@@ -135,7 +124,7 @@ the recording backend with Remotion for pixel-perfect output.
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4" — Start the render script
+- "Continue with Phase 5" — Start cleanup and validation
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
