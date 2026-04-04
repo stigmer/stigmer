@@ -89,8 +89,7 @@ function Hero({ className, ...props }: HeroProps) {
                   </a>
                 </Button>
                 <Button asChild variant="outline" size="lg">
-                  {/* TODO: Phase 3 — update to /docs/getting-started/quickstart */}
-                  <Link href="/docs">
+                  <Link href="/docs/getting-started/quickstart">
                     Read the Docs
                   </Link>
                 </Button>

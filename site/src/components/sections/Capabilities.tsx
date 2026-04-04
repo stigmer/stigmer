@@ -16,8 +16,7 @@ const CAPABILITIES = [
     description:
       "Upload domain knowledge — product docs, policies, procedures. The agent uses it to answer questions specific to your business. No vector database. No embedding pipeline.",
     cta: "Teach your agent",
-    // TODO: Phase 3 — update to /docs/getting-started/first-skill
-    href: "/docs",
+    href: "/docs/getting-started/first-skill",
   },
   {
     icon: "network" as IconName,
@@ -26,8 +25,7 @@ const CAPABILITIES = [
     description:
       "Connect your agent to your systems. It checks inventory, creates tickets, updates records — with the same APIs your team already uses. Tool access uses the Model Context Protocol.",
     cta: "Connect your tools",
-    // TODO: Phase 6 — update to /docs/tutorials/give-your-agent-tools
-    href: "/docs",
+    href: "/docs/getting-started/connect-tools",
   },
   {
     icon: "shield" as IconName,
@@ -36,8 +34,7 @@ const CAPABILITIES = [
     description:
       "Define which actions require human approval. The agent pauses, presents its reasoning, and waits. Routine requests are handled automatically. Sensitive actions — humans stay in control.",
     cta: "Set your rules",
-    // TODO: Phase 6 — update to /docs/tutorials/add-approval-flows
-    href: "/docs",
+    href: "/docs/getting-started/connect-tools",
   },
 ];
 

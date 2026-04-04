@@ -91,9 +91,8 @@ function WhyItWorks({ className, ...props }: WhyItWorksProps) {
 
         <FadeInUp delay={0.3}>
           <div className="flex flex-wrap items-center justify-center gap-4 mt-12">
-            {/* TODO: Phase 4 — update to /docs/concepts/what-is-stigmer */}
             <Link
-              href="/docs"
+              href="/docs/concepts/what-is-stigmer"
               className="inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors"
             >
               Read the docs

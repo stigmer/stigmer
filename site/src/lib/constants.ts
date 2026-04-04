@@ -55,12 +55,9 @@ export const FOOTER_LINKS = {
     { label: "Documentation", href: "/docs" },
   ],
   developers: [
-    // TODO: Phase 3 — update to /docs/getting-started/quickstart
-    { label: "Getting Started", href: "/docs" },
-    // TODO: Phase 6 — update to /docs/tutorials/give-your-agent-tools
+    { label: "Getting Started", href: "/docs/getting-started/quickstart" },
     { label: "Tutorials", href: "/docs" },
-    // TODO: Phase 7 — update to /docs/reference/api
-    { label: "API Reference", href: "/docs" },
+    { label: "SDK Reference", href: "/docs/sdk" },
   ],
   openSource: [
     { label: "GitHub", href: SITE_CONFIG.githubUrl, external: true },
