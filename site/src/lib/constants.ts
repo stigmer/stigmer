@@ -40,6 +40,7 @@ export const SITE_CONFIG = {
 export const NAV_LINKS = [
   { label: "Use Cases", href: "/use-cases" },
   { label: "Docs", href: "/docs" },
+  { label: "Blog", href: "/blog" },
   { label: "Pricing", href: "/pricing" },
   { label: "GitHub", href: SITE_CONFIG.githubUrl, external: true },
 ] as const;
