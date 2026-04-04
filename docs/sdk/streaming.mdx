@@ -1,0 +1,502 @@
+---
+title: Streaming
+description:
+  Consume real-time Agent Execution and Workflow Execution updates as they
+  arrive.
+---
+
+The `subscribe` method opens a server stream that pushes execution snapshots as
+the agent works. Each snapshot is the **complete** execution state at that point
+in time — not a diff or a delta. The stream closes when the execution reaches a
+terminal phase.
+
+If you are new to streaming, the
+[Quickstart](/docs/getting-started/quickstart) walks through a minimal subscribe
+loop. This guide covers the production patterns you need after that.
+
+## Subscribe to an Agent Execution
+
+Call `subscribe` with the execution ID after creating an execution. Iterate the
+stream and check `status.phase` on each snapshot to decide what to do.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+for await (const snapshot of stigmer.agentExecution.subscribe(executionId)) {
+  const phase = snapshot.status?.phase;
+  const messages = snapshot.status?.messages ?? [];
+
+  if (phase === "EXECUTION_COMPLETED" || phase === "EXECUTION_FAILED") {
+    const last = messages[messages.length - 1];
+    if (last?.content) {
+      console.log(last.content);
+    }
+    if (phase === "EXECUTION_FAILED") {
+      console.error("Execution failed:", snapshot.status?.error);
+    }
+    break;
+  }
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.AgentExecution.Subscribe(ctx, executionId)
+if err != nil {
+    log.Fatal(err)
+}
+
+for {
+    snapshot, err := stream.Recv()
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    status := snapshot.GetStatus()
+    phase := status.GetPhase()
+
+    if phase == stigmer.ExecutionCompleted || phase == stigmer.ExecutionFailed {
+        msgs := status.GetMessages()
+        if len(msgs) > 0 {
+            fmt.Println(msgs[len(msgs)-1].GetContent())
+        }
+        if phase == stigmer.ExecutionFailed {
+            log.Fatalf("Execution failed: %s", status.GetError())
+        }
+        break
+    }
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+for snapshot in client.agent_executions.subscribe(execution_id):
+    phase = snapshot.status.phase
+    messages = snapshot.status.messages
+
+    if phase in ("EXECUTION_COMPLETED", "EXECUTION_FAILED"):
+        if messages and messages[-1].content:
+            print(messages[-1].content)
+        if phase == "EXECUTION_FAILED":
+            print(f"Execution failed: {snapshot.status.error}")
+        break
+```
+</Tab>
+<Tab value="Java">
+```java
+var stream = client.agentExecutions().subscribe(executionId);
+
+while (stream.hasNext()) {
+    var snapshot = stream.next();
+    var status = snapshot.getStatus();
+    var phase = status.getPhase();
+
+    if (phase == ExecutionPhase.COMPLETED || phase == ExecutionPhase.FAILED) {
+        var messages = status.getMessagesList();
+        if (!messages.isEmpty()) {
+            System.out.println(messages.get(messages.size() - 1).getContent());
+        }
+        if (phase == ExecutionPhase.FAILED) {
+            System.err.println("Execution failed: " + status.getError());
+        }
+        break;
+    }
+}
+```
+</Tab>
+</SDKTabs>
+
+## Read the snapshot
+
+Every snapshot is a full `AgentExecution` resource. The fields you inspect most
+often are on `status`:
+
+| Field | What it contains |
+|-------|------------------|
+| `phase` | Current lifecycle phase. See [Detect completion](#detect-completion). |
+| `messages` | Conversation history — human messages, AI responses, tool results, and system notices. Each message has a `type`, `content`, and optional `toolCalls`. |
+| `error` | Failure reason. Populated when phase is `EXECUTION_FAILED` or `EXECUTION_TERMINATED`. |
+| `pendingApprovals` | Tool calls waiting for human approval. See [Connect Tools](/docs/getting-started/connect-tools) for the full approval handling pattern. |
+| `todos` | Task list the agent maintains to track multi-step work. |
+| `subAgentExecutions` | Child agent invocations with their own messages and status. |
+| `artifacts` | Files the agent published for download. |
+| `setupProgress` | Setup phase label, reported while phase is `EXECUTION_PENDING`. |
+
+<Callout type="info">
+  For the complete field reference, see
+  [Agent Execution > AgentExecutionStatus](/docs/sdk/agent-execution#agentexecutionstatus).
+</Callout>
+
+## Detect completion
+
+Execution phases fall into two categories:
+
+**Terminal** — the execution is finished and the stream will close:
+
+| Phase | Meaning |
+|-------|---------|
+| `EXECUTION_COMPLETED` | Agent finished successfully. |
+| `EXECUTION_FAILED` | Agent encountered an error. |
+| `EXECUTION_CANCELLED` | User stopped the execution gracefully. |
+| `EXECUTION_TERMINATED` | Platform stopped the execution (timeout, budget, or force-kill). |
+
+**Non-terminal** — the execution is still active or paused:
+
+| Phase | Meaning |
+|-------|---------|
+| `EXECUTION_PENDING` | Queued, waiting for a worker. |
+| `EXECUTION_IN_PROGRESS` | Agent is working. |
+| `EXECUTION_WAITING_FOR_APPROVAL` | Blocked on a human approval decision. |
+| `EXECUTION_PAUSED` | Paused by the user, can be resumed. |
+
+Check for any terminal phase to decide when to stop processing:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const TERMINAL_PHASES = new Set([
+  "EXECUTION_COMPLETED",
+  "EXECUTION_FAILED",
+  "EXECUTION_CANCELLED",
+  "EXECUTION_TERMINATED",
+]);
+
+function isTerminal(phase: string | undefined): boolean {
+  return TERMINAL_PHASES.has(phase ?? "");
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+func isTerminal(phase stigmer.ExecutionPhase) bool {
+    switch phase {
+    case stigmer.ExecutionCompleted,
+        stigmer.ExecutionFailed,
+        stigmer.ExecutionCancelled,
+        stigmer.ExecutionTerminated:
+        return true
+    }
+    return false
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+TERMINAL_PHASES = {
+    "EXECUTION_COMPLETED",
+    "EXECUTION_FAILED",
+    "EXECUTION_CANCELLED",
+    "EXECUTION_TERMINATED",
+}
+
+def is_terminal(phase: str) -> bool:
+    return phase in TERMINAL_PHASES
+```
+</Tab>
+<Tab value="Java">
+```java
+static boolean isTerminal(ExecutionPhase phase) {
+    return phase == ExecutionPhase.COMPLETED
+        || phase == ExecutionPhase.FAILED
+        || phase == ExecutionPhase.CANCELLED
+        || phase == ExecutionPhase.TERMINATED;
+}
+```
+</Tab>
+</SDKTabs>
+
+## Handle stream errors
+
+Transport errors (network failures, server unavailability) surface as SDK
+exceptions during iteration. Wrap the subscribe loop to catch them separately
+from execution-level failures reported in `status.error`.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+import { StigmerError, isRetryable } from "@stigmer/sdk";
+
+try {
+  for await (const snapshot of stigmer.agentExecution.subscribe(executionId)) {
+    // process snapshot
+  }
+} catch (err) {
+  if (isRetryable(err)) {
+    // transient failure — wait and re-subscribe
+  }
+  throw err;
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.AgentExecution.Subscribe(ctx, executionId)
+if err != nil {
+    log.Fatal(err)
+}
+
+for {
+    snapshot, err := stream.Recv()
+    if err == io.EOF {
+        break // stream closed normally
+    }
+    if err != nil {
+        if stigmer.IsRetryable(err) {
+            // transient failure — wait and re-subscribe
+            break
+        }
+        log.Fatal(err)
+    }
+    // process snapshot
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+from stigmer import StigmerError, is_retryable
+
+try:
+    for snapshot in client.agent_executions.subscribe(execution_id):
+        # process snapshot
+        pass
+except StigmerError as err:
+    if is_retryable(err):
+        pass  # transient failure — wait and re-subscribe
+    raise
+```
+</Tab>
+<Tab value="Java">
+```java
+try {
+    var stream = client.agentExecutions().subscribe(executionId);
+    while (stream.hasNext()) {
+        var snapshot = stream.next();
+        // process snapshot
+    }
+} catch (StigmerException e) {
+    if (e.isRetryable()) {
+        // transient failure — wait and re-subscribe
+    }
+    throw e;
+}
+```
+</Tab>
+</SDKTabs>
+
+Execution failures are not transport errors. When an agent fails, the stream
+delivers a snapshot with `phase` set to `EXECUTION_FAILED` and `error`
+containing the failure reason. The stream then closes normally.
+
+For more on error classification, see
+[SDK Overview > Error handling](/docs/sdk#error-handling).
+
+## Cancel a stream
+
+To stop consuming updates before the execution finishes, cancel the stream from
+the client side.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+Pass an `AbortSignal` to `subscribe`. Abort the controller to close the stream:
+
+```typescript
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 30_000);
+
+for await (const snapshot of stigmer.agentExecution.subscribe(
+  executionId,
+  controller.signal,
+)) {
+  // process snapshot
+}
+```
+
+</Tab>
+<Tab value="Go">
+
+Cancel the `context.Context` to close the stream:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+stream, err := client.AgentExecution.Subscribe(ctx, executionId)
+if err != nil {
+    log.Fatal(err)
+}
+
+for {
+    snapshot, err := stream.Recv()
+    if err != nil {
+        break
+    }
+    // process snapshot
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+Break out of the iterator to stop reading. The underlying gRPC channel cleans
+up when the iterator is garbage collected:
+
+```python
+for snapshot in client.agent_executions.subscribe(execution_id):
+    if should_stop():
+        break
+```
+
+</Tab>
+<Tab value="Java">
+
+Break out of the iteration loop. The underlying gRPC stream cleans up when the
+`StigmerStream` is garbage collected:
+
+```java
+var stream = client.agentExecutions().subscribe(executionId);
+while (stream.hasNext()) {
+    var snapshot = stream.next();
+    if (shouldStop()) {
+        break;
+    }
+}
+```
+
+</Tab>
+</SDKTabs>
+
+<Callout type="warn">
+  Cancelling a stream stops your client from receiving updates. It does not
+  cancel the execution itself. To cancel the execution, call
+  [`cancel`](/docs/sdk/agent-execution#cancel) or
+  [`terminate`](/docs/sdk/agent-execution#terminate).
+</Callout>
+
+## Subscribe to a Workflow Execution
+
+Workflow Execution streams work the same way, with two differences:
+
+1. `subscribe` takes a request object with an `executionId` field instead of a
+   bare string.
+2. Progress is tracked through `status.tasks` (a list of workflow tasks with
+   individual status) rather than `status.messages`.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+for await (const snapshot of stigmer.workflowExecution.subscribe(
+  { executionId: workflowExecutionId },
+)) {
+  const phase = snapshot.status?.phase;
+  const tasks = snapshot.status?.tasks ?? [];
+
+  for (const task of tasks) {
+    console.log(`${task.taskName}: ${task.status}`);
+  }
+
+  if (isTerminal(phase)) {
+    if (phase === "EXECUTION_COMPLETED") {
+      console.log("Output:", snapshot.status?.output);
+    }
+    break;
+  }
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.WorkflowExecution.Subscribe(ctx,
+    &stigmer.SubscribeWorkflowExecutionRequest{
+        ExecutionId: workflowExecutionId,
+    })
+if err != nil {
+    log.Fatal(err)
+}
+
+for {
+    snapshot, err := stream.Recv()
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    status := snapshot.GetStatus()
+    for _, task := range status.GetTasks() {
+        fmt.Printf("%s: %s\n", task.GetTaskName(), task.GetStatus())
+    }
+
+    if isTerminal(status.GetPhase()) {
+        break
+    }
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+from stigmer import SubscribeWorkflowExecutionRequest
+
+for snapshot in client.workflow_executions.subscribe(
+    SubscribeWorkflowExecutionRequest(execution_id=workflow_execution_id),
+):
+    for task in snapshot.status.tasks:
+        print(f"{task.task_name}: {task.status}")
+
+    if is_terminal(snapshot.status.phase):
+        if snapshot.status.output:
+            print("Output:", snapshot.status.output)
+        break
+```
+</Tab>
+<Tab value="Java">
+```java
+var stream = client.workflowExecutions().subscribe(
+    SubscribeWorkflowExecutionRequest.builder()
+        .executionId(workflowExecutionId)
+        .build());
+
+while (stream.hasNext()) {
+    var snapshot = stream.next();
+    var status = snapshot.getStatus();
+
+    for (var task : status.getTasksList()) {
+        System.out.printf("%s: %s%n", task.getTaskName(), task.getStatus());
+    }
+
+    if (isTerminal(status.getPhase())) {
+        break;
+    }
+}
+```
+</Tab>
+</SDKTabs>
+
+<Callout type="info">
+  For the complete field reference, see
+  [Workflow Execution > WorkflowExecutionStatus](/docs/sdk/workflow-execution#workflowexecutionstatus).
+</Callout>
+
+## What's next
+
+<Cards>
+  <Card
+    title="Agent Execution"
+    description="Full method and type reference for Agent Executions."
+    href="/docs/sdk/agent-execution"
+  />
+  <Card
+    title="Workflow Execution"
+    description="Full method and type reference for Workflow Executions."
+    href="/docs/sdk/workflow-execution"
+  />
+  <Card
+    title="Connect Tools"
+    description="Handle tool approvals inside a subscribe loop."
+    href="/docs/getting-started/connect-tools"
+  />
+</Cards>

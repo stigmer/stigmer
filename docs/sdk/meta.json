@@ -1,6 +1,8 @@
 {
   "title": "SDK Reference",
   "pages": [
+    "streaming",
+    "---Resources---",
     "agent",
     "agent-execution",
     "agent-instance",
