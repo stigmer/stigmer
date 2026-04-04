@@ -91,7 +91,6 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/typescript codegen
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
-	$(MAKE) gen-sdk-docs
 
 gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs ## Generate all SDK reference docs
 
@@ -132,7 +131,7 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 	fi; \
 	echo "✓ React SDK docs are up to date"
 
-codegen: protos ## Regenerate all derived code
+codegen: protos gen-sdk-docs ## Regenerate all derived code (stubs + SDK docs)
 
 # ─── Test ─────────────────────────────────────
 
@@ -174,6 +173,7 @@ lint: ## Run all linters and type checks
 	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
 	npm run lint -w client-apps/web
+	$(MAKE) -C site lint
 
 libs-build:
 	npm run build:libs
