@@ -2,6 +2,7 @@
 
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link ResourceCountCard}. */
 export interface ResourceCountCardProps {
   /**
    * Icon element rendered at the top of the card. Sized by the consumer.

@@ -1,0 +1,73 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { InlineTOC } from "fumadocs-ui/components/inline-toc";
+import { getMDXComponents } from "@/components/mdx";
+import { blog } from "@/lib/source";
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function BlogPost(props: PageProps) {
+  const params = await props.params;
+  const page = blog.getPage([params.slug]);
+  if (!page) notFound();
+
+  const MDX = page.data.body;
+
+  return (
+    <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+      <Link
+        href="/blog"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        &larr; All posts
+      </Link>
+
+      <header className="mt-8">
+        <h1 className="text-3xl font-bold tracking-tight">
+          {page.data.title}
+        </h1>
+        {page.data.description && (
+          <p className="mt-2 text-lg text-muted-foreground">
+            {page.data.description}
+          </p>
+        )}
+        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <span>{page.data.author}</span>
+          <span>&middot;</span>
+          <time dateTime={new Date(page.data.date).toISOString()}>
+            {new Date(page.data.date).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </time>
+        </div>
+      </header>
+
+      <div className="prose prose-neutral dark:prose-invert mt-12 max-w-none">
+        <InlineTOC items={page.data.toc} />
+          <MDX components={getMDXComponents()} />
+      </div>
+    </article>
+  );
+}
+
+export function generateStaticParams(): { slug: string }[] {
+  return blog.getPages().map((page) => ({
+    slug: page.slugs[0],
+  }));
+}
+
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
+  const page = blog.getPage([params.slug]);
+  if (!page) notFound();
+
+  return {
+    title: page.data.title,
+    description: page.data.description,
+  };
+}

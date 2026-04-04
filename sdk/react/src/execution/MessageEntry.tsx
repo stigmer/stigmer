@@ -6,8 +6,11 @@ import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v
 import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
 
+/** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {
+  /** The agent message to render. */
   readonly message: AgentMessage;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

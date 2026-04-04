@@ -3,22 +3,42 @@
 import { useCallback, useState } from "react";
 import type { WorkspaceEntryInput, WorkspaceSourceInput } from "@stigmer/sdk";
 
+/**
+ * A single workspace entry managed by {@link useWorkspaceEntries}.
+ *
+ * Each entry represents a code source (git repository or local directory)
+ * added by the user before starting an agent session.
+ */
 export interface WorkspaceEntry {
+  /** Stable client-side identifier used as a React key and for removal. */
   readonly id: string;
+  /** Display name derived from the git URL or local path. */
   readonly name: string;
+  /** Source type: `"git"` for remote repositories, `"local"` for filesystem paths. */
   readonly type: "git" | "local";
+  /** Repository URL. Set when `type` is `"git"`. */
   readonly gitUrl?: string;
+  /** Branch to clone. Set when `type` is `"git"`. */
   readonly gitBranch?: string;
+  /** Absolute filesystem path. Set when `type` is `"local"`. */
   readonly localPath?: string;
 }
 
+/** Return value of {@link useWorkspaceEntries}. */
 export interface UseWorkspaceEntriesReturn {
+  /** Current workspace entries. */
   readonly entries: readonly WorkspaceEntry[];
+  /** Add a git repository by URL with an optional branch. */
   readonly addGitRepo: (url: string, branch?: string) => void;
+  /** Add a local filesystem directory by absolute path. */
   readonly addLocalPath: (path: string) => void;
+  /** Remove an entry by its stable ID. */
   readonly remove: (id: string) => void;
+  /** Remove all entries. */
   readonly clear: () => void;
+  /** Convert entries to the `WorkspaceEntryInput[]` shape required by the SDK. */
   readonly toInput: () => WorkspaceEntryInput[];
+  /** `true` when at least one entry exists. */
   readonly hasEntries: boolean;
 }
 

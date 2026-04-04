@@ -11,7 +11,9 @@ import {
 import { CATEGORY_ICON } from "./ToolCallItem";
 import { ToolArgsView } from "./ToolArgsView";
 
+/** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {
+  /** The pending approval request to render. */
   readonly pendingApproval: PendingApproval;
   /**
    * Called when the user clicks Approve, Skip, or Reject.
@@ -22,6 +24,7 @@ export interface ApprovalCardProps {
   readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
   /** True while the RPC for this specific tool call is in flight. */
   readonly isSubmitting?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

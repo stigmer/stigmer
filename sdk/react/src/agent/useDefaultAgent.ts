@@ -7,11 +7,15 @@ import { GetDefaultAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useDefaultAgent}. */
 export interface UseDefaultAgentReturn {
-  /** The platform default agent, or null while loading / on error. */
+  /** The platform default Agent, or `null` while loading or on error. */
   readonly agent: Agent | null;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
+  /** Discard cached data and re-fetch the default agent from the server. */
   readonly refetch: () => void;
 }
 

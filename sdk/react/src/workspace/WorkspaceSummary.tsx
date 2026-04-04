@@ -4,9 +4,11 @@ import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/
 import type { WorkspaceSource } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link WorkspaceSummary}. */
 export interface WorkspaceSummaryProps {
   /** Session-level workspace entries. Renders nothing when empty. */
   readonly entries: readonly WorkspaceEntry[];
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

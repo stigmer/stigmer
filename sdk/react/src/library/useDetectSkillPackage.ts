@@ -11,6 +11,7 @@ import {
 
 const NOT_DETECTED: SkillPackageDetection = { detected: false } as const;
 
+/** Return value of {@link useDetectSkillPackage}. */
 export interface UseDetectSkillPackageReturn {
   /** The detection result — check `detection.detected` to narrow the type. */
   readonly detection: SkillPackageDetection;

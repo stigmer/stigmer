@@ -29,6 +29,7 @@ export interface SessionArtifactEntry {
   readonly hasNameCollision: boolean;
 }
 
+/** Return value of {@link useSessionArtifacts}. */
 export interface UseSessionArtifactsReturn {
   /** Deduplicated, alphabetically-sorted artifacts from all executions. */
   readonly artifacts: readonly SessionArtifactEntry[];

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 
+/** Return value of {@link useExecutionArtifacts}. */
 export interface UseExecutionArtifactsReturn {
   /** Artifacts published by the agent during execution. Ordered by creation time (oldest first). */
   readonly artifacts: readonly ExecutionArtifact[];

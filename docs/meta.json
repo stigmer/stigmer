@@ -1,9 +1,7 @@
 {
   "pages": [
     "getting-started",
-    "---Learn---",
     "concepts",
-    "---Reference---",
     "sdk"
   ]
 }

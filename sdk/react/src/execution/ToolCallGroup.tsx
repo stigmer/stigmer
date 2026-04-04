@@ -11,7 +11,9 @@ import { cn } from "@stigmer/theme";
 import { ToolCallItem } from "./ToolCallItem";
 import { resolveToolCategory, extractPrimaryArg } from "./tool-categories";
 
+/** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
+  /** Tool calls in this group, ordered by invocation time. */
   readonly toolCalls: readonly ToolCall[];
   /**
    * Sub-agent executions from the parent `AgentExecutionStatus`.
@@ -30,6 +32,7 @@ export interface ToolCallGroupProps {
    * Initial expansion state. Defaults to `false`.
    */
   readonly defaultExpanded?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

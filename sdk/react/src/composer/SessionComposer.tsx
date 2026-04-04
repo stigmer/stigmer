@@ -72,6 +72,7 @@ export interface SessionComposerSubmitContext {
   readonly attachments?: AttachmentInput[];
 }
 
+/** Props for {@link SessionComposer}. */
 export interface SessionComposerProps {
   /**
    * Called when the user submits a message.
@@ -253,6 +254,7 @@ export interface SessionComposerProps {
   /** ARIA label for the composer region. @default "Send message" */
   readonly ariaLabel?: string;
 
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

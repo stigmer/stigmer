@@ -19,12 +19,17 @@ export interface RemoveEnvironmentVariablesInput {
   readonly keys: string[];
 }
 
+/** Return value of {@link useRemoveEnvironmentVariables}. */
 export interface UseRemoveEnvironmentVariablesReturn {
+  /** Remove variables from an environment by key. Resolves with the updated resource. */
   readonly removeVariables: (
     input: RemoveEnvironmentVariablesInput,
   ) => Promise<Environment>;
+  /** `true` while the remove request is in flight. */
   readonly isRemovingVariables: boolean;
+  /** Error from the last failed removal, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 

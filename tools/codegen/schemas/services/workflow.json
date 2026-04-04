@@ -412,6 +412,87 @@
   },
   "statusNestedTypes": [
     {
+      "name": "ServerlessWorkflowValidation",
+      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.\n\n @internal\n Populated asynchronously after workflow creation via a Temporal workflow\n that validates the workflow structure.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/serverless/validation.proto",
+      "fields": [
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflow.v1.serverless.ValidationState",
+            "enumValues": [
+              "PENDING",
+              "VALID",
+              "INVALID",
+              "FAILED"
+            ]
+          },
+          "description": "Current validation state.",
+          "required": false
+        },
+        {
+          "name": "Yaml",
+          "jsonName": "yaml",
+          "protoField": "yaml",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Generated CNCF Serverless Workflow DSL 1.0.0 YAML.\n Present even if validation failed (helps debugging).\n Empty if validation has not started yet.\n\n @internal\n May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).",
+          "required": false
+        },
+        {
+          "name": "Errors",
+          "jsonName": "errors",
+          "protoField": "errors",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Validation errors, empty when valid.",
+          "required": false
+        },
+        {
+          "name": "Warnings",
+          "jsonName": "warnings",
+          "protoField": "warnings",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Non-fatal validation warnings.",
+          "required": false
+        },
+        {
+          "name": "ValidatedAt",
+          "jsonName": "validatedAt",
+          "protoField": "validated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the validation was performed.",
+          "required": false
+        },
+        {
+          "name": "ValidationWorkflowId",
+          "jsonName": "validationWorkflowId",
+          "protoField": "validation_workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Validation process ID for tracking validation progress.\n\n @internal\n Temporal workflow ID. Format: \"validate-workflow-{workflow_id}\".",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ApiResourceAudit",
       "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
@@ -525,87 +606,6 @@
             "kind": "string"
           },
           "description": "URL to the actor's avatar image.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ServerlessWorkflowValidation",
-      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.\n\n @internal\n Populated asynchronously after workflow creation via a Temporal workflow\n that validates the workflow structure.",
-      "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
-      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/serverless/validation.proto",
-      "fields": [
-        {
-          "name": "State",
-          "jsonName": "state",
-          "protoField": "state",
-          "type": {
-            "kind": "string",
-            "enumType": "ai.stigmer.agentic.workflow.v1.serverless.ValidationState",
-            "enumValues": [
-              "PENDING",
-              "VALID",
-              "INVALID",
-              "FAILED"
-            ]
-          },
-          "description": "Current validation state.",
-          "required": false
-        },
-        {
-          "name": "Yaml",
-          "jsonName": "yaml",
-          "protoField": "yaml",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Generated CNCF Serverless Workflow DSL 1.0.0 YAML.\n Present even if validation failed (helps debugging).\n Empty if validation has not started yet.\n\n @internal\n May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).",
-          "required": false
-        },
-        {
-          "name": "Errors",
-          "jsonName": "errors",
-          "protoField": "errors",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "Validation errors, empty when valid.",
-          "required": false
-        },
-        {
-          "name": "Warnings",
-          "jsonName": "warnings",
-          "protoField": "warnings",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "Non-fatal validation warnings.",
-          "required": false
-        },
-        {
-          "name": "ValidatedAt",
-          "jsonName": "validatedAt",
-          "protoField": "validated_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "When the validation was performed.",
-          "required": false
-        },
-        {
-          "name": "ValidationWorkflowId",
-          "jsonName": "validationWorkflowId",
-          "protoField": "validation_workflow_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Validation process ID for tracking validation progress.\n\n @internal\n Temporal workflow ID. Format: \"validate-workflow-{workflow_id}\".",
           "required": false
         }
       ]

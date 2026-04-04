@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
 
+/** Return value of {@link useArtifactContent}. */
 export interface UseArtifactContentReturn {
   /**
    * Decoded text content of the artifact, or `null` when:

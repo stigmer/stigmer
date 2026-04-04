@@ -15,8 +15,21 @@ export const DEMO_SIDEBAR_ZOOM = 0.85;
 
 /**
  * Fixed height of the AppShell demo container in pixels.
+ * On the docs site, this is the default. In video export mode,
+ * the CSS variable `--demo-shell-height` overrides this value
+ * to fill more of the video frame.
  */
 export const DEMO_SHELL_HEIGHT = 380;
+
+/**
+ * Shell height for video export compositions.
+ *
+ * At 460px + ~32px caption = 492px in a 540px virtual viewport,
+ * the component fills ~91% of the frame vertically — leaving
+ * just enough dark margin for a professional "floating on stage"
+ * look without the excessive empty space of the default 380px.
+ */
+export const DEMO_VIDEO_SHELL_HEIGHT = 460;
 
 /**
  * Container classes for ScenarioPlayer-based demos (playback + tour).

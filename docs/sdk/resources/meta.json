@@ -1,0 +1,23 @@
+{
+  "title": "Resources",
+  "pages": [
+    "agent",
+    "agent-execution",
+    "agent-instance",
+    "api-key",
+    "commons",
+    "environment",
+    "execution-context",
+    "iam-policy",
+    "identity-account",
+    "identity-provider",
+    "mcp-server",
+    "organization",
+    "project",
+    "session",
+    "skill",
+    "workflow",
+    "workflow-execution",
+    "workflow-instance"
+  ]
+}

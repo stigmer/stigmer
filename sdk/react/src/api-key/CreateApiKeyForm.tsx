@@ -10,6 +10,7 @@ import { useCreateApiKey } from "./useCreateApiKey";
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Props for {@link CreateApiKeyForm}. */
 export interface CreateApiKeyFormProps {
   /** Organization slug used as the `org` field when creating the key. */
   readonly org: string;
@@ -21,6 +22,7 @@ export interface CreateApiKeyFormProps {
   readonly onCreated?: (apiKey: ApiKey) => void;
   /** Fired when the user cancels creation. */
   readonly onCancel?: () => void;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

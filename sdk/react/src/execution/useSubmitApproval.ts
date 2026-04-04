@@ -7,6 +7,7 @@ import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useSubmitApproval}. */
 export interface UseSubmitApprovalReturn {
   /**
    * Submit an approval decision for a specific tool call within an

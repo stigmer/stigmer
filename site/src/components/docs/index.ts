@@ -17,3 +17,4 @@ export { Mermaid } from "./mermaid";
 export { PageFeedback } from "./page-feedback";
 export { Term } from "./term";
 export { SDKTabs } from "./sdk-tabs";
+export { ComponentPreview } from "./previews/ComponentPreview";

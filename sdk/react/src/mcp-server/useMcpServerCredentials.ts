@@ -8,6 +8,7 @@ import { diffEnvSpec } from "../environment/diffEnvSpec";
 import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 
+/** Return value of {@link useMcpServerCredentials}. */
 export interface UseMcpServerCredentialsReturn {
   /**
    * Variables required by the MCP server that are missing from the

@@ -4,12 +4,14 @@ import { useMemo } from "react";
 import { StigmerError, getUserMessage } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link SecretFlowErrorGuide}. */
 export interface SecretFlowErrorGuideProps {
   /**
    * The error to inspect. Renders nothing when `null` or when the error
    * does not match a recognized secret-flow failure pattern.
    */
   readonly error: Error | null;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

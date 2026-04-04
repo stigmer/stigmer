@@ -4,6 +4,7 @@ import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { ResourceListScope } from "../search";
 
+/** Props for {@link ScopeToggle}. */
 export interface ScopeToggleProps {
   /** The currently selected scope. */
   readonly value: ResourceListScope;

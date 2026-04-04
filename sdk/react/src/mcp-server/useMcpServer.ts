@@ -6,12 +6,15 @@ import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useMcpServer}. */
 export interface UseMcpServerReturn {
   /** The resolved MCP server, or `null` while loading, on error, or when not found. */
   readonly mcpServer: McpServer | null;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
-  /** Re-fetch the MCP server with the same org and slug. */
+  /** Discard cached data and re-fetch the MCP server from the server. */
   readonly refetch: () => void;
 }
 

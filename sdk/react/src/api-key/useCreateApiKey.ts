@@ -6,10 +6,15 @@ import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useCreateApiKey}. */
 export interface UseCreateApiKeyReturn {
+  /** Submit an {@link ApiKeyInput} to create a new API key. Resolves with the server-created resource including the raw key value. */
   readonly create: (input: ApiKeyInput) => Promise<ApiKey>;
+  /** `true` while the create request is in flight. */
   readonly isCreating: boolean;
+  /** Error from the last failed create, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 
