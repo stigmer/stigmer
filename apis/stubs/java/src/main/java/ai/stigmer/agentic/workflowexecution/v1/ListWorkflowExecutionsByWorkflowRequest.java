@@ -7,19 +7,11 @@ package ai.stigmer.agentic.workflowexecution.v1;
 
 /**
  * <pre>
- * ListWorkflowExecutionsByWorkflowRequest lists all executions for a specific workflow.
+ * ListWorkflowExecutionsByWorkflowRequest lists executions for a specific workflow.
  *
+ * &#64;internal
  * Filters executions by Workflow or WorkflowInstance ID.
- * Used to view execution history for a particular workflow.
- *
- * Difference from ListWorkflowExecutionsRequest:
- * - ListWorkflowExecutionsRequest: Lists executions across ALL workflows (with optional filters)
- * - ListWorkflowExecutionsByWorkflowRequest: Lists executions for ONE specific workflow
- *
- * Use Cases:
- * - Workflow details page: Show execution history for this workflow
- * - Workflow testing: View all test runs of this workflow
- * - Performance analysis: Analyze execution patterns for this workflow
+ * Unlike ListWorkflowExecutionsRequest (cross-workflow), this scopes to one workflow.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest}
@@ -73,19 +65,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow or WorkflowInstance ID to filter by.
    *
-   * Can be either:
-   * - Workflow ID (wf_{slug}): Lists all executions of any instance
-   * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
-   *
-   * Examples:
-   * - "wf_customer-onboarding" (all instances: prod, dev, staging)
-   * - "wfi_customer-onboarding-prod" (only prod instance)
-   *
-   * Validation: Required field, cannot be empty
-   *
-   * Error Cases:
-   * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-   * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+   * &#64;internal
+   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -108,19 +89,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow or WorkflowInstance ID to filter by.
    *
-   * Can be either:
-   * - Workflow ID (wf_{slug}): Lists all executions of any instance
-   * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
-   *
-   * Examples:
-   * - "wf_customer-onboarding" (all instances: prod, dev, staging)
-   * - "wfi_customer-onboarding-prod" (only prod instance)
-   *
-   * Validation: Required field, cannot be empty
-   *
-   * Error Cases:
-   * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-   * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+   * &#64;internal
+   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -147,10 +117,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Maximum number of executions to return per page.
    *
-   * Default: 50 (if not specified or 0)
-   * Maximum: 100 (backend enforces this limit)
-   *
-   * Example: page_size=20 returns up to 20 executions
+   * &#64;internal
+   * Default: 50. Maximum: 100 (backend enforces this limit).
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
@@ -166,14 +134,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
-   *
-   * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-   *
-   * Example:
-   * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
-   * Response 1: { entries: [...], page_token: "abc123" }
-   * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
+   * Opaque pagination token from a previous response.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -194,14 +155,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
-   *
-   * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-   *
-   * Example:
-   * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
-   * Response 1: { entries: [...], page_token: "abc123" }
-   * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
+   * Opaque pagination token from a previous response.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -401,19 +355,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ListWorkflowExecutionsByWorkflowRequest lists all executions for a specific workflow.
+   * ListWorkflowExecutionsByWorkflowRequest lists executions for a specific workflow.
    *
+   * &#64;internal
    * Filters executions by Workflow or WorkflowInstance ID.
-   * Used to view execution history for a particular workflow.
-   *
-   * Difference from ListWorkflowExecutionsRequest:
-   * - ListWorkflowExecutionsRequest: Lists executions across ALL workflows (with optional filters)
-   * - ListWorkflowExecutionsByWorkflowRequest: Lists executions for ONE specific workflow
-   *
-   * Use Cases:
-   * - Workflow details page: Show execution history for this workflow
-   * - Workflow testing: View all test runs of this workflow
-   * - Performance analysis: Analyze execution patterns for this workflow
+   * Unlike ListWorkflowExecutionsRequest (cross-workflow), this scopes to one workflow.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest}
@@ -584,19 +530,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
      *
-     * Can be either:
-     * - Workflow ID (wf_{slug}): Lists all executions of any instance
-     * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
-     *
-     * Examples:
-     * - "wf_customer-onboarding" (all instances: prod, dev, staging)
-     * - "wfi_customer-onboarding-prod" (only prod instance)
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-     * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+     * &#64;internal
+     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -618,19 +553,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
      *
-     * Can be either:
-     * - Workflow ID (wf_{slug}): Lists all executions of any instance
-     * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
-     *
-     * Examples:
-     * - "wf_customer-onboarding" (all instances: prod, dev, staging)
-     * - "wfi_customer-onboarding-prod" (only prod instance)
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-     * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+     * &#64;internal
+     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -653,19 +577,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
      *
-     * Can be either:
-     * - Workflow ID (wf_{slug}): Lists all executions of any instance
-     * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
-     *
-     * Examples:
-     * - "wf_customer-onboarding" (all instances: prod, dev, staging)
-     * - "wfi_customer-onboarding-prod" (only prod instance)
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-     * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+     * &#64;internal
+     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -684,19 +597,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
      *
-     * Can be either:
-     * - Workflow ID (wf_{slug}): Lists all executions of any instance
-     * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
-     *
-     * Examples:
-     * - "wf_customer-onboarding" (all instances: prod, dev, staging)
-     * - "wfi_customer-onboarding-prod" (only prod instance)
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-     * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+     * &#64;internal
+     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -712,19 +614,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow or WorkflowInstance ID to filter by.
      *
-     * Can be either:
-     * - Workflow ID (wf_{slug}): Lists all executions of any instance
-     * - WorkflowInstance ID (wfi_{slug}): Lists executions of specific instance
-     *
-     * Examples:
-     * - "wf_customer-onboarding" (all instances: prod, dev, staging)
-     * - "wfi_customer-onboarding-prod" (only prod instance)
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-     * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+     * &#64;internal
+     * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
      * </pre>
      *
      * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -746,10 +637,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum number of executions to return per page.
      *
-     * Default: 50 (if not specified or 0)
-     * Maximum: 100 (backend enforces this limit)
-     *
-     * Example: page_size=20 returns up to 20 executions
+     * &#64;internal
+     * Default: 50. Maximum: 100 (backend enforces this limit).
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
@@ -763,10 +652,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum number of executions to return per page.
      *
-     * Default: 50 (if not specified or 0)
-     * Maximum: 100 (backend enforces this limit)
-     *
-     * Example: page_size=20 returns up to 20 executions
+     * &#64;internal
+     * Default: 50. Maximum: 100 (backend enforces this limit).
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
@@ -784,10 +671,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum number of executions to return per page.
      *
-     * Default: 50 (if not specified or 0)
-     * Maximum: 100 (backend enforces this limit)
-     *
-     * Example: page_size=20 returns up to 20 executions
+     * &#64;internal
+     * Default: 50. Maximum: 100 (backend enforces this limit).
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
@@ -803,14 +688,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
-     *
-     * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-     *
-     * Example:
-     * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
-     * Response 1: { entries: [...], page_token: "abc123" }
-     * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
+     * Opaque pagination token from a previous response.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -830,14 +708,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
-     *
-     * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-     *
-     * Example:
-     * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
-     * Response 1: { entries: [...], page_token: "abc123" }
-     * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
+     * Opaque pagination token from a previous response.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -858,14 +729,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
-     *
-     * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-     *
-     * Example:
-     * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
-     * Response 1: { entries: [...], page_token: "abc123" }
-     * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
+     * Opaque pagination token from a previous response.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -882,14 +746,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
-     *
-     * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-     *
-     * Example:
-     * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
-     * Response 1: { entries: [...], page_token: "abc123" }
-     * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
+     * Opaque pagination token from a previous response.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -903,14 +760,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for pagination, obtained from previous response.
-     *
-     * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-     *
-     * Example:
-     * Request 1: { workflow_id: "wfi_prod", page_size: 50 }
-     * Response 1: { entries: [...], page_token: "abc123" }
-     * Request 2: { workflow_id: "wfi_prod", page_size: 50, page_token: "abc123" }
+     * Opaque pagination token from a previous response.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>

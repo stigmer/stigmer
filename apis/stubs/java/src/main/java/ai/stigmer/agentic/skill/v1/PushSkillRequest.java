@@ -8,12 +8,13 @@ package ai.stigmer.agentic.skill.v1;
 /**
  * <pre>
  * PushSkillRequest contains the skill artifact and metadata for upload.
- * This operation creates a new skill if it doesn't exist, or creates a new version
- * of an existing skill.
+ * Creates a skill if it does not exist, or creates a new version of an
+ * existing skill.
  *
+ * &#64;internal
  * The skill name and description are extracted by the backend from the SKILL.md
  * YAML frontmatter within the artifact. The CLI validates the format but does not
- * send these fields - backend is the single source of truth for parsing.
+ * send these fields — backend is the single source of truth for parsing.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.skill.v1.PushSkillRequest}
@@ -67,8 +68,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization that owns this skill. Required.
-   * All skills belong to exactly one organization.
+   * Organization that owns this skill.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -89,8 +89,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization that owns this skill. Required.
-   * All skills belong to exactly one organization.
+   * Organization that owns this skill.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -189,12 +188,14 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.skill.v1.GitProvenance gitProvenance_;
   /**
    * <pre>
-   * Git provenance for this skill version. Optional.
+   * Git provenance for this skill version.
+   * Absent when pushed from a non-git directory.
+   *
+   * &#64;internal
    * Populated by CLI during push:
    * - For local pushes: auto-detected if directory is within a git repository
    * - For git pushes: resolved from user-provided URL/ref
-   * Absent when pushed from a non-git directory.
-   * This is stored in SkillStatus.git_provenance for traceability.
+   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -206,12 +207,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Git provenance for this skill version. Optional.
+   * Git provenance for this skill version.
+   * Absent when pushed from a non-git directory.
+   *
+   * &#64;internal
    * Populated by CLI during push:
    * - For local pushes: auto-detected if directory is within a git repository
    * - For git pushes: resolved from user-provided URL/ref
-   * Absent when pushed from a non-git directory.
-   * This is stored in SkillStatus.git_provenance for traceability.
+   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -223,12 +226,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Git provenance for this skill version. Optional.
+   * Git provenance for this skill version.
+   * Absent when pushed from a non-git directory.
+   *
+   * &#64;internal
    * Populated by CLI during push:
    * - For local pushes: auto-detected if directory is within a git repository
    * - For git pushes: resolved from user-provided URL/ref
-   * Absent when pushed from a non-git directory.
-   * This is stored in SkillStatus.git_provenance for traceability.
+   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -434,12 +439,13 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * PushSkillRequest contains the skill artifact and metadata for upload.
-   * This operation creates a new skill if it doesn't exist, or creates a new version
-   * of an existing skill.
+   * Creates a skill if it does not exist, or creates a new version of an
+   * existing skill.
    *
+   * &#64;internal
    * The skill name and description are extracted by the backend from the SKILL.md
    * YAML frontmatter within the artifact. The CLI validates the format but does not
-   * send these fields - backend is the single source of truth for parsing.
+   * send these fields — backend is the single source of truth for parsing.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.skill.v1.PushSkillRequest}
@@ -637,8 +643,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization that owns this skill. Required.
-     * All skills belong to exactly one organization.
+     * Organization that owns this skill.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -658,8 +663,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns this skill. Required.
-     * All skills belong to exactly one organization.
+     * Organization that owns this skill.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -680,8 +684,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns this skill. Required.
-     * All skills belong to exactly one organization.
+     * Organization that owns this skill.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -698,8 +701,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns this skill. Required.
-     * All skills belong to exactly one organization.
+     * Organization that owns this skill.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -713,8 +715,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns this skill. Required.
-     * All skills belong to exactly one organization.
+     * Organization that owns this skill.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -905,12 +906,14 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.skill.v1.GitProvenance, ai.stigmer.agentic.skill.v1.GitProvenance.Builder, ai.stigmer.agentic.skill.v1.GitProvenanceOrBuilder> gitProvenanceBuilder_;
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -921,12 +924,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -941,12 +946,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -966,12 +973,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -989,12 +998,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -1019,12 +1030,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -1041,12 +1054,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -1058,12 +1073,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -1078,12 +1095,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git provenance for this skill version. Optional.
+     * Git provenance for this skill version.
+     * Absent when pushed from a non-git directory.
+     *
+     * &#64;internal
      * Populated by CLI during push:
      * - For local pushes: auto-detected if directory is within a git repository
      * - For git pushes: resolved from user-provided URL/ref
-     * Absent when pushed from a non-git directory.
-     * This is stored in SkillStatus.git_provenance for traceability.
+     * Stored in SkillStatus.git_provenance for traceability.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>

@@ -4,7 +4,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * ExecutionContextCommandController provides write operations for ExecutionContext resources.
+ * ExecutionContextCommandController handles write operations for ExecutionContext resources.
+ * &#64;internal
  * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
  * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
  * FGA model. Authorization is derived from the parent execution:
@@ -175,7 +176,8 @@ public final class ExecutionContextCommandControllerGrpc {
 
   /**
    * <pre>
-   * ExecutionContextCommandController provides write operations for ExecutionContext resources.
+   * ExecutionContextCommandController handles write operations for ExecutionContext resources.
+   * &#64;internal
    * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
    * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
    * FGA model. Authorization is derived from the parent execution:
@@ -189,6 +191,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the execution context
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -228,7 +231,8 @@ public final class ExecutionContextCommandControllerGrpc {
   /**
    * Base class for the server implementation of the service ExecutionContextCommandController.
    * <pre>
-   * ExecutionContextCommandController provides write operations for ExecutionContext resources.
+   * ExecutionContextCommandController handles write operations for ExecutionContext resources.
+   * &#64;internal
    * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
    * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
    * FGA model. Authorization is derived from the parent execution:
@@ -248,7 +252,8 @@ public final class ExecutionContextCommandControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
-   * ExecutionContextCommandController provides write operations for ExecutionContext resources.
+   * ExecutionContextCommandController handles write operations for ExecutionContext resources.
+   * &#64;internal
    * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
    * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
    * FGA model. Authorization is derived from the parent execution:
@@ -273,6 +278,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the execution context
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -315,7 +321,8 @@ public final class ExecutionContextCommandControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
-   * ExecutionContextCommandController provides write operations for ExecutionContext resources.
+   * ExecutionContextCommandController handles write operations for ExecutionContext resources.
+   * &#64;internal
    * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
    * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
    * FGA model. Authorization is derived from the parent execution:
@@ -340,6 +347,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the execution context
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -379,7 +387,8 @@ public final class ExecutionContextCommandControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
-   * ExecutionContextCommandController provides write operations for ExecutionContext resources.
+   * ExecutionContextCommandController handles write operations for ExecutionContext resources.
+   * &#64;internal
    * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
    * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
    * FGA model. Authorization is derived from the parent execution:
@@ -404,6 +413,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the execution context
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -443,7 +453,8 @@ public final class ExecutionContextCommandControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ExecutionContextCommandController.
    * <pre>
-   * ExecutionContextCommandController provides write operations for ExecutionContext resources.
+   * ExecutionContextCommandController handles write operations for ExecutionContext resources.
+   * &#64;internal
    * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
    * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
    * FGA model. Authorization is derived from the parent execution:
@@ -468,6 +479,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an ExecutionContext.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the execution context
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>

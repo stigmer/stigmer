@@ -12,9 +12,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
 
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -23,9 +21,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
       getToolsList();
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -33,9 +29,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
   ai.stigmer.agentic.mcpserver.v1.DiscoveredTool getTools(int index);
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -43,9 +37,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
   int getToolsCount();
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -54,9 +46,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
       getToolsOrBuilderList();
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -66,10 +56,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
 
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -78,10 +65,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
       getResourceTemplatesList();
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -89,10 +73,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
   ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate getResourceTemplates(int index);
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -100,10 +81,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
   int getResourceTemplatesCount();
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -112,10 +90,7 @@ public interface DiscoveredCapabilitiesOrBuilder extends
       getResourceTemplatesOrBuilderList();
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>

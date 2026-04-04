@@ -7,7 +7,12 @@ package ai.stigmer.iam.identityaccount.v1;
 
 /**
  * <pre>
- * https://auth0.com/docs/customize/log-streams/custom-log-streams
+ * Auth0Webhook represents a log-stream event payload from Auth0.
+ *
+ * &#64;internal
+ * Stigmer receives these events via a custom Auth0 log stream to trigger
+ * identity account provisioning on signup.
+ * See: https://auth0.com/docs/customize/log-streams/custom-log-streams
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.Auth0Webhook}
@@ -64,6 +69,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object date_ = "";
   /**
+   * <pre>
+   * ISO 8601 timestamp of the event.
+   * </pre>
+   *
    * <code>string date = 1 [json_name = "date"];</code>
    * @return The date.
    */
@@ -81,6 +90,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * ISO 8601 timestamp of the event.
+   * </pre>
+   *
    * <code>string date = 1 [json_name = "date"];</code>
    * @return The bytes for date.
    */
@@ -103,6 +116,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object type_ = "";
   /**
+   * <pre>
+   * Auth0 event type code (e.g., "ss" for successful signup).
+   * </pre>
+   *
    * <code>string type = 2 [json_name = "type"];</code>
    * @return The type.
    */
@@ -120,6 +137,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Auth0 event type code (e.g., "ss" for successful signup).
+   * </pre>
+   *
    * <code>string type = 2 [json_name = "type"];</code>
    * @return The bytes for type.
    */
@@ -142,6 +163,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object description_ = "";
   /**
+   * <pre>
+   * Human-readable description of the event.
+   * </pre>
+   *
    * <code>string description = 3 [json_name = "description"];</code>
    * @return The description.
    */
@@ -159,6 +184,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Human-readable description of the event.
+   * </pre>
+   *
    * <code>string description = 3 [json_name = "description"];</code>
    * @return The bytes for description.
    */
@@ -181,6 +210,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object clientId_ = "";
   /**
+   * <pre>
+   * Auth0 application client ID that triggered the event.
+   * </pre>
+   *
    * <code>string client_id = 4 [json_name = "clientId"];</code>
    * @return The clientId.
    */
@@ -198,6 +231,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Auth0 application client ID that triggered the event.
+   * </pre>
+   *
    * <code>string client_id = 4 [json_name = "clientId"];</code>
    * @return The bytes for clientId.
    */
@@ -220,6 +257,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object clientName_ = "";
   /**
+   * <pre>
+   * Name of the Auth0 application that triggered the event.
+   * </pre>
+   *
    * <code>string client_name = 5 [json_name = "clientName"];</code>
    * @return The clientName.
    */
@@ -237,6 +278,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Name of the Auth0 application that triggered the event.
+   * </pre>
+   *
    * <code>string client_name = 5 [json_name = "clientName"];</code>
    * @return The bytes for clientName.
    */
@@ -259,6 +304,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object ip_ = "";
   /**
+   * <pre>
+   * IP address of the user who triggered the event.
+   * </pre>
+   *
    * <code>string ip = 6 [json_name = "ip"];</code>
    * @return The ip.
    */
@@ -276,6 +325,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * IP address of the user who triggered the event.
+   * </pre>
+   *
    * <code>string ip = 6 [json_name = "ip"];</code>
    * @return The bytes for ip.
    */
@@ -298,6 +351,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object userAgent_ = "";
   /**
+   * <pre>
+   * User-Agent header from the request that triggered the event.
+   * </pre>
+   *
    * <code>string user_agent = 7 [json_name = "userAgent"];</code>
    * @return The userAgent.
    */
@@ -315,6 +372,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * User-Agent header from the request that triggered the event.
+   * </pre>
+   *
    * <code>string user_agent = 7 [json_name = "userAgent"];</code>
    * @return The bytes for userAgent.
    */
@@ -337,6 +398,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object userId_ = "";
   /**
+   * <pre>
+   * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+   * </pre>
+   *
    * <code>string user_id = 8 [json_name = "userId"];</code>
    * @return The userId.
    */
@@ -354,6 +419,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+   * </pre>
+   *
    * <code>string user_id = 8 [json_name = "userId"];</code>
    * @return The bytes for userId.
    */
@@ -600,7 +669,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * https://auth0.com/docs/customize/log-streams/custom-log-streams
+   * Auth0Webhook represents a log-stream event payload from Auth0.
+   *
+   * &#64;internal
+   * Stigmer receives these events via a custom Auth0 log stream to trigger
+   * identity account provisioning on signup.
+   * See: https://auth0.com/docs/customize/log-streams/custom-log-streams
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.Auth0Webhook}
@@ -840,6 +914,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object date_ = "";
     /**
+     * <pre>
+     * ISO 8601 timestamp of the event.
+     * </pre>
+     *
      * <code>string date = 1 [json_name = "date"];</code>
      * @return The date.
      */
@@ -856,6 +934,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * ISO 8601 timestamp of the event.
+     * </pre>
+     *
      * <code>string date = 1 [json_name = "date"];</code>
      * @return The bytes for date.
      */
@@ -873,6 +955,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * ISO 8601 timestamp of the event.
+     * </pre>
+     *
      * <code>string date = 1 [json_name = "date"];</code>
      * @param value The date to set.
      * @return This builder for chaining.
@@ -886,6 +972,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * ISO 8601 timestamp of the event.
+     * </pre>
+     *
      * <code>string date = 1 [json_name = "date"];</code>
      * @return This builder for chaining.
      */
@@ -896,6 +986,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * ISO 8601 timestamp of the event.
+     * </pre>
+     *
      * <code>string date = 1 [json_name = "date"];</code>
      * @param value The bytes for date to set.
      * @return This builder for chaining.
@@ -912,6 +1006,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object type_ = "";
     /**
+     * <pre>
+     * Auth0 event type code (e.g., "ss" for successful signup).
+     * </pre>
+     *
      * <code>string type = 2 [json_name = "type"];</code>
      * @return The type.
      */
@@ -928,6 +1026,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Auth0 event type code (e.g., "ss" for successful signup).
+     * </pre>
+     *
      * <code>string type = 2 [json_name = "type"];</code>
      * @return The bytes for type.
      */
@@ -945,6 +1047,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Auth0 event type code (e.g., "ss" for successful signup).
+     * </pre>
+     *
      * <code>string type = 2 [json_name = "type"];</code>
      * @param value The type to set.
      * @return This builder for chaining.
@@ -958,6 +1064,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Auth0 event type code (e.g., "ss" for successful signup).
+     * </pre>
+     *
      * <code>string type = 2 [json_name = "type"];</code>
      * @return This builder for chaining.
      */
@@ -968,6 +1078,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Auth0 event type code (e.g., "ss" for successful signup).
+     * </pre>
+     *
      * <code>string type = 2 [json_name = "type"];</code>
      * @param value The bytes for type to set.
      * @return This builder for chaining.
@@ -984,6 +1098,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object description_ = "";
     /**
+     * <pre>
+     * Human-readable description of the event.
+     * </pre>
+     *
      * <code>string description = 3 [json_name = "description"];</code>
      * @return The description.
      */
@@ -1000,6 +1118,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Human-readable description of the event.
+     * </pre>
+     *
      * <code>string description = 3 [json_name = "description"];</code>
      * @return The bytes for description.
      */
@@ -1017,6 +1139,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Human-readable description of the event.
+     * </pre>
+     *
      * <code>string description = 3 [json_name = "description"];</code>
      * @param value The description to set.
      * @return This builder for chaining.
@@ -1030,6 +1156,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Human-readable description of the event.
+     * </pre>
+     *
      * <code>string description = 3 [json_name = "description"];</code>
      * @return This builder for chaining.
      */
@@ -1040,6 +1170,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Human-readable description of the event.
+     * </pre>
+     *
      * <code>string description = 3 [json_name = "description"];</code>
      * @param value The bytes for description to set.
      * @return This builder for chaining.
@@ -1056,6 +1190,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object clientId_ = "";
     /**
+     * <pre>
+     * Auth0 application client ID that triggered the event.
+     * </pre>
+     *
      * <code>string client_id = 4 [json_name = "clientId"];</code>
      * @return The clientId.
      */
@@ -1072,6 +1210,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Auth0 application client ID that triggered the event.
+     * </pre>
+     *
      * <code>string client_id = 4 [json_name = "clientId"];</code>
      * @return The bytes for clientId.
      */
@@ -1089,6 +1231,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Auth0 application client ID that triggered the event.
+     * </pre>
+     *
      * <code>string client_id = 4 [json_name = "clientId"];</code>
      * @param value The clientId to set.
      * @return This builder for chaining.
@@ -1102,6 +1248,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Auth0 application client ID that triggered the event.
+     * </pre>
+     *
      * <code>string client_id = 4 [json_name = "clientId"];</code>
      * @return This builder for chaining.
      */
@@ -1112,6 +1262,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Auth0 application client ID that triggered the event.
+     * </pre>
+     *
      * <code>string client_id = 4 [json_name = "clientId"];</code>
      * @param value The bytes for clientId to set.
      * @return This builder for chaining.
@@ -1128,6 +1282,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object clientName_ = "";
     /**
+     * <pre>
+     * Name of the Auth0 application that triggered the event.
+     * </pre>
+     *
      * <code>string client_name = 5 [json_name = "clientName"];</code>
      * @return The clientName.
      */
@@ -1144,6 +1302,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Name of the Auth0 application that triggered the event.
+     * </pre>
+     *
      * <code>string client_name = 5 [json_name = "clientName"];</code>
      * @return The bytes for clientName.
      */
@@ -1161,6 +1323,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Name of the Auth0 application that triggered the event.
+     * </pre>
+     *
      * <code>string client_name = 5 [json_name = "clientName"];</code>
      * @param value The clientName to set.
      * @return This builder for chaining.
@@ -1174,6 +1340,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Name of the Auth0 application that triggered the event.
+     * </pre>
+     *
      * <code>string client_name = 5 [json_name = "clientName"];</code>
      * @return This builder for chaining.
      */
@@ -1184,6 +1354,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Name of the Auth0 application that triggered the event.
+     * </pre>
+     *
      * <code>string client_name = 5 [json_name = "clientName"];</code>
      * @param value The bytes for clientName to set.
      * @return This builder for chaining.
@@ -1200,6 +1374,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object ip_ = "";
     /**
+     * <pre>
+     * IP address of the user who triggered the event.
+     * </pre>
+     *
      * <code>string ip = 6 [json_name = "ip"];</code>
      * @return The ip.
      */
@@ -1216,6 +1394,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * IP address of the user who triggered the event.
+     * </pre>
+     *
      * <code>string ip = 6 [json_name = "ip"];</code>
      * @return The bytes for ip.
      */
@@ -1233,6 +1415,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * IP address of the user who triggered the event.
+     * </pre>
+     *
      * <code>string ip = 6 [json_name = "ip"];</code>
      * @param value The ip to set.
      * @return This builder for chaining.
@@ -1246,6 +1432,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * IP address of the user who triggered the event.
+     * </pre>
+     *
      * <code>string ip = 6 [json_name = "ip"];</code>
      * @return This builder for chaining.
      */
@@ -1256,6 +1446,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * IP address of the user who triggered the event.
+     * </pre>
+     *
      * <code>string ip = 6 [json_name = "ip"];</code>
      * @param value The bytes for ip to set.
      * @return This builder for chaining.
@@ -1272,6 +1466,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object userAgent_ = "";
     /**
+     * <pre>
+     * User-Agent header from the request that triggered the event.
+     * </pre>
+     *
      * <code>string user_agent = 7 [json_name = "userAgent"];</code>
      * @return The userAgent.
      */
@@ -1288,6 +1486,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * User-Agent header from the request that triggered the event.
+     * </pre>
+     *
      * <code>string user_agent = 7 [json_name = "userAgent"];</code>
      * @return The bytes for userAgent.
      */
@@ -1305,6 +1507,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * User-Agent header from the request that triggered the event.
+     * </pre>
+     *
      * <code>string user_agent = 7 [json_name = "userAgent"];</code>
      * @param value The userAgent to set.
      * @return This builder for chaining.
@@ -1318,6 +1524,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * User-Agent header from the request that triggered the event.
+     * </pre>
+     *
      * <code>string user_agent = 7 [json_name = "userAgent"];</code>
      * @return This builder for chaining.
      */
@@ -1328,6 +1538,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * User-Agent header from the request that triggered the event.
+     * </pre>
+     *
      * <code>string user_agent = 7 [json_name = "userAgent"];</code>
      * @param value The bytes for userAgent to set.
      * @return This builder for chaining.
@@ -1344,6 +1558,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object userId_ = "";
     /**
+     * <pre>
+     * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+     * </pre>
+     *
      * <code>string user_id = 8 [json_name = "userId"];</code>
      * @return The userId.
      */
@@ -1360,6 +1578,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+     * </pre>
+     *
      * <code>string user_id = 8 [json_name = "userId"];</code>
      * @return The bytes for userId.
      */
@@ -1377,6 +1599,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+     * </pre>
+     *
      * <code>string user_id = 8 [json_name = "userId"];</code>
      * @param value The userId to set.
      * @return This builder for chaining.
@@ -1390,6 +1616,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+     * </pre>
+     *
      * <code>string user_id = 8 [json_name = "userId"];</code>
      * @return This builder for chaining.
      */
@@ -1400,6 +1630,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
+     * </pre>
+     *
      * <code>string user_id = 8 [json_name = "userId"];</code>
      * @param value The bytes for userId to set.
      * @return This builder for chaining.

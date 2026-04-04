@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * OrganizationQueryController provides read operations for organizations
+ * OrganizationQueryController handles read operations for organizations.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -200,15 +200,16 @@ public final class OrganizationQueryControllerGrpc {
 
   /**
    * <pre>
-   * OrganizationQueryController provides read operations for organizations
+   * OrganizationQueryController handles read operations for organizations.
    * </pre>
    */
   public interface AsyncService {
 
     /**
      * <pre>
-     * Get an organization by ID
-     * Requires: User must be a member of the organization (can_view)
+     * Get an organization by ID.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     default void get(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -218,9 +219,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations with pagination and filtering
-     * Requires: Platform admin permission
-     * This is for administrative purposes only
+     * List organizations with pagination and filtering.
+     * &#64;internal
+     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     default void find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request,
@@ -258,7 +259,7 @@ public final class OrganizationQueryControllerGrpc {
   /**
    * Base class for the server implementation of the service OrganizationQueryController.
    * <pre>
-   * OrganizationQueryController provides read operations for organizations
+   * OrganizationQueryController handles read operations for organizations.
    * </pre>
    */
   public static abstract class OrganizationQueryControllerImplBase
@@ -272,7 +273,7 @@ public final class OrganizationQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service OrganizationQueryController.
    * <pre>
-   * OrganizationQueryController provides read operations for organizations
+   * OrganizationQueryController handles read operations for organizations.
    * </pre>
    */
   public static final class OrganizationQueryControllerStub
@@ -290,8 +291,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an organization by ID
-     * Requires: User must be a member of the organization (can_view)
+     * Get an organization by ID.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     public void get(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -302,9 +304,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations with pagination and filtering
-     * Requires: Platform admin permission
-     * This is for administrative purposes only
+     * List organizations with pagination and filtering.
+     * &#64;internal
+     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     public void find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request,
@@ -345,7 +347,7 @@ public final class OrganizationQueryControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service OrganizationQueryController.
    * <pre>
-   * OrganizationQueryController provides read operations for organizations
+   * OrganizationQueryController handles read operations for organizations.
    * </pre>
    */
   public static final class OrganizationQueryControllerBlockingV2Stub
@@ -363,8 +365,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an organization by ID
-     * Requires: User must be a member of the organization (can_view)
+     * Get an organization by ID.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization get(ai.stigmer.tenancy.organization.v1.OrganizationId request) throws io.grpc.StatusException {
@@ -374,9 +377,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations with pagination and filtering
-     * Requires: Platform admin permission
-     * This is for administrative purposes only
+     * List organizations with pagination and filtering.
+     * &#64;internal
+     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.OrganizationList find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request) throws io.grpc.StatusException {
@@ -414,7 +417,7 @@ public final class OrganizationQueryControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service OrganizationQueryController.
    * <pre>
-   * OrganizationQueryController provides read operations for organizations
+   * OrganizationQueryController handles read operations for organizations.
    * </pre>
    */
   public static final class OrganizationQueryControllerBlockingStub
@@ -432,8 +435,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an organization by ID
-     * Requires: User must be a member of the organization (can_view)
+     * Get an organization by ID.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization get(ai.stigmer.tenancy.organization.v1.OrganizationId request) {
@@ -443,9 +447,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations with pagination and filtering
-     * Requires: Platform admin permission
-     * This is for administrative purposes only
+     * List organizations with pagination and filtering.
+     * &#64;internal
+     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.OrganizationList find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request) {
@@ -483,7 +487,7 @@ public final class OrganizationQueryControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service OrganizationQueryController.
    * <pre>
-   * OrganizationQueryController provides read operations for organizations
+   * OrganizationQueryController handles read operations for organizations.
    * </pre>
    */
   public static final class OrganizationQueryControllerFutureStub
@@ -501,8 +505,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an organization by ID
-     * Requires: User must be a member of the organization (can_view)
+     * Get an organization by ID.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> get(
@@ -513,9 +518,9 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations with pagination and filtering
-     * Requires: Platform admin permission
-     * This is for administrative purposes only
+     * List organizations with pagination and filtering.
+     * &#64;internal
+     * Authorization: Requires platform admin permission. Administrative use only.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.OrganizationList> find(

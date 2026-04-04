@@ -23,10 +23,11 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// List of organizations (unbounded)
+// List of organizations.
 type Organizations struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*Organization        `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization resources in this list.
+	Entries       []*Organization `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -68,12 +69,12 @@ func (x *Organizations) GetEntries() []*Organization {
 	return nil
 }
 
-// Response for paginated list query
+// Response for a paginated organization list query.
 type OrganizationList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// total number of pages
+	// Total number of pages.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// organizations in current page
+	// Organizations in the current page.
 	Entries       []*Organization `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -123,10 +124,10 @@ func (x *OrganizationList) GetEntries() []*Organization {
 	return nil
 }
 
-// Wrapper for organization id
+// OrganizationId wraps an organization identifier.
 type OrganizationId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// organization id (UUID format)
+	// Organization identifier.
 	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

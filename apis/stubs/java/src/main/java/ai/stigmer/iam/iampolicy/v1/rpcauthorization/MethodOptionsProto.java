@@ -31,6 +31,10 @@ public final class MethodOptionsProto extends com.google.protobuf.GeneratedFile 
   }
   public static final int CONFIG_FIELD_NUMBER = 50056;
   /**
+   * <pre>
+   * Full authorization configuration: permission, resource kind, field path, and error message.
+   * </pre>
+   *
    * <code>extend .google.protobuf.MethodOptions { ... }</code>
    */
   public static final
@@ -42,6 +46,10 @@ public final class MethodOptionsProto extends com.google.protobuf.GeneratedFile 
         ai.stigmer.iam.iampolicy.v1.rpcauthorization.RpcAuthorizationConfig.getDefaultInstance());
   public static final int IS_PUBLIC_FIELD_NUMBER = 50057;
   /**
+   * <pre>
+   * When true, the RPC is publicly accessible without any authentication.
+   * </pre>
+   *
    * <code>extend .google.protobuf.MethodOptions { ... }</code>
    */
   public static final
@@ -53,6 +61,10 @@ public final class MethodOptionsProto extends com.google.protobuf.GeneratedFile 
         null);
   public static final int IS_SKIP_AUTHORIZATION_FIELD_NUMBER = 50058;
   /**
+   * <pre>
+   * When true, the RPC requires authentication but skips FGA authorization checks.
+   * </pre>
+   *
    * <code>extend .google.protobuf.MethodOptions { ... }</code>
    */
   public static final

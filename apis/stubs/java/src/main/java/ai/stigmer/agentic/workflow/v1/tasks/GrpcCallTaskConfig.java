@@ -7,10 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks.
+ * GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
  *
- * GRPC_CALL tasks make gRPC requests to external services.
- *
+ * &#64;internal
  * YAML Example:
  * - taskName:
  * call: grpc
@@ -394,10 +393,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks.
+   * GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
    *
-   * GRPC_CALL tasks make gRPC requests to external services.
-   *
+   * &#64;internal
    * YAML Example:
    * - taskName:
    * call: grpc

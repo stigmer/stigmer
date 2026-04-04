@@ -22,10 +22,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Wrapper for identity provider id.
+// IdentityProviderId identifies an identity provider by its unique identifier.
 type IdentityProviderId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The unique identifier of the identity provider resource.
+	// Unique identifier of the identity provider resource.
 	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -68,10 +68,11 @@ func (x *IdentityProviderId) GetValue() string {
 	return ""
 }
 
-// List of identity providers (unbounded).
+// IdentityProviders contains a list of identity provider resources.
 type IdentityProviders struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*IdentityProvider    `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Identity provider entries.
+	Entries       []*IdentityProvider `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -113,12 +114,12 @@ func (x *IdentityProviders) GetEntries() []*IdentityProvider {
 	return nil
 }
 
-// Response for paginated list query.
+// IdentityProviderList is a paginated response containing identity providers.
 type IdentityProviderList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of pages.
+	// Total number of pages available.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// Identity providers in current page.
+	// Identity providers in the current page.
 	Entries       []*IdentityProvider `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

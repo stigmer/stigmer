@@ -8,9 +8,14 @@ package ai.stigmer.iam.iampolicy.v1.rpcauthorization;
 /**
  * <pre>
  * ApiResourceIamPermission defines the permissions and structural relations
- * used in the Stigmer authorization model. Each value maps to an FGA relation
- * name that appears either in RPC authorization annotations or in FGA tuple
- * creation logic.
+ * used in the Stigmer authorization model.
+ *
+ * Each value maps to an FGA relation name that appears either in RPC
+ * authorization annotations or in FGA tuple creation logic.
+ *
+ * &#64;internal
+ * Removed: operator (5), platform (6), can_update_status (28).
+ * These values are reserved to prevent accidental reuse.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission}
@@ -19,32 +24,48 @@ package ai.stigmer.iam.iampolicy.v1.rpcauthorization;
 public enum ApiResourceIamPermission
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default unspecified value.
+   * </pre>
+   *
    * <code>unspecified = 0;</code>
    */
   unspecified(0),
   /**
    * <pre>
-   * Basic CRUD permissions
+   * Permission to create a resource.
    * </pre>
    *
    * <code>create = 1;</code>
    */
   create(1),
   /**
+   * <pre>
+   * Permission to delete a resource.
+   * </pre>
+   *
    * <code>can_delete = 2;</code>
    */
   can_delete(2),
   /**
+   * <pre>
+   * Permission to view a resource.
+   * </pre>
+   *
    * <code>can_view = 3;</code>
    */
   can_view(3),
   /**
+   * <pre>
+   * Permission to edit a resource.
+   * </pre>
+   *
    * <code>can_edit = 4;</code>
    */
   can_edit(4),
   /**
    * <pre>
-   * Platform-level permissions
+   * Permission to access the back-office admin console.
    * </pre>
    *
    * <code>login_to_back_office = 7;</code>
@@ -52,95 +73,151 @@ public enum ApiResourceIamPermission
   login_to_back_office(7),
   /**
    * <pre>
-   * IAM policy management permissions
+   * Permission to grant or revoke access on a resource.
    * </pre>
    *
    * <code>can_grant_access = 8;</code>
    */
   can_grant_access(8),
   /**
+   * <pre>
+   * Permission to view access policies on a resource.
+   * </pre>
+   *
    * <code>can_view_access = 9;</code>
    */
   can_view_access(9),
   /**
    * <pre>
-   * Resource ownership and membership
+   * Owner relation granting full control of a resource.
    * </pre>
    *
    * <code>owner = 10;</code>
    */
   owner(10),
   /**
+   * <pre>
+   * Member relation granting membership-level access to a resource.
+   * </pre>
+   *
    * <code>member = 11;</code>
    */
   member(11),
   /**
+   * <pre>
+   * Viewer relation granting read-only access to a resource.
+   * </pre>
+   *
    * <code>viewer = 26;</code>
    */
   viewer(26),
   /**
    * <pre>
-   * Structural relations (parent links)
+   * Structural relation linking a resource to its owning identity account.
    * </pre>
    *
    * <code>identity_account = 12;</code>
    */
   identity_account(12),
   /**
+   * <pre>
+   * Structural relation linking a resource to its owning organization.
+   * </pre>
+   *
    * <code>organization = 13;</code>
    */
   organization(13),
   /**
+   * <pre>
+   * Structural relation linking an execution to its parent session.
+   * </pre>
+   *
    * <code>session = 14;</code>
    */
   session(14),
   /**
+   * <pre>
+   * Structural relation linking an instance or session to its parent agent.
+   * </pre>
+   *
    * <code>agent = 15;</code>
    */
   agent(15),
   /**
    * <pre>
-   * Resource-specific creation permissions
+   * Permission to create an agent within an organization.
    * </pre>
    *
    * <code>can_create_agent = 16;</code>
    */
   can_create_agent(16),
   /**
+   * <pre>
+   * Permission to create a workflow within an organization.
+   * </pre>
+   *
    * <code>can_create_workflow = 17;</code>
    */
   can_create_workflow(17),
   /**
+   * <pre>
+   * Permission to create a session for an agent.
+   * </pre>
+   *
    * <code>can_create_session = 18;</code>
    */
   can_create_session(18),
   /**
+   * <pre>
+   * Permission to create an execution within a session.
+   * </pre>
+   *
    * <code>can_create_execution_in = 19;</code>
    */
   can_create_execution_in(19),
   /**
+   * <pre>
+   * Permission to create an agent instance.
+   * </pre>
+   *
    * <code>can_create_instance = 20;</code>
    */
   can_create_instance(20),
   /**
+   * <pre>
+   * Permission to create a skill within an organization.
+   * </pre>
+   *
    * <code>can_create_skill = 21;</code>
    */
   can_create_skill(21),
   /**
+   * <pre>
+   * Permission to create a project within an organization.
+   * </pre>
+   *
    * <code>can_create_project = 23;</code>
    */
   can_create_project(23),
   /**
+   * <pre>
+   * Permission to create an identity provider within an organization.
+   * </pre>
+   *
    * <code>can_create_idp = 24;</code>
    */
   can_create_idp(24),
   /**
+   * <pre>
+   * Permission to create an environment within an organization.
+   * </pre>
+   *
    * <code>can_create_environment = 27;</code>
    */
   can_create_environment(27),
   /**
    * <pre>
-   * Resource-specific operation permissions
+   * Permission to execute an agent or workflow.
    * </pre>
    *
    * <code>can_execute = 22;</code>
@@ -148,7 +225,7 @@ public enum ApiResourceIamPermission
   can_execute(22),
   /**
    * <pre>
-   * Secret access permissions
+   * Permission to read secret values from an environment.
    * </pre>
    *
    * <code>can_read_secrets = 25;</code>
@@ -156,17 +233,25 @@ public enum ApiResourceIamPermission
   can_read_secrets(25),
   /**
    * <pre>
-   * Platform-level operational permissions (checked against platform:stigmer)
+   * Platform-level permission to bootstrap IAM policies during resource creation.
    * </pre>
    *
    * <code>can_bootstrap_iam = 29;</code>
    */
   can_bootstrap_iam(29),
   /**
+   * <pre>
+   * Platform-level permission to manage identity accounts.
+   * </pre>
+   *
    * <code>can_manage_identity_accounts = 30;</code>
    */
   can_manage_identity_accounts(30),
   /**
+   * <pre>
+   * Platform-level permission to update agent execution status.
+   * </pre>
+   *
    * <code>can_update_execution_status = 31;</code>
    */
   can_update_execution_status(31),
@@ -183,32 +268,48 @@ public enum ApiResourceIamPermission
       "ApiResourceIamPermission");
   }
   /**
+   * <pre>
+   * Default unspecified value.
+   * </pre>
+   *
    * <code>unspecified = 0;</code>
    */
   public static final int unspecified_VALUE = 0;
   /**
    * <pre>
-   * Basic CRUD permissions
+   * Permission to create a resource.
    * </pre>
    *
    * <code>create = 1;</code>
    */
   public static final int create_VALUE = 1;
   /**
+   * <pre>
+   * Permission to delete a resource.
+   * </pre>
+   *
    * <code>can_delete = 2;</code>
    */
   public static final int can_delete_VALUE = 2;
   /**
+   * <pre>
+   * Permission to view a resource.
+   * </pre>
+   *
    * <code>can_view = 3;</code>
    */
   public static final int can_view_VALUE = 3;
   /**
+   * <pre>
+   * Permission to edit a resource.
+   * </pre>
+   *
    * <code>can_edit = 4;</code>
    */
   public static final int can_edit_VALUE = 4;
   /**
    * <pre>
-   * Platform-level permissions
+   * Permission to access the back-office admin console.
    * </pre>
    *
    * <code>login_to_back_office = 7;</code>
@@ -216,95 +317,151 @@ public enum ApiResourceIamPermission
   public static final int login_to_back_office_VALUE = 7;
   /**
    * <pre>
-   * IAM policy management permissions
+   * Permission to grant or revoke access on a resource.
    * </pre>
    *
    * <code>can_grant_access = 8;</code>
    */
   public static final int can_grant_access_VALUE = 8;
   /**
+   * <pre>
+   * Permission to view access policies on a resource.
+   * </pre>
+   *
    * <code>can_view_access = 9;</code>
    */
   public static final int can_view_access_VALUE = 9;
   /**
    * <pre>
-   * Resource ownership and membership
+   * Owner relation granting full control of a resource.
    * </pre>
    *
    * <code>owner = 10;</code>
    */
   public static final int owner_VALUE = 10;
   /**
+   * <pre>
+   * Member relation granting membership-level access to a resource.
+   * </pre>
+   *
    * <code>member = 11;</code>
    */
   public static final int member_VALUE = 11;
   /**
+   * <pre>
+   * Viewer relation granting read-only access to a resource.
+   * </pre>
+   *
    * <code>viewer = 26;</code>
    */
   public static final int viewer_VALUE = 26;
   /**
    * <pre>
-   * Structural relations (parent links)
+   * Structural relation linking a resource to its owning identity account.
    * </pre>
    *
    * <code>identity_account = 12;</code>
    */
   public static final int identity_account_VALUE = 12;
   /**
+   * <pre>
+   * Structural relation linking a resource to its owning organization.
+   * </pre>
+   *
    * <code>organization = 13;</code>
    */
   public static final int organization_VALUE = 13;
   /**
+   * <pre>
+   * Structural relation linking an execution to its parent session.
+   * </pre>
+   *
    * <code>session = 14;</code>
    */
   public static final int session_VALUE = 14;
   /**
+   * <pre>
+   * Structural relation linking an instance or session to its parent agent.
+   * </pre>
+   *
    * <code>agent = 15;</code>
    */
   public static final int agent_VALUE = 15;
   /**
    * <pre>
-   * Resource-specific creation permissions
+   * Permission to create an agent within an organization.
    * </pre>
    *
    * <code>can_create_agent = 16;</code>
    */
   public static final int can_create_agent_VALUE = 16;
   /**
+   * <pre>
+   * Permission to create a workflow within an organization.
+   * </pre>
+   *
    * <code>can_create_workflow = 17;</code>
    */
   public static final int can_create_workflow_VALUE = 17;
   /**
+   * <pre>
+   * Permission to create a session for an agent.
+   * </pre>
+   *
    * <code>can_create_session = 18;</code>
    */
   public static final int can_create_session_VALUE = 18;
   /**
+   * <pre>
+   * Permission to create an execution within a session.
+   * </pre>
+   *
    * <code>can_create_execution_in = 19;</code>
    */
   public static final int can_create_execution_in_VALUE = 19;
   /**
+   * <pre>
+   * Permission to create an agent instance.
+   * </pre>
+   *
    * <code>can_create_instance = 20;</code>
    */
   public static final int can_create_instance_VALUE = 20;
   /**
+   * <pre>
+   * Permission to create a skill within an organization.
+   * </pre>
+   *
    * <code>can_create_skill = 21;</code>
    */
   public static final int can_create_skill_VALUE = 21;
   /**
+   * <pre>
+   * Permission to create a project within an organization.
+   * </pre>
+   *
    * <code>can_create_project = 23;</code>
    */
   public static final int can_create_project_VALUE = 23;
   /**
+   * <pre>
+   * Permission to create an identity provider within an organization.
+   * </pre>
+   *
    * <code>can_create_idp = 24;</code>
    */
   public static final int can_create_idp_VALUE = 24;
   /**
+   * <pre>
+   * Permission to create an environment within an organization.
+   * </pre>
+   *
    * <code>can_create_environment = 27;</code>
    */
   public static final int can_create_environment_VALUE = 27;
   /**
    * <pre>
-   * Resource-specific operation permissions
+   * Permission to execute an agent or workflow.
    * </pre>
    *
    * <code>can_execute = 22;</code>
@@ -312,7 +469,7 @@ public enum ApiResourceIamPermission
   public static final int can_execute_VALUE = 22;
   /**
    * <pre>
-   * Secret access permissions
+   * Permission to read secret values from an environment.
    * </pre>
    *
    * <code>can_read_secrets = 25;</code>
@@ -320,17 +477,25 @@ public enum ApiResourceIamPermission
   public static final int can_read_secrets_VALUE = 25;
   /**
    * <pre>
-   * Platform-level operational permissions (checked against platform:stigmer)
+   * Platform-level permission to bootstrap IAM policies during resource creation.
    * </pre>
    *
    * <code>can_bootstrap_iam = 29;</code>
    */
   public static final int can_bootstrap_iam_VALUE = 29;
   /**
+   * <pre>
+   * Platform-level permission to manage identity accounts.
+   * </pre>
+   *
    * <code>can_manage_identity_accounts = 30;</code>
    */
   public static final int can_manage_identity_accounts_VALUE = 30;
   /**
+   * <pre>
+   * Platform-level permission to update agent execution status.
+   * </pre>
+   *
    * <code>can_update_execution_status = 31;</code>
    */
   public static final int can_update_execution_status_VALUE = 31;

@@ -12,9 +12,7 @@ public interface GitRepoSourceOrBuilder extends
 
   /**
    * <pre>
-   * HTTPS clone URL (required).
-   * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-   * Example: "https://github.com/acme/my-app.git"
+   * HTTPS clone URL for the repository.
    * </pre>
    *
    * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -23,9 +21,7 @@ public interface GitRepoSourceOrBuilder extends
   java.lang.String getUrl();
   /**
    * <pre>
-   * HTTPS clone URL (required).
-   * Must use the https:// scheme. SSH URLs (git&#64;...) are not supported.
-   * Example: "https://github.com/acme/my-app.git"
+   * HTTPS clone URL for the repository.
    * </pre>
    *
    * <code>string url = 1 [json_name = "url", (.buf.validate.field) = { ... }</code>
@@ -36,9 +32,9 @@ public interface GitRepoSourceOrBuilder extends
 
   /**
    * <pre>
-   * Branch to clone (optional).
+   * Branch to clone.
+   *
    * When empty, the repository's default branch is used.
-   * Example: "main", "develop", "feature/workspace-support"
    * </pre>
    *
    * <code>string branch = 2 [json_name = "branch"];</code>
@@ -47,9 +43,9 @@ public interface GitRepoSourceOrBuilder extends
   java.lang.String getBranch();
   /**
    * <pre>
-   * Branch to clone (optional).
+   * Branch to clone.
+   *
    * When empty, the repository's default branch is used.
-   * Example: "main", "develop", "feature/workspace-support"
    * </pre>
    *
    * <code>string branch = 2 [json_name = "branch"];</code>
@@ -60,13 +56,11 @@ public interface GitRepoSourceOrBuilder extends
 
   /**
    * <pre>
-   * Commit SHA to checkout after cloning (optional).
-   * When set, the workspace is checked out at this exact commit (detached HEAD).
+   * Commit SHA to checkout after cloning.
+   *
+   * When set, the workspace is checked out at this exact commit.
    * When both branch and commit are set, the branch is cloned first, then
-   * the commit is checked out -- this allows shallow clones of a specific
-   * commit on a known branch.
-   * When only commit is set (no branch), a full clone is required to
-   * locate the commit.
+   * the commit is checked out.
    * </pre>
    *
    * <code>string commit = 3 [json_name = "commit"];</code>
@@ -75,13 +69,11 @@ public interface GitRepoSourceOrBuilder extends
   java.lang.String getCommit();
   /**
    * <pre>
-   * Commit SHA to checkout after cloning (optional).
-   * When set, the workspace is checked out at this exact commit (detached HEAD).
+   * Commit SHA to checkout after cloning.
+   *
+   * When set, the workspace is checked out at this exact commit.
    * When both branch and commit are set, the branch is cloned first, then
-   * the commit is checked out -- this allows shallow clones of a specific
-   * commit on a known branch.
-   * When only commit is set (no branch), a full clone is required to
-   * locate the commit.
+   * the commit is checked out.
    * </pre>
    *
    * <code>string commit = 3 [json_name = "commit"];</code>
@@ -92,14 +84,14 @@ public interface GitRepoSourceOrBuilder extends
 
   /**
    * <pre>
-   * Clone depth (optional).
+   * Number of commits to include in the clone history.
    *
-   * Presence semantics:
-   * - Absent (not set): shallow clone with depth 1 (fast default).
-   * - 0: full clone with complete history.
-   * - N &gt; 0: shallow clone with depth N.
+   * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+   * a full clone with complete history.
    *
+   * &#64;internal
    * Uses proto3 optional to distinguish "not set" from "set to 0."
+   * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
    * </pre>
    *
    * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -108,14 +100,14 @@ public interface GitRepoSourceOrBuilder extends
   boolean hasDepth();
   /**
    * <pre>
-   * Clone depth (optional).
+   * Number of commits to include in the clone history.
    *
-   * Presence semantics:
-   * - Absent (not set): shallow clone with depth 1 (fast default).
-   * - 0: full clone with complete history.
-   * - N &gt; 0: shallow clone with depth N.
+   * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+   * a full clone with complete history.
    *
+   * &#64;internal
    * Uses proto3 optional to distinguish "not set" from "set to 0."
+   * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
    * </pre>
    *
    * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -125,22 +117,20 @@ public interface GitRepoSourceOrBuilder extends
 
   /**
    * <pre>
-   * Controls whether the platform automatically creates a branch and
-   * pull request from the agent's file changes during execution.
+   * Controls whether the platform creates a branch and pull request from the agent's file changes.
    *
+   * &#64;internal
    * This is a platform-level workflow, not an agent-level decision. The
    * agent focuses on making code changes; the platform packages them
    * incrementally — the PR appears the moment the first file is written
    * and the diff grows in real time as the agent works.
    *
-   * Requires git credentials to be configured during workspace provisioning
-   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * Requires GITHUB_TOKEN in the execution environment. If credentials
    * are not available, the write-back is silently skipped regardless of
    * this setting.
    *
    * Default (UNSPECIFIED): platform decides. Currently defaults to
-   * write-back enabled when git credentials are available. Set an
-   * explicit mode to override.
+   * write-back enabled when git credentials are available.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
@@ -149,22 +139,20 @@ public interface GitRepoSourceOrBuilder extends
   int getWriteBackModeValue();
   /**
    * <pre>
-   * Controls whether the platform automatically creates a branch and
-   * pull request from the agent's file changes during execution.
+   * Controls whether the platform creates a branch and pull request from the agent's file changes.
    *
+   * &#64;internal
    * This is a platform-level workflow, not an agent-level decision. The
    * agent focuses on making code changes; the platform packages them
    * incrementally — the PR appears the moment the first file is written
    * and the diff grows in real time as the agent works.
    *
-   * Requires git credentials to be configured during workspace provisioning
-   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * Requires GITHUB_TOKEN in the execution environment. If credentials
    * are not available, the write-back is silently skipped regardless of
    * this setting.
    *
    * Default (UNSPECIFIED): platform decides. Currently defaults to
-   * write-back enabled when git credentials are available. Set an
-   * explicit mode to override.
+   * write-back enabled when git credentials are available.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>

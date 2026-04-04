@@ -12,7 +12,7 @@ public interface ApiKeyOrBuilder extends
 
   /**
    * <pre>
-   * api-version
+   * API version for this resource type.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface ApiKeyOrBuilder extends
   java.lang.String getApiVersion();
   /**
    * <pre>
-   * api-version
+   * API version for this resource type.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -32,7 +32,7 @@ public interface ApiKeyOrBuilder extends
 
   /**
    * <pre>
-   * resource-kind
+   * Resource kind identifier.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -41,7 +41,7 @@ public interface ApiKeyOrBuilder extends
   java.lang.String getKind();
   /**
    * <pre>
-   * resource-kind
+   * Resource kind identifier.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -52,7 +52,7 @@ public interface ApiKeyOrBuilder extends
 
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -61,7 +61,7 @@ public interface ApiKeyOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -70,7 +70,7 @@ public interface ApiKeyOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -79,7 +79,7 @@ public interface ApiKeyOrBuilder extends
 
   /**
    * <pre>
-   * spec
+   * Configurable properties: key hash, fingerprint, and expiration settings.
    * </pre>
    *
    * <code>.ai.stigmer.iam.apikey.v1.ApiKeySpec spec = 4 [json_name = "spec"];</code>
@@ -88,7 +88,7 @@ public interface ApiKeyOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * spec
+   * Configurable properties: key hash, fingerprint, and expiration settings.
    * </pre>
    *
    * <code>.ai.stigmer.iam.apikey.v1.ApiKeySpec spec = 4 [json_name = "spec"];</code>
@@ -97,7 +97,7 @@ public interface ApiKeyOrBuilder extends
   ai.stigmer.iam.apikey.v1.ApiKeySpec getSpec();
   /**
    * <pre>
-   * spec
+   * Configurable properties: key hash, fingerprint, and expiration settings.
    * </pre>
    *
    * <code>.ai.stigmer.iam.apikey.v1.ApiKeySpec spec = 4 [json_name = "spec"];</code>
@@ -106,7 +106,7 @@ public interface ApiKeyOrBuilder extends
 
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail and last-used timestamp.
    * </pre>
    *
    * <code>.ai.stigmer.iam.apikey.v1.ApiKeyStatus status = 5 [json_name = "status"];</code>
@@ -115,7 +115,7 @@ public interface ApiKeyOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail and last-used timestamp.
    * </pre>
    *
    * <code>.ai.stigmer.iam.apikey.v1.ApiKeyStatus status = 5 [json_name = "status"];</code>
@@ -124,7 +124,7 @@ public interface ApiKeyOrBuilder extends
   ai.stigmer.iam.apikey.v1.ApiKeyStatus getStatus();
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail and last-used timestamp.
    * </pre>
    *
    * <code>.ai.stigmer.iam.apikey.v1.ApiKeyStatus status = 5 [json_name = "status"];</code>

@@ -7,26 +7,18 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 /**
  * <pre>
- * DiscoveredCapabilities holds the tools and resource templates reported by an
- * MCP server. This is a point-in-time snapshot — the server's actual capabilities
- * may change if tools are added or removed.
+ * DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
  *
- * IMPORTANT — Tools vs Resource Templates:
- * These are two fundamentally different MCP capability types:
+ * &#64;internal
+ * This is a point-in-time snapshot — the server's actual capabilities may change
+ * if tools are added or removed.
  *
+ * Tools vs Resource Templates:
  * - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).
- * These are the ONLY names valid for use in Agent `enabled_tools`,
- * McpServer `default_enabled_tools`, and `tool_approval_overrides`.
- *
- * - resource_templates: Read-only data endpoints accessed by URI template
- * (e.g., cloud-resource-schema://{kind}). These are NOT callable tools.
- * Resource template names must NEVER appear in `enabled_tools` or
- * `default_enabled_tools` — doing so causes a fatal runtime error because
- * the agent-runner cannot find them in the tools registry.
- *
- * When authoring Agent YAML, always select tool names from `tools` only.
- * Resource templates serve a different purpose (data discovery) and are
- * accessed through MCP resource reads, not tool calls.
+ * Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.
+ * - resource_templates: Read-only data endpoints accessed by URI template.
+ * Resource template names must NEVER appear in enabled_tools — doing so causes
+ * a fatal runtime error.
  *
  * Populated by:
  * - Seedpack bootstrap (built-in servers with known, stable tool sets)
@@ -85,9 +77,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.mcpserver.v1.DiscoveredTool> tools_;
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -98,9 +88,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -112,9 +100,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -125,9 +111,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -138,9 +122,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools reported by the MCP server via tools/list.
-   * These are callable actions. Only names from this list may be used in
-   * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+   * Callable tools reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -156,10 +138,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate> resourceTemplates_;
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -170,10 +149,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -185,10 +161,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -199,10 +172,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -213,10 +183,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Resource templates reported by the MCP server via resources/templates/list.
-   * These are read-only data endpoints, NOT callable tools.
-   * Resource template names must NOT be placed in `enabled_tools` —
-   * they are accessed via MCP resource reads, not tool invocations.
+   * Read-only data endpoints reported by the MCP server.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -501,26 +468,18 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * DiscoveredCapabilities holds the tools and resource templates reported by an
-   * MCP server. This is a point-in-time snapshot — the server's actual capabilities
-   * may change if tools are added or removed.
+   * DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
    *
-   * IMPORTANT — Tools vs Resource Templates:
-   * These are two fundamentally different MCP capability types:
+   * &#64;internal
+   * This is a point-in-time snapshot — the server's actual capabilities may change
+   * if tools are added or removed.
    *
+   * Tools vs Resource Templates:
    * - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).
-   * These are the ONLY names valid for use in Agent `enabled_tools`,
-   * McpServer `default_enabled_tools`, and `tool_approval_overrides`.
-   *
-   * - resource_templates: Read-only data endpoints accessed by URI template
-   * (e.g., cloud-resource-schema://{kind}). These are NOT callable tools.
-   * Resource template names must NEVER appear in `enabled_tools` or
-   * `default_enabled_tools` — doing so causes a fatal runtime error because
-   * the agent-runner cannot find them in the tools registry.
-   *
-   * When authoring Agent YAML, always select tool names from `tools` only.
-   * Resource templates serve a different purpose (data discovery) and are
-   * accessed through MCP resource reads, not tool calls.
+   * Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.
+   * - resource_templates: Read-only data endpoints accessed by URI template.
+   * Resource template names must NEVER appear in enabled_tools — doing so causes
+   * a fatal runtime error.
    *
    * Populated by:
    * - Seedpack bootstrap (built-in servers with known, stable tool sets)
@@ -822,9 +781,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -838,9 +795,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -854,9 +809,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -870,9 +823,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -893,9 +844,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -913,9 +862,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -935,9 +882,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -958,9 +903,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -978,9 +921,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -998,9 +939,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1019,9 +958,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1038,9 +975,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1057,9 +992,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1070,9 +1003,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1086,9 +1017,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1103,9 +1032,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1116,9 +1043,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1130,9 +1055,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools reported by the MCP server via tools/list.
-     * These are callable actions. Only names from this list may be used in
-     * Agent `enabled_tools` and McpServer `default_enabled_tools`.
+     * Callable tools reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredTool tools = 1 [json_name = "tools"];</code>
@@ -1170,10 +1093,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1187,10 +1107,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1204,10 +1121,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1221,10 +1135,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1245,10 +1156,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1266,10 +1174,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1289,10 +1194,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1313,10 +1215,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1334,10 +1233,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1355,10 +1251,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1377,10 +1270,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1397,10 +1287,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1417,10 +1304,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1431,10 +1315,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1448,10 +1329,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1466,10 +1344,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1480,10 +1355,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>
@@ -1495,10 +1367,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource templates reported by the MCP server via resources/templates/list.
-     * These are read-only data endpoints, NOT callable tools.
-     * Resource template names must NOT be placed in `enabled_tools` —
-     * they are accessed via MCP resource reads, not tool invocations.
+     * Read-only data endpoints reported by the MCP server.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate resource_templates = 2 [json_name = "resourceTemplates"];</code>

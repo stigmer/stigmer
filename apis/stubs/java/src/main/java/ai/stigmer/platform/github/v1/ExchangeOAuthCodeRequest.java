@@ -7,7 +7,7 @@ package ai.stigmer.platform.github.v1;
 
 /**
  * <pre>
- * Request to exchange an authorization code for an access token.
+ * Input for exchanging a GitHub authorization code for an access token.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest}
@@ -60,7 +60,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object code_ = "";
   /**
    * <pre>
-   * The authorization code received from GitHub's OAuth redirect.
+   * Authorization code received from GitHub's OAuth redirect callback.
    * </pre>
    *
    * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -81,7 +81,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The authorization code received from GitHub's OAuth redirect.
+   * Authorization code received from GitHub's OAuth redirect callback.
    * </pre>
    *
    * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object state_ = "";
   /**
    * <pre>
-   * The state value from the original authorize request, for CSRF verification.
+   * State value from the original authorize response, for CSRF verification.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -128,7 +128,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The state value from the original authorize request, for CSRF verification.
+   * State value from the original authorize response, for CSRF verification.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -154,8 +154,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object redirectUri_ = "";
   /**
    * <pre>
-   * The redirect_uri used in the original authorize request.
-   * GitHub requires this to match for the token exchange.
+   * Redirect URI used in the original authorize request.
+   *
+   * &#64;internal
+   * GitHub requires this to match the value from the authorize step.
    * </pre>
    *
    * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -176,8 +178,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The redirect_uri used in the original authorize request.
-   * GitHub requires this to match for the token exchange.
+   * Redirect URI used in the original authorize request.
+   *
+   * &#64;internal
+   * GitHub requires this to match the value from the authorize step.
    * </pre>
    *
    * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -376,7 +380,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Request to exchange an authorization code for an access token.
+   * Input for exchanging a GitHub authorization code for an access token.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest}
@@ -547,7 +551,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object code_ = "";
     /**
      * <pre>
-     * The authorization code received from GitHub's OAuth redirect.
+     * Authorization code received from GitHub's OAuth redirect callback.
      * </pre>
      *
      * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -567,7 +571,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The authorization code received from GitHub's OAuth redirect.
+     * Authorization code received from GitHub's OAuth redirect callback.
      * </pre>
      *
      * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -588,7 +592,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The authorization code received from GitHub's OAuth redirect.
+     * Authorization code received from GitHub's OAuth redirect callback.
      * </pre>
      *
      * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -605,7 +609,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The authorization code received from GitHub's OAuth redirect.
+     * Authorization code received from GitHub's OAuth redirect callback.
      * </pre>
      *
      * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -619,7 +623,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The authorization code received from GitHub's OAuth redirect.
+     * Authorization code received from GitHub's OAuth redirect callback.
      * </pre>
      *
      * <code>string code = 1 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -639,7 +643,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object state_ = "";
     /**
      * <pre>
-     * The state value from the original authorize request, for CSRF verification.
+     * State value from the original authorize response, for CSRF verification.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -659,7 +663,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The state value from the original authorize request, for CSRF verification.
+     * State value from the original authorize response, for CSRF verification.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -680,7 +684,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The state value from the original authorize request, for CSRF verification.
+     * State value from the original authorize response, for CSRF verification.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -697,7 +701,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The state value from the original authorize request, for CSRF verification.
+     * State value from the original authorize response, for CSRF verification.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -711,7 +715,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The state value from the original authorize request, for CSRF verification.
+     * State value from the original authorize response, for CSRF verification.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -731,8 +735,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object redirectUri_ = "";
     /**
      * <pre>
-     * The redirect_uri used in the original authorize request.
-     * GitHub requires this to match for the token exchange.
+     * Redirect URI used in the original authorize request.
+     *
+     * &#64;internal
+     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -752,8 +758,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The redirect_uri used in the original authorize request.
-     * GitHub requires this to match for the token exchange.
+     * Redirect URI used in the original authorize request.
+     *
+     * &#64;internal
+     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -774,8 +782,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The redirect_uri used in the original authorize request.
-     * GitHub requires this to match for the token exchange.
+     * Redirect URI used in the original authorize request.
+     *
+     * &#64;internal
+     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -792,8 +802,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The redirect_uri used in the original authorize request.
-     * GitHub requires this to match for the token exchange.
+     * Redirect URI used in the original authorize request.
+     *
+     * &#64;internal
+     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -807,8 +819,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The redirect_uri used in the original authorize request.
-     * GitHub requires this to match for the token exchange.
+     * Redirect URI used in the original authorize request.
+     *
+     * &#64;internal
+     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>

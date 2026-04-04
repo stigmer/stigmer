@@ -12,7 +12,7 @@ public interface IdentityProviderListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of pages.
+   * Total number of pages available.
    * </pre>
    *
    * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
@@ -22,7 +22,7 @@ public interface IdentityProviderListOrBuilder extends
 
   /**
    * <pre>
-   * Identity providers in current page.
+   * Identity providers in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 2 [json_name = "entries"];</code>
@@ -31,7 +31,7 @@ public interface IdentityProviderListOrBuilder extends
       getEntriesList();
   /**
    * <pre>
-   * Identity providers in current page.
+   * Identity providers in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 2 [json_name = "entries"];</code>
@@ -39,7 +39,7 @@ public interface IdentityProviderListOrBuilder extends
   ai.stigmer.iam.identityprovider.v1.IdentityProvider getEntries(int index);
   /**
    * <pre>
-   * Identity providers in current page.
+   * Identity providers in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 2 [json_name = "entries"];</code>
@@ -47,7 +47,7 @@ public interface IdentityProviderListOrBuilder extends
   int getEntriesCount();
   /**
    * <pre>
-   * Identity providers in current page.
+   * Identity providers in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 2 [json_name = "entries"];</code>
@@ -56,7 +56,7 @@ public interface IdentityProviderListOrBuilder extends
       getEntriesOrBuilderList();
   /**
    * <pre>
-   * Identity providers in current page.
+   * Identity providers in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 2 [json_name = "entries"];</code>

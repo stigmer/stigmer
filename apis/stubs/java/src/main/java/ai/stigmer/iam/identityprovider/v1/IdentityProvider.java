@@ -254,7 +254,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -266,7 +266,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -278,7 +278,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1271,7 +1271,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1282,7 +1282,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1297,7 +1297,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1317,7 +1317,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1335,7 +1335,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1360,7 +1360,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1377,7 +1377,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1389,7 +1389,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1404,7 +1404,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

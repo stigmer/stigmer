@@ -17,7 +17,7 @@ public enum ValidationState
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Unspecified state (should not be used)
+   * Default value, not a valid validation state.
    * </pre>
    *
    * <code>VALIDATION_STATE_UNSPECIFIED = 0;</code>
@@ -25,8 +25,7 @@ public enum ValidationState
   VALIDATION_STATE_UNSPECIFIED(0),
   /**
    * <pre>
-   * Validation has been triggered but not yet completed
-   * This is the initial state when a workflow is created
+   * Validation is pending and has not yet completed.
    * </pre>
    *
    * <code>PENDING = 1;</code>
@@ -34,8 +33,7 @@ public enum ValidationState
   PENDING(1),
   /**
    * <pre>
-   * Validation completed successfully - workflow structure is valid
-   * The generated YAML is stored and can be used for execution
+   * Validation completed successfully and the workflow structure is valid.
    * </pre>
    *
    * <code>VALID = 2;</code>
@@ -43,9 +41,8 @@ public enum ValidationState
   VALID(2),
   /**
    * <pre>
-   * Validation completed but found errors - workflow structure is invalid
-   * The workflow cannot be executed until errors are fixed
-   * Errors are listed in the 'errors' field
+   * Validation completed but found errors in the workflow structure.
+   * Check the `errors` field for details.
    * </pre>
    *
    * <code>INVALID = 3;</code>
@@ -53,9 +50,11 @@ public enum ValidationState
   INVALID(3),
   /**
    * <pre>
-   * Validation process itself failed (system error, not user error)
+   * Validation process failed due to a system error (not a user error).
+   * Retry validation or contact support.
+   *
+   * &#64;internal
    * Examples: Temporal workflow crashed, activity timeout, etc.
-   * User should retry validation or contact support
    * </pre>
    *
    * <code>FAILED = 4;</code>
@@ -75,7 +74,7 @@ public enum ValidationState
   }
   /**
    * <pre>
-   * Unspecified state (should not be used)
+   * Default value, not a valid validation state.
    * </pre>
    *
    * <code>VALIDATION_STATE_UNSPECIFIED = 0;</code>
@@ -83,8 +82,7 @@ public enum ValidationState
   public static final int VALIDATION_STATE_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Validation has been triggered but not yet completed
-   * This is the initial state when a workflow is created
+   * Validation is pending and has not yet completed.
    * </pre>
    *
    * <code>PENDING = 1;</code>
@@ -92,8 +90,7 @@ public enum ValidationState
   public static final int PENDING_VALUE = 1;
   /**
    * <pre>
-   * Validation completed successfully - workflow structure is valid
-   * The generated YAML is stored and can be used for execution
+   * Validation completed successfully and the workflow structure is valid.
    * </pre>
    *
    * <code>VALID = 2;</code>
@@ -101,9 +98,8 @@ public enum ValidationState
   public static final int VALID_VALUE = 2;
   /**
    * <pre>
-   * Validation completed but found errors - workflow structure is invalid
-   * The workflow cannot be executed until errors are fixed
-   * Errors are listed in the 'errors' field
+   * Validation completed but found errors in the workflow structure.
+   * Check the `errors` field for details.
    * </pre>
    *
    * <code>INVALID = 3;</code>
@@ -111,9 +107,11 @@ public enum ValidationState
   public static final int INVALID_VALUE = 3;
   /**
    * <pre>
-   * Validation process itself failed (system error, not user error)
+   * Validation process failed due to a system error (not a user error).
+   * Retry validation or contact support.
+   *
+   * &#64;internal
    * Examples: Temporal workflow crashed, activity timeout, etc.
-   * User should retry validation or contact support
    * </pre>
    *
    * <code>FAILED = 4;</code>

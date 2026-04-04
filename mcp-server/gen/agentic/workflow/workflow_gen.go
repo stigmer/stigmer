@@ -18,13 +18,14 @@ import (
 	"time"
 )
 
-// WorkflowSpec defines the complete specification of a workflow.
+// WorkflowSpec defines the configurable properties of a workflow.
 //
+//	@internal
 //	Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
-//
 //	This replaces the old `synthesized_yaml` field with structured proto definitions.
 //	Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
 //	providing maximum flexibility and extensibility.
+//	The overview.md file provides the SDK-facing description and example YAML.
 type WorkflowInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -41,18 +42,18 @@ type WorkflowInput struct {
 
 	// Human-readable description for UI and marketplace display.
 	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and marketplace display."`
-	// Workflow document metadata (DSL version, namespace, name, version).
-	Document *WorkflowDocumentInput `json:"document" jsonschema:"Workflow document metadata (DSL version, namespace, name, version)."`
+	// Workflow document metadata including DSL version, namespace, name, and version.
+	Document *WorkflowDocumentInput `json:"document" jsonschema:"Workflow document metadata including DSL version, namespace, name, and version."`
 	// Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used.
 	Tasks []WorkflowTaskInput `json:"tasks,omitempty" jsonschema:"Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used."`
-	// Environment variables required by the workflow. Uses the shared EnvironmentSpec for consistent env var handling.
-	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the workflow. Uses the shared EnvironmentSpec for consistent env var handling."`
+	// Environment variables required by the workflow.
+	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the workflow."`
 }
 
-// WorkflowDocument contains workflow metadata. Maps to the `document:` block in Zigflow DSL YAML.
+// WorkflowDocument contains workflow-level metadata for versioning and identification. @internal Maps to the `document:` block in Zigflow DSL YAML.
 type WorkflowDocumentInput struct {
-	// DSL version (semver). Must be "1.0.0" for current Zigflow.
-	Dsl string `json:"dsl,omitempty" jsonschema:"DSL version (semver). Must be '1.0.0' for current Zigflow."`
+	// Workflow DSL version (semver). Must be "1.0.0" for the current specification.
+	Dsl string `json:"dsl,omitempty" jsonschema:"Workflow DSL version (semver). Must be '1.0.0' for the current specification."`
 	// Workflow namespace (organization/categorization).
 	Namespace string `json:"namespace" jsonschema:"Workflow namespace (organization/categorization)."`
 	// Workflow name (unique identifier within namespace).
@@ -81,11 +82,11 @@ type AgentExecutionConfigInput struct {
 	Timeout int32 `json:"timeout,omitempty" jsonschema:"Timeout for agent execution in seconds. Default: 300 (5 minutes) Optional."`
 	// Temperature for LLM sampling (0.0 to 1.0). Lower = more deterministic, Higher = more creative Default: 0.7 Optional.
 	Temperature float32 `json:"temperature,omitempty" jsonschema:"Temperature for LLM sampling (0.0 to 1.0). Lower = more deterministic, Higher = more creative Default: 0.7 Optional."`
-	// Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: "claude-sonnet-4.5" context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000 @since Phase 3 (Context Summarization Architecture)
-	ContextManagement *ContextManagementConfigInput `json:"context_management,omitempty" jsonschema:"Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: 'claude-sonnet-4.5' context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000 @since Phase 3 (Context Summarization Architecture)"`
+	// Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. @internal @since Phase 3 (Context Summarization Architecture) Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: "claude-sonnet-4.5" context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000
+	ContextManagement *ContextManagementConfigInput `json:"context_management,omitempty" jsonschema:"Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. @internal @since Phase 3 (Context Summarization Architecture) Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: 'claude-sonnet-4.5' context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000"`
 }
 
-// AgentCallTaskConfig defines the configuration for AGENT_CALL tasks. This enables workflows to invoke AI agents as tasks, delegating complex operations to specialized agents with their own skills and context. The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: "code-reviewer" # Uses workflow's org # OR agent: "stigmer/code-reviewer" # Explicit org reference message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
+// AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: "code-reviewer" # Uses workflow's org # OR agent: "stigmer/code-reviewer" # Explicit org reference message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 type AgentCallTaskConfigInput struct {
 	// Agent reference in "org/slug" or "slug" format. - "slug" only: uses the workflow's organization - "org/slug": explicit organization reference Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst" Required field.
 	Agent string `json:"agent" jsonschema:"Agent reference in 'org/slug' or 'slug' format. - 'slug' only: uses the workflow's organization - 'org/slug': explicit organization reference Examples: 'code-reviewer', 'stigmer/code-reviewer', 'acme/data-analyst' Required field."`
@@ -99,15 +100,15 @@ type AgentCallTaskConfigInput struct {
 	Config *AgentExecutionConfigInput `json:"config,omitempty" jsonschema:"Execution configuration for the agent invocation. Optional - defaults are applied if not specified."`
 }
 
-// CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks. CALL_ACTIVITY tasks execute Temporal activities. YAML Example: - taskName: call: activity with: activity: "ProcessDataActivity" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
+// CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities. @internal Executes Temporal activities. YAML Example: - taskName: call: activity with: activity: "ProcessDataActivity" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
 type CallActivityTaskConfigInput struct {
-	// Activity name to execute. Must match registered Temporal activity.
-	Activity string `json:"activity" jsonschema:"Activity name to execute. Must match registered Temporal activity."`
+	// Activity name to execute. @internal Must match a registered Temporal activity.
+	Activity string `json:"activity" jsonschema:"Activity name to execute. @internal Must match a registered Temporal activity."`
 	// Activity input (optional). Can be any JSON structure. Supports expressions in string values.
 	Input map[string]any `json:"input,omitempty" jsonschema:"Activity input (optional). Can be any JSON structure. Supports expressions in string values."`
 }
 
-// ForTaskConfig defines the configuration for FOR tasks. FOR tasks iterate over collections, executing tasks for each item. YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
+// ForTaskConfig defines the configuration for for_each tasks that iterate over collections. @internal YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
 type ForTaskConfigInput struct {
 	// Variable name for each item in the iteration. Accessible via ${ $data.item } in expressions.
 	Each string `json:"each" jsonschema:"Variable name for each item in the iteration. Accessible via ${ $data.item } in expressions."`
@@ -125,7 +126,7 @@ type ForkBranchInput struct {
 	Do []WorkflowTaskInput `json:"do,omitempty" jsonschema:"Tasks to execute in this branch."`
 }
 
-// ForkTaskConfig defines the configuration for FORK tasks. FORK tasks execute multiple branches in parallel. YAML Example: - taskName: fork: branches: - branch1: do: - task1: call: http with: method: POST endpoint: uri: https://api.example.com/branch1 - branch2: do: - task2: call: http Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
+// ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel. @internal YAML Example: - taskName: fork: branches: - branch1: do: - task1: call: http with: method: POST endpoint: uri: https://api.example.com/branch1 - branch2: do: - task2: call: http Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
 type ForkTaskConfigInput struct {
 	// Branches to execute in parallel (at least 2 required).
 	Branches []ForkBranchInput `json:"branches,omitempty" jsonschema:"Branches to execute in parallel (at least 2 required)."`
@@ -133,7 +134,7 @@ type ForkTaskConfigInput struct {
 	Compete bool `json:"compete,omitempty" jsonschema:"If true, first branch to complete wins (race mode). If false, all branches must complete (default)."`
 }
 
-// GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks. GRPC_CALL tasks make gRPC requests to external services. YAML Example: - taskName: call: grpc with: service: "com.example.UserService" method: "GetUser" request: userId: ${ .userId } Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
+// GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests. @internal YAML Example: - taskName: call: grpc with: service: "com.example.UserService" method: "GetUser" request: userId: ${ .userId } Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
 type GrpcCallTaskConfigInput struct {
 	// Fully qualified service name. Example: "com.example.UserService"
 	Service string `json:"service" jsonschema:"Fully qualified service name. Example: 'com.example.UserService'"`
@@ -149,7 +150,7 @@ type HttpEndpointInput struct {
 	Uri string `json:"uri" jsonschema:"URI of the endpoint. Can contain expressions: 'https://api.example.com/${.resource}'"`
 }
 
-// HttpCallTaskConfig defines the configuration for HTTP_CALL tasks. HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH). YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: "Bearer ${TOKEN}" body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
+// HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests. @internal YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: "Bearer ${TOKEN}" body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
 type HttpCallTaskConfigInput struct {
 	// HTTP method (GET, POST, PUT, DELETE, PATCH).
 	Method string `json:"method" jsonschema:"HTTP method (GET, POST, PUT, DELETE, PATCH). Allowed values: GET, POST, PUT, DELETE, PATCH."`
@@ -167,8 +168,8 @@ type HttpCallTaskConfigInput struct {
 type SignalInput struct {
 	// Signal identifier.
 	Id string `json:"id" jsonschema:"Signal identifier."`
-	// Signal type: - "signal": Temporal signal - "query": Temporal query - "update": Temporal update
-	Type string `json:"type" jsonschema:"Signal type: - 'signal': Temporal signal - 'query': Temporal query - 'update': Temporal update Allowed values: signal, query, update."`
+	// Signal type: "signal", "query", or "update".
+	Type string `json:"type" jsonschema:"Signal type: 'signal', 'query', or 'update'. Allowed values: signal, query, update."`
 }
 
 // ListenTo defines what signals to listen for.
@@ -179,13 +180,13 @@ type ListenToInput struct {
 	Signals []SignalInput `json:"signals,omitempty" jsonschema:"Signals to listen for."`
 }
 
-// ListenTaskConfig defines the configuration for LISTEN tasks. LISTEN tasks wait for external signals/events (Temporal signals). YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
+// ListenTaskConfig defines the configuration for listen tasks that wait for external signals. @internal Implemented via Temporal signals. YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
 type ListenTaskConfigInput struct {
 	// Signal listening configuration.
 	To *ListenToInput `json:"to" jsonschema:"Signal listening configuration."`
 }
 
-// RaiseTaskConfig defines the configuration for RAISE tasks. RAISE tasks raise errors/exceptions, terminating workflow execution. YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
+// RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
 type RaiseTaskConfigInput struct {
 	// Error type/name.
 	Error string `json:"error" jsonschema:"Error type/name."`
@@ -193,7 +194,7 @@ type RaiseTaskConfigInput struct {
 	Message string `json:"message" jsonschema:"Error message. Can contain expressions: '${ .errorMessage }'"`
 }
 
-// RunTaskConfig defines the configuration for RUN tasks. RUN tasks execute sub-workflows (Temporal child workflows). YAML Example: - taskName: run: workflow: "sub-workflow-name" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
+// RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows. @internal Implemented via Temporal child workflows. YAML Example: - taskName: run: workflow: "sub-workflow-name" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
 type RunTaskConfigInput struct {
 	// Sub-workflow name/identifier to execute.
 	Workflow string `json:"workflow" jsonschema:"Sub-workflow name/identifier to execute."`
@@ -201,7 +202,7 @@ type RunTaskConfigInput struct {
 	Input map[string]any `json:"input,omitempty" jsonschema:"Sub-workflow input (optional). Can be any JSON structure. Supports expressions in string values."`
 }
 
-// SetTaskConfig defines the configuration for SET tasks. SET tasks assign variables in workflow state. YAML Example: - taskName: set: variable1: value variable2: ${ expression } computed: ${ .a + .b } Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
+// SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state. @internal YAML Example: - taskName: set: variable1: value variable2: ${ expression } computed: ${ .a + .b } Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
 type SetTaskConfigInput struct {
 	// Variables to set in workflow state. Keys are variable names, values can be literals or expressions. Expressions use ${...} syntax, e.g., "${.a + .b}" or "${now}"
 	Variables map[string]string `json:"variables" jsonschema:"Variables to set in workflow state. Keys are variable names, values can be literals or expressions. Expressions use ${...} syntax, e.g., '${.a + .b}' or '${now}'"`
@@ -217,7 +218,7 @@ type SwitchCaseInput struct {
 	Then string `json:"then" jsonschema:"Target task name to execute if condition matches."`
 }
 
-// SwitchTaskConfig defines the configuration for SWITCH tasks. SWITCH tasks provide conditional branching based on expressions. YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
+// SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally. @internal YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
 type SwitchTaskConfigInput struct {
 	// List of switch cases (at least one required). Cases are evaluated in order. First matching case executes. If no "when" is specified, the case acts as default.
 	Cases []SwitchCaseInput `json:"cases,omitempty" jsonschema:"List of switch cases (at least one required). Cases are evaluated in order. First matching case executes. If no 'when' is specified, the case acts as default."`
@@ -231,7 +232,7 @@ type CatchBlockInput struct {
 	Do []WorkflowTaskInput `json:"do,omitempty" jsonschema:"Tasks to execute when error is caught."`
 }
 
-// TryTaskConfig defines the configuration for TRY tasks. TRY tasks provide try/catch error handling. YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
+// TryTaskConfig defines the configuration for try_catch tasks that handle errors. @internal YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
 type TryTaskConfigInput struct {
 	// Tasks to attempt (at least one required). If any task fails, execution jumps to catch block.
 	Try []WorkflowTaskInput `json:"try,omitempty" jsonschema:"Tasks to attempt (at least one required). If any task fails, execution jumps to catch block."`
@@ -253,7 +254,7 @@ type DurationInput struct {
 	Milliseconds uint32 `json:"milliseconds,omitempty" jsonschema:"Number of milliseconds to wait."`
 }
 
-// WaitTaskConfig defines the configuration for WAIT tasks. WAIT tasks pause workflow execution using Temporal timers. Supports both relative durations ("wait 1 week") and absolute timestamps ("wait until March 1st 9am"). YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: "2026-03-02T09:30:00Z" Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
+// WaitTaskConfig defines the configuration for wait tasks that pause workflow execution. Supports both relative durations and absolute timestamps. @internal Implemented via Temporal timers. YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: "2026-03-02T09:30:00Z" Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
 type WaitTaskConfigInput struct {
 	// Relative duration to wait from now. Use this when you want to wait for a specific amount of time regardless of when the workflow reaches this task. Example: { days: 7 } = wait 1 week from now
 	Duration *DurationInput `json:"duration,omitempty" jsonschema:"Relative duration to wait from now. Use this when you want to wait for a specific amount of time regardless of when the workflow reaches this task. Example: { days: 7 } = wait 1 week from now"`
@@ -261,13 +262,13 @@ type WaitTaskConfigInput struct {
 	Until string `json:"until,omitempty" jsonschema:"Absolute timestamp to wait until. Use this when you want to wait until a specific point in time. If the timestamp is in the past, the task completes immediately. Example: '2026-03-01T09:00:00Z' = wait until March 1st, 2026 at 9am UTC"`
 }
 
-// Export defines how to save task output to context. Maps to the `export:` block in Zigflow DSL. Examples: - {"as": "${.}"} - Export entire output - {"as": "${.fieldName}"} - Export specific field - {"as": "${$context + {taskName: .}}"} - Merge into context
+// Export defines how task output is saved to the workflow context. @internal Maps to the `export:` block in Zigflow DSL. Examples: - {"as": "${.}"} - Export entire output - {"as": "${.fieldName}"} - Export specific field - {"as": "${$context + {taskName: .}}"} - Merge into context
 type ExportInput struct {
-	// Expression defining how to export output. Uses Zigflow expression syntax: ${...}
-	As string `json:"as,omitempty" jsonschema:"Expression defining how to export output. Uses Zigflow expression syntax: ${...}"`
+	// Expression defining how to export output using ${...} syntax.
+	As string `json:"as,omitempty" jsonschema:"Expression defining how to export output using ${...} syntax."`
 }
 
-// FlowControl defines which task executes next. Maps to the `then:` directive in Zigflow DSL. Examples: - {"then": "nextTaskName"} - Jump to specific task - {"then": "end"} - Terminate workflow - Not set - Continue to next task in sequence (default)
+// FlowControl defines which task executes next after the current task completes. @internal Maps to the `then:` directive in Zigflow DSL. Examples: - {"then": "nextTaskName"} - Jump to specific task - {"then": "end"} - Terminate workflow - Not set - Continue to next task in sequence (default)
 type FlowControlInput struct {
 	// Target task name or "end" to terminate workflow.
 	Then string `json:"then,omitempty" jsonschema:"Target task name or 'end' to terminate workflow."`
@@ -279,32 +280,32 @@ type WorkflowTaskInput struct {
 	Name string `json:"name" jsonschema:"Task name/identifier (must be unique within workflow)."`
 	// Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call).
 	Kind string `json:"kind" jsonschema:"Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call). Allowed values: set_vars, http_call, grpc_call, activity_call, switch_case, for_each, fork, try_catch, listen, wait, raise_error, run_workflow, agent_call."`
-	// Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for AGENT_CALL tasks. This enables workflows to invoke AI agents as tasks, delegating complex operations to specialized agents with their own skills and context. The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: "code-reviewer" # Uses workflow's org # OR agent: "stigmer/code-reviewer" # Explicit org reference message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
-	AgentCall *AgentCallTaskConfigInput `json:"agent_call,omitempty" jsonschema:"Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for AGENT_CALL tasks. This enables workflows to invoke AI agents as tasks, delegating complex operations to specialized agents with their own skills and context. The agent is referenced by org/slug format (e.g., 'stigmer/code-reviewer'). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: 'code-reviewer' # Uses workflow's org # OR agent: 'stigmer/code-reviewer' # Explicit org reference message: 'Review this code: ${ $context.fetchCode.body }' env: GITHUB_TOKEN: '${ .secrets.GH_TOKEN }' config: model: 'claude-3-5-sonnet' timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md"`
-	// Required when kind='activity_call'. CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks. CALL_ACTIVITY tasks execute Temporal activities. YAML Example: - taskName: call: activity with: activity: "ProcessDataActivity" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
-	ActivityCall *CallActivityTaskConfigInput `json:"activity_call,omitempty" jsonschema:"Required when kind='activity_call'. CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks. CALL_ACTIVITY tasks execute Temporal activities. YAML Example: - taskName: call: activity with: activity: 'ProcessDataActivity' input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10"`
-	// Required when kind='for_each'. ForTaskConfig defines the configuration for FOR tasks. FOR tasks iterate over collections, executing tasks for each item. YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
-	ForEach *ForTaskConfigInput `json:"for_each,omitempty" jsonschema:"Required when kind='for_each'. ForTaskConfig defines the configuration for FOR tasks. FOR tasks iterate over collections, executing tasks for each item. YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4"`
-	// Required when kind='fork'. ForkTaskConfig defines the configuration for FORK tasks. FORK tasks execute multiple branches in parallel. YAML Example: - taskName: fork: branches: - branch1: do: - task1: call: http with: method: POST endpoint: uri: https://api.example.com/branch1 - branch2: do: - task2: call: http Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
-	Fork *ForkTaskConfigInput `json:"fork,omitempty" jsonschema:"Required when kind='fork'. ForkTaskConfig defines the configuration for FORK tasks. FORK tasks execute multiple branches in parallel. YAML Example: - taskName: fork: branches: - branch1: do: - task1: call: http with: method: POST endpoint: uri: https://api.example.com/branch1 - branch2: do: - task2: call: http Reference: zigflow-dsl-pattern-catalog.md - Task Type 5"`
-	// Required when kind='grpc_call'. GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks. GRPC_CALL tasks make gRPC requests to external services. YAML Example: - taskName: call: grpc with: service: "com.example.UserService" method: "GetUser" request: userId: ${ .userId } Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
-	GrpcCall *GrpcCallTaskConfigInput `json:"grpc_call,omitempty" jsonschema:"Required when kind='grpc_call'. GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks. GRPC_CALL tasks make gRPC requests to external services. YAML Example: - taskName: call: grpc with: service: 'com.example.UserService' method: 'GetUser' request: userId: ${ .userId } Reference: zigflow-dsl-pattern-catalog.md - Task Type 9"`
-	// Required when kind='http_call'. HttpCallTaskConfig defines the configuration for HTTP_CALL tasks. HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH). YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: "Bearer ${TOKEN}" body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
-	HttpCall *HttpCallTaskConfigInput `json:"http_call,omitempty" jsonschema:"Required when kind='http_call'. HttpCallTaskConfig defines the configuration for HTTP_CALL tasks. HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH). YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: 'Bearer ${TOKEN}' body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2"`
-	// Required when kind='listen'. ListenTaskConfig defines the configuration for LISTEN tasks. LISTEN tasks wait for external signals/events (Temporal signals). YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
-	Listen *ListenTaskConfigInput `json:"listen,omitempty" jsonschema:"Required when kind='listen'. ListenTaskConfig defines the configuration for LISTEN tasks. LISTEN tasks wait for external signals/events (Temporal signals). YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7"`
-	// Required when kind='raise_error'. RaiseTaskConfig defines the configuration for RAISE tasks. RAISE tasks raise errors/exceptions, terminating workflow execution. YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
-	RaiseError *RaiseTaskConfigInput `json:"raise_error,omitempty" jsonschema:"Required when kind='raise_error'. RaiseTaskConfig defines the configuration for RAISE tasks. RAISE tasks raise errors/exceptions, terminating workflow execution. YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11"`
-	// Required when kind='run_workflow'. RunTaskConfig defines the configuration for RUN tasks. RUN tasks execute sub-workflows (Temporal child workflows). YAML Example: - taskName: run: workflow: "sub-workflow-name" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
-	RunWorkflow *RunTaskConfigInput `json:"run_workflow,omitempty" jsonschema:"Required when kind='run_workflow'. RunTaskConfig defines the configuration for RUN tasks. RUN tasks execute sub-workflows (Temporal child workflows). YAML Example: - taskName: run: workflow: 'sub-workflow-name' input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 12"`
-	// Required when kind='set_vars'. SetTaskConfig defines the configuration for SET tasks. SET tasks assign variables in workflow state. YAML Example: - taskName: set: variable1: value variable2: ${ expression } computed: ${ .a + .b } Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
-	SetVars *SetTaskConfigInput `json:"set_vars,omitempty" jsonschema:"Required when kind='set_vars'. SetTaskConfig defines the configuration for SET tasks. SET tasks assign variables in workflow state. YAML Example: - taskName: set: variable1: value variable2: ${ expression } computed: ${ .a + .b } Reference: zigflow-dsl-pattern-catalog.md - Task Type 1"`
-	// Required when kind='switch_case'. SwitchTaskConfig defines the configuration for SWITCH tasks. SWITCH tasks provide conditional branching based on expressions. YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
-	SwitchCase *SwitchTaskConfigInput `json:"switch_case,omitempty" jsonschema:"Required when kind='switch_case'. SwitchTaskConfig defines the configuration for SWITCH tasks. SWITCH tasks provide conditional branching based on expressions. YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3"`
-	// Required when kind='try_catch'. TryTaskConfig defines the configuration for TRY tasks. TRY tasks provide try/catch error handling. YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
-	TryCatch *TryTaskConfigInput `json:"try_catch,omitempty" jsonschema:"Required when kind='try_catch'. TryTaskConfig defines the configuration for TRY tasks. TRY tasks provide try/catch error handling. YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6"`
-	// Required when kind='wait'. WaitTaskConfig defines the configuration for WAIT tasks. WAIT tasks pause workflow execution using Temporal timers. Supports both relative durations ("wait 1 week") and absolute timestamps ("wait until March 1st 9am"). YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: "2026-03-02T09:30:00Z" Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
-	Wait *WaitTaskConfigInput `json:"wait,omitempty" jsonschema:"Required when kind='wait'. WaitTaskConfig defines the configuration for WAIT tasks. WAIT tasks pause workflow execution using Temporal timers. Supports both relative durations ('wait 1 week') and absolute timestamps ('wait until March 1st 9am'). YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: '2026-03-02T09:30:00Z' Reference: zigflow-dsl-pattern-catalog.md - Task Type 8"`
+	// Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: "code-reviewer" # Uses workflow's org # OR agent: "stigmer/code-reviewer" # Explicit org reference message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
+	AgentCall *AgentCallTaskConfigInput `json:"agent_call,omitempty" jsonschema:"Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., 'stigmer/code-reviewer'). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example: - analyze: call: agent with: agent: 'code-reviewer' # Uses workflow's org # OR agent: 'stigmer/code-reviewer' # Explicit org reference message: 'Review this code: ${ $context.fetchCode.body }' env: GITHUB_TOKEN: '${ .secrets.GH_TOKEN }' config: model: 'claude-3-5-sonnet' timeout: 300 Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md"`
+	// Required when kind='activity_call'. CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities. @internal Executes Temporal activities. YAML Example: - taskName: call: activity with: activity: "ProcessDataActivity" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
+	ActivityCall *CallActivityTaskConfigInput `json:"activity_call,omitempty" jsonschema:"Required when kind='activity_call'. CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities. @internal Executes Temporal activities. YAML Example: - taskName: call: activity with: activity: 'ProcessDataActivity' input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10"`
+	// Required when kind='for_each'. ForTaskConfig defines the configuration for for_each tasks that iterate over collections. @internal YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
+	ForEach *ForTaskConfigInput `json:"for_each,omitempty" jsonschema:"Required when kind='for_each'. ForTaskConfig defines the configuration for for_each tasks that iterate over collections. @internal YAML Example: - taskName: for: each: item in: ${ $data.items } do: - processItem: call: http with: method: POST body: item: ${ $data.item } index: ${ $data.index } Reference: zigflow-dsl-pattern-catalog.md - Task Type 4"`
+	// Required when kind='fork'. ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel. @internal YAML Example: - taskName: fork: branches: - branch1: do: - task1: call: http with: method: POST endpoint: uri: https://api.example.com/branch1 - branch2: do: - task2: call: http Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
+	Fork *ForkTaskConfigInput `json:"fork,omitempty" jsonschema:"Required when kind='fork'. ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel. @internal YAML Example: - taskName: fork: branches: - branch1: do: - task1: call: http with: method: POST endpoint: uri: https://api.example.com/branch1 - branch2: do: - task2: call: http Reference: zigflow-dsl-pattern-catalog.md - Task Type 5"`
+	// Required when kind='grpc_call'. GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests. @internal YAML Example: - taskName: call: grpc with: service: "com.example.UserService" method: "GetUser" request: userId: ${ .userId } Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
+	GrpcCall *GrpcCallTaskConfigInput `json:"grpc_call,omitempty" jsonschema:"Required when kind='grpc_call'. GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests. @internal YAML Example: - taskName: call: grpc with: service: 'com.example.UserService' method: 'GetUser' request: userId: ${ .userId } Reference: zigflow-dsl-pattern-catalog.md - Task Type 9"`
+	// Required when kind='http_call'. HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests. @internal YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: "Bearer ${TOKEN}" body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
+	HttpCall *HttpCallTaskConfigInput `json:"http_call,omitempty" jsonschema:"Required when kind='http_call'. HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests. @internal YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: 'Bearer ${TOKEN}' body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2"`
+	// Required when kind='listen'. ListenTaskConfig defines the configuration for listen tasks that wait for external signals. @internal Implemented via Temporal signals. YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
+	Listen *ListenTaskConfigInput `json:"listen,omitempty" jsonschema:"Required when kind='listen'. ListenTaskConfig defines the configuration for listen tasks that wait for external signals. @internal Implemented via Temporal signals. YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7"`
+	// Required when kind='raise_error'. RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
+	RaiseError *RaiseTaskConfigInput `json:"raise_error,omitempty" jsonschema:"Required when kind='raise_error'. RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11"`
+	// Required when kind='run_workflow'. RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows. @internal Implemented via Temporal child workflows. YAML Example: - taskName: run: workflow: "sub-workflow-name" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
+	RunWorkflow *RunTaskConfigInput `json:"run_workflow,omitempty" jsonschema:"Required when kind='run_workflow'. RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows. @internal Implemented via Temporal child workflows. YAML Example: - taskName: run: workflow: 'sub-workflow-name' input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 12"`
+	// Required when kind='set_vars'. SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state. @internal YAML Example: - taskName: set: variable1: value variable2: ${ expression } computed: ${ .a + .b } Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
+	SetVars *SetTaskConfigInput `json:"set_vars,omitempty" jsonschema:"Required when kind='set_vars'. SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state. @internal YAML Example: - taskName: set: variable1: value variable2: ${ expression } computed: ${ .a + .b } Reference: zigflow-dsl-pattern-catalog.md - Task Type 1"`
+	// Required when kind='switch_case'. SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally. @internal YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
+	SwitchCase *SwitchTaskConfigInput `json:"switch_case,omitempty" jsonschema:"Required when kind='switch_case'. SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally. @internal YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3"`
+	// Required when kind='try_catch'. TryTaskConfig defines the configuration for try_catch tasks that handle errors. @internal YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
+	TryCatch *TryTaskConfigInput `json:"try_catch,omitempty" jsonschema:"Required when kind='try_catch'. TryTaskConfig defines the configuration for try_catch tasks that handle errors. @internal YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6"`
+	// Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause workflow execution. Supports both relative durations and absolute timestamps. @internal Implemented via Temporal timers. YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: "2026-03-02T09:30:00Z" Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
+	Wait *WaitTaskConfigInput `json:"wait,omitempty" jsonschema:"Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause workflow execution. Supports both relative durations and absolute timestamps. @internal Implemented via Temporal timers. YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: '2026-03-02T09:30:00Z' Reference: zigflow-dsl-pattern-catalog.md - Task Type 8"`
 	// Export configuration (how to save task output to context). Optional - if not set, output is not saved.
 	Export *ExportInput `json:"export,omitempty" jsonschema:"Export configuration (how to save task output to context). Optional - if not set, output is not saved."`
 	// Flow control (which task executes next). Optional - if not set, continues to next task in sequence.

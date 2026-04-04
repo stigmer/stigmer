@@ -30,12 +30,23 @@ const (
 //
 // ApiKeyCommandController handles write operations for API keys.
 type ApiKeyCommandControllerClient interface {
-	// Create a new API key for the authenticated user.
-	// Any authenticated user can create API keys.
+	// Create an API key for the authenticated user.
+	//
+	// The raw key value is included in the response and is never returned again.
+	// Store it securely before discarding the response.
+	//
+	// @internal
+	// Any authenticated user can create API keys, so authorization is skipped.
 	Create(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
 	// Update an existing API key.
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the API key resource.
 	Update(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
 	// Delete an API key.
+	//
+	// @internal
+	// Authorization: Requires can_delete permission on the API key resource.
 	Delete(ctx context.Context, in *ApiKeyId, opts ...grpc.CallOption) (*ApiKey, error)
 }
 
@@ -83,12 +94,23 @@ func (c *apiKeyCommandControllerClient) Delete(ctx context.Context, in *ApiKeyId
 //
 // ApiKeyCommandController handles write operations for API keys.
 type ApiKeyCommandControllerServer interface {
-	// Create a new API key for the authenticated user.
-	// Any authenticated user can create API keys.
+	// Create an API key for the authenticated user.
+	//
+	// The raw key value is included in the response and is never returned again.
+	// Store it securely before discarding the response.
+	//
+	// @internal
+	// Any authenticated user can create API keys, so authorization is skipped.
 	Create(context.Context, *ApiKey) (*ApiKey, error)
 	// Update an existing API key.
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the API key resource.
 	Update(context.Context, *ApiKey) (*ApiKey, error)
 	// Delete an API key.
+	//
+	// @internal
+	// Authorization: Requires can_delete permission on the API key resource.
 	Delete(context.Context, *ApiKeyId) (*ApiKey, error)
 }
 

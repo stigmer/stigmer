@@ -7,7 +7,7 @@ package ai.stigmer.platform.github.v1;
 
 /**
  * <pre>
- * Request to get the OAuth authorize URL.
+ * Input for requesting a GitHub OAuth authorize URL.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest}
@@ -58,7 +58,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object redirectUri_ = "";
   /**
    * <pre>
-   * The URI that GitHub will redirect back to after the user authorizes.
+   * Callback URI that GitHub redirects to after the user authorizes.
+   *
+   * &#64;internal
    * Must match one of the callback URLs registered on the GitHub App.
    * </pre>
    *
@@ -80,7 +82,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The URI that GitHub will redirect back to after the user authorizes.
+   * Callback URI that GitHub redirects to after the user authorizes.
+   *
+   * &#64;internal
    * Must match one of the callback URLs registered on the GitHub App.
    * </pre>
    *
@@ -260,7 +264,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Request to get the OAuth authorize URL.
+   * Input for requesting a GitHub OAuth authorize URL.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest}
@@ -403,7 +407,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object redirectUri_ = "";
     /**
      * <pre>
-     * The URI that GitHub will redirect back to after the user authorizes.
+     * Callback URI that GitHub redirects to after the user authorizes.
+     *
+     * &#64;internal
      * Must match one of the callback URLs registered on the GitHub App.
      * </pre>
      *
@@ -424,7 +430,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The URI that GitHub will redirect back to after the user authorizes.
+     * Callback URI that GitHub redirects to after the user authorizes.
+     *
+     * &#64;internal
      * Must match one of the callback URLs registered on the GitHub App.
      * </pre>
      *
@@ -446,7 +454,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The URI that GitHub will redirect back to after the user authorizes.
+     * Callback URI that GitHub redirects to after the user authorizes.
+     *
+     * &#64;internal
      * Must match one of the callback URLs registered on the GitHub App.
      * </pre>
      *
@@ -464,7 +474,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The URI that GitHub will redirect back to after the user authorizes.
+     * Callback URI that GitHub redirects to after the user authorizes.
+     *
+     * &#64;internal
      * Must match one of the callback URLs registered on the GitHub App.
      * </pre>
      *
@@ -479,7 +491,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The URI that GitHub will redirect back to after the user authorizes.
+     * Callback URI that GitHub redirects to after the user authorizes.
+     *
+     * &#64;internal
      * Must match one of the callback URLs registered on the GitHub App.
      * </pre>
      *

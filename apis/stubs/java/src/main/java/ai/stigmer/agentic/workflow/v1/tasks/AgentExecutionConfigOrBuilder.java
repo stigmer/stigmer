@@ -62,9 +62,11 @@ public interface AgentExecutionConfigOrBuilder extends
   /**
    * <pre>
    * Context management configuration for this agent invocation.
-   *
    * Controls automatic summarization behavior for long-running conversations.
    * When specified, overrides model defaults from the Model Registry.
+   *
+   * &#64;internal
+   * &#64;since Phase 3 (Context Summarization Architecture)
    *
    * Use cases:
    * - Disable summarization for short-lived agents
@@ -77,8 +79,6 @@ public interface AgentExecutionConfigOrBuilder extends
    * context_management:
    * custom_trigger_threshold: 150000
    * custom_target_tokens: 120000
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4 [json_name = "contextManagement"];</code>
@@ -88,9 +88,11 @@ public interface AgentExecutionConfigOrBuilder extends
   /**
    * <pre>
    * Context management configuration for this agent invocation.
-   *
    * Controls automatic summarization behavior for long-running conversations.
    * When specified, overrides model defaults from the Model Registry.
+   *
+   * &#64;internal
+   * &#64;since Phase 3 (Context Summarization Architecture)
    *
    * Use cases:
    * - Disable summarization for short-lived agents
@@ -103,8 +105,6 @@ public interface AgentExecutionConfigOrBuilder extends
    * context_management:
    * custom_trigger_threshold: 150000
    * custom_target_tokens: 120000
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4 [json_name = "contextManagement"];</code>
@@ -114,9 +114,11 @@ public interface AgentExecutionConfigOrBuilder extends
   /**
    * <pre>
    * Context management configuration for this agent invocation.
-   *
    * Controls automatic summarization behavior for long-running conversations.
    * When specified, overrides model defaults from the Model Registry.
+   *
+   * &#64;internal
+   * &#64;since Phase 3 (Context Summarization Architecture)
    *
    * Use cases:
    * - Disable summarization for short-lived agents
@@ -129,8 +131,6 @@ public interface AgentExecutionConfigOrBuilder extends
    * context_management:
    * custom_trigger_threshold: 150000
    * custom_target_tokens: 120000
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4 [json_name = "contextManagement"];</code>

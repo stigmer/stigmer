@@ -7,9 +7,10 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * ListenTaskConfig defines the configuration for LISTEN tasks.
+ * ListenTaskConfig defines the configuration for listen tasks that wait for external signals.
  *
- * LISTEN tasks wait for external signals/events (Temporal signals).
+ * &#64;internal
+ * Implemented via Temporal signals.
  *
  * YAML Example:
  * - taskName:
@@ -268,9 +269,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ListenTaskConfig defines the configuration for LISTEN tasks.
+   * ListenTaskConfig defines the configuration for listen tasks that wait for external signals.
    *
-   * LISTEN tasks wait for external signals/events (Temporal signals).
+   * &#64;internal
+   * Implemented via Temporal signals.
    *
    * YAML Example:
    * - taskName:

@@ -22,12 +22,14 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// API resource version
+// API resource version.
 type ApiResourceVersion int32
 
 const (
+	// Default value when no version is set.
 	ApiResourceVersion_api_resource_version_unspecified ApiResourceVersion = 0
-	ApiResourceVersion_v1                               ApiResourceVersion = 1
+	// Current API version for all resource types.
+	ApiResourceVersion_v1 ApiResourceVersion = 1
 )
 
 // Enum value maps for ApiResourceVersion.
@@ -169,36 +171,49 @@ func (PlatformIdValue) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_rawDescGZIP(), []int{2}
 }
 
-// API resource kinds for Stigmer
+// API resource kinds for Stigmer.
 type ApiResourceKind int32
 
 const (
+	// Default value for unset or unrecognized resource kinds.
 	ApiResourceKind_api_resource_kind_unknown ApiResourceKind = 0
-	// Agentic - System-level audit trails and versioning
+	// Immutable version record tracking changes to an API resource.
 	ApiResourceKind_api_resource_version ApiResourceKind = 1
-	// IAM - Identity and Access Management
-	ApiResourceKind_iam_policy       ApiResourceKind = 10
+	// Role-based access control policy for granting permissions on resources.
+	ApiResourceKind_iam_policy ApiResourceKind = 10
+	// User account in the identity system.
 	ApiResourceKind_identity_account ApiResourceKind = 11
-	ApiResourceKind_api_key          ApiResourceKind = 12
-	// IAM - External identity provider configuration
+	// Credential for programmatic API access.
+	ApiResourceKind_api_key ApiResourceKind = 12
+	// External identity provider for federated authentication.
 	ApiResourceKind_identity_provider ApiResourceKind = 21
-	// Tenancy - Platform and organizational resources
+	// Top-level tenant that owns and manages resources.
 	ApiResourceKind_organization ApiResourceKind = 30
-	ApiResourceKind_platform     ApiResourceKind = 31
-	// Agentic - AI agent management
-	ApiResourceKind_agent           ApiResourceKind = 40
+	// Singleton platform instance representing the Stigmer deployment.
+	ApiResourceKind_platform ApiResourceKind = 31
+	// AI assistant with instructions, tools, skills, and a delegation model.
+	ApiResourceKind_agent ApiResourceKind = 40
+	// Single run of an agent within a session, tracking tool calls and responses.
 	ApiResourceKind_agent_execution ApiResourceKind = 41
-	ApiResourceKind_session         ApiResourceKind = 42
-	ApiResourceKind_skill           ApiResourceKind = 43
-	ApiResourceKind_mcp_server      ApiResourceKind = 44
-	ApiResourceKind_agent_instance  ApiResourceKind = 45
-	// Agentic - Workflow orchestration
-	ApiResourceKind_workflow           ApiResourceKind = 50
-	ApiResourceKind_workflow_instance  ApiResourceKind = 51
+	// Conversation thread between a user and an agent.
+	ApiResourceKind_session ApiResourceKind = 42
+	// Knowledge resource that provides domain-specific context to an agent.
+	ApiResourceKind_skill ApiResourceKind = 43
+	// External tool server connected via the Model Context Protocol.
+	ApiResourceKind_mcp_server ApiResourceKind = 44
+	// Configured deployment of an agent with environment-specific overrides.
+	ApiResourceKind_agent_instance ApiResourceKind = 45
+	// Multi-step orchestration defining how agents collaborate on a task.
+	ApiResourceKind_workflow ApiResourceKind = 50
+	// Configured deployment of a workflow with environment-specific bindings.
+	ApiResourceKind_workflow_instance ApiResourceKind = 51
+	// Single run of a workflow instance, tracking step progress and outcomes.
 	ApiResourceKind_workflow_execution ApiResourceKind = 52
-	ApiResourceKind_environment        ApiResourceKind = 53
-	ApiResourceKind_execution_context  ApiResourceKind = 54
-	// Tenancy - Project management (aggregate root for resource lifecycle)
+	// Named set of variables and secrets for agent and workflow execution.
+	ApiResourceKind_environment ApiResourceKind = 53
+	// User-owned runtime context for managing execution state.
+	ApiResourceKind_execution_context ApiResourceKind = 54
+	// Aggregate root grouping related resources for lifecycle management.
 	ApiResourceKind_project ApiResourceKind = 60
 )
 

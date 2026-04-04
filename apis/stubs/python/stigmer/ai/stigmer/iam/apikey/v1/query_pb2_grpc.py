@@ -58,6 +58,11 @@ class ApiKeyQueryControllerServicer(object):
 
     def findAll(self, request, context):
         """List all API keys belonging to the authenticated user.
+
+        Returns only the keys owned by the identity account in the auth header.
+
+        @internal
+        Scoped to the caller's own keys, so authorization is skipped.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

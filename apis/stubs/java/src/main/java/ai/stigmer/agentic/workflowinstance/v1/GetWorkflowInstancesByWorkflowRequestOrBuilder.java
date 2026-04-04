@@ -13,10 +13,6 @@ public interface GetWorkflowInstancesByWorkflowRequestOrBuilder extends
   /**
    * <pre>
    * Workflow template ID to filter by.
-   *
-   * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-   * Format: Workflow resource ID (e.g., "wfl_abc123")
-   * Validation: Required field
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -26,10 +22,6 @@ public interface GetWorkflowInstancesByWorkflowRequestOrBuilder extends
   /**
    * <pre>
    * Workflow template ID to filter by.
-   *
-   * Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-   * Format: Workflow resource ID (e.g., "wfl_abc123")
-   * Validation: Required field
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -40,16 +32,7 @@ public interface GetWorkflowInstancesByWorkflowRequestOrBuilder extends
 
   /**
    * <pre>
-   * Pagination options for controlling result set size and pages.
-   *
-   * Includes:
-   * - page_size: Maximum number of instances per page
-   * - page_token: Token from previous response for next page
-   *
-   * Example pagination flow:
-   * 1. Request with page_info.page_size = 20
-   * 2. Response includes page_token = "next_page_token_here"
-   * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+   * Pagination options for result set control.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -58,16 +41,7 @@ public interface GetWorkflowInstancesByWorkflowRequestOrBuilder extends
   boolean hasPageInfo();
   /**
    * <pre>
-   * Pagination options for controlling result set size and pages.
-   *
-   * Includes:
-   * - page_size: Maximum number of instances per page
-   * - page_token: Token from previous response for next page
-   *
-   * Example pagination flow:
-   * 1. Request with page_info.page_size = 20
-   * 2. Response includes page_token = "next_page_token_here"
-   * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+   * Pagination options for result set control.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
@@ -76,16 +50,7 @@ public interface GetWorkflowInstancesByWorkflowRequestOrBuilder extends
   ai.stigmer.commons.rpc.PageInfo getPageInfo();
   /**
    * <pre>
-   * Pagination options for controlling result set size and pages.
-   *
-   * Includes:
-   * - page_size: Maximum number of instances per page
-   * - page_token: Token from previous response for next page
-   *
-   * Example pagination flow:
-   * 1. Request with page_info.page_size = 20
-   * 2. Response includes page_token = "next_page_token_here"
-   * 3. Subsequent request with page_info.page_token = "next_page_token_here"
+   * Pagination options for result set control.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>

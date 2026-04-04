@@ -12,7 +12,7 @@ public interface GetOAuthAuthorizeUrlResponseOrBuilder extends
 
   /**
    * <pre>
-   * The full GitHub OAuth authorize URL to redirect the user to.
+   * Full GitHub OAuth authorize URL to redirect the user to.
    * </pre>
    *
    * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -21,7 +21,7 @@ public interface GetOAuthAuthorizeUrlResponseOrBuilder extends
   java.lang.String getAuthorizeUrl();
   /**
    * <pre>
-   * The full GitHub OAuth authorize URL to redirect the user to.
+   * Full GitHub OAuth authorize URL to redirect the user to.
    * </pre>
    *
    * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -32,8 +32,8 @@ public interface GetOAuthAuthorizeUrlResponseOrBuilder extends
 
   /**
    * <pre>
-   * A random state value for CSRF protection. The frontend must verify
-   * this matches the state returned in the callback.
+   * Random state value for CSRF protection.
+   * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state"];</code>
@@ -42,8 +42,8 @@ public interface GetOAuthAuthorizeUrlResponseOrBuilder extends
   java.lang.String getState();
   /**
    * <pre>
-   * A random state value for CSRF protection. The frontend must verify
-   * this matches the state returned in the callback.
+   * Random state value for CSRF protection.
+   * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state"];</code>

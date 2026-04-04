@@ -12,9 +12,7 @@ public interface WorkspaceEntryOrBuilder extends
 
   /**
    * <pre>
-   * Short identifier for this workspace entry (required).
-   * Used in system prompt headings and as the clone subdirectory in cloud mode.
-   * Example: "my-app", "frontend", "shared-lib"
+   * Short identifier for this workspace entry.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -23,9 +21,7 @@ public interface WorkspaceEntryOrBuilder extends
   java.lang.String getName();
   /**
    * <pre>
-   * Short identifier for this workspace entry (required).
-   * Used in system prompt headings and as the clone subdirectory in cloud mode.
-   * Example: "my-app", "frontend", "shared-lib"
+   * Short identifier for this workspace entry.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -36,7 +32,7 @@ public interface WorkspaceEntryOrBuilder extends
 
   /**
    * <pre>
-   * The source that provides this entry's content (required).
+   * The source that provides this entry's content.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -45,7 +41,7 @@ public interface WorkspaceEntryOrBuilder extends
   boolean hasSource();
   /**
    * <pre>
-   * The source that provides this entry's content (required).
+   * The source that provides this entry's content.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -54,7 +50,7 @@ public interface WorkspaceEntryOrBuilder extends
   ai.stigmer.agentic.session.v1.WorkspaceSource getSource();
   /**
    * <pre>
-   * The source that provides this entry's content (required).
+   * The source that provides this entry's content.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.WorkspaceSource source = 2 [json_name = "source", (.buf.validate.field) = { ... }</code>

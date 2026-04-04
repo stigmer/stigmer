@@ -8,8 +8,9 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 
 class WorkflowInstanceQueryControllerStub(object):
-    """WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+    """WorkflowInstanceQueryController handles read operations for workflow instances.
 
+    @internal
     This service provides all query operations following the Command-Query Separation pattern.
     All RPCs that read state without modifying it go through this controller.
 
@@ -45,8 +46,9 @@ class WorkflowInstanceQueryControllerStub(object):
 
 
 class WorkflowInstanceQueryControllerServicer(object):
-    """WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+    """WorkflowInstanceQueryController handles read operations for workflow instances.
 
+    @internal
     This service provides all query operations following the Command-Query Separation pattern.
     All RPCs that read state without modifying it go through this controller.
 
@@ -61,16 +63,8 @@ class WorkflowInstanceQueryControllerServicer(object):
     def get(self, request, context):
         """Get a single workflow instance by ID.
 
+        @internal
         Retrieves a specific WorkflowInstance using its unique resource identifier.
-
-        Input:
-        WorkflowInstanceId with the instance ID (e.g., "wfi_abc123")
-
-        Returns:
-        Complete WorkflowInstance resource with:
-        - api_version, kind, metadata
-        - spec (workflow_id, description, environment_refs)
-        - status (audit information: created_at, updated_at, version)
 
         Authorization:
         Requires "get" permission on the specific WorkflowInstance.
@@ -78,11 +72,6 @@ class WorkflowInstanceQueryControllerServicer(object):
         Verifies user has access based on:
         - Instance owner scope (organization or identity_account)
         - User's IAM policies
-
-        Use Cases:
-        - Retrieve instance configuration before executing
-        - View instance details in UI
-        - Fetch instance for editing/updating
 
         Error: PERMISSION_DENIED if user lacks get permission
         Error: NOT_FOUND if instance ID doesn't exist
@@ -92,30 +81,11 @@ class WorkflowInstanceQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByWorkflow(self, request, context):
-        """Get all instances of a specific workflow template.
+        """Get all workflow instances that use a specific workflow template.
 
-        Retrieves all WorkflowInstance resources that reference a specific Workflow template.
-        Useful for discovering all configured deployments of a workflow.
-
-        Example Use Case:
-        Workflow "deploy-to-cloud" (wfl_123) has instances:
-        - "prod-deploy" (wfi_abc) - Production deployment with aws-prod-env
-        - "staging-deploy" (wfi_def) - Staging deployment with aws-staging-env
-        - "dev-deploy" (wfi_ghi) - Development deployment with aws-dev-env
+        Returns a paginated list of instances that reference the given workflow ID.
 
         @internal
-
-        Input:
-        GetWorkflowInstancesByWorkflowRequest with:
-        - workflow_id: Workflow template ID to filter by
-        - page_info: Pagination settings (page_size, page_token)
-
-        Returns:
-        WorkflowInstanceList with:
-        - total_pages: Total number of pages available
-        - entries: Array of WorkflowInstance resources in current page
-
-        Authorization:
         Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
         then filtered by workflow_id. This ensures users only see instances they have access to,
         even if the parent workflow is shared across organizations.
@@ -134,34 +104,16 @@ class WorkflowInstanceQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByReference(self, request, context):
-        """Get a workflow instance by flexible reference (ID or slug).
+        """Get a workflow instance by reference (ID or slug).
 
-        Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-        - By ID: {id: "wfi_abc123"}
-        - By slug: {slug: "prod-deploy"}
-        - By name: {name: "Production Deploy"}
+        @internal
+        Custom authorization in handler — checks both direct resource access
+        and organization-level visibility permissions.
 
-        Input:
-        ApiResourceReference with one of: id, slug, or name
-
-        Returns:
-        Complete WorkflowInstance resource matching the reference.
-
-        Authorization:
-        Uses custom authorization logic in the handler.
-        Allows for flexible authorization based on reference type and context.
-        Typical checks:
-        - User has get permission on the resolved instance
-        - Instance owner scope matches user's organization/identity
-
-        Use Cases:
-        - User-friendly lookups by slug instead of opaque IDs
-        - CLI commands using human-readable names
-        - API integrations using stable slugs
-
-        Example:
-        Input: ApiResourceReference{slug: "prod-deploy"}
-        Output: WorkflowInstance with metadata.slug = "prod-deploy"
+        Supports lookup by:
+        - ID: {id: "wfi_abc123"}
+        - Slug: {slug: "prod-deploy"}
+        - Name: {name: "Production Deploy"}
 
         Error: PERMISSION_DENIED if user lacks access
         Error: NOT_FOUND if reference doesn't resolve to an instance
@@ -197,8 +149,9 @@ def add_WorkflowInstanceQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class WorkflowInstanceQueryController(object):
-    """WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+    """WorkflowInstanceQueryController handles read operations for workflow instances.
 
+    @internal
     This service provides all query operations following the Command-Query Separation pattern.
     All RPCs that read state without modifying it go through this controller.
 

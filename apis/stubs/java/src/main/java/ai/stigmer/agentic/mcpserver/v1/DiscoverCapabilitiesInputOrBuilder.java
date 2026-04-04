@@ -34,12 +34,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
 
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -48,12 +43,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
   int getRuntimeEnvCount();
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -69,12 +59,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
   getRuntimeEnv();
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -84,12 +69,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
   getRuntimeEnvMap();
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -102,12 +82,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
 ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery. When provided,
-   * the backend creates a temporary ExecutionContext directly from these values
-   * without reading from the personal environment. Each value carries its own
-   * is_secret classification, matching the contract of
-   * AgentExecution.spec.runtime_env.
-   *
+   * Optional environment variable values for one-time discovery.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *

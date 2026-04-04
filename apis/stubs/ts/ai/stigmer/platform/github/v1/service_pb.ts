@@ -15,13 +15,15 @@ export const file_ai_stigmer_platform_github_v1_service: GenFile = /*@__PURE__*/
   fileDesc("CithaS9zdGlnbWVyL3BsYXRmb3JtL2dpdGh1Yi92MS9zZXJ2aWNlLnByb3RvEh1haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MSI8ChtHZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QSHQoMcmVkaXJlY3RfdXJpGAEgASgJQge6SARyAhABIkQKHEdldE9BdXRoQXV0aG9yaXplVXJsUmVzcG9uc2USFQoNYXV0aG9yaXplX3VybBgBIAEoCRINCgVzdGF0ZRgCIAEoCSJoChhFeGNoYW5nZU9BdXRoQ29kZVJlcXVlc3QSFQoEY29kZRgBIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgCIAEoCUIHukgEcgIQARIdCgxyZWRpcmVjdF91cmkYAyABKAlCB7pIBHICEAEiVAoZRXhjaGFuZ2VPQXV0aENvZGVSZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRINCgVzY29wZRgDIAEoCTK2AgoNR2l0SHViU2VydmljZRKVAQoUZ2V0T0F1dGhBdXRob3JpemVVcmwSOi5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QaOy5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlc3BvbnNlIgTQuBgBEowBChFleGNoYW5nZU9BdXRoQ29kZRI3LmFpLnN0aWdtZXIucGxhdGZvcm0uZ2l0aHViLnYxLkV4Y2hhbmdlT0F1dGhDb2RlUmVxdWVzdBo4LmFpLnN0aWdtZXIucGxhdGZvcm0uZ2l0aHViLnYxLkV4Y2hhbmdlT0F1dGhDb2RlUmVzcG9uc2UiBNC4GAFiBnByb3RvMw", [file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_buf_validate_validate]);
 
 /**
- * Request to get the OAuth authorize URL.
+ * Input for requesting a GitHub OAuth authorize URL.
  *
  * @generated from message ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest
  */
 export type GetOAuthAuthorizeUrlRequest = Message<"ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest"> & {
   /**
-   * The URI that GitHub will redirect back to after the user authorizes.
+   * Callback URI that GitHub redirects to after the user authorizes.
+   *
+   * @internal
    * Must match one of the callback URLs registered on the GitHub App.
    *
    * @generated from field: string redirect_uri = 1;
@@ -37,21 +39,21 @@ export const GetOAuthAuthorizeUrlRequestSchema: GenMessage<GetOAuthAuthorizeUrlR
   messageDesc(file_ai_stigmer_platform_github_v1_service, 0);
 
 /**
- * Response containing the constructed OAuth authorize URL.
+ * Result of requesting a GitHub OAuth authorize URL.
  *
  * @generated from message ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse
  */
 export type GetOAuthAuthorizeUrlResponse = Message<"ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse"> & {
   /**
-   * The full GitHub OAuth authorize URL to redirect the user to.
+   * Full GitHub OAuth authorize URL to redirect the user to.
    *
    * @generated from field: string authorize_url = 1;
    */
   authorizeUrl: string;
 
   /**
-   * A random state value for CSRF protection. The frontend must verify
-   * this matches the state returned in the callback.
+   * Random state value for CSRF protection.
+   * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
    *
    * @generated from field: string state = 2;
    */
@@ -66,28 +68,30 @@ export const GetOAuthAuthorizeUrlResponseSchema: GenMessage<GetOAuthAuthorizeUrl
   messageDesc(file_ai_stigmer_platform_github_v1_service, 1);
 
 /**
- * Request to exchange an authorization code for an access token.
+ * Input for exchanging a GitHub authorization code for an access token.
  *
  * @generated from message ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest
  */
 export type ExchangeOAuthCodeRequest = Message<"ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest"> & {
   /**
-   * The authorization code received from GitHub's OAuth redirect.
+   * Authorization code received from GitHub's OAuth redirect callback.
    *
    * @generated from field: string code = 1;
    */
   code: string;
 
   /**
-   * The state value from the original authorize request, for CSRF verification.
+   * State value from the original authorize response, for CSRF verification.
    *
    * @generated from field: string state = 2;
    */
   state: string;
 
   /**
-   * The redirect_uri used in the original authorize request.
-   * GitHub requires this to match for the token exchange.
+   * Redirect URI used in the original authorize request.
+   *
+   * @internal
+   * GitHub requires this to match the value from the authorize step.
    *
    * @generated from field: string redirect_uri = 3;
    */
@@ -102,27 +106,27 @@ export const ExchangeOAuthCodeRequestSchema: GenMessage<ExchangeOAuthCodeRequest
   messageDesc(file_ai_stigmer_platform_github_v1_service, 2);
 
 /**
- * Response containing the exchanged access token.
+ * Result of exchanging a GitHub authorization code for an access token.
  *
  * @generated from message ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse
  */
 export type ExchangeOAuthCodeResponse = Message<"ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse"> & {
   /**
-   * The GitHub access token for API calls.
+   * GitHub access token for API calls.
    *
    * @generated from field: string access_token = 1;
    */
   accessToken: string;
 
   /**
-   * The token type (typically "bearer").
+   * Token type (typically "bearer").
    *
    * @generated from field: string token_type = 2;
    */
   tokenType: string;
 
   /**
-   * The granted OAuth scopes (comma-separated).
+   * Granted OAuth scopes, comma-separated.
    *
    * @generated from field: string scope = 3;
    */
@@ -139,28 +143,32 @@ export const ExchangeOAuthCodeResponseSchema: GenMessage<ExchangeOAuthCodeRespon
 /**
  * GitHubService provides OAuth integration with GitHub.
  *
+ * Use this service to connect a GitHub account via OAuth and obtain
+ * an access token for GitHub API calls. The service manages the
+ * authorize URL construction and the authorization-code-for-token
+ * exchange so callers do not handle OAuth details directly.
+ *
+ * @internal
  * This is a platform utility service — not a domain resource.
- * It enables the web console (and SDK consumers) to connect a user's
- * GitHub account via OAuth, then browse and select repositories
- * for workspace configuration.
- *
- * The service handles the server-side OAuth code exchange (protecting
- * the client_secret) and provides the authorize URL so the frontend
- * does not need to know the client_id or redirect_uri.
- *
- * Tokens are ephemeral — they are returned to the caller and never
- * persisted by the backend.
+ * The backend protects the client_secret during the token exchange
+ * and constructs the authorize URL with the registered client_id and
+ * redirect_uri so the frontend never needs those values.
+ * Tokens are ephemeral — returned to the caller and never persisted.
  *
  * @generated from service ai.stigmer.platform.github.v1.GitHubService
  */
 export const GitHubService: GenService<{
   /**
-   * Returns the GitHub OAuth authorize URL for initiating the OAuth flow.
+   * Get the GitHub OAuth authorize URL for initiating the OAuth flow.
    *
+   * Returns a URL to redirect the user to and a random state value for
+   * CSRF protection. After the user authorizes, GitHub redirects back
+   * to your redirect_uri with an authorization code.
+   *
+   * @internal
    * The backend constructs the URL with the registered client_id, requested
-   * scopes, and a random state parameter for CSRF protection. The frontend
-   * redirects the user to this URL, and GitHub redirects back to the
-   * provided redirect_uri with an authorization code.
+   * scopes, and the state parameter. Authorization is skipped because this
+   * is a pre-authentication step.
    *
    * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.getOAuthAuthorizeUrl
    */
@@ -170,16 +178,17 @@ export const GitHubService: GenService<{
     output: typeof GetOAuthAuthorizeUrlResponseSchema;
   },
   /**
-   * Exchanges a GitHub OAuth authorization code for an access token.
+   * Exchange a GitHub OAuth authorization code for an access token.
    *
-   * The frontend calls this after receiving the authorization code from
-   * GitHub's OAuth redirect. The backend makes the token exchange request
-   * to GitHub using the client_secret (which must never be exposed to
-   * the frontend).
+   * Call this after receiving the authorization code from GitHub's OAuth
+   * redirect. Pass the code, the state from the original authorize request,
+   * and the same redirect_uri. Returns an access token for GitHub API calls.
    *
-   * The returned access_token is NOT stored by the backend. The frontend
-   * is responsible for persisting it (e.g., in localStorage) and including
-   * it in subsequent requests that need GitHub access.
+   * @internal
+   * The backend performs the token exchange using the client_secret, which
+   * must never be exposed to the frontend. The returned access_token is NOT
+   * stored by the backend — the caller is responsible for persisting it and
+   * including it in subsequent requests that need GitHub access.
    *
    * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.exchangeOAuthCode
    */

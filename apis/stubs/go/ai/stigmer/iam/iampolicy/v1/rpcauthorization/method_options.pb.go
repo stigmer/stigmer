@@ -50,10 +50,16 @@ var file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options_proto_extTy
 
 // Extension fields to descriptorpb.MethodOptions.
 var (
+	// Full authorization configuration: permission, resource kind, field path, and error message.
+	//
 	// optional ai.stigmer.iam.iampolicy.v1.rpcauthorization.RpcAuthorizationConfig config = 50056;
 	E_Config = &file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options_proto_extTypes[0]
+	// When true, the RPC is publicly accessible without any authentication.
+	//
 	// optional bool is_public = 50057;
 	E_IsPublic = &file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options_proto_extTypes[1]
+	// When true, the RPC requires authentication but skips FGA authorization checks.
+	//
 	// optional bool is_skip_authorization = 50058;
 	E_IsSkipAuthorization = &file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options_proto_extTypes[2]
 )

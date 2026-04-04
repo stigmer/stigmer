@@ -57,6 +57,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object value_ = "";
   /**
+   * <pre>
+   * Project identifier.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The value.
    */
@@ -74,6 +78,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Project identifier.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The bytes for value.
    */
@@ -392,6 +400,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object value_ = "";
     /**
+     * <pre>
+     * Project identifier.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return The value.
      */
@@ -408,6 +420,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Project identifier.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return The bytes for value.
      */
@@ -425,6 +441,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Project identifier.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @param value The value to set.
      * @return This builder for chaining.
@@ -438,6 +458,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Project identifier.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -448,6 +472,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Project identifier.
+     * </pre>
+     *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for value to set.
      * @return This builder for chaining.

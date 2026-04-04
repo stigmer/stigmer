@@ -59,6 +59,10 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.LazyStringArrayList principalIds_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
+   * <pre>
+   * Principal IDs authorized to access the resource.
+   * </pre>
+   *
    * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
    * @return A list containing the principalIds.
    */
@@ -67,6 +71,10 @@ private static final long serialVersionUID = 0L;
     return principalIds_;
   }
   /**
+   * <pre>
+   * Principal IDs authorized to access the resource.
+   * </pre>
+   *
    * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
    * @return The count of principalIds.
    */
@@ -74,6 +82,10 @@ private static final long serialVersionUID = 0L;
     return principalIds_.size();
   }
   /**
+   * <pre>
+   * Principal IDs authorized to access the resource.
+   * </pre>
+   *
    * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
    * @param index The index of the element to return.
    * @return The principalIds at the given index.
@@ -82,6 +94,10 @@ private static final long serialVersionUID = 0L;
     return principalIds_.get(index);
   }
   /**
+   * <pre>
+   * Principal IDs authorized to access the resource.
+   * </pre>
+   *
    * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the principalIds at the given index.
@@ -412,6 +428,10 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000001;
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @return A list containing the principalIds.
      */
@@ -421,6 +441,10 @@ private static final long serialVersionUID = 0L;
       return principalIds_;
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @return The count of principalIds.
      */
@@ -428,6 +452,10 @@ private static final long serialVersionUID = 0L;
       return principalIds_.size();
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @param index The index of the element to return.
      * @return The principalIds at the given index.
@@ -436,6 +464,10 @@ private static final long serialVersionUID = 0L;
       return principalIds_.get(index);
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @param index The index of the value to return.
      * @return The bytes of the principalIds at the given index.
@@ -445,6 +477,10 @@ private static final long serialVersionUID = 0L;
       return principalIds_.getByteString(index);
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @param index The index to set the value at.
      * @param value The principalIds to set.
@@ -460,6 +496,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @param value The principalIds to add.
      * @return This builder for chaining.
@@ -474,6 +514,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @param values The principalIds to add.
      * @return This builder for chaining.
@@ -488,6 +532,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @return This builder for chaining.
      */
@@ -499,6 +547,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Principal IDs authorized to access the resource.
+     * </pre>
+     *
      * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
      * @param value The bytes of the principalIds to add.
      * @return This builder for chaining.

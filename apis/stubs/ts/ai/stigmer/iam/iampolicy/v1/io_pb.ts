@@ -98,12 +98,14 @@ export const ApiResourceRefViewSchema: GenMessage<ApiResourceRefView> = /*@__PUR
   messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 0);
 
 /**
- * Wrapper for IAM policy ID
+ * IamPolicyId identifies an IAM policy by its unique identifier.
  *
  * @generated from message ai.stigmer.iam.iampolicy.v1.IamPolicyId
  */
 export type IamPolicyId = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicyId"> & {
   /**
+   * Unique identifier of the IAM policy.
+   *
    * @generated from field: string value = 1;
    */
   value: string;
@@ -201,12 +203,14 @@ export const RevokeOrgAccessInputSchema: GenMessage<RevokeOrgAccessInput> = /*@_
   messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 4);
 
 /**
- * IamPoliciesList wrapper for returning multiple IAM policies
+ * IamPoliciesList contains a list of IAM policy resources.
  *
  * @generated from message ai.stigmer.iam.iampolicy.v1.IamPoliciesList
  */
 export type IamPoliciesList = Message<"ai.stigmer.iam.iampolicy.v1.IamPoliciesList"> & {
   /**
+   * IAM policy entries.
+   *
    * @generated from field: repeated ai.stigmer.iam.iampolicy.v1.IamPolicy entries = 1;
    */
   entries: IamPolicy[];
@@ -248,13 +252,15 @@ export const ListResourceAccessInputSchema: GenMessage<ListResourceAccessInput> 
   messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 6);
 
 /**
- * ResourceAccessByPrincipalList groups principals by who they are,
- * showing each principal and all their assigned roles.
+ * ResourceAccessByPrincipalList groups access grants by principal, showing each
+ * principal and all their assigned roles on the queried resource.
  *
  * @generated from message ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList
  */
 export type ResourceAccessByPrincipalList = Message<"ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList"> & {
   /**
+   * Principal access entries.
+   *
    * @generated from field: repeated ai.stigmer.iam.iampolicy.v1.PrincipalAccess entries = 1;
    */
   entries: PrincipalAccess[];
@@ -331,13 +337,15 @@ export const RoleGrantSchema: GenMessage<RoleGrant> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 9);
 
 /**
- * ResourceAccessByRoleList groups roles by what they are,
- * showing each role and all principals assigned to it.
+ * ResourceAccessByRoleList groups access grants by role, showing each role and
+ * all principals assigned to it on the queried resource.
  *
  * @generated from message ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList
  */
 export type ResourceAccessByRoleList = Message<"ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList"> & {
   /**
+   * Role access entries.
+   *
    * @generated from field: repeated ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1;
    */
   entries: RoleAccess[];
@@ -427,6 +435,8 @@ export const RoleInfoSchema: GenMessage<RoleInfo> = /*@__PURE__*/
  */
 export type PrincipalResourceRoles = Message<"ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles"> & {
   /**
+   * Roles assigned to the principal on this resource.
+   *
    * @generated from field: repeated ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1;
    */
   roles: RoleInfo[];
@@ -537,6 +547,8 @@ export const ListAuthorizedResourceIdsInputSchema: GenMessage<ListAuthorizedReso
  */
 export type AuthorizedResourceIdsList = Message<"ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList"> & {
   /**
+   * Resource IDs the principal is authorized to access.
+   *
    * @generated from field: repeated string resource_ids = 1;
    */
   resourceIds: string[];
@@ -598,6 +610,8 @@ export const ListAuthorizedPrincipalIdsInputSchema: GenMessage<ListAuthorizedPri
  */
 export type AuthorizedPrincipalIdsList = Message<"ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList"> & {
   /**
+   * Principal IDs authorized to access the resource.
+   *
    * @generated from field: repeated string principal_ids = 1;
    */
   principalIds: string[];
@@ -645,6 +659,8 @@ export const GetPrincipalsCountInputSchema: GenMessage<GetPrincipalsCountInput> 
  */
 export type PrincipalsCount = Message<"ai.stigmer.iam.iampolicy.v1.PrincipalsCount"> & {
   /**
+   * Number of principals matching the query.
+   *
    * @generated from field: int32 count = 1;
    */
   count: number;

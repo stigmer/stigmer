@@ -12,15 +12,10 @@ public interface PauseWorkflowExecutionInputOrBuilder extends
 
   /**
    * <pre>
-   * Workflow execution ID to pause.
+   * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
    *
-   * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-   *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -29,15 +24,10 @@ public interface PauseWorkflowExecutionInputOrBuilder extends
   java.lang.String getId();
   /**
    * <pre>
-   * Workflow execution ID to pause.
+   * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
    *
-   * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-   *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -48,16 +38,7 @@ public interface PauseWorkflowExecutionInputOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable reason for pausing.
-   *
-   * Stored in the audit trail for operational debugging and compliance.
-   * Helps track why the pause was needed.
-   *
-   * Examples:
-   * - "Pausing for scheduled maintenance window"
-   * - "User requested pause to review progress"
-   * - "Pausing due to rate limit concerns"
-   * - "Emergency pause - investigating issue"
+   * Human-readable reason for pausing, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -66,16 +47,7 @@ public interface PauseWorkflowExecutionInputOrBuilder extends
   java.lang.String getReason();
   /**
    * <pre>
-   * Human-readable reason for pausing.
-   *
-   * Stored in the audit trail for operational debugging and compliance.
-   * Helps track why the pause was needed.
-   *
-   * Examples:
-   * - "Pausing for scheduled maintenance window"
-   * - "User requested pause to review progress"
-   * - "Pausing due to rate limit concerns"
-   * - "Emergency pause - investigating issue"
+   * Human-readable reason for pausing, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>

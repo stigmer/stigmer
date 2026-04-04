@@ -7,10 +7,11 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * UpdateSessionSandboxIdRequest sets the Daytona sandbox ID for a session.
+ * UpdateSessionSandboxIdRequest sets the sandbox ID for a session.
  *
- * This is a field-level update that atomically modifies only the sandbox_id
- * field, avoiding the lost-update race condition that occurs when multiple
+ * &#64;internal
+ * Field-level update that atomically modifies only the sandbox_id field,
+ * avoiding the lost-update race condition that occurs when multiple
  * activities concurrently perform full-resource updates on the same session.
  * </pre>
  *
@@ -320,10 +321,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * UpdateSessionSandboxIdRequest sets the Daytona sandbox ID for a session.
+   * UpdateSessionSandboxIdRequest sets the sandbox ID for a session.
    *
-   * This is a field-level update that atomically modifies only the sandbox_id
-   * field, avoiding the lost-update race condition that occurs when multiple
+   * &#64;internal
+   * Field-level update that atomically modifies only the sandbox_id field,
+   * avoiding the lost-update race condition that occurs when multiple
    * activities concurrently perform full-resource updates on the same session.
    * </pre>
    *

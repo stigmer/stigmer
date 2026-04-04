@@ -36,6 +36,7 @@ const (
 
 // WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
 //
+// @internal
 // WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
 // It captures the complete lifecycle of a workflow run, from initial trigger through
 // task-by-task execution to final completion or failure.
@@ -57,13 +58,6 @@ const (
 //	    - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]
 //	    - Progress: 1/3 tasks completed
 //
-// Use Cases:
-// - Track workflow execution progress in real-time
-// - Debug failed workflows with full execution history
-// - Audit workflow runs for compliance and analysis
-// - Monitor workflow performance and duration
-// - Retry failed executions with same inputs
-//
 // Separation of Concerns:
 // - User Inputs (spec): workflow_instance_id, trigger_message, trigger_metadata, runtime_env
 // - System State (status): phase, tasks, output, timestamps, errors
@@ -75,15 +69,20 @@ const (
 type WorkflowExecution struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
+	//
+	// @internal
 	// Format: 'agentic.stigmer.ai/v1'
 	// Validated as const to ensure version consistency across all workflow execution resources.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
 	// Resource kind identifier.
+	//
+	// @internal
 	// Must be exactly 'WorkflowExecution' to match the message name.
 	// Validated as const for type safety and resource identification.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Standard resource metadata including name, id, slug, labels, tags, and annotations.
+	// Resource metadata including name, organization, visibility, and labels.
 	//
+	// @internal
 	// All workflow executions belong to an organization. Visibility (public/private)
 	// is typically PRIVATE for executions since they contain runtime data.
 	//
@@ -98,6 +97,7 @@ type WorkflowExecution struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided inputs and configuration for this workflow execution.
 	//
+	// @internal
 	// Contains:
 	// - workflow_instance_id: Which WorkflowInstance to execute (required)
 	// - trigger_message: Input message or payload for the workflow (optional)
@@ -125,6 +125,7 @@ type WorkflowExecution struct {
 	Spec *WorkflowExecutionSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
 	// System-managed execution state and results.
 	//
+	// @internal
 	// Contains:
 	// - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
 	// - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -132,7 +133,7 @@ type WorkflowExecution struct {
 	// - error: Error message (only for FAILED executions)
 	// - started_at: Timestamp when execution started
 	// - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-	// - temporal_workflow_id: Correlation ID for Temporal workflow engine
+	// - temporal_workflow_id: Correlation ID for workflow engine
 	//
 	// The status is continuously updated by the workflow execution engine as the workflow progresses.
 	// Users can read status but cannot modify it - it reflects the actual execution state.
@@ -225,6 +226,7 @@ func (x *WorkflowExecution) GetStatus() *WorkflowExecutionStatus {
 
 // WorkflowExecutionStatus contains all system-managed execution state and results.
 //
+// @internal
 // Everything populated during or after execution goes here, not in spec.
 // This message follows the standard pattern: audit information at field 99, custom fields at 1-98.
 //
@@ -245,31 +247,19 @@ func (x *WorkflowExecution) GetStatus() *WorkflowExecutionStatus {
 // - Both use updateStatus RPC for progressive updates during execution
 type WorkflowExecutionStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Standard audit information (created_at, updated_at, created_by, etc.)
+	// Standard audit information including timestamps and created-by identity.
+	//
+	// @internal
 	// Always at field 99 for consistency across all Stigmer API resources.
 	//
 	// Contains:
 	// - created_at: When this execution was created (ISO 8601 timestamp)
 	// - updated_at: Last time status was updated (ISO 8601 timestamp)
 	// - created_by: User or system that created this execution
-	//
-	// Example:
-	//
-	//	audit {
-	//	  created_at: "2025-01-11T14:30:22Z"
-	//	  updated_at: "2025-01-11T14:32:15Z"
-	//	  created_by: "usr-john-doe"
-	//	}
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	// Current execution lifecycle phase.
 	//
-	// Phases:
-	// - EXECUTION_PENDING: Execution created, waiting to start
-	// - EXECUTION_IN_PROGRESS: Actively executing tasks
-	// - EXECUTION_COMPLETED: Successfully completed all tasks
-	// - EXECUTION_FAILED: Failed during execution (see error field)
-	// - EXECUTION_CANCELLED: Cancelled by user or system
-	//
+	// @internal
 	// Phase Transitions:
 	// PENDING → IN_PROGRESS → COMPLETED
 	//
@@ -284,8 +274,9 @@ type WorkflowExecutionStatus struct {
 	//
 	// Validation: Must be a defined enum value (no unspecified/unknown).
 	Phase ExecutionPhase `protobuf:"varint,1,opt,name=phase,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase" json:"phase,omitempty"`
-	// Workflow tasks with their execution state (source of truth for progress).
+	// Workflow tasks with their individual execution state.
 	//
+	// @internal
 	// Tasks represent the atomic units of work within the workflow.
 	// Each task has:
 	// - task_id: Unique identifier within this execution
@@ -306,62 +297,21 @@ type WorkflowExecutionStatus struct {
 	// - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
 	// - Progress percentage: (completed_tasks / total_tasks) * 100
 	// - Current task: tasks.find(status == IN_PROGRESS)
-	//
-	// Use Cases:
-	// - Display task-level progress in UI (which tasks are done, which are running)
-	// - Calculate overall progress (no need to store total_tasks/completed_tasks)
-	// - Debug task failures (inspect task inputs, outputs, errors)
-	// - Retry individual failed tasks (if workflow supports partial retry)
-	// - Audit task execution for compliance
-	//
-	// Example:
-	// tasks: [
-	//
-	//	{
-	//	  task_id: "task-1"
-	//	  task_name: "validate_email"
-	//	  task_type: WORKFLOW_TASK_API_CALL
-	//	  status: WORKFLOW_TASK_COMPLETED
-	//	  started_at: "2025-01-11T14:30:23Z"
-	//	  completed_at: "2025-01-11T14:30:23.450Z"
-	//	  output: { "valid": true, "domain": "example.com" }
-	//	}
-	//	{
-	//	  task_id: "task-2"
-	//	  task_name: "create_account"
-	//	  task_type: WORKFLOW_TASK_AGENT_INVOCATION
-	//	  status: WORKFLOW_TASK_IN_PROGRESS
-	//	  started_at: "2025-01-11T14:30:24Z"
-	//	}
-	//
-	// ]
 	Tasks []*WorkflowTask `protobuf:"bytes,2,rep,name=tasks,proto3" json:"tasks,omitempty"`
-	// Workflow output (JSON structure).
+	// Final workflow output, populated only when phase is EXECUTION_COMPLETED.
 	//
-	// Contains the final result or payload produced by the workflow.
-	// Only populated when phase == EXECUTION_COMPLETED.
-	//
+	// @internal
 	// The output structure is workflow-specific and defined by the Workflow template.
 	// Common patterns:
 	// - API response data (e.g., created user ID, order confirmation)
 	// - Aggregated results from multiple tasks
 	// - Links to generated artifacts (reports, files)
 	// - Summary statistics (items processed, duration)
-	//
-	// Example (customer onboarding workflow):
-	//
-	//	output: {
-	//	  "customer_id": "cus-abc123"
-	//	  "account_created": true
-	//	  "welcome_email_sent": true
-	//	  "trial_activated": true
-	//	  "trial_expires_at": "2025-02-10T14:30:22Z"
-	//	}
 	Output *structpb.Struct `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
-	// Error message if execution failed.
+	// Error message, populated only when phase is EXECUTION_FAILED.
 	//
+	// @internal
 	// Contains a human-readable description of what went wrong.
-	// Only populated when phase == EXECUTION_FAILED.
 	//
 	// Error message includes:
 	// - What failed (which task or workflow step)
@@ -369,43 +319,28 @@ type WorkflowExecutionStatus struct {
 	// - How to fix it (if known)
 	//
 	// For detailed debugging, inspect tasks[].error for task-specific error messages.
-	//
-	// Example:
-	// error: "Task 'create_account' failed: API rate limit exceeded (429). Retry after 60 seconds."
 	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
-	// ISO 8601 timestamp when execution started.
+	// ISO 8601 timestamp when execution started processing.
 	//
-	// Set when the workflow execution engine begins processing this execution.
-	// This is when phase transitions from PENDING to IN_PROGRESS.
-	//
+	// @internal
+	// Set when phase transitions from PENDING to IN_PROGRESS.
 	// Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-	// Example: "2025-01-11T14:30:22Z"
-	//
-	// Used for:
-	// - Calculating execution duration (completed_at - started_at)
-	// - Sorting executions by start time
-	// - Detecting stuck executions (started but not completed after X hours)
 	StartedAt string `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	// ISO 8601 timestamp when execution completed, failed, or was cancelled.
+	// ISO 8601 timestamp when execution reached a terminal state.
 	//
+	// @internal
 	// Set when the workflow reaches a terminal state:
 	// - EXECUTION_COMPLETED: Successfully finished
 	// - EXECUTION_FAILED: Failed during execution
 	// - EXECUTION_CANCELLED: Cancelled by user or system
 	//
 	// Not set for PENDING or IN_PROGRESS executions.
-	//
 	// Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-	// Example: "2025-01-11T14:35:47Z"
-	//
-	// Used for:
-	// - Calculating execution duration (completed_at - started_at)
-	// - Retention policies (delete completed executions after 30 days)
-	// - SLA monitoring (alert if execution takes longer than expected)
 	CompletedAt string `protobuf:"bytes,6,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
-	// Temporal workflow ID (if using Temporal as execution engine).
+	// Correlation ID for the underlying workflow engine.
 	//
-	// This is the workflow ID in the Temporal workflow engine, used for:
+	// @internal
+	// This is the workflow ID in Temporal, used for:
 	// - Correlation between Stigmer and Temporal (for debugging)
 	// - Querying Temporal directly (for advanced troubleshooting)
 	// - Signaling or cancelling Temporal workflows
@@ -416,21 +351,20 @@ type WorkflowExecutionStatus struct {
 	// This field is optional and only relevant when Temporal is used as the execution engine.
 	// Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
 	TemporalWorkflowId string `protobuf:"bytes,7,opt,name=temporal_workflow_id,json=temporalWorkflowId,proto3" json:"temporal_workflow_id,omitempty"`
-	// Pending approvals from child agent tool executions (HITL).
+	// Pending approvals from child agent tool executions.
 	//
+	// @internal
 	// Populated when workflow tasks invoke agents that enter
 	// EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
 	// requests at the workflow level for UI visibility.
 	//
-	// ## Full-Replace Protocol
-	//
+	// Full-Replace Protocol:
 	// The workflow-runner always sends the complete set of pending approvals
 	// via UpdateStatus. The server replaces the stored list unconditionally:
 	// - Non-empty list: child agent(s) need approval
 	// - Empty list: all approvals resolved, clear the field
 	//
-	// ## Parallel Agents
-	//
+	// Parallel Agents:
 	// When multiple child agents run in parallel, entries from different children
 	// accumulate in this list. Each entry's child_agent_execution_id distinguishes
 	// the source.
@@ -532,18 +466,19 @@ func (x *WorkflowExecutionStatus) GetPendingApprovals() []*WorkflowPendingApprov
 	return nil
 }
 
-// WorkflowPendingApproval wraps a PendingApproval from a child agent execution
-// with the routing information needed for workflow-level approval forwarding.
+// WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
 //
+// @internal
 // PendingApproval is an agentexecution domain type — it describes what tool
 // needs approval. WorkflowPendingApproval adds the workflow-level concern:
 // which child agent execution the approval should be forwarded to.
 type WorkflowPendingApproval struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The approval details projected from the child agent's tool call state.
+	// Approval details from the child agent's tool call.
 	Approval *v1.PendingApproval `protobuf:"bytes,1,opt,name=approval,proto3" json:"approval,omitempty"`
-	// Child agent execution to forward the approval to.
+	// ID of the child agent execution to forward the approval decision to.
 	//
+	// @internal
 	// Set by the workflow-runner when surfacing child agent approvals
 	// at the workflow level. WorkflowExecution.SubmitApproval uses this
 	// to route the decision to the correct AgentExecution.SubmitApproval RPC.
@@ -600,6 +535,7 @@ func (x *WorkflowPendingApproval) GetChildAgentExecutionId() string {
 
 // WorkflowTask represents a single task within a workflow execution.
 //
+// @internal
 // Tasks are the atomic units of work in a workflow. Each task:
 // - Has a specific type (agent invocation, API call, approval, conditional, etc.)
 // - Receives input parameters from the workflow context or previous tasks
@@ -612,24 +548,11 @@ func (x *WorkflowPendingApproval) GetChildAgentExecutionId() string {
 // 2. When task dependencies are met, task_status changes to IN_PROGRESS
 // 3. Task executes its logic (invoke agent, call API, etc.)
 // 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)
-//
-// Task Types and Examples:
-// - WORKFLOW_TASK_AGENT_INVOCATION: Invoke an AI agent with a prompt
-// - WORKFLOW_TASK_API_CALL: Call an external API (REST, GraphQL, gRPC)
-// - WORKFLOW_TASK_APPROVAL: Wait for human approval before proceeding
-// - WORKFLOW_TASK_CONDITIONAL: Evaluate a condition to decide next steps
-// - WORKFLOW_TASK_PARALLEL: Execute multiple sub-tasks in parallel
-// - WORKFLOW_TASK_TRANSFORM: Transform data between tasks (map, filter, aggregate)
-//
-// Use Cases:
-// - Display task-level progress in UI (task list with checkmarks)
-// - Debug workflow failures (which task failed, what was the input/output)
-// - Retry individual tasks (if workflow engine supports partial retry)
-// - Monitor task performance (which tasks take longest)
 type WorkflowTask struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique task identifier within this workflow execution.
 	//
+	// @internal
 	// Format: Typically "task-{number}" or a descriptive slug
 	// Examples: "task-1", "task-validate-email", "task-send-notification"
 	//
@@ -638,14 +561,9 @@ type WorkflowTask struct {
 	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	// Human-readable task name.
 	//
+	// @internal
 	// Describes what this task does in plain language.
 	// Used in UI to show task progress and in logs for debugging.
-	//
-	// Examples:
-	// - "Validate customer email"
-	// - "Create Stripe account"
-	// - "Send welcome email"
-	// - "Wait for admin approval"
 	//
 	// Naming conventions:
 	// - Use verb phrases (validate, create, send, wait)
@@ -654,15 +572,8 @@ type WorkflowTask struct {
 	TaskName string `protobuf:"bytes,2,opt,name=task_name,json=taskName,proto3" json:"task_name,omitempty"`
 	// Type of task (agent invocation, API call, approval, etc.).
 	//
-	// Determines how the task is executed by the workflow engine:
-	// - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
-	// - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
-	// - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
-	// - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
-	// - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
-	// - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
-	// - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
-	//
+	// @internal
+	// Determines how the task is executed by the workflow engine.
 	// The task_type influences:
 	// - How task.input is structured (different types expect different input schemas)
 	// - How task.output is produced (different types produce different outputs)
@@ -670,90 +581,26 @@ type WorkflowTask struct {
 	//
 	// Validation: Must be a defined enum value (no unspecified).
 	TaskType WorkflowTaskType `protobuf:"varint,3,opt,name=task_type,json=taskType,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType" json:"task_type,omitempty"`
-	// Task input parameters (JSON structure).
+	// Task input parameters, structured as JSON.
 	//
+	// @internal
 	// Contains the configuration and data needed for this task to execute.
 	// The structure varies by task_type.
-	//
-	// Examples by task type:
-	//
-	// WORKFLOW_TASK_AGENT_INVOCATION:
-	//
-	//	input: {
-	//	  "agent_instance_id": "agi-customer-support"
-	//	  "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-	//	  "max_tokens": 500
-	//	}
-	//
-	// WORKFLOW_TASK_API_CALL:
-	//
-	//	input: {
-	//	  "method": "POST"
-	//	  "url": "https://api.stripe.com/v1/customers"
-	//	  "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-	//	  "body": { "email": "{{workflow.input.email}}" }
-	//	}
-	//
-	// WORKFLOW_TASK_APPROVAL:
-	//
-	//	input: {
-	//	  "approvers": ["usr-admin-1", "usr-admin-2"]
-	//	  "message": "Approve account creation for {{workflow.input.email}}?"
-	//	  "timeout_hours": 24
-	//	}
 	//
 	// Input can reference:
 	// - Workflow inputs: {{workflow.input.field_name}}
 	// - Previous task outputs: {{tasks.task-1.output.field_name}}
 	// - Environment variables: {{env.VARIABLE_NAME}}
 	Input *structpb.Struct `protobuf:"bytes,4,opt,name=input,proto3" json:"input,omitempty"`
-	// Task output results (JSON structure).
+	// Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
 	//
+	// @internal
 	// Contains the data produced by this task after successful execution.
-	// Only populated when status == WORKFLOW_TASK_COMPLETED.
-	//
 	// Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-	//
-	// Examples by task type:
-	//
-	// WORKFLOW_TASK_AGENT_INVOCATION:
-	//
-	//	output: {
-	//	  "agent_execution_id": "agx-abc123"
-	//	  "response": "The customer feedback is positive overall..."
-	//	  "sentiment": "positive"
-	//	  "confidence": 0.92
-	//	}
-	//
-	// WORKFLOW_TASK_API_CALL:
-	//
-	//	output: {
-	//	  "status_code": 200
-	//	  "body": {
-	//	    "id": "cus_abc123"
-	//	    "email": "customer@example.com"
-	//	    "created": 1704988800
-	//	  }
-	//	}
-	//
-	// WORKFLOW_TASK_APPROVAL:
-	//
-	//	output: {
-	//	  "approved": true
-	//	  "approved_by": "usr-admin-1"
-	//	  "approved_at": "2025-01-11T15:22:33Z"
-	//	  "comment": "Looks good, approved"
-	//	}
 	Output *structpb.Struct `protobuf:"bytes,5,opt,name=output,proto3" json:"output,omitempty"`
 	// Current task execution status.
 	//
-	// Statuses:
-	// - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
-	// - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
-	// - WORKFLOW_TASK_COMPLETED: Task finished successfully
-	// - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
-	// - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
-	//
+	// @internal
 	// Status Transitions:
 	// PENDING → IN_PROGRESS → COMPLETED
 	//
@@ -762,57 +609,33 @@ type WorkflowTask struct {
 	//
 	// Validation: Must be a defined enum value (no unspecified).
 	Status WorkflowTaskStatus `protobuf:"varint,6,opt,name=status,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus" json:"status,omitempty"`
-	// ISO 8601 timestamp when task started executing.
+	// ISO 8601 timestamp when the task started executing.
 	//
+	// @internal
 	// Set when task status changes from PENDING to IN_PROGRESS.
-	//
 	// Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-	// Example: "2025-01-11T14:30:23Z"
-	//
-	// Used for:
-	// - Calculating task duration (completed_at - started_at)
-	// - Detecting stuck tasks (started but not completed after X minutes)
-	// - Performance analysis (which tasks are slow)
 	StartedAt string `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	// ISO 8601 timestamp when task completed, failed, or was skipped.
+	// ISO 8601 timestamp when the task reached a terminal state.
 	//
-	// Set when task reaches a terminal state:
-	// - WORKFLOW_TASK_COMPLETED: Successfully finished
-	// - WORKFLOW_TASK_FAILED: Failed during execution
-	// - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
-	//
+	// @internal
+	// Set when task reaches COMPLETED, FAILED, or SKIPPED.
 	// Not set for PENDING or IN_PROGRESS tasks.
-	//
 	// Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-	// Example: "2025-01-11T14:30:27.450Z"
-	//
-	// Used for:
-	// - Calculating task duration (completed_at - started_at)
-	// - SLA monitoring (alert if task takes longer than expected)
-	// - Performance benchmarking (average task duration over time)
 	CompletedAt string `protobuf:"bytes,8,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
-	// Error message if task failed.
+	// Error message, populated only when status is WORKFLOW_TASK_FAILED.
 	//
+	// @internal
 	// Contains a human-readable description of why the task failed.
-	// Only populated when status == WORKFLOW_TASK_FAILED.
 	//
 	// Error message includes:
 	// - What operation failed (API call, agent invocation, etc.)
 	// - Error type (validation error, network error, timeout, etc.)
 	// - Error details (status code, exception message, stacktrace)
 	// - How to fix it (if known)
-	//
-	// Examples:
-	// - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
-	// - "Agent invocation failed: Agent execution timeout after 300 seconds."
-	// - "Approval task failed: Timeout after 24 hours with no approval."
-	//
-	// For detailed debugging, also check:
-	// - task.input (what parameters were used)
-	// - task.metadata (retry count, execution context)
 	Error string `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
-	// Task metadata (arbitrary JSON data).
+	// Task-specific metadata as arbitrary JSON.
 	//
+	// @internal
 	// Contains task-specific information that doesn't fit in other fields.
 	// Used for:
 	// - Retry count (how many times this task was retried)
@@ -820,34 +643,6 @@ type WorkflowTask struct {
 	// - API response headers (for WORKFLOW_TASK_API_CALL)
 	// - Approval history (who approved, when, comments)
 	// - Performance metrics (execution time, memory usage)
-	//
-	// Examples:
-	//
-	// Agent invocation task:
-	//
-	//	metadata: {
-	//	  "agent_execution_id": "agx-abc123"
-	//	  "retry_count": 0
-	//	  "tokens_used": 450
-	//	}
-	//
-	// API call task:
-	//
-	//	metadata: {
-	//	  "retry_count": 2
-	//	  "response_headers": {
-	//	    "x-ratelimit-remaining": "98"
-	//	    "x-request-id": "req-xyz789"
-	//	  }
-	//	}
-	//
-	// Approval task:
-	//
-	//	metadata: {
-	//	  "approval_history": [
-	//	    { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-	//	  ]
-	//	}
 	Metadata      *structpb.Struct `protobuf:"bytes,10,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

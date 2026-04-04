@@ -33,23 +33,13 @@ const (
 // - Search: Find resources matching a text query
 // - Discover: Search across all resource kinds
 //
+// @internal
 // Examples:
 //
-// List agents in an organization:
-//
-//	{kinds: [agent], org: "acme", query: ""}
-//
-// Search agents by text:
-//
-//	{kinds: [agent], query: "code review"}
-//
-// Discover all resources matching a query:
-//
-//	{kinds: [], query: "kubernetes"}
-//
-// Search multiple kinds:
-//
-//	{kinds: [agent, skill], query: "security", org: "acme"}
+//	List agents in org:         {kinds: [agent], org: "acme", query: ""}
+//	Search agents by text:      {kinds: [agent], query: "code review"}
+//	Discover all:               {kinds: [], query: "kubernetes"}
+//	Search multiple kinds:      {kinds: [agent, skill], query: "security", org: "acme"}
 type SearchRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Resource kinds to search.
@@ -60,6 +50,7 @@ type SearchRequest struct {
 	//   - Single kind: Search only that resource type
 	//   - Multiple kinds: Search specified types
 	//
+	// @internal
 	// Invalid kinds are silently ignored (allows forward compatibility).
 	Kinds []apiresourcekind.ApiResourceKind `protobuf:"varint,1,rep,packed,name=kinds,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kinds,omitempty"`
 	// Text query for full-text search.
@@ -80,11 +71,11 @@ type SearchRequest struct {
 	// Format: lowercase alphanumeric with hyphens (e.g., "acme", "stigmer").
 	//
 	// Behavior:
-	//   - Empty: Search all organizations the caller has access to
-	//   - Non-empty: Search only within the specified organization
-	//     Caller must have access to at least one resource in the org
+	// - Empty: Search all organizations the caller has access to
+	// - Non-empty: Search only within the specified organization
 	//
-	// Examples: "stigmer", "acme-corp", "my-org"
+	// @internal
+	// Caller must have access to at least one resource in the org.
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	// Exclude public/platform resources from results.
 	//
@@ -175,8 +166,8 @@ func (x *SearchRequest) GetPage() *rpc.PageInfo {
 // SearchResponse contains paginated search results with metadata.
 //
 // The response includes:
-// - Matching resources as SearchResult projections
-// - Counts per kind for UI filtering/tabs
+// - Matching resources as SearchResult summaries
+// - Counts per kind for filtering
 // - Pagination metadata
 type SearchResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -186,8 +177,8 @@ type SearchResponse struct {
 	// - With query: Sorted by relevance score (descending)
 	// - Without query: Sorted by created_at (descending, newer first)
 	//
-	// Each result is a display projection, not the full resource.
-	// To get the full resource, use the kind-specific get RPC.
+	// Each result is a summary, not the full resource.
+	// To get the full resource, call the get method for that resource kind.
 	Entries []*SearchResult `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	// Count of results per resource kind.
 	//
@@ -270,16 +261,17 @@ func (x *SearchResponse) GetTotalPages() int32 {
 	return 0
 }
 
-// SearchResult is a display-optimized projection of an API resource.
+// SearchResult is a lightweight summary of an API resource returned by search.
 //
 // Contains only the fields needed for search result display:
 // - Identity: kind, id, slug, org
 // - Display: name, description, tags
 // - Metadata: visibility, timestamps, relevance score
 //
-// This is NOT the full resource. Use the kind-specific QueryController
-// (e.g., AgentQueryController.get) to retrieve the complete resource.
+// This is not the full resource. To get the complete resource, call the
+// get method for that resource kind (e.g., client.agent.get()).
 //
+// @internal
 // The description field is populated by each resource's Searchable interface:
 // - Agent: spec.instructions (may be truncated)
 // - Skill: spec.description
@@ -287,22 +279,24 @@ func (x *SearchResponse) GetTotalPages() int32 {
 // - Workflow: spec.description
 type SearchResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Resource kind (e.g., agent, skill, mcp_server, workflow).
+	// Type of API resource this result represents (e.g., agent, skill, mcp_server).
 	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,1,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
 	// System-generated unique identifier (UUID).
 	//
 	// Format: Prefixed UUID (e.g., "agt_550e8400-e29b-41d4-a716-446655440000").
 	// Use this for subsequent API calls to get/update/delete the resource.
 	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	// Human-readable display name.
+	// Human-readable display name of the resource.
 	//
-	// From metadata.name. This is the user-provided name.
-	// Example: "Code Review Agent", "Web Search Skill"
+	// @internal
+	// From metadata.name.
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// URL-friendly identifier, unique within the organization.
 	//
-	// From metadata.slug. Lowercase alphanumeric with hyphens.
-	// Example: "code-review-agent", "web-search"
+	// Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+	//
+	// @internal
+	// From metadata.slug.
 	Slug string `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Fully qualified slug: "org/slug".
 	//
@@ -311,21 +305,22 @@ type SearchResult struct {
 	//
 	// This is the canonical reference format used in YAML configurations.
 	QualifiedSlug string `protobuf:"bytes,5,opt,name=qualified_slug,json=qualifiedSlug,proto3" json:"qualified_slug,omitempty"`
-	// Organization that owns this resource.
+	// Organization that owns this resource (e.g., "stigmer", "acme-corp").
 	//
-	// From metadata.org. The organization slug.
-	// Example: "stigmer", "acme-corp"
+	// @internal
+	// From metadata.org.
 	Org string `protobuf:"bytes,6,opt,name=org,proto3" json:"org,omitempty"`
-	// Brief description for display in search results.
+	// Brief description of the resource for display in search results.
 	//
+	// May be empty if the resource has no description.
+	//
+	// @internal
 	// Extracted from the resource spec via the Searchable interface.
 	// The source field varies by resource type:
-	// - Agent: spec.instructions
+	// - Agent: spec.instructions (may be truncated)
 	// - Skill: spec.description
 	// - McpServer: spec.description
 	// - Workflow: spec.description
-	//
-	// May be empty if the resource has no description.
 	// Truncation for display is a presentation concern (CLI/UI responsibility).
 	Description string `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
 	// Resource visibility: public or private.
@@ -333,20 +328,22 @@ type SearchResult struct {
 	// - visibility_private: Only org members can access
 	// - visibility_public: Anyone can read (e.g., marketplace resources)
 	Visibility apiresource.ApiResourceVisibility `protobuf:"varint,8,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
-	// Tags for categorization and filtering.
+	// User-provided tags for categorization and filtering.
 	//
-	// From metadata.tags. User-provided labels.
-	// Example: ["security", "code-review", "ai"]
+	// @internal
+	// From metadata.tags.
 	Tags []string `protobuf:"bytes,9,rep,name=tags,proto3" json:"tags,omitempty"`
 	// When the resource was created.
 	//
+	// Used for sorting in list mode (when no query is provided).
+	//
+	// @internal
 	// From status.audit.created_at.
-	// Used for sorting in list mode (no query).
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// When the resource was last updated.
 	//
+	// @internal
 	// From status.audit.updated_at.
-	// Useful for showing recency in search results.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Relevance score for search ranking.
 	//

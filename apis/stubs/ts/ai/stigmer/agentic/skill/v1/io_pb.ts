@@ -36,19 +36,19 @@ export const SkillIdSchema: GenMessage<SkillId> = /*@__PURE__*/
 
 /**
  * PushSkillRequest contains the skill artifact and metadata for upload.
- * This operation creates a new skill if it doesn't exist, or creates a new version
- * of an existing skill.
+ * Creates a skill if it does not exist, or creates a new version of an
+ * existing skill.
  *
+ * @internal
  * The skill name and description are extracted by the backend from the SKILL.md
  * YAML frontmatter within the artifact. The CLI validates the format but does not
- * send these fields - backend is the single source of truth for parsing.
+ * send these fields — backend is the single source of truth for parsing.
  *
  * @generated from message ai.stigmer.agentic.skill.v1.PushSkillRequest
  */
 export type PushSkillRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillRequest"> & {
   /**
-   * Organization that owns this skill. Required.
-   * All skills belong to exactly one organization.
+   * Organization that owns this skill.
    *
    * @generated from field: string org = 1;
    */
@@ -78,12 +78,14 @@ export type PushSkillRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillReq
   tag: string;
 
   /**
-   * Git provenance for this skill version. Optional.
+   * Git provenance for this skill version.
+   * Absent when pushed from a non-git directory.
+   *
+   * @internal
    * Populated by CLI during push:
    * - For local pushes: auto-detected if directory is within a git repository
    * - For git pushes: resolved from user-provided URL/ref
-   * Absent when pushed from a non-git directory.
-   * This is stored in SkillStatus.git_provenance for traceability.
+   * Stored in SkillStatus.git_provenance for traceability.
    *
    * @generated from field: ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4;
    */
@@ -98,25 +100,20 @@ export const PushSkillRequestSchema: GenMessage<PushSkillRequest> = /*@__PURE__*
   messageDesc(file_ai_stigmer_agentic_skill_v1_io, 1);
 
 /**
- * PushSkillFromExecutionArtifactRequest pushes a skill from an execution
- * artifact that is already stored in artifact storage.
+ * PushSkillFromExecutionArtifactRequest publishes a skill from an execution
+ * artifact already in storage, without downloading and re-uploading the ZIP.
  *
- * This enables a server-side push flow where the ZIP artifact produced by
- * an agent execution (e.g., skill-creator) is pushed as a skill without
- * downloading it to the client first. The server reads the ZIP directly
- * from artifact storage and delegates to the standard push logic.
+ * @internal
+ * Server-side push flow: reads the ZIP directly from artifact storage and
+ * delegates to the standard push logic.
  *
- * ## Authorization
+ * Authorization:
+ * - Requires can_view on the agent execution (to read the artifact)
+ * - Requires can_create_skill in the target organization (to push the skill)
  *
- * Requires both:
- * - can_view on the agent execution (to read the artifact)
- * - can_create_skill in the target organization (to push the skill)
- *
- * ## Security
- *
+ * Security:
  * The storage_key is validated to start with "artifacts/{execution_id}/"
- * to prevent access to other executions' artifacts (same validation as
- * getArtifactContent).
+ * to prevent access to other executions' artifacts.
  *
  * @generated from message ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
  */
@@ -129,11 +126,11 @@ export type PushSkillFromExecutionArtifactRequest = Message<"ai.stigmer.agentic.
   org: string;
 
   /**
-   * ID of the agent execution that produced the artifact.
-   * Used for authorization (can_view check) and storage_key validation.
+   * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
    *
-   * Format: "aex_{ulid}"
-   * Example: "aex_abc123xyz456"
+   * @internal
+   * Used for authorization (can_view check) and storage_key validation.
+   * Format: "aex_{ulid}".
    *
    * @generated from field: string execution_id = 2;
    */
@@ -141,13 +138,11 @@ export type PushSkillFromExecutionArtifactRequest = Message<"ai.stigmer.agentic.
 
   /**
    * Storage key of the directory artifact (ZIP) to push as a skill.
+   * Obtain this from ExecutionArtifact.storage_key in the execution status.
+   *
+   * @internal
    * Must start with "artifacts/{execution_id}/" for security.
-   *
-   * Obtain this value from ExecutionArtifact.storage_key in the
-   * execution status for a DIRECTORY artifact.
-   *
-   * Format: "artifacts/{execution_id}/{filename}.zip"
-   * Example: "artifacts/aex_abc123xyz456/my-skill.zip"
+   * Format: "artifacts/{execution_id}/{filename}.zip".
    *
    * @generated from field: string storage_key = 3;
    */
@@ -177,7 +172,9 @@ export const PushSkillFromExecutionArtifactRequestSchema: GenMessage<PushSkillFr
 export type GetArtifactRequest = Message<"ai.stigmer.agentic.skill.v1.GetArtifactRequest"> & {
   /**
    * The artifact storage key from skill.status.artifact_storage_key.
-   * This key identifies the location of the ZIP file in storage (R2/S3).
+   *
+   * @internal
+   * Identifies the location of the ZIP file in storage (R2/S3).
    *
    * @generated from field: string artifact_storage_key = 1;
    */

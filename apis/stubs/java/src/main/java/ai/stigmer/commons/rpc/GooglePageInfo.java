@@ -7,7 +7,7 @@ package ai.stigmer.commons.rpc;
 
 /**
  * <pre>
- * google style of pagination
+ * Token-based pagination parameters following the Google API style.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.rpc.GooglePageInfo}
@@ -58,8 +58,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * google apis include a token to retrieve next page of results.
-   * if there are no more items to return, the next_page_token is empty
+   * Opaque token for retrieving the next page of results.
+   * Empty when there are no more items to return.
    * </pre>
    *
    * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -80,8 +80,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * google apis include a token to retrieve next page of results.
-   * if there are no more items to return, the next_page_token is empty
+   * Opaque token for retrieving the next page of results.
+   * Empty when there are no more items to return.
    * </pre>
    *
    * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -106,7 +106,7 @@ private static final long serialVersionUID = 0L;
   private int size_ = 0;
   /**
    * <pre>
-   * number of items to include in the result
+   * Maximum number of items to include in the result.
    * </pre>
    *
    * <code>int32 size = 2 [json_name = "size"];</code>
@@ -286,7 +286,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * google style of pagination
+   * Token-based pagination parameters following the Google API style.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.rpc.GooglePageInfo}
@@ -441,8 +441,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * google apis include a token to retrieve next page of results.
-     * if there are no more items to return, the next_page_token is empty
+     * Opaque token for retrieving the next page of results.
+     * Empty when there are no more items to return.
      * </pre>
      *
      * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -462,8 +462,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * google apis include a token to retrieve next page of results.
-     * if there are no more items to return, the next_page_token is empty
+     * Opaque token for retrieving the next page of results.
+     * Empty when there are no more items to return.
      * </pre>
      *
      * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -484,8 +484,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * google apis include a token to retrieve next page of results.
-     * if there are no more items to return, the next_page_token is empty
+     * Opaque token for retrieving the next page of results.
+     * Empty when there are no more items to return.
      * </pre>
      *
      * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -502,8 +502,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * google apis include a token to retrieve next page of results.
-     * if there are no more items to return, the next_page_token is empty
+     * Opaque token for retrieving the next page of results.
+     * Empty when there are no more items to return.
      * </pre>
      *
      * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -517,8 +517,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * google apis include a token to retrieve next page of results.
-     * if there are no more items to return, the next_page_token is empty
+     * Opaque token for retrieving the next page of results.
+     * Empty when there are no more items to return.
      * </pre>
      *
      * <code>string page_token = 1 [json_name = "pageToken"];</code>
@@ -538,7 +538,7 @@ private static final long serialVersionUID = 0L;
     private int size_ ;
     /**
      * <pre>
-     * number of items to include in the result
+     * Maximum number of items to include in the result.
      * </pre>
      *
      * <code>int32 size = 2 [json_name = "size"];</code>
@@ -550,7 +550,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * number of items to include in the result
+     * Maximum number of items to include in the result.
      * </pre>
      *
      * <code>int32 size = 2 [json_name = "size"];</code>
@@ -566,7 +566,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * number of items to include in the result
+     * Maximum number of items to include in the result.
      * </pre>
      *
      * <code>int32 size = 2 [json_name = "size"];</code>

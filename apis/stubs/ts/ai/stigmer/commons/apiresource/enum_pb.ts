@@ -12,41 +12,52 @@ export const file_ai_stigmer_commons_apiresource_enum: GenFile = /*@__PURE__*/
   fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqbwoVQXBpUmVzb3VyY2VWaXNpYmlsaXR5EicKI2FwaV9yZXNvdXJjZV92aXNpYmlsaXR5X3Vuc3BlY2lmaWVkEAASFgoSdmlzaWJpbGl0eV9wcml2YXRlEAESFQoRdmlzaWJpbGl0eV9wdWJsaWMQAmIGcHJvdG8z");
 
 /**
- * enumeration of the union of all event types used across all the api resources.
- * this is used for specifying the event type produced by rpc methods in command controllers.
- * using different enum for these event types while specifying in rpc methods and individual api resource would
- * work because the events are eventually converted to strings during message passing.
+ * Event types produced by command controller RPCs across all API resources.
+ *
+ * @internal
+ * Different enums could be used per resource, but a shared enum is simpler
+ * because events are converted to strings during message passing.
  *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceEventType
  */
 export enum ApiResourceEventType {
   /**
+   * Default value when no event type is set.
+   *
    * @generated from enum value: unspecified = 0;
    */
   unspecified = 0,
 
   /**
+   * Resource was created.
+   *
    * @generated from enum value: created = 1;
    */
   created = 1,
 
   /**
+   * Resource spec or status was updated.
+   *
    * @generated from enum value: updated = 2;
    */
   updated = 2,
 
   /**
+   * Resource was deleted.
+   *
    * @generated from enum value: deleted = 3;
    */
   deleted = 3,
 
   /**
+   * Resource was renamed (slug changed).
+   *
    * @generated from enum value: renamed = 4;
    */
   renamed = 4,
 
   /**
-   * this is only applicable for cloud-resources
+   * Cloud infrastructure stack outputs were updated.
    *
    * @generated from enum value: stack_outputs_updated = 5;
    */
@@ -60,35 +71,53 @@ export const ApiResourceEventTypeSchema: GenEnum<ApiResourceEventType> = /*@__PU
   enumDesc(file_ai_stigmer_commons_apiresource_enum, 0);
 
 /**
+ * Operation type for API resource state transitions.
+ *
+ * @internal
+ * Used by the state machine to classify RPC operations and enforce
+ * transition rules (e.g., a resource in "deleting" state rejects create).
+ *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceStateOperationType
  */
 export enum ApiResourceStateOperationType {
   /**
+   * Default value when no operation type is set.
+   *
    * @generated from enum value: api_resource_state_operation_type_unspecified = 0;
    */
   api_resource_state_operation_type_unspecified = 0,
 
   /**
+   * Create a new resource.
+   *
    * @generated from enum value: create = 1;
    */
   create = 1,
 
   /**
+   * Update an existing resource.
+   *
    * @generated from enum value: update = 2;
    */
   update = 2,
 
   /**
+   * Delete an existing resource.
+   *
    * @generated from enum value: delete = 3;
    */
   delete = 3,
 
   /**
+   * Read a resource (query).
+   *
    * @generated from enum value: read = 4;
    */
   read = 4,
 
   /**
+   * Open a server-streaming connection to a resource.
+   *
    * @generated from enum value: stream = 5;
    */
   stream = 5,

@@ -12,7 +12,7 @@ public interface WorkflowPendingApprovalOrBuilder extends
 
   /**
    * <pre>
-   * The approval details projected from the child agent's tool call state.
+   * Approval details from the child agent's tool call.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -21,7 +21,7 @@ public interface WorkflowPendingApprovalOrBuilder extends
   boolean hasApproval();
   /**
    * <pre>
-   * The approval details projected from the child agent's tool call state.
+   * Approval details from the child agent's tool call.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -30,7 +30,7 @@ public interface WorkflowPendingApprovalOrBuilder extends
   ai.stigmer.agentic.agentexecution.v1.PendingApproval getApproval();
   /**
    * <pre>
-   * The approval details projected from the child agent's tool call state.
+   * Approval details from the child agent's tool call.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1 [json_name = "approval"];</code>
@@ -39,8 +39,9 @@ public interface WorkflowPendingApprovalOrBuilder extends
 
   /**
    * <pre>
-   * Child agent execution to forward the approval to.
+   * ID of the child agent execution to forward the approval decision to.
    *
+   * &#64;internal
    * Set by the workflow-runner when surfacing child agent approvals
    * at the workflow level. WorkflowExecution.SubmitApproval uses this
    * to route the decision to the correct AgentExecution.SubmitApproval RPC.
@@ -54,8 +55,9 @@ public interface WorkflowPendingApprovalOrBuilder extends
   java.lang.String getChildAgentExecutionId();
   /**
    * <pre>
-   * Child agent execution to forward the approval to.
+   * ID of the child agent execution to forward the approval decision to.
    *
+   * &#64;internal
    * Set by the workflow-runner when surfacing child agent approvals
    * at the workflow level. WorkflowExecution.SubmitApproval uses this
    * to route the decision to the correct AgentExecution.SubmitApproval RPC.

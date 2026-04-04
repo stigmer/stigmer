@@ -7,7 +7,7 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
 
 /**
  * <pre>
- * API resource version
+ * API resource version.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersion}
@@ -16,10 +16,18 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
 public enum ApiResourceVersion
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value when no version is set.
+   * </pre>
+   *
    * <code>api_resource_version_unspecified = 0;</code>
    */
   api_resource_version_unspecified(0),
   /**
+   * <pre>
+   * Current API version for all resource types.
+   * </pre>
+   *
    * <code>v1 = 1;</code>
    */
   v1(1),
@@ -36,10 +44,18 @@ public enum ApiResourceVersion
       "ApiResourceVersion");
   }
   /**
+   * <pre>
+   * Default value when no version is set.
+   * </pre>
+   *
    * <code>api_resource_version_unspecified = 0;</code>
    */
   public static final int api_resource_version_unspecified_VALUE = 0;
   /**
+   * <pre>
+   * Current API version for all resource types.
+   * </pre>
+   *
    * <code>v1 = 1;</code>
    */
   public static final int v1_VALUE = 1;

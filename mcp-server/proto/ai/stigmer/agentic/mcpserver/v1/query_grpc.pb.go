@@ -29,8 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // McpServerQueryController provides read operations for MCP server resources.
-// All read operations require appropriate authorization based on the resource's scope.
 //
+// @internal
 // Authorization model:
 // - Platform-scoped: Anyone can view (public marketplace)
 // - Organization-scoped: Org members can view
@@ -38,9 +38,7 @@ const (
 type McpServerQueryControllerClient interface {
 	// Get an MCP server by its unique identifier.
 	//
-	// Input: ApiResourceId containing the MCP server's system-generated ID.
-	// Returns: The full McpServer resource including metadata, spec, and status.
-	//
+	// @internal
 	// Authorization: Requires can_view permission on the mcp_server resource.
 	// The caller must have access based on the resource's scope:
 	// - Platform: All authenticated users
@@ -49,15 +47,10 @@ type McpServerQueryControllerClient interface {
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*McpServer, error)
 	// Get an MCP server by reference (scope + org + slug).
 	//
-	// Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-	// Returns: The full McpServer resource.
+	// Preferred method for looking up MCP servers by name/slug rather than
+	// system-generated ID.
 	//
-	// This is the preferred method for looking up MCP servers by name/slug
-	// rather than system-generated ID. Useful for:
-	// - Resolving references from Agent.mcp_server_usages
-	// - CLI lookups by name
-	// - Cross-scope resolution (platform vs org vs personal)
-	//
+	// @internal
 	// Authorization: Custom authorization in handler.
 	// The handler performs scope-aware authorization based on the reference.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*McpServer, error)
@@ -96,8 +89,8 @@ func (c *mcpServerQueryControllerClient) GetByReference(ctx context.Context, in 
 // for forward compatibility.
 //
 // McpServerQueryController provides read operations for MCP server resources.
-// All read operations require appropriate authorization based on the resource's scope.
 //
+// @internal
 // Authorization model:
 // - Platform-scoped: Anyone can view (public marketplace)
 // - Organization-scoped: Org members can view
@@ -105,9 +98,7 @@ func (c *mcpServerQueryControllerClient) GetByReference(ctx context.Context, in 
 type McpServerQueryControllerServer interface {
 	// Get an MCP server by its unique identifier.
 	//
-	// Input: ApiResourceId containing the MCP server's system-generated ID.
-	// Returns: The full McpServer resource including metadata, spec, and status.
-	//
+	// @internal
 	// Authorization: Requires can_view permission on the mcp_server resource.
 	// The caller must have access based on the resource's scope:
 	// - Platform: All authenticated users
@@ -116,15 +107,10 @@ type McpServerQueryControllerServer interface {
 	Get(context.Context, *apiresource.ApiResourceId) (*McpServer, error)
 	// Get an MCP server by reference (scope + org + slug).
 	//
-	// Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
-	// Returns: The full McpServer resource.
+	// Preferred method for looking up MCP servers by name/slug rather than
+	// system-generated ID.
 	//
-	// This is the preferred method for looking up MCP servers by name/slug
-	// rather than system-generated ID. Useful for:
-	// - Resolving references from Agent.mcp_server_usages
-	// - CLI lookups by name
-	// - Cross-scope resolution (platform vs org vs personal)
-	//
+	// @internal
 	// Authorization: Custom authorization in handler.
 	// The handler performs scope-aware authorization based on the reference.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*McpServer, error)

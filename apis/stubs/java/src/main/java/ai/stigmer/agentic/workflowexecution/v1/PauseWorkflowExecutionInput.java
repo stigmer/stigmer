@@ -9,24 +9,9 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
  *
- * Pauses the workflow at its current checkpoint. Unlike cancel, the execution
- * is NOT terminal and can be resumed later from where it left off.
- *
- * ## Behavior
- *
- * When a workflow is paused:
- * 1. A "pause" signal is sent to the Temporal workflow
- * 2. Running activities are gracefully cancelled (checkpoint saved)
- * 3. Execution transitions to EXECUTION_PAUSED phase
- * 4. Workflow waits for resume signal (no resources consumed)
- *
- * ## Resume Flow
- *
- * The paused workflow can be resumed via the resume RPC:
- * 1. Resume signal unblocks the workflow
- * 2. Activities are re-invoked with same thread_id
- * 3. LangGraph loads from checkpoint automatically
- * 4. Execution continues from exact pause point
+ * &#64;internal
+ * Pauses the workflow at its current checkpoint. The execution is NOT terminal
+ * and can be resumed later via the resume RPC.
  *
  * &#64;since Gap A3 (Pause/Resume Propagation)
  * </pre>
@@ -80,15 +65,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object id_ = "";
   /**
    * <pre>
-   * Workflow execution ID to pause.
+   * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
    *
-   * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-   *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -109,15 +89,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow execution ID to pause.
+   * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
    *
-   * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-   *
-   * Format: "wfx_{ulid}" (auto-generated unique identifier)
-   * Example: "wfx_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -143,16 +118,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object reason_ = "";
   /**
    * <pre>
-   * Human-readable reason for pausing.
-   *
-   * Stored in the audit trail for operational debugging and compliance.
-   * Helps track why the pause was needed.
-   *
-   * Examples:
-   * - "Pausing for scheduled maintenance window"
-   * - "User requested pause to review progress"
-   * - "Pausing due to rate limit concerns"
-   * - "Emergency pause - investigating issue"
+   * Human-readable reason for pausing, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -173,16 +139,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable reason for pausing.
-   *
-   * Stored in the audit trail for operational debugging and compliance.
-   * Helps track why the pause was needed.
-   *
-   * Examples:
-   * - "Pausing for scheduled maintenance window"
-   * - "User requested pause to review progress"
-   * - "Pausing due to rate limit concerns"
-   * - "Emergency pause - investigating issue"
+   * Human-readable reason for pausing, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -373,24 +330,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
    *
-   * Pauses the workflow at its current checkpoint. Unlike cancel, the execution
-   * is NOT terminal and can be resumed later from where it left off.
-   *
-   * ## Behavior
-   *
-   * When a workflow is paused:
-   * 1. A "pause" signal is sent to the Temporal workflow
-   * 2. Running activities are gracefully cancelled (checkpoint saved)
-   * 3. Execution transitions to EXECUTION_PAUSED phase
-   * 4. Workflow waits for resume signal (no resources consumed)
-   *
-   * ## Resume Flow
-   *
-   * The paused workflow can be resumed via the resume RPC:
-   * 1. Resume signal unblocks the workflow
-   * 2. Activities are re-invoked with same thread_id
-   * 3. LangGraph loads from checkpoint automatically
-   * 4. Execution continues from exact pause point
+   * &#64;internal
+   * Pauses the workflow at its current checkpoint. The execution is NOT terminal
+   * and can be resumed later via the resume RPC.
    *
    * &#64;since Gap A3 (Pause/Resume Propagation)
    * </pre>
@@ -549,15 +491,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object id_ = "";
     /**
      * <pre>
-     * Workflow execution ID to pause.
+     * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
      *
-     * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-     *
-     * Format: "wfx_{ulid}" (auto-generated unique identifier)
-     * Example: "wfx_abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -577,15 +514,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to pause.
+     * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
      *
-     * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-     *
-     * Format: "wfx_{ulid}" (auto-generated unique identifier)
-     * Example: "wfx_abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -606,15 +538,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to pause.
+     * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
      *
-     * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-     *
-     * Format: "wfx_{ulid}" (auto-generated unique identifier)
-     * Example: "wfx_abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -631,15 +558,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to pause.
+     * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
      *
-     * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-     *
-     * Format: "wfx_{ulid}" (auto-generated unique identifier)
-     * Example: "wfx_abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -653,15 +575,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow execution ID to pause.
+     * Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
      *
-     * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
-     *
-     * Format: "wfx_{ulid}" (auto-generated unique identifier)
-     * Example: "wfx_abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -681,16 +598,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object reason_ = "";
     /**
      * <pre>
-     * Human-readable reason for pausing.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the pause was needed.
-     *
-     * Examples:
-     * - "Pausing for scheduled maintenance window"
-     * - "User requested pause to review progress"
-     * - "Pausing due to rate limit concerns"
-     * - "Emergency pause - investigating issue"
+     * Human-readable reason for pausing, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -710,16 +618,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for pausing.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the pause was needed.
-     *
-     * Examples:
-     * - "Pausing for scheduled maintenance window"
-     * - "User requested pause to review progress"
-     * - "Pausing due to rate limit concerns"
-     * - "Emergency pause - investigating issue"
+     * Human-readable reason for pausing, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -740,16 +639,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for pausing.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the pause was needed.
-     *
-     * Examples:
-     * - "Pausing for scheduled maintenance window"
-     * - "User requested pause to review progress"
-     * - "Pausing due to rate limit concerns"
-     * - "Emergency pause - investigating issue"
+     * Human-readable reason for pausing, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -766,16 +656,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for pausing.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the pause was needed.
-     *
-     * Examples:
-     * - "Pausing for scheduled maintenance window"
-     * - "User requested pause to review progress"
-     * - "Pausing due to rate limit concerns"
-     * - "Emergency pause - investigating issue"
+     * Human-readable reason for pausing, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -789,16 +670,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for pausing.
-     *
-     * Stored in the audit trail for operational debugging and compliance.
-     * Helps track why the pause was needed.
-     *
-     * Examples:
-     * - "Pausing for scheduled maintenance window"
-     * - "User requested pause to review progress"
-     * - "Pausing due to rate limit concerns"
-     * - "Emergency pause - investigating issue"
+     * Human-readable reason for pausing, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>

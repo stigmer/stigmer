@@ -56,8 +56,9 @@ public interface McpServerOrBuilder extends
 
   /**
    * <pre>
-   * Standard resource metadata including name, id, org, visibility, labels, and tags.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * Key fields:
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")
@@ -77,8 +78,9 @@ public interface McpServerOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, org, visibility, labels, and tags.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * Key fields:
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")
@@ -98,8 +100,9 @@ public interface McpServerOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, org, visibility, labels, and tags.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * Key fields:
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")

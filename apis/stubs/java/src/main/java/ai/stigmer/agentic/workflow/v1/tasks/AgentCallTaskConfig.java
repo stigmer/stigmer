@@ -7,11 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.
+ * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
  *
- * This enables workflows to invoke AI agents as tasks, delegating complex
- * operations to specialized agents with their own skills and context.
- *
+ * &#64;internal
  * The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
  * Resolution order:
  * 1. If org is specified: look in that org's agents
@@ -622,11 +620,9 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.
+   * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
    *
-   * This enables workflows to invoke AI agents as tasks, delegating complex
-   * operations to specialized agents with their own skills and context.
-   *
+   * &#64;internal
    * The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
    * Resolution order:
    * 1. If org is specified: look in that org's agents

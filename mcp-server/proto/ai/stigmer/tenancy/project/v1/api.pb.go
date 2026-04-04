@@ -23,9 +23,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Project is a lightweight membership tracker that groups related resources
-// under a single unit of management with automatic orphan pruning.
+// Project groups related resources under a single unit of management with automatic orphan pruning.
 //
+// @internal
 // Two tracks are supported:
 //
 // Declarative Track (no entry_point):
@@ -43,27 +43,6 @@ const (
 // In both tracks, the project stores only references (org/kind/slug) to its
 // members — never full resource objects. Orphan pruning is a set-difference
 // between previous and current members.
-//
-// Example YAML — Declarative (stigmer.yaml):
-//
-//	apiVersion: tenancy.stigmer.ai/v1
-//	kind: Project
-//	metadata:
-//	  name: my-agent-fleet
-//	  org: acme-corp
-//	spec:
-//	  description: Production agent fleet
-//
-// Example YAML — SDK (stigmer.yaml):
-//
-//	apiVersion: tenancy.stigmer.ai/v1
-//	kind: Project
-//	metadata:
-//	  name: my-super-app
-//	  org: acme-corp
-//	spec:
-//	  entry_point: main.go
-//	  description: Go SDK project
 type Project struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

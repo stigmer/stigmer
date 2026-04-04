@@ -22,22 +22,29 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// authorization config message to check before executing rpc
+// RpcAuthorizationConfig defines the authorization check performed before an RPC executes.
+//
+// @internal
+// The authorization interceptor reads these fields from the method option annotation
+// and performs an FGA check: does the caller have `permission` on
+// `resource_kind:<resolved_id>`?
 type RpcAuthorizationConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// permission required to run the service
+	// Permission required to invoke the RPC.
 	Permission ApiResourceIamPermission `protobuf:"varint,1,opt,name=permission,proto3,enum=ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission" json:"permission,omitempty"`
-	// api-resource-kind that the permission should be granted
+	// Resource kind that the permission is checked against.
 	ResourceKind apiresourcekind.ApiResourceKind `protobuf:"varint,2,opt,name=resource_kind,json=resourceKind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"resource_kind,omitempty"`
-	// path of the field that contains the api-resource-kind on which to perform authorization.
-	// this is useful when the resource_kind is part of the input object
+	// Dot-path to the field in the request that contains the resource kind value.
+	// Used when resource_kind varies per request rather than being statically configured.
 	ResourceKindPath string `protobuf:"bytes,3,opt,name=resource_kind_path,json=resourceKindPath,proto3" json:"resource_kind_path,omitempty"`
-	// path of the field inside the input object to be used for performing authorization.
+	// Dot-path to the field in the request that contains the resource identifier for the authorization check.
 	FieldPath string `protobuf:"bytes,4,opt,name=field_path,json=fieldPath,proto3" json:"field_path,omitempty"`
-	// error message to be returned when the permission is not granted to user
+	// Error message returned when the caller lacks the required permission.
 	ErrorMsg string `protobuf:"bytes,5,opt,name=error_msg,json=errorMsg,proto3" json:"error_msg,omitempty"`
-	// identifier value to be configured if identifier is not part of the input
-	// this will be used in case of system internal rpc`s where the resource_id is `planton-cloud`
+	// Static resource identifier used when the ID is not part of the request.
+	//
+	// @internal
+	// Used for platform-level RPCs where the resource is always "stigmer".
 	ResourceId    string `protobuf:"bytes,6,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

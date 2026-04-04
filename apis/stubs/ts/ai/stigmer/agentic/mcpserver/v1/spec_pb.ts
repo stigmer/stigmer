@@ -16,12 +16,11 @@ export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
   fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEinAMKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKCGVudl9zcGVjGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U3BlYxJTChZkZWZhdWx0X3Rvb2xfYXBwcm92YWxzGAkgAygLMjMuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Ub29sQXBwcm92YWxQb2xpY3lCFAoLc2VydmVyX3R5cGUSBbpIAggBIk8KEVN0ZGlvU2VydmVyQ29uZmlnEhcKB2NvbW1hbmQYASABKAlCBrpIA8gBARIMCgRhcmdzGAIgAygJEhMKC3dvcmtpbmdfZGlyGAMgASgJIuACChBIdHRwU2VydmVyQ29uZmlnEhgKA3VybBgBIAEoCUILukgIyAEBcgOIAQESTwoHaGVhZGVycxgCIAMoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5IZWFkZXJzRW50cnkSWAoMcXVlcnlfcGFyYW1zGAMgAygLMkIuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnLlF1ZXJ5UGFyYW1zRW50cnkSIwoPdGltZW91dF9zZWNvbmRzGAQgASgFQgq6SAcaBRisAigAGi4KDEhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGjIKEFF1ZXJ5UGFyYW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJBChJUb29sQXBwcm92YWxQb2xpY3kSGgoJdG9vbF9uYW1lGAEgASgJQge6SARyAhABEg8KB21lc3NhZ2UYAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_buf_validate_validate]);
 
 /**
- * McpServerSpec defines the configuration template for an MCP server.
- * This is a reusable definition that can be referenced by multiple agents.
- * Actual secrets/credentials are provided at runtime via AgentInstance's environment.
+ * McpServerSpec defines the configurable properties of an MCP server.
  *
- * MCP (Model Context Protocol) servers provide tools and capabilities to AI agents.
- * This spec declares the server type, connection details, and required environment variables.
+ * @internal
+ * This is the "Template" layer — declares capabilities and requirements.
+ * The overview.md file provides the SDK-facing description and example YAML.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServerSpec
  */
@@ -82,34 +81,20 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
   /**
    * Default tools to enable from this MCP server.
    * Empty list means all tools are enabled by default.
-   * When specified, only these tools will be available unless overridden in McpServerUsage.
+   *
+   * @internal
    * Tool names must match exactly what the MCP server reports via tools/list.
-   * IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
-   * Do NOT include names from `discovered_capabilities.resource_templates` —
+   * Only names from discovered_capabilities.tools are valid here.
+   * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Examples: ["create_pull_request", "search_code", "get_file_contents"]
+   * Including a resource template name here causes a fatal runtime error.
    *
    * @generated from field: repeated string default_enabled_tools = 7;
    */
   defaultEnabledTools: string[];
 
   /**
-   * Environment specification declaring required environment variables.
-   * This defines the SCHEMA of required env vars - actual values are provided
-   * at runtime via AgentInstance's environment_ref.
-   *
-   * Use this to declare what environment variables the MCP server needs,
-   * whether they are secrets (e.g., API tokens), and their descriptions.
-   * Values in this spec can be empty - they serve as documentation and validation.
-   *
-   * Example:
-   *   data:
-   *     GITHUB_TOKEN:
-   *       is_secret: true
-   *       description: "GitHub personal access token with repo scope"
-   *     GITHUB_OWNER:
-   *       is_secret: false
-   *       description: "Default GitHub organization or user"
+   * Environment variables required by the MCP server.
    *
    * @generated from field: ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8;
    */
@@ -118,6 +103,7 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
   /**
    * Default tool approval policies for this MCP server.
    *
+   * @internal
    * Tools listed here require user approval before execution by default.
    * This is the first layer in the approval policy chain:
    *   McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
@@ -126,22 +112,6 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
    * - Mark destructive operations as requiring approval by default
    * - Protect sensitive data access across all agents using this server
    * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Example (GitHub MCP):
-   *   default_tool_approvals:
-   *     - tool_name: "delete_repository"
-   *       message: "Delete repository: {{args.repo}}"
-   *     - tool_name: "force_push"
-   *       message: "Force push to {{args.branch}}"
-   *     - tool_name: "add_collaborator"
-   *       message: "Add {{args.user}} as collaborator to {{args.repo}}"
-   *
-   * Example (Database MCP):
-   *   default_tool_approvals:
-   *     - tool_name: "execute_sql"
-   *       message: "Execute SQL: {{args.query}}"
-   *     - tool_name: "drop_table"
-   *       message: "Drop table: {{args.table_name}}"
    *
    * Tools not listed here do not require approval by default.
    * Agents can still add approval requirements via tool_approval_overrides.
@@ -160,14 +130,15 @@ export const McpServerSpecSchema: GenMessage<McpServerSpec> = /*@__PURE__*/
 
 /**
  * StdioServerConfig defines an MCP server that runs as a subprocess.
- * Communication happens via stdin/stdout using JSON-RPC messages.
  *
- * This is the most common MCP server type, used for:
+ * @internal
+ * Communication happens via stdin/stdout using JSON-RPC messages.
+ * The agent runner starts this process and communicates via stdio.
+ *
+ * Common examples:
  * - Node.js servers: npx @modelcontextprotocol/server-github
  * - Python servers: python -m mcp_server_sqlite
  * - Go servers: ./mcp-server-binary
- *
- * The agent runner starts this process and communicates via stdio.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
  */
@@ -210,13 +181,13 @@ export const StdioServerConfigSchema: GenMessage<StdioServerConfig> = /*@__PURE_
 
 /**
  * HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
- * Used for remote/managed MCP services that expose an HTTP endpoint.
  *
+ * @internal
  * Communication flow:
  * 1. Agent sends JSON-RPC requests via HTTP POST
  * 2. Server streams responses via Server-Sent Events (SSE)
  *
- * This is useful for:
+ * Use cases:
  * - Managed MCP services (e.g., hosted by a cloud provider)
  * - MCP servers behind a reverse proxy or API gateway
  * - Sharing a single MCP server instance across multiple agents
@@ -285,8 +256,7 @@ export const HttpServerConfigSchema: GenMessage<HttpServerConfig> = /*@__PURE__*
 /**
  * ToolApprovalPolicy defines approval requirements for a specific tool.
  *
- * ## Message Templates
- *
+ * @internal
  * The message field supports {{args.field}} placeholders that are resolved
  * at runtime using the actual tool arguments. This enables contextual
  * approval messages that help users make informed decisions.
@@ -297,26 +267,7 @@ export const HttpServerConfigSchema: GenMessage<HttpServerConfig> = /*@__PURE__*
  *
  * If a placeholder references a missing argument, it's replaced with "<unknown>".
  *
- * ## Examples
- *
- * Simple message:
- *   tool_name: "send_email"
- *   message: "Send email to {{args.recipient}}"
- *   Result: "Send email to customer@example.com"
- *
- * Multiple placeholders:
- *   tool_name: "delete_file"
- *   message: "Delete {{args.path}} from {{args.repository}}"
- *   Result: "Delete src/main.py from acme/webapp"
- *
- * Default message (empty):
- *   tool_name: "dangerous_operation"
- *   message: ""
- *   Result: "Execute tool: dangerous_operation" (auto-generated)
- *
- * ## Policy Chain
- *
- * This policy sits at the McpServer level. The full approval policy chain is:
+ * Policy chain (lowest to highest priority):
  * 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
  * 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
  * 3. AgentExecution.auto_approve_all - Runtime bypass

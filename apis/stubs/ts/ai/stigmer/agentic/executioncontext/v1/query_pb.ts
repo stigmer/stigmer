@@ -20,8 +20,9 @@ export const file_ai_stigmer_agentic_executioncontext_v1_query: GenFile = /*@__P
   fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9xdWVyeS5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEy0wMKH0V4ZWN1dGlvbkNvbnRleHRRdWVyeUNvbnRyb2xsZXISgQEKA2dldBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHRJZBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQiBNC4GAEShgEKDmdldEJ5UmVmZXJlbmNlEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGjguYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dCIE0LgYARKcAQoQZ2V0QnlFeGVjdXRpb25JZBJILmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHRFeGVjdXRpb25JZElucHV0GjguYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dCIE0LgYARoEoP8rNmIGcHJvdG8z", [file_ai_stigmer_agentic_executioncontext_v1_api, file_ai_stigmer_agentic_executioncontext_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
- * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+ * ExecutionContextQueryController handles read operations for ExecutionContext resources.
  *
+ * @internal
  * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
  * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
  * FGA model. Authorization is derived from the parent execution:
@@ -61,7 +62,7 @@ export const ExecutionContextQueryController: GenService<{
     output: typeof ExecutionContextSchema;
   },
   /**
-   * Get an ExecutionContext by the execution ID it belongs to.
+   * Get the ExecutionContext for a given execution ID.
    *
    * @internal
    * Primary lookup method used by runners to retrieve the merged environment

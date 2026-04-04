@@ -12,7 +12,7 @@ public interface ListWithIdentityAccountIdReqOrBuilder extends
 
   /**
    * <pre>
-   * identity account id
+   * Unique identifier of the identity account to list resources for.
    * </pre>
    *
    * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -21,7 +21,7 @@ public interface ListWithIdentityAccountIdReqOrBuilder extends
   java.lang.String getIdentityAccountId();
   /**
    * <pre>
-   * identity account id
+   * Unique identifier of the identity account to list resources for.
    * </pre>
    *
    * <code>string identity_account_id = 1 [json_name = "identityAccountId"];</code>
@@ -31,16 +31,28 @@ public interface ListWithIdentityAccountIdReqOrBuilder extends
       getIdentityAccountIdBytes();
 
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    * @return Whether the page field is set.
    */
   boolean hasPage();
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    * @return The page.
    */
   ai.stigmer.commons.rpc.PageInfo getPage();
   /**
+   * <pre>
+   * Pagination parameters.
+   * </pre>
+   *
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 2 [json_name = "page"];</code>
    */
   ai.stigmer.commons.rpc.PageInfoOrBuilder getPageOrBuilder();

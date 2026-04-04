@@ -33,21 +33,23 @@ export const file_ai_stigmer_iam_iampolicy_v1_api: GenFile = /*@__PURE__*/
  */
 export type IamPolicy = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicy"> & {
   /**
-   * api-version
+   * API version for this resource type.
    *
    * @generated from field: string api_version = 1;
    */
   apiVersion: string;
 
   /**
-   * resource-kind
+   * Resource kind identifier.
    *
    * @generated from field: string kind = 2;
    */
   kind: string;
 
   /**
-   * metadata
+   * Resource metadata including name, organization, and labels.
+   *
+   * @internal
    * id format: iamp_<ulid>
    * name: human-readable identifier (e.g., "john-vpc-admin")
    * org: organization this policy belongs to
@@ -57,14 +59,14 @@ export type IamPolicy = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicy"> & {
   metadata?: ApiResourceMetadata;
 
   /**
-   * spec
+   * Policy binding: principal, resource, and relation.
    *
    * @generated from field: ai.stigmer.iam.iampolicy.v1.IamPolicySpec spec = 4;
    */
   spec?: IamPolicySpec;
 
   /**
-   * status
+   * System-managed state including audit trail.
    *
    * @generated from field: ai.stigmer.iam.iampolicy.v1.IamPolicyStatus status = 5;
    */

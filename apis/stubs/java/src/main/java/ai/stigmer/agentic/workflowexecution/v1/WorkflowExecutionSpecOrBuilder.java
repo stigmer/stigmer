@@ -12,7 +12,11 @@ public interface WorkflowExecutionSpecOrBuilder extends
 
   /**
    * <pre>
-   * ID of the WorkflowInstance to execute (optional).
+   * ID of the WorkflowInstance to execute.
+   *
+   * &#64;internal
+   * Either workflow_instance_id OR workflow_id must be provided.
+   * Handler enforces this validation.
    *
    * The WorkflowInstance contains:
    * - Reference to the Workflow template (orchestration definition)
@@ -21,22 +25,8 @@ public interface WorkflowExecutionSpecOrBuilder extends
    *
    * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
    *
-   * Relationship:
-   * Workflow (template) → WorkflowInstance (config + secrets) → WorkflowExecution (runtime)
-   *
-   * Example:
-   * workflow_instance_id: "wfi-customer-onboarding-prod"
-   *
-   * The workflow_instance_id determines:
-   * - Which Workflow template to execute (the orchestration blueprint)
-   * - Which Environments provide configuration and secrets
-   * - What default values apply (if runtime_env doesn't override)
-   *
    * Authorization:
    * User must have "execute" permission on the referenced WorkflowInstance.
-   *
-   * Note: Either workflow_instance_id OR workflow_id must be provided.
-   * Handler enforces this validation.
    * </pre>
    *
    * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -45,7 +35,11 @@ public interface WorkflowExecutionSpecOrBuilder extends
   java.lang.String getWorkflowInstanceId();
   /**
    * <pre>
-   * ID of the WorkflowInstance to execute (optional).
+   * ID of the WorkflowInstance to execute.
+   *
+   * &#64;internal
+   * Either workflow_instance_id OR workflow_id must be provided.
+   * Handler enforces this validation.
    *
    * The WorkflowInstance contains:
    * - Reference to the Workflow template (orchestration definition)
@@ -54,22 +48,8 @@ public interface WorkflowExecutionSpecOrBuilder extends
    *
    * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
    *
-   * Relationship:
-   * Workflow (template) → WorkflowInstance (config + secrets) → WorkflowExecution (runtime)
-   *
-   * Example:
-   * workflow_instance_id: "wfi-customer-onboarding-prod"
-   *
-   * The workflow_instance_id determines:
-   * - Which Workflow template to execute (the orchestration blueprint)
-   * - Which Environments provide configuration and secrets
-   * - What default values apply (if runtime_env doesn't override)
-   *
    * Authorization:
    * User must have "execute" permission on the referenced WorkflowInstance.
-   *
-   * Note: Either workflow_instance_id OR workflow_id must be provided.
-   * Handler enforces this validation.
    * </pre>
    *
    * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -80,8 +60,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
 
   /**
    * <pre>
-   * ID of the Workflow template to execute (optional).
+   * ID of the Workflow template to execute (alternative to workflow_instance_id).
    *
+   * &#64;internal
    * When workflow_id is provided without workflow_instance_id, the system:
    * 1. Checks if the Workflow has a default_instance_id in its status
    * 2. If exists: Uses the default instance
@@ -91,22 +72,11 @@ public interface WorkflowExecutionSpecOrBuilder extends
    *
    * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
    *
-   * This provides a simpler UX for common cases where users want to
-   * "just execute a workflow" without manually managing instances.
-   *
-   * Use Cases:
-   * - Quick workflow execution without instance setup
-   * - Development and testing (use default instance)
-   * - Simple workflows that don't need custom configuration
-   *
-   * For advanced use cases requiring custom environment bindings or
-   * multiple instances with different configurations, use workflow_instance_id.
+   * Either workflow_instance_id OR workflow_id must be provided.
+   * Handler enforces this validation.
    *
    * Authorization:
    * User must have "execute" permission on the resolved WorkflowInstance.
-   *
-   * Note: Either workflow_instance_id OR workflow_id must be provided.
-   * Handler enforces this validation.
    * </pre>
    *
    * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -115,8 +85,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
   java.lang.String getWorkflowId();
   /**
    * <pre>
-   * ID of the Workflow template to execute (optional).
+   * ID of the Workflow template to execute (alternative to workflow_instance_id).
    *
+   * &#64;internal
    * When workflow_id is provided without workflow_instance_id, the system:
    * 1. Checks if the Workflow has a default_instance_id in its status
    * 2. If exists: Uses the default instance
@@ -126,22 +97,11 @@ public interface WorkflowExecutionSpecOrBuilder extends
    *
    * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
    *
-   * This provides a simpler UX for common cases where users want to
-   * "just execute a workflow" without manually managing instances.
-   *
-   * Use Cases:
-   * - Quick workflow execution without instance setup
-   * - Development and testing (use default instance)
-   * - Simple workflows that don't need custom configuration
-   *
-   * For advanced use cases requiring custom environment bindings or
-   * multiple instances with different configurations, use workflow_instance_id.
+   * Either workflow_instance_id OR workflow_id must be provided.
+   * Handler enforces this validation.
    *
    * Authorization:
    * User must have "execute" permission on the resolved WorkflowInstance.
-   *
-   * Note: Either workflow_instance_id OR workflow_id must be provided.
-   * Handler enforces this validation.
    * </pre>
    *
    * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -152,27 +112,14 @@ public interface WorkflowExecutionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Input message or payload for the workflow.
+   * Input message or payload that triggers the workflow.
    *
+   * &#64;internal
    * This is the primary input to the workflow - the "trigger event" or "request payload".
-   * It can be:
-   * - A human-readable message (for conversational workflows)
-   * - A JSON payload (for API-triggered workflows)
-   * - An event description (for webhook/event-driven workflows)
+   * It can be a human-readable message, a JSON payload, or an event description.
    *
    * The workflow can access this value using: {{workflow.input.trigger_message}}
    * Tasks can reference it in their input configurations.
-   *
-   * Examples:
-   *
-   * Conversational workflow:
-   * trigger_message: "Analyze sentiment of recent customer feedback"
-   *
-   * API workflow:
-   * trigger_message: '{"customer_id": "cus-abc123", "action": "upgrade_plan"}'
-   *
-   * Event-driven workflow:
-   * trigger_message: "Payment received: $99.00 for order #12345"
    *
    * The trigger_message is optional - some workflows don't need input (scheduled jobs,
    * workflows that fetch data from APIs, etc.).
@@ -184,27 +131,14 @@ public interface WorkflowExecutionSpecOrBuilder extends
   java.lang.String getTriggerMessage();
   /**
    * <pre>
-   * Input message or payload for the workflow.
+   * Input message or payload that triggers the workflow.
    *
+   * &#64;internal
    * This is the primary input to the workflow - the "trigger event" or "request payload".
-   * It can be:
-   * - A human-readable message (for conversational workflows)
-   * - A JSON payload (for API-triggered workflows)
-   * - An event description (for webhook/event-driven workflows)
+   * It can be a human-readable message, a JSON payload, or an event description.
    *
    * The workflow can access this value using: {{workflow.input.trigger_message}}
    * Tasks can reference it in their input configurations.
-   *
-   * Examples:
-   *
-   * Conversational workflow:
-   * trigger_message: "Analyze sentiment of recent customer feedback"
-   *
-   * API workflow:
-   * trigger_message: '{"customer_id": "cus-abc123", "action": "upgrade_plan"}'
-   *
-   * Event-driven workflow:
-   * trigger_message: "Payment received: $99.00 for order #12345"
    *
    * The trigger_message is optional - some workflows don't need input (scheduled jobs,
    * workflows that fetch data from APIs, etc.).
@@ -218,9 +152,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Trigger context metadata.
+   * Contextual metadata about what triggered this execution.
    *
-   * Contains contextual information about who/what triggered this execution and how.
+   * &#64;internal
    * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
    * and analytics.
    *
@@ -228,35 +162,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
    * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
    * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
    * - "ip_address": Client IP address (for API/UI triggers)
-   * - "user_agent": Client user agent (for API/UI triggers)
-   * - "referrer": HTTP referrer (for UI triggers)
    * - "webhook_id": Webhook ID (for webhook triggers)
    * - "schedule_id": Schedule ID (for scheduled triggers)
    * - "timestamp": When was it triggered? (ISO 8601)
-   *
-   * Example (API trigger):
-   * trigger_metadata: {
-   * "source": "api"
-   * "caller_id": "usr-john-doe"
-   * "ip_address": "203.0.113.42"
-   * "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Example (webhook trigger):
-   * trigger_metadata: {
-   * "source": "webhook"
-   * "webhook_id": "whk-stripe-payment-received"
-   * "webhook_source": "stripe.com"
-   * "event_type": "payment_intent.succeeded"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Use Cases:
-   * - Audit trail: Who triggered this execution and when?
-   * - Analytics: Which trigger sources are most common?
-   * - Debugging: Was this triggered by a webhook or manually?
-   * - Rate limiting: Limit executions per user/source
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -264,9 +172,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
   int getTriggerMetadataCount();
   /**
    * <pre>
-   * Trigger context metadata.
+   * Contextual metadata about what triggered this execution.
    *
-   * Contains contextual information about who/what triggered this execution and how.
+   * &#64;internal
    * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
    * and analytics.
    *
@@ -274,35 +182,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
    * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
    * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
    * - "ip_address": Client IP address (for API/UI triggers)
-   * - "user_agent": Client user agent (for API/UI triggers)
-   * - "referrer": HTTP referrer (for UI triggers)
    * - "webhook_id": Webhook ID (for webhook triggers)
    * - "schedule_id": Schedule ID (for scheduled triggers)
    * - "timestamp": When was it triggered? (ISO 8601)
-   *
-   * Example (API trigger):
-   * trigger_metadata: {
-   * "source": "api"
-   * "caller_id": "usr-john-doe"
-   * "ip_address": "203.0.113.42"
-   * "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Example (webhook trigger):
-   * trigger_metadata: {
-   * "source": "webhook"
-   * "webhook_id": "whk-stripe-payment-received"
-   * "webhook_source": "stripe.com"
-   * "event_type": "payment_intent.succeeded"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Use Cases:
-   * - Audit trail: Who triggered this execution and when?
-   * - Analytics: Which trigger sources are most common?
-   * - Debugging: Was this triggered by a webhook or manually?
-   * - Rate limiting: Limit executions per user/source
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -317,9 +199,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
   getTriggerMetadata();
   /**
    * <pre>
-   * Trigger context metadata.
+   * Contextual metadata about what triggered this execution.
    *
-   * Contains contextual information about who/what triggered this execution and how.
+   * &#64;internal
    * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
    * and analytics.
    *
@@ -327,35 +209,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
    * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
    * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
    * - "ip_address": Client IP address (for API/UI triggers)
-   * - "user_agent": Client user agent (for API/UI triggers)
-   * - "referrer": HTTP referrer (for UI triggers)
    * - "webhook_id": Webhook ID (for webhook triggers)
    * - "schedule_id": Schedule ID (for scheduled triggers)
    * - "timestamp": When was it triggered? (ISO 8601)
-   *
-   * Example (API trigger):
-   * trigger_metadata: {
-   * "source": "api"
-   * "caller_id": "usr-john-doe"
-   * "ip_address": "203.0.113.42"
-   * "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Example (webhook trigger):
-   * trigger_metadata: {
-   * "source": "webhook"
-   * "webhook_id": "whk-stripe-payment-received"
-   * "webhook_source": "stripe.com"
-   * "event_type": "payment_intent.succeeded"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Use Cases:
-   * - Audit trail: Who triggered this execution and when?
-   * - Analytics: Which trigger sources are most common?
-   * - Debugging: Was this triggered by a webhook or manually?
-   * - Rate limiting: Limit executions per user/source
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -364,9 +220,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
   getTriggerMetadataMap();
   /**
    * <pre>
-   * Trigger context metadata.
+   * Contextual metadata about what triggered this execution.
    *
-   * Contains contextual information about who/what triggered this execution and how.
+   * &#64;internal
    * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
    * and analytics.
    *
@@ -374,35 +230,9 @@ public interface WorkflowExecutionSpecOrBuilder extends
    * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
    * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
    * - "ip_address": Client IP address (for API/UI triggers)
-   * - "user_agent": Client user agent (for API/UI triggers)
-   * - "referrer": HTTP referrer (for UI triggers)
    * - "webhook_id": Webhook ID (for webhook triggers)
    * - "schedule_id": Schedule ID (for scheduled triggers)
    * - "timestamp": When was it triggered? (ISO 8601)
-   *
-   * Example (API trigger):
-   * trigger_metadata: {
-   * "source": "api"
-   * "caller_id": "usr-john-doe"
-   * "ip_address": "203.0.113.42"
-   * "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Example (webhook trigger):
-   * trigger_metadata: {
-   * "source": "webhook"
-   * "webhook_id": "whk-stripe-payment-received"
-   * "webhook_source": "stripe.com"
-   * "event_type": "payment_intent.succeeded"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Use Cases:
-   * - Audit trail: Who triggered this execution and when?
-   * - Analytics: Which trigger sources are most common?
-   * - Debugging: Was this triggered by a webhook or manually?
-   * - Rate limiting: Limit executions per user/source
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -414,9 +244,9 @@ java.lang.String getTriggerMetadataOrDefault(
 java.lang.String defaultValue);
   /**
    * <pre>
-   * Trigger context metadata.
+   * Contextual metadata about what triggered this execution.
    *
-   * Contains contextual information about who/what triggered this execution and how.
+   * &#64;internal
    * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
    * and analytics.
    *
@@ -424,35 +254,9 @@ java.lang.String defaultValue);
    * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
    * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
    * - "ip_address": Client IP address (for API/UI triggers)
-   * - "user_agent": Client user agent (for API/UI triggers)
-   * - "referrer": HTTP referrer (for UI triggers)
    * - "webhook_id": Webhook ID (for webhook triggers)
    * - "schedule_id": Schedule ID (for scheduled triggers)
    * - "timestamp": When was it triggered? (ISO 8601)
-   *
-   * Example (API trigger):
-   * trigger_metadata: {
-   * "source": "api"
-   * "caller_id": "usr-john-doe"
-   * "ip_address": "203.0.113.42"
-   * "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Example (webhook trigger):
-   * trigger_metadata: {
-   * "source": "webhook"
-   * "webhook_id": "whk-stripe-payment-received"
-   * "webhook_source": "stripe.com"
-   * "event_type": "payment_intent.succeeded"
-   * "timestamp": "2025-01-11T14:30:22Z"
-   * }
-   *
-   * Use Cases:
-   * - Audit trail: Who triggered this execution and when?
-   * - Analytics: Which trigger sources are most common?
-   * - Debugging: Was this triggered by a webhook or manually?
-   * - Rate limiting: Limit executions per user/source
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -462,8 +266,9 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
+   * Execution-scoped environment variables and secrets that override instance defaults.
    *
+   * &#64;internal
    * These values are only available for this specific execution and override values
    * from Environments and Workflow defaults.
    *
@@ -471,26 +276,6 @@ java.lang.String defaultValue);
    * 1. runtime_env (this field) - Execution-specific overrides
    * 2. Environment values (from WorkflowInstance.environment_ids)
    * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Use Cases:
-   *
-   * 1. B2B SaaS Integrations (e.g., Plant &amp; Cloud):
-   * runtime_env: {
-   * "CUSTOMER_API_KEY": { secret_ref: "sec-customer-abc-api-key" }
-   * "CUSTOMER_WORKSPACE_ID": { value: "ws-customer-abc" }
-   * }
-   *
-   * 2. Dynamic Configuration:
-   * runtime_env: {
-   * "DEPLOYMENT_REGION": { value: "us-west-2" }
-   * "ENABLE_BETA_FEATURES": { value: "true" }
-   * }
-   *
-   * 3. Temporary Overrides (testing, debugging):
-   * runtime_env: {
-   * "LOG_LEVEL": { value: "debug" }
-   * "DRY_RUN": { value: "true" }
-   * }
    *
    * Value Types:
    * - value: Plain text value (not encrypted, use for non-sensitive config)
@@ -500,22 +285,6 @@ java.lang.String defaultValue);
    * - runtime_env values are stored in ExecutionContext
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
    * - Secret references are resolved at runtime (never exposed in logs)
-   *
-   * Example:
-   * runtime_env: {
-   * "CUSTOMER_EMAIL": {
-   * value: "john.doe&#64;example.com"
-   * }
-   * "STRIPE_API_KEY": {
-   * secret_ref: "sec-stripe-prod"
-   * }
-   * "WEBHOOK_URL": {
-   * secret_ref: "sec-webhook-callback-url"
-   * }
-   * "ENABLE_NOTIFICATIONS": {
-   * value: "true"
-   * }
-   * }
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -525,8 +294,9 @@ java.lang.String defaultValue);
   int getRuntimeEnvCount();
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
+   * Execution-scoped environment variables and secrets that override instance defaults.
    *
+   * &#64;internal
    * These values are only available for this specific execution and override values
    * from Environments and Workflow defaults.
    *
@@ -534,26 +304,6 @@ java.lang.String defaultValue);
    * 1. runtime_env (this field) - Execution-specific overrides
    * 2. Environment values (from WorkflowInstance.environment_ids)
    * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Use Cases:
-   *
-   * 1. B2B SaaS Integrations (e.g., Plant &amp; Cloud):
-   * runtime_env: {
-   * "CUSTOMER_API_KEY": { secret_ref: "sec-customer-abc-api-key" }
-   * "CUSTOMER_WORKSPACE_ID": { value: "ws-customer-abc" }
-   * }
-   *
-   * 2. Dynamic Configuration:
-   * runtime_env: {
-   * "DEPLOYMENT_REGION": { value: "us-west-2" }
-   * "ENABLE_BETA_FEATURES": { value: "true" }
-   * }
-   *
-   * 3. Temporary Overrides (testing, debugging):
-   * runtime_env: {
-   * "LOG_LEVEL": { value: "debug" }
-   * "DRY_RUN": { value: "true" }
-   * }
    *
    * Value Types:
    * - value: Plain text value (not encrypted, use for non-sensitive config)
@@ -563,22 +313,6 @@ java.lang.String defaultValue);
    * - runtime_env values are stored in ExecutionContext
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
    * - Secret references are resolved at runtime (never exposed in logs)
-   *
-   * Example:
-   * runtime_env: {
-   * "CUSTOMER_EMAIL": {
-   * value: "john.doe&#64;example.com"
-   * }
-   * "STRIPE_API_KEY": {
-   * secret_ref: "sec-stripe-prod"
-   * }
-   * "WEBHOOK_URL": {
-   * secret_ref: "sec-webhook-callback-url"
-   * }
-   * "ENABLE_NOTIFICATIONS": {
-   * value: "true"
-   * }
-   * }
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -595,8 +329,9 @@ java.lang.String defaultValue);
   getRuntimeEnv();
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
+   * Execution-scoped environment variables and secrets that override instance defaults.
    *
+   * &#64;internal
    * These values are only available for this specific execution and override values
    * from Environments and Workflow defaults.
    *
@@ -604,26 +339,6 @@ java.lang.String defaultValue);
    * 1. runtime_env (this field) - Execution-specific overrides
    * 2. Environment values (from WorkflowInstance.environment_ids)
    * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Use Cases:
-   *
-   * 1. B2B SaaS Integrations (e.g., Plant &amp; Cloud):
-   * runtime_env: {
-   * "CUSTOMER_API_KEY": { secret_ref: "sec-customer-abc-api-key" }
-   * "CUSTOMER_WORKSPACE_ID": { value: "ws-customer-abc" }
-   * }
-   *
-   * 2. Dynamic Configuration:
-   * runtime_env: {
-   * "DEPLOYMENT_REGION": { value: "us-west-2" }
-   * "ENABLE_BETA_FEATURES": { value: "true" }
-   * }
-   *
-   * 3. Temporary Overrides (testing, debugging):
-   * runtime_env: {
-   * "LOG_LEVEL": { value: "debug" }
-   * "DRY_RUN": { value: "true" }
-   * }
    *
    * Value Types:
    * - value: Plain text value (not encrypted, use for non-sensitive config)
@@ -633,22 +348,6 @@ java.lang.String defaultValue);
    * - runtime_env values are stored in ExecutionContext
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
    * - Secret references are resolved at runtime (never exposed in logs)
-   *
-   * Example:
-   * runtime_env: {
-   * "CUSTOMER_EMAIL": {
-   * value: "john.doe&#64;example.com"
-   * }
-   * "STRIPE_API_KEY": {
-   * secret_ref: "sec-stripe-prod"
-   * }
-   * "WEBHOOK_URL": {
-   * secret_ref: "sec-webhook-callback-url"
-   * }
-   * "ENABLE_NOTIFICATIONS": {
-   * value: "true"
-   * }
-   * }
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -659,8 +358,9 @@ java.lang.String defaultValue);
   getRuntimeEnvMap();
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
+   * Execution-scoped environment variables and secrets that override instance defaults.
    *
+   * &#64;internal
    * These values are only available for this specific execution and override values
    * from Environments and Workflow defaults.
    *
@@ -668,26 +368,6 @@ java.lang.String defaultValue);
    * 1. runtime_env (this field) - Execution-specific overrides
    * 2. Environment values (from WorkflowInstance.environment_ids)
    * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Use Cases:
-   *
-   * 1. B2B SaaS Integrations (e.g., Plant &amp; Cloud):
-   * runtime_env: {
-   * "CUSTOMER_API_KEY": { secret_ref: "sec-customer-abc-api-key" }
-   * "CUSTOMER_WORKSPACE_ID": { value: "ws-customer-abc" }
-   * }
-   *
-   * 2. Dynamic Configuration:
-   * runtime_env: {
-   * "DEPLOYMENT_REGION": { value: "us-west-2" }
-   * "ENABLE_BETA_FEATURES": { value: "true" }
-   * }
-   *
-   * 3. Temporary Overrides (testing, debugging):
-   * runtime_env: {
-   * "LOG_LEVEL": { value: "debug" }
-   * "DRY_RUN": { value: "true" }
-   * }
    *
    * Value Types:
    * - value: Plain text value (not encrypted, use for non-sensitive config)
@@ -697,22 +377,6 @@ java.lang.String defaultValue);
    * - runtime_env values are stored in ExecutionContext
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
    * - Secret references are resolved at runtime (never exposed in logs)
-   *
-   * Example:
-   * runtime_env: {
-   * "CUSTOMER_EMAIL": {
-   * value: "john.doe&#64;example.com"
-   * }
-   * "STRIPE_API_KEY": {
-   * secret_ref: "sec-stripe-prod"
-   * }
-   * "WEBHOOK_URL": {
-   * secret_ref: "sec-webhook-callback-url"
-   * }
-   * "ENABLE_NOTIFICATIONS": {
-   * value: "true"
-   * }
-   * }
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -726,8 +390,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
 ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
+   * Execution-scoped environment variables and secrets that override instance defaults.
    *
+   * &#64;internal
    * These values are only available for this specific execution and override values
    * from Environments and Workflow defaults.
    *
@@ -735,26 +400,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * 1. runtime_env (this field) - Execution-specific overrides
    * 2. Environment values (from WorkflowInstance.environment_ids)
    * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Use Cases:
-   *
-   * 1. B2B SaaS Integrations (e.g., Plant &amp; Cloud):
-   * runtime_env: {
-   * "CUSTOMER_API_KEY": { secret_ref: "sec-customer-abc-api-key" }
-   * "CUSTOMER_WORKSPACE_ID": { value: "ws-customer-abc" }
-   * }
-   *
-   * 2. Dynamic Configuration:
-   * runtime_env: {
-   * "DEPLOYMENT_REGION": { value: "us-west-2" }
-   * "ENABLE_BETA_FEATURES": { value: "true" }
-   * }
-   *
-   * 3. Temporary Overrides (testing, debugging):
-   * runtime_env: {
-   * "LOG_LEVEL": { value: "debug" }
-   * "DRY_RUN": { value: "true" }
-   * }
    *
    * Value Types:
    * - value: Plain text value (not encrypted, use for non-sensitive config)
@@ -764,22 +409,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * - runtime_env values are stored in ExecutionContext
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
    * - Secret references are resolved at runtime (never exposed in logs)
-   *
-   * Example:
-   * runtime_env: {
-   * "CUSTOMER_EMAIL": {
-   * value: "john.doe&#64;example.com"
-   * }
-   * "STRIPE_API_KEY": {
-   * secret_ref: "sec-stripe-prod"
-   * }
-   * "WEBHOOK_URL": {
-   * secret_ref: "sec-webhook-callback-url"
-   * }
-   * "ENABLE_NOTIFICATIONS": {
-   * value: "true"
-   * }
-   * }
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -791,13 +420,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
 
   /**
    * <pre>
-   * Callback token for async activity completion (optional).
+   * Opaque callback token for asynchronous completion by a parent orchestrator.
    *
-   * **Purpose**: Enables async completion pattern where the caller
-   * (typically a parent workflow or orchestrator) waits for actual workflow completion
-   * without blocking worker threads.
+   * &#64;internal
+   * Enables async completion pattern where the caller (typically a parent workflow)
+   * waits for actual workflow completion without blocking worker threads.
    *
-   * **Flow**:
+   * Flow:
    * 1. Caller (Temporal activity) extracts its task token
    * 2. Passes token in this field when creating WorkflowExecution
    * 3. Returns activity.ErrResultPending (activity paused, thread released)
@@ -805,54 +434,19 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * 5. Workflow calls ActivityCompletionClient.complete(token, result)
    * 6. Temporal resumes the paused activity with the result
    *
-   * **Benefits**:
-   * - Correctness: Caller waits for actual completion, not just ACK
-   * - Scalability: Worker threads not blocked during long-running execution
-   * - Resilience: Token is durable in Temporal; survives restarts
-   * - Decoupling: Caller doesn't poll or manage workflow lifecycle
+   * When empty: fire-and-forget or direct API call (backward compatible).
+   * When provided: workflow MUST complete the external activity using this token.
    *
-   * **When Empty**:
-   * - Empty/null = fire-and-forget or direct API call (backward compatible)
-   * - Workflow execution proceeds normally, no callback performed
-   * - Use case: CLI commands, API requests, non-workflow triggers
+   * Token format: opaque binary blob from Temporal SDK (typically 100-200 bytes).
+   * DO NOT parse or modify - treat as opaque handle.
    *
-   * **When Provided**:
-   * - Workflow MUST complete the external activity using this token
-   * - Both success and failure paths must call completion
-   * - Token uniquely identifies the external activity execution
+   * Same pattern as AgentExecution.spec.callback_token.
    *
-   * **Token Format**:
-   * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
-   * - Contains: namespace, workflow ID, run ID, activity ID, attempt
-   * - DO NOT parse or modify - treat as opaque handle
-   *
-   * **Security**:
-   * - Token grants ability to complete the activity (bearer token)
-   * - Should only be passed through trusted internal services
-   * - Logged as Base64-encoded string (truncated for security)
-   *
-   * **Timeout**:
-   * - Caller should set StartToCloseTimeout (e.g., 24 hours)
-   * - If token callback never arrives, activity times out
-   * - Prevents infinite hangs if workflow crashes
-   *
-   * **Observability**:
-   * - Token is logged at creation time (Base64, first 20 chars)
-   * - Activity appears as "Running" in Temporal UI until completed
-   * - Both caller workflow and this workflow visible in Temporal
-   *
-   * **Consistency with AgentExecution**:
-   * - Same pattern as AgentExecution.spec.callback_token
-   * - Enables workflow-calling-workflow scenarios
-   * - Future: WorkflowExecution calling WorkflowExecution
-   *
-   * **References**:
+   * References:
    * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
    * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-   * - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending
-   * - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html
    *
-   * &#64;since 2026-01-22 (Phase 3: Workflow Async Completion)
+   * &#64;since 2026-01-22
    * </pre>
    *
    * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>

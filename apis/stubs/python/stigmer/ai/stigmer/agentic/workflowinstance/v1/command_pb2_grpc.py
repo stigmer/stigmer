@@ -7,8 +7,9 @@ from ai.stigmer.agentic.workflowinstance.v1 import io_pb2 as ai_dot_stigmer_dot_
 
 
 class WorkflowInstanceCommandControllerStub(object):
-    """WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+    """WorkflowInstanceCommandController handles write operations for workflow instances.
 
+    @internal
     This service provides the CUD (Create, Update, Delete) operations following the
     Command-Query Separation pattern. All RPCs that modify state go through this controller.
 
@@ -49,8 +50,9 @@ class WorkflowInstanceCommandControllerStub(object):
 
 
 class WorkflowInstanceCommandControllerServicer(object):
-    """WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+    """WorkflowInstanceCommandController handles write operations for workflow instances.
 
+    @internal
     This service provides the CUD (Create, Update, Delete) operations following the
     Command-Query Separation pattern. All RPCs that modify state go through this controller.
 
@@ -64,6 +66,8 @@ class WorkflowInstanceCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update a workflow instance.
+
+        @internal
         The authorization and state-operation are determined depending on whether the workflow instance
         is going to be created or updated which is determined as part of the request execution.
         """
@@ -72,10 +76,9 @@ class WorkflowInstanceCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new workflow instance.
+        """Create a workflow instance.
 
-        Creates a configured deployment of a Workflow template with environment bindings.
-
+        @internal
         Input validation:
         - metadata.org must be specified
         - spec.workflow_id must be a valid Workflow resource ID
@@ -86,16 +89,6 @@ class WorkflowInstanceCommandControllerServicer(object):
         1. User has permission to access the referenced Workflow template
         2. User has permission to access all referenced Environment resources
         3. Owner scope is valid for the user's organization/identity
-
-        Returns:
-        The created WorkflowInstance with:
-        - Assigned resource ID (metadata.id)
-        - Created timestamp (status.audit.created_at)
-        - Initial version (status.audit.version = 1)
-
-        Example:
-        Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"]
-        Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -104,29 +97,19 @@ class WorkflowInstanceCommandControllerServicer(object):
     def update(self, request, context):
         """Update an existing workflow instance.
 
-        Modifies the configuration of an existing WorkflowInstance.
-        You can update:
-        - spec.description (change descriptive text)
-        - spec.environment_refs (add/remove/reorder environment bindings)
+        @internal
+        Mutable fields:
+        - spec.description, spec.environment_refs
         - metadata.labels, metadata.tags, metadata.annotations
 
-        You cannot update:
-        - spec.workflow_id (must delete and recreate to change template)
-        - metadata.id (immutable resource identifier)
-        - metadata.org (immutable after creation)
+        Immutable fields (must delete and recreate to change):
+        - spec.workflow_id, metadata.id, metadata.org
 
         Authorization:
         Requires "update" permission on the specific WorkflowInstance resource.
         Field path "metadata.id" identifies which resource to authorize.
 
-        Versioning:
         Each update increments status.audit.version and updates status.audit.updated_at.
-
-        Returns:
-        The updated WorkflowInstance with:
-        - Incremented version number
-        - Updated timestamp
-        - Modified spec fields
 
         Error: PERMISSION_DENIED if user lacks update permission
         """
@@ -137,10 +120,8 @@ class WorkflowInstanceCommandControllerServicer(object):
     def delete(self, request, context):
         """Delete a workflow instance.
 
+        @internal
         Permanently removes a WorkflowInstance resource.
-
-        Important:
-        - Deletion is permanent and cannot be undone
         - Does NOT delete the referenced Workflow template (templates are reusable)
         - Does NOT delete the referenced Environment resources (environments are reusable)
         - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
@@ -149,14 +130,7 @@ class WorkflowInstanceCommandControllerServicer(object):
         Requires "delete" permission on the specific WorkflowInstance resource.
         Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
 
-        Use Cases:
-        - Remove deprecated instances
-        - Clean up test/dev instances
-        - Decommission old deployment configurations
-
-        Returns:
-        The deleted WorkflowInstance (final state before deletion).
-        Useful for audit logs and confirming what was deleted.
+        Returns the deleted WorkflowInstance (final state before deletion).
 
         Error: PERMISSION_DENIED if user lacks delete permission
         Error: NOT_FOUND if instance ID doesn't exist
@@ -197,8 +171,9 @@ def add_WorkflowInstanceCommandControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class WorkflowInstanceCommandController(object):
-    """WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+    """WorkflowInstanceCommandController handles write operations for workflow instances.
 
+    @internal
     This service provides the CUD (Create, Update, Delete) operations following the
     Command-Query Separation pattern. All RPCs that modify state go through this controller.
 

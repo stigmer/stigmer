@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * OrganizationCommandController provides write operations for organizations
+ * OrganizationCommandController handles write operations for organizations.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -200,7 +200,7 @@ public final class OrganizationCommandControllerGrpc {
 
   /**
    * <pre>
-   * OrganizationCommandController provides write operations for organizations
+   * OrganizationCommandController handles write operations for organizations.
    * </pre>
    */
   public interface AsyncService {
@@ -208,6 +208,7 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the organization
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -219,9 +220,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new organization
-     * No authorization required - any authenticated user can create an organization
-     * The creator automatically becomes the owner of the organization
+     * Create an organization.
+     * &#64;internal
+     * No authorization required — any authenticated user can create an organization.
+     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     default void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -231,8 +233,9 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization
-     * Requires: Organization admin permission (can_edit)
+     * Update an existing organization.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     default void update(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -242,9 +245,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization
-     * Requires: Organization owner permission (can_delete)
-     * Note: This will cascade delete all resources under the organization
+     * Delete an organization.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the organization.
+     * This will cascade-delete all resources under the organization.
      * </pre>
      */
     default void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -256,7 +260,7 @@ public final class OrganizationCommandControllerGrpc {
   /**
    * Base class for the server implementation of the service OrganizationCommandController.
    * <pre>
-   * OrganizationCommandController provides write operations for organizations
+   * OrganizationCommandController handles write operations for organizations.
    * </pre>
    */
   public static abstract class OrganizationCommandControllerImplBase
@@ -270,7 +274,7 @@ public final class OrganizationCommandControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service OrganizationCommandController.
    * <pre>
-   * OrganizationCommandController provides write operations for organizations
+   * OrganizationCommandController handles write operations for organizations.
    * </pre>
    */
   public static final class OrganizationCommandControllerStub
@@ -289,6 +293,7 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the organization
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -301,9 +306,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new organization
-     * No authorization required - any authenticated user can create an organization
-     * The creator automatically becomes the owner of the organization
+     * Create an organization.
+     * &#64;internal
+     * No authorization required — any authenticated user can create an organization.
+     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     public void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -314,8 +320,9 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization
-     * Requires: Organization admin permission (can_edit)
+     * Update an existing organization.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     public void update(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -326,9 +333,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization
-     * Requires: Organization owner permission (can_delete)
-     * Note: This will cascade delete all resources under the organization
+     * Delete an organization.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the organization.
+     * This will cascade-delete all resources under the organization.
      * </pre>
      */
     public void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -341,7 +349,7 @@ public final class OrganizationCommandControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service OrganizationCommandController.
    * <pre>
-   * OrganizationCommandController provides write operations for organizations
+   * OrganizationCommandController handles write operations for organizations.
    * </pre>
    */
   public static final class OrganizationCommandControllerBlockingV2Stub
@@ -360,6 +368,7 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the organization
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -371,9 +380,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new organization
-     * No authorization required - any authenticated user can create an organization
-     * The creator automatically becomes the owner of the organization
+     * Create an organization.
+     * &#64;internal
+     * No authorization required — any authenticated user can create an organization.
+     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -383,8 +393,9 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization
-     * Requires: Organization admin permission (can_edit)
+     * Update an existing organization.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -394,9 +405,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization
-     * Requires: Organization owner permission (can_delete)
-     * Note: This will cascade delete all resources under the organization
+     * Delete an organization.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the organization.
+     * This will cascade-delete all resources under the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) throws io.grpc.StatusException {
@@ -408,7 +420,7 @@ public final class OrganizationCommandControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service OrganizationCommandController.
    * <pre>
-   * OrganizationCommandController provides write operations for organizations
+   * OrganizationCommandController handles write operations for organizations.
    * </pre>
    */
   public static final class OrganizationCommandControllerBlockingStub
@@ -427,6 +439,7 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the organization
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -438,9 +451,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new organization
-     * No authorization required - any authenticated user can create an organization
-     * The creator automatically becomes the owner of the organization
+     * Create an organization.
+     * &#64;internal
+     * No authorization required — any authenticated user can create an organization.
+     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -450,8 +464,9 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization
-     * Requires: Organization admin permission (can_edit)
+     * Update an existing organization.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -461,9 +476,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization
-     * Requires: Organization owner permission (can_delete)
-     * Note: This will cascade delete all resources under the organization
+     * Delete an organization.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the organization.
+     * This will cascade-delete all resources under the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) {
@@ -475,7 +491,7 @@ public final class OrganizationCommandControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service OrganizationCommandController.
    * <pre>
-   * OrganizationCommandController provides write operations for organizations
+   * OrganizationCommandController handles write operations for organizations.
    * </pre>
    */
   public static final class OrganizationCommandControllerFutureStub
@@ -494,6 +510,7 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the organization
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -506,9 +523,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new organization
-     * No authorization required - any authenticated user can create an organization
-     * The creator automatically becomes the owner of the organization
+     * Create an organization.
+     * &#64;internal
+     * No authorization required — any authenticated user can create an organization.
+     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> create(
@@ -519,8 +537,9 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization
-     * Requires: Organization admin permission (can_edit)
+     * Update an existing organization.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> update(
@@ -531,9 +550,10 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an organization
-     * Requires: Organization owner permission (can_delete)
-     * Note: This will cascade delete all resources under the organization
+     * Delete an organization.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the organization.
+     * This will cascade-delete all resources under the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> delete(

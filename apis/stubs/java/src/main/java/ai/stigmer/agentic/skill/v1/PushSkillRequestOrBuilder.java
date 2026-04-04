@@ -12,8 +12,7 @@ public interface PushSkillRequestOrBuilder extends
 
   /**
    * <pre>
-   * Organization that owns this skill. Required.
-   * All skills belong to exactly one organization.
+   * Organization that owns this skill.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -22,8 +21,7 @@ public interface PushSkillRequestOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization that owns this skill. Required.
-   * All skills belong to exactly one organization.
+   * Organization that owns this skill.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -76,12 +74,14 @@ public interface PushSkillRequestOrBuilder extends
 
   /**
    * <pre>
-   * Git provenance for this skill version. Optional.
+   * Git provenance for this skill version.
+   * Absent when pushed from a non-git directory.
+   *
+   * &#64;internal
    * Populated by CLI during push:
    * - For local pushes: auto-detected if directory is within a git repository
    * - For git pushes: resolved from user-provided URL/ref
-   * Absent when pushed from a non-git directory.
-   * This is stored in SkillStatus.git_provenance for traceability.
+   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -90,12 +90,14 @@ public interface PushSkillRequestOrBuilder extends
   boolean hasGitProvenance();
   /**
    * <pre>
-   * Git provenance for this skill version. Optional.
+   * Git provenance for this skill version.
+   * Absent when pushed from a non-git directory.
+   *
+   * &#64;internal
    * Populated by CLI during push:
    * - For local pushes: auto-detected if directory is within a git repository
    * - For git pushes: resolved from user-provided URL/ref
-   * Absent when pushed from a non-git directory.
-   * This is stored in SkillStatus.git_provenance for traceability.
+   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -104,12 +106,14 @@ public interface PushSkillRequestOrBuilder extends
   ai.stigmer.agentic.skill.v1.GitProvenance getGitProvenance();
   /**
    * <pre>
-   * Git provenance for this skill version. Optional.
+   * Git provenance for this skill version.
+   * Absent when pushed from a non-git directory.
+   *
+   * &#64;internal
    * Populated by CLI during push:
    * - For local pushes: auto-detected if directory is within a git repository
    * - For git pushes: resolved from user-provided URL/ref
-   * Absent when pushed from a non-git directory.
-   * This is stored in SkillStatus.git_provenance for traceability.
+   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>

@@ -9,13 +9,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * WorkflowTaskStatus defines the execution status of a workflow task.
  *
- * Tasks progress through statuses as the workflow executes.
- * Task statuses are used for:
- * - UI task lists (show checkmarks, spinners, error icons)
- * - Progress calculation (completed_tasks / total_tasks)
- * - Debugging failed workflows (which task failed, what was the error)
- * - Retry logic (retry failed tasks)
- *
+ * &#64;internal
  * Status Transitions:
  *
  * Normal flow:
@@ -27,7 +21,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * Skip flow (conditional):
  * WORKFLOW_TASK_PENDING → WORKFLOW_TASK_SKIPPED
  *
- * Approval flow (HITL, for agent invocation tasks):
+ * Approval flow (for agent invocation tasks):
  * WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_WAITING_APPROVAL → WORKFLOW_TASK_IN_PROGRESS
  * ↘ WORKFLOW_TASK_FAILED (on reject)
  * </pre>
@@ -39,7 +33,9 @@ public enum WorkflowTaskStatus
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Unspecified status (invalid, should never be used).
+   * Unspecified status (invalid).
+   *
+   * &#64;internal
    * Exists only for proto3 zero-value semantics.
    * </pre>
    *
@@ -50,17 +46,8 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task is waiting to execute.
    *
+   * &#64;internal
    * The task has been created but has not started executing yet.
-   * This happens when:
-   * - Task dependencies have not completed (waiting for previous tasks)
-   * - Workflow is in EXECUTION_PENDING phase (not started yet)
-   * - Task is queued behind other tasks (sequential execution)
-   *
-   * While in this status:
-   * - started_at and completed_at are not set
-   * - input is populated (task knows what it will execute)
-   * - output is not populated (task hasn't executed yet)
-   *
    * Next statuses: WORKFLOW_TASK_IN_PROGRESS, WORKFLOW_TASK_SKIPPED
    * </pre>
    *
@@ -71,23 +58,8 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task is currently executing.
    *
+   * &#64;internal
    * The workflow runner is actively processing this task.
-   * The task is performing its specific operation:
-   * - Calling an API
-   * - Invoking an agent
-   * - Waiting for approval
-   * - Transforming data
-   *
-   * While in this status:
-   * - started_at is set
-   * - completed_at is not set
-   * - output is not populated yet (waiting for task to finish)
-   *
-   * Typical duration: Milliseconds to hours (depends on task type)
-   * - API calls: &lt; 10 seconds
-   * - Agent invocations: 10-60 seconds
-   * - Approvals: Hours to days
-   *
    * Next statuses: WORKFLOW_TASK_COMPLETED, WORKFLOW_TASK_FAILED
    * </pre>
    *
@@ -98,14 +70,8 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task finished successfully.
    *
-   * The task executed its operation and produced a successful result.
-   *
-   * When this status is reached:
-   * - completed_at is set
-   * - output is populated with task results
-   * - error is not set
-   *
-   * Next statuses: None (terminal state for this task)
+   * &#64;internal
+   * Terminal state for this task. Output is populated with results.
    * </pre>
    *
    * <code>WORKFLOW_TASK_COMPLETED = 3;</code>
@@ -115,38 +81,9 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task failed during execution.
    *
-   * The task encountered an error and could not complete successfully.
-   *
-   * When this status is reached:
-   * - completed_at is set
-   * - error is populated with failure description
-   * - output is not populated (task didn't produce valid output)
-   *
-   * Common Failure Causes by Task Type:
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * - Network timeout
-   * - HTTP 4xx/5xx errors
-   * - Invalid response format
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * - Agent execution timeout
-   * - Agent execution error
-   * - Prompt too long (exceeds token limit)
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * - Timeout (no approval within timeout_hours)
-   * - Explicit rejection
-   *
-   * WORKFLOW_TASK_TRANSFORM:
-   * - Invalid expression syntax
-   * - Type mismatch
-   *
-   * Impact:
-   * - If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured)
-   * - Failed tasks can be retried (if retry policy is configured)
-   *
-   * Next statuses: None (terminal state for this task)
+   * &#64;internal
+   * Terminal state for this task. The error field is populated with failure description.
+   * If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured).
    * </pre>
    *
    * <code>WORKFLOW_TASK_FAILED = 4;</code>
@@ -156,22 +93,10 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task was skipped due to conditional logic.
    *
-   * The task was not executed because a conditional task determined it should be skipped.
-   *
-   * When this status is reached:
-   * - started_at is not set (task never started)
-   * - completed_at may be set (time when skip was determined)
-   * - output is not populated (task didn't execute)
-   * - error is not set (skip is not an error)
-   *
-   * Example:
-   * Conditional task: if email_valid == false, skip "create_account" task
-   *
-   * Impact:
-   * - Skipped tasks don't cause workflow failure
-   * - Skipped tasks count toward completed_tasks (for progress calculation)
-   *
-   * Next statuses: None (terminal state for this task)
+   * &#64;internal
+   * Terminal state for this task. The task was not executed because
+   * a conditional task determined it should be skipped.
+   * Skipped tasks don't cause workflow failure.
    * </pre>
    *
    * <code>WORKFLOW_TASK_SKIPPED = 5;</code>
@@ -179,29 +104,13 @@ public enum WorkflowTaskStatus
   WORKFLOW_TASK_SKIPPED(5),
   /**
    * <pre>
-   * Task is waiting for approval from child agent (HITL Phase 1).
+   * Task is waiting for human approval from a child agent execution.
    *
-   * This status is set when:
-   * - task_type == WORKFLOW_TASK_AGENT_INVOCATION
-   * - The invoked AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL
+   * &#64;internal
+   * Set when task_type == WORKFLOW_TASK_AGENT_INVOCATION and the invoked
+   * AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL.
    *
-   * The workflow runner detects this by polling or watching the child execution.
-   * When the child's approval is submitted, the task returns to IN_PROGRESS.
-   *
-   * While in this status:
-   * - started_at is set (task started before agent needed approval)
-   * - completed_at is not set (task is not done)
-   * - The child AgentExecution.status.pending_approval contains approval details
-   *
-   * UI should show: "Agent is waiting for tool approval"
-   * with details from the child execution's pending_approval field.
-   *
-   * Approval can be submitted through:
-   * - AgentExecution.SubmitApproval (direct to child agent)
-   * - WorkflowExecution API (forwarded to child - future work)
-   *
-   * This is NOT a terminal state - workflow resumes after approval decision.
-   *
+   * NOT a terminal state - workflow resumes after approval decision.
    * Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)
    * </pre>
    *
@@ -222,7 +131,9 @@ public enum WorkflowTaskStatus
   }
   /**
    * <pre>
-   * Unspecified status (invalid, should never be used).
+   * Unspecified status (invalid).
+   *
+   * &#64;internal
    * Exists only for proto3 zero-value semantics.
    * </pre>
    *
@@ -233,17 +144,8 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task is waiting to execute.
    *
+   * &#64;internal
    * The task has been created but has not started executing yet.
-   * This happens when:
-   * - Task dependencies have not completed (waiting for previous tasks)
-   * - Workflow is in EXECUTION_PENDING phase (not started yet)
-   * - Task is queued behind other tasks (sequential execution)
-   *
-   * While in this status:
-   * - started_at and completed_at are not set
-   * - input is populated (task knows what it will execute)
-   * - output is not populated (task hasn't executed yet)
-   *
    * Next statuses: WORKFLOW_TASK_IN_PROGRESS, WORKFLOW_TASK_SKIPPED
    * </pre>
    *
@@ -254,23 +156,8 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task is currently executing.
    *
+   * &#64;internal
    * The workflow runner is actively processing this task.
-   * The task is performing its specific operation:
-   * - Calling an API
-   * - Invoking an agent
-   * - Waiting for approval
-   * - Transforming data
-   *
-   * While in this status:
-   * - started_at is set
-   * - completed_at is not set
-   * - output is not populated yet (waiting for task to finish)
-   *
-   * Typical duration: Milliseconds to hours (depends on task type)
-   * - API calls: &lt; 10 seconds
-   * - Agent invocations: 10-60 seconds
-   * - Approvals: Hours to days
-   *
    * Next statuses: WORKFLOW_TASK_COMPLETED, WORKFLOW_TASK_FAILED
    * </pre>
    *
@@ -281,14 +168,8 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task finished successfully.
    *
-   * The task executed its operation and produced a successful result.
-   *
-   * When this status is reached:
-   * - completed_at is set
-   * - output is populated with task results
-   * - error is not set
-   *
-   * Next statuses: None (terminal state for this task)
+   * &#64;internal
+   * Terminal state for this task. Output is populated with results.
    * </pre>
    *
    * <code>WORKFLOW_TASK_COMPLETED = 3;</code>
@@ -298,38 +179,9 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task failed during execution.
    *
-   * The task encountered an error and could not complete successfully.
-   *
-   * When this status is reached:
-   * - completed_at is set
-   * - error is populated with failure description
-   * - output is not populated (task didn't produce valid output)
-   *
-   * Common Failure Causes by Task Type:
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * - Network timeout
-   * - HTTP 4xx/5xx errors
-   * - Invalid response format
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * - Agent execution timeout
-   * - Agent execution error
-   * - Prompt too long (exceeds token limit)
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * - Timeout (no approval within timeout_hours)
-   * - Explicit rejection
-   *
-   * WORKFLOW_TASK_TRANSFORM:
-   * - Invalid expression syntax
-   * - Type mismatch
-   *
-   * Impact:
-   * - If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured)
-   * - Failed tasks can be retried (if retry policy is configured)
-   *
-   * Next statuses: None (terminal state for this task)
+   * &#64;internal
+   * Terminal state for this task. The error field is populated with failure description.
+   * If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured).
    * </pre>
    *
    * <code>WORKFLOW_TASK_FAILED = 4;</code>
@@ -339,22 +191,10 @@ public enum WorkflowTaskStatus
    * <pre>
    * Task was skipped due to conditional logic.
    *
-   * The task was not executed because a conditional task determined it should be skipped.
-   *
-   * When this status is reached:
-   * - started_at is not set (task never started)
-   * - completed_at may be set (time when skip was determined)
-   * - output is not populated (task didn't execute)
-   * - error is not set (skip is not an error)
-   *
-   * Example:
-   * Conditional task: if email_valid == false, skip "create_account" task
-   *
-   * Impact:
-   * - Skipped tasks don't cause workflow failure
-   * - Skipped tasks count toward completed_tasks (for progress calculation)
-   *
-   * Next statuses: None (terminal state for this task)
+   * &#64;internal
+   * Terminal state for this task. The task was not executed because
+   * a conditional task determined it should be skipped.
+   * Skipped tasks don't cause workflow failure.
    * </pre>
    *
    * <code>WORKFLOW_TASK_SKIPPED = 5;</code>
@@ -362,29 +202,13 @@ public enum WorkflowTaskStatus
   public static final int WORKFLOW_TASK_SKIPPED_VALUE = 5;
   /**
    * <pre>
-   * Task is waiting for approval from child agent (HITL Phase 1).
+   * Task is waiting for human approval from a child agent execution.
    *
-   * This status is set when:
-   * - task_type == WORKFLOW_TASK_AGENT_INVOCATION
-   * - The invoked AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL
+   * &#64;internal
+   * Set when task_type == WORKFLOW_TASK_AGENT_INVOCATION and the invoked
+   * AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL.
    *
-   * The workflow runner detects this by polling or watching the child execution.
-   * When the child's approval is submitted, the task returns to IN_PROGRESS.
-   *
-   * While in this status:
-   * - started_at is set (task started before agent needed approval)
-   * - completed_at is not set (task is not done)
-   * - The child AgentExecution.status.pending_approval contains approval details
-   *
-   * UI should show: "Agent is waiting for tool approval"
-   * with details from the child execution's pending_approval field.
-   *
-   * Approval can be submitted through:
-   * - AgentExecution.SubmitApproval (direct to child agent)
-   * - WorkflowExecution API (forwarded to child - future work)
-   *
-   * This is NOT a terminal state - workflow resumes after approval decision.
-   *
+   * NOT a terminal state - workflow resumes after approval decision.
    * Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)
    * </pre>
    *

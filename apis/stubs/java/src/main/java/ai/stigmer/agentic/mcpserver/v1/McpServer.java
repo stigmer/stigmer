@@ -8,8 +8,8 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * McpServer represents a reusable MCP (Model Context Protocol) server configuration.
- * MCP servers provide tools and capabilities to AI agents via a standardized protocol.
  *
+ * &#64;internal
  * Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:
  * - Can be referenced by multiple agents (reusability)
  * - Has proper access control via FGA (authorization)
@@ -21,23 +21,6 @@ package ai.stigmer.agentic.mcpserver.v1;
  * 2. Reference in Agent via mcp_server_usages
  * 3. Create AgentInstance with environment_ref providing actual secrets
  * 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
- *
- * Example YAML:
- * apiVersion: agentic.stigmer.ai/v1
- * kind: McpServer
- * metadata:
- * name: github
- * scope: platform
- * spec:
- * description: "GitHub MCP server for repository operations"
- * stdio:
- * command: npx
- * args: ["-y", "&#64;modelcontextprotocol/server-github"]
- * env_spec:
- * data:
- * GITHUB_TOKEN:
- * is_secret: true
- * description: "GitHub personal access token"
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.McpServer}
@@ -187,8 +170,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * Standard resource metadata including name, id, org, visibility, labels, and tags.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * Key fields:
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")
@@ -211,8 +195,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, org, visibility, labels, and tags.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * Key fields:
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")
@@ -235,8 +220,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, org, visibility, labels, and tags.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * Key fields:
    * - name: Human-readable name (e.g., "GitHub MCP Server")
    * - slug: URL-friendly identifier (e.g., "github")
@@ -559,8 +545,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * McpServer represents a reusable MCP (Model Context Protocol) server configuration.
-   * MCP servers provide tools and capabilities to AI agents via a standardized protocol.
    *
+   * &#64;internal
    * Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:
    * - Can be referenced by multiple agents (reusability)
    * - Has proper access control via FGA (authorization)
@@ -572,23 +558,6 @@ private static final long serialVersionUID = 0L;
    * 2. Reference in Agent via mcp_server_usages
    * 3. Create AgentInstance with environment_ref providing actual secrets
    * 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
-   *
-   * Example YAML:
-   * apiVersion: agentic.stigmer.ai/v1
-   * kind: McpServer
-   * metadata:
-   * name: github
-   * scope: platform
-   * spec:
-   * description: "GitHub MCP server for repository operations"
-   * stdio:
-   * command: npx
-   * args: ["-y", "&#64;modelcontextprotocol/server-github"]
-   * env_spec:
-   * data:
-   * GITHUB_TOKEN:
-   * is_secret: true
-   * description: "GitHub personal access token"
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.McpServer}
@@ -1014,8 +983,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")
@@ -1037,8 +1007,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")
@@ -1064,8 +1035,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")
@@ -1096,8 +1068,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")
@@ -1126,8 +1099,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")
@@ -1163,8 +1137,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")
@@ -1192,8 +1167,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")
@@ -1216,8 +1192,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")
@@ -1243,8 +1220,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, org, visibility, labels, and tags.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * Key fields:
      * - name: Human-readable name (e.g., "GitHub MCP Server")
      * - slug: URL-friendly identifier (e.g., "github")

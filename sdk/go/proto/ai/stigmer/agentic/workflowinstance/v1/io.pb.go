@@ -28,18 +28,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WorkflowInstanceId wraps a workflow instance identifier for RPC operations.
+// WorkflowInstanceId wraps a workflow instance identifier.
 //
+// @internal
 // Used as input to RPCs that operate on a single instance:
 // - get: Retrieve a specific instance by ID
 // - delete: Remove a specific instance by ID
-//
 // Format: Resource ID string (e.g., "wfi_abc123")
-// Validation: Required field (must not be empty)
 type WorkflowInstanceId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The workflow instance resource ID.
-	// Example: "wfi_abc123"
+	// Workflow instance resource ID.
 	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -82,33 +80,20 @@ func (x *WorkflowInstanceId) GetValue() string {
 	return ""
 }
 
-// GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific Workflow template.
+// GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.
 //
+// @internal
 // This allows you to find all configured deployments of a given Workflow.
 // For example, a "deploy-to-cloud" Workflow might have instances:
 // - "prod-deploy" (with production environments)
 // - "staging-deploy" (with staging environments)
 // - "dev-deploy" (with development environments)
-//
 // Supports pagination for efficient retrieval of large result sets.
 type GetWorkflowInstancesByWorkflowRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Workflow template ID to filter by.
-	//
-	// Returns all WorkflowInstance resources where spec.workflow_id matches this value.
-	// Format: Workflow resource ID (e.g., "wfl_abc123")
-	// Validation: Required field
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	// Pagination options for controlling result set size and pages.
-	//
-	// Includes:
-	// - page_size: Maximum number of instances per page
-	// - page_token: Token from previous response for next page
-	//
-	// Example pagination flow:
-	// 1. Request with page_info.page_size = 20
-	// 2. Response includes page_token = "next_page_token_here"
-	// 3. Subsequent request with page_info.page_token = "next_page_token_here"
+	// Pagination options for result set control.
 	PageInfo      *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -159,27 +144,11 @@ func (x *GetWorkflowInstancesByWorkflowRequest) GetPageInfo() *rpc.PageInfo {
 }
 
 // WorkflowInstanceList contains a paginated list of workflow instances.
-//
-// Returned by list and query operations. Includes pagination metadata
-// to support iterating through large result sets.
 type WorkflowInstanceList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of pages available in the full result set.
-	//
-	// Use this to determine if there are more pages to fetch.
-	// If total_pages > current_page, more results are available.
-	//
-	// Example: If total_pages = 5, you can fetch up to 5 pages of results.
+	// Total number of pages in the result set.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
 	// Workflow instances in the current page.
-	//
-	// The number of entries is controlled by the page_size parameter
-	// in the request. May be fewer than page_size on the last page.
-	//
-	// Each entry is a complete WorkflowInstance resource with:
-	// - api_version, kind, metadata
-	// - spec (workflow_id, description, environment_refs)
-	// - status (audit information)
 	Entries       []*WorkflowInstance `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

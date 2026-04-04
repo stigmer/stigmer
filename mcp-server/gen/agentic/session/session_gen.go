@@ -10,9 +10,11 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-// SessionSpec defines the configurable properties of an agent conversation session.
+// SessionSpec defines the configurable properties of a session.
 //
-//	This is the "Execution" layer - ephemeral runtime against an AgentInstance.
+//	@internal
+//	This is the "Execution" layer — ephemeral runtime against an AgentInstance.
+//	The overview.md file provides the SDK-facing description and example YAML.
 type SessionInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -27,56 +29,58 @@ type SessionInput struct {
 	// Tags for categorization and discovery.
 	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
-	// ID of the AgentInstance this session runs against. When provided, the session uses this specific agent instance. When empty, the backend resolves the platform default agent (labeled stigmer.ai/default-agent: "true" with visibility_public) and auto-creates a default instance if needed.
-	AgentInstanceId string `json:"agent_instance_id,omitempty" jsonschema:"ID of the AgentInstance this session runs against. When provided, the session uses this specific agent instance. When empty, the backend resolves the platform default agent (labeled stigmer.ai/default-agent: 'true' with visibility_public) and auto-creates a default instance if needed."`
-	// Conversation title/subject for UI display (optional).
-	Subject string `json:"subject,omitempty" jsonschema:"Conversation title/subject for UI display (optional)."`
-	// thread ID (generated on first execution, persists across all executions).
-	ThreadId string `json:"thread_id,omitempty" jsonschema:"thread ID (generated on first execution, persists across all executions)."`
-	// Daytona sandbox ID (created on first execution, reused for file persistence).
-	SandboxId string `json:"sandbox_id,omitempty" jsonschema:"Daytona sandbox ID (created on first execution, reused for file persistence)."`
-	// Session metadata (e.g., client info, tags).
-	Metadata map[string]string `json:"metadata,omitempty" jsonschema:"Session metadata (e.g., client info, tags)."`
-	// Workspace entries for this session (optional, may be empty). Each entry pairs a name with a source (git repo or local path), forming a multi-root workspace (VS Code model). Entries are provisioned on the first execution; subsequent executions reuse the same workspace. When empty, the session uses an empty workspace directory (existing default behavior, no provisioning step).
-	WorkspaceEntries []WorkspaceEntryInput `json:"workspace_entries,omitempty" jsonschema:"Workspace entries for this session (optional, may be empty). Each entry pairs a name with a source (git repo or local path), forming a multi-root workspace (VS Code model). Entries are provisioned on the first execution; subsequent executions reuse the same workspace. When empty, the session uses an empty workspace directory (existing default behavior, no provisioning step)."`
-	// MCP servers to make available in this session (merged with agent's at execution time). Enables users to augment the agent's tool set for a specific conversation without modifying the agent blueprint. Each usage references an McpServer resource; the agent runner merges these with the agent's mcp_server_usages when constructing the execution graph. Merge semantics: session-level usages are union'd with agent-level usages. If both reference the same MCP server slug, the session-level entry takes precedence (enables per-session tool restriction or expansion).
-	McpServerUsages []McpServerUsageInput `json:"mcp_server_usages,omitempty" jsonschema:"MCP servers to make available in this session (merged with agent's at execution time). Enables users to augment the agent's tool set for a specific conversation without modifying the agent blueprint. Each usage references an McpServer resource; the agent runner merges these with the agent's mcp_server_usages when constructing the execution graph. Merge semantics: session-level usages are union'd with agent-level usages. If both reference the same MCP server slug, the session-level entry takes precedence (enables per-session tool restriction or expansion)."`
-	// Skills to inject into this session's context (merged with agent's at execution time). Enables users to provide domain-specific knowledge for a specific conversation without modifying the agent blueprint. Each reference points to a Skill resource whose content is injected into the agent's context alongside agent-level skills. Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
-	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skills to inject into this session's context (merged with agent's at execution time). Enables users to provide domain-specific knowledge for a specific conversation without modifying the agent blueprint. Each reference points to a Skill resource whose content is injected into the agent's context alongside agent-level skills. Merge semantics: union'd with agent-level skill_refs, deduplicated by slug."`
+	// Agent instance this session runs against. @internal When empty, the backend resolves the platform default agent (labeled stigmer.ai/default-agent: "true" with visibility_public) and auto-creates a default instance if needed.
+	AgentInstanceId string `json:"agent_instance_id,omitempty" jsonschema:"Agent instance this session runs against. @internal When empty, the backend resolves the platform default agent (labeled stigmer.ai/default-agent: 'true' with visibility_public) and auto-creates a default instance if needed."`
+	// Conversation title for UI display.
+	Subject string `json:"subject,omitempty" jsonschema:"Conversation title for UI display."`
+	// Thread ID that carries the conversation history across executions. @internal Generated on first execution, persists across all executions.
+	ThreadId string `json:"thread_id,omitempty" jsonschema:"Thread ID that carries the conversation history across executions. @internal Generated on first execution, persists across all executions."`
+	// Sandbox ID for persistent file storage across executions. @internal Created on first execution (Daytona sandbox), reused for file persistence.
+	SandboxId string `json:"sandbox_id,omitempty" jsonschema:"Sandbox ID for persistent file storage across executions. @internal Created on first execution (Daytona sandbox), reused for file persistence."`
+	// Custom key-value pairs for client-specific information.
+	Metadata map[string]string `json:"metadata,omitempty" jsonschema:"Custom key-value pairs for client-specific information."`
+	// Workspace entries for this session. Each entry pairs a name with a source (git repo or local path), forming a multi-root workspace. Entries are provisioned on the first execution; subsequent executions reuse the same workspace. When empty, the session uses an empty workspace directory.
+	WorkspaceEntries []WorkspaceEntryInput `json:"workspace_entries,omitempty" jsonschema:"Workspace entries for this session. Each entry pairs a name with a source (git repo or local path), forming a multi-root workspace. Entries are provisioned on the first execution; subsequent executions reuse the same workspace. When empty, the session uses an empty workspace directory."`
+	// MCP servers to make available in this session. Augments the agent's tool set for this specific conversation without modifying the agent blueprint. Each usage references an McpServer resource. @internal Merge semantics: session-level usages are union'd with agent-level usages. If both reference the same MCP server slug, the session-level entry takes precedence (enables per-session tool restriction or expansion). The agent runner merges these with the agent's mcp_server_usages when constructing the execution graph.
+	McpServerUsages []McpServerUsageInput `json:"mcp_server_usages,omitempty" jsonschema:"MCP servers to make available in this session. Augments the agent's tool set for this specific conversation without modifying the agent blueprint. Each usage references an McpServer resource. @internal Merge semantics: session-level usages are union'd with agent-level usages. If both reference the same MCP server slug, the session-level entry takes precedence (enables per-session tool restriction or expansion). The agent runner merges these with the agent's mcp_server_usages when constructing the execution graph."`
+	// Skills to inject into this session's context. Provides domain-specific knowledge for this specific conversation without modifying the agent blueprint. Each reference points to a Skill resource whose content is added to the agent's context alongside agent-level skills. @internal Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skills to inject into this session's context. Provides domain-specific knowledge for this specific conversation without modifying the agent blueprint. Each reference points to a Skill resource whose content is added to the agent's context alongside agent-level skills. @internal Merge semantics: union'd with agent-level skill_refs, deduplicated by slug."`
 }
 
-// GitRepoSource provisions a workspace by cloning a git repository. Authentication: The provisioner resolves GITHUB_TOKEN from the merged environment (Agent defaults < Environment < ExecutionContext.runtime_env) and injects it into the clone URL. The token is consumed by provisioning and stripped before forwarding to the agent runtime (see AD-05). HTTPS only for MVP. SSH key authentication is a future enhancement.
+// GitRepoSource provisions a workspace by cloning a git repository. Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time. @internal Authentication: The provisioner resolves GITHUB_TOKEN from the merged environment (Agent defaults < Environment < ExecutionContext.runtime_env) and injects it into the clone URL. The token is consumed by provisioning and stripped before forwarding to the agent runtime (see AD-05). SSH key authentication is a future enhancement.
 type GitRepoSourceInput struct {
-	// HTTPS clone URL (required). Must use the https:// scheme. SSH URLs (git@...) are not supported. Example: "https://github.com/acme/my-app.git"
-	Url string `json:"url" jsonschema:"HTTPS clone URL (required). Must use the https:// scheme. SSH URLs (git@...) are not supported. Example: 'https://github.com/acme/my-app.git'"`
-	// Branch to clone (optional). When empty, the repository's default branch is used. Example: "main", "develop", "feature/workspace-support"
-	Branch string `json:"branch,omitempty" jsonschema:"Branch to clone (optional). When empty, the repository's default branch is used. Example: 'main', 'develop', 'feature/workspace-support'"`
-	// Commit SHA to checkout after cloning (optional). When set, the workspace is checked out at this exact commit (detached HEAD). When both branch and commit are set, the branch is cloned first, then the commit is checked out -- this allows shallow clones of a specific commit on a known branch. When only commit is set (no branch), a full clone is required to locate the commit.
-	Commit string `json:"commit,omitempty" jsonschema:"Commit SHA to checkout after cloning (optional). When set, the workspace is checked out at this exact commit (detached HEAD). When both branch and commit are set, the branch is cloned first, then the commit is checked out -- this allows shallow clones of a specific commit on a known branch. When only commit is set (no branch), a full clone is required to locate the commit."`
-	// Clone depth (optional). Presence semantics: - Absent (not set): shallow clone with depth 1 (fast default). - 0: full clone with complete history. - N > 0: shallow clone with depth N. Uses proto3 optional to distinguish "not set" from "set to 0."
-	Depth int32 `json:"depth,omitempty" jsonschema:"Clone depth (optional). Presence semantics: - Absent (not set): shallow clone with depth 1 (fast default). - 0: full clone with complete history. - N > 0: shallow clone with depth N. Uses proto3 optional to distinguish 'not set' from 'set to 0.'"`
-	// Controls whether the platform automatically creates a branch and pull request from the agent's file changes during execution. This is a platform-level workflow, not an agent-level decision. The agent focuses on making code changes; the platform packages them incrementally — the PR appears the moment the first file is written and the diff grows in real time as the agent works. Requires git credentials to be configured during workspace provisioning (GITHUB_TOKEN available in the execution environment). If credentials are not available, the write-back is silently skipped regardless of this setting. Default (UNSPECIFIED): platform decides. Currently defaults to write-back enabled when git credentials are available. Set an explicit mode to override.
-	WriteBackMode string `json:"write_back_mode,omitempty" jsonschema:"Controls whether the platform automatically creates a branch and pull request from the agent's file changes during execution. This is a platform-level workflow, not an agent-level decision. The agent focuses on making code changes; the platform packages them incrementally — the PR appears the moment the first file is written and the diff grows in real time as the agent works. Requires git credentials to be configured during workspace provisioning (GITHUB_TOKEN available in the execution environment). If credentials are not available, the write-back is silently skipped regardless of this setting. Default (UNSPECIFIED): platform decides. Currently defaults to write-back enabled when git credentials are available. Set an explicit mode to override. Allowed values: GIT_WRITE_BACK_BRANCH_AND_PR."`
+	// HTTPS clone URL for the repository.
+	Url string `json:"url" jsonschema:"HTTPS clone URL for the repository."`
+	// Branch to clone. When empty, the repository's default branch is used.
+	Branch string `json:"branch,omitempty" jsonschema:"Branch to clone. When empty, the repository's default branch is used."`
+	// Commit SHA to checkout after cloning. When set, the workspace is checked out at this exact commit. When both branch and commit are set, the branch is cloned first, then the commit is checked out.
+	Commit string `json:"commit,omitempty" jsonschema:"Commit SHA to checkout after cloning. When set, the workspace is checked out at this exact commit. When both branch and commit are set, the branch is cloned first, then the commit is checked out."`
+	// Number of commits to include in the clone history. When not set, defaults to a shallow clone with depth 1. Set to 0 for a full clone with complete history. @internal Uses proto3 optional to distinguish "not set" from "set to 0." Absent: shallow clone depth 1; 0: full clone; N > 0: shallow clone depth N.
+	Depth int32 `json:"depth,omitempty" jsonschema:"Number of commits to include in the clone history. When not set, defaults to a shallow clone with depth 1. Set to 0 for a full clone with complete history. @internal Uses proto3 optional to distinguish 'not set' from 'set to 0.' Absent: shallow clone depth 1; 0: full clone; N > 0: shallow clone depth N."`
+	// Controls whether the platform creates a branch and pull request from the agent's file changes. @internal This is a platform-level workflow, not an agent-level decision. The agent focuses on making code changes; the platform packages them incrementally — the PR appears the moment the first file is written and the diff grows in real time as the agent works. Requires GITHUB_TOKEN in the execution environment. If credentials are not available, the write-back is silently skipped regardless of this setting. Default (UNSPECIFIED): platform decides. Currently defaults to write-back enabled when git credentials are available.
+	WriteBackMode string `json:"write_back_mode,omitempty" jsonschema:"Controls whether the platform creates a branch and pull request from the agent's file changes. @internal This is a platform-level workflow, not an agent-level decision. The agent focuses on making code changes; the platform packages them incrementally — the PR appears the moment the first file is written and the diff grows in real time as the agent works. Requires GITHUB_TOKEN in the execution environment. If credentials are not available, the write-back is silently skipped regardless of this setting. Default (UNSPECIFIED): platform decides. Currently defaults to write-back enabled when git credentials are available. Allowed values: GIT_WRITE_BACK_BRANCH_AND_PR."`
 }
 
-// LocalPathSource uses an existing directory on the host filesystem as the workspace. The agent operates directly on the user's files -- changes are immediate and persistent. Deployment constraint: only valid when the agent-runner is in local mode. Cloud runners reject this at provisioning time with a clear error, the same way GitRepoSource rejects SSH URLs at validation time. This is a normal deployment-specific constraint, not a schema limitation. No copy or clone is made. The path is used directly as the workspace root.
+// LocalPathSource uses an existing directory on the host filesystem as the workspace. The agent operates directly on the user's files — changes are immediate and persistent. No copy or clone is made. @internal Deployment constraint: only valid when the agent-runner is in local mode. Cloud runners reject this at provisioning time with a clear error, the same way GitRepoSource rejects SSH URLs at validation time.
 type LocalPathSourceInput struct {
-	// Absolute path to an existing directory on the host filesystem (required). The runner validates that the path exists and is a directory at provisioning time. Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
-	Path string `json:"path,omitempty" jsonschema:"Absolute path to an existing directory on the host filesystem (required). The runner validates that the path exists and is a directory at provisioning time. Example: '/home/user/projects/my-app', '/Users/dev/src/acme-api'"`
+	// Absolute path to an existing directory on the host filesystem.
+	Path string `json:"path,omitempty" jsonschema:"Absolute path to an existing directory on the host filesystem."`
 }
 
-// WorkspaceSource defines where the agent's workspace content comes from. This is a pure source-definition type: it describes the origin of workspace content (a git repo or a local directory) without any identity or naming. Use WorkspaceEntry to pair a source with a name for session-level usage.
+// WorkspaceSource defines where the workspace content comes from. @internal Pure source-definition type: describes the origin of workspace content without any identity or naming. Use WorkspaceEntry to pair a source with a name for session-level usage.
 type WorkspaceSourceInput struct {
-	GitRepo   *GitRepoSourceInput   `json:"git_repo,omitempty" jsonschema:""`
-	LocalPath *LocalPathSourceInput `json:"local_path,omitempty" jsonschema:""`
+	// Clone a git repository as the workspace source.
+	GitRepo *GitRepoSourceInput `json:"git_repo,omitempty" jsonschema:"Clone a git repository as the workspace source."`
+	// Use an existing local directory as the workspace source.
+	LocalPath *LocalPathSourceInput `json:"local_path,omitempty" jsonschema:"Use an existing local directory as the workspace source."`
 }
 
-// WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace. In a multi-root workspace (VS Code model), each entry is a separate directory or repository that the agent can operate on. The name serves as the entry's identity: it appears in the system prompt, and in cloud mode it becomes the subdirectory name under the workspace root. Names are auto-derived by the CLI from the repository name (last URL path segment sans ".git") or the directory basename. They must be unique within a session's workspace_entries list.
+// WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace. Each entry is a separate directory or repository that the agent can operate on. The name serves as the entry's identity and must be unique within a session's workspace_entries list. @internal In a multi-root workspace (VS Code model), the name appears in the system prompt and in cloud mode it becomes the subdirectory name under the workspace root. Names are auto-derived by the CLI from the repository name (last URL path segment sans ".git") or the directory basename.
 type WorkspaceEntryInput struct {
-	// Short identifier for this workspace entry (required). Used in system prompt headings and as the clone subdirectory in cloud mode. Example: "my-app", "frontend", "shared-lib"
-	Name string `json:"name,omitempty" jsonschema:"Short identifier for this workspace entry (required). Used in system prompt headings and as the clone subdirectory in cloud mode. Example: 'my-app', 'frontend', 'shared-lib'"`
-	// The source that provides this entry's content (required).
-	Source *WorkspaceSourceInput `json:"source" jsonschema:"The source that provides this entry's content (required)."`
+	// Short identifier for this workspace entry.
+	Name string `json:"name,omitempty" jsonschema:"Short identifier for this workspace entry."`
+	// The source that provides this entry's content.
+	Source *WorkspaceSourceInput `json:"source" jsonschema:"The source that provides this entry's content."`
 }
 
 // Identifies a resource by org, slug, and optional version. Kind is auto-populated.

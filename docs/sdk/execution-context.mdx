@@ -403,7 +403,7 @@ Ephemeral runtime configuration and secrets scoped to a single execution.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "ExecutionContextInput", description: "Resource specification. See [`ExecutionContextInput`](#executioncontextinput).", typeDescriptionLink: "#executioncontextinput" },
     status: { type: "ExecutionContextStatus", description: "System-managed state. See `ExecutionContextStatus`." },

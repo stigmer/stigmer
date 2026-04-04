@@ -42,9 +42,11 @@ class WorkflowQueryControllerServicer(object):
 
     def getByReference(self, request, context):
         """Get a workflow by its organization-scoped reference (org/slug).
+        Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
 
         @internal
-        Custom authorization in handler.
+        Custom authorization in handler — checks both direct resource access
+        and organization-level visibility permissions.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

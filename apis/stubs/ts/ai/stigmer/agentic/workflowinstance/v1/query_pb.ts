@@ -22,8 +22,9 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_query: GenFile = /*@__P
   fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9xdWVyeS5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEyiwQKH1dvcmtmbG93SW5zdGFuY2VRdWVyeUNvbnRyb2xsZXISswEKA2dldBI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2VJZBo4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2UiNsK4GDIIAxAzIgV2YWx1ZSoldW5hdXRob3JpemVkIHRvIGdldCB3b3JrZmxvdyBpbnN0YW5jZRKiAQoNZ2V0QnlXb3JrZmxvdxJNLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLkdldFdvcmtmbG93SW5zdGFuY2VzQnlXb3JrZmxvd1JlcXVlc3QaPC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlTGlzdCIE0LgYARKGAQoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlIgTQuBgBGgSg/yszYgZwcm90bzM", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_agentic_workflowinstance_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
- * WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+ * WorkflowInstanceQueryController handles read operations for workflow instances.
  *
+ * @internal
  * This service provides all query operations following the Command-Query Separation pattern.
  * All RPCs that read state without modifying it go through this controller.
  *
@@ -40,16 +41,8 @@ export const WorkflowInstanceQueryController: GenService<{
   /**
    * Get a single workflow instance by ID.
    *
+   * @internal
    * Retrieves a specific WorkflowInstance using its unique resource identifier.
-   *
-   * Input:
-   * WorkflowInstanceId with the instance ID (e.g., "wfi_abc123")
-   *
-   * Returns:
-   * Complete WorkflowInstance resource with:
-   * - api_version, kind, metadata
-   * - spec (workflow_id, description, environment_refs)
-   * - status (audit information: created_at, updated_at, version)
    *
    * Authorization:
    * Requires "get" permission on the specific WorkflowInstance.
@@ -57,11 +50,6 @@ export const WorkflowInstanceQueryController: GenService<{
    * Verifies user has access based on:
    * - Instance owner scope (organization or identity_account)
    * - User's IAM policies
-   *
-   * Use Cases:
-   * - Retrieve instance configuration before executing
-   * - View instance details in UI
-   * - Fetch instance for editing/updating
    *
    * Error: PERMISSION_DENIED if user lacks get permission
    * Error: NOT_FOUND if instance ID doesn't exist
@@ -74,30 +62,11 @@ export const WorkflowInstanceQueryController: GenService<{
     output: typeof WorkflowInstanceSchema;
   },
   /**
-   * Get all instances of a specific workflow template.
+   * Get all workflow instances that use a specific workflow template.
    *
-   * Retrieves all WorkflowInstance resources that reference a specific Workflow template.
-   * Useful for discovering all configured deployments of a workflow.
-   *
-   * Example Use Case:
-   * Workflow "deploy-to-cloud" (wfl_123) has instances:
-   * - "prod-deploy" (wfi_abc) - Production deployment with aws-prod-env
-   * - "staging-deploy" (wfi_def) - Staging deployment with aws-staging-env
-   * - "dev-deploy" (wfi_ghi) - Development deployment with aws-dev-env
+   * Returns a paginated list of instances that reference the given workflow ID.
    *
    * @internal
-   *
-   * Input:
-   * GetWorkflowInstancesByWorkflowRequest with:
-   * - workflow_id: Workflow template ID to filter by
-   * - page_info: Pagination settings (page_size, page_token)
-   *
-   * Returns:
-   * WorkflowInstanceList with:
-   * - total_pages: Total number of pages available
-   * - entries: Array of WorkflowInstance resources in current page
-   *
-   * Authorization:
    * Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
    * then filtered by workflow_id. This ensures users only see instances they have access to,
    * even if the parent workflow is shared across organizations.
@@ -119,34 +88,16 @@ export const WorkflowInstanceQueryController: GenService<{
     output: typeof WorkflowInstanceListSchema;
   },
   /**
-   * Get a workflow instance by flexible reference (ID or slug).
+   * Get a workflow instance by reference (ID or slug).
    *
-   * Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
-   * - By ID: {id: "wfi_abc123"}
-   * - By slug: {slug: "prod-deploy"}
-   * - By name: {name: "Production Deploy"}
+   * @internal
+   * Custom authorization in handler — checks both direct resource access
+   * and organization-level visibility permissions.
    *
-   * Input:
-   * ApiResourceReference with one of: id, slug, or name
-   *
-   * Returns:
-   * Complete WorkflowInstance resource matching the reference.
-   *
-   * Authorization:
-   * Uses custom authorization logic in the handler.
-   * Allows for flexible authorization based on reference type and context.
-   * Typical checks:
-   * - User has get permission on the resolved instance
-   * - Instance owner scope matches user's organization/identity
-   *
-   * Use Cases:
-   * - User-friendly lookups by slug instead of opaque IDs
-   * - CLI commands using human-readable names
-   * - API integrations using stable slugs
-   *
-   * Example:
-   * Input: ApiResourceReference{slug: "prod-deploy"}
-   * Output: WorkflowInstance with metadata.slug = "prod-deploy"
+   * Supports lookup by:
+   * - ID: {id: "wfi_abc123"}
+   * - Slug: {slug: "prod-deploy"}
+   * - Name: {name: "Production Deploy"}
    *
    * Error: PERMISSION_DENIED if user lacks access
    * Error: NOT_FOUND if reference doesn't resolve to an instance

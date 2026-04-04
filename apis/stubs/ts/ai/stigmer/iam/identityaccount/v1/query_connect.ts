@@ -30,6 +30,11 @@ export const IdentityAccountQueryController = {
     /**
      * Get the identity account of the currently authenticated user.
      *
+     * Returns the full identity account for the caller based on the auth header.
+     *
+     * @internal
+     * Scoped to the caller's own account, so authorization is skipped.
+     *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.whoAmI
      */
     whoAmI: {

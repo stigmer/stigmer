@@ -9,7 +9,7 @@ import { Empty, MethodKind } from "@bufbuild/protobuf";
 import { FindApiResourcesRequest } from "../../../commons/apiresource/io_pb.js";
 
 /**
- * OrganizationQueryController provides read operations for organizations
+ * OrganizationQueryController handles read operations for organizations.
  *
  * @generated from service ai.stigmer.tenancy.organization.v1.OrganizationQueryController
  */
@@ -17,8 +17,10 @@ export const OrganizationQueryController = {
   typeName: "ai.stigmer.tenancy.organization.v1.OrganizationQueryController",
   methods: {
     /**
-     * Get an organization by ID
-     * Requires: User must be a member of the organization (can_view)
+     * Get an organization by ID.
+     *
+     * @internal
+     * Authorization: Requires can_view permission on the organization.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.get
      */
@@ -29,9 +31,10 @@ export const OrganizationQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Find organizations with pagination and filtering
-     * Requires: Platform admin permission
-     * This is for administrative purposes only
+     * List organizations with pagination and filtering.
+     *
+     * @internal
+     * Authorization: Requires platform admin permission. Administrative use only.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find
      */

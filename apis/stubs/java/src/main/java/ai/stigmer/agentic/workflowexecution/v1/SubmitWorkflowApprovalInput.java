@@ -7,34 +7,18 @@ package ai.stigmer.agentic.workflowexecution.v1;
 
 /**
  * <pre>
- * Input message for submitApproval RPC (HITL Phase 5.3).
+ * Input for the submitApproval RPC.
  *
+ * &#64;internal
  * Forwards an approval decision to a child AgentExecution that is waiting for
- * approval. The child execution ID is resolved from status.pending_approval.child_agent_execution_id.
+ * approval. The child execution ID is resolved from
+ * status.pending_approval.child_agent_execution_id.
  *
- * ## Usage
- *
- * When a workflow task invokes an agent that requires tool approval, the approval
- * request surfaces at the workflow level via WorkflowExecution.status.pending_approval.
- * This message captures the user's decision to forward to the child agent.
- *
- * ## Example
- *
- * {
- * "execution_id": "wfx_abc123xyz456",
- * "tool_call_id": "call_tool789",
- * "action": "APPROVAL_ACTION_APPROVE",
- * "comment": "Verified safe to execute"
- * }
- *
- * ## Validation
- *
+ * Validation:
  * - execution_id: Required, must reference an existing WorkflowExecution
  * - tool_call_id: Required, must match status.pending_approval.tool_call_id
  * - action: Required, must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
  * - comment: Optional, stored in audit trail
- *
- * &#64;since Phase 5.3 (Approval Forwarding)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput}
@@ -89,6 +73,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution.
+   *
+   * &#64;internal
    * Format: "wfx_abc123xyz456"
    * </pre>
    *
@@ -111,6 +97,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution.
+   *
+   * &#64;internal
    * Format: "wfx_abc123xyz456"
    * </pre>
    *
@@ -137,9 +125,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object toolCallId_ = "";
   /**
    * <pre>
-   * ID of the tool call to approve/skip/reject.
+   * ID of the tool call to approve, skip, or reject.
+   *
+   * &#64;internal
    * Must match status.pending_approval.tool_call_id exactly.
-   * Format: Tool call ID from agent runtime (e.g., "call_abc123")
    * </pre>
    *
    * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -160,9 +149,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the tool call to approve/skip/reject.
+   * ID of the tool call to approve, skip, or reject.
+   *
+   * &#64;internal
    * Must match status.pending_approval.tool_call_id exactly.
-   * Format: Tool call ID from agent runtime (e.g., "call_abc123")
    * </pre>
    *
    * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -187,13 +177,10 @@ private static final long serialVersionUID = 0L;
   private int action_ = 0;
   /**
    * <pre>
-   * User's decision: APPROVE, SKIP, or REJECT.
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+   * Approval decision: APPROVE, SKIP, or REJECT.
    *
-   * Actions:
-   * - APPROVE: Tool executes with the provided arguments
-   * - SKIP: Tool execution is skipped, agent receives skip message
-   * - REJECT: Agent execution fails with rejection error
+   * &#64;internal
+   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -204,13 +191,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * User's decision: APPROVE, SKIP, or REJECT.
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+   * Approval decision: APPROVE, SKIP, or REJECT.
    *
-   * Actions:
-   * - APPROVE: Tool executes with the provided arguments
-   * - SKIP: Tool execution is skipped, agent receives skip message
-   * - REJECT: Agent execution fails with rejection error
+   * &#64;internal
+   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -226,13 +210,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object comment_ = "";
   /**
    * <pre>
-   * Optional reason/comment for the decision.
-   * Stored in audit trail for compliance and debugging.
-   *
-   * Examples:
-   * - "Verified the target repository is safe to delete" (on APPROVE)
-   * - "Will handle this operation manually" (on SKIP)
-   * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+   * Optional reason or comment for the decision, stored in the audit trail.
    * </pre>
    *
    * <code>string comment = 4 [json_name = "comment"];</code>
@@ -253,13 +231,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional reason/comment for the decision.
-   * Stored in audit trail for compliance and debugging.
-   *
-   * Examples:
-   * - "Verified the target repository is safe to delete" (on APPROVE)
-   * - "Will handle this operation manually" (on SKIP)
-   * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+   * Optional reason or comment for the decision, stored in the audit trail.
    * </pre>
    *
    * <code>string comment = 4 [json_name = "comment"];</code>
@@ -468,34 +440,18 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Input message for submitApproval RPC (HITL Phase 5.3).
+   * Input for the submitApproval RPC.
    *
+   * &#64;internal
    * Forwards an approval decision to a child AgentExecution that is waiting for
-   * approval. The child execution ID is resolved from status.pending_approval.child_agent_execution_id.
+   * approval. The child execution ID is resolved from
+   * status.pending_approval.child_agent_execution_id.
    *
-   * ## Usage
-   *
-   * When a workflow task invokes an agent that requires tool approval, the approval
-   * request surfaces at the workflow level via WorkflowExecution.status.pending_approval.
-   * This message captures the user's decision to forward to the child agent.
-   *
-   * ## Example
-   *
-   * {
-   * "execution_id": "wfx_abc123xyz456",
-   * "tool_call_id": "call_tool789",
-   * "action": "APPROVAL_ACTION_APPROVE",
-   * "comment": "Verified safe to execute"
-   * }
-   *
-   * ## Validation
-   *
+   * Validation:
    * - execution_id: Required, must reference an existing WorkflowExecution
    * - tool_call_id: Required, must match status.pending_approval.tool_call_id
    * - action: Required, must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
    * - comment: Optional, stored in audit trail
-   *
-   * &#64;since Phase 5.3 (Approval Forwarding)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput}
@@ -679,6 +635,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
+     *
+     * &#64;internal
      * Format: "wfx_abc123xyz456"
      * </pre>
      *
@@ -700,6 +658,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
+     *
+     * &#64;internal
      * Format: "wfx_abc123xyz456"
      * </pre>
      *
@@ -722,6 +682,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
+     *
+     * &#64;internal
      * Format: "wfx_abc123xyz456"
      * </pre>
      *
@@ -740,6 +702,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
+     *
+     * &#64;internal
      * Format: "wfx_abc123xyz456"
      * </pre>
      *
@@ -755,6 +719,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution.
+     *
+     * &#64;internal
      * Format: "wfx_abc123xyz456"
      * </pre>
      *
@@ -775,9 +741,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object toolCallId_ = "";
     /**
      * <pre>
-     * ID of the tool call to approve/skip/reject.
+     * ID of the tool call to approve, skip, or reject.
+     *
+     * &#64;internal
      * Must match status.pending_approval.tool_call_id exactly.
-     * Format: Tool call ID from agent runtime (e.g., "call_abc123")
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -797,9 +764,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the tool call to approve/skip/reject.
+     * ID of the tool call to approve, skip, or reject.
+     *
+     * &#64;internal
      * Must match status.pending_approval.tool_call_id exactly.
-     * Format: Tool call ID from agent runtime (e.g., "call_abc123")
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -820,9 +788,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the tool call to approve/skip/reject.
+     * ID of the tool call to approve, skip, or reject.
+     *
+     * &#64;internal
      * Must match status.pending_approval.tool_call_id exactly.
-     * Format: Tool call ID from agent runtime (e.g., "call_abc123")
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -839,9 +808,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the tool call to approve/skip/reject.
+     * ID of the tool call to approve, skip, or reject.
+     *
+     * &#64;internal
      * Must match status.pending_approval.tool_call_id exactly.
-     * Format: Tool call ID from agent runtime (e.g., "call_abc123")
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -855,9 +825,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the tool call to approve/skip/reject.
+     * ID of the tool call to approve, skip, or reject.
+     *
+     * &#64;internal
      * Must match status.pending_approval.tool_call_id exactly.
-     * Format: Tool call ID from agent runtime (e.g., "call_abc123")
      * </pre>
      *
      * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -877,13 +848,10 @@ private static final long serialVersionUID = 0L;
     private int action_ = 0;
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+     * Approval decision: APPROVE, SKIP, or REJECT.
      *
-     * Actions:
-     * - APPROVE: Tool executes with the provided arguments
-     * - SKIP: Tool execution is skipped, agent receives skip message
-     * - REJECT: Agent execution fails with rejection error
+     * &#64;internal
+     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -894,13 +862,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+     * Approval decision: APPROVE, SKIP, or REJECT.
      *
-     * Actions:
-     * - APPROVE: Tool executes with the provided arguments
-     * - SKIP: Tool execution is skipped, agent receives skip message
-     * - REJECT: Agent execution fails with rejection error
+     * &#64;internal
+     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -916,13 +881,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+     * Approval decision: APPROVE, SKIP, or REJECT.
      *
-     * Actions:
-     * - APPROVE: Tool executes with the provided arguments
-     * - SKIP: Tool execution is skipped, agent receives skip message
-     * - REJECT: Agent execution fails with rejection error
+     * &#64;internal
+     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -935,13 +897,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+     * Approval decision: APPROVE, SKIP, or REJECT.
      *
-     * Actions:
-     * - APPROVE: Tool executes with the provided arguments
-     * - SKIP: Tool execution is skipped, agent receives skip message
-     * - REJECT: Agent execution fails with rejection error
+     * &#64;internal
+     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -957,13 +916,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * User's decision: APPROVE, SKIP, or REJECT.
-     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+     * Approval decision: APPROVE, SKIP, or REJECT.
      *
-     * Actions:
-     * - APPROVE: Tool executes with the provided arguments
-     * - SKIP: Tool execution is skipped, agent receives skip message
-     * - REJECT: Agent execution fails with rejection error
+     * &#64;internal
+     * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -979,13 +935,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object comment_ = "";
     /**
      * <pre>
-     * Optional reason/comment for the decision.
-     * Stored in audit trail for compliance and debugging.
-     *
-     * Examples:
-     * - "Verified the target repository is safe to delete" (on APPROVE)
-     * - "Will handle this operation manually" (on SKIP)
-     * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+     * Optional reason or comment for the decision, stored in the audit trail.
      * </pre>
      *
      * <code>string comment = 4 [json_name = "comment"];</code>
@@ -1005,13 +955,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional reason/comment for the decision.
-     * Stored in audit trail for compliance and debugging.
-     *
-     * Examples:
-     * - "Verified the target repository is safe to delete" (on APPROVE)
-     * - "Will handle this operation manually" (on SKIP)
-     * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+     * Optional reason or comment for the decision, stored in the audit trail.
      * </pre>
      *
      * <code>string comment = 4 [json_name = "comment"];</code>
@@ -1032,13 +976,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional reason/comment for the decision.
-     * Stored in audit trail for compliance and debugging.
-     *
-     * Examples:
-     * - "Verified the target repository is safe to delete" (on APPROVE)
-     * - "Will handle this operation manually" (on SKIP)
-     * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+     * Optional reason or comment for the decision, stored in the audit trail.
      * </pre>
      *
      * <code>string comment = 4 [json_name = "comment"];</code>
@@ -1055,13 +993,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional reason/comment for the decision.
-     * Stored in audit trail for compliance and debugging.
-     *
-     * Examples:
-     * - "Verified the target repository is safe to delete" (on APPROVE)
-     * - "Will handle this operation manually" (on SKIP)
-     * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+     * Optional reason or comment for the decision, stored in the audit trail.
      * </pre>
      *
      * <code>string comment = 4 [json_name = "comment"];</code>
@@ -1075,13 +1007,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional reason/comment for the decision.
-     * Stored in audit trail for compliance and debugging.
-     *
-     * Examples:
-     * - "Verified the target repository is safe to delete" (on APPROVE)
-     * - "Will handle this operation manually" (on SKIP)
-     * - "Unexpected target - this looks like the wrong repository" (on REJECT)
+     * Optional reason or comment for the decision, stored in the audit trail.
      * </pre>
      *
      * <code>string comment = 4 [json_name = "comment"];</code>

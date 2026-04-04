@@ -11,24 +11,44 @@ public interface IdentityAccountsOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.iam.identityaccount.v1.IdentityAccount> 
       getEntriesList();
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.identityaccount.v1.IdentityAccount getEntries(int index);
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   int getEntriesCount();
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.iam.identityaccount.v1.IdentityAccountOrBuilder> 
       getEntriesOrBuilderList();
   /**
+   * <pre>
+   * Identity account entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.identityaccount.v1.IdentityAccountOrBuilder getEntriesOrBuilder(

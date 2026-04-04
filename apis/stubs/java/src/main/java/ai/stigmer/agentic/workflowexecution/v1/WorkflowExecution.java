@@ -9,6 +9,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
  *
+ * &#64;internal
  * WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
  * It captures the complete lifecycle of a workflow run, from initial trigger through
  * task-by-task execution to final completion or failure.
@@ -28,13 +29,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * - Phase: IN_PROGRESS
  * - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]
  * - Progress: 1/3 tasks completed
- *
- * Use Cases:
- * - Track workflow execution progress in real-time
- * - Debug failed workflows with full execution history
- * - Audit workflow runs for compliance and analysis
- * - Monitor workflow performance and duration
- * - Retry failed executions with same inputs
  *
  * Separation of Concerns:
  * - User Inputs (spec): workflow_instance_id, trigger_message, trigger_metadata, runtime_env
@@ -97,6 +91,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * API version for this resource type.
+   *
+   * &#64;internal
    * Format: 'agentic.stigmer.ai/v1'
    * Validated as const to ensure version consistency across all workflow execution resources.
    * </pre>
@@ -120,6 +116,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * API version for this resource type.
+   *
+   * &#64;internal
    * Format: 'agentic.stigmer.ai/v1'
    * Validated as const to ensure version consistency across all workflow execution resources.
    * </pre>
@@ -148,6 +146,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource kind identifier.
+   *
+   * &#64;internal
    * Must be exactly 'WorkflowExecution' to match the message name.
    * Validated as const for type safety and resource identification.
    * </pre>
@@ -171,6 +171,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource kind identifier.
+   *
+   * &#64;internal
    * Must be exactly 'WorkflowExecution' to match the message name.
    * Validated as const for type safety and resource identification.
    * </pre>
@@ -197,8 +199,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * All workflow executions belong to an organization. Visibility (public/private)
    * is typically PRIVATE for executions since they contain runtime data.
    *
@@ -221,8 +224,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * All workflow executions belong to an organization. Visibility (public/private)
    * is typically PRIVATE for executions since they contain runtime data.
    *
@@ -245,8 +249,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+   * Resource metadata including name, organization, visibility, and labels.
    *
+   * &#64;internal
    * All workflow executions belong to an organization. Visibility (public/private)
    * is typically PRIVATE for executions since they contain runtime data.
    *
@@ -273,6 +278,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
    *
+   * &#64;internal
    * Contains:
    * - workflow_instance_id: Which WorkflowInstance to execute (required)
    * - trigger_message: Input message or payload for the workflow (optional)
@@ -309,6 +315,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
    *
+   * &#64;internal
    * Contains:
    * - workflow_instance_id: Which WorkflowInstance to execute (required)
    * - trigger_message: Input message or payload for the workflow (optional)
@@ -345,6 +352,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * User-provided inputs and configuration for this workflow execution.
    *
+   * &#64;internal
    * Contains:
    * - workflow_instance_id: Which WorkflowInstance to execute (required)
    * - trigger_message: Input message or payload for the workflow (optional)
@@ -383,6 +391,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-managed execution state and results.
    *
+   * &#64;internal
    * Contains:
    * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
    * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -390,7 +399,7 @@ private static final long serialVersionUID = 0L;
    * - error: Error message (only for FAILED executions)
    * - started_at: Timestamp when execution started
    * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+   * - temporal_workflow_id: Correlation ID for workflow engine
    *
    * The status is continuously updated by the workflow execution engine as the workflow progresses.
    * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -423,6 +432,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-managed execution state and results.
    *
+   * &#64;internal
    * Contains:
    * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
    * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -430,7 +440,7 @@ private static final long serialVersionUID = 0L;
    * - error: Error message (only for FAILED executions)
    * - started_at: Timestamp when execution started
    * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+   * - temporal_workflow_id: Correlation ID for workflow engine
    *
    * The status is continuously updated by the workflow execution engine as the workflow progresses.
    * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -463,6 +473,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-managed execution state and results.
    *
+   * &#64;internal
    * Contains:
    * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
    * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -470,7 +481,7 @@ private static final long serialVersionUID = 0L;
    * - error: Error message (only for FAILED executions)
    * - started_at: Timestamp when execution started
    * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-   * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+   * - temporal_workflow_id: Correlation ID for workflow engine
    *
    * The status is continuously updated by the workflow execution engine as the workflow progresses.
    * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -717,6 +728,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
    *
+   * &#64;internal
    * WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
    * It captures the complete lifecycle of a workflow run, from initial trigger through
    * task-by-task execution to final completion or failure.
@@ -736,13 +748,6 @@ private static final long serialVersionUID = 0L;
    * - Phase: IN_PROGRESS
    * - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]
    * - Progress: 1/3 tasks completed
-   *
-   * Use Cases:
-   * - Track workflow execution progress in real-time
-   * - Debug failed workflows with full execution history
-   * - Audit workflow runs for compliance and analysis
-   * - Monitor workflow performance and duration
-   * - Retry failed executions with same inputs
    *
    * Separation of Concerns:
    * - User Inputs (spec): workflow_instance_id, trigger_message, trigger_metadata, runtime_env
@@ -982,6 +987,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
+     *
+     * &#64;internal
      * Format: 'agentic.stigmer.ai/v1'
      * Validated as const to ensure version consistency across all workflow execution resources.
      * </pre>
@@ -1004,6 +1011,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
+     *
+     * &#64;internal
      * Format: 'agentic.stigmer.ai/v1'
      * Validated as const to ensure version consistency across all workflow execution resources.
      * </pre>
@@ -1027,6 +1036,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
+     *
+     * &#64;internal
      * Format: 'agentic.stigmer.ai/v1'
      * Validated as const to ensure version consistency across all workflow execution resources.
      * </pre>
@@ -1046,6 +1057,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
+     *
+     * &#64;internal
      * Format: 'agentic.stigmer.ai/v1'
      * Validated as const to ensure version consistency across all workflow execution resources.
      * </pre>
@@ -1062,6 +1075,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * API version for this resource type.
+     *
+     * &#64;internal
      * Format: 'agentic.stigmer.ai/v1'
      * Validated as const to ensure version consistency across all workflow execution resources.
      * </pre>
@@ -1084,6 +1099,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
+     *
+     * &#64;internal
      * Must be exactly 'WorkflowExecution' to match the message name.
      * Validated as const for type safety and resource identification.
      * </pre>
@@ -1106,6 +1123,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
+     *
+     * &#64;internal
      * Must be exactly 'WorkflowExecution' to match the message name.
      * Validated as const for type safety and resource identification.
      * </pre>
@@ -1129,6 +1148,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
+     *
+     * &#64;internal
      * Must be exactly 'WorkflowExecution' to match the message name.
      * Validated as const for type safety and resource identification.
      * </pre>
@@ -1148,6 +1169,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
+     *
+     * &#64;internal
      * Must be exactly 'WorkflowExecution' to match the message name.
      * Validated as const for type safety and resource identification.
      * </pre>
@@ -1164,6 +1187,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource kind identifier.
+     *
+     * &#64;internal
      * Must be exactly 'WorkflowExecution' to match the message name.
      * Validated as const for type safety and resource identification.
      * </pre>
@@ -1187,8 +1212,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1210,8 +1236,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1237,8 +1264,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1269,8 +1297,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1299,8 +1328,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1336,8 +1366,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1365,8 +1396,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1389,8 +1421,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1416,8 +1449,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, slug, labels, tags, and annotations.
+     * Resource metadata including name, organization, visibility, and labels.
      *
+     * &#64;internal
      * All workflow executions belong to an organization. Visibility (public/private)
      * is typically PRIVATE for executions since they contain runtime data.
      *
@@ -1454,6 +1488,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1489,6 +1524,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1528,6 +1564,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1572,6 +1609,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1614,6 +1652,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1663,6 +1702,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1704,6 +1744,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1740,6 +1781,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1779,6 +1821,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User-provided inputs and configuration for this workflow execution.
      *
+     * &#64;internal
      * Contains:
      * - workflow_instance_id: Which WorkflowInstance to execute (required)
      * - trigger_message: Input message or payload for the workflow (optional)
@@ -1827,6 +1870,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -1834,7 +1878,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -1866,6 +1910,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -1873,7 +1918,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -1909,6 +1954,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -1916,7 +1962,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -1957,6 +2003,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -1964,7 +2011,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -2003,6 +2050,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -2010,7 +2058,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -2056,6 +2104,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -2063,7 +2112,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -2101,6 +2150,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -2108,7 +2158,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -2141,6 +2191,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -2148,7 +2199,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.
@@ -2184,6 +2235,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-managed execution state and results.
      *
+     * &#64;internal
      * Contains:
      * - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
      * - tasks: List of workflow tasks with their execution state (source of truth for progress)
@@ -2191,7 +2243,7 @@ private static final long serialVersionUID = 0L;
      * - error: Error message (only for FAILED executions)
      * - started_at: Timestamp when execution started
      * - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-     * - temporal_workflow_id: Correlation ID for Temporal workflow engine
+     * - temporal_workflow_id: Correlation ID for workflow engine
      *
      * The status is continuously updated by the workflow execution engine as the workflow progresses.
      * Users can read status but cannot modify it - it reflects the actual execution state.

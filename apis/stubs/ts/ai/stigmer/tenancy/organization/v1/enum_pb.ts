@@ -14,11 +14,11 @@ export const file_ai_stigmer_tenancy_organization_v1_enum: GenFile = /*@__PURE__
 /**
  * ManagementMode defines how an organization is operated.
  *
+ * @internal
+ * Immutable after organization creation.
  * - self_managed: User signed up directly, manages the org via Stigmer UI/CLI/API.
  * - platform_managed: Created programmatically by an external platform (e.g., Planton Cloud)
  *   via an IdentityProvider. Operated by the platform on behalf of its users.
- *
- * This field is immutable after organization creation.
  *
  * @generated from enum ai.stigmer.tenancy.organization.v1.ManagementMode
  */
@@ -29,11 +29,15 @@ export enum ManagementMode {
   management_mode_unspecified = 0,
 
   /**
+   * Organization created and operated directly by users via Stigmer UI, CLI, or API.
+   *
    * @generated from enum value: self_managed = 1;
    */
   self_managed = 1,
 
   /**
+   * Organization created programmatically by an external platform via an IdentityProvider.
+   *
    * @generated from enum value: platform_managed = 2;
    */
   platform_managed = 2,

@@ -17,50 +17,57 @@ export const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_io: GenFile = /*@
   fileDesc("CjVhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvcnBjYXV0aG9yaXphdGlvbi9pby5wcm90bxIsYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLnJwY2F1dGhvcml6YXRpb24ipAIKFlJwY0F1dGhvcml6YXRpb25Db25maWcSWgoKcGVybWlzc2lvbhgBIAEoDjJGLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5ycGNhdXRob3JpemF0aW9uLkFwaVJlc291cmNlSWFtUGVybWlzc2lvbhJWCg1yZXNvdXJjZV9raW5kGAIgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSGgoScmVzb3VyY2Vfa2luZF9wYXRoGAMgASgJEhIKCmZpZWxkX3BhdGgYBCABKAkSEQoJZXJyb3JfbXNnGAUgASgJEhMKC3Jlc291cmNlX2lkGAYgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission]);
 
 /**
- * authorization config message to check before executing rpc
+ * RpcAuthorizationConfig defines the authorization check performed before an RPC executes.
+ *
+ * @internal
+ * The authorization interceptor reads these fields from the method option annotation
+ * and performs an FGA check: does the caller have `permission` on
+ * `resource_kind:<resolved_id>`?
  *
  * @generated from message ai.stigmer.iam.iampolicy.v1.rpcauthorization.RpcAuthorizationConfig
  */
 export type RpcAuthorizationConfig = Message<"ai.stigmer.iam.iampolicy.v1.rpcauthorization.RpcAuthorizationConfig"> & {
   /**
-   * permission required to run the service
+   * Permission required to invoke the RPC.
    *
    * @generated from field: ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission permission = 1;
    */
   permission: ApiResourceIamPermission;
 
   /**
-   * api-resource-kind that the permission should be granted
+   * Resource kind that the permission is checked against.
    *
    * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind resource_kind = 2;
    */
   resourceKind: ApiResourceKind;
 
   /**
-   * path of the field that contains the api-resource-kind on which to perform authorization.
-   * this is useful when the resource_kind is part of the input object
+   * Dot-path to the field in the request that contains the resource kind value.
+   * Used when resource_kind varies per request rather than being statically configured.
    *
    * @generated from field: string resource_kind_path = 3;
    */
   resourceKindPath: string;
 
   /**
-   * path of the field inside the input object to be used for performing authorization.
+   * Dot-path to the field in the request that contains the resource identifier for the authorization check.
    *
    * @generated from field: string field_path = 4;
    */
   fieldPath: string;
 
   /**
-   * error message to be returned when the permission is not granted to user
+   * Error message returned when the caller lacks the required permission.
    *
    * @generated from field: string error_msg = 5;
    */
   errorMsg: string;
 
   /**
-   * identifier value to be configured if identifier is not part of the input
-   * this will be used in case of system internal rpc`s where the resource_id is `planton-cloud`
+   * Static resource identifier used when the ID is not part of the request.
+   *
+   * @internal
+   * Used for platform-level RPCs where the resource is always "stigmer".
    *
    * @generated from field: string resource_id = 6;
    */

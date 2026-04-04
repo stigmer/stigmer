@@ -14,14 +14,7 @@ export const file_ai_stigmer_agentic_workflowexecution_v1_enum: GenFile = /*@__P
 /**
  * ExecutionPhase defines the lifecycle phase of a workflow execution.
  *
- * Workflow executions progress through distinct phases from creation to completion.
- * Phases are used for:
- * - UI status indicators (progress bars, badges, icons)
- * - Filtering and querying executions (show only in-progress, show only failed)
- * - Alerting and notifications (notify on failure, notify on completion)
- * - Retry and recovery logic (retry failed executions)
- * - Resource cleanup (delete completed executions after retention period)
- *
+ * @internal
  * Phase Transitions:
  *
  * Normal flow:
@@ -42,14 +35,8 @@ export const file_ai_stigmer_agentic_workflowexecution_v1_enum: GenFile = /*@__P
  * EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
  * EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
  *
- * Terminal States:
- * - EXECUTION_COMPLETED: Workflow finished successfully
- * - EXECUTION_FAILED: Workflow encountered an error
- * - EXECUTION_CANCELLED: Workflow was stopped gracefully by user or system
- * - EXECUTION_TERMINATED: Workflow was force-stopped immediately
- *
- * Non-Terminal States:
- * - EXECUTION_PAUSED: Workflow temporarily stopped, can be resumed
+ * Terminal States: COMPLETED, FAILED, CANCELLED, TERMINATED
+ * Non-Terminal States: PAUSED (can be resumed)
  *
  * Once a workflow reaches a terminal state, it cannot transition to another phase.
  *
@@ -57,7 +44,9 @@ export const file_ai_stigmer_agentic_workflowexecution_v1_enum: GenFile = /*@__P
  */
 export enum ExecutionPhase {
   /**
-   * Unspecified phase (invalid, should never be used).
+   * Unspecified phase (invalid).
+   *
+   * @internal
    * Exists only for proto3 zero-value semantics.
    *
    * @generated from enum value: EXECUTION_PHASE_UNSPECIFIED = 0;
@@ -67,11 +56,11 @@ export enum ExecutionPhase {
   /**
    * Execution created, waiting to start.
    *
+   * @internal
    * The WorkflowExecution resource has been created but the workflow runner
-   * (Temporal) has not yet picked it up for execution.
+   * has not yet picked it up for execution.
    *
    * Typical duration: < 1 second (unless workflow runner is overloaded)
-   *
    * Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED, EXECUTION_TERMINATED
    *
    * @generated from enum value: EXECUTION_PENDING = 1;
@@ -81,16 +70,11 @@ export enum ExecutionPhase {
   /**
    * Execution is actively running tasks.
    *
+   * @internal
    * The workflow runner is processing tasks in the workflow definition.
    * Tasks may be executing sequentially, in parallel, or conditionally.
    *
-   * While in this phase:
-   * - tasks[] list is populated and updated as tasks progress
-   * - Each task transitions through PENDING → IN_PROGRESS → COMPLETED/FAILED
-   * - UI polls or receives WebSocket updates to show real-time progress
-   *
    * Typical duration: Seconds to hours (depends on workflow complexity)
-   *
    * Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED, EXECUTION_TERMINATED
    *
    * @generated from enum value: EXECUTION_IN_PROGRESS = 2;
@@ -100,21 +84,13 @@ export enum ExecutionPhase {
   /**
    * Execution completed successfully.
    *
-   * All tasks in the workflow executed successfully.
-   * The workflow produced a final output (if defined).
-   *
+   * @internal
    * Terminal state - execution will not change phases again.
    *
    * When this phase is reached:
    * - completed_at timestamp is set
    * - output field is populated (if workflow produces output)
    * - All tasks have status WORKFLOW_TASK_COMPLETED or WORKFLOW_TASK_SKIPPED
-   *
-   * Use Cases:
-   * - Display success badge in UI
-   * - Trigger downstream workflows (workflow chaining)
-   * - Archive execution results
-   * - Delete execution after retention period (e.g., 30 days)
    *
    * @generated from enum value: EXECUTION_COMPLETED = 3;
    */
@@ -123,27 +99,13 @@ export enum ExecutionPhase {
   /**
    * Execution failed with an error.
    *
-   * One or more tasks failed, or the workflow encountered an unrecoverable error.
-   *
+   * @internal
    * Terminal state - execution will not change phases again.
    *
    * When this phase is reached:
    * - completed_at timestamp is set
    * - error field is populated with failure description
    * - At least one task has status WORKFLOW_TASK_FAILED
-   *
-   * Use Cases:
-   * - Display error badge in UI
-   * - Send failure alerts/notifications
-   * - Trigger retry logic (if configured)
-   * - Debug failed workflows (inspect tasks[], error messages)
-   *
-   * Common Failure Causes:
-   * - Task timeout (task took longer than max allowed time)
-   * - API call failed (external service returned error)
-   * - Agent invocation failed (agent execution error)
-   * - Validation error (invalid task input or output)
-   * - Resource exhausted (quota exceeded, rate limited)
    *
    * @generated from enum value: EXECUTION_FAILED = 4;
    */
@@ -152,38 +114,24 @@ export enum ExecutionPhase {
   /**
    * Execution was cancelled by user or system.
    *
-   * The workflow was explicitly stopped before completion.
-   * Cancellation can happen in PENDING or IN_PROGRESS phases.
-   *
+   * @internal
    * Terminal state - execution will not change phases again.
    *
    * When this phase is reached:
    * - completed_at timestamp is set
-   * - In-progress tasks are stopped (status changes to WORKFLOW_TASK_FAILED or remains IN_PROGRESS)
+   * - In-progress tasks are stopped
    * - Pending tasks remain in WORKFLOW_TASK_PENDING state
-   *
-   * Use Cases:
-   * - User manually cancels execution from UI
-   * - System cancels due to timeout (workflow-level timeout, not task-level)
-   * - System cancels due to resource constraints (too many concurrent executions)
-   * - Emergency stop for misbehaving workflows
-   *
-   * Cancellation vs Failure:
-   * - Cancelled: User or system intentionally stopped the workflow
-   * - Failed: Workflow encountered an error during execution
    *
    * @generated from enum value: EXECUTION_CANCELLED = 5;
    */
   EXECUTION_CANCELLED = 5,
 
   /**
-   * Execution was force-stopped immediately.
+   * Execution was force-stopped immediately without cleanup.
    *
-   * Unlike CANCELLED (graceful stop with cleanup opportunity), TERMINATED
-   * means the workflow was killed immediately without giving workflow code
-   * a chance to clean up. This is used for stuck or unresponsive workflows.
-   *
+   * @internal
    * Terminal state - execution will not change phases again.
+   * Unlike CANCELLED, the workflow code cannot clean up.
    *
    * When this phase is reached:
    * - completed_at timestamp is set
@@ -191,18 +139,7 @@ export enum ExecutionPhase {
    * - In-progress tasks are stopped abruptly
    * - No cleanup callbacks are executed
    *
-   * Use Cases:
-   * - Force-stop stuck workflows that don't respond to cancellation
-   * - Emergency stop for workflows consuming excessive resources
-   * - Kill workflows with infinite loops or deadlocks
-   *
-   * Terminated vs Cancelled:
-   * - Terminated: Immediate kill, no cleanup, use when workflow is unresponsive
-   * - Cancelled: Graceful stop, cleanup allowed, use when you want controlled shutdown
-   *
-   * Recovery:
-   * - Terminated executions CANNOT be recovered (unlike FAILED)
-   * - Use terminate only when cancel doesn't work
+   * Terminated executions CANNOT be recovered (unlike FAILED).
    *
    * @generated from enum value: EXECUTION_TERMINATED = 6;
    */
@@ -211,32 +148,13 @@ export enum ExecutionPhase {
   /**
    * Execution was paused by user and can be resumed.
    *
-   * The workflow was temporarily stopped at a checkpoint and can continue
-   * from where it left off. Unlike CANCELLED, the execution is not terminal.
-   *
-   * Pause flow:
-   * EXECUTION_IN_PROGRESS → EXECUTION_PAUSED
-   * EXECUTION_PENDING → EXECUTION_PAUSED (rare, but allowed)
-   *
-   * Resume flow:
-   * EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
-   *
-   * NOT a terminal state - execution can be resumed.
+   * @internal
+   * NOT a terminal state - execution can be resumed via the resume RPC.
    *
    * When this phase is reached:
    * - Running activities are gracefully cancelled
    * - Checkpoints are saved (LangGraph thread_id preserved)
    * - No completed_at timestamp (execution is not finished)
-   *
-   * Use Cases:
-   * - Pause long-running workflows during maintenance windows
-   * - User wants to review progress before continuing
-   * - Resource conservation (pause idle workflows)
-   * - Wait for external conditions before continuing
-   *
-   * Paused vs Cancelled:
-   * - Paused: Temporary stop, can resume from checkpoint, execution continues
-   * - Cancelled: Permanent stop, cannot resume, execution is terminated
    *
    * Resume behavior:
    * - Workflow re-invokes activity with same thread_id
@@ -257,25 +175,17 @@ export const ExecutionPhaseSchema: GenEnum<ExecutionPhase> = /*@__PURE__*/
 /**
  * WorkflowTaskType defines the type of workflow task.
  *
- * Tasks are the atomic units of work within a workflow. Each task type has:
- * - Specific input/output schema expectations
- * - Specific execution behavior
- * - Specific error handling and retry policies
- *
- * Task types enable workflows to orchestrate diverse operations:
- * - Invoke AI agents with prompts
- * - Call external APIs (REST, GraphQL, gRPC)
- * - Wait for human approvals
- * - Execute conditional branching
- * - Run tasks in parallel
- * - Transform data between tasks
- * - Execute custom plugin logic
+ * @internal
+ * Each task type has specific input/output schema expectations,
+ * execution behavior, and error handling/retry policies.
  *
  * @generated from enum ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType
  */
 export enum WorkflowTaskType {
   /**
-   * Unspecified task type (invalid, should never be used).
+   * Unspecified task type (invalid).
+   *
+   * @internal
    * Exists only for proto3 zero-value semantics.
    *
    * @generated from enum value: WORKFLOW_TASK_TYPE_UNSPECIFIED = 0;
@@ -285,33 +195,8 @@ export enum WorkflowTaskType {
   /**
    * Invoke an AI agent with a prompt.
    *
-   * This task type calls an AgentInstance and waits for the agent execution to complete.
-   *
-   * Input Schema:
-   * {
-   *   "agent_instance_id": "agi-customer-support",
-   *   "prompt": "Analyze this feedback: {{workflow.input.feedback}}",
-   *   "max_tokens": 500,
-   *   "temperature": 0.7
-   * }
-   *
-   * Output Schema:
-   * {
-   *   "agent_execution_id": "agx-abc123",
-   *   "response": "The customer feedback indicates...",
-   *   "metadata": { "tokens_used": 450, "model": "gpt-4" }
-   * }
-   *
-   * Use Cases:
-   * - Content generation (write email, generate report)
-   * - Data analysis (analyze customer feedback, classify support tickets)
-   * - Decision making (should we approve this request?)
-   * - Code generation (generate deployment script)
-   *
-   * Error Cases:
-   * - Agent execution timeout
-   * - Agent execution failed (prompt too long, API error)
-   * - Agent not found (invalid agent_instance_id)
+   * @internal
+   * Calls an AgentInstance and waits for the agent execution to complete.
    *
    * @generated from enum value: WORKFLOW_TASK_AGENT_INVOCATION = 1;
    */
@@ -320,80 +205,18 @@ export enum WorkflowTaskType {
   /**
    * Wait for human approval before proceeding.
    *
-   * This task pauses the workflow and waits for one or more users to approve or reject.
-   *
-   * Input Schema:
-   * {
-   *   "approvers": ["usr-admin-1", "usr-admin-2"],
-   *   "message": "Approve account creation for {{workflow.input.email}}?",
-   *   "timeout_hours": 24,
-   *   "require_all_approvers": false
-   * }
-   *
-   * Output Schema:
-   * {
-   *   "approved": true,
-   *   "approved_by": "usr-admin-1",
-   *   "approved_at": "2025-01-11T15:22:33Z",
-   *   "comment": "Looks good, approved"
-   * }
-   *
-   * Use Cases:
-   * - Manual approval gates (approve deployment, approve budget)
-   * - Compliance workflows (legal review, security review)
-   * - Escalation workflows (escalate to manager if amount > $10,000)
-   *
-   * Error Cases:
-   * - Timeout (no approval received within timeout_hours)
-   * - Rejected (approver explicitly rejected)
-   * - Approver not found (invalid user ID)
+   * @internal
+   * Pauses the workflow and waits for one or more users to approve or reject.
    *
    * @generated from enum value: WORKFLOW_TASK_APPROVAL = 2;
    */
   WORKFLOW_TASK_APPROVAL = 2,
 
   /**
-   * Make an HTTP or gRPC API call to an external service.
+   * Call an external HTTP or gRPC API.
    *
-   * This task sends a request to an external API and captures the response.
-   *
-   * Input Schema:
-   * {
-   *   "method": "POST",
-   *   "url": "https://api.stripe.com/v1/customers",
-   *   "headers": {
-   *     "Authorization": "Bearer {{env.STRIPE_API_KEY}}",
-   *     "Content-Type": "application/json"
-   *   },
-   *   "body": {
-   *     "email": "{{workflow.input.email}}",
-   *     "name": "{{workflow.input.name}}"
-   *   },
-   *   "timeout_seconds": 30
-   * }
-   *
-   * Output Schema:
-   * {
-   *   "status_code": 200,
-   *   "headers": { "x-request-id": "req-xyz789" },
-   *   "body": {
-   *     "id": "cus-abc123",
-   *     "email": "customer@example.com",
-   *     "created": 1704988800
-   *   }
-   * }
-   *
-   * Use Cases:
-   * - Create resources in external systems (create Stripe customer, create GitHub issue)
-   * - Fetch data from APIs (get weather data, get stock prices)
-   * - Send notifications (Slack, email, SMS)
-   * - Trigger webhooks (notify external systems of workflow completion)
-   *
-   * Error Cases:
-   * - Network error (connection timeout, DNS failure)
-   * - HTTP error (4xx, 5xx status codes)
-   * - Timeout (API took longer than timeout_seconds)
-   * - Invalid response (malformed JSON, unexpected schema)
+   * @internal
+   * Sends a request to an external API and captures the response.
    *
    * @generated from enum value: WORKFLOW_TASK_API_CALL = 3;
    */
@@ -402,30 +225,8 @@ export enum WorkflowTaskType {
   /**
    * Evaluate a condition and branch to different paths.
    *
-   * This task evaluates a boolean expression and determines which tasks to execute next.
-   *
-   * Input Schema:
-   * {
-   *   "condition": "{{tasks.validate_email.output.valid}} == true",
-   *   "if_true": ["task-create-account", "task-send-welcome"],
-   *   "if_false": ["task-send-error-email"]
-   * }
-   *
-   * Output Schema:
-   * {
-   *   "condition_result": true,
-   *   "executed_branch": "if_true",
-   *   "executed_tasks": ["task-create-account", "task-send-welcome"]
-   * }
-   *
-   * Use Cases:
-   * - Branching logic (if email is valid, create account; else send error)
-   * - Feature flags (if beta_enabled, execute beta_tasks; else execute stable_tasks)
-   * - Environment-specific behavior (if env == prod, use prod_config; else use dev_config)
-   *
-   * Error Cases:
-   * - Invalid expression (syntax error in condition)
-   * - Missing variables (referenced variable doesn't exist)
+   * @internal
+   * Evaluates a boolean expression and determines which tasks to execute next.
    *
    * @generated from enum value: WORKFLOW_TASK_CONDITIONAL = 4;
    */
@@ -434,39 +235,8 @@ export enum WorkflowTaskType {
   /**
    * Execute multiple sub-tasks concurrently.
    *
-   * This task spawns multiple tasks that run in parallel and waits for all to complete.
-   *
-   * Input Schema:
-   * {
-   *   "tasks": [
-   *     { "task_id": "send-email", "task_type": "api_call", "input": {...} },
-   *     { "task_id": "send-sms", "task_type": "api_call", "input": {...} },
-   *     { "task_id": "send-slack", "task_type": "api_call", "input": {...} }
-   *   ],
-   *   "wait_for_all": true,
-   *   "fail_on_any_failure": false
-   * }
-   *
-   * Output Schema:
-   * {
-   *   "total_tasks": 3,
-   *   "successful_tasks": 2,
-   *   "failed_tasks": 1,
-   *   "results": [
-   *     { "task_id": "send-email", "status": "completed", "output": {...} },
-   *     { "task_id": "send-sms", "status": "failed", "error": "..." },
-   *     { "task_id": "send-slack", "status": "completed", "output": {...} }
-   *   ]
-   * }
-   *
-   * Use Cases:
-   * - Fan-out operations (send notifications to multiple channels)
-   * - Parallel data processing (process multiple files concurrently)
-   * - Multi-region deployments (deploy to US, EU, APAC in parallel)
-   *
-   * Error Cases:
-   * - One or more sub-tasks failed (if fail_on_any_failure is true)
-   * - Timeout (sub-tasks took longer than allowed)
+   * @internal
+   * Spawns multiple tasks that run in parallel and waits for all to complete.
    *
    * @generated from enum value: WORKFLOW_TASK_PARALLEL = 5;
    */
@@ -475,28 +245,8 @@ export enum WorkflowTaskType {
   /**
    * Transform data between tasks.
    *
-   * This task applies transformations to data (map, filter, aggregate, format).
-   *
-   * Input Schema:
-   * {
-   *   "expression": "{{tasks.fetch_customers.output.customers | map('email')}}",
-   *   "output_variable": "customer_emails"
-   * }
-   *
-   * Output Schema:
-   * {
-   *   "result": ["customer1@example.com", "customer2@example.com", "customer3@example.com"]
-   * }
-   *
-   * Use Cases:
-   * - Data extraction (extract email addresses from customer objects)
-   * - Data formatting (convert timestamps to different formats)
-   * - Data aggregation (sum order totals, calculate averages)
-   * - Data filtering (filter customers by region)
-   *
-   * Error Cases:
-   * - Invalid expression (syntax error)
-   * - Type mismatch (trying to apply number operation to string)
+   * @internal
+   * Applies transformations to data (map, filter, aggregate, format).
    *
    * @generated from enum value: WORKFLOW_TASK_TRANSFORM = 6;
    */
@@ -505,18 +255,8 @@ export enum WorkflowTaskType {
   /**
    * Execute custom task logic defined by plugins.
    *
-   * This task type allows extending workflows with custom business logic
-   * that doesn't fit into other task types.
-   *
-   * Input Schema: Plugin-specific (defined by the custom plugin)
-   * Output Schema: Plugin-specific (defined by the custom plugin)
-   *
-   * Use Cases:
-   * - Domain-specific operations (calculate shipping costs, validate addresses)
-   * - Integration with proprietary systems (legacy database queries)
-   * - Complex business rules (pricing calculations, eligibility checks)
-   *
-   * Error Cases: Plugin-specific
+   * @internal
+   * Input/output schemas are plugin-specific.
    *
    * @generated from enum value: WORKFLOW_TASK_CUSTOM = 7;
    */
@@ -532,13 +272,7 @@ export const WorkflowTaskTypeSchema: GenEnum<WorkflowTaskType> = /*@__PURE__*/
 /**
  * WorkflowTaskStatus defines the execution status of a workflow task.
  *
- * Tasks progress through statuses as the workflow executes.
- * Task statuses are used for:
- * - UI task lists (show checkmarks, spinners, error icons)
- * - Progress calculation (completed_tasks / total_tasks)
- * - Debugging failed workflows (which task failed, what was the error)
- * - Retry logic (retry failed tasks)
- *
+ * @internal
  * Status Transitions:
  *
  * Normal flow:
@@ -550,7 +284,7 @@ export const WorkflowTaskTypeSchema: GenEnum<WorkflowTaskType> = /*@__PURE__*/
  * Skip flow (conditional):
  * WORKFLOW_TASK_PENDING → WORKFLOW_TASK_SKIPPED
  *
- * Approval flow (HITL, for agent invocation tasks):
+ * Approval flow (for agent invocation tasks):
  * WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_WAITING_APPROVAL → WORKFLOW_TASK_IN_PROGRESS
  *                                                            ↘ WORKFLOW_TASK_FAILED (on reject)
  *
@@ -558,7 +292,9 @@ export const WorkflowTaskTypeSchema: GenEnum<WorkflowTaskType> = /*@__PURE__*/
  */
 export enum WorkflowTaskStatus {
   /**
-   * Unspecified status (invalid, should never be used).
+   * Unspecified status (invalid).
+   *
+   * @internal
    * Exists only for proto3 zero-value semantics.
    *
    * @generated from enum value: WORKFLOW_TASK_STATUS_UNSPECIFIED = 0;
@@ -568,17 +304,8 @@ export enum WorkflowTaskStatus {
   /**
    * Task is waiting to execute.
    *
+   * @internal
    * The task has been created but has not started executing yet.
-   * This happens when:
-   * - Task dependencies have not completed (waiting for previous tasks)
-   * - Workflow is in EXECUTION_PENDING phase (not started yet)
-   * - Task is queued behind other tasks (sequential execution)
-   *
-   * While in this status:
-   * - started_at and completed_at are not set
-   * - input is populated (task knows what it will execute)
-   * - output is not populated (task hasn't executed yet)
-   *
    * Next statuses: WORKFLOW_TASK_IN_PROGRESS, WORKFLOW_TASK_SKIPPED
    *
    * @generated from enum value: WORKFLOW_TASK_PENDING = 1;
@@ -588,23 +315,8 @@ export enum WorkflowTaskStatus {
   /**
    * Task is currently executing.
    *
+   * @internal
    * The workflow runner is actively processing this task.
-   * The task is performing its specific operation:
-   * - Calling an API
-   * - Invoking an agent
-   * - Waiting for approval
-   * - Transforming data
-   *
-   * While in this status:
-   * - started_at is set
-   * - completed_at is not set
-   * - output is not populated yet (waiting for task to finish)
-   *
-   * Typical duration: Milliseconds to hours (depends on task type)
-   * - API calls: < 10 seconds
-   * - Agent invocations: 10-60 seconds
-   * - Approvals: Hours to days
-   *
    * Next statuses: WORKFLOW_TASK_COMPLETED, WORKFLOW_TASK_FAILED
    *
    * @generated from enum value: WORKFLOW_TASK_IN_PROGRESS = 2;
@@ -614,14 +326,8 @@ export enum WorkflowTaskStatus {
   /**
    * Task finished successfully.
    *
-   * The task executed its operation and produced a successful result.
-   *
-   * When this status is reached:
-   * - completed_at is set
-   * - output is populated with task results
-   * - error is not set
-   *
-   * Next statuses: None (terminal state for this task)
+   * @internal
+   * Terminal state for this task. Output is populated with results.
    *
    * @generated from enum value: WORKFLOW_TASK_COMPLETED = 3;
    */
@@ -630,38 +336,9 @@ export enum WorkflowTaskStatus {
   /**
    * Task failed during execution.
    *
-   * The task encountered an error and could not complete successfully.
-   *
-   * When this status is reached:
-   * - completed_at is set
-   * - error is populated with failure description
-   * - output is not populated (task didn't produce valid output)
-   *
-   * Common Failure Causes by Task Type:
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * - Network timeout
-   * - HTTP 4xx/5xx errors
-   * - Invalid response format
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * - Agent execution timeout
-   * - Agent execution error
-   * - Prompt too long (exceeds token limit)
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * - Timeout (no approval within timeout_hours)
-   * - Explicit rejection
-   *
-   * WORKFLOW_TASK_TRANSFORM:
-   * - Invalid expression syntax
-   * - Type mismatch
-   *
-   * Impact:
-   * - If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured)
-   * - Failed tasks can be retried (if retry policy is configured)
-   *
-   * Next statuses: None (terminal state for this task)
+   * @internal
+   * Terminal state for this task. The error field is populated with failure description.
+   * If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured).
    *
    * @generated from enum value: WORKFLOW_TASK_FAILED = 4;
    */
@@ -670,51 +347,23 @@ export enum WorkflowTaskStatus {
   /**
    * Task was skipped due to conditional logic.
    *
-   * The task was not executed because a conditional task determined it should be skipped.
-   *
-   * When this status is reached:
-   * - started_at is not set (task never started)
-   * - completed_at may be set (time when skip was determined)
-   * - output is not populated (task didn't execute)
-   * - error is not set (skip is not an error)
-   *
-   * Example:
-   * Conditional task: if email_valid == false, skip "create_account" task
-   *
-   * Impact:
-   * - Skipped tasks don't cause workflow failure
-   * - Skipped tasks count toward completed_tasks (for progress calculation)
-   *
-   * Next statuses: None (terminal state for this task)
+   * @internal
+   * Terminal state for this task. The task was not executed because
+   * a conditional task determined it should be skipped.
+   * Skipped tasks don't cause workflow failure.
    *
    * @generated from enum value: WORKFLOW_TASK_SKIPPED = 5;
    */
   WORKFLOW_TASK_SKIPPED = 5,
 
   /**
-   * Task is waiting for approval from child agent (HITL Phase 1).
+   * Task is waiting for human approval from a child agent execution.
    *
-   * This status is set when:
-   * - task_type == WORKFLOW_TASK_AGENT_INVOCATION
-   * - The invoked AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL
+   * @internal
+   * Set when task_type == WORKFLOW_TASK_AGENT_INVOCATION and the invoked
+   * AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL.
    *
-   * The workflow runner detects this by polling or watching the child execution.
-   * When the child's approval is submitted, the task returns to IN_PROGRESS.
-   *
-   * While in this status:
-   * - started_at is set (task started before agent needed approval)
-   * - completed_at is not set (task is not done)
-   * - The child AgentExecution.status.pending_approval contains approval details
-   *
-   * UI should show: "Agent is waiting for tool approval"
-   * with details from the child execution's pending_approval field.
-   *
-   * Approval can be submitted through:
-   * - AgentExecution.SubmitApproval (direct to child agent)
-   * - WorkflowExecution API (forwarded to child - future work)
-   *
-   * This is NOT a terminal state - workflow resumes after approval decision.
-   *
+   * NOT a terminal state - workflow resumes after approval decision.
    * Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)
    *
    * @generated from enum value: WORKFLOW_TASK_WAITING_APPROVAL = 6;

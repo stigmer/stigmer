@@ -647,7 +647,7 @@ Agent defines an AI assistant's identity, tools, skills, and delegation model.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "AgentInput", description: "Resource specification. See [`AgentInput`](#agentinput).", typeDescriptionLink: "#agentinput" },
     status: { type: "AgentStatus", description: "System-managed state. See [`AgentStatus`](#agentstatus).", typeDescriptionLink: "#agentstatus" },

@@ -83,25 +83,25 @@ API resource kinds for Stigmer.
 
 | Value | Description |
 |-------|-------------|
-| `api_resource_version` | Agentic - System-level audit trails and versioning. |
-| `iam_policy` | IAM - Identity and Access Management. |
-| `identity_account` |  |
-| `api_key` |  |
-| `identity_provider` | IAM - External identity provider configuration. |
-| `organization` | Tenancy - Platform and organizational resources. |
-| `platform` |  |
-| `agent` | Agentic - AI agent management. |
-| `agent_execution` |  |
-| `session` |  |
-| `skill` |  |
-| `mcp_server` |  |
-| `agent_instance` |  |
-| `workflow` | Agentic - Workflow orchestration. |
-| `workflow_instance` |  |
-| `workflow_execution` |  |
-| `environment` |  |
-| `execution_context` |  |
-| `project` | Tenancy - Project management (aggregate root for resource lifecycle). |
+| `api_resource_version` | Immutable version record tracking changes to an API resource. |
+| `iam_policy` | Role-based access control policy for granting permissions on resources. |
+| `identity_account` | User account in the identity system. |
+| `api_key` | Credential for programmatic API access. |
+| `identity_provider` | External identity provider for federated authentication. |
+| `organization` | Top-level tenant that owns and manages resources. |
+| `platform` | Singleton platform instance representing the Stigmer deployment. |
+| `agent` | AI assistant with instructions, tools, skills, and a delegation model. |
+| `agent_execution` | Single run of an agent within a session, tracking tool calls and responses. |
+| `session` | Conversation thread between a user and an agent. |
+| `skill` | Knowledge resource that provides domain-specific context to an agent. |
+| `mcp_server` | External tool server connected via the Model Context Protocol. |
+| `agent_instance` | Configured deployment of an agent with environment-specific overrides. |
+| `workflow` | Multi-step orchestration defining how agents collaborate on a task. |
+| `workflow_instance` | Configured deployment of a workflow with environment-specific bindings. |
+| `workflow_execution` | Single run of a workflow instance, tracking step progress and outcomes. |
+| `environment` | Named set of variables and secrets for agent and workflow execution. |
+| `execution_context` | User-owned runtime context for managing execution state. |
+| `project` | Aggregate root grouping related resources for lifecycle management. |
 
 ### ApiResourceVisibility
 

@@ -12,7 +12,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
 
   /**
    * <pre>
-   * Current validation state
+   * Current validation state.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -21,7 +21,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   int getStateValue();
   /**
    * <pre>
-   * Current validation state
+   * Current validation state.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1 [json_name = "state"];</code>
@@ -31,12 +31,12 @@ public interface ServerlessWorkflowValidationOrBuilder extends
 
   /**
    * <pre>
-   * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-   * This YAML may contain runtime expressions for environment variables:
-   * Example: ${ .env.API_BASE_URL }
-   *
+   * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
-   * Empty if validation hasn't started yet.
+   * Empty if validation has not started yet.
+   *
+   * &#64;internal
+   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    * </pre>
    *
    * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -45,12 +45,12 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   java.lang.String getYaml();
   /**
    * <pre>
-   * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-   * This YAML may contain runtime expressions for environment variables:
-   * Example: ${ .env.API_BASE_URL }
-   *
+   * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
-   * Empty if validation hasn't started yet.
+   * Empty if validation has not started yet.
+   *
+   * &#64;internal
+   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    * </pre>
    *
    * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -61,11 +61,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
 
   /**
    * <pre>
-   * Validation errors (empty if valid)
-   * Examples:
-   * - "Invalid YAML syntax at line 15"
-   * - "Unknown task type 'invalid_task'"
-   * - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    * </pre>
    *
    * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -75,11 +71,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
       getErrorsList();
   /**
    * <pre>
-   * Validation errors (empty if valid)
-   * Examples:
-   * - "Invalid YAML syntax at line 15"
-   * - "Unknown task type 'invalid_task'"
-   * - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    * </pre>
    *
    * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -88,11 +80,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   int getErrorsCount();
   /**
    * <pre>
-   * Validation errors (empty if valid)
-   * Examples:
-   * - "Invalid YAML syntax at line 15"
-   * - "Unknown task type 'invalid_task'"
-   * - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    * </pre>
    *
    * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -102,11 +90,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   java.lang.String getErrors(int index);
   /**
    * <pre>
-   * Validation errors (empty if valid)
-   * Examples:
-   * - "Invalid YAML syntax at line 15"
-   * - "Unknown task type 'invalid_task'"
-   * - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    * </pre>
    *
    * <code>repeated string errors = 3 [json_name = "errors"];</code>
@@ -118,10 +102,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
 
   /**
    * <pre>
-   * Non-fatal warnings
-   * Examples:
-   * - "Environment variable API_KEY referenced but not defined"
-   * - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    * </pre>
    *
    * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -131,10 +112,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
       getWarningsList();
   /**
    * <pre>
-   * Non-fatal warnings
-   * Examples:
-   * - "Environment variable API_KEY referenced but not defined"
-   * - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    * </pre>
    *
    * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -143,10 +121,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   int getWarningsCount();
   /**
    * <pre>
-   * Non-fatal warnings
-   * Examples:
-   * - "Environment variable API_KEY referenced but not defined"
-   * - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    * </pre>
    *
    * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -156,10 +131,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   java.lang.String getWarnings(int index);
   /**
    * <pre>
-   * Non-fatal warnings
-   * Examples:
-   * - "Environment variable API_KEY referenced but not defined"
-   * - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    * </pre>
    *
    * <code>repeated string warnings = 4 [json_name = "warnings"];</code>
@@ -171,8 +143,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
 
   /**
    * <pre>
-   * When validation was performed
-   * Null if validation hasn't completed yet
+   * When the validation was performed.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -181,8 +152,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   boolean hasValidatedAt();
   /**
    * <pre>
-   * When validation was performed
-   * Null if validation hasn't completed yet
+   * When the validation was performed.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -191,8 +161,7 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   com.google.protobuf.Timestamp getValidatedAt();
   /**
    * <pre>
-   * When validation was performed
-   * Null if validation hasn't completed yet
+   * When the validation was performed.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp validated_at = 5 [json_name = "validatedAt"];</code>
@@ -201,9 +170,10 @@ public interface ServerlessWorkflowValidationOrBuilder extends
 
   /**
    * <pre>
-   * Temporal workflow ID for the validation workflow
-   * Format: "validate-workflow-{workflow_id}"
-   * Useful for tracking/debugging validation progress
+   * Validation process ID for tracking validation progress.
+   *
+   * &#64;internal
+   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -212,9 +182,10 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   java.lang.String getValidationWorkflowId();
   /**
    * <pre>
-   * Temporal workflow ID for the validation workflow
-   * Format: "validate-workflow-{workflow_id}"
-   * Useful for tracking/debugging validation progress
+   * Validation process ID for tracking validation progress.
+   *
+   * &#64;internal
+   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>

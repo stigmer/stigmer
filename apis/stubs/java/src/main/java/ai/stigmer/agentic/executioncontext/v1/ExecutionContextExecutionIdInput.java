@@ -7,9 +7,10 @@ package ai.stigmer.agentic.executioncontext.v1;
 
 /**
  * <pre>
- * ExecutionContextExecutionIdInput is used to look up an ExecutionContext by the
- * execution ID it belongs to (e.g., AgentExecution ID or WorkflowExecution ID).
- * This is the primary lookup method used by runners to retrieve merged environment
+ * Input for looking up an ExecutionContext by its parent execution ID.
+ *
+ * &#64;internal
+ * Primary lookup method used by runners to retrieve merged environment
  * variables during execution.
  * </pre>
  *
@@ -61,8 +62,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object executionId_ = "";
   /**
    * <pre>
-   * The workflow or agent execution ID to look up.
-   * This must match the execution_id field in ExecutionContextSpec.
+   * AgentExecution or WorkflowExecution ID to look up.
+   *
+   * &#64;internal
+   * Must match the execution_id field in ExecutionContextSpec.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -83,8 +86,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The workflow or agent execution ID to look up.
-   * This must match the execution_id field in ExecutionContextSpec.
+   * AgentExecution or WorkflowExecution ID to look up.
+   *
+   * &#64;internal
+   * Must match the execution_id field in ExecutionContextSpec.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -263,9 +268,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ExecutionContextExecutionIdInput is used to look up an ExecutionContext by the
-   * execution ID it belongs to (e.g., AgentExecution ID or WorkflowExecution ID).
-   * This is the primary lookup method used by runners to retrieve merged environment
+   * Input for looking up an ExecutionContext by its parent execution ID.
+   *
+   * &#64;internal
+   * Primary lookup method used by runners to retrieve merged environment
    * variables during execution.
    * </pre>
    *
@@ -409,8 +415,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object executionId_ = "";
     /**
      * <pre>
-     * The workflow or agent execution ID to look up.
-     * This must match the execution_id field in ExecutionContextSpec.
+     * AgentExecution or WorkflowExecution ID to look up.
+     *
+     * &#64;internal
+     * Must match the execution_id field in ExecutionContextSpec.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -430,8 +438,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The workflow or agent execution ID to look up.
-     * This must match the execution_id field in ExecutionContextSpec.
+     * AgentExecution or WorkflowExecution ID to look up.
+     *
+     * &#64;internal
+     * Must match the execution_id field in ExecutionContextSpec.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -452,8 +462,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The workflow or agent execution ID to look up.
-     * This must match the execution_id field in ExecutionContextSpec.
+     * AgentExecution or WorkflowExecution ID to look up.
+     *
+     * &#64;internal
+     * Must match the execution_id field in ExecutionContextSpec.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -470,8 +482,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The workflow or agent execution ID to look up.
-     * This must match the execution_id field in ExecutionContextSpec.
+     * AgentExecution or WorkflowExecution ID to look up.
+     *
+     * &#64;internal
+     * Must match the execution_id field in ExecutionContextSpec.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -485,8 +499,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The workflow or agent execution ID to look up.
-     * This must match the execution_id field in ExecutionContextSpec.
+     * AgentExecution or WorkflowExecution ID to look up.
+     *
+     * &#64;internal
+     * Must match the execution_id field in ExecutionContextSpec.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

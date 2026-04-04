@@ -9,6 +9,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * WorkflowTask represents a single task within a workflow execution.
  *
+ * &#64;internal
  * Tasks are the atomic units of work in a workflow. Each task:
  * - Has a specific type (agent invocation, API call, approval, conditional, etc.)
  * - Receives input parameters from the workflow context or previous tasks
@@ -21,20 +22,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * 2. When task dependencies are met, task_status changes to IN_PROGRESS
  * 3. Task executes its logic (invoke agent, call API, etc.)
  * 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)
- *
- * Task Types and Examples:
- * - WORKFLOW_TASK_AGENT_INVOCATION: Invoke an AI agent with a prompt
- * - WORKFLOW_TASK_API_CALL: Call an external API (REST, GraphQL, gRPC)
- * - WORKFLOW_TASK_APPROVAL: Wait for human approval before proceeding
- * - WORKFLOW_TASK_CONDITIONAL: Evaluate a condition to decide next steps
- * - WORKFLOW_TASK_PARALLEL: Execute multiple sub-tasks in parallel
- * - WORKFLOW_TASK_TRANSFORM: Transform data between tasks (map, filter, aggregate)
- *
- * Use Cases:
- * - Display task-level progress in UI (task list with checkmarks)
- * - Debug workflow failures (which task failed, what was the input/output)
- * - Retry individual tasks (if workflow engine supports partial retry)
- * - Monitor task performance (which tasks take longest)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowTask}
@@ -94,6 +81,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Unique task identifier within this workflow execution.
    *
+   * &#64;internal
    * Format: Typically "task-{number}" or a descriptive slug
    * Examples: "task-1", "task-validate-email", "task-send-notification"
    *
@@ -121,6 +109,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Unique task identifier within this workflow execution.
    *
+   * &#64;internal
    * Format: Typically "task-{number}" or a descriptive slug
    * Examples: "task-1", "task-validate-email", "task-send-notification"
    *
@@ -153,14 +142,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Human-readable task name.
    *
+   * &#64;internal
    * Describes what this task does in plain language.
    * Used in UI to show task progress and in logs for debugging.
-   *
-   * Examples:
-   * - "Validate customer email"
-   * - "Create Stripe account"
-   * - "Send welcome email"
-   * - "Wait for admin approval"
    *
    * Naming conventions:
    * - Use verb phrases (validate, create, send, wait)
@@ -188,14 +172,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Human-readable task name.
    *
+   * &#64;internal
    * Describes what this task does in plain language.
    * Used in UI to show task progress and in logs for debugging.
-   *
-   * Examples:
-   * - "Validate customer email"
-   * - "Create Stripe account"
-   * - "Send welcome email"
-   * - "Wait for admin approval"
    *
    * Naming conventions:
    * - Use verb phrases (validate, create, send, wait)
@@ -227,15 +206,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Type of task (agent invocation, API call, approval, etc.).
    *
-   * Determines how the task is executed by the workflow engine:
-   * - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
-   * - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
-   * - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
-   * - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
-   * - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
-   * - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
-   * - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
-   *
+   * &#64;internal
+   * Determines how the task is executed by the workflow engine.
    * The task_type influences:
    * - How task.input is structured (different types expect different input schemas)
    * - How task.output is produced (different types produce different outputs)
@@ -254,15 +226,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Type of task (agent invocation, API call, approval, etc.).
    *
-   * Determines how the task is executed by the workflow engine:
-   * - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
-   * - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
-   * - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
-   * - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
-   * - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
-   * - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
-   * - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
-   *
+   * &#64;internal
+   * Determines how the task is executed by the workflow engine.
    * The task_type influences:
    * - How task.input is structured (different types expect different input schemas)
    * - How task.output is produced (different types produce different outputs)
@@ -283,34 +248,11 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Struct input_;
   /**
    * <pre>
-   * Task input parameters (JSON structure).
+   * Task input parameters, structured as JSON.
    *
+   * &#64;internal
    * Contains the configuration and data needed for this task to execute.
    * The structure varies by task_type.
-   *
-   * Examples by task type:
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * input: {
-   * "agent_instance_id": "agi-customer-support"
-   * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-   * "max_tokens": 500
-   * }
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * input: {
-   * "method": "POST"
-   * "url": "https://api.stripe.com/v1/customers"
-   * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-   * "body": { "email": "{{workflow.input.email}}" }
-   * }
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * input: {
-   * "approvers": ["usr-admin-1", "usr-admin-2"]
-   * "message": "Approve account creation for {{workflow.input.email}}?"
-   * "timeout_hours": 24
-   * }
    *
    * Input can reference:
    * - Workflow inputs: {{workflow.input.field_name}}
@@ -327,34 +269,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Task input parameters (JSON structure).
+   * Task input parameters, structured as JSON.
    *
+   * &#64;internal
    * Contains the configuration and data needed for this task to execute.
    * The structure varies by task_type.
-   *
-   * Examples by task type:
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * input: {
-   * "agent_instance_id": "agi-customer-support"
-   * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-   * "max_tokens": 500
-   * }
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * input: {
-   * "method": "POST"
-   * "url": "https://api.stripe.com/v1/customers"
-   * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-   * "body": { "email": "{{workflow.input.email}}" }
-   * }
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * input: {
-   * "approvers": ["usr-admin-1", "usr-admin-2"]
-   * "message": "Approve account creation for {{workflow.input.email}}?"
-   * "timeout_hours": 24
-   * }
    *
    * Input can reference:
    * - Workflow inputs: {{workflow.input.field_name}}
@@ -371,34 +290,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Task input parameters (JSON structure).
+   * Task input parameters, structured as JSON.
    *
+   * &#64;internal
    * Contains the configuration and data needed for this task to execute.
    * The structure varies by task_type.
-   *
-   * Examples by task type:
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * input: {
-   * "agent_instance_id": "agi-customer-support"
-   * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-   * "max_tokens": 500
-   * }
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * input: {
-   * "method": "POST"
-   * "url": "https://api.stripe.com/v1/customers"
-   * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-   * "body": { "email": "{{workflow.input.email}}" }
-   * }
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * input: {
-   * "approvers": ["usr-admin-1", "usr-admin-2"]
-   * "message": "Approve account creation for {{workflow.input.email}}?"
-   * "timeout_hours": 24
-   * }
    *
    * Input can reference:
    * - Workflow inputs: {{workflow.input.field_name}}
@@ -417,40 +313,11 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Struct output_;
   /**
    * <pre>
-   * Task output results (JSON structure).
+   * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
    *
+   * &#64;internal
    * Contains the data produced by this task after successful execution.
-   * Only populated when status == WORKFLOW_TASK_COMPLETED.
-   *
    * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-   *
-   * Examples by task type:
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * output: {
-   * "agent_execution_id": "agx-abc123"
-   * "response": "The customer feedback is positive overall..."
-   * "sentiment": "positive"
-   * "confidence": 0.92
-   * }
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * output: {
-   * "status_code": 200
-   * "body": {
-   * "id": "cus_abc123"
-   * "email": "customer&#64;example.com"
-   * "created": 1704988800
-   * }
-   * }
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * output: {
-   * "approved": true
-   * "approved_by": "usr-admin-1"
-   * "approved_at": "2025-01-11T15:22:33Z"
-   * "comment": "Looks good, approved"
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -462,40 +329,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Task output results (JSON structure).
+   * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
    *
+   * &#64;internal
    * Contains the data produced by this task after successful execution.
-   * Only populated when status == WORKFLOW_TASK_COMPLETED.
-   *
    * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-   *
-   * Examples by task type:
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * output: {
-   * "agent_execution_id": "agx-abc123"
-   * "response": "The customer feedback is positive overall..."
-   * "sentiment": "positive"
-   * "confidence": 0.92
-   * }
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * output: {
-   * "status_code": 200
-   * "body": {
-   * "id": "cus_abc123"
-   * "email": "customer&#64;example.com"
-   * "created": 1704988800
-   * }
-   * }
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * output: {
-   * "approved": true
-   * "approved_by": "usr-admin-1"
-   * "approved_at": "2025-01-11T15:22:33Z"
-   * "comment": "Looks good, approved"
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -507,40 +345,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Task output results (JSON structure).
+   * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
    *
+   * &#64;internal
    * Contains the data produced by this task after successful execution.
-   * Only populated when status == WORKFLOW_TASK_COMPLETED.
-   *
    * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-   *
-   * Examples by task type:
-   *
-   * WORKFLOW_TASK_AGENT_INVOCATION:
-   * output: {
-   * "agent_execution_id": "agx-abc123"
-   * "response": "The customer feedback is positive overall..."
-   * "sentiment": "positive"
-   * "confidence": 0.92
-   * }
-   *
-   * WORKFLOW_TASK_API_CALL:
-   * output: {
-   * "status_code": 200
-   * "body": {
-   * "id": "cus_abc123"
-   * "email": "customer&#64;example.com"
-   * "created": 1704988800
-   * }
-   * }
-   *
-   * WORKFLOW_TASK_APPROVAL:
-   * output: {
-   * "approved": true
-   * "approved_by": "usr-admin-1"
-   * "approved_at": "2025-01-11T15:22:33Z"
-   * "comment": "Looks good, approved"
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -556,13 +365,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Current task execution status.
    *
-   * Statuses:
-   * - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
-   * - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
-   * - WORKFLOW_TASK_COMPLETED: Task finished successfully
-   * - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
-   * - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
-   *
+   * &#64;internal
    * Status Transitions:
    * PENDING → IN_PROGRESS → COMPLETED
    * ↓              ↘ FAILED
@@ -581,13 +384,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Current task execution status.
    *
-   * Statuses:
-   * - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
-   * - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
-   * - WORKFLOW_TASK_COMPLETED: Task finished successfully
-   * - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
-   * - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
-   *
+   * &#64;internal
    * Status Transitions:
    * PENDING → IN_PROGRESS → COMPLETED
    * ↓              ↘ FAILED
@@ -609,17 +406,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object startedAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp when task started executing.
+   * ISO 8601 timestamp when the task started executing.
    *
+   * &#64;internal
    * Set when task status changes from PENDING to IN_PROGRESS.
-   *
    * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-   * Example: "2025-01-11T14:30:23Z"
-   *
-   * Used for:
-   * - Calculating task duration (completed_at - started_at)
-   * - Detecting stuck tasks (started but not completed after X minutes)
-   * - Performance analysis (which tasks are slow)
    * </pre>
    *
    * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -640,17 +431,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp when task started executing.
+   * ISO 8601 timestamp when the task started executing.
    *
+   * &#64;internal
    * Set when task status changes from PENDING to IN_PROGRESS.
-   *
    * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-   * Example: "2025-01-11T14:30:23Z"
-   *
-   * Used for:
-   * - Calculating task duration (completed_at - started_at)
-   * - Detecting stuck tasks (started but not completed after X minutes)
-   * - Performance analysis (which tasks are slow)
    * </pre>
    *
    * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -676,22 +461,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object completedAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp when task completed, failed, or was skipped.
+   * ISO 8601 timestamp when the task reached a terminal state.
    *
-   * Set when task reaches a terminal state:
-   * - WORKFLOW_TASK_COMPLETED: Successfully finished
-   * - WORKFLOW_TASK_FAILED: Failed during execution
-   * - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
-   *
+   * &#64;internal
+   * Set when task reaches COMPLETED, FAILED, or SKIPPED.
    * Not set for PENDING or IN_PROGRESS tasks.
-   *
    * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-   * Example: "2025-01-11T14:30:27.450Z"
-   *
-   * Used for:
-   * - Calculating task duration (completed_at - started_at)
-   * - SLA monitoring (alert if task takes longer than expected)
-   * - Performance benchmarking (average task duration over time)
    * </pre>
    *
    * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -712,22 +487,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp when task completed, failed, or was skipped.
+   * ISO 8601 timestamp when the task reached a terminal state.
    *
-   * Set when task reaches a terminal state:
-   * - WORKFLOW_TASK_COMPLETED: Successfully finished
-   * - WORKFLOW_TASK_FAILED: Failed during execution
-   * - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
-   *
+   * &#64;internal
+   * Set when task reaches COMPLETED, FAILED, or SKIPPED.
    * Not set for PENDING or IN_PROGRESS tasks.
-   *
    * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-   * Example: "2025-01-11T14:30:27.450Z"
-   *
-   * Used for:
-   * - Calculating task duration (completed_at - started_at)
-   * - SLA monitoring (alert if task takes longer than expected)
-   * - Performance benchmarking (average task duration over time)
    * </pre>
    *
    * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -753,25 +518,16 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object error_ = "";
   /**
    * <pre>
-   * Error message if task failed.
+   * Error message, populated only when status is WORKFLOW_TASK_FAILED.
    *
+   * &#64;internal
    * Contains a human-readable description of why the task failed.
-   * Only populated when status == WORKFLOW_TASK_FAILED.
    *
    * Error message includes:
    * - What operation failed (API call, agent invocation, etc.)
    * - Error type (validation error, network error, timeout, etc.)
    * - Error details (status code, exception message, stacktrace)
    * - How to fix it (if known)
-   *
-   * Examples:
-   * - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
-   * - "Agent invocation failed: Agent execution timeout after 300 seconds."
-   * - "Approval task failed: Timeout after 24 hours with no approval."
-   *
-   * For detailed debugging, also check:
-   * - task.input (what parameters were used)
-   * - task.metadata (retry count, execution context)
    * </pre>
    *
    * <code>string error = 9 [json_name = "error"];</code>
@@ -792,25 +548,16 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Error message if task failed.
+   * Error message, populated only when status is WORKFLOW_TASK_FAILED.
    *
+   * &#64;internal
    * Contains a human-readable description of why the task failed.
-   * Only populated when status == WORKFLOW_TASK_FAILED.
    *
    * Error message includes:
    * - What operation failed (API call, agent invocation, etc.)
    * - Error type (validation error, network error, timeout, etc.)
    * - Error details (status code, exception message, stacktrace)
    * - How to fix it (if known)
-   *
-   * Examples:
-   * - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
-   * - "Agent invocation failed: Agent execution timeout after 300 seconds."
-   * - "Approval task failed: Timeout after 24 hours with no approval."
-   *
-   * For detailed debugging, also check:
-   * - task.input (what parameters were used)
-   * - task.metadata (retry count, execution context)
    * </pre>
    *
    * <code>string error = 9 [json_name = "error"];</code>
@@ -835,8 +582,9 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Struct metadata_;
   /**
    * <pre>
-   * Task metadata (arbitrary JSON data).
+   * Task-specific metadata as arbitrary JSON.
    *
+   * &#64;internal
    * Contains task-specific information that doesn't fit in other fields.
    * Used for:
    * - Retry count (how many times this task was retried)
@@ -844,31 +592,6 @@ private static final long serialVersionUID = 0L;
    * - API response headers (for WORKFLOW_TASK_API_CALL)
    * - Approval history (who approved, when, comments)
    * - Performance metrics (execution time, memory usage)
-   *
-   * Examples:
-   *
-   * Agent invocation task:
-   * metadata: {
-   * "agent_execution_id": "agx-abc123"
-   * "retry_count": 0
-   * "tokens_used": 450
-   * }
-   *
-   * API call task:
-   * metadata: {
-   * "retry_count": 2
-   * "response_headers": {
-   * "x-ratelimit-remaining": "98"
-   * "x-request-id": "req-xyz789"
-   * }
-   * }
-   *
-   * Approval task:
-   * metadata: {
-   * "approval_history": [
-   * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-   * ]
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -880,8 +603,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Task metadata (arbitrary JSON data).
+   * Task-specific metadata as arbitrary JSON.
    *
+   * &#64;internal
    * Contains task-specific information that doesn't fit in other fields.
    * Used for:
    * - Retry count (how many times this task was retried)
@@ -889,31 +613,6 @@ private static final long serialVersionUID = 0L;
    * - API response headers (for WORKFLOW_TASK_API_CALL)
    * - Approval history (who approved, when, comments)
    * - Performance metrics (execution time, memory usage)
-   *
-   * Examples:
-   *
-   * Agent invocation task:
-   * metadata: {
-   * "agent_execution_id": "agx-abc123"
-   * "retry_count": 0
-   * "tokens_used": 450
-   * }
-   *
-   * API call task:
-   * metadata: {
-   * "retry_count": 2
-   * "response_headers": {
-   * "x-ratelimit-remaining": "98"
-   * "x-request-id": "req-xyz789"
-   * }
-   * }
-   *
-   * Approval task:
-   * metadata: {
-   * "approval_history": [
-   * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-   * ]
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -925,8 +624,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Task metadata (arbitrary JSON data).
+   * Task-specific metadata as arbitrary JSON.
    *
+   * &#64;internal
    * Contains task-specific information that doesn't fit in other fields.
    * Used for:
    * - Retry count (how many times this task was retried)
@@ -934,31 +634,6 @@ private static final long serialVersionUID = 0L;
    * - API response headers (for WORKFLOW_TASK_API_CALL)
    * - Approval history (who approved, when, comments)
    * - Performance metrics (execution time, memory usage)
-   *
-   * Examples:
-   *
-   * Agent invocation task:
-   * metadata: {
-   * "agent_execution_id": "agx-abc123"
-   * "retry_count": 0
-   * "tokens_used": 450
-   * }
-   *
-   * API call task:
-   * metadata: {
-   * "retry_count": 2
-   * "response_headers": {
-   * "x-ratelimit-remaining": "98"
-   * "x-request-id": "req-xyz789"
-   * }
-   * }
-   *
-   * Approval task:
-   * metadata: {
-   * "approval_history": [
-   * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-   * ]
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -1236,6 +911,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * WorkflowTask represents a single task within a workflow execution.
    *
+   * &#64;internal
    * Tasks are the atomic units of work in a workflow. Each task:
    * - Has a specific type (agent invocation, API call, approval, conditional, etc.)
    * - Receives input parameters from the workflow context or previous tasks
@@ -1248,20 +924,6 @@ private static final long serialVersionUID = 0L;
    * 2. When task dependencies are met, task_status changes to IN_PROGRESS
    * 3. Task executes its logic (invoke agent, call API, etc.)
    * 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)
-   *
-   * Task Types and Examples:
-   * - WORKFLOW_TASK_AGENT_INVOCATION: Invoke an AI agent with a prompt
-   * - WORKFLOW_TASK_API_CALL: Call an external API (REST, GraphQL, gRPC)
-   * - WORKFLOW_TASK_APPROVAL: Wait for human approval before proceeding
-   * - WORKFLOW_TASK_CONDITIONAL: Evaluate a condition to decide next steps
-   * - WORKFLOW_TASK_PARALLEL: Execute multiple sub-tasks in parallel
-   * - WORKFLOW_TASK_TRANSFORM: Transform data between tasks (map, filter, aggregate)
-   *
-   * Use Cases:
-   * - Display task-level progress in UI (task list with checkmarks)
-   * - Debug workflow failures (which task failed, what was the input/output)
-   * - Retry individual tasks (if workflow engine supports partial retry)
-   * - Monitor task performance (which tasks take longest)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowTask}
@@ -1559,6 +1221,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Unique task identifier within this workflow execution.
      *
+     * &#64;internal
      * Format: Typically "task-{number}" or a descriptive slug
      * Examples: "task-1", "task-validate-email", "task-send-notification"
      *
@@ -1585,6 +1248,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Unique task identifier within this workflow execution.
      *
+     * &#64;internal
      * Format: Typically "task-{number}" or a descriptive slug
      * Examples: "task-1", "task-validate-email", "task-send-notification"
      *
@@ -1612,6 +1276,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Unique task identifier within this workflow execution.
      *
+     * &#64;internal
      * Format: Typically "task-{number}" or a descriptive slug
      * Examples: "task-1", "task-validate-email", "task-send-notification"
      *
@@ -1635,6 +1300,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Unique task identifier within this workflow execution.
      *
+     * &#64;internal
      * Format: Typically "task-{number}" or a descriptive slug
      * Examples: "task-1", "task-validate-email", "task-send-notification"
      *
@@ -1655,6 +1321,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Unique task identifier within this workflow execution.
      *
+     * &#64;internal
      * Format: Typically "task-{number}" or a descriptive slug
      * Examples: "task-1", "task-validate-email", "task-send-notification"
      *
@@ -1681,14 +1348,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable task name.
      *
+     * &#64;internal
      * Describes what this task does in plain language.
      * Used in UI to show task progress and in logs for debugging.
-     *
-     * Examples:
-     * - "Validate customer email"
-     * - "Create Stripe account"
-     * - "Send welcome email"
-     * - "Wait for admin approval"
      *
      * Naming conventions:
      * - Use verb phrases (validate, create, send, wait)
@@ -1715,14 +1377,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable task name.
      *
+     * &#64;internal
      * Describes what this task does in plain language.
      * Used in UI to show task progress and in logs for debugging.
-     *
-     * Examples:
-     * - "Validate customer email"
-     * - "Create Stripe account"
-     * - "Send welcome email"
-     * - "Wait for admin approval"
      *
      * Naming conventions:
      * - Use verb phrases (validate, create, send, wait)
@@ -1750,14 +1407,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable task name.
      *
+     * &#64;internal
      * Describes what this task does in plain language.
      * Used in UI to show task progress and in logs for debugging.
-     *
-     * Examples:
-     * - "Validate customer email"
-     * - "Create Stripe account"
-     * - "Send welcome email"
-     * - "Wait for admin approval"
      *
      * Naming conventions:
      * - Use verb phrases (validate, create, send, wait)
@@ -1781,14 +1433,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable task name.
      *
+     * &#64;internal
      * Describes what this task does in plain language.
      * Used in UI to show task progress and in logs for debugging.
-     *
-     * Examples:
-     * - "Validate customer email"
-     * - "Create Stripe account"
-     * - "Send welcome email"
-     * - "Wait for admin approval"
      *
      * Naming conventions:
      * - Use verb phrases (validate, create, send, wait)
@@ -1809,14 +1456,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable task name.
      *
+     * &#64;internal
      * Describes what this task does in plain language.
      * Used in UI to show task progress and in logs for debugging.
-     *
-     * Examples:
-     * - "Validate customer email"
-     * - "Create Stripe account"
-     * - "Send welcome email"
-     * - "Wait for admin approval"
      *
      * Naming conventions:
      * - Use verb phrases (validate, create, send, wait)
@@ -1843,15 +1485,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
      *
-     * Determines how the task is executed by the workflow engine:
-     * - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
-     * - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
-     * - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
-     * - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
-     * - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
-     * - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
-     * - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
-     *
+     * &#64;internal
+     * Determines how the task is executed by the workflow engine.
      * The task_type influences:
      * - How task.input is structured (different types expect different input schemas)
      * - How task.output is produced (different types produce different outputs)
@@ -1870,15 +1505,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
      *
-     * Determines how the task is executed by the workflow engine:
-     * - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
-     * - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
-     * - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
-     * - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
-     * - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
-     * - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
-     * - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
-     *
+     * &#64;internal
+     * Determines how the task is executed by the workflow engine.
      * The task_type influences:
      * - How task.input is structured (different types expect different input schemas)
      * - How task.output is produced (different types produce different outputs)
@@ -1902,15 +1530,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
      *
-     * Determines how the task is executed by the workflow engine:
-     * - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
-     * - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
-     * - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
-     * - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
-     * - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
-     * - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
-     * - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
-     *
+     * &#64;internal
+     * Determines how the task is executed by the workflow engine.
      * The task_type influences:
      * - How task.input is structured (different types expect different input schemas)
      * - How task.output is produced (different types produce different outputs)
@@ -1931,15 +1552,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
      *
-     * Determines how the task is executed by the workflow engine:
-     * - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
-     * - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
-     * - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
-     * - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
-     * - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
-     * - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
-     * - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
-     *
+     * &#64;internal
+     * Determines how the task is executed by the workflow engine.
      * The task_type influences:
      * - How task.input is structured (different types expect different input schemas)
      * - How task.output is produced (different types produce different outputs)
@@ -1963,15 +1577,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
      *
-     * Determines how the task is executed by the workflow engine:
-     * - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
-     * - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
-     * - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
-     * - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
-     * - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
-     * - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
-     * - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
-     *
+     * &#64;internal
+     * Determines how the task is executed by the workflow engine.
      * The task_type influences:
      * - How task.input is structured (different types expect different input schemas)
      * - How task.output is produced (different types produce different outputs)
@@ -1995,34 +1602,11 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> inputBuilder_;
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2038,34 +1622,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2085,34 +1646,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2137,34 +1675,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2187,34 +1702,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2244,34 +1736,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2293,34 +1762,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2337,34 +1783,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2384,34 +1807,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task input parameters (JSON structure).
+     * Task input parameters, structured as JSON.
      *
+     * &#64;internal
      * Contains the configuration and data needed for this task to execute.
      * The structure varies by task_type.
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * input: {
-     * "agent_instance_id": "agi-customer-support"
-     * "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
-     * "max_tokens": 500
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * input: {
-     * "method": "POST"
-     * "url": "https://api.stripe.com/v1/customers"
-     * "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
-     * "body": { "email": "{{workflow.input.email}}" }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * input: {
-     * "approvers": ["usr-admin-1", "usr-admin-2"]
-     * "message": "Approve account creation for {{workflow.input.email}}?"
-     * "timeout_hours": 24
-     * }
      *
      * Input can reference:
      * - Workflow inputs: {{workflow.input.field_name}}
@@ -2440,40 +1840,11 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> outputBuilder_;
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2484,40 +1855,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2532,40 +1874,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2585,40 +1898,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2636,40 +1920,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2694,40 +1949,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2744,40 +1970,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2789,40 +1986,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2837,40 +2005,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task output results (JSON structure).
+     * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
      *
+     * &#64;internal
      * Contains the data produced by this task after successful execution.
-     * Only populated when status == WORKFLOW_TASK_COMPLETED.
-     *
      * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
-     *
-     * Examples by task type:
-     *
-     * WORKFLOW_TASK_AGENT_INVOCATION:
-     * output: {
-     * "agent_execution_id": "agx-abc123"
-     * "response": "The customer feedback is positive overall..."
-     * "sentiment": "positive"
-     * "confidence": 0.92
-     * }
-     *
-     * WORKFLOW_TASK_API_CALL:
-     * output: {
-     * "status_code": 200
-     * "body": {
-     * "id": "cus_abc123"
-     * "email": "customer&#64;example.com"
-     * "created": 1704988800
-     * }
-     * }
-     *
-     * WORKFLOW_TASK_APPROVAL:
-     * output: {
-     * "approved": true
-     * "approved_by": "usr-admin-1"
-     * "approved_at": "2025-01-11T15:22:33Z"
-     * "comment": "Looks good, approved"
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2894,13 +2033,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Current task execution status.
      *
-     * Statuses:
-     * - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
-     * - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
-     * - WORKFLOW_TASK_COMPLETED: Task finished successfully
-     * - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
-     * - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
-     *
+     * &#64;internal
      * Status Transitions:
      * PENDING → IN_PROGRESS → COMPLETED
      * ↓              ↘ FAILED
@@ -2919,13 +2052,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Current task execution status.
      *
-     * Statuses:
-     * - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
-     * - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
-     * - WORKFLOW_TASK_COMPLETED: Task finished successfully
-     * - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
-     * - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
-     *
+     * &#64;internal
      * Status Transitions:
      * PENDING → IN_PROGRESS → COMPLETED
      * ↓              ↘ FAILED
@@ -2949,13 +2076,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Current task execution status.
      *
-     * Statuses:
-     * - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
-     * - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
-     * - WORKFLOW_TASK_COMPLETED: Task finished successfully
-     * - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
-     * - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
-     *
+     * &#64;internal
      * Status Transitions:
      * PENDING → IN_PROGRESS → COMPLETED
      * ↓              ↘ FAILED
@@ -2976,13 +2097,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Current task execution status.
      *
-     * Statuses:
-     * - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
-     * - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
-     * - WORKFLOW_TASK_COMPLETED: Task finished successfully
-     * - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
-     * - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
-     *
+     * &#64;internal
      * Status Transitions:
      * PENDING → IN_PROGRESS → COMPLETED
      * ↓              ↘ FAILED
@@ -3006,13 +2121,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Current task execution status.
      *
-     * Statuses:
-     * - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
-     * - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
-     * - WORKFLOW_TASK_COMPLETED: Task finished successfully
-     * - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
-     * - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
-     *
+     * &#64;internal
      * Status Transitions:
      * PENDING → IN_PROGRESS → COMPLETED
      * ↓              ↘ FAILED
@@ -3034,17 +2143,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object startedAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp when task started executing.
+     * ISO 8601 timestamp when the task started executing.
      *
+     * &#64;internal
      * Set when task status changes from PENDING to IN_PROGRESS.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:23Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - Detecting stuck tasks (started but not completed after X minutes)
-     * - Performance analysis (which tasks are slow)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -3064,17 +2167,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when task started executing.
+     * ISO 8601 timestamp when the task started executing.
      *
+     * &#64;internal
      * Set when task status changes from PENDING to IN_PROGRESS.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:23Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - Detecting stuck tasks (started but not completed after X minutes)
-     * - Performance analysis (which tasks are slow)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -3095,17 +2192,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when task started executing.
+     * ISO 8601 timestamp when the task started executing.
      *
+     * &#64;internal
      * Set when task status changes from PENDING to IN_PROGRESS.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:23Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - Detecting stuck tasks (started but not completed after X minutes)
-     * - Performance analysis (which tasks are slow)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -3122,17 +2213,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when task started executing.
+     * ISO 8601 timestamp when the task started executing.
      *
+     * &#64;internal
      * Set when task status changes from PENDING to IN_PROGRESS.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:23Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - Detecting stuck tasks (started but not completed after X minutes)
-     * - Performance analysis (which tasks are slow)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -3146,17 +2231,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when task started executing.
+     * ISO 8601 timestamp when the task started executing.
      *
+     * &#64;internal
      * Set when task status changes from PENDING to IN_PROGRESS.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:23Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - Detecting stuck tasks (started but not completed after X minutes)
-     * - Performance analysis (which tasks are slow)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -3176,22 +2255,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object completedAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp when task completed, failed, or was skipped.
+     * ISO 8601 timestamp when the task reached a terminal state.
      *
-     * Set when task reaches a terminal state:
-     * - WORKFLOW_TASK_COMPLETED: Successfully finished
-     * - WORKFLOW_TASK_FAILED: Failed during execution
-     * - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
-     *
+     * &#64;internal
+     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
      * Not set for PENDING or IN_PROGRESS tasks.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:27.450Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - SLA monitoring (alert if task takes longer than expected)
-     * - Performance benchmarking (average task duration over time)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -3211,22 +2280,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when task completed, failed, or was skipped.
+     * ISO 8601 timestamp when the task reached a terminal state.
      *
-     * Set when task reaches a terminal state:
-     * - WORKFLOW_TASK_COMPLETED: Successfully finished
-     * - WORKFLOW_TASK_FAILED: Failed during execution
-     * - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
-     *
+     * &#64;internal
+     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
      * Not set for PENDING or IN_PROGRESS tasks.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:27.450Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - SLA monitoring (alert if task takes longer than expected)
-     * - Performance benchmarking (average task duration over time)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -3247,22 +2306,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when task completed, failed, or was skipped.
+     * ISO 8601 timestamp when the task reached a terminal state.
      *
-     * Set when task reaches a terminal state:
-     * - WORKFLOW_TASK_COMPLETED: Successfully finished
-     * - WORKFLOW_TASK_FAILED: Failed during execution
-     * - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
-     *
+     * &#64;internal
+     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
      * Not set for PENDING or IN_PROGRESS tasks.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:27.450Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - SLA monitoring (alert if task takes longer than expected)
-     * - Performance benchmarking (average task duration over time)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -3279,22 +2328,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when task completed, failed, or was skipped.
+     * ISO 8601 timestamp when the task reached a terminal state.
      *
-     * Set when task reaches a terminal state:
-     * - WORKFLOW_TASK_COMPLETED: Successfully finished
-     * - WORKFLOW_TASK_FAILED: Failed during execution
-     * - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
-     *
+     * &#64;internal
+     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
      * Not set for PENDING or IN_PROGRESS tasks.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:27.450Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - SLA monitoring (alert if task takes longer than expected)
-     * - Performance benchmarking (average task duration over time)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -3308,22 +2347,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when task completed, failed, or was skipped.
+     * ISO 8601 timestamp when the task reached a terminal state.
      *
-     * Set when task reaches a terminal state:
-     * - WORKFLOW_TASK_COMPLETED: Successfully finished
-     * - WORKFLOW_TASK_FAILED: Failed during execution
-     * - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
-     *
+     * &#64;internal
+     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
      * Not set for PENDING or IN_PROGRESS tasks.
-     *
      * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-     * Example: "2025-01-11T14:30:27.450Z"
-     *
-     * Used for:
-     * - Calculating task duration (completed_at - started_at)
-     * - SLA monitoring (alert if task takes longer than expected)
-     * - Performance benchmarking (average task duration over time)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -3343,25 +2372,16 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object error_ = "";
     /**
      * <pre>
-     * Error message if task failed.
+     * Error message, populated only when status is WORKFLOW_TASK_FAILED.
      *
+     * &#64;internal
      * Contains a human-readable description of why the task failed.
-     * Only populated when status == WORKFLOW_TASK_FAILED.
      *
      * Error message includes:
      * - What operation failed (API call, agent invocation, etc.)
      * - Error type (validation error, network error, timeout, etc.)
      * - Error details (status code, exception message, stacktrace)
      * - How to fix it (if known)
-     *
-     * Examples:
-     * - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
-     * - "Agent invocation failed: Agent execution timeout after 300 seconds."
-     * - "Approval task failed: Timeout after 24 hours with no approval."
-     *
-     * For detailed debugging, also check:
-     * - task.input (what parameters were used)
-     * - task.metadata (retry count, execution context)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -3381,25 +2401,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Error message if task failed.
+     * Error message, populated only when status is WORKFLOW_TASK_FAILED.
      *
+     * &#64;internal
      * Contains a human-readable description of why the task failed.
-     * Only populated when status == WORKFLOW_TASK_FAILED.
      *
      * Error message includes:
      * - What operation failed (API call, agent invocation, etc.)
      * - Error type (validation error, network error, timeout, etc.)
      * - Error details (status code, exception message, stacktrace)
      * - How to fix it (if known)
-     *
-     * Examples:
-     * - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
-     * - "Agent invocation failed: Agent execution timeout after 300 seconds."
-     * - "Approval task failed: Timeout after 24 hours with no approval."
-     *
-     * For detailed debugging, also check:
-     * - task.input (what parameters were used)
-     * - task.metadata (retry count, execution context)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -3420,25 +2431,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Error message if task failed.
+     * Error message, populated only when status is WORKFLOW_TASK_FAILED.
      *
+     * &#64;internal
      * Contains a human-readable description of why the task failed.
-     * Only populated when status == WORKFLOW_TASK_FAILED.
      *
      * Error message includes:
      * - What operation failed (API call, agent invocation, etc.)
      * - Error type (validation error, network error, timeout, etc.)
      * - Error details (status code, exception message, stacktrace)
      * - How to fix it (if known)
-     *
-     * Examples:
-     * - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
-     * - "Agent invocation failed: Agent execution timeout after 300 seconds."
-     * - "Approval task failed: Timeout after 24 hours with no approval."
-     *
-     * For detailed debugging, also check:
-     * - task.input (what parameters were used)
-     * - task.metadata (retry count, execution context)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -3455,25 +2457,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Error message if task failed.
+     * Error message, populated only when status is WORKFLOW_TASK_FAILED.
      *
+     * &#64;internal
      * Contains a human-readable description of why the task failed.
-     * Only populated when status == WORKFLOW_TASK_FAILED.
      *
      * Error message includes:
      * - What operation failed (API call, agent invocation, etc.)
      * - Error type (validation error, network error, timeout, etc.)
      * - Error details (status code, exception message, stacktrace)
      * - How to fix it (if known)
-     *
-     * Examples:
-     * - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
-     * - "Agent invocation failed: Agent execution timeout after 300 seconds."
-     * - "Approval task failed: Timeout after 24 hours with no approval."
-     *
-     * For detailed debugging, also check:
-     * - task.input (what parameters were used)
-     * - task.metadata (retry count, execution context)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -3487,25 +2480,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Error message if task failed.
+     * Error message, populated only when status is WORKFLOW_TASK_FAILED.
      *
+     * &#64;internal
      * Contains a human-readable description of why the task failed.
-     * Only populated when status == WORKFLOW_TASK_FAILED.
      *
      * Error message includes:
      * - What operation failed (API call, agent invocation, etc.)
      * - Error type (validation error, network error, timeout, etc.)
      * - Error details (status code, exception message, stacktrace)
      * - How to fix it (if known)
-     *
-     * Examples:
-     * - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
-     * - "Agent invocation failed: Agent execution timeout after 300 seconds."
-     * - "Approval task failed: Timeout after 24 hours with no approval."
-     *
-     * For detailed debugging, also check:
-     * - task.input (what parameters were used)
-     * - task.metadata (retry count, execution context)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -3527,8 +2511,9 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3536,31 +2521,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3571,8 +2531,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3580,31 +2541,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3619,8 +2555,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3628,31 +2565,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3672,8 +2584,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3681,31 +2594,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3723,8 +2611,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3732,31 +2621,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3781,8 +2645,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3790,31 +2655,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3831,8 +2671,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3840,31 +2681,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3876,8 +2692,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3885,31 +2702,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3924,8 +2716,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Task metadata (arbitrary JSON data).
+     * Task-specific metadata as arbitrary JSON.
      *
+     * &#64;internal
      * Contains task-specific information that doesn't fit in other fields.
      * Used for:
      * - Retry count (how many times this task was retried)
@@ -3933,31 +2726,6 @@ private static final long serialVersionUID = 0L;
      * - API response headers (for WORKFLOW_TASK_API_CALL)
      * - Approval history (who approved, when, comments)
      * - Performance metrics (execution time, memory usage)
-     *
-     * Examples:
-     *
-     * Agent invocation task:
-     * metadata: {
-     * "agent_execution_id": "agx-abc123"
-     * "retry_count": 0
-     * "tokens_used": 450
-     * }
-     *
-     * API call task:
-     * metadata: {
-     * "retry_count": 2
-     * "response_headers": {
-     * "x-ratelimit-remaining": "98"
-     * "x-request-id": "req-xyz789"
-     * }
-     * }
-     *
-     * Approval task:
-     * metadata: {
-     * "approval_history": [
-     * { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
-     * ]
-     * }
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>

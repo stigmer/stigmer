@@ -12,7 +12,7 @@ public interface IdentityAccountOrBuilder extends
 
   /**
    * <pre>
-   * api-version
+   * API version for this resource type.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface IdentityAccountOrBuilder extends
   java.lang.String getApiVersion();
   /**
    * <pre>
-   * api-version
+   * API version for this resource type.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -32,7 +32,7 @@ public interface IdentityAccountOrBuilder extends
 
   /**
    * <pre>
-   * resource-kind
+   * Resource kind identifier.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -41,7 +41,7 @@ public interface IdentityAccountOrBuilder extends
   java.lang.String getKind();
   /**
    * <pre>
-   * resource-kind
+   * Resource kind identifier.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -52,7 +52,7 @@ public interface IdentityAccountOrBuilder extends
 
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -61,7 +61,7 @@ public interface IdentityAccountOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -70,7 +70,7 @@ public interface IdentityAccountOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -79,7 +79,7 @@ public interface IdentityAccountOrBuilder extends
 
   /**
    * <pre>
-   * spec
+   * Configurable properties: identity provider ID, email, name, and provisioning mode.
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -88,7 +88,7 @@ public interface IdentityAccountOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * spec
+   * Configurable properties: identity provider ID, email, name, and provisioning mode.
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -97,7 +97,7 @@ public interface IdentityAccountOrBuilder extends
   ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec getSpec();
   /**
    * <pre>
-   * spec
+   * Configurable properties: identity provider ID, email, name, and provisioning mode.
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -106,7 +106,7 @@ public interface IdentityAccountOrBuilder extends
 
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -115,7 +115,7 @@ public interface IdentityAccountOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -124,7 +124,7 @@ public interface IdentityAccountOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus();
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

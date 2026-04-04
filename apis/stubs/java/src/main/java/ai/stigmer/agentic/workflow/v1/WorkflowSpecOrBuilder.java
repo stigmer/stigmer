@@ -32,7 +32,7 @@ public interface WorkflowSpecOrBuilder extends
 
   /**
    * <pre>
-   * Workflow document metadata (DSL version, namespace, name, version).
+   * Workflow document metadata including DSL version, namespace, name, and version.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -41,7 +41,7 @@ public interface WorkflowSpecOrBuilder extends
   boolean hasDocument();
   /**
    * <pre>
-   * Workflow document metadata (DSL version, namespace, name, version).
+   * Workflow document metadata including DSL version, namespace, name, and version.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -50,7 +50,7 @@ public interface WorkflowSpecOrBuilder extends
   ai.stigmer.agentic.workflow.v1.WorkflowDocument getDocument();
   /**
    * <pre>
-   * Workflow document metadata (DSL version, namespace, name, version).
+   * Workflow document metadata including DSL version, namespace, name, and version.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2 [json_name = "document", (.buf.validate.field) = { ... }</code>
@@ -109,7 +109,6 @@ public interface WorkflowSpecOrBuilder extends
   /**
    * <pre>
    * Environment variables required by the workflow.
-   * Uses the shared EnvironmentSpec for consistent env var handling.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -119,7 +118,6 @@ public interface WorkflowSpecOrBuilder extends
   /**
    * <pre>
    * Environment variables required by the workflow.
-   * Uses the shared EnvironmentSpec for consistent env var handling.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
@@ -129,7 +127,6 @@ public interface WorkflowSpecOrBuilder extends
   /**
    * <pre>
    * Environment variables required by the workflow.
-   * Uses the shared EnvironmentSpec for consistent env var handling.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>

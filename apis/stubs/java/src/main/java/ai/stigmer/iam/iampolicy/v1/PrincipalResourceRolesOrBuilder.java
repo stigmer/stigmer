@@ -11,24 +11,44 @@ public interface PrincipalResourceRolesOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   java.util.List<ai.stigmer.iam.iampolicy.v1.RoleInfo> 
       getRolesList();
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.RoleInfo getRoles(int index);
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   int getRolesCount();
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   java.util.List<? extends ai.stigmer.iam.iampolicy.v1.RoleInfoOrBuilder> 
       getRolesOrBuilderList();
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.RoleInfoOrBuilder getRolesOrBuilder(

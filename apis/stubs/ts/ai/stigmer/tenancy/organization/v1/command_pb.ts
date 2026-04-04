@@ -18,13 +18,15 @@ export const file_ai_stigmer_tenancy_organization_v1_command: GenFile = /*@__PUR
   fileDesc("CjBhaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEy2AQKHU9yZ2FuaXphdGlvbkNvbW1hbmRDb250cm9sbGVyEmsKBWFwcGx5EjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24aMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbhJyCgZjcmVhdGUSMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbhowLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIgTQuBgBEqgBCgZ1cGRhdGUSMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbhowLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIjrCuBg2CAQQHiILbWV0YWRhdGEuaWQqI3VuYXV0aG9yaXplZCB0byB1cGRhdGUgb3JnYW5pemF0aW9uEqQBCgZkZWxldGUSMi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbklkGjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iNMK4GDAIAhAeIgV2YWx1ZSojdW5hdXRob3JpemVkIHRvIGRlbGV0ZSBvcmdhbml6YXRpb24aBKD/Kx5iBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io]);
 
 /**
- * OrganizationCommandController provides write operations for organizations
+ * OrganizationCommandController handles write operations for organizations.
  *
  * @generated from service ai.stigmer.tenancy.organization.v1.OrganizationCommandController
  */
 export const OrganizationCommandController: GenService<{
   /**
    * Create or update an organization.
+   *
+   * @internal
    * The authorization and state-operation are determined depending on whether the organization
    * is going to be created or updated which is determined as part of the request execution.
    *
@@ -36,9 +38,11 @@ export const OrganizationCommandController: GenService<{
     output: typeof OrganizationSchema;
   },
   /**
-   * Create a new organization
-   * No authorization required - any authenticated user can create an organization
-   * The creator automatically becomes the owner of the organization
+   * Create an organization.
+   *
+   * @internal
+   * No authorization required — any authenticated user can create an organization.
+   * The creator automatically becomes the owner of the organization.
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.create
    */
@@ -48,8 +52,10 @@ export const OrganizationCommandController: GenService<{
     output: typeof OrganizationSchema;
   },
   /**
-   * Update an existing organization
-   * Requires: Organization admin permission (can_edit)
+   * Update an existing organization.
+   *
+   * @internal
+   * Authorization: Requires can_edit permission on the organization.
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.update
    */
@@ -59,9 +65,11 @@ export const OrganizationCommandController: GenService<{
     output: typeof OrganizationSchema;
   },
   /**
-   * Delete an organization
-   * Requires: Organization owner permission (can_delete)
-   * Note: This will cascade delete all resources under the organization
+   * Delete an organization.
+   *
+   * @internal
+   * Authorization: Requires can_delete permission on the organization.
+   * This will cascade-delete all resources under the organization.
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.delete
    */

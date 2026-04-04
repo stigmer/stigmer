@@ -75,7 +75,7 @@ export type IdentityProvider = Message<"ai.stigmer.iam.identityprovider.v1.Ident
   spec?: IdentityProviderSpec;
 
   /**
-   * status
+   * System-managed state including audit trail.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
    */

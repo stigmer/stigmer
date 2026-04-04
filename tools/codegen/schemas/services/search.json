@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.search.v1.SearchRequest",
           "outputType": "SearchResponse",
           "outputFullType": "ai.stigmer.search.v1.SearchResponse",
-          "description": "Search resources across one or more kinds.\n\n This is the unified entry point for list, search, and discover operations.\n The behavior is determined by the combination of request parameters:\n\n | Operation | kinds     | query | org     | Behavior                              |\n |-----------|-----------|-------|---------|---------------------------------------|\n | List      | [X]       | \"\"    | \"acme\"  | All X in org, sorted by created_at    |\n | List All  | [X]       | \"\"    | \"\"      | All accessible X, sorted by created_at|\n | Search    | [X]       | \"...\"  | \"\"      | Search X by query, sorted by relevance|\n | Search Org| [X]       | \"...\"  | \"acme\"  | Search X in org, sorted by relevance  |\n | Discover  | []        | \"...\"  | \"\"      | Search all kinds, sorted by relevance |\n\n Sort Order:\n - With query: Results sorted by relevance score (descending)\n - Without query: Results sorted by created_at (descending, newer first)\n\n Authorization:\n Returns only resources the caller has can_view permission on.\n The handler queries FGA per kind to get authorized IDs, then applies filters.\n\n Pagination:\n Use page.num (1-indexed) and page.size to paginate results.\n Response includes total_count and total_pages for UI pagination controls."
+          "description": "Search resources across one or more kinds.\n\n This is the unified entry point for list, search, and discover operations.\n The behavior is determined by the combination of request parameters:\n\n | Operation  | kinds   | query | org    | Behavior                               |\n |------------|---------|-------|--------|----------------------------------------|\n | List       | [X]     | \"\"    | \"acme\" | All X in org, sorted by created_at     |\n | List All   | [X]     | \"\"    | \"\"     | All accessible X, sorted by created_at |\n | Search     | [X]     | \"...\" | \"\"     | Search X by query, sorted by relevance |\n | Search Org | [X]     | \"...\" | \"acme\" | Search X in org, sorted by relevance   |\n | Discover   | []      | \"...\" | \"\"     | Search all kinds, sorted by relevance  |\n\n Sort Order:\n - With query: Results sorted by relevance score (descending)\n - Without query: Results sorted by created_at (descending, newer first)\n\n Pagination:\n Use page.num (1-indexed) and page.size to paginate results.\n Response includes total_count and total_pages for pagination controls.\n\n @internal\n Authorization: Returns only resources the caller has can_view permission on.\n The handler queries FGA per kind to get authorized IDs, then applies filters."
         }
       ]
     }
@@ -21,7 +21,7 @@
   "methodTypes": [
     {
       "name": "SearchRequest",
-      "description": "SearchRequest specifies criteria for searching API resources.\n\n This single request type supports three use cases:\n - List: Return all accessible resources of specified kind(s)\n - Search: Find resources matching a text query\n - Discover: Search across all resource kinds\n\n Examples:\n\n List agents in an organization:\n   {kinds: [agent], org: \"acme\", query: \"\"}\n\n Search agents by text:\n   {kinds: [agent], query: \"code review\"}\n\n Discover all resources matching a query:\n   {kinds: [], query: \"kubernetes\"}\n\n Search multiple kinds:\n   {kinds: [agent, skill], query: \"security\", org: \"acme\"}",
+      "description": "SearchRequest specifies criteria for searching API resources.\n\n This single request type supports three use cases:\n - List: Return all accessible resources of specified kind(s)\n - Search: Find resources matching a text query\n - Discover: Search across all resource kinds\n\n @internal\n Examples:\n   List agents in org:         {kinds: [agent], org: \"acme\", query: \"\"}\n   Search agents by text:      {kinds: [agent], query: \"code review\"}\n   Discover all:               {kinds: [], query: \"kubernetes\"}\n   Search multiple kinds:      {kinds: [agent, skill], query: \"security\", org: \"acme\"}",
       "protoType": "ai.stigmer.search.v1.SearchRequest",
       "protoFile": "apis/ai/stigmer/search/v1/io.proto",
       "fields": [
@@ -57,7 +57,7 @@
               ]
             }
           },
-          "description": "Resource kinds to search.\n\n Behavior:\n - Empty: Search all searchable kinds (discover mode)\n   Searchable kinds: agent, skill, mcp_server, workflow\n - Single kind: Search only that resource type\n - Multiple kinds: Search specified types\n\n Invalid kinds are silently ignored (allows forward compatibility).",
+          "description": "Resource kinds to search.\n\n Behavior:\n - Empty: Search all searchable kinds (discover mode)\n   Searchable kinds: agent, skill, mcp_server, workflow\n - Single kind: Search only that resource type\n - Multiple kinds: Search specified types\n\n @internal\n Invalid kinds are silently ignored (allows forward compatibility).",
           "required": false
         },
         {
@@ -80,7 +80,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization to scope the search.\n\n Format: lowercase alphanumeric with hyphens (e.g., \"acme\", \"stigmer\").\n\n Behavior:\n - Empty: Search all organizations the caller has access to\n - Non-empty: Search only within the specified organization\n   Caller must have access to at least one resource in the org\n\n Examples: \"stigmer\", \"acme-corp\", \"my-org\"",
+          "description": "Organization to scope the search.\n\n Format: lowercase alphanumeric with hyphens (e.g., \"acme\", \"stigmer\").\n\n Behavior:\n - Empty: Search all organizations the caller has access to\n - Non-empty: Search only within the specified organization\n\n @internal\n Caller must have access to at least one resource in the org.",
           "required": false,
           "validation": {
             "maxLength": 63,
@@ -112,7 +112,7 @@
     },
     {
       "name": "SearchResponse",
-      "description": "SearchResponse contains paginated search results with metadata.\n\n The response includes:\n - Matching resources as SearchResult projections\n - Counts per kind for UI filtering/tabs\n - Pagination metadata",
+      "description": "SearchResponse contains paginated search results with metadata.\n\n The response includes:\n - Matching resources as SearchResult summaries\n - Counts per kind for filtering\n - Pagination metadata",
       "protoType": "ai.stigmer.search.v1.SearchResponse",
       "protoFile": "apis/ai/stigmer/search/v1/io.proto",
       "fields": [
@@ -127,7 +127,7 @@
               "messageType": "SearchResult"
             }
           },
-          "description": "Search results for the current page.\n\n Ordering:\n - With query: Sorted by relevance score (descending)\n - Without query: Sorted by created_at (descending, newer first)\n\n Each result is a display projection, not the full resource.\n To get the full resource, use the kind-specific get RPC.",
+          "description": "Search results for the current page.\n\n Ordering:\n - With query: Sorted by relevance score (descending)\n - Without query: Sorted by created_at (descending, newer first)\n\n Each result is a summary, not the full resource.\n To get the full resource, call the get method for that resource kind.",
           "required": false
         },
         {
@@ -172,103 +172,103 @@
   "enumTypes": [
     {
       "name": "ApiResourceKind",
-      "description": "API resource kinds for Stigmer",
+      "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
       "values": [
         {
           "name": "api_resource_version",
           "number": 1,
-          "description": "Agentic - System-level audit trails and versioning"
+          "description": "Immutable version record tracking changes to an API resource."
         },
         {
           "name": "iam_policy",
           "number": 10,
-          "description": "IAM - Identity and Access Management"
+          "description": "Role-based access control policy for granting permissions on resources."
         },
         {
           "name": "identity_account",
           "number": 11,
-          "description": ""
+          "description": "User account in the identity system."
         },
         {
           "name": "api_key",
           "number": 12,
-          "description": ""
+          "description": "Credential for programmatic API access."
         },
         {
           "name": "identity_provider",
           "number": 21,
-          "description": "IAM - External identity provider configuration"
+          "description": "External identity provider for federated authentication."
         },
         {
           "name": "organization",
           "number": 30,
-          "description": "Tenancy - Platform and organizational resources"
+          "description": "Top-level tenant that owns and manages resources."
         },
         {
           "name": "platform",
           "number": 31,
-          "description": ""
+          "description": "Singleton platform instance representing the Stigmer deployment."
         },
         {
           "name": "agent",
           "number": 40,
-          "description": "Agentic - AI agent management"
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
           "name": "agent_execution",
           "number": 41,
-          "description": ""
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
         {
           "name": "session",
           "number": 42,
-          "description": ""
+          "description": "Conversation thread between a user and an agent."
         },
         {
           "name": "skill",
           "number": 43,
-          "description": ""
+          "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
           "name": "mcp_server",
           "number": 44,
-          "description": ""
+          "description": "External tool server connected via the Model Context Protocol."
         },
         {
           "name": "agent_instance",
           "number": 45,
-          "description": ""
+          "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
           "name": "workflow",
           "number": 50,
-          "description": "Agentic - Workflow orchestration"
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
           "name": "workflow_instance",
           "number": 51,
-          "description": ""
+          "description": "Configured deployment of a workflow with environment-specific bindings."
         },
         {
           "name": "workflow_execution",
           "number": 52,
-          "description": ""
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
         },
         {
           "name": "environment",
           "number": 53,
-          "description": ""
+          "description": "Named set of variables and secrets for agent and workflow execution."
         },
         {
           "name": "execution_context",
           "number": 54,
-          "description": ""
+          "description": "User-owned runtime context for managing execution state."
         },
         {
           "name": "project",
           "number": 60,
-          "description": "Tenancy - Project management (aggregate root for resource lifecycle)"
+          "description": "Aggregate root grouping related resources for lifecycle management."
         }
       ]
     },

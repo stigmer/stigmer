@@ -11,11 +11,19 @@ public interface IdpIdOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Identity provider ID of the account.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The value.
    */
   java.lang.String getValue();
   /**
+   * <pre>
+   * Identity provider ID of the account.
+   * </pre>
+   *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
    * @return The bytes for value.
    */

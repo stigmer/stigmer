@@ -7,9 +7,9 @@ package ai.stigmer.tenancy.project.v1;
 
 /**
  * <pre>
- * Project is a lightweight membership tracker that groups related resources
- * under a single unit of management with automatic orphan pruning.
+ * Project groups related resources under a single unit of management with automatic orphan pruning.
  *
+ * &#64;internal
  * Two tracks are supported:
  *
  * Declarative Track (no entry_point):
@@ -25,27 +25,6 @@ package ai.stigmer.tenancy.project.v1;
  * In both tracks, the project stores only references (org/kind/slug) to its
  * members — never full resource objects. Orphan pruning is a set-difference
  * between previous and current members.
- *
- * Example YAML — Declarative (stigmer.yaml):
- *
- * apiVersion: tenancy.stigmer.ai/v1
- * kind: Project
- * metadata:
- * name: my-agent-fleet
- * org: acme-corp
- * spec:
- * description: Production agent fleet
- *
- * Example YAML — SDK (stigmer.yaml):
- *
- * apiVersion: tenancy.stigmer.ai/v1
- * kind: Project
- * metadata:
- * name: my-super-app
- * org: acme-corp
- * spec:
- * entry_point: main.go
- * description: Go SDK project
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.tenancy.project.v1.Project}
@@ -523,9 +502,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Project is a lightweight membership tracker that groups related resources
-   * under a single unit of management with automatic orphan pruning.
+   * Project groups related resources under a single unit of management with automatic orphan pruning.
    *
+   * &#64;internal
    * Two tracks are supported:
    *
    * Declarative Track (no entry_point):
@@ -541,27 +520,6 @@ private static final long serialVersionUID = 0L;
    * In both tracks, the project stores only references (org/kind/slug) to its
    * members — never full resource objects. Orphan pruning is a set-difference
    * between previous and current members.
-   *
-   * Example YAML — Declarative (stigmer.yaml):
-   *
-   * apiVersion: tenancy.stigmer.ai/v1
-   * kind: Project
-   * metadata:
-   * name: my-agent-fleet
-   * org: acme-corp
-   * spec:
-   * description: Production agent fleet
-   *
-   * Example YAML — SDK (stigmer.yaml):
-   *
-   * apiVersion: tenancy.stigmer.ai/v1
-   * kind: Project
-   * metadata:
-   * name: my-super-app
-   * org: acme-corp
-   * spec:
-   * entry_point: main.go
-   * description: Go SDK project
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.tenancy.project.v1.Project}

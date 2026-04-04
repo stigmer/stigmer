@@ -466,7 +466,7 @@ Skill represents a versioned, reusable unit of agent capability.
 <TypeTable
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
-    kind: { type: "ApiResourceKind", description: "Resource kind identifier.", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
     spec: { type: "SkillInput", description: "Resource specification. See [`SkillInput`](#skillinput).", typeDescriptionLink: "#skillinput" },
     status: { type: "SkillStatus", description: "System-managed state. See [`SkillStatus`](#skillstatus).", typeDescriptionLink: "#skillstatus" },

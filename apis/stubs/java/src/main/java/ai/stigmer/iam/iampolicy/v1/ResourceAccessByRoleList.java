@@ -7,8 +7,8 @@ package ai.stigmer.iam.iampolicy.v1;
 
 /**
  * <pre>
- * ResourceAccessByRoleList groups roles by what they are,
- * showing each role and all principals assigned to it.
+ * ResourceAccessByRoleList groups access grants by role, showing each role and
+ * all principals assigned to it on the queried resource.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList}
@@ -58,6 +58,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.iam.iampolicy.v1.RoleAccess> entries_;
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -65,6 +69,10 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -73,6 +81,10 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -80,6 +92,10 @@ private static final long serialVersionUID = 0L;
     return entries_.size();
   }
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -87,6 +103,10 @@ private static final long serialVersionUID = 0L;
     return entries_.get(index);
   }
   /**
+   * <pre>
+   * Role access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -261,8 +281,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ResourceAccessByRoleList groups roles by what they are,
-   * showing each role and all principals assigned to it.
+   * ResourceAccessByRoleList groups access grants by role, showing each role and
+   * all principals assigned to it on the queried resource.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList}
@@ -460,6 +480,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.iam.iampolicy.v1.RoleAccess, ai.stigmer.iam.iampolicy.v1.RoleAccess.Builder, ai.stigmer.iam.iampolicy.v1.RoleAccessOrBuilder> entriesBuilder_;
 
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.iam.iampolicy.v1.RoleAccess> getEntriesList() {
@@ -470,6 +494,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public int getEntriesCount() {
@@ -480,6 +508,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleAccess getEntries(int index) {
@@ -490,6 +522,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -507,6 +543,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -521,6 +561,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(ai.stigmer.iam.iampolicy.v1.RoleAccess value) {
@@ -537,6 +581,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -554,6 +602,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -568,6 +620,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -582,6 +638,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder addAllEntries(
@@ -597,6 +657,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder clearEntries() {
@@ -610,6 +674,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public Builder removeEntries(int index) {
@@ -623,6 +691,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleAccess.Builder getEntriesBuilder(
@@ -630,6 +702,10 @@ private static final long serialVersionUID = 0L;
       return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleAccessOrBuilder getEntriesOrBuilder(
@@ -640,6 +716,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.iam.iampolicy.v1.RoleAccessOrBuilder> 
@@ -651,6 +731,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleAccess.Builder addEntriesBuilder() {
@@ -658,6 +742,10 @@ private static final long serialVersionUID = 0L;
           ai.stigmer.iam.iampolicy.v1.RoleAccess.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleAccess.Builder addEntriesBuilder(
@@ -666,6 +754,10 @@ private static final long serialVersionUID = 0L;
           index, ai.stigmer.iam.iampolicy.v1.RoleAccess.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Role access entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleAccess entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.iam.iampolicy.v1.RoleAccess.Builder> 

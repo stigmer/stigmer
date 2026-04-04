@@ -11,12 +11,20 @@ public interface PageInfoOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Page number (1-indexed).
+   * </pre>
+   *
    * <code>int32 num = 1 [json_name = "num"];</code>
    * @return The num.
    */
   int getNum();
 
   /**
+   * <pre>
+   * Maximum number of items per page.
+   * </pre>
+   *
    * <code>int32 size = 2 [json_name = "size"];</code>
    * @return The size.
    */

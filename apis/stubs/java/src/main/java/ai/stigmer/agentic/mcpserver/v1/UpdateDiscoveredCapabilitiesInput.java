@@ -9,6 +9,7 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.
  *
+ * &#64;internal
  * Used by:
  * - CLI: after `stigmer discover mcp-server &lt;name&gt;` connects locally, queries tools/resources,
  * and pushes the results to stigmer-server.
@@ -325,6 +326,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.
    *
+   * &#64;internal
    * Used by:
    * - CLI: after `stigmer discover mcp-server &lt;name&gt;` connects locally, queries tools/resources,
    * and pushes the results to stigmer-server.

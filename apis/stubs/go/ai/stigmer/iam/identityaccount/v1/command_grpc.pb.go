@@ -40,14 +40,21 @@ type IdentityAccountCommandControllerClient interface {
 	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Update an existing identity account.
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the identity account resource.
 	Update(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Delete an identity account.
+	//
+	// @internal
+	// Authorization: Requires can_delete permission on the identity account resource.
 	Delete(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+	// Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
 	//
 	// @internal
 	// Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
 	// to Stigmer with the Auth0 payload format to trigger account provisioning.
+	// Authorization is skipped — this is a system-level operation.
 	SimulateSignupWebhook(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -113,14 +120,21 @@ type IdentityAccountCommandControllerServer interface {
 	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(context.Context, *IdentityAccount) (*IdentityAccount, error)
 	// Update an existing identity account.
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the identity account resource.
 	Update(context.Context, *IdentityAccount) (*IdentityAccount, error)
 	// Delete an identity account.
+	//
+	// @internal
+	// Authorization: Requires can_delete permission on the identity account resource.
 	Delete(context.Context, *IdentityAccountId) (*IdentityAccount, error)
-	// Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+	// Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
 	//
 	// @internal
 	// Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
 	// to Stigmer with the Auth0 payload format to trigger account provisioning.
+	// Authorization is skipped — this is a system-level operation.
 	SimulateSignupWebhook(context.Context, *IdentityAccountEmail) (*emptypb.Empty, error)
 }
 

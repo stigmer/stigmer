@@ -8,9 +8,10 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 )
 
-// ExecutionContextSpec defines ephemeral runtime configuration and secrets.
+// Runtime configuration and secrets for a single execution.
 //
-//	This is created during execution and deleted when execution completes.
+//	@internal
+//	Created by the execution engine, deleted when execution completes.
 type ExecutionContextInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -25,18 +26,18 @@ type ExecutionContextInput struct {
 	// Tags for categorization and discovery.
 	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
-	// The execution ID this context belongs to. This is typically a WorkflowExecution ID or AgentExecution ID.
-	ExecutionId string `json:"execution_id,omitempty" jsonschema:"The execution ID this context belongs to. This is typically a WorkflowExecution ID or AgentExecution ID."`
-	// Key-value pairs containing both configuration and secrets. These are provided at runtime and only exist for the duration of the execution. Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
-	Data map[string]*ExecutionValue `json:"data,omitempty" jsonschema:"Key-value pairs containing both configuration and secrets. These are provided at runtime and only exist for the duration of the execution. Example: {'AWS_ACCESS_KEY_ID': {value: 'AKIA...', is_secret: true}}"`
+	// ID of the parent AgentExecution or WorkflowExecution.
+	ExecutionId string `json:"execution_id,omitempty" jsonschema:"ID of the parent AgentExecution or WorkflowExecution."`
+	// Runtime key-value pairs, each marked as secret or plaintext. @internal Provided at runtime and only exist for the duration of the execution. Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+	Data map[string]*ExecutionValue `json:"data,omitempty" jsonschema:"Runtime key-value pairs, each marked as secret or plaintext. @internal Provided at runtime and only exist for the duration of the execution. Example: {'AWS_ACCESS_KEY_ID': {value: 'AKIA...', is_secret: true}}"`
 }
 
-// ExecutionValue represents a single runtime configuration or secret value.
+// A single runtime configuration or secret value.
 type ExecutionValue struct {
-	// The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext
-	Value string `json:"value,omitempty" jsonschema:"The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext"`
-	// Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value is deleted when execution completes When false: - Value is stored as plaintext - Value is visible in audit logs
-	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value is deleted when execution completes When false: - Value is stored as plaintext - Value is visible in audit logs"`
+	// String content of this entry. @internal If is_secret=true: encrypted at rest and redacted in logs. If is_secret=false: stored as plaintext.
+	Value string `json:"value,omitempty" jsonschema:"String content of this entry. @internal If is_secret=true: encrypted at rest and redacted in logs. If is_secret=false: stored as plaintext."`
+	// Whether this value should be treated as a secret. @internal When true: value is encrypted at rest, redacted in logs, and deleted when execution completes. When false: value is stored as plaintext and visible in audit logs.
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. @internal When true: value is encrypted at rest, redacted in logs, and deleted when execution completes. When false: value is stored as plaintext and visible in audit logs."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed ExecutionContext proto message.

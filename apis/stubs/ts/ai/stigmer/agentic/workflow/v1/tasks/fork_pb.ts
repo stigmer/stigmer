@@ -17,10 +17,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_fork: GenFile = /*@__PURE
   fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZm9yay5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzInkKDkZvcmtUYXNrQ29uZmlnEkwKCGJyYW5jaGVzGAEgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkZvcmtCcmFuY2hCCLpIBZIBAggCEg8KB2NvbXBldGUYAiABKAg6COqLLARmb3JrImoKCkZvcmtCcmFuY2gSGAoEbmFtZRgBIAEoCUIKukgHyAEBcgIQARJCCgJkbxgCIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd1Rhc2tCCLpIBZIBAggBYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
- * ForkTaskConfig defines the configuration for FORK tasks.
+ * ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
  *
- * FORK tasks execute multiple branches in parallel.
- *
+ * @internal
  * YAML Example:
  *   - taskName:
  *       fork:

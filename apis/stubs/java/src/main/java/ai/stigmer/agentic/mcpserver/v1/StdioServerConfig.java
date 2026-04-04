@@ -8,14 +8,15 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * StdioServerConfig defines an MCP server that runs as a subprocess.
- * Communication happens via stdin/stdout using JSON-RPC messages.
  *
- * This is the most common MCP server type, used for:
+ * &#64;internal
+ * Communication happens via stdin/stdout using JSON-RPC messages.
+ * The agent runner starts this process and communicates via stdio.
+ *
+ * Common examples:
  * - Node.js servers: npx &#64;modelcontextprotocol/server-github
  * - Python servers: python -m mcp_server_sqlite
  * - Go servers: ./mcp-server-binary
- *
- * The agent runner starts this process and communicates via stdio.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.StdioServerConfig}
@@ -417,14 +418,15 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * StdioServerConfig defines an MCP server that runs as a subprocess.
-   * Communication happens via stdin/stdout using JSON-RPC messages.
    *
-   * This is the most common MCP server type, used for:
+   * &#64;internal
+   * Communication happens via stdin/stdout using JSON-RPC messages.
+   * The agent runner starts this process and communicates via stdio.
+   *
+   * Common examples:
    * - Node.js servers: npx &#64;modelcontextprotocol/server-github
    * - Python servers: python -m mcp_server_sqlite
    * - Go servers: ./mcp-server-binary
-   *
-   * The agent runner starts this process and communicates via stdio.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.StdioServerConfig}

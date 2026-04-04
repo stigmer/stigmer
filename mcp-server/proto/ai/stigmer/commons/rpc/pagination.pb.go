@@ -21,10 +21,13 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Offset-based pagination parameters.
 type PageInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Num           int32                  `protobuf:"varint,1,opt,name=num,proto3" json:"num,omitempty"`
-	Size          int32                  `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Page number (1-indexed).
+	Num int32 `protobuf:"varint,1,opt,name=num,proto3" json:"num,omitempty"`
+	// Maximum number of items per page.
+	Size          int32 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -73,13 +76,13 @@ func (x *PageInfo) GetSize() int32 {
 	return 0
 }
 
-// google style of pagination
+// Token-based pagination parameters following the Google API style.
 type GooglePageInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// google apis include a token to retrieve next page of results.
-	// if there are no more items to return, the next_page_token is empty
+	// Opaque token for retrieving the next page of results.
+	// Empty when there are no more items to return.
 	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	// number of items to include in the result
+	// Maximum number of items to include in the result.
 	Size          int32 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

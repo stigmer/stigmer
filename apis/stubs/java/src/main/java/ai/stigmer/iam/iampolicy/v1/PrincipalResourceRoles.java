@@ -57,6 +57,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.iam.iampolicy.v1.RoleInfo> roles_;
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   @java.lang.Override
@@ -64,6 +68,10 @@ private static final long serialVersionUID = 0L;
     return roles_;
   }
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   @java.lang.Override
@@ -72,6 +80,10 @@ private static final long serialVersionUID = 0L;
     return roles_;
   }
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   @java.lang.Override
@@ -79,6 +91,10 @@ private static final long serialVersionUID = 0L;
     return roles_.size();
   }
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   @java.lang.Override
@@ -86,6 +102,10 @@ private static final long serialVersionUID = 0L;
     return roles_.get(index);
   }
   /**
+   * <pre>
+   * Roles assigned to the principal on this resource.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
    */
   @java.lang.Override
@@ -458,6 +478,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.iam.iampolicy.v1.RoleInfo, ai.stigmer.iam.iampolicy.v1.RoleInfo.Builder, ai.stigmer.iam.iampolicy.v1.RoleInfoOrBuilder> rolesBuilder_;
 
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public java.util.List<ai.stigmer.iam.iampolicy.v1.RoleInfo> getRolesList() {
@@ -468,6 +492,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public int getRolesCount() {
@@ -478,6 +506,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleInfo getRoles(int index) {
@@ -488,6 +520,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder setRoles(
@@ -505,6 +541,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder setRoles(
@@ -519,6 +559,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder addRoles(ai.stigmer.iam.iampolicy.v1.RoleInfo value) {
@@ -535,6 +579,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder addRoles(
@@ -552,6 +600,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder addRoles(
@@ -566,6 +618,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder addRoles(
@@ -580,6 +636,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder addAllRoles(
@@ -595,6 +655,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder clearRoles() {
@@ -608,6 +672,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public Builder removeRoles(int index) {
@@ -621,6 +689,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleInfo.Builder getRolesBuilder(
@@ -628,6 +700,10 @@ private static final long serialVersionUID = 0L;
       return internalGetRolesFieldBuilder().getBuilder(index);
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleInfoOrBuilder getRolesOrBuilder(
@@ -638,6 +714,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public java.util.List<? extends ai.stigmer.iam.iampolicy.v1.RoleInfoOrBuilder> 
@@ -649,6 +729,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleInfo.Builder addRolesBuilder() {
@@ -656,6 +740,10 @@ private static final long serialVersionUID = 0L;
           ai.stigmer.iam.iampolicy.v1.RoleInfo.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public ai.stigmer.iam.iampolicy.v1.RoleInfo.Builder addRolesBuilder(
@@ -664,6 +752,10 @@ private static final long serialVersionUID = 0L;
           index, ai.stigmer.iam.iampolicy.v1.RoleInfo.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Roles assigned to the principal on this resource.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.iampolicy.v1.RoleInfo roles = 1 [json_name = "roles"];</code>
      */
     public java.util.List<ai.stigmer.iam.iampolicy.v1.RoleInfo.Builder> 

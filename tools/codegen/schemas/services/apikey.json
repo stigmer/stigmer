@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
           "outputType": "ApiKey",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
-          "description": "Create a new API key for the authenticated user.\n Any authenticated user can create API keys."
+          "description": "Create an API key for the authenticated user.\n\n The raw key value is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n @internal\n Any authenticated user can create API keys, so authorization is skipped."
         },
         {
           "name": "Update",
@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
           "outputType": "ApiKey",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
-          "description": "Update an existing API key."
+          "description": "Update an existing API key.\n\n @internal\n Authorization: Requires can_edit permission on the API key resource."
         },
         {
           "name": "Delete",
@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyId",
           "outputType": "ApiKey",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
-          "description": "Delete an API key."
+          "description": "Delete an API key.\n\n @internal\n Authorization: Requires can_delete permission on the API key resource."
         }
       ]
     },
@@ -59,7 +59,7 @@
           "inputFullType": "google.protobuf.Empty",
           "outputType": "ApiKeys",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKeys",
-          "description": "List all API keys belonging to the authenticated user."
+          "description": "List all API keys belonging to the authenticated user.\n\n Returns only the keys owned by the identity account in the auth header.\n\n @internal\n Scoped to the caller's own keys, so authorization is skipped."
         }
       ]
     }
@@ -67,7 +67,7 @@
   "methodTypes": [
     {
       "name": "ApiKeyHash",
-      "description": "wrapper for hashed api key",
+      "description": "ApiKeyHash identifies an API key by its hashed key value.",
       "protoType": "ai.stigmer.iam.apikey.v1.ApiKeyHash",
       "protoFile": "apis/ai/stigmer/iam/apikey/v1/io.proto",
       "fields": [
@@ -78,7 +78,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "",
+          "description": "Hash of the raw API key.",
           "required": true,
           "validation": {
             "required": true
@@ -88,7 +88,7 @@
     },
     {
       "name": "ApiKeys",
-      "description": "wrapper to get list of api keys",
+      "description": "ApiKeys contains a list of API key resources.",
       "protoType": "ai.stigmer.iam.apikey.v1.ApiKeys",
       "protoFile": "apis/ai/stigmer/iam/apikey/v1/io.proto",
       "fields": [
@@ -103,7 +103,7 @@
               "messageType": "ApiKey"
             }
           },
-          "description": "",
+          "description": "API key entries.",
           "required": false
         }
       ]
@@ -128,10 +128,10 @@
       ]
     }
   ],
-  "resourceDescription": "api-key for user-account or machine-account",
+  "resourceDescription": "ApiKey provides programmatic access to the Stigmer API on behalf of an identity account.\n\n Each API key is scoped to a single identity account (user or machine) and\n can optionally be configured to expire.\n\n @internal\n The raw key value is returned only once in the create response. Only the\n hash and fingerprint are persisted.",
   "statusType": {
     "name": "ApiKeyStatus",
-    "description": "",
+    "description": "ApiKeyStatus contains system-managed state for an API key.",
     "protoType": "ai.stigmer.iam.apikey.v1.ApiKeyStatus",
     "protoFile": "apis/ai/stigmer/iam/apikey/v1/api.proto",
     "fields": [
@@ -143,7 +143,7 @@
           "kind": "message",
           "messageType": "ApiResourceAudit"
         },
-        "description": "audit",
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.).",
         "required": false
       },
       {
@@ -153,12 +153,42 @@
         "type": {
           "kind": "timestamp"
         },
-        "description": "last used timestamp for the api-key",
+        "description": "Timestamp of the most recent API call made with this key.",
         "required": false
       }
     ]
   },
   "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "ApiResourceAuditInfo",
       "description": "ApiResourceAuditInfo contains detailed audit information.",
@@ -243,36 +273,6 @@
             "kind": "string"
           },
           "description": "URL to the actor's avatar image.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAudit",
-      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "SpecAudit",
-          "jsonName": "specAudit",
-          "protoField": "spec_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's specification (desired state).",
-          "required": false
-        },
-        {
-          "name": "StatusAudit",
-          "jsonName": "statusAudit",
-          "protoField": "status_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's status (actual state).",
           "required": false
         }
       ]

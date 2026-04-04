@@ -154,8 +154,9 @@ export const ListSessionsByAgentRequestSchema: GenMessage<ListSessionsByAgentReq
 /**
  * UpdateSessionSubjectRequest sets the conversation title for a session.
  *
- * This is a field-level update that atomically modifies only the subject
- * field, avoiding the lost-update race condition that occurs when multiple
+ * @internal
+ * Field-level update that atomically modifies only the subject field,
+ * avoiding the lost-update race condition that occurs when multiple
  * activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently
  * perform full-resource updates on the same session.
  *
@@ -185,10 +186,11 @@ export const UpdateSessionSubjectRequestSchema: GenMessage<UpdateSessionSubjectR
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 5);
 
 /**
- * UpdateSessionSandboxIdRequest sets the Daytona sandbox ID for a session.
+ * UpdateSessionSandboxIdRequest sets the sandbox ID for a session.
  *
- * This is a field-level update that atomically modifies only the sandbox_id
- * field, avoiding the lost-update race condition that occurs when multiple
+ * @internal
+ * Field-level update that atomically modifies only the sandbox_id field,
+ * avoiding the lost-update race condition that occurs when multiple
  * activities concurrently perform full-resource updates on the same session.
  *
  * @generated from message ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest

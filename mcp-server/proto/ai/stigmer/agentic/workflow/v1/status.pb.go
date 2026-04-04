@@ -34,13 +34,13 @@ type WorkflowStatus struct {
 	// Created automatically when the workflow is created.
 	DefaultInstanceId string `protobuf:"bytes,1,opt,name=default_instance_id,json=defaultInstanceId,proto3" json:"default_instance_id,omitempty"`
 	// Serverless Workflow YAML generation and validation state.
-	// Populated asynchronously after workflow creation via Temporal workflow.
 	// Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
+	// Check this field to determine whether a workflow is valid before executing it.
 	//
-	// Workflow creation does NOT block on validation - the workflow is created immediately
+	// @internal
+	// Populated asynchronously after workflow creation via a Temporal workflow.
+	// Workflow creation does NOT block on validation — the workflow is created immediately
 	// with status.state = PENDING, then validation runs in the background.
-	//
-	// Users can check this field to see if their workflow is valid before executing it.
 	ServerlessWorkflowValidation *serverless.ServerlessWorkflowValidation `protobuf:"bytes,2,opt,name=serverless_workflow_validation,json=serverlessWorkflowValidation,proto3" json:"serverless_workflow_validation,omitempty"`
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache

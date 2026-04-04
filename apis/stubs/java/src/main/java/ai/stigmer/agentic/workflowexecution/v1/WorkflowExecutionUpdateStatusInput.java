@@ -7,9 +7,11 @@ package ai.stigmer.agentic.workflowexecution.v1;
 
 /**
  * <pre>
- * Input message for updateStatus RPC.
+ * Input for the updateStatus RPC.
+ *
+ * &#64;internal
  * Contains only the execution ID and the status fields to be updated.
- * This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
+ * This avoids validation errors on incomplete metadata/spec fields.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput}
@@ -61,7 +63,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object executionId_ = "";
   /**
    * <pre>
-   * ID of the workflow execution to update (required).
+   * ID of the workflow execution to update.
+   *
+   * &#64;internal
    * Format: "wex_abc123xyz456"
    * </pre>
    *
@@ -83,7 +87,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the workflow execution to update (required).
+   * ID of the workflow execution to update.
+   *
+   * &#64;internal
    * Format: "wex_abc123xyz456"
    * </pre>
    *
@@ -109,8 +115,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus status_;
   /**
    * <pre>
-   * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * Status fields to merge into the existing execution status.
+   *
+   * &#64;internal
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -123,8 +130,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * Status fields to merge into the existing execution status.
+   *
+   * &#64;internal
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -137,8 +145,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * Status fields to merge into the existing execution status.
+   *
+   * &#64;internal
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -323,9 +332,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Input message for updateStatus RPC.
+   * Input for the updateStatus RPC.
+   *
+   * &#64;internal
    * Contains only the execution ID and the status fields to be updated.
-   * This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
+   * This avoids validation errors on incomplete metadata/spec fields.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput}
@@ -497,7 +508,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object executionId_ = "";
     /**
      * <pre>
-     * ID of the workflow execution to update (required).
+     * ID of the workflow execution to update.
+     *
+     * &#64;internal
      * Format: "wex_abc123xyz456"
      * </pre>
      *
@@ -518,7 +531,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the workflow execution to update (required).
+     * ID of the workflow execution to update.
+     *
+     * &#64;internal
      * Format: "wex_abc123xyz456"
      * </pre>
      *
@@ -540,7 +555,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the workflow execution to update (required).
+     * ID of the workflow execution to update.
+     *
+     * &#64;internal
      * Format: "wex_abc123xyz456"
      * </pre>
      *
@@ -558,7 +575,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the workflow execution to update (required).
+     * ID of the workflow execution to update.
+     *
+     * &#64;internal
      * Format: "wex_abc123xyz456"
      * </pre>
      *
@@ -573,7 +592,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the workflow execution to update (required).
+     * ID of the workflow execution to update.
+     *
+     * &#64;internal
      * Format: "wex_abc123xyz456"
      * </pre>
      *
@@ -596,8 +617,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -609,8 +631,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -626,8 +649,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -648,8 +672,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -668,8 +693,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -695,8 +721,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -714,8 +741,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -728,8 +756,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -745,8 +774,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * Status fields to merge into the existing execution status.
+     *
+     * &#64;internal
      * Only the fields present in this status object will be updated.
      * </pre>
      *
