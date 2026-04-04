@@ -30,21 +30,25 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// EnvironmentQueryController provides read operations for Environment resources.
+// EnvironmentQueryController handles read operations for environments.
 type EnvironmentQueryControllerClient interface {
-	// Get an Environment by ID.
+	// Get an environment by ID.
+	//
+	// @internal
+	// Authorization: requires can_view permission on the environment resource.
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*Environment, error)
 	// Get an environment by its organization-scoped reference (org/slug).
+	// Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
 	//
 	// @internal
-	// Custom authorization in handler.
+	// Custom authorization in handler — checks both direct resource access
+	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Environment, error)
 	// Get the unredacted value of a single secret key in an environment.
-	// Creator-only: requires can_read_secrets permission.
-	// Returns the EnvironmentValue with the decrypted value.
+	// Returns the EnvironmentValue with the decrypted value for exactly one key.
 	//
 	// @internal
-	// FGA authorization: creator relation grants can_read_secrets.
+	// Creator-only: FGA authorization grants can_read_secrets via the creator relation.
 	GetSecretValue(ctx context.Context, in *EnvironmentSecretValueInput, opts ...grpc.CallOption) (*EnvironmentValue, error)
 	// List environments with optional label filtering.
 	// Secret values are redacted in the response.
@@ -107,21 +111,25 @@ func (c *environmentQueryControllerClient) List(ctx context.Context, in *ListEnv
 // All implementations should embed UnimplementedEnvironmentQueryControllerServer
 // for forward compatibility.
 //
-// EnvironmentQueryController provides read operations for Environment resources.
+// EnvironmentQueryController handles read operations for environments.
 type EnvironmentQueryControllerServer interface {
-	// Get an Environment by ID.
+	// Get an environment by ID.
+	//
+	// @internal
+	// Authorization: requires can_view permission on the environment resource.
 	Get(context.Context, *apiresource.ApiResourceId) (*Environment, error)
 	// Get an environment by its organization-scoped reference (org/slug).
+	// Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
 	//
 	// @internal
-	// Custom authorization in handler.
+	// Custom authorization in handler — checks both direct resource access
+	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Environment, error)
 	// Get the unredacted value of a single secret key in an environment.
-	// Creator-only: requires can_read_secrets permission.
-	// Returns the EnvironmentValue with the decrypted value.
+	// Returns the EnvironmentValue with the decrypted value for exactly one key.
 	//
 	// @internal
-	// FGA authorization: creator relation grants can_read_secrets.
+	// Creator-only: FGA authorization grants can_read_secrets via the creator relation.
 	GetSecretValue(context.Context, *EnvironmentSecretValueInput) (*EnvironmentValue, error)
 	// List environments with optional label filtering.
 	// Secret values are redacted in the response.

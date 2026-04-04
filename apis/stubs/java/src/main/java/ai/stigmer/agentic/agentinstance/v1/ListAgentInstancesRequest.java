@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentinstance.v1;
 
 /**
  * <pre>
- * ListAgentInstancesRequest specifies parameters for listing agent instances.
+ * Input for listing agent instances within an organization.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest}
@@ -71,7 +71,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization to list agent instances for (required).
+   * Organization slug to scope the listing.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -92,7 +92,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization to list agent instances for (required).
+   * Organization slug to scope the listing.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -141,7 +141,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -163,7 +165,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -175,7 +179,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -194,7 +200,9 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -216,7 +224,7 @@ java.lang.String defaultValue) {
   private ai.stigmer.commons.rpc.PageInfo pageInfo_;
   /**
    * <pre>
-   * Pagination options (optional).
+   * Pagination options.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -228,7 +236,7 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * Pagination options (optional).
+   * Pagination options.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -240,7 +248,7 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * Pagination options (optional).
+   * Pagination options.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -446,7 +454,7 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * ListAgentInstancesRequest specifies parameters for listing agent instances.
+   * Input for listing agent instances within an organization.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest}
@@ -657,7 +665,7 @@ java.lang.String defaultValue) {
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization to list agent instances for (required).
+     * Organization slug to scope the listing.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -677,7 +685,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Organization to list agent instances for (required).
+     * Organization slug to scope the listing.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -698,7 +706,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Organization to list agent instances for (required).
+     * Organization slug to scope the listing.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -715,7 +723,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Organization to list agent instances for (required).
+     * Organization slug to scope the listing.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -729,7 +737,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Organization to list agent instances for (required).
+     * Organization slug to scope the listing.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -774,7 +782,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+     * Filter by metadata labels. AND semantics: all labels must match.
+     *
+     * &#64;internal
      * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
      * </pre>
      *
@@ -796,7 +806,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+     * Filter by metadata labels. AND semantics: all labels must match.
+     *
+     * &#64;internal
      * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
      * </pre>
      *
@@ -808,7 +820,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+     * Filter by metadata labels. AND semantics: all labels must match.
+     *
+     * &#64;internal
      * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
      * </pre>
      *
@@ -827,7 +841,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+     * Filter by metadata labels. AND semantics: all labels must match.
+     *
+     * &#64;internal
      * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
      * </pre>
      *
@@ -852,7 +868,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+     * Filter by metadata labels. AND semantics: all labels must match.
+     *
+     * &#64;internal
      * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
      * </pre>
      *
@@ -876,7 +894,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+     * Filter by metadata labels. AND semantics: all labels must match.
+     *
+     * &#64;internal
      * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
      * </pre>
      *
@@ -894,7 +914,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+     * Filter by metadata labels. AND semantics: all labels must match.
+     *
+     * &#64;internal
      * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
      * </pre>
      *
@@ -913,7 +935,7 @@ java.lang.String defaultValue) {
         ai.stigmer.commons.rpc.PageInfo, ai.stigmer.commons.rpc.PageInfo.Builder, ai.stigmer.commons.rpc.PageInfoOrBuilder> pageInfoBuilder_;
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -924,7 +946,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -939,7 +961,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -959,7 +981,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -977,7 +999,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -1002,7 +1024,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -1019,7 +1041,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -1031,7 +1053,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -1046,7 +1068,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Pagination options (optional).
+     * Pagination options.
      * </pre>
      *
      * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>

@@ -12,7 +12,7 @@ public interface AgentInstanceSpecOrBuilder extends
 
   /**
    * <pre>
-   * Reference to the Agent template this instance deploys.
+   * Identifier of the Agent template this instance deploys.
    * </pre>
    *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface AgentInstanceSpecOrBuilder extends
   java.lang.String getAgentId();
   /**
    * <pre>
-   * Reference to the Agent template this instance deploys.
+   * Identifier of the Agent template this instance deploys.
    * </pre>
    *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -32,8 +32,7 @@ public interface AgentInstanceSpecOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable description for this instance.
-   * Example: "Production GitHub bot for main repo"
+   * Human-readable description for UI and API display.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -42,8 +41,7 @@ public interface AgentInstanceSpecOrBuilder extends
   java.lang.String getDescription();
   /**
    * <pre>
-   * Human-readable description for this instance.
-   * Example: "Production GitHub bot for main repo"
+   * Human-readable description for UI and API display.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -54,7 +52,9 @@ public interface AgentInstanceSpecOrBuilder extends
 
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -66,7 +66,9 @@ public interface AgentInstanceSpecOrBuilder extends
       getEnvironmentRefsList();
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -77,7 +79,9 @@ public interface AgentInstanceSpecOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -88,7 +92,9 @@ public interface AgentInstanceSpecOrBuilder extends
   int getEnvironmentRefsCount();
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -100,7 +106,9 @@ public interface AgentInstanceSpecOrBuilder extends
       getEnvironmentRefsOrBuilderList();
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).

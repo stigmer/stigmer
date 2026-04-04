@@ -23,10 +23,11 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// EnvironmentId wraps an Environment identifier.
+// EnvironmentId wraps an environment identifier.
 type EnvironmentId struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique identifier of the environment.
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -69,9 +70,11 @@ func (x *EnvironmentId) GetValue() string {
 }
 
 // Input for retrieving a single unredacted secret value from an environment.
-// Returns the decrypted value for exactly one key. Single-key retrieval by design:
-// limits blast radius if intercepted, enables per-key audit trails, and matches
-// the industry-standard "reveal" UX pattern (AWS, GitHub, 1Password).
+//
+// @internal
+// Single-key retrieval by design: limits blast radius if intercepted,
+// enables per-key audit trails, and matches the industry-standard
+// "reveal" UX pattern (AWS, GitHub, 1Password).
 type EnvironmentSecretValueInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The environment resource ID.
@@ -129,12 +132,14 @@ func (x *EnvironmentSecretValueInput) GetKey() string {
 // ListEnvironmentsRequest specifies parameters for listing environments.
 type ListEnvironmentsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization to list environments for (required).
+	// Organization to list environments for.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+	// Filter by metadata labels. AND semantics: the resource must match all provided labels.
+	//
+	// @internal
 	// Example: {"stigmer.ai/personal": "true"} returns only personal environments.
 	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Pagination options (optional).
+	// Pagination options.
 	PageInfo      *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -247,14 +252,16 @@ func (x *EnvironmentList) GetItems() []*Environment {
 }
 
 // Request to add or update specific variables in an environment.
-// Server-side merge: existing variables not included in this request are preserved.
-// For secret variables, the new value replaces the old one (re-encrypted server-side).
+// Existing variables not included in this request are preserved.
+//
+// @internal
+// Server-side merge. For secret variables the new value replaces the old
+// one and is re-encrypted server-side.
 type UpdateEnvironmentVariablesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The environment resource ID.
 	EnvironmentId string `protobuf:"bytes,1,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	// Variables to add or update. Keys that already exist are overwritten.
-	// Keys not present in this map are left unchanged.
+	// Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
 	Variables     map[string]*EnvironmentValue `protobuf:"bytes,2,rep,name=variables,proto3" json:"variables,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -309,7 +316,7 @@ type RemoveEnvironmentVariablesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The environment resource ID.
 	EnvironmentId string `protobuf:"bytes,1,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	// Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+	// Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
 	Keys          []string `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

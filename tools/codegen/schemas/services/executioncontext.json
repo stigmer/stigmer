@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Create or update an ExecutionContext.\n The authorization and state-operation are determined depending on whether the execution context\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update an ExecutionContext.\n\n @internal\n The authorization and state-operation are determined depending on whether the execution context\n is going to be created or updated which is determined as part of the request execution."
         },
         {
           "name": "Create",
@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get an ExecutionContext by the execution ID it belongs to.\n\n @internal\n Primary lookup method used by runners to retrieve the merged environment\n variables during workflow/agent execution. The returned context contains\n decrypted secrets for runner consumption.\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
+          "description": "Get the ExecutionContext for a given execution ID.\n\n @internal\n Primary lookup method used by runners to retrieve the merged environment\n variables during workflow/agent execution. The returned context contains\n decrypted secrets for runner consumption.\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
         }
       ]
     }
@@ -150,7 +150,7 @@
     },
     {
       "name": "ExecutionContextExecutionIdInput",
-      "description": "ExecutionContextExecutionIdInput is used to look up an ExecutionContext by the\n execution ID it belongs to (e.g., AgentExecution ID or WorkflowExecution ID).\n This is the primary lookup method used by runners to retrieve merged environment\n variables during execution.",
+      "description": "Input for looking up an ExecutionContext by its parent execution ID.\n\n @internal\n Primary lookup method used by runners to retrieve merged environment\n variables during execution.",
       "protoType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput",
       "protoFile": "apis/ai/stigmer/agentic/executioncontext/v1/io.proto",
       "fields": [
@@ -161,7 +161,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The workflow or agent execution ID to look up.\n This must match the execution_id field in ExecutionContextSpec.",
+          "description": "AgentExecution or WorkflowExecution ID to look up.\n\n @internal\n Must match the execution_id field in ExecutionContextSpec.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -291,5 +291,5 @@
       ]
     }
   ],
-  "resourceDescription": "ExecutionContext represents ephemeral runtime configuration and secrets.\n Created during execution, deleted when execution completes.\n Used for B2B scenarios where secrets are injected at runtime (e.g., Plant \u0026 Cloud)."
+  "resourceDescription": "Ephemeral runtime configuration and secrets scoped to a single execution.\n\n @internal\n Created by the execution engine at start, deleted when execution completes.\n Used for B2B scenarios where secrets are injected at runtime."
 }

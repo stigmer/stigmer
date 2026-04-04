@@ -8,7 +8,6 @@ from ai.stigmer.agentic.agentinstance.v1 import io_pb2 as ai_dot_stigmer_dot_age
 
 class AgentInstanceCommandControllerStub(object):
     """AgentInstanceCommandController handles write operations for agent instances.
-    Follows the standard pattern: create, update, delete (no granular field updates).
     """
 
     def __init__(self, channel):
@@ -41,11 +40,12 @@ class AgentInstanceCommandControllerStub(object):
 
 class AgentInstanceCommandControllerServicer(object):
     """AgentInstanceCommandController handles write operations for agent instances.
-    Follows the standard pattern: create, update, delete (no granular field updates).
     """
 
     def apply(self, request, context):
         """Create or update an agent instance.
+
+        @internal
         The authorization and state-operation are determined depending on whether the agent instance
         is going to be created or updated which is determined as part of the request execution.
         """
@@ -54,13 +54,13 @@ class AgentInstanceCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new agent instance with full state.
-        Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+        """Create an agent instance.
 
         Public agents allow any authenticated user to create instances (cross-org allowed).
         Private agents restrict instance creation to org members and the agent owner.
 
         @internal
+        Provide organization_id in metadata.org, and complete spec with configuration and secrets.
         Authorization: FGA can_create_instance on parent agent (handler-level).
         FGA is the single source of truth — no hardcoded org-matching rules.
         Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
@@ -70,10 +70,12 @@ class AgentInstanceCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an instance with full state.
-        Used to update entire instance configuration including metadata, spec, and secrets.
-        No individual field updates - always provide complete state.
-        Authorization: Only owner can update (can_edit permission)
+        """Update an existing agent instance.
+
+        @internal
+        Replaces the entire instance configuration including metadata, spec, and secrets.
+        No individual field updates — always provide complete state.
+        Authorization: Only owner can update (can_edit permission).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -81,7 +83,9 @@ class AgentInstanceCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an agent instance.
-        Authorization: Only owner can delete (can_delete permission)
+
+        @internal
+        Authorization: Only owner can delete (can_delete permission).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -120,7 +124,6 @@ def add_AgentInstanceCommandControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class AgentInstanceCommandController(object):
     """AgentInstanceCommandController handles write operations for agent instances.
-    Follows the standard pattern: create, update, delete (no granular field updates).
     """
 
     @staticmethod

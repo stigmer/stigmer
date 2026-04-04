@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * AgentInstanceQueryController provides queries for retrieving agent instances.
+ * AgentInstanceQueryController handles read operations for agent instances.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -200,7 +200,7 @@ public final class AgentInstanceQueryControllerGrpc {
 
   /**
    * <pre>
-   * AgentInstanceQueryController provides queries for retrieving agent instances.
+   * AgentInstanceQueryController handles read operations for agent instances.
    * </pre>
    */
   public interface AsyncService {
@@ -258,7 +258,7 @@ public final class AgentInstanceQueryControllerGrpc {
   /**
    * Base class for the server implementation of the service AgentInstanceQueryController.
    * <pre>
-   * AgentInstanceQueryController provides queries for retrieving agent instances.
+   * AgentInstanceQueryController handles read operations for agent instances.
    * </pre>
    */
   public static abstract class AgentInstanceQueryControllerImplBase
@@ -272,7 +272,7 @@ public final class AgentInstanceQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service AgentInstanceQueryController.
    * <pre>
-   * AgentInstanceQueryController provides queries for retrieving agent instances.
+   * AgentInstanceQueryController handles read operations for agent instances.
    * </pre>
    */
   public static final class AgentInstanceQueryControllerStub
@@ -345,7 +345,7 @@ public final class AgentInstanceQueryControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service AgentInstanceQueryController.
    * <pre>
-   * AgentInstanceQueryController provides queries for retrieving agent instances.
+   * AgentInstanceQueryController handles read operations for agent instances.
    * </pre>
    */
   public static final class AgentInstanceQueryControllerBlockingV2Stub
@@ -414,7 +414,7 @@ public final class AgentInstanceQueryControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service AgentInstanceQueryController.
    * <pre>
-   * AgentInstanceQueryController provides queries for retrieving agent instances.
+   * AgentInstanceQueryController handles read operations for agent instances.
    * </pre>
    */
   public static final class AgentInstanceQueryControllerBlockingStub
@@ -483,7 +483,7 @@ public final class AgentInstanceQueryControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service AgentInstanceQueryController.
    * <pre>
-   * AgentInstanceQueryController provides queries for retrieving agent instances.
+   * AgentInstanceQueryController handles read operations for agent instances.
    * </pre>
    */
   public static final class AgentInstanceQueryControllerFutureStub

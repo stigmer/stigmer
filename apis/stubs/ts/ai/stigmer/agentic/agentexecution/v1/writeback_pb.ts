@@ -124,6 +124,8 @@ export const WorkspaceWriteBackSchema: GenMessage<WorkspaceWriteBack> = /*@__PUR
  */
 export enum WorkspaceWriteBackPhase {
   /**
+   * Default value, not a valid write-back phase.
+   *
    * @generated from enum value: WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED = 0;
    */
   WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED = 0,

@@ -7,8 +7,10 @@ package ai.stigmer.agentic.environment.v1;
 
 /**
  * <pre>
- * EnvironmentSpec defines a collection of configuration and secrets.
- * Created before AgentInstance or WorkflowInstance, referenced during instance creation.
+ * EnvironmentSpec defines the configurable properties of an environment.
+ *
+ * &#64;internal
+ * The overview.md file provides the SDK-facing description and example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentSpec}
@@ -71,8 +73,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object description_ = "";
   /**
    * <pre>
-   * Human-readable description of this environment.
-   * Example: "Production AWS credentials for deployment"
+   * Human-readable description for UI and listing display.
    * </pre>
    *
    * <code>string description = 1 [json_name = "description"];</code>
@@ -93,8 +94,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable description of this environment.
-   * Example: "Production AWS credentials for deployment"
+   * Human-readable description for UI and listing display.
    * </pre>
    *
    * <code>string description = 1 [json_name = "description"];</code>
@@ -143,10 +143,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -167,10 +165,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -181,10 +177,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -202,10 +196,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
   }
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -402,8 +394,10 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
   }
   /**
    * <pre>
-   * EnvironmentSpec defines a collection of configuration and secrets.
-   * Created before AgentInstance or WorkflowInstance, referenced during instance creation.
+   * EnvironmentSpec defines the configurable properties of an environment.
+   *
+   * &#64;internal
+   * The overview.md file provides the SDK-facing description and example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentSpec}
@@ -584,8 +578,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     private java.lang.Object description_ = "";
     /**
      * <pre>
-     * Human-readable description of this environment.
-     * Example: "Production AWS credentials for deployment"
+     * Human-readable description for UI and listing display.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description"];</code>
@@ -605,8 +598,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Human-readable description of this environment.
-     * Example: "Production AWS credentials for deployment"
+     * Human-readable description for UI and listing display.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description"];</code>
@@ -627,8 +619,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Human-readable description of this environment.
-     * Example: "Production AWS credentials for deployment"
+     * Human-readable description for UI and listing display.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description"];</code>
@@ -645,8 +636,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Human-readable description of this environment.
-     * Example: "Production AWS credentials for deployment"
+     * Human-readable description for UI and listing display.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description"];</code>
@@ -660,8 +650,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Human-readable description of this environment.
-     * Example: "Production AWS credentials for deployment"
+     * Human-readable description for UI and listing display.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description"];</code>
@@ -715,10 +704,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * Each value includes a flag indicating whether it's a secret.
-     * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-     * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+     * Key-value pairs containing configuration and secrets.
+     * Each value includes a flag indicating whether it is a secret.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -739,10 +726,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * Each value includes a flag indicating whether it's a secret.
-     * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-     * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+     * Key-value pairs containing configuration and secrets.
+     * Each value includes a flag indicating whether it is a secret.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -753,10 +738,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * Each value includes a flag indicating whether it's a secret.
-     * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-     * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+     * Key-value pairs containing configuration and secrets.
+     * Each value includes a flag indicating whether it is a secret.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -773,10 +756,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * Each value includes a flag indicating whether it's a secret.
-     * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-     * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+     * Key-value pairs containing configuration and secrets.
+     * Each value includes a flag indicating whether it is a secret.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -798,10 +779,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * Each value includes a flag indicating whether it's a secret.
-     * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-     * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+     * Key-value pairs containing configuration and secrets.
+     * Each value includes a flag indicating whether it is a secret.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -824,10 +803,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * Each value includes a flag indicating whether it's a secret.
-     * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-     * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+     * Key-value pairs containing configuration and secrets.
+     * Each value includes a flag indicating whether it is a secret.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -844,10 +821,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * Each value includes a flag indicating whether it's a secret.
-     * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-     * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+     * Key-value pairs containing configuration and secrets.
+     * Each value includes a flag indicating whether it is a secret.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -866,10 +841,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Key-value pairs containing both configuration and secrets.
-     * Each value includes a flag indicating whether it's a secret.
-     * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-     * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+     * Key-value pairs containing configuration and secrets.
+     * Each value includes a flag indicating whether it is a secret.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>

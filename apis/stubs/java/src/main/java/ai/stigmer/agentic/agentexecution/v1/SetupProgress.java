@@ -7,8 +7,9 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * Setup progress reported by the agent-runner during the EXECUTION_PENDING phase.
+ * Setup progress reported during the EXECUTION_PENDING phase.
  *
+ * &#64;internal
  * Designed as a sub-message (rather than a bare string) so future fields
  * (completed_phases, total_phases, phase_index) can be added without
  * deprecation or breaking changes.
@@ -266,8 +267,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Setup progress reported by the agent-runner during the EXECUTION_PENDING phase.
+   * Setup progress reported during the EXECUTION_PENDING phase.
    *
+   * &#64;internal
    * Designed as a sub-message (rather than a bare string) so future fields
    * (completed_phases, total_phases, phase_index) can be added without
    * deprecation or breaking changes.

@@ -23,19 +23,24 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AgentInstance represents a configured deployment of an Agent template.
+// AgentInstance defines a configured deployment of an Agent template.
+//
+// @internal
+// Uses Graphton configuration for state management.
 type AgentInstance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Standard resource metadata including name, id, labels, and tags.
+	// Resource metadata including name, organization, scope, and labels.
+	//
+	// @internal
 	// AgentInstances can have platform, organization, or identity_account scope.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Spec defining the instance configuration.
+	// Configurable properties: agent binding, description, and environment references.
 	Spec *AgentInstanceSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// Status of the instance.
+	// System-managed audit trail including creation and update timestamps.
 	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

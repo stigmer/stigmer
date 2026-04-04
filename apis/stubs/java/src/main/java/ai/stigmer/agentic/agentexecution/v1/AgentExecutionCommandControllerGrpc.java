@@ -441,7 +441,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an execution with full state.
+     * Update an agent execution.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -453,7 +454,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during agent execution.
+     * Update an agent execution's status.
      * &#64;internal
      * System-level RPC used by agent-runner to send progressive status updates
      * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
@@ -467,7 +468,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete an agent execution by ID.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -477,7 +478,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval decision for a pending tool call (HITL Phase 1).
+     * Submit an approval decision for a pending tool call.
      * ## Preconditions
      * - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
@@ -792,7 +793,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an execution with full state.
+     * Update an agent execution.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -805,7 +807,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during agent execution.
+     * Update an agent execution's status.
      * &#64;internal
      * System-level RPC used by agent-runner to send progressive status updates
      * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
@@ -820,7 +822,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete an agent execution by ID.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -831,7 +833,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval decision for a pending tool call (HITL Phase 1).
+     * Submit an approval decision for a pending tool call.
      * ## Preconditions
      * - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
@@ -1137,7 +1139,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an execution with full state.
+     * Update an agent execution.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -1149,7 +1152,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during agent execution.
+     * Update an agent execution's status.
      * &#64;internal
      * System-level RPC used by agent-runner to send progressive status updates
      * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
@@ -1163,7 +1166,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete an agent execution by ID.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution delete(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -1173,7 +1176,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval decision for a pending tool call (HITL Phase 1).
+     * Submit an approval decision for a pending tool call.
      * ## Preconditions
      * - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
@@ -1472,7 +1475,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an execution with full state.
+     * Update an agent execution.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -1484,7 +1488,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during agent execution.
+     * Update an agent execution's status.
      * &#64;internal
      * System-level RPC used by agent-runner to send progressive status updates
      * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
@@ -1498,7 +1502,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete an agent execution by ID.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution delete(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -1508,7 +1512,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval decision for a pending tool call (HITL Phase 1).
+     * Submit an approval decision for a pending tool call.
      * ## Preconditions
      * - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
@@ -1808,7 +1812,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an execution with full state.
+     * Update an agent execution.
+     * &#64;internal
      * Used by users to update execution configuration (spec fields).
      * No individual field updates - always provide complete state.
      * </pre>
@@ -1821,7 +1826,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during agent execution.
+     * Update an agent execution's status.
      * &#64;internal
      * System-level RPC used by agent-runner to send progressive status updates
      * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
@@ -1836,7 +1841,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an execution.
+     * Delete an agent execution by ID.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecution> delete(
@@ -1847,7 +1852,7 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit approval decision for a pending tool call (HITL Phase 1).
+     * Submit an approval decision for a pending tool call.
      * ## Preconditions
      * - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id

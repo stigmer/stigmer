@@ -12,8 +12,7 @@ public interface EnvironmentSpecOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable description of this environment.
-   * Example: "Production AWS credentials for deployment"
+   * Human-readable description for UI and listing display.
    * </pre>
    *
    * <code>string description = 1 [json_name = "description"];</code>
@@ -22,8 +21,7 @@ public interface EnvironmentSpecOrBuilder extends
   java.lang.String getDescription();
   /**
    * <pre>
-   * Human-readable description of this environment.
-   * Example: "Production AWS credentials for deployment"
+   * Human-readable description for UI and listing display.
    * </pre>
    *
    * <code>string description = 1 [json_name = "description"];</code>
@@ -34,10 +32,8 @@ public interface EnvironmentSpecOrBuilder extends
 
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -45,10 +41,8 @@ public interface EnvironmentSpecOrBuilder extends
   int getDataCount();
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -63,10 +57,8 @@ public interface EnvironmentSpecOrBuilder extends
   getData();
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -75,10 +67,8 @@ public interface EnvironmentSpecOrBuilder extends
   getDataMap();
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>
@@ -90,10 +80,8 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue getDataOrDefault(
 ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue);
   /**
    * <pre>
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   * "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; data = 2 [json_name = "data"];</code>

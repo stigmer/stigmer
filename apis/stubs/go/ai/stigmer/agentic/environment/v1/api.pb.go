@@ -23,19 +23,22 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Environment represents a named collection of configuration and secrets.
-// Environments are created before AgentInstance or WorkflowInstance and referenced during instance creation.
-// Each key-value pair can be marked as secret or non-secret.
+// Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
+//
+// @internal
+// Uses Graphton configuration for state management.
 type Environment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Standard resource metadata including name, id, labels, and tags.
-	// Environments belong to an organization and are typically PRIVATE visibility.
+	// Resource metadata including name, organization, visibility, and labels.
+	//
+	// @internal
+	// Environments are typically PRIVATE visibility to prevent secret exposure.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Environment-specific configuration.
+	// Configurable properties: description and key-value data.
 	Spec *EnvironmentSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
 	// System-managed status containing audit information.
 	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`

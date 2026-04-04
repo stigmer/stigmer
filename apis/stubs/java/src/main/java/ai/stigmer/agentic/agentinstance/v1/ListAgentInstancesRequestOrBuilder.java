@@ -12,7 +12,7 @@ public interface ListAgentInstancesRequestOrBuilder extends
 
   /**
    * <pre>
-   * Organization to list agent instances for (required).
+   * Organization slug to scope the listing.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface ListAgentInstancesRequestOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization to list agent instances for (required).
+   * Organization slug to scope the listing.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -32,7 +32,9 @@ public interface ListAgentInstancesRequestOrBuilder extends
 
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -41,7 +43,9 @@ public interface ListAgentInstancesRequestOrBuilder extends
   int getLabelsCount();
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -57,7 +61,9 @@ public interface ListAgentInstancesRequestOrBuilder extends
   getLabels();
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -67,7 +73,9 @@ public interface ListAgentInstancesRequestOrBuilder extends
   getLabelsMap();
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -80,7 +88,9 @@ java.lang.String getLabelsOrDefault(
 java.lang.String defaultValue);
   /**
    * <pre>
-   * Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+   * Filter by metadata labels. AND semantics: all labels must match.
+   *
+   * &#64;internal
    * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    * </pre>
    *
@@ -91,7 +101,7 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Pagination options (optional).
+   * Pagination options.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -100,7 +110,7 @@ java.lang.String defaultValue);
   boolean hasPageInfo();
   /**
    * <pre>
-   * Pagination options (optional).
+   * Pagination options.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
@@ -109,7 +119,7 @@ java.lang.String defaultValue);
   ai.stigmer.commons.rpc.PageInfo getPageInfo();
   /**
    * <pre>
-   * Pagination options (optional).
+   * Pagination options.
    * </pre>
    *
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
