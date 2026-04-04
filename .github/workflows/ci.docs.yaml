@@ -75,6 +75,15 @@ jobs:
         with:
           go-version-file: tools/go.mod
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
       - name: Verify SDK docs are up to date
         run: make gen-sdk-docs-check
 
