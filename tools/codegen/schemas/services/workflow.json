@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
           "outputType": "Workflow",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
-          "description": "Create or update a workflow.\n The authorization and state-operation are determined depending on whether the workflow\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update a workflow.\n\n @internal\n The authorization and state-operation are determined depending on whether the workflow\n is going to be created or updated which is determined as part of the request execution."
         },
         {
           "name": "Create",
@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
           "outputType": "Workflow",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
-          "description": "Create a new workflow.\n\n Authorization:\n - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization\n - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)"
+          "description": "Create a workflow.\n\n @internal\n Authorization:\n - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization\n - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)"
         },
         {
           "name": "Update",
@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Workflow",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
-          "description": "Get a workflow by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler."
+          "description": "Get a workflow by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"stigmer/deploy\" to the full Workflow resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
         }
       ]
     }
@@ -152,103 +152,103 @@
   "enumTypes": [
     {
       "name": "ApiResourceKind",
-      "description": "API resource kinds for Stigmer",
+      "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
       "values": [
         {
           "name": "api_resource_version",
           "number": 1,
-          "description": "Agentic - System-level audit trails and versioning"
+          "description": "Immutable version record tracking changes to an API resource."
         },
         {
           "name": "iam_policy",
           "number": 10,
-          "description": "IAM - Identity and Access Management"
+          "description": "Role-based access control policy for granting permissions on resources."
         },
         {
           "name": "identity_account",
           "number": 11,
-          "description": ""
+          "description": "User account in the identity system."
         },
         {
           "name": "api_key",
           "number": 12,
-          "description": ""
+          "description": "Credential for programmatic API access."
         },
         {
           "name": "identity_provider",
           "number": 21,
-          "description": "IAM - External identity provider configuration"
+          "description": "External identity provider for federated authentication."
         },
         {
           "name": "organization",
           "number": 30,
-          "description": "Tenancy - Platform and organizational resources"
+          "description": "Top-level tenant that owns and manages resources."
         },
         {
           "name": "platform",
           "number": 31,
-          "description": ""
+          "description": "Singleton platform instance representing the Stigmer deployment."
         },
         {
           "name": "agent",
           "number": 40,
-          "description": "Agentic - AI agent management"
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
           "name": "agent_execution",
           "number": 41,
-          "description": ""
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
         {
           "name": "session",
           "number": 42,
-          "description": ""
+          "description": "Conversation thread between a user and an agent."
         },
         {
           "name": "skill",
           "number": 43,
-          "description": ""
+          "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
           "name": "mcp_server",
           "number": 44,
-          "description": ""
+          "description": "External tool server connected via the Model Context Protocol."
         },
         {
           "name": "agent_instance",
           "number": 45,
-          "description": ""
+          "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
           "name": "workflow",
           "number": 50,
-          "description": "Agentic - Workflow orchestration"
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
           "name": "workflow_instance",
           "number": 51,
-          "description": ""
+          "description": "Configured deployment of a workflow with environment-specific bindings."
         },
         {
           "name": "workflow_execution",
           "number": 52,
-          "description": ""
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
         },
         {
           "name": "environment",
           "number": 53,
-          "description": ""
+          "description": "Named set of variables and secrets for agent and workflow execution."
         },
         {
           "name": "execution_context",
           "number": 54,
-          "description": ""
+          "description": "User-owned runtime context for managing execution state."
         },
         {
           "name": "project",
           "number": 60,
-          "description": "Tenancy - Project management (aggregate root for resource lifecycle)"
+          "description": "Aggregate root grouping related resources for lifecycle management."
         }
       ]
     },
@@ -260,22 +260,22 @@
         {
           "name": "PENDING",
           "number": 1,
-          "description": "Validation has been triggered but not yet completed\n This is the initial state when a workflow is created"
+          "description": "Validation is pending and has not yet completed."
         },
         {
           "name": "VALID",
           "number": 2,
-          "description": "Validation completed successfully - workflow structure is valid\n The generated YAML is stored and can be used for execution"
+          "description": "Validation completed successfully and the workflow structure is valid."
         },
         {
           "name": "INVALID",
           "number": 3,
-          "description": "Validation completed but found errors - workflow structure is invalid\n The workflow cannot be executed until errors are fixed\n Errors are listed in the 'errors' field"
+          "description": "Validation completed but found errors in the workflow structure.\n Check the `errors` field for details."
         },
         {
           "name": "FAILED",
           "number": 4,
-          "description": "Validation process itself failed (system error, not user error)\n Examples: Temporal workflow crashed, activity timeout, etc.\n User should retry validation or contact support"
+          "description": "Validation process failed due to a system error (not a user error).\n Retry validation or contact support.\n\n @internal\n Examples: Temporal workflow crashed, activity timeout, etc."
         }
       ]
     },
@@ -298,78 +298,78 @@
     },
     {
       "name": "WorkflowTaskKind",
-      "description": "WorkflowTaskKind defines all supported task types in workflows.\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}",
+      "description": "WorkflowTaskKind defines the supported task types in a workflow.\n\n @internal\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}",
       "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",
       "values": [
         {
           "name": "set_vars",
           "number": 1,
-          "description": "set_vars: Set variables in workflow state.\n Config: {\"variables\": {\"key\": \"value\", ...}}"
+          "description": "Set variables in workflow state.\n\n @internal\n Config: {\"variables\": {\"key\": \"value\", ...}}"
         },
         {
           "name": "http_call",
           "number": 2,
-          "description": "http_call: Make HTTP requests (GET, POST, PUT, DELETE, PATCH).\n Config: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}"
+          "description": "Make an HTTP request (GET, POST, PUT, DELETE, PATCH).\n\n @internal\n Config: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}"
         },
         {
           "name": "grpc_call",
           "number": 3,
-          "description": "grpc_call: Make gRPC requests.\n Config: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}"
+          "description": "Make a gRPC request to an external service.\n\n @internal\n Config: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}"
         },
         {
           "name": "activity_call",
           "number": 4,
-          "description": "activity_call: Execute Temporal activities.\n Config: {\"activity\": \"ActivityName\", \"input\": {...}}"
+          "description": "Execute an activity.\n\n @internal\n Config: {\"activity\": \"ActivityName\", \"input\": {...}}\n Executes a Temporal activity."
         },
         {
           "name": "switch_case",
           "number": 5,
-          "description": "switch_case: Conditional branching based on expressions.\n Config: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}"
+          "description": "Branch conditionally based on expressions.\n\n @internal\n Config: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}"
         },
         {
           "name": "for_each",
           "number": 6,
-          "description": "for_each: Iterate over collections (forEach loop).\n Config: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}"
+          "description": "Iterate over a collection, executing tasks for each item.\n\n @internal\n Config: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}"
         },
         {
           "name": "fork",
           "number": 7,
-          "description": "fork: Parallel execution of multiple branches.\n Config: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}"
+          "description": "Execute multiple branches in parallel.\n\n @internal\n Config: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}"
         },
         {
           "name": "try_catch",
           "number": 8,
-          "description": "try_catch: Error handling (try/catch block).\n Config: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}"
+          "description": "Handle errors with try/catch logic.\n\n @internal\n Config: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}"
         },
         {
           "name": "listen",
           "number": 9,
-          "description": "listen: Wait for external signals/events.\n Config: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}"
+          "description": "Wait for external signals or events.\n\n @internal\n Config: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n Implemented via Temporal signals."
         },
         {
           "name": "wait",
           "number": 10,
-          "description": "wait: Sleep/delay (Temporal timer).\n Config: {\"seconds\": 5}"
+          "description": "Pause execution for a duration or until a timestamp.\n\n @internal\n Config: {\"seconds\": 5}\n Implemented via Temporal timers."
         },
         {
           "name": "raise_error",
           "number": 11,
-          "description": "raise_error: Raise errors/exceptions.\n Config: {\"error\": \"ErrorType\", \"message\": \"${...}\"}"
+          "description": "Raise an error to terminate or trigger error handling.\n\n @internal\n Config: {\"error\": \"ErrorType\", \"message\": \"${...}\"}"
         },
         {
           "name": "run_workflow",
           "number": 12,
-          "description": "run_workflow: Execute sub-workflows.\n Config: {\"workflow\": \"workflow-name\", \"input\": {...}}"
+          "description": "Execute a sub-workflow.\n\n @internal\n Config: {\"workflow\": \"workflow-name\", \"input\": {...}}\n Implemented via Temporal child workflows."
         },
         {
           "name": "agent_call",
           "number": 13,
-          "description": "agent_call: Invoke AI agents as tasks.\n Allows workflows to delegate complex operations to specialized agents.\n Config: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}, \"config\": {...}}"
+          "description": "Invoke an AI agent as a workflow task.\n\n @internal\n Allows workflows to delegate complex operations to specialized agents.\n Config: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}, \"config\": {...}}"
         }
       ]
     }
   ],
-  "resourceDescription": "Workflow represents a workflow orchestration definition.",
+  "resourceDescription": "Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.\n\n @internal\n Uses Graphton configuration for state management.",
   "statusType": {
     "name": "WorkflowStatus",
     "description": "WorkflowStatus contains system-managed state for a Workflow resource.",
@@ -405,7 +405,7 @@
           "kind": "message",
           "messageType": "ServerlessWorkflowValidation"
         },
-        "description": "Serverless Workflow YAML generation and validation state.\n Populated asynchronously after workflow creation via Temporal workflow.\n Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.\n\n Workflow creation does NOT block on validation - the workflow is created immediately\n with status.state = PENDING, then validation runs in the background.\n\n Users can check this field to see if their workflow is valid before executing it.",
+        "description": "Serverless Workflow YAML generation and validation state.\n Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.\n Check this field to determine whether a workflow is valid before executing it.\n\n @internal\n Populated asynchronously after workflow creation via a Temporal workflow.\n Workflow creation does NOT block on validation — the workflow is created immediately\n with status.state = PENDING, then validation runs in the background.",
         "required": false
       }
     ]
@@ -531,7 +531,7 @@
     },
     {
       "name": "ServerlessWorkflowValidation",
-      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML\n and its validation state. This is populated asynchronously after workflow creation\n via a Temporal workflow that validates the workflow structure.",
+      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.\n\n @internal\n Populated asynchronously after workflow creation via a Temporal workflow\n that validates the workflow structure.",
       "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/serverless/validation.proto",
       "fields": [
@@ -549,7 +549,7 @@
               "FAILED"
             ]
           },
-          "description": "Current validation state",
+          "description": "Current validation state.",
           "required": false
         },
         {
@@ -559,7 +559,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)\n This YAML may contain runtime expressions for environment variables:\n   Example: ${ .env.API_BASE_URL }\n\n Present even if validation failed (helps debugging).\n Empty if validation hasn't started yet.",
+          "description": "Generated CNCF Serverless Workflow DSL 1.0.0 YAML.\n Present even if validation failed (helps debugging).\n Empty if validation has not started yet.\n\n @internal\n May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).",
           "required": false
         },
         {
@@ -572,7 +572,7 @@
               "kind": "string"
             }
           },
-          "description": "Validation errors (empty if valid)\n Examples:\n   - \"Invalid YAML syntax at line 15\"\n   - \"Unknown task type 'invalid_task'\"\n   - \"Missing required field: document.namespace\"",
+          "description": "Validation errors, empty when valid.",
           "required": false
         },
         {
@@ -585,7 +585,7 @@
               "kind": "string"
             }
           },
-          "description": "Non-fatal warnings\n Examples:\n   - \"Environment variable API_KEY referenced but not defined\"\n   - \"Task 'fetchData' has no error handling\"",
+          "description": "Non-fatal validation warnings.",
           "required": false
         },
         {
@@ -595,7 +595,7 @@
           "type": {
             "kind": "timestamp"
           },
-          "description": "When validation was performed\n Null if validation hasn't completed yet",
+          "description": "When the validation was performed.",
           "required": false
         },
         {
@@ -605,7 +605,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Temporal workflow ID for the validation workflow\n Format: \"validate-workflow-{workflow_id}\"\n Useful for tracking/debugging validation progress",
+          "description": "Validation process ID for tracking validation progress.\n\n @internal\n Temporal workflow ID. Format: \"validate-workflow-{workflow_id}\".",
           "required": false
         }
       ]

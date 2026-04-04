@@ -6,11 +6,9 @@ import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
-// AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.
+// AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
 //
-// This enables workflows to invoke AI agents as tasks, delegating complex
-// operations to specialized agents with their own skills and context.
-//
+// @internal
 // The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
 // Resolution order:
 // 1. If org is specified: look in that org's agents
@@ -101,9 +99,11 @@ message AgentExecutionConfig {
   ];
 
   // Context management configuration for this agent invocation.
-  //
   // Controls automatic summarization behavior for long-running conversations.
   // When specified, overrides model defaults from the Model Registry.
+  //
+  // @internal
+  // @since Phase 3 (Context Summarization Architecture)
   //
   // Use cases:
   // - Disable summarization for short-lived agents
@@ -116,7 +116,5 @@ message AgentExecutionConfig {
   //     context_management:
   //       custom_trigger_threshold: 150000
   //       custom_target_tokens: 120000
-  //
-  // @since Phase 3 (Context Summarization Architecture)
   ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4;
 }

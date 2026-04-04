@@ -6,10 +6,9 @@ import "ai/stigmer/agentic/workflow/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
-// TryTaskConfig defines the configuration for TRY tasks.
+// TryTaskConfig defines the configuration for try_catch tasks that handle errors.
 //
-// TRY tasks provide try/catch error handling.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //       try:
