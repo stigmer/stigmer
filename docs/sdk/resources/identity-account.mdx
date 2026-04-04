@@ -128,7 +128,7 @@ ApiResourceAuditActor apiResourceAuditActor = client.identityAccount().getActorI
 |-----------|------|-------------|
 | `id` | `string` | Identity Account identifier. |
 
-**Returns**: [`ApiResourceAuditActor`](/docs/sdk/commons#apiresourceauditactor)
+**Returns**: [`ApiResourceAuditActor`](/docs/sdk/resources/commons#apiresourceauditactor)
 
 ### getByEmail
 
@@ -505,7 +505,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -529,7 +529,7 @@ IdentityAccount represents a user or machine principal in Stigmer.
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "IdentityAccountInput", description: "Resource specification. See [`IdentityAccountInput`](#identityaccountinput).", typeDescriptionLink: "#identityaccountinput" },
     status: { type: "IdentityAccountStatus", description: "System-managed state. See `IdentityAccountStatus`." },
   }}

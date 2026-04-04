@@ -492,7 +492,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -506,7 +506,7 @@ Workflow defines a multi-step task orchestration with sequential, parallel, and 
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "WorkflowInput", description: "Resource specification. See [`WorkflowInput`](#workflowinput).", typeDescriptionLink: "#workflowinput" },
     status: { type: "WorkflowStatus", description: "System-managed state. See [`WorkflowStatus`](#workflowstatus).", typeDescriptionLink: "#workflowstatus" },
   }}
@@ -518,7 +518,7 @@ WorkflowStatus contains system-managed state for a Workflow resource.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     defaultInstanceId: { type: "string", description: "ID of the default workflow instance created automatically for this workflow." },
     serverlessWorkflowValidation: { type: "ServerlessWorkflowValidation", description: "Serverless Workflow YAML generation and validation state.", typeDescriptionLink: "#serverlessworkflowvalidation" },
   }}

@@ -552,7 +552,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -626,7 +626,7 @@ Input for updating the visibility of any API resource.
 <TypeTable
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
-    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/commons#apiresourcevisibility" },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
   }}
 />
 
@@ -648,7 +648,7 @@ Agent defines an AI assistant's identity, tools, skills, and delegation model.
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "AgentInput", description: "Resource specification. See [`AgentInput`](#agentinput).", typeDescriptionLink: "#agentinput" },
     status: { type: "AgentStatus", description: "System-managed state. See [`AgentStatus`](#agentstatus).", typeDescriptionLink: "#agentstatus" },
   }}
@@ -660,7 +660,7 @@ AgentStatus contains system-managed state for an agent.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     defaultInstanceId: { type: "string", description: "ID of the default agent instance." },
   }}
 />

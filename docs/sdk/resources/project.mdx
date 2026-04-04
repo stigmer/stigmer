@@ -402,7 +402,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -416,7 +416,7 @@ Project groups related resources under a single unit of management with automati
   type={{
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
-    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/commons#apiresourcemetadata" },
+    metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "ProjectInput", description: "Resource specification. See [`ProjectInput`](#projectinput).", typeDescriptionLink: "#projectinput" },
     status: { type: "ProjectStatus", description: "System-managed state. See [`ProjectStatus`](#projectstatus).", typeDescriptionLink: "#projectstatus" },
   }}
@@ -429,7 +429,7 @@ ProjectStatus contains system-managed state for a Project.
 <TypeTable
   type={{
     lastReconciliation: { type: "ReconciliationSummary", description: "Reconciliation summary from the most recent Apply operation.", typeDescriptionLink: "#reconciliationsummary" },
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, etc.) The updated_at field indicates when the project was last successfully applied.", typeDescriptionLink: "/docs/sdk/commons#apiresourceaudit" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, etc.) The updated_at field indicates when the project was last successfully applied.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />
 
@@ -452,7 +452,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
