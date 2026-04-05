@@ -197,4 +197,66 @@ public interface IdentityProviderSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getUserinfoEndpointBytes();
+
+  /**
+   * <pre>
+   * Whether this identity provider serves as the SSO login provider for its
+   * owning organization.
+   *
+   * When true, the Stigmer web app offers a "Sign in with [display_name]"
+   * option on the organization's login page and initiates the OIDC
+   * Authorization Code flow with PKCE using the configured oidc_client_id.
+   *
+   * Constraints:
+   * - At most one IdentityProvider per organization can be the SSO provider.
+   * - An IdP used for platform-managed organization delegation cannot also
+   * serve as an SSO provider (different trust models).
+   * - Federated identity accounts must be pre-created via createFederatedAccount
+   * before users can authenticate through SSO.
+   * </pre>
+   *
+   * <code>bool is_sso_provider = 7 [json_name = "isSsoProvider"];</code>
+   * @return The isSsoProvider.
+   */
+  boolean getIsSsoProvider();
+
+  /**
+   * <pre>
+   * OIDC client identifier for browser-based SSO login.
+   *
+   * This is the client_id registered with the external IdP (e.g., Okta,
+   * Azure AD) for Stigmer's web application. The web app uses this to
+   * build the OIDC Authorization Code request with PKCE.
+   *
+   * No client_secret is stored — the web app is a public client using PKCE
+   * (Proof Key for Code Exchange), which is the recommended approach for
+   * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+   *
+   * Required when is_sso_provider is true; must be empty otherwise.
+   * </pre>
+   *
+   * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+   * @return The oidcClientId.
+   */
+  java.lang.String getOidcClientId();
+  /**
+   * <pre>
+   * OIDC client identifier for browser-based SSO login.
+   *
+   * This is the client_id registered with the external IdP (e.g., Okta,
+   * Azure AD) for Stigmer's web application. The web app uses this to
+   * build the OIDC Authorization Code request with PKCE.
+   *
+   * No client_secret is stored — the web app is a public client using PKCE
+   * (Proof Key for Code Exchange), which is the recommended approach for
+   * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+   *
+   * Required when is_sso_provider is true; must be empty otherwise.
+   * </pre>
+   *
+   * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for oidcClientId.
+   */
+  com.google.protobuf.ByteString
+      getOidcClientIdBytes();
 }

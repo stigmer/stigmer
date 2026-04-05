@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-05 09:00
-**Current Task**: Phase 4 — Self-Managed SSO (org.spec.is_self_managed flag)
+**Current Task**: Phase 5 — Secure getByEmail (org-scoped authorization)
 **Status**: Not Started
-**Last Session**: 2026-04-05 — Phase 3 completed (createFederatedAccount RPC)
+**Last Session**: 2026-04-05 — Phase 4 completed (SSO data model on IdentityProvider)
 
 ## Session Progress (2026-04-05)
 
@@ -103,6 +103,22 @@ When starting a new session:
     - All stubs regenerated (Go, Java, Python, TypeScript, Dart)
     - Committed: `f293583d`
 
+- **Phase 4: Self-Managed SSO Data Model** — Done (Session 4)
+  - **Design Decision**: SSO config lives on IdentityProvider, NOT Organization
+    - OrganizationSpec was NOT modified — avoids coupling org to IdP lifecycle
+    - `is_sso_provider` (bool) and `oidc_client_id` (string) added to `IdentityProviderSpec`
+    - PKCE-based (no client_secret) — web app is a public client
+  - **Proto (stigmer repo)**:
+    - `is_sso_provider` (field 7) and `oidc_client_id` (field 8) on `IdentityProviderSpec`
+    - `getSsoProvider(OrganizationSsoLookup) returns (SsoProviderInfo)` RPC on query controller
+    - `OrganizationSsoLookup` and `SsoProviderInfo` messages in `io.proto`
+    - All stubs regenerated
+  - **Backend (stigmer-cloud repo)**:
+    - `ValidateSsoFields.java` — shared pipeline step (cross-field, uniqueness, platform-delegation guard)
+    - `IdentityProviderGetSsoProviderHandler.java` — unauthenticated SSO discovery endpoint
+    - Wired into both create and update handler pipelines
+    - All stubs regenerated
+
 ### Key Design Decisions
 - **No `external_sub` field in DB**: `idp_id` already serves as the identity provider's subject identifier; `external_sub` is the API-facing name, mapped to `idp_id` on creation
 - **No data migration**: No federated account data exists — clean switch to new model
@@ -112,6 +128,10 @@ When starting a new session:
 - **Org slug (not org_id)** in `CreateFederatedAccountInput`: Consistent with existing RPCs like `IdentityProviderCommandController.create` which use `field_path = "metadata.org"` (slug-based)
 - **Partial compound unique index**: Scoped to documents where `spec.identityProviderRef.org` exists, excluding direct/machine accounts from the uniqueness constraint
 - **Delegation to existing create pipeline**: `CreateAccount` step delegates to `IdentityAccountGrpcRepo.create()` which handles ID generation, metadata, MongoDB persistence, and FGA tuple creation
+- **SSO config on IdentityProvider, not Organization**: SSO is an IdP-level concern. OrganizationSpec not modified. Web app discovers SSO by querying IdPs for the org.
+- **PKCE (no client_secret)**: Web app is a public client using OIDC Authorization Code + PKCE. Standard for SPAs.
+- **SsoProviderInfo projection**: Unauthenticated SSO discovery returns only display_name, oidc_client_id, issuer — not full IdP config.
+- **Platform delegation vs SSO separation**: An IdP used for platform-managed orgs cannot also be an SSO provider — different trust models enforced by ValidateSsoFields guard.
 
 ### Codebase Understanding Gathered
 - Mapped the full federated auth flow: `FederatedJwtAuthenticationProvider` -> `RequestCallerIdentityMapper` -> `FederatedIdentityResolverImpl`
@@ -125,14 +145,9 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Phase 4: Self-Managed SSO** (org.spec.is_self_managed flag)
-   - Add `is_self_managed` boolean to Organization spec proto
-   - Modify IdP creation to enforce org is self-managed
-   - Update FGA model if needed
+1. **Phase 5: Secure getByEmail** — Add org-scoped authorization to email lookups
 
-2. **Phase 5: Secure getByEmail** — Add org-scoped authorization to email lookups
-
-3. **Phases 6-8**: SDK React components, web app IdP management pages, documentation
+2. **Phases 6-8**: SDK React components, web app IdP management pages (including SSO OIDC RP), documentation
 
 ## Context for Resume
 
@@ -147,10 +162,10 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start Phase 4" - Begin self-managed SSO org flag
+- "Start Phase 5" - Begin getByEmail security fix
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review plan" - Check `tasks/T01_0_plan.md` for full Phase 4-8 details
+- "Review plan" - Check `tasks/T01_0_plan.md` for full Phase 5-8 details
 
 ---
 

@@ -42,7 +42,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n-ai/stigmer/iam/identityprovider/v1/spe" +
       "c.proto\022\"ai.stigmer.iam.identityprovider" +
-      ".v1\032\033buf/validate/validate.proto\"\253\002\n\024Ide" +
+      ".v1\032\033buf/validate/validate.proto\"\203\003\n\024Ide" +
       "ntityProviderSpec\022+\n\014display_name\030\001 \001(\tB" +
       "\010\272H\005r\003\030\310\001R\013displayName\022#\n\010jwks_uri\030\002 \001(\t" +
       "B\010\272H\005r\003\030\200\020R\007jwksUri\022\'\n\017allowed_issuers\030\003" +
@@ -50,12 +50,14 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "e\030\004 \001(\tB\010\272H\005r\003\030\310\001R\020expectedAudience\022*\n\021r" +
       "ate_limit_budget\030\005 \001(\005R\017rateLimitBudget\022" +
       "5\n\021userinfo_endpoint\030\006 \001(\tB\010\272H\005r\003\030\200\020R\020us" +
-      "erinfoEndpointB\270\001B\tSpecProtoP\001\242\002\004ASII\252\002\"" +
-      "Ai.Stigmer.Iam.Identityprovider.V1\312\002\"Ai\\" +
-      "Stigmer\\Iam\\Identityprovider\\V1\342\002.Ai\\Sti" +
-      "gmer\\Iam\\Identityprovider\\V1\\GPBMetadata" +
-      "\352\002&Ai::Stigmer::Iam::Identityprovider::V" +
-      "1b\006proto3"
+      "erinfoEndpoint\022&\n\017is_sso_provider\030\007 \001(\010R" +
+      "\risSsoProvider\022.\n\016oidc_client_id\030\010 \001(\tB\010" +
+      "\272H\005r\003\030\200\002R\014oidcClientIdB\270\001B\tSpecProtoP\001\242\002" +
+      "\004ASII\252\002\"Ai.Stigmer.Iam.Identityprovider." +
+      "V1\312\002\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\342" +
+      "\002.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPB" +
+      "Metadata\352\002&Ai::Stigmer::Iam::Identitypro" +
+      "vider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -67,7 +69,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityprovider_v1_IdentityProviderSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityprovider_v1_IdentityProviderSpec_descriptor,
-        new java.lang.String[] { "DisplayName", "JwksUri", "AllowedIssuers", "ExpectedAudience", "RateLimitBudget", "UserinfoEndpoint", });
+        new java.lang.String[] { "DisplayName", "JwksUri", "AllowedIssuers", "ExpectedAudience", "RateLimitBudget", "UserinfoEndpoint", "IsSsoProvider", "OidcClientId", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
