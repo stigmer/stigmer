@@ -10,7 +10,7 @@ import { SessionLauncher } from "@/components/session/SessionLauncher";
 import { SessionPageInner } from "@/app/sessions/[id]/SessionPage";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
-import { useSidebarOpen } from "./use-layout-state";
+import { LG_BREAKPOINT, useSidebarOpen } from "./use-layout-state";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebar = useSidebarOpen();
@@ -19,9 +19,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isManagementZone = pathname.startsWith("/settings");
 
+  // Close the sidebar overlay when the route changes on mobile viewports.
+  // Desktop keeps the sidebar open across navigations.
+  useEffect(() => {
+    if (sidebar.isOpen && window.innerWidth < LG_BREAKPOINT) {
+      sidebar.close();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on pathname only; including sidebar would re-fire on every open/close
+  }, [pathname]);
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && sidebar.isOpen && window.innerWidth < 1024) {
+      if (e.key === "Escape" && sidebar.isOpen && window.innerWidth < LG_BREAKPOINT) {
         sidebar.close();
       }
     }
