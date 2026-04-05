@@ -55,6 +55,25 @@ message ListWithIdentityOrg {
   ai.stigmer.commons.rpc.PageInfo page = 2;
 }
 
+// ExternalSubLookup identifies a federated identity account by its identity provider
+// reference and external subject identifier (OIDC sub claim).
+//
+// Used by platform backends to check whether a federated account already exists
+// before calling createFederatedAccount.
+message ExternalSubLookup {
+  // Organization that owns the identity provider.
+  // Used as the authorization scope: caller must have can_create_identity_account
+  // permission on this organization.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Reference to the IdentityProvider that the federated account belongs to.
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+
+  // External subject identifier from the platform's OIDC provider.
+  // The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
+  string external_sub = 3 [(buf.validate.field).required = true];
+}
+
 // CreateFederatedAccountInput is the command for creating a federated identity account
 // linked to an external platform's identity provider.
 //

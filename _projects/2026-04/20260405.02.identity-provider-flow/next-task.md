@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-05 09:00
-**Current Task**: Phase 5 — Secure getByEmail (org-scoped authorization)
+**Current Task**: Phase 6 — SDK React components
 **Status**: Not Started
-**Last Session**: 2026-04-05 — Phase 4 completed (SSO data model on IdentityProvider)
+**Last Session**: 2026-04-05 — Phase 5 completed (secure identity account lookups)
 
 ## Session Progress (2026-04-05)
 
@@ -119,7 +119,23 @@ When starting a new session:
     - Wired into both create and update handler pipelines
     - All stubs regenerated
 
+- **Phase 5: Secure Identity Account Lookups** — Done (Session 5)
+  - Fixed `getByIdpId` handler: removed Auth0 -> email -> findByEmail indirection, uses direct `findByIdpId`
+  - Scoped `getByEmail` to direct accounts only (excludes federated via identityProviderRef exists-check)
+  - Added `getByExternalSub` query RPC for IdP-scoped federated account lookups
+  - `ExternalSubLookup` message (org + identity_provider_ref + external_sub) with org-level authorization
+  - `IdentityAccountGetByExternalSubHandler.java` — new handler using `findByIdentityProviderRefAndIdpId`
+  - Fixed Auth0 Temporal activity duplicate-key fallback (`getByIdpId` instead of `getByEmail`)
+  - Removed dead `EmailToIdentityAccountIdCacheProxy` and `EmailToIdpIdCacheProxy`
+  - Cleaned up Redis cache methods used only by dead proxies
+  - All stubs regenerated in both repos
+
 ### Key Design Decisions
+- **`idp_id` is not globally unique, but that's fine**: For direct/Auth0 accounts, idp_id is effectively unique. For federated accounts, uniqueness is the compound `(identityProviderRef.org, identityProviderRef.slug, idpId)`. No changes needed.
+- **`getByIdpId` uses direct `findByIdpId`**: Removed Auth0 Management API call + email indirection. Auth0 IDs are unique within the tenant.
+- **`getByEmail` scoped to direct accounts**: Added `identityProviderRef.org exists(false)` filter to prevent cross-trust-boundary leaks.
+- **`getByExternalSub` reuses `can_create_identity_account`**: If a platform can create federated accounts, it can check existence. No new permission needed.
+- **SDK policy**: All RPCs stay in SDKs. Access controlled via FGA. Internal intent documented in proto comments.
 - **No `external_sub` field in DB**: `idp_id` already serves as the identity provider's subject identifier; `external_sub` is the API-facing name, mapped to `idp_id` on creation
 - **No data migration**: No federated account data exists — clean switch to new model
 - **`Optional<String>` resolver return**: Policy decisions (401) belong in the mapper, not the resolver
@@ -145,9 +161,11 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Phase 5: Secure getByEmail** — Add org-scoped authorization to email lookups
+1. **Phase 6: SDK React components** — `identity-provider/` and `iam-policy/` feature folders with hooks and components
 
-2. **Phases 6-8**: SDK React components, web app IdP management pages (including SSO OIDC RP), documentation
+2. **Phase 7: Web app IdP management pages** — including SSO OIDC RP login flow
+
+3. **Phase 8: Documentation** — federation flow documentation for platform builders
 
 ## Context for Resume
 
@@ -162,10 +180,10 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start Phase 5" - Begin getByEmail security fix
+- "Start Phase 6" - Begin SDK React components
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review plan" - Check `tasks/T01_0_plan.md` for full Phase 5-8 details
+- "Review plan" - Check `tasks/T01_0_plan.md` for full Phase 6-8 details
 
 ---
 

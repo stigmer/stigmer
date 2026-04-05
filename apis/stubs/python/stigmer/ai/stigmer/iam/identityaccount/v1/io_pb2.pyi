@@ -58,6 +58,16 @@ class ListWithIdentityOrg(_message.Message):
     page: _pagination_pb2.PageInfo
     def __init__(self, org: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
 
+class ExternalSubLookup(_message.Message):
+    __slots__ = ("org", "identity_provider_ref", "external_sub")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    IDENTITY_PROVIDER_REF_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_SUB_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    identity_provider_ref: _io_pb2.ApiResourceReference
+    external_sub: str
+    def __init__(self, org: _Optional[str] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., external_sub: _Optional[str] = ...) -> None: ...
+
 class CreateFederatedAccountInput(_message.Message):
     __slots__ = ("org", "identity_provider_ref", "external_sub", "email", "first_name", "last_name", "picture_url")
     ORG_FIELD_NUMBER: _ClassVar[int]

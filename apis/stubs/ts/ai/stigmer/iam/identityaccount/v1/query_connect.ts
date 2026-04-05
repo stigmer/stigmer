@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { IdentityAccountEmail, IdentityAccountId, IdpId } from "./io_pb.js";
+import { ExternalSubLookup, IdentityAccountEmail, IdentityAccountId, IdpId } from "./io_pb.js";
 import { IdentityAccount } from "./api_pb.js";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceAuditActor } from "../../../commons/apiresource/status_pb.js";
@@ -44,7 +44,10 @@ export const IdentityAccountQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get an identity account by email address.
+     * Get a direct identity account by email address.
+     *
+     * Only returns direct (non-federated) accounts. Federated accounts are not
+     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByEmail
      */
@@ -55,13 +58,34 @@ export const IdentityAccountQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get an identity account by identity provider ID.
+     * Get an identity account by identity provider ID (Auth0 subject).
+     *
+     * Primarily used for direct and machine accounts where the IDP ID is
+     * the Auth0 user_id or client_id. For federated account lookups,
+     * use getByExternalSub which is scoped to a specific identity provider.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByIdpId
      */
     getByIdpId: {
       name: "getByIdpId",
       I: IdpId,
+      O: IdentityAccount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get a federated identity account by identity provider reference and external subject.
+     *
+     * Used by platform backends to check whether a federated account already exists
+     * for a given OIDC subject before calling createFederatedAccount.
+     *
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     *
+     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByExternalSub
+     */
+    getByExternalSub: {
+      name: "getByExternalSub",
+      I: ExternalSubLookup,
       O: IdentityAccount,
       kind: MethodKind.Unary,
     },

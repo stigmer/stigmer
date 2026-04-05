@@ -139,6 +139,37 @@ public final class IdentityAccountQueryControllerGrpc {
     return getGetByIdpIdMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ExternalSubLookup,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getGetByExternalSubMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getByExternalSub",
+      requestType = ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.class,
+      responseType = ai.stigmer.iam.identityaccount.v1.IdentityAccount.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ExternalSubLookup,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getGetByExternalSubMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ExternalSubLookup, ai.stigmer.iam.identityaccount.v1.IdentityAccount> getGetByExternalSubMethod;
+    if ((getGetByExternalSubMethod = IdentityAccountQueryControllerGrpc.getGetByExternalSubMethod) == null) {
+      synchronized (IdentityAccountQueryControllerGrpc.class) {
+        if ((getGetByExternalSubMethod = IdentityAccountQueryControllerGrpc.getGetByExternalSubMethod) == null) {
+          IdentityAccountQueryControllerGrpc.getGetByExternalSubMethod = getGetByExternalSubMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityaccount.v1.ExternalSubLookup, ai.stigmer.iam.identityaccount.v1.IdentityAccount>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getByExternalSub"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.IdentityAccount.getDefaultInstance()))
+              .setSchemaDescriptor(new IdentityAccountQueryControllerMethodDescriptorSupplier("getByExternalSub"))
+              .build();
+        }
+      }
+    }
+    return getGetByExternalSubMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.IdentityAccountId,
       ai.stigmer.commons.apiresource.ApiResourceAuditActor> getGetActorInfoMethod;
 
@@ -261,7 +292,9 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by email address.
+     * Get a direct identity account by email address.
+     * Only returns direct (non-federated) accounts. Federated accounts are not
+     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
      * </pre>
      */
     default void getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -271,12 +304,29 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by identity provider ID.
+     * Get an identity account by identity provider ID (Auth0 subject).
+     * Primarily used for direct and machine accounts where the IDP ID is
+     * the Auth0 user_id or client_id. For federated account lookups,
+     * use getByExternalSub which is scoped to a specific identity provider.
      * </pre>
      */
     default void getByIdpId(ai.stigmer.iam.identityaccount.v1.IdpId request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByIdpIdMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get a federated identity account by identity provider reference and external subject.
+     * Used by platform backends to check whether a federated account already exists
+     * for a given OIDC subject before calling createFederatedAccount.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    default void getByExternalSub(ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByExternalSubMethod(), responseObserver);
     }
 
     /**
@@ -362,7 +412,9 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by email address.
+     * Get a direct identity account by email address.
+     * Only returns direct (non-federated) accounts. Federated accounts are not
+     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
      * </pre>
      */
     public void getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -373,13 +425,31 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by identity provider ID.
+     * Get an identity account by identity provider ID (Auth0 subject).
+     * Primarily used for direct and machine accounts where the IDP ID is
+     * the Auth0 user_id or client_id. For federated account lookups,
+     * use getByExternalSub which is scoped to a specific identity provider.
      * </pre>
      */
     public void getByIdpId(ai.stigmer.iam.identityaccount.v1.IdpId request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetByIdpIdMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get a federated identity account by identity provider reference and external subject.
+     * Used by platform backends to check whether a federated account already exists
+     * for a given OIDC subject before calling createFederatedAccount.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public void getByExternalSub(ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetByExternalSubMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -450,7 +520,9 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by email address.
+     * Get a direct identity account by email address.
+     * Only returns direct (non-federated) accounts. Federated accounts are not
+     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) throws io.grpc.StatusException {
@@ -460,12 +532,29 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by identity provider ID.
+     * Get an identity account by identity provider ID (Auth0 subject).
+     * Primarily used for direct and machine accounts where the IDP ID is
+     * the Auth0 user_id or client_id. For federated account lookups,
+     * use getByExternalSub which is scoped to a specific identity provider.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByIdpId(ai.stigmer.iam.identityaccount.v1.IdpId request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetByIdpIdMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get a federated identity account by identity provider reference and external subject.
+     * Used by platform backends to check whether a federated account already exists
+     * for a given OIDC subject before calling createFederatedAccount.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByExternalSub(ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetByExternalSubMethod(), getCallOptions(), request);
     }
 
     /**
@@ -535,7 +624,9 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by email address.
+     * Get a direct identity account by email address.
+     * Only returns direct (non-federated) accounts. Federated accounts are not
+     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) {
@@ -545,12 +636,29 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by identity provider ID.
+     * Get an identity account by identity provider ID (Auth0 subject).
+     * Primarily used for direct and machine accounts where the IDP ID is
+     * the Auth0 user_id or client_id. For federated account lookups,
+     * use getByExternalSub which is scoped to a specific identity provider.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByIdpId(ai.stigmer.iam.identityaccount.v1.IdpId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByIdpIdMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get a federated identity account by identity provider reference and external subject.
+     * Used by platform backends to check whether a federated account already exists
+     * for a given OIDC subject before calling createFederatedAccount.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByExternalSub(ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetByExternalSubMethod(), getCallOptions(), request);
     }
 
     /**
@@ -622,7 +730,9 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by email address.
+     * Get a direct identity account by email address.
+     * Only returns direct (non-federated) accounts. Federated accounts are not
+     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> getByEmail(
@@ -633,13 +743,31 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an identity account by identity provider ID.
+     * Get an identity account by identity provider ID (Auth0 subject).
+     * Primarily used for direct and machine accounts where the IDP ID is
+     * the Auth0 user_id or client_id. For federated account lookups,
+     * use getByExternalSub which is scoped to a specific identity provider.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> getByIdpId(
         ai.stigmer.iam.identityaccount.v1.IdpId request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetByIdpIdMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get a federated identity account by identity provider reference and external subject.
+     * Used by platform backends to check whether a federated account already exists
+     * for a given OIDC subject before calling createFederatedAccount.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> getByExternalSub(
+        ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetByExternalSubMethod(), getCallOptions()), request);
     }
 
     /**
@@ -670,7 +798,8 @@ public final class IdentityAccountQueryControllerGrpc {
   private static final int METHODID_WHO_AM_I = 1;
   private static final int METHODID_GET_BY_EMAIL = 2;
   private static final int METHODID_GET_BY_IDP_ID = 3;
-  private static final int METHODID_GET_ACTOR_INFO = 4;
+  private static final int METHODID_GET_BY_EXTERNAL_SUB = 4;
+  private static final int METHODID_GET_ACTOR_INFO = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -703,6 +832,10 @@ public final class IdentityAccountQueryControllerGrpc {
           break;
         case METHODID_GET_BY_IDP_ID:
           serviceImpl.getByIdpId((ai.stigmer.iam.identityaccount.v1.IdpId) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
+          break;
+        case METHODID_GET_BY_EXTERNAL_SUB:
+          serviceImpl.getByExternalSub((ai.stigmer.iam.identityaccount.v1.ExternalSubLookup) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
           break;
         case METHODID_GET_ACTOR_INFO:
@@ -755,6 +888,13 @@ public final class IdentityAccountQueryControllerGrpc {
               ai.stigmer.iam.identityaccount.v1.IdpId,
               ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
                 service, METHODID_GET_BY_IDP_ID)))
+        .addMethod(
+          getGetByExternalSubMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.identityaccount.v1.ExternalSubLookup,
+              ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
+                service, METHODID_GET_BY_EXTERNAL_SUB)))
         .addMethod(
           getGetActorInfoMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -814,6 +954,7 @@ public final class IdentityAccountQueryControllerGrpc {
               .addMethod(getWhoAmIMethod())
               .addMethod(getGetByEmailMethod())
               .addMethod(getGetByIdpIdMethod())
+              .addMethod(getGetByExternalSubMethod())
               .addMethod(getGetActorInfoMethod())
               .build();
         }

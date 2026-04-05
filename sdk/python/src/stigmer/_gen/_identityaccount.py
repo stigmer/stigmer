@@ -79,6 +79,12 @@ class IdentityAccountClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_by_external_sub(self, input: io_pb2.ExternalSubLookup) -> api_pb2.IdentityAccount:
+        try:
+            return self._query.getByExternalSub(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get_actor_info(self, id: str) -> io_pb2.ApiResourceAuditActor:
         try:
             return self._query.getActorInfo(io_pb2.IdentityAccountId(value=id))

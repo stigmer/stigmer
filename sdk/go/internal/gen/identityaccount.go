@@ -69,6 +69,11 @@ func (i *IdentityAccountClient) GetByIdpId(ctx context.Context, id string) (*ide
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityAccountClient) GetByExternalSub(ctx context.Context, input *identityaccountv1.ExternalSubLookup) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.query.GetByExternalSub(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IdentityAccountClient) GetActorInfo(ctx context.Context, id string) (*apiresource.ApiResourceAuditActor, error) {
 	resp, err := i.query.GetActorInfo(ctx, &identityaccountv1.IdentityAccountId{Value: id})
 	return resp, wrapErr(err)

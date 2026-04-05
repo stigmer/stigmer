@@ -373,6 +373,77 @@ func (x *ListWithIdentityOrg) GetPage() *rpc.PageInfo {
 	return nil
 }
 
+// ExternalSubLookup identifies a federated identity account by its identity provider
+// reference and external subject identifier (OIDC sub claim).
+//
+// Used by platform backends to check whether a federated account already exists
+// before calling createFederatedAccount.
+type ExternalSubLookup struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization that owns the identity provider.
+	// Used as the authorization scope: caller must have can_create_identity_account
+	// permission on this organization.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Reference to the IdentityProvider that the federated account belongs to.
+	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	// External subject identifier from the platform's OIDC provider.
+	// The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
+	ExternalSub   string `protobuf:"bytes,3,opt,name=external_sub,json=externalSub,proto3" json:"external_sub,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExternalSubLookup) Reset() {
+	*x = ExternalSubLookup{}
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExternalSubLookup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExternalSubLookup) ProtoMessage() {}
+
+func (x *ExternalSubLookup) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExternalSubLookup.ProtoReflect.Descriptor instead.
+func (*ExternalSubLookup) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ExternalSubLookup) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ExternalSubLookup) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.IdentityProviderRef
+	}
+	return nil
+}
+
+func (x *ExternalSubLookup) GetExternalSub() string {
+	if x != nil {
+		return x.ExternalSub
+	}
+	return ""
+}
+
 // CreateFederatedAccountInput is the command for creating a federated identity account
 // linked to an external platform's identity provider.
 //
@@ -408,7 +479,7 @@ type CreateFederatedAccountInput struct {
 
 func (x *CreateFederatedAccountInput) Reset() {
 	*x = CreateFederatedAccountInput{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -420,7 +491,7 @@ func (x *CreateFederatedAccountInput) String() string {
 func (*CreateFederatedAccountInput) ProtoMessage() {}
 
 func (x *CreateFederatedAccountInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -433,7 +504,7 @@ func (x *CreateFederatedAccountInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateFederatedAccountInput.ProtoReflect.Descriptor instead.
 func (*CreateFederatedAccountInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateFederatedAccountInput) GetOrg() string {
@@ -507,7 +578,11 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"\aentries\x18\x02 \x03(\v22.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\aentries\"]\n" +
 	"\x13ListWithIdentityOrg\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x124\n" +
-	"\x04page\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\xc7\x02\n" +
+	"\x04page\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\xc2\x01\n" +
+	"\x11ExternalSubLookup\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
+	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
+	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\"\xc7\x02\n" +
 	"\x1bCreateFederatedAccountInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
 	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
@@ -532,7 +607,7 @@ func file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_goTypes = []any{
 	(*IdentityAccounts)(nil),                 // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts
 	(*IdentityAccountId)(nil),                // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountId
@@ -541,22 +616,24 @@ var file_ai_stigmer_iam_identityaccount_v1_io_proto_goTypes = []any{
 	(*ListWithIdentityAccountIdReq)(nil),     // 4: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq
 	(*IdentityAccountsList)(nil),             // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList
 	(*ListWithIdentityOrg)(nil),              // 6: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg
-	(*CreateFederatedAccountInput)(nil),      // 7: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
-	(*IdentityAccount)(nil),                  // 8: ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	(*rpc.PageInfo)(nil),                     // 9: ai.stigmer.commons.rpc.PageInfo
-	(*apiresource.ApiResourceReference)(nil), // 10: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*ExternalSubLookup)(nil),                // 7: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup
+	(*CreateFederatedAccountInput)(nil),      // 8: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
+	(*IdentityAccount)(nil),                  // 9: ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	(*rpc.PageInfo)(nil),                     // 10: ai.stigmer.commons.rpc.PageInfo
+	(*apiresource.ApiResourceReference)(nil), // 11: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_depIdxs = []int32{
-	8,  // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	9,  // 1: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	8,  // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	9,  // 3: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	10, // 4: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5,  // [5:5] is the sub-list for method output_type
-	5,  // [5:5] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	9,  // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	10, // 1: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	9,  // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	10, // 3: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	11, // 4: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	11, // 5: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityaccount_v1_io_proto_init() }
@@ -571,7 +648,7 @@ func file_ai_stigmer_iam_identityaccount_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
