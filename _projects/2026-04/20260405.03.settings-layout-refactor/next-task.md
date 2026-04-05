@@ -13,21 +13,31 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-04-05 — Completed Phase 1 (ManagementSidebar + zone detection + route restructure)
-- **Active Task**: T01 — Phase 5 (Polish & Edge Cases)
+- **Last Session**: 2026-04-05 (Session 2) — Completed deep-link verification + added error/loading boundaries
+- **Active Task**: T01 — Phase 5 (Polish & Edge Cases) — 1 of 5 items complete
 
 ## Session Progress (2026-04-05)
+
+### Session 1
 - Created ManagementSidebar.tsx with OrgSwitcher, "Back to Sessions" link, nav links (Members/API Keys/Environments), and UserMenu
 - Added zone detection in AppShell.tsx — swaps sidebars based on /settings/** pathname
 - Restructured /settings route into sub-pages with shared layout
 - Updated UserMenu to navigate to /settings/members
 - Evaluated and deferred shared internal React lib proposal
 
+### Session 2
+- Verified deep-linking architecture via code analysis and browser testing
+- Confirmed OIDC auth flow preserves deep-link URLs through sessionStorage
+- Confirmed zone detection, ManagementSidebar, and SessionNavigationProvider all initialize correctly on cold load
+- Added settings-scoped error boundary (app/settings/error.tsx) — preserves ManagementSidebar context on error
+- Added settings-scoped loading boundary (app/settings/loading.tsx) — spinner for sub-page transitions
+- Verified static export generates all settings HTML files correctly
+
 ## Next Steps
-1. Phase 5: Polish & edge cases
+1. Phase 5: Polish & edge cases (1 of 5 complete)
    - Mobile responsiveness for ManagementSidebar (backdrop, collapse behavior)
    - Verify OrgSwitcher works correctly in management zone
-   - Verify deep-linking: opening /settings/api-keys directly loads correct page with management sidebar
+   - ~~Verify deep-linking: opening /settings/api-keys directly loads correct page with management sidebar~~ ✓ Verified (Session 2)
    - Ensure browser back/forward navigation works across zone transitions
    - Test SessionNavigationProvider state preservation when returning from management zone
 2. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
@@ -43,7 +53,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-1.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-2.md
 ```
 
 ### 2. Current Task
@@ -80,12 +90,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-1.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-2.md`
 2. [ ] Check current task status in `tasks/`
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 5 (Polish & Edge Cases)
+6. [ ] Continue with Phase 5 (Polish & Edge Cases) — 4 items remaining
 
 ## Quick Commands
 
