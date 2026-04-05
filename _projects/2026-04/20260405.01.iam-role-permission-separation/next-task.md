@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 - **Status**: in-progress
-- **Last Session**: 2026-04-05 (Session 3) — Codegen validation, Go cycle fix, backend verified
-- **Active Task**: T01 plan phases 1-6 validated end-to-end; phase 7 remains
+- **Last Session**: 2026-04-05 (Session 4) — Grantable role validation guardrail on IAM policy create
+- **Active Task**: T01 phases 1-7 complete; remaining work is client-side consumption (web/SDK)
 
 ## Session Progress (2026-04-05, Session 1)
 
@@ -107,10 +107,21 @@ When starting a new session:
 - Fixed pre-existing Temporal SDK bug in `CleanupSandboxWorkflowImpl.java`
 - All 7 backend tests passed
 
+## Session Progress (2026-04-05, Session 4)
+
+- Added `hasGrantableRoles` and `getGrantableRoles` query methods to `AuthorizationConfigResolver` (api-shape library)
+- Added `ValidateGrantableRole` pipeline step to `IamPolicyCreateHandler` (user-facing `create` path only)
+- Step validates that the requested relation is a grantable role for the target resource kind
+- Step placed after `authorize` (principle of least information) and before `checkIfDuplicate`
+- Returns `INVALID_ARGUMENT` with descriptive messages for: unknown resource kinds, no grantable roles (system-managed), and non-grantable roles (includes allowed list)
+- Bootstrap path (`IamPolicyBootstrapPolicyHandler`) is NOT affected — it continues to write structural/creator/owner tuples freely
+- Build passed (`make build-java`), all 7 backend tests passed (`make test-backend`)
+
 ## Next Steps
 
-1. Phase 7: Update backend FGA tuple code and SDK/web role selectors to consume `grantable_roles`
+1. Client-side consumption of `grantable_roles` (web app role selectors, SDK validation)
 2. Consider documenting the leaf-package pattern as a coding guideline
+3. Consider adding unit tests for `ValidateGrantableRole` step
 
 ## Context for Resume
 
@@ -120,13 +131,16 @@ When starting a new session:
 - `RpcAuthorizationConfig` and method options live in `ai.stigmer.commons.rpc` package
 - `AuthorizationConfig.grantable_roles` is field number 7, typed as `repeated ai.stigmer.iam.v1.IamRole`
 - Java stubs generate as `protos.ai.stigmer.iam.v1.IamPermission` and `protos.ai.stigmer.iam.v1.IamRole`
-- Backend `AuthorizationConfigResolver` and `IamPolicyCreationService` do NOT yet read `grantable_roles` — the field is metadata for clients (web app, SDKs), not runtime tuple creation
+- `AuthorizationConfigResolver` now exposes `getGrantableRoles(kind)` and `hasGrantableRoles(kind)` for consumers
+- `IamPolicyCreateHandler` validates `relation` against `grantable_roles` before persisting — invalid roles are rejected with `INVALID_ARGUMENT`
+- `IamPolicyBootstrapPolicyHandler` is NOT validated — bootstrap creates structural relations (e.g., `"organization"`, `"creator"`) that are not user-grantable roles
+- `IamPolicyCreationService` uses `bootstrapPolicy` (not `create`), so it is not affected by the new validation
 - Codegen and backend build are fully validated — all stubs, SDK clients, and tests pass
 - Go import cycle lesson: vocabulary types (enums imported by many packages) must live in leaf packages to avoid Go's package-level import cycle rules
 
 ## Blockers (if any)
 
-- None — phases 1-6 fully validated, ready for phase 7
+- None — backend validation guardrail is complete and deployed
 
 ## Quick Resume
 
