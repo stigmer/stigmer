@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-04-05 (Session 6) — SessionNavigationProvider state preservation across zone transitions
-- **Active Task**: T01 — Phase 5 (Polish & Edge Cases) — 4 of 5 items complete
+- **Last Session**: 2026-04-05 (Session 7) — Browser back/forward navigation across zone transitions
+- **Completed Task**: T01 — Phase 5 (Polish & Edge Cases) — all 5 items complete
 
 ## Session Progress (2026-04-05)
 
@@ -63,13 +63,15 @@ Drop this file into your conversation to quickly resume work on this project.
 - Used `useState` instead of `useRef` for `currentSessionZonePath` to satisfy `react-hooks/refs` lint rule (same pattern as Session 5 bootstrap fix)
 - ESLint clean (0 errors, 0 warnings) on changed files
 
+### Session 7
+- Fixed `handlePopState` to explicitly capture `lastSessionZonePath` on zone exit — removed implicit ordering dependency between popstate handler and render-time sync block
+- Added `currentSessionZonePathRef` mirroring state (follows existing `sessionIdRef` / `isSessionZoneRef` pattern) for synchronous access in event handler
+- Browser-verified: zone transitions (session → management → back to session), management sub-page navigation, "Back to Sessions" returns to correct URL, deep-linking
+- Phase 5 (Polish & Edge Cases) — all 5 items complete
+- ESLint clean (0 errors, 0 warnings) on changed and related files
+
 ## Next Steps
-1. Phase 5: Polish & edge cases (4 of 5 complete)
-   - ~~Mobile responsiveness for ManagementSidebar (backdrop, collapse behavior)~~ Done (Session 4)
-   - ~~Verify OrgSwitcher works correctly in management zone~~ Done (Session 5)
-   - ~~Verify deep-linking: opening /settings/api-keys directly loads correct page with management sidebar~~ Verified (Session 2 + Session 5)
-   - ~~Test SessionNavigationProvider state preservation when returning from management zone~~ Done (Session 6)
-   - Ensure browser back/forward navigation works across zone transitions
+1. ~~Phase 5: Polish & edge cases~~ **Complete** (all 5 items done, Session 4-7)
 2. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
 3. Consider adding placeholder nav items for future sections (Billing, Usage, Org Profile)
 
@@ -84,6 +86,8 @@ Drop this file into your conversation to quickly resume work on this project.
 - All settings SDK hooks use a render-time state sync pattern for prop-change detection with effect-based refetch
 - `ApiKeyListPanel` is identity-scoped (no org prop) — by design, not a bug
 - Browser back/forward testing is complicated by OIDC auth pages in the history stack; real users build clean history via client-side `<Link>` navigation
+- `currentSessionZonePathRef` mirrors the `currentSessionZonePath` state for synchronous access in the `handlePopState` event handler (same pattern as `sessionIdRef` and `isSessionZoneRef`)
+- `handlePopState` now explicitly captures `lastSessionZonePath` when transitioning out of the session zone, removing the ordering dependency on the render-time sync block
 - `lastSessionZonePath` in SessionNavigationProvider tracks the session-zone path the user was on before leaving; ManagementSidebar uses it for "Back to Sessions" href
 - `currentSessionZonePath` (state, not ref) tracks the true session-zone path across both pushState and Next.js navigation; required because `prevPathname` from `usePathname()` misses pushState updates
 - Layer 2 (keeping SessionZoneContent mounted while in management zone) was analyzed and deferred — adds complexity for marginal benefit; Layer 1 design does not preclude later addition
@@ -92,7 +96,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-6.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-7.md
 ```
 
 ### 2. Current Task
@@ -129,17 +133,17 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-6.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-7.md`
 2. [ ] Check current task status in `tasks/`
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 5 (Polish & Edge Cases) — 1 item remaining
+6. [ ] Continue with visual testing across theme presets
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 5" - Resume polish and edge case work
+- "Continue with visual testing" - Test across theme presets
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

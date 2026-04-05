@@ -135,6 +135,11 @@ export function SessionNavigationProvider({
     isSessionZoneRef.current = isSessionZone;
   }, [isSessionZone]);
 
+  const currentSessionZonePathRef = useRef(currentSessionZonePath);
+  useEffect(() => {
+    currentSessionZonePathRef.current = currentSessionZonePath;
+  }, [currentSessionZonePath]);
+
   const navigateToSession = useCallback((id: string) => {
     const path = `/sessions/${id}`;
     if (sessionIdRef.current !== id) {
@@ -158,11 +163,17 @@ export function SessionNavigationProvider({
   useEffect(() => {
     function handlePopState() {
       const pathname = window.location.pathname;
-      if (isSessionZonePath(pathname)) {
+      const enteringSessionZone = isSessionZonePath(pathname);
+
+      if (isSessionZoneRef.current && !enteringSessionZone) {
+        setLastSessionZonePath(currentSessionZonePathRef.current);
+      }
+
+      if (enteringSessionZone) {
         setCurrentSessionZonePath(pathname);
       }
       setActiveSessionId(sessionIdFromPath(pathname));
-      setIsSessionZone(isSessionZonePath(pathname));
+      setIsSessionZone(enteringSessionZone);
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
