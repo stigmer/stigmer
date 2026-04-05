@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 - **Status**: in-progress
-- **Last Session**: 2026-04-05 (Session 4) — Grantable role validation guardrail on IAM policy create
-- **Active Task**: T01 phases 1-7 complete; remaining work is client-side consumption (web/SDK)
+- **Last Session**: 2026-04-05 (Session 5) — Unit tests for ValidateGrantableRole step
+- **Active Task**: T01 phases 1-7 complete + backend validation tested; remaining work is client-side consumption (web/SDK) and build infra improvements
 
 ## Session Progress (2026-04-05, Session 1)
 
@@ -117,11 +117,28 @@ When starting a new session:
 - Bootstrap path (`IamPolicyBootstrapPolicyHandler`) is NOT affected — it continues to write structural/creator/owner tuples freely
 - Build passed (`make build-java`), all 7 backend tests passed (`make test-backend`)
 
+## Session Progress (2026-04-05, Session 5)
+
+- Wrote 7 unit tests for `ValidateGrantableRole` pipeline step in `IamPolicyCreateHandlerTest.java`
+- Used pure JUnit 5 with real protobuf objects — no Mockito dependency needed
+- Tests cover: 4 happy paths (owner/viewer on agent, admin/member on organization), unknown resource kind, system-managed resource (no grantable roles), non-grantable role with allowed list in error message
+- Tests double as contract tests for the authorization model (use real proto metadata as ground truth)
+- Wired test into Bazel `BUILD.bazel` as `iam_policy_create_handler_test` target with strict deps (`grpc-request`, `grpc_api`)
+- Fixed pre-existing `FormatString` bug in `ValidateSsoFields.java` (`.formatted(org)` applied to wrong string due to operator precedence — wrapped concatenated strings in parentheses)
+- All 8 backend tests pass (`make test-backend`)
+
+### Discovery: Mockito Not Wired in Bazel
+
+- Several existing test files (`IdentityProviderDeleteHandlerTest`, `SearchHandlerTest`, etc.) import Mockito but have no `java_junit5_test` target in `BUILD.bazel`
+- Mockito (`org.mockito`) is not declared in `MODULE.bazel` as a Maven artifact
+- These tests are dead code — they exist but are never compiled or run by Bazel
+- Pipeline construction tests (verifying step count and ordering) require Mockito, so they are deferred until Mockito is wired into the build
+
 ## Next Steps
 
 1. Client-side consumption of `grantable_roles` (web app role selectors, SDK validation)
-2. Consider documenting the leaf-package pattern as a coding guideline
-3. Consider adding unit tests for `ValidateGrantableRole` step
+2. Document the leaf-package pattern as a coding guideline
+3. Wire Mockito into `MODULE.bazel` and enable existing dead test files + pipeline construction tests
 
 ## Context for Resume
 
@@ -137,10 +154,13 @@ When starting a new session:
 - `IamPolicyCreationService` uses `bootstrapPolicy` (not `create`), so it is not affected by the new validation
 - Codegen and backend build are fully validated — all stubs, SDK clients, and tests pass
 - Go import cycle lesson: vocabulary types (enums imported by many packages) must live in leaf packages to avoid Go's package-level import cycle rules
+- `ValidateGrantableRole` step has 7 unit tests in `IamPolicyCreateHandlerTest.java`, wired into Bazel as `iam_policy_create_handler_test`
+- Tests are pure JUnit 5 (no Mockito) — use real protobuf objects and real proto metadata
+- Mockito is NOT available in Bazel build graph — several existing Mockito-based test files are dead code (not wired as Bazel targets)
 
 ## Blockers (if any)
 
-- None — backend validation guardrail is complete and deployed
+- None — backend validation guardrail is complete and tested
 
 ## Quick Resume
 
