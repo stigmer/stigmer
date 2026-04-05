@@ -30,7 +30,7 @@ import {
   serializeType,
   toAnchor,
   flattenCommentParts,
-  extractExample,
+  extractExamples,
 } from "./mdx-utils";
 
 // ---------------------------------------------------------------------------
@@ -418,7 +418,7 @@ function parseHook(
     parameters,
     returnType: extractReturnType(sig?.type),
     returnInterface: null,
-    example: extractExample(comment),
+    examples: extractExamples(comment),
     sourceUrl: reflection.sources?.[0]?.url ?? "",
   };
 }
@@ -443,7 +443,7 @@ function parseComponent(
         )
       : [],
     propsInterface: null,
-    example: extractExample(comment),
+    examples: extractExamples(comment),
     sourceUrl: reflection.sources?.[0]?.url ?? "",
   };
 }
@@ -476,6 +476,7 @@ function parseInterface(
     fields,
     associatedExport: null,
     signature: null,
+    examples: extractExamples(reflection.comment),
   };
 }
 
@@ -512,6 +513,7 @@ function parseTypeAlias(
     fields,
     associatedExport: null,
     signature: null,
+    examples: extractExamples(reflection.comment),
   };
 }
 
@@ -558,6 +560,8 @@ function parseVariable(
       : [];
   }
 
+  const varComment = reflection.signatures?.[0]?.comment ?? reflection.comment;
+
   return {
     name: reflection.name,
     description,
@@ -565,6 +569,7 @@ function parseVariable(
     fields: [],
     associatedExport: null,
     signature,
+    examples: extractExamples(varComment),
   };
 }
 

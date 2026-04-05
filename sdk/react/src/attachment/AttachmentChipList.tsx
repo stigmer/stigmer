@@ -27,6 +27,21 @@ export interface AttachmentChipListProps {
  * who compose their own attachment UI.
  *
  * All visual properties flow through `--stgm-*` tokens.
+ *
+ * @example
+ * ```tsx
+ * function CustomComposer() {
+ *   const attachments = useAttachments({ sessionId });
+ *
+ *   return (
+ *     <AttachmentChipList
+ *       entries={attachments.entries}
+ *       onRemove={attachments.remove}
+ *       onRetry={attachments.retry}
+ *     />
+ *   );
+ * }
+ * ```
  */
 export function AttachmentChipList({
   entries,

@@ -46,6 +46,7 @@ const available = useResourceAvailable(ApiResourceKind.api_key);
 if (!available) return <CloudFeatureNotice>...</CloudFeatureNotice>;
 ```
 
+
 ### useStigmer
 
 Access the `Stigmer` SDK client from the nearest
@@ -67,6 +68,7 @@ function AgentDetail({ id }: { id: string }) {
   const agent = await stigmer.agent.get(id);
 }
 ```
+
 
 ## Components
 
@@ -92,6 +94,17 @@ No Console-specific dependencies — safe for platform builder embedding.
     className: { type: "string", description: "Additional CSS class names for the root container." },
   }}
 />
+
+```tsx
+const available = useResourceAvailable(ApiResourceKind.api_key);
+if (!available) {
+  return (
+    <CloudFeatureNotice>
+      API keys require Stigmer Cloud. Run with <code>--cloud</code> to enable.
+    </CloudFeatureNotice>
+  );
+}
+```
 
 
 ### StigmerProvider
@@ -130,6 +143,7 @@ const client = useMemo(
   <App />
 </StigmerProvider>
 ```
+
 
 ## Types
 

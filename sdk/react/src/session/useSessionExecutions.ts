@@ -29,6 +29,29 @@ export interface UseSessionExecutionsReturn {
  * Returns up to 100 executions per call. Sessions rarely exceed a
  * handful of executions; full cursor-based pagination can be added
  * later without breaking the return type.
+ *
+ * @example
+ * ```tsx
+ * function ConversationThread({ sessionId }: { sessionId: string }) {
+ *   const { executions, isLoading } = useSessionExecutions(sessionId);
+ *   const stream = useExecutionStream(activeExecutionId);
+ *
+ *   if (isLoading) return <Skeleton />;
+ *
+ *   return (
+ *     <MessageThread
+ *       executions={executions}
+ *       activeStreamExecution={stream.execution}
+ *     />
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Skip fetching until a session is selected
+ * const { executions } = useSessionExecutions(sessionId ?? null);
+ * ```
  */
 export function useSessionExecutions(
   sessionId: string | null,

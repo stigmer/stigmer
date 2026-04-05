@@ -37,6 +37,25 @@ const DEFAULT_PAGE_SIZE = 50;
  *
  * Returns up to `pageSize` sessions (default 50). Full cursor-based
  * pagination can be added later without breaking the return type.
+ *
+ * @example
+ * ```tsx
+ * function SessionSidebar() {
+ *   const { sessions, isLoading, refetch } = useSessionList({ pageSize: 25 });
+ *
+ *   if (isLoading) return <Skeleton />;
+ *
+ *   return (
+ *     <ul>
+ *       {sessions.map((s) => (
+ *         <li key={s.metadata?.id}>
+ *           {s.status?.subject ?? "Untitled"}
+ *         </li>
+ *       ))}
+ *     </ul>
+ *   );
+ * }
+ * ```
  */
 export function useSessionList(
   options?: UseSessionListOptions,

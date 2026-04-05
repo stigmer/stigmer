@@ -72,6 +72,37 @@ function useArtifactContent(executionId: string | null, storageKey: string | nul
   }}
 />
 
+```tsx
+function ArtifactViewer({ executionId, artifact }: {
+  executionId: string;
+  artifact: ExecutionArtifact;
+}) {
+  const shouldFetch = isTextArtifact(artifact)
+    && Number(artifact.sizeBytes) < 512_000;
+
+  const { content, contentType, isTruncated, isLoading } = useArtifactContent(
+    shouldFetch ? executionId : null,
+    shouldFetch ? artifact.storageKey : null,
+  );
+
+  if (isLoading) return <Skeleton />;
+  if (!content) return null;
+
+  return (
+    <ArtifactContentRenderer
+      content={content}
+      contentType={contentType}
+      isTruncated={isTruncated}
+    />
+  );
+}
+```
+
+```tsx
+// Extract a single file from a directory artifact
+const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
+```
+
 
 ### useCreateAgentExecution
 
@@ -113,6 +144,20 @@ function useCreateAgentExecution(): UseCreateAgentExecutionReturn
 const { create } = useCreateAgentExecution();
 await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
 ```
+
+```tsx
+// Execution Flow: inject per-call secrets
+const { create } = useCreateAgentExecution();
+await create({
+  org: "acme",
+  sessionId: "ses_abc",
+  message: "Deploy to production",
+  runtimeEnv: {
+    CUSTOMER_API_KEY: { value: "cust_xyz...", isSecret: true },
+  },
+});
+```
+
 
 ### useExecutionArtifacts
 
@@ -161,6 +206,7 @@ if (hasArtifacts) {
   artifacts.forEach((a) => console.log(a.name, a.sizeBytes));
 }
 ```
+
 
 ### useExecutionStream
 
@@ -218,6 +264,7 @@ function LiveExecution({ id }: { id: string }) {
   );
 }
 ```
+
 
 ### useSessionVariables
 
@@ -281,6 +328,7 @@ function Chat({ sessionId, org }: { sessionId: string; org: string }) {
 }
 ```
 
+
 ### useSubmitApproval
 
 Behavior hook that wraps `agentExecution.submitApproval()` with
@@ -317,6 +365,7 @@ const { submitApproval, submittingToolCallIds, error } = useSubmitApproval();
 
 await submitApproval(executionId, toolCallId, ApprovalAction.APPROVAL_ACTION_APPROVE);
 ```
+
 
 ### useWorkspaceWriteBacks
 
@@ -366,6 +415,7 @@ if (hasWriteBacks) {
 }
 ```
 
+
 ## Components
 
 ### ApprovalCard
@@ -400,6 +450,7 @@ preview and the post-execution detail view.
   isSubmitting={submittingIds.has(approval.toolCallId)}
 />
 ```
+
 
 ### ArtifactCard
 
@@ -456,6 +507,7 @@ const { artifacts } = useExecutionArtifacts(execution);
 ))}
 ```
 
+
 ### ArtifactContentRenderer
 
 File-type-aware content renderer for execution artifacts.
@@ -503,6 +555,7 @@ function MyArtifactPanel({ executionId, storageKey, fileName }) {
   return <ArtifactContentRenderer content={content} fileName={fileName} />;
 }
 ```
+
 
 ### ArtifactPreviewModal
 
@@ -559,6 +612,7 @@ const [previewArtifact, setPreviewArtifact] =
 )}
 ```
 
+
 ### ArtifactsWidget
 
 Right-sidebar widget that surfaces all artifacts produced during a
@@ -610,6 +664,7 @@ const conv = useSessionConversation(sessionId, org);
 />
 ```
 
+
 ### ExecutionPhaseBadge
 
 Displays the lifecycle phase of an `AgentExecution` as an
@@ -633,6 +688,7 @@ All visual properties flow through `--stgm-*` tokens.
 ```tsx
 <ExecutionPhaseBadge phase={ExecutionPhase.EXECUTION_COMPLETED} />
 ```
+
 
 ### ExecutionProgress
 
@@ -669,6 +725,7 @@ const stream = useExecutionStream(executionId);
 </div>
 ```
 
+
 ### FilePathLink
 
 Interactive file path display that replaces inert `<span>` path
@@ -698,6 +755,7 @@ Platform builders can override the default behavior via the
 ```tsx
 <FilePathLink path="src/main.go" />
 ```
+
 
 ### FollowUpInput
 
@@ -747,6 +805,7 @@ All visual properties flow through `--stgm-*` tokens.
 />
 ```
 
+
 ### McpArgsView
 
 Renders MCP tool arguments as a structured key-value list.
@@ -795,6 +854,7 @@ with structured formatting:
 <McpToolDetail toolCall={toolCall} />
 ```
 
+
 ### MessageEntry
 
 Renders a single message in the conversation thread.
@@ -823,6 +883,7 @@ All visual properties flow through `--stgm-*` tokens.
 ```tsx
 <MessageEntry message={agentMessage} />
 ```
+
 
 ### MessageThread
 
@@ -866,6 +927,7 @@ const stream = useExecutionStream(activeId);
 />
 ```
 
+
 ### SessionVariablesInput
 
 Compact key-value editor for session-scoped environment variables.
@@ -901,6 +963,7 @@ const sessionVariables = useSessionVariables();
 <SessionVariablesInput sessionVariables={sessionVariables} />
 ```
 
+
 ### SetupProgress
 
 Animated inline indicator shown in the message thread while an
@@ -935,6 +998,7 @@ All visual properties flow through `--stgm-*` tokens.
 // Fallback (no server phase available)
 <SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
 ```
+
 
 ### SubAgentSection
 
@@ -977,6 +1041,7 @@ building blocks used by the top-level [`MessageThread`](#messagethread).
 <SubAgentSection subAgentExecution={sub} collapsible={false} />
 ```
 
+
 ### TodoInProgressIcon
 
 Exported for reuse in SubAgentSection collapsed preview.
@@ -1007,6 +1072,13 @@ All visual properties flow through `--stgm-*` tokens.
     todos: { type: "object", description: "Todo items keyed by ID. Accepts the proto map shape directly (`execution.status.todos` or `subAgentExecution.todos`).", required: true },
   }}
 />
+
+```tsx
+const execution = stream.execution;
+const todos = execution?.status?.todos ?? {};
+
+<TodoList todos={todos} />
+```
 
 
 ### ToolArgsView
@@ -1046,6 +1118,7 @@ const args = JSON.parse(pendingApproval.argsPreview);
 <ToolArgsView toolName={tc.name} args={tc.args} mcpServerSlug={tc.mcpServerSlug} />
 ```
 
+
 ### ToolCallDetail
 
 Renders the detail panel for a single tool call with
@@ -1083,6 +1156,7 @@ their own tool call UI.
 <ToolCallDetail toolCall={toolCall} />
 ```
 
+
 ### ToolCallGroup
 
 Renders a summary line for a group of tool calls from a single
@@ -1117,6 +1191,7 @@ via the `formatSummary` prop.
 <ToolCallGroup toolCalls={message.toolCalls} />
 ```
 
+
 ### ToolCallItem
 
 Renders a single tool call as a row in the tool call group.
@@ -1150,6 +1225,7 @@ an inline approval decision badge when applicable.
 <ToolCallItem toolCall={tc} />
 <ToolCallItem toolCall={tc} subAgentExecution={sub} />
 ```
+
 
 ### UsageWidget
 
@@ -1188,6 +1264,7 @@ const conv = useSessionConversation(sessionId, org);
 />
 ```
 
+
 ### WriteBackCard
 
 Renders a single workspace write-back outcome as a compact card.
@@ -1221,6 +1298,7 @@ const { writeBacks } = useWorkspaceWriteBacks(execution);
   />
 ))}
 ```
+
 
 ### WriteBacksWidget
 
@@ -1260,6 +1338,7 @@ const conv = useSessionConversation(sessionId, org);
   ]}
 />
 ```
+
 
 ## Types
 
@@ -1307,6 +1386,7 @@ Input for `UseCreateAgentExecutionReturn.create`.
   }}
 />
 
+
 ### CreateAgentExecutionResult
 
 Resolved output of `UseCreateAgentExecutionReturn.create`.
@@ -1317,6 +1397,7 @@ Resolved output of `UseCreateAgentExecutionReturn.create`.
     sessionId: { type: "string", description: "Session the execution belongs to (echoed from input).", required: true },
   }}
 />
+
 
 ### FilePathContext
 
@@ -1338,6 +1419,7 @@ copy-to-clipboard for all paths.
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec, used for path resolution.", required: true },
   }}
 />
+
 
 ### findActiveTodo
 
@@ -1361,6 +1443,13 @@ Uses base-1024 (binary) units with one decimal place.
 
 ```tsx
 function formatArtifactSize(sizeBytes: number | bigint): string
+```
+
+```tsx
+formatArtifactSize(0n);       // "0 B"
+formatArtifactSize(1024);     // "1.0 KB"
+formatArtifactSize(1536n);    // "1.5 KB"
+formatArtifactSize(2621440n); // "2.5 MB"
 ```
 
 
@@ -1408,6 +1497,11 @@ Delegates to [`getFileExtension`](#getfileextension) for the actual parsing.
 function getArtifactExtension(artifact: ExecutionArtifact): string | null
 ```
 
+```tsx
+getArtifactExtension(artifact); // "yaml"
+getArtifactExtension(noExtArtifact); // null
+```
+
 
 ### getArtifactRenderMode
 
@@ -1420,6 +1514,14 @@ indicator in their UI.
 
 ```tsx
 function getArtifactRenderMode(fileName: string, contentType?: string | null): ArtifactRenderMode
+```
+
+```tsx
+getArtifactRenderMode("README.md");                   // "markdown"
+getArtifactRenderMode("config.yaml");                 // "yaml"
+getArtifactRenderMode("data.json");                   // "json"
+getArtifactRenderMode("script.py");                   // "text"
+getArtifactRenderMode("unknown", "application/json"); // "json"
 ```
 
 
@@ -1435,6 +1537,12 @@ string — usable without a full `ExecutionArtifact` object.
 function getFileExtension(fileName: string): string | null
 ```
 
+```tsx
+getFileExtension("agent.yaml");      // "yaml"
+getFileExtension("README.md");       // "md"
+getFileExtension("Makefile");        // null
+```
+
 
 ### humanizeToolName
 
@@ -1443,6 +1551,11 @@ human-readable title.
 
 ```tsx
 function humanizeToolName(name: string): string
+```
+
+```tsx
+humanizeToolName("apply_mcp_server") // "Apply MCP Server"
+humanizeToolName("deleteAgent")      // "Delete Agent"
 ```
 
 
@@ -1485,6 +1598,10 @@ the download URL instead.
 
 ```tsx
 function isTextArtifact(artifact: ExecutionArtifact): boolean
+```
+
+```tsx
+const shouldFetch = isTextArtifact(artifact) && Number(artifact.sizeBytes) < MAX_SIZE;
 ```
 
 
@@ -1570,6 +1687,7 @@ to the user's personal environment for reuse across sessions.
     value: { type: "string", description: "Environment variable value.", required: true },
   }}
 />
+
 
 ### todoCompletionSummary
 

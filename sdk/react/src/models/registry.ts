@@ -40,7 +40,17 @@ export const DISABLED_PROVIDERS: ReadonlySet<Provider> = new Set([
   "ollama",
 ]);
 
-/** UI-relevant metadata for a single platform-supported LLM model. */
+/**
+ * UI-relevant metadata for a single platform-supported LLM model.
+ *
+ * @example
+ * ```tsx
+ * const { getModel, defaultModel } = useModelRegistry();
+ * const model = getModel(selectedId) ?? defaultModel;
+ *
+ * <span>{model.displayName} ({model.costTier})</span>
+ * ```
+ */
 export interface ModelInfo {
   /** Unique model identifier sent to the backend (e.g. `"claude-sonnet-4.5"`). */
   readonly modelId: string;

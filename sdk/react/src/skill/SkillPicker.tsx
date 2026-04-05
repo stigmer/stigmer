@@ -58,6 +58,21 @@ const LIST_ID = "stgm-skill-list";
  * Selected skills produce `ResourceRef[]` with `kind: skill`.
  *
  * All visual properties flow through `--stgm-*` tokens.
+ *
+ * @example
+ * ```tsx
+ * function SkillSelector({ org }: { org: string }) {
+ *   const [skills, setSkills] = useState<ResourceRef[]>([]);
+ *
+ *   return (
+ *     <SkillPicker
+ *       org={org}
+ *       value={skills}
+ *       onChange={setSkills}
+ *     />
+ *   );
+ * }
+ * ```
  */
 export function SkillPicker({
   org,

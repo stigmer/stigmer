@@ -193,9 +193,9 @@ function renderHookSection(hook: Hook): string {
     s += renderTypeTable(hook.returnInterface.fields) + "\n\n";
   }
 
-  // Example
-  if (hook.example) {
-    s += `\`\`\`tsx\n${hook.example}\n\`\`\`\n`;
+  // Examples
+  for (const example of hook.examples) {
+    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
   }
 
   return s;
@@ -221,8 +221,8 @@ function renderComponentSection(component: Component): string {
     s += renderTypeTable(component.propsInterface.fields) + "\n\n";
   }
 
-  if (component.example) {
-    s += `\`\`\`tsx\n${component.example}\n\`\`\`\n`;
+  for (const example of component.examples) {
+    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
   }
 
   return s;
@@ -244,7 +244,11 @@ function renderTypeDefSection(typeDef: TypeDef): string {
   }
 
   if (typeDef.fields.length > 0) {
-    s += renderTypeTable(typeDef.fields) + "\n";
+    s += renderTypeTable(typeDef.fields) + "\n\n";
+  }
+
+  for (const example of typeDef.examples) {
+    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
   }
 
   return s;

@@ -29,6 +29,30 @@ export interface UseSessionReturn {
  *
  * Returns the full proto {@link Session} resource so consumers have
  * access to metadata, spec, and status without additional calls.
+ *
+ * @example
+ * ```tsx
+ * function SessionDetail({ sessionId }: { sessionId: string }) {
+ *   const { session, isLoading, error, refetch } = useSession(sessionId);
+ *
+ *   if (isLoading) return <Skeleton />;
+ *   if (error) return <ErrorMessage error={error} />;
+ *   if (!session) return <NotFound />;
+ *
+ *   return (
+ *     <div>
+ *       <h1>{session.status?.subject ?? "Untitled session"}</h1>
+ *       <button onClick={refetch}>Refresh</button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Skip fetching until session ID is available
+ * const { session } = useSession(sessionId ?? null);
+ * ```
  */
 export function useSession(id: string | null): UseSessionReturn {
   const stigmer = useStigmer();

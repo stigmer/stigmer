@@ -64,6 +64,12 @@ function SkillDetail({ org, slug }: { org: string; slug: string }) {
 }
 ```
 
+```tsx
+// Fetch a specific tagged version
+const { skill } = useSkill("acme", "code-style-guide", "stable");
+```
+
+
 ### useSkillCount
 
 Data hook that fetches the total count of skills.
@@ -103,6 +109,12 @@ function useSkillCount(org: string | null, options?: UseSkillCountOptions): UseS
 ```tsx
 const { count, isLoading } = useSkillCount("acme");
 ```
+
+```tsx
+// Count all accessible skills including public/platform ones
+const { count } = useSkillCount("acme", { scope: "all" });
+```
+
 
 ### useSkillList
 
@@ -152,6 +164,12 @@ const { skills, totalCount, isLoading } = useSkillList("acme", {
 });
 ```
 
+```tsx
+// Show all skills including public/platform ones
+const { skills } = useSkillList("acme", { scope: "all" });
+```
+
+
 ### useSkillSearch
 
 Data hook that searches skills available in the given organization.
@@ -177,6 +195,7 @@ function useSkillSearch(org: string, options?: UseResourceSearchOptions): UseRes
 ```tsx
 const { results, isLoading, query, setQuery } = useSkillSearch("acme");
 ```
+
 
 ## Components
 
@@ -218,6 +237,12 @@ All visual properties flow through `--stgm-*` design tokens.
 <SkillDetailView org="acme" slug="code-style-guide" />
 ```
 
+```tsx
+// Pinned to a specific version tag
+<SkillDetailView org="acme" slug="code-style-guide" version="stable" />
+```
+
+
 ### SkillPicker
 
 Searchable picker for selecting skills from the platform.
@@ -246,6 +271,20 @@ All visual properties flow through `--stgm-*` tokens.
   }}
 />
 
+```tsx
+function SkillSelector({ org }: { org: string }) {
+  const [skills, setSkills] = useState<ResourceRef[]>([]);
+
+  return (
+    <SkillPicker
+      org={org}
+      value={skills}
+      onChange={setSkills}
+    />
+  );
+}
+```
+
 
 ## Types
 
@@ -260,6 +299,7 @@ Options for [`useSkillCount`](#useskillcount).
   }}
 />
 
+
 ### UseSkillListOptions
 
 Options for [`useSkillList`](#useskilllist).
@@ -272,6 +312,7 @@ Options for [`useSkillList`](#useskilllist).
     scope: { type: "ResourceListScope", description: "Controls which skills are visible.  - `\"org\"` — only skills owned by the given organization. - `\"all\"` — includes public/platform skills.", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
   }}
 />
+
 
 ### UseSkillSearchOptions
 

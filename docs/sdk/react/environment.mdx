@@ -57,6 +57,7 @@ const env = await create({
 });
 ```
 
+
 ### useEnvironment
 
 Data hook that fetches a single Environment by resource reference.
@@ -107,6 +108,7 @@ const { environment, isLoading, error } = useEnvironment({
 });
 ```
 
+
 ### useEnvironmentList
 
 Data hook that fetches a paginated list of [`Environment`](/docs/sdk/resources/environment) entries
@@ -152,6 +154,7 @@ const { environments, isLoading } = useEnvironmentList("acme", {
   "stigmer.ai/personal": "true",
 });
 ```
+
 
 ### usePersonalEnvironment
 
@@ -219,6 +222,7 @@ await addVariables({
 });
 ```
 
+
 ### useRemoveEnvironmentVariables
 
 Behavior hook that wraps `environment.removeVariables()` with
@@ -260,6 +264,7 @@ const env = await removeVariables({
   keys: ["DEPRECATED_KEY", "OLD_TOKEN"],
 });
 ```
+
 
 ### useRevealSecretValue
 
@@ -321,6 +326,7 @@ function SecretField({ envId, secretKey }: Props) {
 }
 ```
 
+
 ### useSessionEnvPool
 
 Reactive computation hook that aggregates environment variable
@@ -372,6 +378,7 @@ const pool = useSessionEnvPool({
 // pool.isKeySatisfied("GITHUB_TOKEN") → true if entered anywhere
 ```
 
+
 ### useUpdateEnvironment
 
 Behavior hook that wraps `environment.update()` with loading/error
@@ -422,6 +429,7 @@ const env = await update({
 });
 ```
 
+
 ### useUpdateEnvironmentVariables
 
 Behavior hook that wraps `environment.updateVariables()` with
@@ -469,6 +477,7 @@ const env = await updateVariables({
 });
 ```
 
+
 ## Components
 
 ### CreateEnvironmentForm
@@ -502,6 +511,7 @@ stores. All visual properties flow through `--stgm-*` design tokens.
   onCancel={() => setShowForm(false)}
 />
 ```
+
 
 ### EnvironmentListPanel
 
@@ -548,6 +558,7 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 ```
 
+
 ### EnvironmentVariableEditor
 
 Self-contained component that displays and manages all variables for
@@ -591,6 +602,7 @@ hooks directly ([`useUpdateEnvironmentVariables`](#useupdateenvironmentvariables
   className="mt-4"
 />
 ```
+
 
 ### EnvVarForm
 
@@ -655,6 +667,7 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 ```
 
+
 ## Types
 
 ### buildSystemEnvVars
@@ -702,6 +715,7 @@ Options reported by the form alongside the collected values on submit.
   }}
 />
 
+
 ### EnvVarFormVariable
 
 Describes a single environment variable the form should collect.
@@ -719,6 +733,7 @@ the user has already provided (i.e. only pass the *missing* ones).
   }}
 />
 
+
 ### RemoveEnvironmentVariablesInput
 
 Input for removing specific variables from an environment by key.
@@ -731,6 +746,7 @@ Keys that do not exist in the environment are silently ignored.
     keys: { type: "string[]", description: "Keys to remove from the environment's `spec.data`.", required: true },
   }}
 />
+
 
 ### resolveSystemEnvVarValues
 
@@ -766,6 +782,7 @@ gracefully handles `undefined` inputs.
   }}
 />
 
+
 ### SYSTEM_ENV_VAR_KEYS
 
 Environment variable keys that the SDK can resolve automatically
@@ -791,6 +808,12 @@ produces a valid gRPC dial target.
 function toGrpcAddress(httpUrl: string): string
 ```
 
+```tsx
+toGrpcAddress("http://localhost:7234")   // "localhost:7234"
+toGrpcAddress("https://api.stigmer.ai")  // "api.stigmer.ai:443"
+toGrpcAddress("https://api.stigmer.ai:8443") // "api.stigmer.ai:8443"
+```
+
 
 ### UpdateEnvironmentVariablesInput
 
@@ -807,6 +830,7 @@ read-modify-write pattern that destroys redacted secrets.
   }}
 />
 
+
 ### UseRevealSecretValueOptions
 
 Options for [`useRevealSecretValue`](#userevealsecretvalue).
@@ -816,3 +840,4 @@ Options for [`useRevealSecretValue`](#userevealsecretvalue).
     autoClearMs: { type: "number", description: "Milliseconds after which the revealed value is automatically cleared from component state. Prevents sensitive values from lingering in memory.  - Default: `30_000` (30 seconds) — enough time to copy a value. - Set to `0` to disable auto-clear (caller is responsible for clearing)." },
   }}
 />
+

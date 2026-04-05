@@ -55,6 +55,7 @@ const { agentInstance, isLoading, error } = useAgentInstance({
 });
 ```
 
+
 ### useAgentInstanceList
 
 Data hook that fetches a paginated list of [`AgentInstance`](/docs/sdk/resources/agent-instance) entries
@@ -98,6 +99,7 @@ const { agentInstances, isLoading } = useAgentInstanceList("acme", {
   "stigmer.ai/personal": "true",
 });
 ```
+
 
 ### useCreateAgentInstance
 
@@ -149,6 +151,7 @@ const instance = await create({
   ],
 });
 ```
+
 
 ### usePersonalAgentInstance
 
@@ -215,6 +218,7 @@ const instance = await getOrCreate({
 });
 ```
 
+
 ## Types
 
 ### GetOrCreatePersonalInstanceInput
@@ -232,3 +236,4 @@ additional context needed only at creation time.
     personalEnvironmentRef: { type: "ResourceRef", description: "Reference to the caller's personal environment. The created instance will link to this environment via `environmentRefs`.", required: true },
   }}
 />
+

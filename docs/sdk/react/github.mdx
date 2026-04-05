@@ -57,6 +57,33 @@ function useGitHubConnection(org: string | null): UseGitHubConnectionReturn
   }}
 />
 
+```tsx
+function GitHubConnect({ org }: { org: string }) {
+  const gh = useGitHubConnection(org);
+
+  if (gh.isLoading) return <Skeleton />;
+
+  if (!gh.isConnected) {
+    return (
+      <button
+        onClick={() => gh.connect(window.location.href, { popup: true })}
+        disabled={gh.isConnecting}
+      >
+        {gh.isConnecting ? "Connecting…" : "Connect GitHub"}
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      <img src={gh.user?.avatarUrl} alt={gh.user?.login} />
+      <span>{gh.user?.login}</span>
+      <button onClick={gh.disconnect}>Disconnect</button>
+    </div>
+  );
+}
+```
+
 
 ### useGitHubRepos
 
@@ -94,6 +121,35 @@ function useGitHubRepos(token: string | null): UseGitHubReposReturn
   }}
 />
 
+```tsx
+function RepoList({ token }: { token: string }) {
+  const { repos, isLoading, search, setSearch, fetchBranches } =
+    useGitHubRepos(token);
+
+  if (isLoading) return <Skeleton />;
+
+  return (
+    <div>
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Filter repositories…"
+      />
+      <ul>
+        {repos.map((repo) => (
+          <li key={repo.id}>{repo.fullName}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+```tsx
+// Skip fetching until a token is available
+const { repos } = useGitHubRepos(token ?? null);
+```
+
 
 ### useGitHubSearch
 
@@ -130,6 +186,30 @@ function useGitHubSearch(token: string | null): UseGitHubSearchReturn
   }}
 />
 
+```tsx
+function GitHubSearch({ token }: { token: string | null }) {
+  const { results, isSearching, query, setQuery, hasMore, loadMore } =
+    useGitHubSearch(token);
+
+  return (
+    <div>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search all of GitHub…"
+      />
+      {isSearching && <Spinner />}
+      <ul>
+        {results.map((repo) => (
+          <li key={repo.id}>{repo.fullName}</li>
+        ))}
+      </ul>
+      {hasMore && <button onClick={loadMore}>Load more</button>}
+    </div>
+  );
+}
+```
+
 
 ## Components
 
@@ -161,6 +241,18 @@ All visual properties flow through `--stgm-*` tokens.
   }}
 />
 
+```tsx
+function RepoSelector({ token }: { token: string }) {
+  return (
+    <GitHubRepoPicker
+      token={token}
+      onSelect={(url, branch) => workspace.addGitRepo(url, branch)}
+      onCancel={() => setShowPicker(false)}
+    />
+  );
+}
+```
+
 
 ## Types
 
@@ -179,6 +271,7 @@ A GitHub branch from the API.
   }}
 />
 
+
 ### GitHubConnectOptions
 
 Options for `UseGitHubConnectionReturn.connect`.
@@ -188,6 +281,7 @@ Options for `UseGitHubConnectionReturn.connect`.
     popup: { type: "boolean", description: "When `true`, open the OAuth authorization page in a popup window instead of redirecting the current page. The callback page signals success via `postMessage` and the hook re-reconciles the token from the personal environment — keeping the user on the same page.  Falls back to redirect if the popup is blocked by the browser." },
   }}
 />
+
 
 ### GitHubRepo
 
@@ -208,6 +302,7 @@ A GitHub repository from the API.
   }}
 />
 
+
 ### GitHubUser
 
 Minimal GitHub user profile for display.
@@ -219,3 +314,4 @@ Minimal GitHub user profile for display.
     name: { type: "string | null", description: "Display name, or `null` when the user has not set one.", required: true },
   }}
 />
+

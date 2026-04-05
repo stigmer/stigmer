@@ -156,6 +156,19 @@ const GITHUB_INSTALLATIONS_URL = "https://github.com/settings/installations";
  * - Link to manage GitHub App repository access
  *
  * All visual properties flow through `--stgm-*` tokens.
+ *
+ * @example
+ * ```tsx
+ * function RepoSelector({ token }: { token: string }) {
+ *   return (
+ *     <GitHubRepoPicker
+ *       token={token}
+ *       onSelect={(url, branch) => workspace.addGitRepo(url, branch)}
+ *       onCancel={() => setShowPicker(false)}
+ *     />
+ *   );
+ * }
+ * ```
  */
 export function GitHubRepoPicker({
   token,

@@ -91,6 +91,31 @@ async function searchRepos(
  * Uses the GitHub Search API (`/search/repositories`) with debounced input.
  * Finds repositories across all of GitHub, not just the user's own repos.
  * Works with or without an auth token (auth: 30 req/min; unauth: 10 req/min).
+ *
+ * @example
+ * ```tsx
+ * function GitHubSearch({ token }: { token: string | null }) {
+ *   const { results, isSearching, query, setQuery, hasMore, loadMore } =
+ *     useGitHubSearch(token);
+ *
+ *   return (
+ *     <div>
+ *       <input
+ *         value={query}
+ *         onChange={(e) => setQuery(e.target.value)}
+ *         placeholder="Search all of GitHub…"
+ *       />
+ *       {isSearching && <Spinner />}
+ *       <ul>
+ *         {results.map((repo) => (
+ *           <li key={repo.id}>{repo.fullName}</li>
+ *         ))}
+ *       </ul>
+ *       {hasMore && <button onClick={loadMore}>Load more</button>}
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 export function useGitHubSearch(
   token: string | null,

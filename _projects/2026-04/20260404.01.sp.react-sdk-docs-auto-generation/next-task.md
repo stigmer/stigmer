@@ -101,9 +101,20 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Last Session**: 2026-04-04 (session 9) — Fix CI lint failures and Makefile gaps
-**Current Task**: T07 COMPLETE — all tasks done; CI fixes applied
-**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 COMPLETE, T07 COMPLETE
+**Last Session**: 2026-04-05 (session 10) — @example coverage to 100% + multi-example generator fix
+**Current Task**: @example coverage COMPLETE — all hooks, components, and selected types have examples
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 COMPLETE, T07 COMPLETE, @example coverage COMPLETE
+
+### Session 10 Results (@example coverage to 100%) — COMPLETE
+Closed all @example gaps across the React SDK. Key outcomes:
+- **Generator fix**: `extractExample()` → `extractExamples()` — now renders ALL @example blocks, not just the first
+- **Generator enhancement**: Added `examples: string[]` to `TypeDef` model for standalone type examples
+- **11 hooks** with new @example blocks (session×4, github×3, workspace×2, models×1, execution×1)
+- **8 components** with new @example blocks (workspace×2, skill×1, models×1, github×1, execution×1, attachment×1, internal×1)
+- **4 standalone types** with selective @example blocks (WorkspaceEntry, SessionGroup, ModelInfo, AttachmentEntry)
+- 44 files changed, +1,266 lines of documentation content
+- All 17 MDX pages regenerated; `tsc --noEmit` clean; TypeDoc 0 errors
+- See checkpoints/2026-04-05-session-10.md for full details
 
 ### Session 9 Results (Fix CI lint failures and Makefile gaps) — COMPLETE
 Fixed two independent CI failures on `main` introduced during sessions 5-8:
@@ -197,15 +208,16 @@ Layer 1 now links to Layer 2 via T04.
 
 All planned tasks are complete. The React SDK documentation pipeline is fully operational:
 - 100% TSDoc coverage on all 361 exports across 18 domains
-- 17 auto-generated MDX reference pages
+- 100% @example coverage on all publicly exported hooks and components
+- Multi-example rendering (hooks with 2+ examples show all of them)
+- 17 auto-generated MDX reference pages with rich code examples
 - Live component previews for 54/59 components
 - CI staleness check via `gen-react-sdk-docs-check`
 
 Potential future work:
-1. Improve `@example` coverage on interfaces (currently 0% — hooks have 82%, components have 65%)
-2. Add `@returns` tags to hooks (currently 1.5%)
-3. Enhance `@param` docs on remaining hooks (currently 46.3%)
-4. Return to parent project for next tasks
+1. Add `@returns` tags to hooks (currently 1.5%)
+2. Enhance `@param` docs on remaining hooks (currently 46.3%)
+3. Return to parent project for next tasks
 
 ## Quick Commands
 

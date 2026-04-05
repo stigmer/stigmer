@@ -30,6 +30,26 @@ export interface UseModelRegistryReturn {
  * Pure data layer — no rendering, no side effects. Platform builders
  * who want full control over rendering import this hook and build
  * their own UI.
+ *
+ * @example
+ * ```tsx
+ * function CustomModelPicker({ onSelect }: { onSelect: (id: string) => void }) {
+ *   const { models, byProvider, defaultModel, getModel } = useModelRegistry();
+ *
+ *   return (
+ *     <select
+ *       defaultValue={defaultModel.modelId}
+ *       onChange={(e) => onSelect(e.target.value)}
+ *     >
+ *       {models.map((m) => (
+ *         <option key={m.modelId} value={m.modelId}>
+ *           {m.displayName} ({m.costTier})
+ *         </option>
+ *       ))}
+ *     </select>
+ *   );
+ * }
+ * ```
  */
 export function useModelRegistry(): UseModelRegistryReturn {
   return useMemo(() => {

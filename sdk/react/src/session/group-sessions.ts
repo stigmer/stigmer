@@ -24,6 +24,29 @@ interface Bucket {
  * @param sessions - List of sessions to group (typically from `useSessionList`).
  * @param now - Reference time for grouping; defaults to the current time.
  *              Accepts an explicit value for deterministic testing.
+ *
+ * @example
+ * ```tsx
+ * function GroupedSessionList() {
+ *   const { sessions } = useSessionList();
+ *   const groups = groupSessionsByTime(sessions);
+ *
+ *   return (
+ *     <div>
+ *       {groups.map((group) => (
+ *         <section key={group.label}>
+ *           <h3>{group.label}</h3>
+ *           <ul>
+ *             {group.sessions.map((s) => (
+ *               <li key={s.metadata?.id}>{s.status?.subject}</li>
+ *             ))}
+ *           </ul>
+ *         </section>
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 export function groupSessionsByTime(
   sessions: readonly Session[],

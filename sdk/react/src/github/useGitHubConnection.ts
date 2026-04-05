@@ -127,6 +127,34 @@ function personalEnvHasKey(
  *
  * @param org - The active organization slug. Required for server-side
  *   token storage. Pass `null` to skip all server operations.
+ *
+ * @example
+ * ```tsx
+ * function GitHubConnect({ org }: { org: string }) {
+ *   const gh = useGitHubConnection(org);
+ *
+ *   if (gh.isLoading) return <Skeleton />;
+ *
+ *   if (!gh.isConnected) {
+ *     return (
+ *       <button
+ *         onClick={() => gh.connect(window.location.href, { popup: true })}
+ *         disabled={gh.isConnecting}
+ *       >
+ *         {gh.isConnecting ? "Connecting…" : "Connect GitHub"}
+ *       </button>
+ *     );
+ *   }
+ *
+ *   return (
+ *     <div>
+ *       <img src={gh.user?.avatarUrl} alt={gh.user?.login} />
+ *       <span>{gh.user?.login}</span>
+ *       <button onClick={gh.disconnect}>Disconnect</button>
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 export function useGitHubConnection(
   org: string | null,

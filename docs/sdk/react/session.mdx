@@ -48,6 +48,7 @@ const { agentRef, isLoading } = useAgentRefFromSession(
 );
 ```
 
+
 ### useCreateSession
 
 Behavior hook that wraps `session.create()` with loading/error state.
@@ -89,6 +90,16 @@ const { create } = useCreateSession();
 await create({ org: "acme", agentInstanceId: "inst-abc123" });
 ```
 
+```tsx
+// Agent reference: resolves to the agent's default instance
+const { create } = useCreateSession();
+await create({
+  org: "acme",
+  agentRef: { org: "acme", slug: "code-reviewer" },
+});
+```
+
+
 ### useSession
 
 Data hook that fetches a single Session by ID.
@@ -125,6 +136,28 @@ function useSession(id: string | null): UseSessionReturn
     session: { type: "Session | null", description: "The fetched Session, or `null` while loading or on error." },
   }}
 />
+
+```tsx
+function SessionDetail({ sessionId }: { sessionId: string }) {
+  const { session, isLoading, error, refetch } = useSession(sessionId);
+
+  if (isLoading) return <Skeleton />;
+  if (error) return <ErrorMessage error={error} />;
+  if (!session) return <NotFound />;
+
+  return (
+    <div>
+      <h1>{session.status?.subject ?? "Untitled session"}</h1>
+      <button onClick={refetch}>Refresh</button>
+    </div>
+  );
+}
+```
+
+```tsx
+// Skip fetching until session ID is available
+const { session } = useSession(sessionId ?? null);
+```
 
 
 ### useSessionArtifacts
@@ -180,6 +213,7 @@ const allExecutions = [
 ];
 const { artifacts, hasArtifacts } = useSessionArtifacts(allExecutions);
 ```
+
 
 ### useSessionConversation
 
@@ -264,6 +298,7 @@ function Chat({ sessionId, org }: { sessionId: string; org: string }) {
 }
 ```
 
+
 ### useSessionExecutions
 
 Data hook that fetches all [`AgentExecution`](/docs/sdk/resources/agent-execution) entries for a session.
@@ -299,6 +334,27 @@ function useSessionExecutions(sessionId: string | null): UseSessionExecutionsRet
   }}
 />
 
+```tsx
+function ConversationThread({ sessionId }: { sessionId: string }) {
+  const { executions, isLoading } = useSessionExecutions(sessionId);
+  const stream = useExecutionStream(activeExecutionId);
+
+  if (isLoading) return <Skeleton />;
+
+  return (
+    <MessageThread
+      executions={executions}
+      activeStreamExecution={stream.execution}
+    />
+  );
+}
+```
+
+```tsx
+// Skip fetching until a session is selected
+const { executions } = useSessionExecutions(sessionId ?? null);
+```
+
 
 ### useSessionList
 
@@ -333,6 +389,24 @@ function useSessionList(options?: UseSessionListOptions): UseSessionListReturn
     sessions: { type: "readonly Session[]", description: "The fetched list of Sessions, empty while loading or on error." },
   }}
 />
+
+```tsx
+function SessionSidebar() {
+  const { sessions, isLoading, refetch } = useSessionList({ pageSize: 25 });
+
+  if (isLoading) return <Skeleton />;
+
+  return (
+    <ul>
+      {sessions.map((s) => (
+        <li key={s.metadata?.id}>
+          {s.status?.subject ?? "Untitled"}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
 
 
 ### useSessionUsage
@@ -387,6 +461,7 @@ const allExecutions = [
 const { totalCostUsd, totalTokens, hasUsage } = useSessionUsage(allExecutions);
 ```
 
+
 ### useSessionWriteBacks
 
 Pure derivation hook that aggregates workspace write-backs across all
@@ -435,6 +510,7 @@ const allExecutions = [
 const { writeBacks, hasWriteBacks } = useSessionWriteBacks(allExecutions);
 ```
 
+
 ### useUpdateSession
 
 Behavior hook that wraps `session.update()` with loading/error state.
@@ -465,6 +541,27 @@ function useUpdateSession(): UseUpdateSessionReturn
   }}
 />
 
+```tsx
+function RenameSession({ session }: { session: Session }) {
+  const { update, isUpdating, error } = useUpdateSession();
+
+  async function handleRename(newSubject: string) {
+    await update({
+      name: session.metadata!.name,
+      org: session.metadata!.org,
+      agentInstanceId: session.spec?.agentInstanceId,
+      subject: newSubject,
+    });
+  }
+
+  return (
+    <button onClick={() => handleRename("New subject")} disabled={isUpdating}>
+      Rename
+    </button>
+  );
+}
+```
+
 
 ## Types
 
@@ -492,6 +589,7 @@ Resolved output of `UseCreateSessionReturn.create`.
   }}
 />
 
+
 ### groupSessionsByTime
 
 Groups sessions by their creation timestamp into time-based buckets:
@@ -502,6 +600,28 @@ in the last group. Input order is preserved within each group.
 
 ```tsx
 function groupSessionsByTime(sessions: readonly Session[], now?: Date): readonly SessionGroup[]
+```
+
+```tsx
+function GroupedSessionList() {
+  const { sessions } = useSessionList();
+  const groups = groupSessionsByTime(sessions);
+
+  return (
+    <div>
+      {groups.map((group) => (
+        <section key={group.label}>
+          <h3>{group.label}</h3>
+          <ul>
+            {group.sessions.map((s) => (
+              <li key={s.metadata?.id}>{s.status?.subject}</li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
 ```
 
 
@@ -521,6 +641,7 @@ Per-model cost breakdown computed from per-message `LlmCallMetrics`.
     provider: { type: "string", description: "Provider that served the model (e.g., `\"anthropic\"`).", required: true },
   }}
 />
+
 
 ### SendFollowUpOptions
 
@@ -546,6 +667,7 @@ values are scoped to the single execution and deleted on completion.
   }}
 />
 
+
 ### SessionArtifactEntry
 
 A single artifact entry enriched with the execution context needed
@@ -565,6 +687,7 @@ Apply CTA is enabled in the preview modal.
   }}
 />
 
+
 ### SessionGroup
 
 A time-based group of sessions produced by [`groupSessionsByTime`](#groupsessionsbytime).
@@ -575,6 +698,7 @@ A time-based group of sessions produced by [`groupSessionsByTime`](#groupsession
     sessions: { type: "readonly Session[]", description: "Sessions belonging to this group, in their original input order.", required: true },
   }}
 />
+
 
 ### SessionWriteBackEntry
 
@@ -591,6 +715,7 @@ for traceability in the UI (e.g., tooltip or detail view).
   }}
 />
 
+
 ### UseSessionListOptions
 
 Options for [`useSessionList`](#usesessionlist).
@@ -601,3 +726,4 @@ Options for [`useSessionList`](#usesessionlist).
     tags: { type: "string[]", description: "Optional tag filter." },
   }}
 />
+

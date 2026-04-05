@@ -34,6 +34,25 @@ function useModelRegistry(): UseModelRegistryReturn
   }}
 />
 
+```tsx
+function CustomModelPicker({ onSelect }: { onSelect: (id: string) => void }) {
+  const { models, byProvider, defaultModel, getModel } = useModelRegistry();
+
+  return (
+    <select
+      defaultValue={defaultModel.modelId}
+      onChange={(e) => onSelect(e.target.value)}
+    >
+      {models.map((m) => (
+        <option key={m.modelId} value={m.modelId}>
+          {m.displayName} ({m.costTier})
+        </option>
+      ))}
+    </select>
+  );
+}
+```
+
 
 ## Components
 
@@ -63,6 +82,14 @@ Platform builders who need different rendering use
     value: { type: "string", description: "Currently selected model ID. Falls back to DEFAULT_MODEL_ID when omitted." },
   }}
 />
+
+```tsx
+function ComposerHeader() {
+  const [modelId, setModelId] = useState<string>();
+
+  return <ModelSelector value={modelId} onValueChange={setModelId} />;
+}
+```
 
 
 ## Types
@@ -102,6 +129,14 @@ UI-relevant metadata for a single platform-supported LLM model.
     provider: { type: "Provider", description: "LLM provider that serves this model.", required: true, typeDescriptionLink: "#provider" },
   }}
 />
+
+```tsx
+const { getModel, defaultModel } = useModelRegistry();
+const model = getModel(selectedId) ?? defaultModel;
+
+<span>{model.displayName} ({model.costTier})</span>
+```
+
 
 ### Provider
 

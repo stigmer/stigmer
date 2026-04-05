@@ -30,7 +30,7 @@ export interface Hook {
   returnType: TypeRef;
   /** Resolved return-type interface (set during linking). */
   returnInterface: TypeDef | null;
-  example: string | null;
+  examples: string[];
   sourceUrl: string;
 }
 
@@ -39,7 +39,7 @@ export interface Component {
   description: CommentPart[];
   /** Resolved props interface (set during linking). */
   propsInterface: TypeDef | null;
-  example: string | null;
+  examples: string[];
   sourceUrl: string;
 }
 
@@ -56,6 +56,7 @@ export interface TypeDef {
   associatedExport: string | null;
   /** Function signature, present when this TypeDef represents an exported utility function. */
   signature: string | null;
+  examples: string[];
 }
 
 export interface Field {

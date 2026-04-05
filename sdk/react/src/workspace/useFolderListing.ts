@@ -53,6 +53,30 @@ const MAX_CACHE_SIZE = 32;
  * Provides in-memory caching of recent listings for fast back-navigation,
  * and an `isAvailable` flag that detects whether the endpoint exists
  * (graceful degradation when running against a backend without the endpoint).
+ *
+ * @example
+ * ```tsx
+ * function DirectoryPicker() {
+ *   const { listing, isLoading, isAvailable, browse } = useFolderListing();
+ *
+ *   if (isAvailable === false) return <p>Folder browser not available</p>;
+ *   if (isLoading) return <Skeleton />;
+ *
+ *   return (
+ *     <ul>
+ *       {listing?.entries
+ *         .filter((e) => e.isDir)
+ *         .map((entry) => (
+ *           <li key={entry.name}>
+ *             <button onClick={() => browse(`${listing.path}/${entry.name}`)}>
+ *               {entry.name}
+ *             </button>
+ *           </li>
+ *         ))}
+ *     </ul>
+ *   );
+ * }
+ * ```
  */
 export function useFolderListing(
   initialPath?: string,

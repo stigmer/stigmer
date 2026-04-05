@@ -45,6 +45,29 @@ function useFolderListing(initialPath?: string): UseFolderListingReturn
   }}
 />
 
+```tsx
+function DirectoryPicker() {
+  const { listing, isLoading, isAvailable, browse } = useFolderListing();
+
+  if (isAvailable === false) return <p>Folder browser not available</p>;
+  if (isLoading) return <Skeleton />;
+
+  return (
+    <ul>
+      {listing?.entries
+        .filter((e) => e.isDir)
+        .map((entry) => (
+          <li key={entry.name}>
+            <button onClick={() => browse(`${listing.path}/${entry.name}`)}>
+              {entry.name}
+            </button>
+          </li>
+        ))}
+    </ul>
+  );
+}
+```
+
 
 ### useWorkspaceEntries
 
@@ -74,6 +97,29 @@ function useWorkspaceEntries(): UseWorkspaceEntriesReturn
     toInput: { type: "() => WorkspaceEntryInput[]", description: "Convert entries to the `WorkspaceEntryInput[]` shape required by the SDK." },
   }}
 />
+
+```tsx
+function SessionSetup() {
+  const workspace = useWorkspaceEntries();
+
+  return (
+    <div>
+      <WorkspaceEditor workspace={workspace} />
+      <SessionComposer
+        onSubmit={(msg) => createSession(msg, workspace.toInput())}
+        workspace={workspace}
+      />
+    </div>
+  );
+}
+```
+
+```tsx
+// Programmatic entry management
+const workspace = useWorkspaceEntries();
+workspace.addGitRepo("https://github.com/acme/api.git", "main");
+workspace.addLocalPath("/Users/dev/projects/frontend");
+```
 
 
 ## Components
@@ -105,6 +151,14 @@ No Console-specific dependencies.
   }}
 />
 
+```tsx
+<FolderBrowser
+  onSelect={(path) => workspace.addLocalPath(path)}
+  onCancel={() => setShowBrowser(false)}
+  initialPath="/Users/dev/projects"
+/>
+```
+
 
 ### WorkspaceEditor
 
@@ -135,6 +189,22 @@ All visual properties flow through `--stgm-*` tokens.
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state from useWorkspaceEntries.", required: true, typeDescriptionLink: "#useworkspaceentriesreturn" },
   }}
 />
+
+```tsx
+function SessionSetup({ org }: { org: string }) {
+  const workspace = useWorkspaceEntries();
+  const gh = useGitHubConnection(org);
+
+  return (
+    <WorkspaceEditor
+      workspace={workspace}
+      gitHubConnection={gh}
+      enableGitHub
+      enableLocal={false}
+    />
+  );
+}
+```
 
 
 ### WorkspaceSummary
@@ -170,6 +240,7 @@ const { session } = useSession(sessionId);
 />
 ```
 
+
 ## Types
 
 ### FolderEntry
@@ -184,6 +255,7 @@ A single filesystem entry (file or directory) within a [`FolderListing`](#folder
   }}
 />
 
+
 ### FolderListing
 
 Directory listing returned by the local CLI filesystem API.
@@ -196,6 +268,7 @@ Directory listing returned by the local CLI filesystem API.
     path: { type: "string", description: "Absolute path of the listed directory.", required: true },
   }}
 />
+
 
 ### WorkspaceEntry
 
@@ -214,3 +287,16 @@ added by the user before starting an agent session.
     type: { type: "\"local\" | \"git\"", description: "Source type: `\"git\"` for remote repositories, `\"local\"` for filesystem paths.", required: true },
   }}
 />
+
+```tsx
+const workspace = useWorkspaceEntries();
+
+workspace.entries.map((entry) => (
+  <div key={entry.id}>
+    <span>{entry.type === "git" ? "GitHub" : "Local"}</span>
+    <span>{entry.name}</span>
+    <button onClick={() => workspace.remove(entry.id)}>Remove</button>
+  </div>
+));
+```
+
