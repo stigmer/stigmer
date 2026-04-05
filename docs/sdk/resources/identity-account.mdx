@@ -36,7 +36,7 @@ identityAccount, err := client.IdentityAccount.Get(ctx, "ida_01j5q3k7m8r2s4tnz2h
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_accounts.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
+identity_account = client.identity_accounts.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
@@ -77,7 +77,7 @@ identityAccount, err := client.IdentityAccount.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_accounts.get(id)
+identity_account = client.identity_accounts.get(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -112,7 +112,7 @@ apiResourceAuditActor, err := client.IdentityAccount.GetActorInfo(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-apiResourceAuditActor = client.identity_accounts.get_actor_info(id)
+api_resource_audit_actor = client.identity_accounts.get_actor_info(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -151,7 +151,7 @@ identityAccount, err := client.IdentityAccount.GetByEmail(ctx, &stigmer.Identity
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_accounts.get_by_email(IdentityAccountEmail(
+identity_account = client.identity_accounts.get_by_email(IdentityAccountEmail(
     value="...",
 ))
 ```
@@ -186,7 +186,7 @@ identityAccount, err := client.IdentityAccount.GetByIdpId(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_accounts.get_by_idp_id(id)
+identity_account = client.identity_accounts.get_by_idp_id(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -247,7 +247,7 @@ identityAccount, err := client.IdentityAccount.Create(ctx, &stigmer.IdentityAcco
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_accounts.create(IdentityAccountInput(
+identity_account = client.identity_accounts.create(IdentityAccountInput(
     name="my-identity-account",
     org="acme",
     slug="...",
@@ -330,7 +330,7 @@ identityAccount, err := client.IdentityAccount.Update(ctx, &stigmer.IdentityAcco
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_accounts.update(IdentityAccountInput(
+identity_account = client.identity_accounts.update(IdentityAccountInput(
     name="my-identity-account",
     org="acme",
     slug="...",
@@ -387,7 +387,7 @@ identityAccount, err := client.IdentityAccount.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_accounts.delete(id)
+identity_account = client.identity_accounts.delete(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -463,7 +463,7 @@ identityAccount, err := client.IdentityAccount.WhoAmI(ctx)
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_accounts.who_am_i()
+identity_account = client.identity_accounts.who_am_i()
 ```
 </Tab>
 <Tab value="Java">

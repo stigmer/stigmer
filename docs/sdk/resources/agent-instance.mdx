@@ -40,7 +40,7 @@ agentInstance, err := client.AgentInstance.Get(ctx, "ain_01j5q3k7m8r2s4tnz2hfp0q
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instances.get("ain_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent_instance = client.agent_instances.get("ain_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
@@ -80,7 +80,7 @@ agentInstance, err := client.AgentInstance.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instances.get(id)
+agent_instance = client.agent_instances.get(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -168,7 +168,7 @@ agentInstance, err := client.AgentInstance.GetByReference(ctx, &stigmer.ApiResou
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instances.get_by_reference(ApiResourceReference(
+agent_instance = client.agent_instances.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -272,7 +272,7 @@ agentInstance, err := client.AgentInstance.Apply(ctx, &stigmer.AgentInstanceInpu
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instances.apply(AgentInstanceInput(
+agent_instance = client.agent_instances.apply(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
     slug="...",
@@ -337,7 +337,7 @@ agentInstance, err := client.AgentInstance.Create(ctx, &stigmer.AgentInstanceInp
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instances.create(AgentInstanceInput(
+agent_instance = client.agent_instances.create(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
     slug="...",
@@ -400,7 +400,7 @@ agentInstance, err := client.AgentInstance.Update(ctx, &stigmer.AgentInstanceInp
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instances.update(AgentInstanceInput(
+agent_instance = client.agent_instances.update(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
     slug="...",
@@ -447,7 +447,7 @@ agentInstance, err := client.AgentInstance.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instances.delete(id)
+agent_instance = client.agent_instances.delete(id)
 ```
 </Tab>
 <Tab value="Java">

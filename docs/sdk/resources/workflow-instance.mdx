@@ -39,7 +39,7 @@ workflowInstance, err := client.WorkflowInstance.Get(ctx, "win_01j5q3k7m8r2s4tnz
 </Tab>
 <Tab value="Python">
 ```python
-workflowInstance = client.workflow_instances.get("win_01j5q3k7m8r2s4tnz2hfp0q0c3")
+workflow_instance = client.workflow_instances.get("win_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
@@ -78,7 +78,7 @@ workflowInstance, err := client.WorkflowInstance.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-workflowInstance = client.workflow_instances.get(id)
+workflow_instance = client.workflow_instances.get(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -123,7 +123,7 @@ workflowInstance, err := client.WorkflowInstance.GetByReference(ctx, &stigmer.Ap
 </Tab>
 <Tab value="Python">
 ```python
-workflowInstance = client.workflow_instances.get_by_reference(ApiResourceReference(
+workflow_instance = client.workflow_instances.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -225,7 +225,7 @@ workflowInstance, err := client.WorkflowInstance.Apply(ctx, &stigmer.WorkflowIns
 </Tab>
 <Tab value="Python">
 ```python
-workflowInstance = client.workflow_instances.apply(WorkflowInstanceInput(
+workflow_instance = client.workflow_instances.apply(WorkflowInstanceInput(
     name="my-workflow-instance",
     org="acme",
     slug="...",
@@ -288,7 +288,7 @@ workflowInstance, err := client.WorkflowInstance.Create(ctx, &stigmer.WorkflowIn
 </Tab>
 <Tab value="Python">
 ```python
-workflowInstance = client.workflow_instances.create(WorkflowInstanceInput(
+workflow_instance = client.workflow_instances.create(WorkflowInstanceInput(
     name="my-workflow-instance",
     org="acme",
     slug="...",
@@ -351,7 +351,7 @@ workflowInstance, err := client.WorkflowInstance.Update(ctx, &stigmer.WorkflowIn
 </Tab>
 <Tab value="Python">
 ```python
-workflowInstance = client.workflow_instances.update(WorkflowInstanceInput(
+workflow_instance = client.workflow_instances.update(WorkflowInstanceInput(
     name="my-workflow-instance",
     org="acme",
     slug="...",
@@ -398,7 +398,7 @@ workflowInstance, err := client.WorkflowInstance.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-workflowInstance = client.workflow_instances.delete(id)
+workflow_instance = client.workflow_instances.delete(id)
 ```
 </Tab>
 <Tab value="Java">

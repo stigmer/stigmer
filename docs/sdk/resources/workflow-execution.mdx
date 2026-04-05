@@ -40,7 +40,7 @@ workflowExecution, err := client.WorkflowExecution.Get(ctx, "wex_01j5q3k7m8r2s4t
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.get("wex_01j5q3k7m8r2s4tnz2hfp0q0c3")
+workflow_execution = client.workflow_executions.get("wex_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
@@ -89,7 +89,7 @@ workflowExecution, err := client.WorkflowExecution.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.get(id)
+workflow_execution = client.workflow_executions.get(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -240,8 +240,8 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for workflowExecution in client.workflow_executions.subscribe(input):
-    # process workflowExecution
+for workflow_execution in client.workflow_executions.subscribe(input):
+    # process workflow_execution
 ```
 </Tab>
 <Tab value="Java">
@@ -298,7 +298,7 @@ workflowExecution, err := client.WorkflowExecution.Create(ctx, &stigmer.Workflow
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.create(WorkflowExecutionInput(
+workflow_execution = client.workflow_executions.create(WorkflowExecutionInput(
     name="my-workflow-execution",
     org="acme",
     slug="...",
@@ -373,7 +373,7 @@ workflowExecution, err := client.WorkflowExecution.Update(ctx, &stigmer.Workflow
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.update(WorkflowExecutionInput(
+workflow_execution = client.workflow_executions.update(WorkflowExecutionInput(
     name="my-workflow-execution",
     org="acme",
     slug="...",
@@ -432,7 +432,7 @@ workflowExecution, err := client.WorkflowExecution.UpdateStatus(ctx, &stigmer.Wo
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.update_status(WorkflowExecutionUpdateStatusInput(
+workflow_execution = client.workflow_executions.update_status(WorkflowExecutionUpdateStatusInput(
     execution_id="...",
     status=None,
 ))
@@ -469,7 +469,7 @@ workflowExecution, err := client.WorkflowExecution.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.delete(id)
+workflow_execution = client.workflow_executions.delete(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -512,7 +512,7 @@ workflowExecution, err := client.WorkflowExecution.Pause(ctx, &stigmer.PauseWork
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.pause(PauseWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.pause(PauseWorkflowExecutionInput(
     id="...",
     reason="...",
 ))
@@ -555,7 +555,7 @@ workflowExecution, err := client.WorkflowExecution.Resume(ctx, &stigmer.ResumeWo
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.resume(ResumeWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.resume(ResumeWorkflowExecutionInput(
     id="...",
 ))
 ```
@@ -598,7 +598,7 @@ workflowExecution, err := client.WorkflowExecution.Cancel(ctx, &stigmer.CancelWo
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.cancel(CancelWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.cancel(CancelWorkflowExecutionInput(
     id="...",
     reason="...",
 ))
@@ -643,7 +643,7 @@ workflowExecution, err := client.WorkflowExecution.Terminate(ctx, &stigmer.Termi
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.terminate(TerminateWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.terminate(TerminateWorkflowExecutionInput(
     id="...",
     reason="...",
 ))
@@ -688,7 +688,7 @@ workflowExecution, err := client.WorkflowExecution.Recover(ctx, &stigmer.Recover
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.recover(RecoverWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.recover(RecoverWorkflowExecutionInput(
     id="...",
     reason="...",
 ))
@@ -739,7 +739,7 @@ workflowExecution, err := client.WorkflowExecution.SubmitApproval(ctx, &stigmer.
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.submit_approval(SubmitWorkflowApprovalInput(
+workflow_execution = client.workflow_executions.submit_approval(SubmitWorkflowApprovalInput(
     execution_id="...",
     tool_call_id="...",
     action="...",
@@ -792,7 +792,7 @@ workflowExecution, err := client.WorkflowExecution.SendSignal(ctx, &stigmer.Send
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_executions.send_signal(SendSignalInput(
+workflow_execution = client.workflow_executions.send_signal(SendSignalInput(
     execution_id="...",
     signal_name="...",
     payload=None,

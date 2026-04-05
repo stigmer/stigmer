@@ -39,7 +39,7 @@ iamPolicy, err := client.IamPolicy.Get(ctx, "iamp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policies.get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+iam_policy = client.iam_policies.get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
@@ -81,7 +81,7 @@ iamPolicy, err := client.IamPolicy.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policies.get(id)
+iam_policy = client.iam_policies.get(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -240,7 +240,7 @@ iamPolicy, err := client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policies.create(IamPolicySpec(
+iam_policy = client.iam_policies.create(IamPolicySpec(
     principal=None,
     resource=None,
     relation="...",
@@ -289,7 +289,7 @@ iamPolicy, err := client.IamPolicy.Delete(ctx, &stigmer.IamPolicySpec{
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policies.delete(IamPolicySpec(
+iam_policy = client.iam_policies.delete(IamPolicySpec(
     principal=None,
     resource=None,
     relation="...",
@@ -338,7 +338,7 @@ iamPolicy, err := client.IamPolicy.BootstrapPolicy(ctx, &stigmer.IamPolicySpec{
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policies.bootstrap_policy(IamPolicySpec(
+iam_policy = client.iam_policies.bootstrap_policy(IamPolicySpec(
     principal=None,
     resource=None,
     relation="...",
@@ -391,7 +391,7 @@ checkAuthorizationResult, err := client.IamPolicy.CheckAuthorization(ctx, &stigm
 </Tab>
 <Tab value="Python">
 ```python
-checkAuthorizationResult = client.iam_policies.check_authorization(CheckAuthorizationInput(
+check_authorization_result = client.iam_policies.check_authorization(CheckAuthorizationInput(
     policy=None,
     contextual_policies=[],
 ))

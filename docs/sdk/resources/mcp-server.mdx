@@ -44,7 +44,7 @@ mcpServer, err := client.McpServer.Get(ctx, "mcp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+mcp_server = client.mcp_servers.get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
@@ -85,7 +85,7 @@ mcpServer, err := client.McpServer.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.get(id)
+mcp_server = client.mcp_servers.get(id)
 ```
 </Tab>
 <Tab value="Java">
@@ -132,7 +132,7 @@ mcpServer, err := client.McpServer.GetByReference(ctx, &stigmer.ApiResourceRefer
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.get_by_reference(ApiResourceReference(
+mcp_server = client.mcp_servers.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -199,7 +199,7 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.apply(McpServerInput(
+mcp_server = client.mcp_servers.apply(McpServerInput(
     name="my-mcp-server",
     org="acme",
     slug="...",
@@ -280,7 +280,7 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.create(McpServerInput(
+mcp_server = client.mcp_servers.create(McpServerInput(
     name="my-mcp-server",
     org="acme",
     slug="...",
@@ -359,7 +359,7 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.update(McpServerInput(
+mcp_server = client.mcp_servers.update(McpServerInput(
     name="my-mcp-server",
     org="acme",
     slug="...",
@@ -422,7 +422,7 @@ mcpServer, err := client.McpServer.UpdateDiscoveredCapabilities(ctx, &stigmer.Up
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.update_discovered_capabilities(UpdateDiscoveredCapabilitiesInput(
+mcp_server = client.mcp_servers.update_discovered_capabilities(UpdateDiscoveredCapabilitiesInput(
     mcp_server_id="...",
     discovered_capabilities=None,
 ))
@@ -467,7 +467,7 @@ mcpServer, err := client.McpServer.UpdateVisibility(ctx, &stigmer.UpdateVisibili
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.update_visibility(UpdateVisibilityInput(
+mcp_server = client.mcp_servers.update_visibility(UpdateVisibilityInput(
     resource_id="...",
     visibility="...",
 ))
@@ -508,7 +508,7 @@ mcpServer, err := client.McpServer.Delete(ctx, &stigmer.DeleteResourceInput{
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.delete(DeleteResourceInput(resource_id=id))
+mcp_server = client.mcp_servers.delete(DeleteResourceInput(resource_id=id))
 ```
 </Tab>
 <Tab value="Java">
@@ -555,7 +555,7 @@ mcpServer, err := client.McpServer.DiscoverCapabilities(ctx, &stigmer.DiscoverCa
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_servers.discover_capabilities(DiscoverCapabilitiesInput(
+mcp_server = client.mcp_servers.discover_capabilities(DiscoverCapabilitiesInput(
     mcp_server_id="...",
     runtime_env={},
 ))
