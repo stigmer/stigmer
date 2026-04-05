@@ -1,21 +1,28 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider } from "@stigmer/react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus } from "lucide-react";
+import {
+  ApiKeyCreatedAlert,
+  ApiKeyListPanel,
+  CreateApiKeyForm,
+  StigmerProvider,
+} from "@stigmer/react";
 import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
+import { DEMO_ORG } from "../../engine/shared";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
-import { SettingsView } from "../../views/SettingsView";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { ManagementShell } from "../../views/ManagementShell";
+import { PulseHighlight } from "../../shared/PulseHighlight";
+import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   type ApiKeySetupStep,
   apiKeySetupSteps,
   getApiKeyList,
   PERSONAL_ENVIRONMENT,
-  PERSONAL_ENV_ID,
   CREATED_KEY_NAME,
   CREATED_RAW_KEY,
 } from "./steps";
@@ -66,6 +73,71 @@ function cursorTargetFor(step: ApiKeySetupStep): string | undefined {
   }
 }
 
+// ---------------------------------------------------------------------------
+// API Keys page chrome (inlined — single-consumer, no separate view file)
+// ---------------------------------------------------------------------------
+
+const noop = () => {};
+
+function ApiKeysPageChrome({
+  highlightCreate,
+  children,
+}: {
+  readonly highlightCreate?: boolean;
+  readonly children?: ReactNode;
+}) {
+  return (
+    <div className="flex h-full flex-col overflow-y-auto">
+      <div className="min-h-0 flex-1 px-4 pt-3 pb-4" style={{ zoom: DEMO_CONTENT_ZOOM }}>
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-xs font-semibold text-foreground">API Keys</h3>
+            <div className="relative" data-cursor-target="create-api-key">
+              <div className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+                <Plus className="h-2.5 w-2.5" />
+                New API key
+              </div>
+              {highlightCreate && <PulseHighlight />}
+            </div>
+          </div>
+          {children}
+          <ApiKeyListPanel />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function PrefilledCreateForm({ name }: { readonly name?: string }) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!name) return;
+
+    const input = wrapperRef.current?.querySelector(
+      "#stgm-new-apikey-name",
+    ) as HTMLInputElement | null;
+    if (!input) return;
+
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )?.set;
+    setter?.call(input, name);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, [name]);
+
+  return (
+    <div ref={wrapperRef} className="mb-3">
+      <CreateApiKeyForm org={DEMO_ORG} onCancel={noop} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step renderer
+// ---------------------------------------------------------------------------
+
 function renderStep(step: ApiKeySetupStep) {
   const contentKey = contentKeyFor(step);
   const slide = slideDirectionFor(step);
@@ -113,46 +185,39 @@ function renderStep(step: ApiKeySetupStep) {
 
     case "settings-api-keys":
       return (
-        <AppShell contentKey={contentKey} slideDirection={slide}>
-          <SettingsView
-            apiKeyState="list"
-            personalEnvId={PERSONAL_ENV_ID}
-          />
-        </AppShell>
+        <ManagementShell activeNav="api-keys" contentKey={contentKey} slideDirection={slide}>
+          <ApiKeysPageChrome />
+        </ManagementShell>
       );
 
     case "create-key-click":
       return (
-        <AppShell contentKey={contentKey}>
-          <SettingsView
-            apiKeyState="list"
-            highlightCreate
-            personalEnvId={PERSONAL_ENV_ID}
-          />
-        </AppShell>
+        <ManagementShell activeNav="api-keys" contentKey={contentKey}>
+          <ApiKeysPageChrome highlightCreate />
+        </ManagementShell>
       );
 
     case "create-form":
       return (
-        <AppShell contentKey={contentKey}>
-          <SettingsView
-            apiKeyState="creating"
-            createFormName={CREATED_KEY_NAME}
-            personalEnvId={PERSONAL_ENV_ID}
-          />
-        </AppShell>
+        <ManagementShell activeNav="api-keys" contentKey={contentKey}>
+          <ApiKeysPageChrome>
+            <PrefilledCreateForm name={CREATED_KEY_NAME} />
+          </ApiKeysPageChrome>
+        </ManagementShell>
       );
 
     case "key-created":
       return (
-        <AppShell contentKey={contentKey}>
-          <SettingsView
-            apiKeyState="created"
-            rawKey={CREATED_RAW_KEY}
-            keyName={CREATED_KEY_NAME}
-            personalEnvId={PERSONAL_ENV_ID}
-          />
-        </AppShell>
+        <ManagementShell activeNav="api-keys" contentKey={contentKey}>
+          <ApiKeysPageChrome>
+            <ApiKeyCreatedAlert
+              rawKey={CREATED_RAW_KEY}
+              keyName={CREATED_KEY_NAME}
+              onDismiss={noop}
+              className="mb-3"
+            />
+          </ApiKeysPageChrome>
+        </ManagementShell>
       );
   }
 }
@@ -163,12 +228,11 @@ function renderStep(step: ApiKeySetupStep) {
  * Auto-plays a timed walkthrough of the Stigmer web app showing how
  * to navigate to Settings and create an API key. Uses real
  * `@stigmer/react` components (`ApiKeyListPanel`, `CreateApiKeyForm`,
- * `ApiKeyCreatedAlert`, `EnvironmentVariableEditor`) backed by
- * fixture data — no live backend.
+ * `ApiKeyCreatedAlert`) backed by fixture data — no live backend.
  *
  * Visual storytelling layers:
  * 1. **Captions** — short labels below the demo describing each action
- * 2. **Slide transitions** — content slides when navigating to Settings
+ * 2. **Zone transition** — sidebar swaps from session to management zone
  * 3. **Animated cursor** — pointer targets user profile, menu, and buttons
  * 4. **User menu** — popup mirrors the real Console's profile menu
  */

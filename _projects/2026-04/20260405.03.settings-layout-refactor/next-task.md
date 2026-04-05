@@ -13,7 +13,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-04-05 (Session 2) — Completed deep-link verification + added error/loading boundaries
+- **Last Session**: 2026-04-05 (Session 3) — Demo views aligned with management zone layout
 - **Active Task**: T01 — Phase 5 (Polish & Edge Cases) — 1 of 5 items complete
 
 ## Session Progress (2026-04-05)
@@ -32,6 +32,13 @@ Drop this file into your conversation to quickly resume work on this project.
 - Added settings-scoped error boundary (app/settings/error.tsx) — preserves ManagementSidebar context on error
 - Added settings-scoped loading boundary (app/settings/loading.tsx) — spinner for sub-page transitions
 - Verified static export generates all settings HTML files correctly
+
+### Session 3
+- Created ManagementShell.tsx — schematic management zone shell for docs demos (org indicator, nav, user profile, slide transitions)
+- Updated api-key-setup scenario to use ManagementShell for settings steps (zone transition from session sidebar to management sidebar)
+- Inlined ApiKeysView content directly into the scenario as local helpers (ApiKeysPageChrome, PrefilledCreateForm)
+- Deleted SettingsView.tsx and ApiKeysView.tsx — single-consumer views inlined, multi-consumer views (ComposerView, ResourceListPage, WidgetsSidebar) retained
+- Decision: single-consumer demo views should be inlined; shared views earn separate files only when they have multiple consumers
 
 ## Next Steps
 1. Phase 5: Polish & edge cases (1 of 5 complete)
@@ -53,7 +60,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-2.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-3.md
 ```
 
 ### 2. Current Task
@@ -90,7 +97,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-2.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-3.md`
 2. [ ] Check current task status in `tasks/`
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
