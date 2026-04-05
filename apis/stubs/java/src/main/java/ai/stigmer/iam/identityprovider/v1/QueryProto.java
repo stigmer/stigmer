@@ -39,42 +39,42 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ry.proto\022\"ai.stigmer.iam.identityprovide" +
       "r.v1\032\'ai/stigmer/commons/apiresource/io." +
       "proto\0328ai/stigmer/commons/apiresource/rp" +
-      "c_service_options.proto\032Aai/stigmer/iam/" +
-      "iampolicy/v1/rpcauthorization/method_opt" +
-      "ions.proto\032,ai/stigmer/iam/identityprovi" +
-      "der/v1/api.proto2\322\002\n\037IdentityProviderQue" +
-      "ryController\022\243\001\n\003get\022-.ai.stigmer.common" +
-      "s.apiresource.ApiResourceId\0324.ai.stigmer" +
-      ".iam.identityprovider.v1.IdentityProvide" +
-      "r\"7\302\270\0303\010\003\020\025\"\005value*&unauthorized to view" +
-      " identity provider\022\202\001\n\016getByReference\0224." +
-      "ai.stigmer.commons.apiresource.ApiResour" +
-      "ceReference\0324.ai.stigmer.iam.identitypro" +
-      "vider.v1.IdentityProvider\"\004\320\270\030\001\032\004\240\377+\025B\271\001" +
-      "B\nQueryProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.I" +
-      "dentityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Iden" +
-      "tityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identit" +
-      "yprovider\\V1\\GPBMetadata\352\002&Ai::Stigmer::" +
-      "Iam::Identityprovider::V1b\006proto3"
+      "c_service_options.proto\032+ai/stigmer/comm" +
+      "ons/rpc/method_options.proto\032,ai/stigmer" +
+      "/iam/identityprovider/v1/api.proto2\322\002\n\037I" +
+      "dentityProviderQueryController\022\243\001\n\003get\022-" +
+      ".ai.stigmer.commons.apiresource.ApiResou" +
+      "rceId\0324.ai.stigmer.iam.identityprovider." +
+      "v1.IdentityProvider\"7\302\270\0303\010\001\020\025\"\005value*&un" +
+      "authorized to view identity provider\022\202\001\n" +
+      "\016getByReference\0224.ai.stigmer.commons.api" +
+      "resource.ApiResourceReference\0324.ai.stigm" +
+      "er.iam.identityprovider.v1.IdentityProvi" +
+      "der\"\004\320\270\030\001\032\004\240\377+\025B\271\001B\nQueryProtoP\001\242\002\004ASII\252" +
+      "\002\"Ai.Stigmer.Iam.Identityprovider.V1\312\002\"A" +
+      "i\\Stigmer\\Iam\\Identityprovider\\V1\342\002.Ai\\S" +
+      "tigmer\\Iam\\Identityprovider\\V1\\GPBMetada" +
+      "ta\352\002&Ai::Stigmer::Iam::Identityprovider:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.identityprovider.v1.ApiProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.identityprovider.v1.ApiProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

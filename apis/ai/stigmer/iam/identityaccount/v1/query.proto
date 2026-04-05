@@ -4,7 +4,7 @@ package ai.stigmer.iam.identityaccount.v1;
 
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "ai/stigmer/iam/identityaccount/v1/io.proto";
 import "google/protobuf/empty.proto";
@@ -15,10 +15,10 @@ service IdentityAccountQueryController {
 
   // Get an identity account by its unique identifier.
   rpc get(IdentityAccountId) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get identity account";
   }
 
   // Get the identity account of the currently authenticated user.
@@ -28,23 +28,23 @@ service IdentityAccountQueryController {
   // @internal
   // Scoped to the caller's own account, so authorization is skipped.
   rpc whoAmI(google.protobuf.Empty) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Get an identity account by email address.
   rpc getByEmail(IdentityAccountEmail) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get identity account";
   }
 
   // Get an identity account by identity provider ID.
   rpc getByIdpId(IdpId) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get identity account";
   }
 
   // Get lightweight actor information for an identity account.
@@ -64,8 +64,8 @@ service IdentityAccountQueryController {
   //
   // Restricted to platform operators only as this is an internal cache-population mechanism.
   rpc getActorInfo(IdentityAccountId) returns (ai.stigmer.commons.apiresource.ApiResourceAuditActor) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to look up actor info";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to look up actor info";
   }
 }

@@ -8,7 +8,7 @@ package agentinstancev1
 
 import (
 	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,12 +26,12 @@ var File_ai_stigmer_agentic_agentinstance_v1_command_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_agentinstance_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/agentinstance/v1/command.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a,ai/stigmer/agentic/agentinstance/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xed\x04\n" +
+	"1ai/stigmer/agentic/agentinstance/v1/command.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a,ai/stigmer/agentic/agentinstance/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xed\x04\n" +
 	"\x1eAgentInstanceCommandController\x12o\n" +
 	"\x05apply\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x12v\n" +
 	"\x06create\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"\x04и\x18\x01\x12\xae\x01\n" +
-	"\x06update\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"<¸\x188\b\x04\x10-\"\vmetadata.id*%unauthorized to update agent instance\x12\xaa\x01\n" +
-	"\x06delete\x124.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"6¸\x182\b\x02\x10-\"\x05value*%unauthorized to delete agent instance\x1a\x04\xa0\xff+-B\xc9\x02\n" +
+	"\x06update\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"<¸\x188\b\x02\x10-\"\vmetadata.id*%unauthorized to update agent instance\x12\xaa\x01\n" +
+	"\x06delete\x124.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"6¸\x182\b\x03\x10-\"\x05value*%unauthorized to delete agent instance\x1a\x04\xa0\xff+-B\xc9\x02\n" +
 	"'com.ai.stigmer.agentic.agentinstance.v1B\fCommandProtoP\x01Z_github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentinstance_v1_command_proto_goTypes = []any{

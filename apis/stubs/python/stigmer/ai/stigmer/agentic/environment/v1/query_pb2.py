@@ -27,10 +27,10 @@ from ai.stigmer.agentic.environment.v1 import io_pb2 as ai_dot_stigmer_dot_agent
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_spec__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/environment/v1/query.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x8c\x05\n\x1a\x45nvironmentQueryController\x12\x96\x01\n\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a..ai.stigmer.agentic.environment.v1.Environment\"0\xc2\xb8\x18,\x08\x03\x10\x35\"\x05value*\x1funauthorized to get environment\x12|\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a..ai.stigmer.agentic.environment.v1.Environment\"\x04\xd0\xb8\x18\x01\x12\xd2\x01\n\x0egetSecretValue\x12>.ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput\x1a\x33.ai.stigmer.agentic.environment.v1.EnvironmentValue\"K\xc2\xb8\x18G\x08\x19\x10\x35\"\x0e\x65nvironment_id*1unauthorized to read secret values (creator-only)\x12|\n\x04list\x12:.ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest\x1a\x32.ai.stigmer.agentic.environment.v1.EnvironmentList\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+5B\xdc\x01\n%com.ai.stigmer.agentic.environment.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/environment/v1/query.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x8c\x05\n\x1a\x45nvironmentQueryController\x12\x96\x01\n\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a..ai.stigmer.agentic.environment.v1.Environment\"0\xc2\xb8\x18,\x08\x01\x10\x35\"\x05value*\x1funauthorized to get environment\x12|\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a..ai.stigmer.agentic.environment.v1.Environment\"\x04\xd0\xb8\x18\x01\x12\xd2\x01\n\x0egetSecretValue\x12>.ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput\x1a\x33.ai.stigmer.agentic.environment.v1.EnvironmentValue\"K\xc2\xb8\x18G\x08\x10\x10\x35\"\x0e\x65nvironment_id*1unauthorized to read secret values (creator-only)\x12|\n\x04list\x12:.ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest\x1a\x32.ai.stigmer.agentic.environment.v1.EnvironmentList\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+5B\xdc\x01\n%com.ai.stigmer.agentic.environment.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,13 +41,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ENVIRONMENTQUERYCONTROLLER']._loaded_options = None
   _globals['_ENVIRONMENTQUERYCONTROLLER']._serialized_options = b'\240\377+5'
   _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030,\010\003\0205\"\005value*\037unauthorized to get environment'
+  _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030,\010\001\0205\"\005value*\037unauthorized to get environment'
   _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['getByReference']._loaded_options = None
   _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['getByReference']._serialized_options = b'\320\270\030\001'
   _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['getSecretValue']._loaded_options = None
-  _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['getSecretValue']._serialized_options = b'\302\270\030G\010\031\0205\"\016environment_id*1unauthorized to read secret values (creator-only)'
+  _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['getSecretValue']._serialized_options = b'\302\270\030G\010\020\0205\"\016environment_id*1unauthorized to read secret values (creator-only)'
   _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['list']._loaded_options = None
   _globals['_ENVIRONMENTQUERYCONTROLLER'].methods_by_name['list']._serialized_options = b'\320\270\030\001'
-  _globals['_ENVIRONMENTQUERYCONTROLLER']._serialized_start=386
-  _globals['_ENVIRONMENTQUERYCONTROLLER']._serialized_end=1038
+  _globals['_ENVIRONMENTQUERYCONTROLLER']._serialized_start=364
+  _globals['_ENVIRONMENTQUERYCONTROLLER']._serialized_end=1016
 # @@protoc_insertion_point(module_scope)

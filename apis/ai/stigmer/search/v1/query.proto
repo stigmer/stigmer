@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.search.v1;
 
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/search/v1/io.proto";
 
 // SearchService provides unified search and discovery across API resources.
@@ -61,6 +61,6 @@ service SearchService {
   // Authorization: Returns only resources the caller has can_view permission on.
   // The handler queries FGA per kind to get authorized IDs, then applies filters.
   rpc search(SearchRequest) returns (SearchResponse) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

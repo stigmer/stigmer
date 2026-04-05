@@ -42,64 +42,63 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "gentexecution/v1/io.proto\032\'ai/stigmer/co" +
       "mmons/apiresource/io.proto\0328ai/stigmer/c" +
       "ommons/apiresource/rpc_service_options.p" +
-      "roto\032Aai/stigmer/iam/iampolicy/v1/rpcaut" +
-      "horization/method_options.proto2\344\017\n\037Agen" +
-      "tExecutionCommandController\022z\n\006create\0224." +
-      "ai.stigmer.agentic.agentexecution.v1.Age" +
-      "ntExecution\0324.ai.stigmer.agentic.agentex" +
-      "ecution.v1.AgentExecution\"\004\320\270\030\001\022\263\001\n\006upda" +
-      "te\0224.ai.stigmer.agentic.agentexecution.v" +
-      "1.AgentExecution\0324.ai.stigmer.agentic.ag" +
-      "entexecution.v1.AgentExecution\"=\302\270\0309\010\004\020)" +
-      "\"\013metadata.id*&unauthorized to update ag" +
-      "ent execution\022\315\001\n\014updateStatus\022E.ai.stig" +
-      "mer.agentic.agentexecution.v1.AgentExecu" +
-      "tionUpdateStatusInput\0324.ai.stigmer.agent" +
-      "ic.agentexecution.v1.AgentExecution\"@\302\270\030" +
-      "<\010\037\020\037*-unauthorized to update agent exec" +
-      "ution status2\007stigmer\022\246\001\n\006delete\022-.ai.st" +
-      "igmer.commons.apiresource.ApiResourceId\032" +
+      "roto\032+ai/stigmer/commons/rpc/method_opti" +
+      "ons.proto2\344\017\n\037AgentExecutionCommandContr" +
+      "oller\022z\n\006create\0224.ai.stigmer.agentic.age" +
+      "ntexecution.v1.AgentExecution\0324.ai.stigm" +
+      "er.agentic.agentexecution.v1.AgentExecut" +
+      "ion\"\004\320\270\030\001\022\263\001\n\006update\0224.ai.stigmer.agenti" +
+      "c.agentexecution.v1.AgentExecution\0324.ai." +
+      "stigmer.agentic.agentexecution.v1.AgentE" +
+      "xecution\"=\302\270\0309\010\002\020)\"\013metadata.id*&unautho" +
+      "rized to update agent execution\022\315\001\n\014upda" +
+      "teStatus\022E.ai.stigmer.agentic.agentexecu" +
+      "tion.v1.AgentExecutionUpdateStatusInput\032" +
       "4.ai.stigmer.agentic.agentexecution.v1.A" +
-      "gentExecution\"7\302\270\0303\010\004\020)\"\005value*&unauthor" +
-      "ized to delete agent execution\022\324\001\n\016submi" +
-      "tApproval\0229.ai.stigmer.agentic.agentexec" +
-      "ution.v1.SubmitApprovalInput\0324.ai.stigme" +
-      "r.agentic.agentexecution.v1.AgentExecuti" +
-      "on\"Q\302\270\030M\010\004\020)\"\022agent_execution_id*3unauth" +
-      "orized to submit approval for agent exec" +
-      "ution\022\265\001\n\006cancel\022?.ai.stigmer.agentic.ag" +
-      "entexecution.v1.CancelAgentExecutionInpu" +
-      "t\0324.ai.stigmer.agentic.agentexecution.v1" +
-      ".AgentExecution\"4\302\270\0300\010\004\020)\"\002id*&unauthori" +
-      "zed to cancel agent execution\022\276\001\n\ttermin" +
-      "ate\022B.ai.stigmer.agentic.agentexecution." +
-      "v1.TerminateAgentExecutionInput\0324.ai.sti" +
-      "gmer.agentic.agentexecution.v1.AgentExec" +
-      "ution\"7\302\270\0303\010\004\020)\"\002id*)unauthorized to ter" +
-      "minate agent execution\022\270\001\n\007recover\022@.ai." +
-      "stigmer.agentic.agentexecution.v1.Recove" +
-      "rAgentExecutionInput\0324.ai.stigmer.agenti" +
-      "c.agentexecution.v1.AgentExecution\"5\302\270\0301" +
-      "\010\004\020)\"\002id*\'unauthorized to recover agent " +
-      "execution\022\262\001\n\005pause\022>.ai.stigmer.agentic" +
-      ".agentexecution.v1.PauseAgentExecutionIn" +
-      "put\0324.ai.stigmer.agentic.agentexecution." +
-      "v1.AgentExecution\"3\302\270\030/\010\004\020)\"\002id*%unautho" +
-      "rized to pause agent execution\022\265\001\n\006resum" +
-      "e\022?.ai.stigmer.agentic.agentexecution.v1" +
-      ".ResumeAgentExecutionInput\0324.ai.stigmer." +
-      "agentic.agentexecution.v1.AgentExecution" +
-      "\"4\302\270\0300\010\004\020)\"\002id*&unauthorized to resume a" +
-      "gent execution\022\227\001\n\020uploadAttachment\022=.ai" +
-      ".stigmer.agentic.agentexecution.v1.Uploa" +
-      "dAttachmentRequest\032>.ai.stigmer.agentic." +
-      "agentexecution.v1.UploadAttachmentRespon" +
-      "se\"\004\320\270\030\001\032\004\240\377+)B\303\001B\014CommandProtoP\001\242\002\004ASAA" +
-      "\252\002$Ai.Stigmer.Agentic.Agentexecution.V1\312" +
-      "\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342\002" +
-      "0Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GP" +
-      "BMetadata\352\002(Ai::Stigmer::Agentic::Agente" +
-      "xecution::V1b\006proto3"
+      "gentExecution\"@\302\270\030<\010\023\020\037*-unauthorized to" +
+      " update agent execution status2\007stigmer\022" +
+      "\246\001\n\006delete\022-.ai.stigmer.commons.apiresou" +
+      "rce.ApiResourceId\0324.ai.stigmer.agentic.a" +
+      "gentexecution.v1.AgentExecution\"7\302\270\0303\010\002\020" +
+      ")\"\005value*&unauthorized to delete agent e" +
+      "xecution\022\324\001\n\016submitApproval\0229.ai.stigmer" +
+      ".agentic.agentexecution.v1.SubmitApprova" +
+      "lInput\0324.ai.stigmer.agentic.agentexecuti" +
+      "on.v1.AgentExecution\"Q\302\270\030M\010\002\020)\"\022agent_ex" +
+      "ecution_id*3unauthorized to submit appro" +
+      "val for agent execution\022\265\001\n\006cancel\022?.ai." +
+      "stigmer.agentic.agentexecution.v1.Cancel" +
+      "AgentExecutionInput\0324.ai.stigmer.agentic" +
+      ".agentexecution.v1.AgentExecution\"4\302\270\0300\010" +
+      "\002\020)\"\002id*&unauthorized to cancel agent ex" +
+      "ecution\022\276\001\n\tterminate\022B.ai.stigmer.agent" +
+      "ic.agentexecution.v1.TerminateAgentExecu" +
+      "tionInput\0324.ai.stigmer.agentic.agentexec" +
+      "ution.v1.AgentExecution\"7\302\270\0303\010\002\020)\"\002id*)u" +
+      "nauthorized to terminate agent execution" +
+      "\022\270\001\n\007recover\022@.ai.stigmer.agentic.agente" +
+      "xecution.v1.RecoverAgentExecutionInput\0324" +
+      ".ai.stigmer.agentic.agentexecution.v1.Ag" +
+      "entExecution\"5\302\270\0301\010\002\020)\"\002id*\'unauthorized" +
+      " to recover agent execution\022\262\001\n\005pause\022>." +
+      "ai.stigmer.agentic.agentexecution.v1.Pau" +
+      "seAgentExecutionInput\0324.ai.stigmer.agent" +
+      "ic.agentexecution.v1.AgentExecution\"3\302\270\030" +
+      "/\010\002\020)\"\002id*%unauthorized to pause agent e" +
+      "xecution\022\265\001\n\006resume\022?.ai.stigmer.agentic" +
+      ".agentexecution.v1.ResumeAgentExecutionI" +
+      "nput\0324.ai.stigmer.agentic.agentexecution" +
+      ".v1.AgentExecution\"4\302\270\0300\010\002\020)\"\002id*&unauth" +
+      "orized to resume agent execution\022\227\001\n\020upl" +
+      "oadAttachment\022=.ai.stigmer.agentic.agent" +
+      "execution.v1.UploadAttachmentRequest\032>.a" +
+      "i.stigmer.agentic.agentexecution.v1.Uplo" +
+      "adAttachmentResponse\"\004\320\270\030\001\032\004\240\377+)B\303\001B\014Com" +
+      "mandProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic." +
+      "Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic\\A" +
+      "gentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Ag" +
+      "entexecution\\V1\\GPBMetadata\352\002(Ai::Stigme" +
+      "r::Agentic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -108,19 +107,19 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.agentexecution.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

@@ -4,7 +4,7 @@ package ai.stigmer.tenancy.project.v1;
 
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/tenancy/project/v1/api.proto";
 import "ai/stigmer/tenancy/project/v1/io.proto";
 
@@ -14,10 +14,10 @@ service ProjectQueryController {
 
   // Get a single project by ID.
   rpc get(ProjectId) returns (Project) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = project;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get project";
+    option (ai.stigmer.commons.rpc.config).resource_kind = project;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get project";
   }
 
   // Get a project by reference (org/name).
@@ -25,6 +25,6 @@ service ProjectQueryController {
   // @internal
   // Custom authorization is handled in the controller implementation.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Project) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

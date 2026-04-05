@@ -26,10 +26,10 @@ from ai.stigmer.agentic.executioncontext.v1 import api_pb2 as ai_dot_stigmer_dot
 from ai.stigmer.agentic.executioncontext.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/agentic/executioncontext/v1/query.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a\x30\x61i/stigmer/agentic/executioncontext/v1/api.proto\x1a/ai/stigmer/agentic/executioncontext/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xd3\x03\n\x1f\x45xecutionContextQueryController\x12\x81\x01\n\x03get\x12:.ai.stigmer.agentic.executioncontext.v1.ExecutionContextId\x1a\x38.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04\xd0\xb8\x18\x01\x12\x86\x01\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x38.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04\xd0\xb8\x18\x01\x12\x9c\x01\n\x10getByExecutionId\x12H.ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput\x1a\x38.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+6B\xf5\x01\n*com.ai.stigmer.agentic.executioncontext.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x02\x32\x41i\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/agentic/executioncontext/v1/query.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a\x30\x61i/stigmer/agentic/executioncontext/v1/api.proto\x1a/ai/stigmer/agentic/executioncontext/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd3\x03\n\x1f\x45xecutionContextQueryController\x12\x81\x01\n\x03get\x12:.ai.stigmer.agentic.executioncontext.v1.ExecutionContextId\x1a\x38.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04\xd0\xb8\x18\x01\x12\x86\x01\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x38.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04\xd0\xb8\x18\x01\x12\x9c\x01\n\x10getByExecutionId\x12H.ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput\x1a\x38.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+6B\xf5\x01\n*com.ai.stigmer.agentic.executioncontext.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x02\x32\x41i\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -45,6 +45,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EXECUTIONCONTEXTQUERYCONTROLLER'].methods_by_name['getByReference']._serialized_options = b'\320\270\030\001'
   _globals['_EXECUTIONCONTEXTQUERYCONTROLLER'].methods_by_name['getByExecutionId']._loaded_options = None
   _globals['_EXECUTIONCONTEXTQUERYCONTROLLER'].methods_by_name['getByExecutionId']._serialized_options = b'\320\270\030\001'
-  _globals['_EXECUTIONCONTEXTQUERYCONTROLLER']._serialized_start=360
-  _globals['_EXECUTIONCONTEXTQUERYCONTROLLER']._serialized_end=827
+  _globals['_EXECUTIONCONTEXTQUERYCONTROLLER']._serialized_start=338
+  _globals['_EXECUTIONCONTEXTQUERYCONTROLLER']._serialized_end=805
 # @@protoc_insertion_point(module_scope)

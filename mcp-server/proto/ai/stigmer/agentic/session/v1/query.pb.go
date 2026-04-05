@@ -8,7 +8,7 @@ package sessionv1
 
 import (
 	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,9 +26,9 @@ var File_ai_stigmer_agentic_session_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_query_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/session/v1/query.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x90\x03\n" +
+	")ai/stigmer/agentic/session/v1/query.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x90\x03\n" +
 	"\x16SessionQueryController\x12\x85\x01\n" +
-	"\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",¸\x18(\b\x03\x10*\"\x05value*\x1bunauthorized to get session\x12l\n" +
+	"\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",¸\x18(\b\x01\x10*\"\x05value*\x1bunauthorized to get session\x12l\n" +
 	"\x04list\x122.ai.stigmer.agentic.session.v1.ListSessionsRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x12z\n" +
 	"\vlistByAgent\x129.ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9d\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\n" +

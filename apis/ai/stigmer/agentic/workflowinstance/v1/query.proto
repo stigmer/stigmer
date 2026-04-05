@@ -7,7 +7,7 @@ import "ai/stigmer/agentic/workflowinstance/v1/api.proto";
 import "ai/stigmer/agentic/workflowinstance/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // WorkflowInstanceQueryController handles read operations for workflow instances.
 //
@@ -41,10 +41,10 @@ service WorkflowInstanceQueryController {
   // Error: PERMISSION_DENIED if user lacks get permission
   // Error: NOT_FOUND if instance ID doesn't exist
   rpc get(WorkflowInstanceId) returns (WorkflowInstance) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_instance;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get workflow instance";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_instance;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow instance";
   }
 
   // Get all workflow instances that use a specific workflow template.
@@ -65,7 +65,7 @@ service WorkflowInstanceQueryController {
   // Error: PERMISSION_DENIED if user lacks access to the workflow
   // Error: NOT_FOUND if workflow_id doesn't exist
   rpc getByWorkflow(GetWorkflowInstancesByWorkflowRequest) returns (WorkflowInstanceList) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Get a workflow instance by reference (ID or slug).
@@ -82,6 +82,6 @@ service WorkflowInstanceQueryController {
   // Error: PERMISSION_DENIED if user lacks access
   // Error: NOT_FOUND if reference doesn't resolve to an instance
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (WorkflowInstance) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

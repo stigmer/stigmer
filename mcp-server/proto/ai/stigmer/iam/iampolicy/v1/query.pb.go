@@ -8,7 +8,7 @@ package iampolicyv1
 
 import (
 	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,12 +26,12 @@ var File_ai_stigmer_iam_iampolicy_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_iampolicy_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/iam/iampolicy/v1/query.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xc8\x05\n" +
+	"'ai/stigmer/iam/iampolicy/v1/query.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto2\xc8\x05\n" +
 	"\x18IamPolicyQueryController\x12\x85\x01\n" +
-	"\x03get\x12(.ai.stigmer.iam.iampolicy.v1.IamPolicyId\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\",¸\x18(\b\t*$unauthorized to view access policies\x12\x87\x01\n" +
+	"\x03get\x12(.ai.stigmer.iam.iampolicy.v1.IamPolicyId\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\",¸\x18(\b\x05*$unauthorized to view access policies\x12\x87\x01\n" +
 	"\x12checkAuthorization\x124.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput\x1a5.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult\"\x04и\x18\x01\x12\xc6\x01\n" +
-	"\x19listAuthorizedResourceIds\x12;.ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput\x1a6.ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList\"4¸\x180\b\t*,unauthorized to view authorized resource ids\x12\xca\x01\n" +
-	"\x1alistAuthorizedPrincipalIds\x12<.ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput\x1a7.ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList\"5¸\x181\b\t*-unauthorized to view authorized principal ids\x1a\x04\xa0\xff+\n" +
+	"\x19listAuthorizedResourceIds\x12;.ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput\x1a6.ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList\"4¸\x180\b\x05*,unauthorized to view authorized resource ids\x12\xca\x01\n" +
+	"\x1alistAuthorizedPrincipalIds\x12<.ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput\x1a7.ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList\"5¸\x181\b\x05*-unauthorized to view authorized principal ids\x1a\x04\xa0\xff+\n" +
 	"B\x93\x02\n" +
 	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\n" +
 	"QueryProtoP\x01ZSgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"

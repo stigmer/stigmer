@@ -8,7 +8,7 @@ package organizationv1
 
 import (
 	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,12 +26,12 @@ var File_ai_stigmer_tenancy_organization_v1_command_proto protoreflect.FileDescr
 
 const file_ai_stigmer_tenancy_organization_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/tenancy/organization/v1/command.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto2\xd8\x04\n" +
+	"0ai/stigmer/tenancy/organization/v1/command.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto2\xd8\x04\n" +
 	"\x1dOrganizationCommandController\x12k\n" +
 	"\x05apply\x120.ai.stigmer.tenancy.organization.v1.Organization\x1a0.ai.stigmer.tenancy.organization.v1.Organization\x12r\n" +
 	"\x06create\x120.ai.stigmer.tenancy.organization.v1.Organization\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"\x04и\x18\x01\x12\xa8\x01\n" +
-	"\x06update\x120.ai.stigmer.tenancy.organization.v1.Organization\x1a0.ai.stigmer.tenancy.organization.v1.Organization\":¸\x186\b\x04\x10\x1e\"\vmetadata.id*#unauthorized to update organization\x12\xa4\x01\n" +
-	"\x06delete\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"4¸\x180\b\x02\x10\x1e\"\x05value*#unauthorized to delete organization\x1a\x04\xa0\xff+\x1eB\xbe\x02\n" +
+	"\x06update\x120.ai.stigmer.tenancy.organization.v1.Organization\x1a0.ai.stigmer.tenancy.organization.v1.Organization\":¸\x186\b\x02\x10\x1e\"\vmetadata.id*#unauthorized to update organization\x12\xa4\x01\n" +
+	"\x06delete\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"4¸\x180\b\x03\x10\x1e\"\x05value*#unauthorized to delete organization\x1a\x04\xa0\xff+\x1eB\xbe\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\fCommandProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var file_ai_stigmer_tenancy_organization_v1_command_proto_goTypes = []any{

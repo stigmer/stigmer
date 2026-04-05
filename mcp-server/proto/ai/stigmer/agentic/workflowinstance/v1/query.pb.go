@@ -10,7 +10,7 @@ package workflowinstancev1
 
 import (
 	apiresource "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -28,9 +28,9 @@ var File_ai_stigmer_agentic_workflowinstance_v1_query_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_workflowinstance_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/workflowinstance/v1/query.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a0ai/stigmer/agentic/workflowinstance/v1/api.proto\x1a/ai/stigmer/agentic/workflowinstance/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x8b\x04\n" +
+	"2ai/stigmer/agentic/workflowinstance/v1/query.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a0ai/stigmer/agentic/workflowinstance/v1/api.proto\x1a/ai/stigmer/agentic/workflowinstance/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x8b\x04\n" +
 	"\x1fWorkflowInstanceQueryController\x12\xb3\x01\n" +
-	"\x03get\x12:.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"6¸\x182\b\x03\x103\"\x05value*%unauthorized to get workflow instance\x12\xa2\x01\n" +
+	"\x03get\x12:.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"6¸\x182\b\x01\x103\"\x05value*%unauthorized to get workflow instance\x12\xa2\x01\n" +
 	"\rgetByWorkflow\x12M.ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest\x1a<.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList\"\x04и\x18\x01\x12\x86\x01\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"\x04и\x18\x01\x1a\x04\xa0\xff+3B\xdc\x02\n" +
 	"*com.ai.stigmer.agentic.workflowinstance.v1B\n" +

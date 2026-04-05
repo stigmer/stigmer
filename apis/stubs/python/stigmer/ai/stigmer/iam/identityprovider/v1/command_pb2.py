@@ -24,11 +24,11 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.iam.identityprovider.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/iam/identityprovider/v1/command.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto2\xde\x05\n!IdentityProviderCommandController\x12s\n\x05\x61pply\x12\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x12\xcb\x01\n\x06\x63reate\x12\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"U\xc2\xb8\x18Q\x08\x18\x10\x1e\"\x0cmetadata.org*=unauthorized to create identity provider in this organization\x12\xb5\x01\n\x06update\x12\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?\xc2\xb8\x18;\x08\x04\x10\x15\"\x0bmetadata.id*(unauthorized to update identity provider\x12\xb7\x01\n\x06\x64\x65lete\x12\x36.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?\xc2\xb8\x18;\x08\x02\x10\x15\"\x0bresource_id*(unauthorized to delete identity provider\x1a\x04\xa0\xff+\x15\x42\xe3\x01\n&com.ai.stigmer.iam.identityprovider.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/iam/identityprovider/v1/command.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto2\xde\x05\n!IdentityProviderCommandController\x12s\n\x05\x61pply\x12\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x12\xcb\x01\n\x06\x63reate\x12\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"U\xc2\xb8\x18Q\x08\x0b\x10\x1e\"\x0cmetadata.org*=unauthorized to create identity provider in this organization\x12\xb5\x01\n\x06update\x12\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?\xc2\xb8\x18;\x08\x02\x10\x15\"\x0bmetadata.id*(unauthorized to update identity provider\x12\xb7\x01\n\x06\x64\x65lete\x12\x36.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?\xc2\xb8\x18;\x08\x03\x10\x15\"\x0bresource_id*(unauthorized to delete identity provider\x1a\x04\xa0\xff+\x15\x42\xe3\x01\n&com.ai.stigmer.iam.identityprovider.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,11 +39,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER']._loaded_options = None
   _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER']._serialized_options = b'\240\377+\025'
   _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['create']._loaded_options = None
-  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['create']._serialized_options = b'\302\270\030Q\010\030\020\036\"\014metadata.org*=unauthorized to create identity provider in this organization'
+  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['create']._serialized_options = b'\302\270\030Q\010\013\020\036\"\014metadata.org*=unauthorized to create identity provider in this organization'
   _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['update']._loaded_options = None
-  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['update']._serialized_options = b'\302\270\030;\010\004\020\025\"\013metadata.id*(unauthorized to update identity provider'
+  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['update']._serialized_options = b'\302\270\030;\010\002\020\025\"\013metadata.id*(unauthorized to update identity provider'
   _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['delete']._loaded_options = None
-  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['delete']._serialized_options = b'\302\270\030;\010\002\020\025\"\013resource_id*(unauthorized to delete identity provider'
-  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER']._serialized_start=301
-  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER']._serialized_end=1035
+  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER'].methods_by_name['delete']._serialized_options = b'\302\270\030;\010\003\020\025\"\013resource_id*(unauthorized to delete identity provider'
+  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER']._serialized_start=279
+  _globals['_IDENTITYPROVIDERCOMMANDCONTROLLER']._serialized_end=1013
 # @@protoc_insertion_point(module_scope)

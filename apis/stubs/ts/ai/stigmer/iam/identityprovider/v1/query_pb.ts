@@ -7,7 +7,7 @@ import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiResourceIdSchema, ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../iampolicy/v1/rpcauthorization/method_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { IdentityProviderSchema } from "./api_pb";
 import { file_ai_stigmer_iam_identityprovider_v1_api } from "./api_pb";
 
@@ -15,7 +15,7 @@ import { file_ai_stigmer_iam_identityprovider_v1_api } from "./api_pb";
  * Describes the file ai/stigmer/iam/identityprovider/v1/query.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxMtICCh9JZGVudGl0eVByb3ZpZGVyUXVlcnlDb250cm9sbGVyEqMBCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBo0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3wrgYMwgDEBUiBXZhbHVlKiZ1bmF1dGhvcml6ZWQgdG8gdmlldyBpZGVudGl0eSBwcm92aWRlchKCAQoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiBNC4GAEaBKD/KxViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_identityprovider_v1_api]);
+  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxMtICCh9JZGVudGl0eVByb3ZpZGVyUXVlcnlDb250cm9sbGVyEqMBCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBo0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3wrgYMwgBEBUiBXZhbHVlKiZ1bmF1dGhvcml6ZWQgdG8gdmlldyBpZGVudGl0eSBwcm92aWRlchKCAQoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiBNC4GAEaBKD/KxViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityprovider_v1_api]);
 
 /**
  * IdentityProviderQueryController provides read operations for identity providers.

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package ai.stigmer.iam.iampolicy.v1.rpcauthorization;
+package ai.stigmer.commons.rpc;
 
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/io.proto";
+import "ai/stigmer/commons/rpc/authorization_config.proto";
 import "google/protobuf/descriptor.proto";
 
 // Custom method options for declarative RPC authorization.
@@ -12,7 +12,7 @@ import "google/protobuf/descriptor.proto";
 // to enforce permission checks before the handler executes.
 extend google.protobuf.MethodOptions {
   // Full authorization configuration: permission, resource kind, field path, and error message.
-  ai.stigmer.iam.iampolicy.v1.rpcauthorization.RpcAuthorizationConfig config = 50056;
+  ai.stigmer.commons.rpc.RpcAuthorizationConfig config = 50056;
 
   // When true, the RPC is publicly accessible without any authentication.
   bool is_public = 50057;

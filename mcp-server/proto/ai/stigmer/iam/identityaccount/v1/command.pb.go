@@ -8,7 +8,7 @@ package identityaccountv1
 
 import (
 	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -27,11 +27,11 @@ var File_ai_stigmer_iam_identityaccount_v1_command_proto protoreflect.FileDescri
 
 const file_ai_stigmer_iam_identityaccount_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/iam/identityaccount/v1/command.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xf2\x04\n" +
+	"/ai/stigmer/iam/identityaccount/v1/command.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xf2\x04\n" +
 	" IdentityAccountCommandController\x12v\n" +
 	"\x06create\x122.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"\x04и\x18\x01\x12\xb0\x01\n" +
-	"\x06update\x122.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\">¸\x18:\b\x04\x10\v\"\vmetadata.id*'unauthorized to update identity account\x12\xac\x01\n" +
-	"\x06delete\x124.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"8¸\x184\b\x02\x10\v\"\x05value*'unauthorized to delete identity account\x12n\n" +
+	"\x06update\x122.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\">¸\x18:\b\x02\x10\v\"\vmetadata.id*'unauthorized to update identity account\x12\xac\x01\n" +
+	"\x06delete\x124.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"8¸\x184\b\x03\x10\v\"\x05value*'unauthorized to delete identity account\x12n\n" +
 	"\x15simulateSignupWebhook\x127.ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail\x1a\x16.google.protobuf.Empty\"\x04и\x18\x01\x1a\x04\xa0\xff+\vB\xbf\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\fCommandProtoP\x01Z_github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 

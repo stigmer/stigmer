@@ -6,7 +6,7 @@ import "ai/stigmer/agentic/environment/v1/api.proto";
 import "ai/stigmer/agentic/environment/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // EnvironmentCommandController handles write operations for environments.
 service EnvironmentCommandController {
@@ -29,10 +29,10 @@ service EnvironmentCommandController {
   // - Platform-scoped environments: Caller must be a platform operator
   //   (handled automatically by common auth step).
   rpc create(Environment) returns (Environment) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_environment;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create environment in this organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_environment;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create environment in this organization";
   }
 
   // Update an existing environment.
@@ -40,10 +40,10 @@ service EnvironmentCommandController {
   // @internal
   // Authorization: requires can_edit permission on the environment resource.
   rpc update(Environment) returns (Environment) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = environment;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update environment";
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update environment";
   }
 
   // Delete an environment.
@@ -51,10 +51,10 @@ service EnvironmentCommandController {
   // @internal
   // Authorization: requires can_edit permission on the environment resource.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (Environment) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = environment;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete environment";
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete environment";
   }
 
   // Add or update specific variables in an environment.
@@ -64,10 +64,10 @@ service EnvironmentCommandController {
   // Authorization: requires can_edit permission on the environment resource.
   // Server-side merge — secret values are re-encrypted on write.
   rpc updateVariables(UpdateEnvironmentVariablesRequest) returns (Environment) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = environment;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "environment_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update environment variables";
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "environment_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update environment variables";
   }
 
   // Remove specific variables from an environment by key.
@@ -76,9 +76,9 @@ service EnvironmentCommandController {
   // @internal
   // Authorization: requires can_edit permission on the environment resource.
   rpc removeVariables(RemoveEnvironmentVariablesRequest) returns (Environment) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = environment;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "environment_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to remove environment variables";
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "environment_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to remove environment variables";
   }
 }

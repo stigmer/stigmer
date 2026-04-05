@@ -303,6 +303,56 @@
   },
   "statusNestedTypes": [
     {
+      "name": "ReconciliationSummary",
+      "description": "ReconciliationSummary contains the results of project reconciliation.\n Populated only in the ProjectCommandController.Apply() response to show\n what changes were made. NOT persisted to the database.\n\n In the reference-based model, individual resources are applied by the CLI\n before the project is applied. The server's reconciliation is limited to\n orphan pruning: comparing previous members with current members and\n deleting resources that are no longer in the membership list.\n\n All three fields use ApiResourceReference — the same type used in\n ProjectSpec.members — so reconciliation results are directly comparable\n with the membership list.\n\n Example CLI output:\n\n\tApplied project \"my-app\":\n\t  Members: 3 agents, 1 workflow, 2 mcp_servers\n\t  Pruned:  1 agent (removed from project)",
+      "protoType": "ai.stigmer.tenancy.project.v1.ReconciliationSummary",
+      "protoFile": "apis/ai/stigmer/tenancy/project/v1/status.proto",
+      "fields": [
+        {
+          "name": "Created",
+          "jsonName": "created",
+          "protoField": "created",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiResourceReference"
+            }
+          },
+          "description": "Resources created on the server during this project apply.",
+          "required": false
+        },
+        {
+          "name": "Updated",
+          "jsonName": "updated",
+          "protoField": "updated",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiResourceReference"
+            }
+          },
+          "description": "Resources updated on the server during this project apply.",
+          "required": false
+        },
+        {
+          "name": "Deleted",
+          "jsonName": "deleted",
+          "protoField": "deleted",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiResourceReference"
+            }
+          },
+          "description": "Resources deleted via orphan pruning during this project apply.\n An orphan is a resource that was in the previous members list but\n is absent from the current members list.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ApiResourceReference",
       "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
@@ -499,56 +549,6 @@
             "kind": "string"
           },
           "description": "URL to the actor's avatar image.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ReconciliationSummary",
-      "description": "ReconciliationSummary contains the results of project reconciliation.\n Populated only in the ProjectCommandController.Apply() response to show\n what changes were made. NOT persisted to the database.\n\n In the reference-based model, individual resources are applied by the CLI\n before the project is applied. The server's reconciliation is limited to\n orphan pruning: comparing previous members with current members and\n deleting resources that are no longer in the membership list.\n\n All three fields use ApiResourceReference — the same type used in\n ProjectSpec.members — so reconciliation results are directly comparable\n with the membership list.\n\n Example CLI output:\n\n\tApplied project \"my-app\":\n\t  Members: 3 agents, 1 workflow, 2 mcp_servers\n\t  Pruned:  1 agent (removed from project)",
-      "protoType": "ai.stigmer.tenancy.project.v1.ReconciliationSummary",
-      "protoFile": "apis/ai/stigmer/tenancy/project/v1/status.proto",
-      "fields": [
-        {
-          "name": "Created",
-          "jsonName": "created",
-          "protoField": "created",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "ApiResourceReference"
-            }
-          },
-          "description": "Resources created on the server during this project apply.",
-          "required": false
-        },
-        {
-          "name": "Updated",
-          "jsonName": "updated",
-          "protoField": "updated",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "ApiResourceReference"
-            }
-          },
-          "description": "Resources updated on the server during this project apply.",
-          "required": false
-        },
-        {
-          "name": "Deleted",
-          "jsonName": "deleted",
-          "protoField": "deleted",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "ApiResourceReference"
-            }
-          },
-          "description": "Resources deleted via orphan pruning during this project apply.\n An orphan is a resource that was in the previous members list but\n is absent from the current members list.",
           "required": false
         }
       ]

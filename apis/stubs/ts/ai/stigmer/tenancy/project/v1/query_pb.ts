@@ -7,7 +7,7 @@ import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../../iam/iampolicy/v1/rpcauthorization/method_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { ProjectSchema } from "./api_pb";
 import { file_ai_stigmer_tenancy_project_v1_api } from "./api_pb";
 import type { ProjectIdSchema } from "./io_pb";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_tenancy_project_v1_io } from "./io_pb";
  * Describes the file ai/stigmer/tenancy/project/v1/query.proto.
  */
 export const file_ai_stigmer_tenancy_project_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL3RlbmFuY3kvcHJvamVjdC92MS9xdWVyeS5wcm90bxIdYWkuc3RpZ21lci50ZW5hbmN5LnByb2plY3QudjEynAIKFlByb2plY3RRdWVyeUNvbnRyb2xsZXIShQEKA2dldBIoLmFpLnN0aWdtZXIudGVuYW5jeS5wcm9qZWN0LnYxLlByb2plY3RJZBomLmFpLnN0aWdtZXIudGVuYW5jeS5wcm9qZWN0LnYxLlByb2plY3QiLMK4GCgIAxA8IgV2YWx1ZSobdW5hdXRob3JpemVkIHRvIGdldCBwcm9qZWN0EnQKDmdldEJ5UmVmZXJlbmNlEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGiYuYWkuc3RpZ21lci50ZW5hbmN5LnByb2plY3QudjEuUHJvamVjdCIE0LgYARoEoP8rPGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_tenancy_project_v1_api, file_ai_stigmer_tenancy_project_v1_io]);
+  fileDesc("CilhaS9zdGlnbWVyL3RlbmFuY3kvcHJvamVjdC92MS9xdWVyeS5wcm90bxIdYWkuc3RpZ21lci50ZW5hbmN5LnByb2plY3QudjEynAIKFlByb2plY3RRdWVyeUNvbnRyb2xsZXIShQEKA2dldBIoLmFpLnN0aWdtZXIudGVuYW5jeS5wcm9qZWN0LnYxLlByb2plY3RJZBomLmFpLnN0aWdtZXIudGVuYW5jeS5wcm9qZWN0LnYxLlByb2plY3QiLMK4GCgIARA8IgV2YWx1ZSobdW5hdXRob3JpemVkIHRvIGdldCBwcm9qZWN0EnQKDmdldEJ5UmVmZXJlbmNlEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGiYuYWkuc3RpZ21lci50ZW5hbmN5LnByb2plY3QudjEuUHJvamVjdCIE0LgYARoEoP8rPGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_project_v1_api, file_ai_stigmer_tenancy_project_v1_io]);
 
 /**
  * ProjectQueryController handles read operations for projects.

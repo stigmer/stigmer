@@ -5,11 +5,11 @@
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { ApiKeySchema } from "./api_pb";
 import { file_ai_stigmer_iam_apikey_v1_api } from "./api_pb";
 import type { ApiKeyHashSchema, ApiKeyIdSchema, ApiKeysSchema } from "./io_pb";
 import { file_ai_stigmer_iam_apikey_v1_io } from "./io_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../iampolicy/v1/rpcauthorization/method_options_pb";
 import type { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
 
@@ -17,7 +17,7 @@ import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/iam/apikey/v1/query.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvcXVlcnkucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MTLDAgoVQXBpS2V5UXVlcnlDb250cm9sbGVyEnoKA2dldBIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiLcK4GCkIAxAMIgV2YWx1ZSocdW5hdXRob3JpemVkIHRvIHZpZXcgYXBpIGtleRJcCgxnZXRCeUtleUhhc2gSJC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5SGFzaBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiBNC4GAESSgoHZmluZEFsbBIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRohLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlzIgTQuBgBGgSg/ysMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_google_protobuf_empty]);
+  fileDesc("CiRhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvcXVlcnkucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MTLDAgoVQXBpS2V5UXVlcnlDb250cm9sbGVyEnoKA2dldBIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiLcK4GCkIARAMIgV2YWx1ZSocdW5hdXRob3JpemVkIHRvIHZpZXcgYXBpIGtleRJcCgxnZXRCeUtleUhhc2gSJC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5SGFzaBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiBNC4GAESSgoHZmluZEFsbBIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRohLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlzIgTQuBgBGgSg/ysMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io, file_google_protobuf_empty]);
 
 /**
  * ApiKeyQueryController handles read operations for API keys.

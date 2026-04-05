@@ -1,4 +1,4 @@
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import io_pb2 as _io_pb2
+from ai.stigmer.commons.rpc import authorization_config_pb2 as _authorization_config_pb2
 from google.protobuf import descriptor_pb2 as _descriptor_pb2
 from google.protobuf import descriptor as _descriptor
 from typing import ClassVar as _ClassVar
