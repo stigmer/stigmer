@@ -13,7 +13,7 @@ func TestNewSearchCriteria_ValidInput(t *testing.T) {
 		apiresourcekind.ApiResourceKind_skill,
 	}
 
-	criteria, err := NewSearchCriteria(kinds, "kubernetes", "acme", false, 2, 50)
+	criteria, err := NewSearchCriteria(kinds, "kubernetes", "acme", false, false, 2, 50)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestNewSearchCriteria_ValidInput(t *testing.T) {
 }
 
 func TestNewSearchCriteria_QueryTrimming(t *testing.T) {
-	criteria, err := NewSearchCriteria(nil, "  kubernetes  ", "", false, 1, 20)
+	criteria, err := NewSearchCriteria(nil, "  kubernetes  ", "", false, false, 1, 20)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestNewSearchCriteria_QueryTrimming(t *testing.T) {
 func TestNewSearchCriteria_QueryTooLong(t *testing.T) {
 	longQuery := strings.Repeat("a", MaxQueryLength+1)
 
-	_, err := NewSearchCriteria(nil, longQuery, "", false, 1, 20)
+	_, err := NewSearchCriteria(nil, longQuery, "", false, false, 1, 20)
 	if err == nil {
 		t.Error("expected error for query exceeding max length")
 	}
@@ -61,7 +61,7 @@ func TestNewSearchCriteria_QueryTooLong(t *testing.T) {
 func TestNewSearchCriteria_QueryAtMaxLength(t *testing.T) {
 	maxQuery := strings.Repeat("a", MaxQueryLength)
 
-	criteria, err := NewSearchCriteria(nil, maxQuery, "", false, 1, 20)
+	criteria, err := NewSearchCriteria(nil, maxQuery, "", false, false, 1, 20)
 	if err != nil {
 		t.Fatalf("unexpected error for query at max length: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 		apiresourcekind.ApiResourceKind_skill,
 	}
 
-	criteria, err := NewSearchCriteria(kinds, "", "", false, 1, 20)
+	criteria, err := NewSearchCriteria(kinds, "", "", false, false, 1, 20)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestNewSearchCriteria_PageNumberClamping(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			criteria, err := NewSearchCriteria(nil, "", "", false, tc.input, 20)
+			criteria, err := NewSearchCriteria(nil, "", "", false, false, tc.input, 20)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -140,7 +140,7 @@ func TestNewSearchCriteria_PageSizeClamping(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			criteria, err := NewSearchCriteria(nil, "", "", false, 1, tc.input)
+			criteria, err := NewSearchCriteria(nil, "", "", false, false, 1, tc.input)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -153,7 +153,7 @@ func TestNewSearchCriteria_PageSizeClamping(t *testing.T) {
 
 func TestSearchCriteria_IsDiscoverMode(t *testing.T) {
 	t.Run("empty kinds is discover mode", func(t *testing.T) {
-		criteria, _ := NewSearchCriteria(nil, "query", "", false, 1, 20)
+		criteria, _ := NewSearchCriteria(nil, "query", "", false, false, 1, 20)
 		if !criteria.IsDiscoverMode() {
 			t.Error("expected discover mode with empty kinds")
 		}
@@ -162,7 +162,7 @@ func TestSearchCriteria_IsDiscoverMode(t *testing.T) {
 	t.Run("with kinds is not discover mode", func(t *testing.T) {
 		criteria, _ := NewSearchCriteria(
 			[]apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},
-			"query", "", false, 1, 20,
+			"query", "", false, false, 1, 20,
 		)
 		if criteria.IsDiscoverMode() {
 			t.Error("expected not discover mode with kinds specified")
@@ -172,21 +172,21 @@ func TestSearchCriteria_IsDiscoverMode(t *testing.T) {
 
 func TestSearchCriteria_HasQuery(t *testing.T) {
 	t.Run("empty query", func(t *testing.T) {
-		criteria, _ := NewSearchCriteria(nil, "", "", false, 1, 20)
+		criteria, _ := NewSearchCriteria(nil, "", "", false, false, 1, 20)
 		if criteria.HasQuery() {
 			t.Error("expected HasQuery to be false for empty query")
 		}
 	})
 
 	t.Run("whitespace-only query", func(t *testing.T) {
-		criteria, _ := NewSearchCriteria(nil, "   ", "", false, 1, 20)
+		criteria, _ := NewSearchCriteria(nil, "   ", "", false, false, 1, 20)
 		if criteria.HasQuery() {
 			t.Error("expected HasQuery to be false for whitespace-only query")
 		}
 	})
 
 	t.Run("non-empty query", func(t *testing.T) {
-		criteria, _ := NewSearchCriteria(nil, "kubernetes", "", false, 1, 20)
+		criteria, _ := NewSearchCriteria(nil, "kubernetes", "", false, false, 1, 20)
 		if !criteria.HasQuery() {
 			t.Error("expected HasQuery to be true for non-empty query")
 		}
@@ -195,14 +195,14 @@ func TestSearchCriteria_HasQuery(t *testing.T) {
 
 func TestSearchCriteria_HasOrgFilter(t *testing.T) {
 	t.Run("empty org filter", func(t *testing.T) {
-		criteria, _ := NewSearchCriteria(nil, "", "", false, 1, 20)
+		criteria, _ := NewSearchCriteria(nil, "", "", false, false, 1, 20)
 		if criteria.HasOrgFilter() {
 			t.Error("expected HasOrgFilter to be false for empty org")
 		}
 	})
 
 	t.Run("non-empty org filter", func(t *testing.T) {
-		criteria, _ := NewSearchCriteria(nil, "", "acme", false, 1, 20)
+		criteria, _ := NewSearchCriteria(nil, "", "acme", false, false, 1, 20)
 		if !criteria.HasOrgFilter() {
 			t.Error("expected HasOrgFilter to be true for non-empty org")
 		}
@@ -211,7 +211,7 @@ func TestSearchCriteria_HasOrgFilter(t *testing.T) {
 
 func TestSearchCriteria_EffectiveKinds(t *testing.T) {
 	t.Run("discover mode returns all searchable kinds", func(t *testing.T) {
-		criteria, _ := NewSearchCriteria(nil, "query", "", false, 1, 20)
+		criteria, _ := NewSearchCriteria(nil, "query", "", false, false, 1, 20)
 		effective := criteria.EffectiveKinds()
 
 		if len(effective) != len(SearchableKinds) {
@@ -229,7 +229,7 @@ func TestSearchCriteria_EffectiveKinds(t *testing.T) {
 		kinds := []apiresourcekind.ApiResourceKind{
 			apiresourcekind.ApiResourceKind_agent,
 		}
-		criteria, _ := NewSearchCriteria(kinds, "", "", false, 1, 20)
+		criteria, _ := NewSearchCriteria(kinds, "", "", false, false, 1, 20)
 		effective := criteria.EffectiveKinds()
 
 		if len(effective) != 1 {
@@ -255,7 +255,7 @@ func TestSearchCriteria_Offset(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			criteria, _ := NewSearchCriteria(nil, "", "", false, tc.pageNumber, tc.pageSize)
+			criteria, _ := NewSearchCriteria(nil, "", "", false, false, tc.pageNumber, tc.pageSize)
 			if criteria.Offset() != tc.expected {
 				t.Errorf("expected offset %d, got %d", tc.expected, criteria.Offset())
 			}
@@ -268,7 +268,7 @@ func TestSearchCriteria_Immutability(t *testing.T) {
 		apiresourcekind.ApiResourceKind_agent,
 	}
 
-	criteria, _ := NewSearchCriteria(kinds, "query", "org", false, 1, 20)
+	criteria, _ := NewSearchCriteria(kinds, "query", "org", false, false, 1, 20)
 
 	// Modify the original slice
 	kinds[0] = apiresourcekind.ApiResourceKind_skill

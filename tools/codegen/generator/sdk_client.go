@@ -582,8 +582,9 @@ func generateSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkRes
 	buf.WriteString("\treq := &searchv1.SearchRequest{\n")
 	fmt.Fprintf(buf, "\t\tKinds: []apiresourcekind.ApiResourceKind{%s},\n", kindConst)
 	buf.WriteString("\t\tQuery: params.Query,\n")
-	buf.WriteString("\t\tOrg:   params.Org,\n")
-	buf.WriteString("\t\tExcludePublic: params.ExcludePublic,\n")
+	buf.WriteString("\t\tOrg:            params.Org,\n")
+	buf.WriteString("\t\tExcludePublic:  params.ExcludePublic,\n")
+	buf.WriteString("\t\tCrossOrgPublic: params.CrossOrgPublic,\n")
 	buf.WriteString("\t}\n")
 	buf.WriteString("\tif params.Page != nil {\n")
 	buf.WriteString("\t\treq.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}\n")
@@ -1221,10 +1222,11 @@ type Page struct {
 
 // ListParams configures a SearchService-backed list query.
 type ListParams struct {
-	Org           string
-	Query         string
-	ExcludePublic bool
-	Page          *Page
+	Org            string
+	Query          string
+	ExcludePublic  bool
+	CrossOrgPublic bool
+	Page           *Page
 }
 
 // ListResult holds the response from a SearchService-backed list.

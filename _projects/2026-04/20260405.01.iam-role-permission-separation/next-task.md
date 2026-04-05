@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 - **Status**: in-progress
-- **Last Session**: 2026-04-05 (Session 6) — Track 2 backend RPCs for IAM access-list and revocation
-- **Active Task**: Backend RPCs complete; remaining work is client-side consumption (web/SDK via Track 1) and build infra improvements
+- **Last Session**: 2026-04-05 (Session 8) — Library scope filtering: `cross_org_public` across proto, Go/Java backends, codegen, SDKs, React hooks
+- **Active Task**: End-to-end testing, email-based invite, environment-level access management
 
 ## Session Progress (2026-04-05, Session 1)
 
@@ -154,12 +154,38 @@ When starting a new session:
   - 4 handler classes following `CustomOperationHandlerV2` pipeline pattern
   - Full Bazel build passed (57 targets), committed: `da4b45bb`
 
+## Session Progress (2026-04-05, Session 7)
+
+- **Track 1: Client-Side Consumption** — Full 6-phase implementation (codegen through Console integration)
+- Phase 0: Created `sdk_kind_meta_ts.go` codegen — generates `resource-availability.ts` and `authorization-config.ts` from proto `kind_meta` extensions
+- Phase A: SDK utils — `authorization-config.ts` (getGrantableRoles, hasGrantableRoles, isRoleGrantable), `iam-role.ts` (display names, enum-string conversion), re-exported `IamRole` from `@stigmer/sdk`
+- Phase B: React hooks — `useGrantableRoles`, `useCreateIamPolicy`, `useDeleteIamPolicy`
+- Phase C: React components — `useRoleSelector` (headless), `RoleSelector` (styled), `GrantAccessForm`
+- Phase D: Track 2 RPC hooks — `useResourceAccess`, `usePrincipalsCount`, `useRevokeOrgAccess`, `useWhoAmI`
+- Phase E: `OrgMembersPanel` — self-contained members management component with avatar, role badges, self-protection, change role, remove member, add member
+- Phase F: Console integration — `MembersSection` on `/settings` page, wired to `OrgContext`, cloud-only gate
+
+## Session Progress (2026-04-05, Session 8)
+
+- **Library scope filtering** — Fixed "All" library view to respect org boundaries
+- Added `bool cross_org_public = 6` to `SearchRequest` in `io.proto`
+- Go OSS backend: Extended `SearchCriteria`, replaced `buildOrgFilter`/`buildVisibilityFilter` with unified `buildScopeFilter` in `SQLiteSearchQueryStore`, updated 18 test cases
+- Java Cloud backend: Extended `SearchCriteria` record, added `orOperator` compound query in `MongoSearchQueryStore.buildQuery()`
+- SDK codegen: Updated all 4 language templates (TS, Go, Python, Java) to include `crossOrgPublic` in `ListParams` and search requests
+- Rebuilt `tools/generator`, regenerated all SDK client files
+- React SDK: Modified `useResourceList` and `useResourceSearch` — always pass `org` as active org, toggle `crossOrgPublic` based on scope ("all" vs "org")
+- Updated JSDoc for `ResourceListScope` to reflect new semantics
+- "All" now shows: current org's resources (any visibility) + public resources from other orgs
+- "Org" unchanged: only the current org's resources
+
 ## Next Steps
 
-1. Client-side consumption of `grantable_roles` and new RPCs (web app role selectors, SDK validation) — via Track 1
-2. Document the leaf-package pattern as a coding guideline
-3. Wire Mockito into `MODULE.bazel` and enable existing dead test files + pipeline construction tests
-4. Add enrichment paths to `PrincipalEnricher` for non-identity-account principal kinds (service accounts, teams) when those features are built
+1. End-to-end testing against running backend to verify the full flow
+2. Email-based invite (using `identityAccount.getByEmail()`) — friendlier than raw principal ID
+3. Environment-level access management (reusing `useResourceAccess` hook for different resource kinds)
+4. Document the leaf-package pattern as a coding guideline
+5. Wire Mockito into `MODULE.bazel` and enable existing dead test files + pipeline construction tests
+6. Add enrichment paths to `PrincipalEnricher` for non-identity-account principal kinds (service accounts, teams) when those features are built
 
 ## Context for Resume
 
@@ -181,10 +207,18 @@ When starting a new session:
 - **Track 2 new components**: `IamRoleMetadata` (api-shape), `ResourceHierarchyResolver`, `PrincipalEnricher`, 4 handlers, 5 repo methods — all in stigmer-cloud
 - **PrincipalEnricher** currently only enriches `identity_account` kind — extensible for other principal kinds
 - **ResourceHierarchyResolver** capped at 10 hops — hierarchy is typically 2-3 levels deep (platform -> org -> resource)
+- **Track 1 codegen**: `sdk_kind_meta_ts.go` generates `sdk/typescript/src/gen/resource-availability.ts` and `sdk/typescript/src/gen/authorization-config.ts` from Go proto stubs
+- **Track 1 SDK**: `@stigmer/sdk` exports `getGrantableRoles`, `hasGrantableRoles`, `isRoleGrantable`, `iamRoleDisplayName`, `iamRoleDescription`, `iamRoleToString`, `iamRoleFromString`, `IamRole`
+- **Track 1 React hooks**: `useGrantableRoles`, `useCreateIamPolicy`, `useDeleteIamPolicy`, `useResourceAccess`, `usePrincipalsCount`, `useRevokeOrgAccess`, `useWhoAmI` — all in `sdk/react/src/iam-policy/`
+- **Track 1 React components**: `RoleSelector` (styled radio-group), `GrantAccessForm` (principal ID + role), `OrgMembersPanel` (full members management) — all in `sdk/react/src/iam-policy/`
+- **Console**: `MembersSection` on `/settings` page reads `activeOrg` from `OrgContext`, renders `OrgMembersPanel`
+- **OrgMembersPanel** discovers current user via `useWhoAmI()` internally — self-protection disables edit/remove on own account
+- **Open question**: Need to verify backend populates `PrincipalAccess.principal` display fields (`name`, `email`, `avatar`) — if sparse, members list degrades to ID-only
 
 ## Blockers (if any)
 
-- None — backend validation guardrail and access-list RPCs are complete
+- None — backend validation, access-list RPCs, and client-side V1 are all complete
+- Open risk: role change (delete+create) is not atomic; if create fails after delete, user temporarily loses access
 
 ## Quick Resume
 

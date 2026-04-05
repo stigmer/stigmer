@@ -41,12 +41,13 @@ var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 // Only searchable resource kinds (agent, skill, mcp_server, workflow) are accepted.
 // Other kinds are silently filtered out for forward compatibility.
 type SearchCriteria struct {
-	kinds         []apiresourcekind.ApiResourceKind
-	query         string
-	orgFilter     string
-	excludePublic bool
-	pageNumber    int32
-	pageSize      int32
+	kinds          []apiresourcekind.ApiResourceKind
+	query          string
+	orgFilter      string
+	excludePublic  bool
+	crossOrgPublic bool
+	pageNumber     int32
+	pageSize       int32
 }
 
 // NewSearchCriteria creates a validated SearchCriteria from the provided parameters.
@@ -56,6 +57,7 @@ type SearchCriteria struct {
 //   - query: Search query (empty = list mode)
 //   - orgFilter: Organization to scope search (empty = all orgs)
 //   - excludePublic: Whether to exclude public/platform resources
+//   - crossOrgPublic: When true and orgFilter is set, also include public resources from other orgs
 //   - pageNumber: Page number (1-indexed, will be clamped to minimum of 1)
 //   - pageSize: Items per page (will be clamped to 1-100 range)
 //
@@ -65,6 +67,7 @@ func NewSearchCriteria(
 	query string,
 	orgFilter string,
 	excludePublic bool,
+	crossOrgPublic bool,
 	pageNumber int32,
 	pageSize int32,
 ) (*SearchCriteria, error) {
@@ -97,12 +100,13 @@ func NewSearchCriteria(
 	}
 
 	return &SearchCriteria{
-		kinds:         filteredKinds,
-		query:         normalizedQuery,
-		orgFilter:     normalizedOrg,
-		excludePublic: excludePublic,
-		pageNumber:    pageNumber,
-		pageSize:      pageSize,
+		kinds:          filteredKinds,
+		query:          normalizedQuery,
+		orgFilter:      normalizedOrg,
+		excludePublic:  excludePublic,
+		crossOrgPublic: crossOrgPublic,
+		pageNumber:     pageNumber,
+		pageSize:       pageSize,
 	}, nil
 }
 
@@ -130,6 +134,12 @@ func (c *SearchCriteria) OrgFilter() string {
 // ExcludePublic returns whether to exclude public/platform resources.
 func (c *SearchCriteria) ExcludePublic() bool {
 	return c.excludePublic
+}
+
+// CrossOrgPublic returns whether to include public resources from orgs
+// other than the org filter. Only meaningful when HasOrgFilter() is true.
+func (c *SearchCriteria) CrossOrgPublic() bool {
+	return c.crossOrgPublic
 }
 
 // PageNumber returns the page number (1-indexed).

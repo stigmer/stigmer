@@ -599,18 +599,21 @@ func generateJavaListParams(outputDir string) error {
     private final String org;
     private final String query;
     private final boolean excludePublic;
+    private final boolean crossOrgPublic;
     private final Page page;
 
     private ListParams(Builder builder) {
         this.org = builder.org;
         this.query = builder.query;
         this.excludePublic = builder.excludePublic;
+        this.crossOrgPublic = builder.crossOrgPublic;
         this.page = builder.page;
     }
 
     public String getOrg() { return org; }
     public String getQuery() { return query; }
     public boolean isExcludePublic() { return excludePublic; }
+    public boolean isCrossOrgPublic() { return crossOrgPublic; }
     public Page getPage() { return page; }
 
     public static Builder builder() { return new Builder(); }
@@ -619,6 +622,7 @@ func generateJavaListParams(outputDir string) error {
         private String org;
         private String query;
         private boolean excludePublic;
+        private boolean crossOrgPublic;
         private Page page;
 
         private Builder() {}
@@ -626,6 +630,7 @@ func generateJavaListParams(outputDir string) error {
         public Builder org(String org) { this.org = org; return this; }
         public Builder query(String query) { this.query = query; return this; }
         public Builder excludePublic(boolean excludePublic) { this.excludePublic = excludePublic; return this; }
+        public Builder crossOrgPublic(boolean crossOrgPublic) { this.crossOrgPublic = crossOrgPublic; return this; }
         public Builder page(Page page) { this.page = page; return this; }
 
         public ListParams build() { return new ListParams(this); }
@@ -1083,6 +1088,7 @@ func generateJavaSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sd
 	buf.WriteString("                req.setQuery(params.getQuery());\n")
 	buf.WriteString("            }\n")
 	buf.WriteString("            req.setExcludePublic(params.isExcludePublic());\n")
+	buf.WriteString("            req.setCrossOrgPublic(params.isCrossOrgPublic());\n")
 	buf.WriteString("            if (params.getPage() != null) {\n")
 	buf.WriteString("                req.setPage(PageInfo.newBuilder()\n")
 	buf.WriteString("                    .setNum(params.getPage().getNum())\n")
