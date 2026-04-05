@@ -7,6 +7,7 @@ import ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList;
 import ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList;
 import ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput;
 import ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult;
+import ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput;
 import ai.stigmer.iam.iampolicy.v1.IamPolicy;
 import ai.stigmer.iam.iampolicy.v1.IamPolicyCommandControllerGrpc;
 import ai.stigmer.iam.iampolicy.v1.IamPolicyId;
@@ -14,6 +15,12 @@ import ai.stigmer.iam.iampolicy.v1.IamPolicyQueryControllerGrpc;
 import ai.stigmer.iam.iampolicy.v1.IamPolicySpec;
 import ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput;
 import ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput;
+import ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput;
+import ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput;
+import ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles;
+import ai.stigmer.iam.iampolicy.v1.PrincipalsCount;
+import ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList;
+import ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput;
 import com.google.protobuf.Empty;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -52,6 +59,12 @@ public final class IamPolicyClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public void revokeOrgAccess(RevokeOrgAccessInput input) {
+        try {
+            command.revokeOrgAccess(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public IamPolicy get(String id) {
         try {
             return query.get(IamPolicyId.newBuilder().setValue(id).build());
@@ -73,6 +86,24 @@ public final class IamPolicyClient {
     public AuthorizedPrincipalIdsList listAuthorizedPrincipalIds(ListAuthorizedPrincipalIdsInput input) {
         try {
             return query.listAuthorizedPrincipalIds(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ResourceAccessByPrincipalList listResourceAccessByPrincipal(ListResourceAccessInput input) {
+        try {
+            return query.listResourceAccessByPrincipal(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public PrincipalResourceRoles getPrincipalResourceRoles(PrincipalResourceInput input) {
+        try {
+            return query.getPrincipalResourceRoles(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public PrincipalsCount getPrincipalsCount(GetPrincipalsCountInput input) {
+        try {
+            return query.getPrincipalsCount(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

@@ -150,6 +150,37 @@ public final class IamPolicyCommandControllerGrpc {
     return getCleanupResourcePoliciesMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput,
+      com.google.protobuf.Empty> getRevokeOrgAccessMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "revokeOrgAccess",
+      requestType = ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput.class,
+      responseType = com.google.protobuf.Empty.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput,
+      com.google.protobuf.Empty> getRevokeOrgAccessMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput, com.google.protobuf.Empty> getRevokeOrgAccessMethod;
+    if ((getRevokeOrgAccessMethod = IamPolicyCommandControllerGrpc.getRevokeOrgAccessMethod) == null) {
+      synchronized (IamPolicyCommandControllerGrpc.class) {
+        if ((getRevokeOrgAccessMethod = IamPolicyCommandControllerGrpc.getRevokeOrgAccessMethod) == null) {
+          IamPolicyCommandControllerGrpc.getRevokeOrgAccessMethod = getRevokeOrgAccessMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput, com.google.protobuf.Empty>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "revokeOrgAccess"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.google.protobuf.Empty.getDefaultInstance()))
+              .setSchemaDescriptor(new IamPolicyCommandControllerMethodDescriptorSupplier("revokeOrgAccess"))
+              .build();
+        }
+      }
+    }
+    return getRevokeOrgAccessMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -362,6 +393,33 @@ public final class IamPolicyCommandControllerGrpc {
         io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCleanupResourcePoliciesMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization.
+     * Removes every IAM policy that grants the specified identity account access to
+     * resources within the given organization, including policies on the organization
+     * itself and on child resources (environments, agents, etc.).
+     * &#64;internal
+     * The operation:
+     * 1. Validates the input (identity_account_id and organization_id are present)
+     * 2. Authorizes caller (can_grant_access on the organization)
+     * 3. Loads all policies where the user is principal within the org scope
+     * 4. Deletes all matching policies from MongoDB
+     * 5. Removes all corresponding tuples from OpenFGA
+     * Authorization:
+     * - Caller must have 'can_grant_access' permission on the organization
+     * Use Cases:
+     * - Removing a member from an organization
+     * - Offboarding a user from all org resources in one operation
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    default void revokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request,
+        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRevokeOrgAccessMethod(), responseObserver);
+    }
   }
 
   /**
@@ -558,6 +616,34 @@ public final class IamPolicyCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getCleanupResourcePoliciesMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization.
+     * Removes every IAM policy that grants the specified identity account access to
+     * resources within the given organization, including policies on the organization
+     * itself and on child resources (environments, agents, etc.).
+     * &#64;internal
+     * The operation:
+     * 1. Validates the input (identity_account_id and organization_id are present)
+     * 2. Authorizes caller (can_grant_access on the organization)
+     * 3. Loads all policies where the user is principal within the org scope
+     * 4. Deletes all matching policies from MongoDB
+     * 5. Removes all corresponding tuples from OpenFGA
+     * Authorization:
+     * - Caller must have 'can_grant_access' permission on the organization
+     * Use Cases:
+     * - Removing a member from an organization
+     * - Offboarding a user from all org resources in one operation
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    public void revokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request,
+        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRevokeOrgAccessMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -725,6 +811,33 @@ public final class IamPolicyCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getCleanupResourcePoliciesMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization.
+     * Removes every IAM policy that grants the specified identity account access to
+     * resources within the given organization, including policies on the organization
+     * itself and on child resources (environments, agents, etc.).
+     * &#64;internal
+     * The operation:
+     * 1. Validates the input (identity_account_id and organization_id are present)
+     * 2. Authorizes caller (can_grant_access on the organization)
+     * 3. Loads all policies where the user is principal within the org scope
+     * 4. Deletes all matching policies from MongoDB
+     * 5. Removes all corresponding tuples from OpenFGA
+     * Authorization:
+     * - Caller must have 'can_grant_access' permission on the organization
+     * Use Cases:
+     * - Removing a member from an organization
+     * - Offboarding a user from all org resources in one operation
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    public com.google.protobuf.Empty revokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRevokeOrgAccessMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -891,6 +1004,33 @@ public final class IamPolicyCommandControllerGrpc {
     public com.google.protobuf.Empty cleanupResourcePolicies(ai.stigmer.iam.iampolicy.v1.ApiResourceRef request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCleanupResourcePoliciesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization.
+     * Removes every IAM policy that grants the specified identity account access to
+     * resources within the given organization, including policies on the organization
+     * itself and on child resources (environments, agents, etc.).
+     * &#64;internal
+     * The operation:
+     * 1. Validates the input (identity_account_id and organization_id are present)
+     * 2. Authorizes caller (can_grant_access on the organization)
+     * 3. Loads all policies where the user is principal within the org scope
+     * 4. Deletes all matching policies from MongoDB
+     * 5. Removes all corresponding tuples from OpenFGA
+     * Authorization:
+     * - Caller must have 'can_grant_access' permission on the organization
+     * Use Cases:
+     * - Removing a member from an organization
+     * - Offboarding a user from all org resources in one operation
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    public com.google.protobuf.Empty revokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRevokeOrgAccessMethod(), getCallOptions(), request);
     }
   }
 
@@ -1063,12 +1203,41 @@ public final class IamPolicyCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getCleanupResourcePoliciesMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization.
+     * Removes every IAM policy that grants the specified identity account access to
+     * resources within the given organization, including policies on the organization
+     * itself and on child resources (environments, agents, etc.).
+     * &#64;internal
+     * The operation:
+     * 1. Validates the input (identity_account_id and organization_id are present)
+     * 2. Authorizes caller (can_grant_access on the organization)
+     * 3. Loads all policies where the user is principal within the org scope
+     * 4. Deletes all matching policies from MongoDB
+     * 5. Removes all corresponding tuples from OpenFGA
+     * Authorization:
+     * - Caller must have 'can_grant_access' permission on the organization
+     * Use Cases:
+     * - Removing a member from an organization
+     * - Offboarding a user from all org resources in one operation
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty> revokeOrgAccess(
+        ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRevokeOrgAccessMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE = 0;
   private static final int METHODID_DELETE = 1;
   private static final int METHODID_BOOTSTRAP_POLICY = 2;
   private static final int METHODID_CLEANUP_RESOURCE_POLICIES = 3;
+  private static final int METHODID_REVOKE_ORG_ACCESS = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1101,6 +1270,10 @@ public final class IamPolicyCommandControllerGrpc {
           break;
         case METHODID_CLEANUP_RESOURCE_POLICIES:
           serviceImpl.cleanupResourcePolicies((ai.stigmer.iam.iampolicy.v1.ApiResourceRef) request,
+              (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
+          break;
+        case METHODID_REVOKE_ORG_ACCESS:
+          serviceImpl.revokeOrgAccess((ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput) request,
               (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
           break;
         default:
@@ -1149,6 +1322,13 @@ public final class IamPolicyCommandControllerGrpc {
               ai.stigmer.iam.iampolicy.v1.ApiResourceRef,
               com.google.protobuf.Empty>(
                 service, METHODID_CLEANUP_RESOURCE_POLICIES)))
+        .addMethod(
+          getRevokeOrgAccessMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput,
+              com.google.protobuf.Empty>(
+                service, METHODID_REVOKE_ORG_ACCESS)))
         .build();
   }
 
@@ -1201,6 +1381,7 @@ public final class IamPolicyCommandControllerGrpc {
               .addMethod(getDeleteMethod())
               .addMethod(getBootstrapPolicyMethod())
               .addMethod(getCleanupResourcePoliciesMethod())
+              .addMethod(getRevokeOrgAccessMethod())
               .build();
         }
       }

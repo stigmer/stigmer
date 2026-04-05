@@ -41,7 +41,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
       "options.proto\032%ai/stigmer/iam/iampolicy/" +
       "v1/api.proto\032$ai/stigmer/iam/iampolicy/v" +
-      "1/io.proto2\310\005\n\030IamPolicyQueryController\022" +
+      "1/io.proto2\352\t\n\030IamPolicyQueryController\022" +
       "\205\001\n\003get\022(.ai.stigmer.iam.iampolicy.v1.Ia" +
       "mPolicyId\032&.ai.stigmer.iam.iampolicy.v1." +
       "IamPolicy\",\302\270\030(\010\005*$unauthorized to view " +
@@ -58,12 +58,25 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "am.iampolicy.v1.ListAuthorizedPrincipalI" +
       "dsInput\0327.ai.stigmer.iam.iampolicy.v1.Au" +
       "thorizedPrincipalIdsList\"5\302\270\0301\010\005*-unauth" +
-      "orized to view authorized principal ids\032" +
-      "\004\240\377+\nB\235\001B\nQueryProtoP\001\242\002\004ASII\252\002\033Ai.Stigm" +
-      "er.Iam.Iampolicy.V1\312\002\033Ai\\Stigmer\\Iam\\Iam" +
-      "policy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\" +
-      "GPBMetadata\352\002\037Ai::Stigmer::Iam::Iampolic" +
-      "y::V1b\006proto3"
+      "orized to view authorized principal ids\022" +
+      "\277\001\n\035listResourceAccessByPrincipal\0224.ai.s" +
+      "tigmer.iam.iampolicy.v1.ListResourceAcce" +
+      "ssInput\032:.ai.stigmer.iam.iampolicy.v1.Re" +
+      "sourceAccessByPrincipalList\",\302\270\030(\010\005*$una" +
+      "uthorized to view resource access\022\263\001\n\031ge" +
+      "tPrincipalResourceRoles\0223.ai.stigmer.iam" +
+      ".iampolicy.v1.PrincipalResourceInput\0323.a" +
+      "i.stigmer.iam.iampolicy.v1.PrincipalReso" +
+      "urceRoles\",\302\270\030(\010\005*$unauthorized to view " +
+      "principal roles\022\247\001\n\022getPrincipalsCount\0224" +
+      ".ai.stigmer.iam.iampolicy.v1.GetPrincipa" +
+      "lsCountInput\032,.ai.stigmer.iam.iampolicy." +
+      "v1.PrincipalsCount\"-\302\270\030)\010\005*%unauthorized" +
+      " to view principals count\032\004\240\377+\nB\235\001B\nQuer" +
+      "yProtoP\001\242\002\004ASII\252\002\033Ai.Stigmer.Iam.Iampoli" +
+      "cy.V1\312\002\033Ai\\Stigmer\\Iam\\Iampolicy\\V1\342\002\'Ai" +
+      "\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\352\002\037" +
+      "Ai::Stigmer::Iam::Iampolicy::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

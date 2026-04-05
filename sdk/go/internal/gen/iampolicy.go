@@ -43,6 +43,11 @@ func (i *IamPolicyClient) CleanupResourcePolicies(ctx context.Context, input *ia
 	return wrapErr(err)
 }
 
+func (i *IamPolicyClient) RevokeOrgAccess(ctx context.Context, input *iampolicyv1.RevokeOrgAccessInput) error {
+	_, err := i.command.RevokeOrgAccess(ctx, input)
+	return wrapErr(err)
+}
+
 func (i *IamPolicyClient) Get(ctx context.Context, id string) (*iampolicyv1.IamPolicy, error) {
 	resp, err := i.query.Get(ctx, &iampolicyv1.IamPolicyId{Value: id})
 	return resp, wrapErr(err)
@@ -60,6 +65,21 @@ func (i *IamPolicyClient) ListAuthorizedResourceIds(ctx context.Context, input *
 
 func (i *IamPolicyClient) ListAuthorizedPrincipalIds(ctx context.Context, input *iampolicyv1.ListAuthorizedPrincipalIdsInput) (*iampolicyv1.AuthorizedPrincipalIdsList, error) {
 	resp, err := i.query.ListAuthorizedPrincipalIds(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (i *IamPolicyClient) ListResourceAccessByPrincipal(ctx context.Context, input *iampolicyv1.ListResourceAccessInput) (*iampolicyv1.ResourceAccessByPrincipalList, error) {
+	resp, err := i.query.ListResourceAccessByPrincipal(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (i *IamPolicyClient) GetPrincipalResourceRoles(ctx context.Context, input *iampolicyv1.PrincipalResourceInput) (*iampolicyv1.PrincipalResourceRoles, error) {
+	resp, err := i.query.GetPrincipalResourceRoles(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (i *IamPolicyClient) GetPrincipalsCount(ctx context.Context, input *iampolicyv1.GetPrincipalsCountInput) (*iampolicyv1.PrincipalsCount, error) {
+	resp, err := i.query.GetPrincipalsCount(ctx, input)
 	return resp, wrapErr(err)
 }
 

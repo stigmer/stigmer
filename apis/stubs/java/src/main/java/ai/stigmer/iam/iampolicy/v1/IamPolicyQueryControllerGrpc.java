@@ -139,6 +139,99 @@ public final class IamPolicyQueryControllerGrpc {
     return getListAuthorizedPrincipalIdsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput,
+      ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList> getListResourceAccessByPrincipalMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listResourceAccessByPrincipal",
+      requestType = ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput.class,
+      responseType = ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput,
+      ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList> getListResourceAccessByPrincipalMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput, ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList> getListResourceAccessByPrincipalMethod;
+    if ((getListResourceAccessByPrincipalMethod = IamPolicyQueryControllerGrpc.getListResourceAccessByPrincipalMethod) == null) {
+      synchronized (IamPolicyQueryControllerGrpc.class) {
+        if ((getListResourceAccessByPrincipalMethod = IamPolicyQueryControllerGrpc.getListResourceAccessByPrincipalMethod) == null) {
+          IamPolicyQueryControllerGrpc.getListResourceAccessByPrincipalMethod = getListResourceAccessByPrincipalMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput, ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listResourceAccessByPrincipal"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList.getDefaultInstance()))
+              .setSchemaDescriptor(new IamPolicyQueryControllerMethodDescriptorSupplier("listResourceAccessByPrincipal"))
+              .build();
+        }
+      }
+    }
+    return getListResourceAccessByPrincipalMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput,
+      ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles> getGetPrincipalResourceRolesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getPrincipalResourceRoles",
+      requestType = ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.class,
+      responseType = ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput,
+      ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles> getGetPrincipalResourceRolesMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput, ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles> getGetPrincipalResourceRolesMethod;
+    if ((getGetPrincipalResourceRolesMethod = IamPolicyQueryControllerGrpc.getGetPrincipalResourceRolesMethod) == null) {
+      synchronized (IamPolicyQueryControllerGrpc.class) {
+        if ((getGetPrincipalResourceRolesMethod = IamPolicyQueryControllerGrpc.getGetPrincipalResourceRolesMethod) == null) {
+          IamPolicyQueryControllerGrpc.getGetPrincipalResourceRolesMethod = getGetPrincipalResourceRolesMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput, ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getPrincipalResourceRoles"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles.getDefaultInstance()))
+              .setSchemaDescriptor(new IamPolicyQueryControllerMethodDescriptorSupplier("getPrincipalResourceRoles"))
+              .build();
+        }
+      }
+    }
+    return getGetPrincipalResourceRolesMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput,
+      ai.stigmer.iam.iampolicy.v1.PrincipalsCount> getGetPrincipalsCountMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getPrincipalsCount",
+      requestType = ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput.class,
+      responseType = ai.stigmer.iam.iampolicy.v1.PrincipalsCount.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput,
+      ai.stigmer.iam.iampolicy.v1.PrincipalsCount> getGetPrincipalsCountMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput, ai.stigmer.iam.iampolicy.v1.PrincipalsCount> getGetPrincipalsCountMethod;
+    if ((getGetPrincipalsCountMethod = IamPolicyQueryControllerGrpc.getGetPrincipalsCountMethod) == null) {
+      synchronized (IamPolicyQueryControllerGrpc.class) {
+        if ((getGetPrincipalsCountMethod = IamPolicyQueryControllerGrpc.getGetPrincipalsCountMethod) == null) {
+          IamPolicyQueryControllerGrpc.getGetPrincipalsCountMethod = getGetPrincipalsCountMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput, ai.stigmer.iam.iampolicy.v1.PrincipalsCount>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getPrincipalsCount"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.PrincipalsCount.getDefaultInstance()))
+              .setSchemaDescriptor(new IamPolicyQueryControllerMethodDescriptorSupplier("getPrincipalsCount"))
+              .build();
+        }
+      }
+    }
+    return getGetPrincipalsCountMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -274,6 +367,60 @@ public final class IamPolicyQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListAuthorizedPrincipalIdsMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List all principals and their roles on a resource, grouped by principal.
+     * This RPC answers: "Who has access to this resource, and what roles do they have?"
+     * Returns each principal with full display information and all their role grants,
+     * optionally including roles inherited from parent resources.
+     * Use Cases:
+     * - Organization members page (show all users and their roles)
+     * - Resource "Share" dialog (show who already has access)
+     * - Access audit views
+     * Input: ListResourceAccessInput with resource ref and include_inherited flag
+     * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+     * </pre>
+     */
+    default void listResourceAccessByPrincipal(ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListResourceAccessByPrincipalMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get all roles a specific principal has on a specific resource.
+     * This RPC answers: "What roles does [principal] have on [resource]?"
+     * Returns role metadata (code, display name, description) for each assigned role.
+     * Use Cases:
+     * - Displaying a user's current role in a resource detail view
+     * - Pre-populating role selectors when editing access
+     * - Permission summary for a specific user-resource pair
+     * Input: PrincipalResourceInput with principal and resource refs
+     * Output: PrincipalResourceRoles with list of RoleInfo entries
+     * </pre>
+     */
+    default void getPrincipalResourceRoles(ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetPrincipalResourceRolesMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Count distinct principals that have access to a resource.
+     * This RPC answers: "How many [principal-kind] have access to this organization?"
+     * Used for member count badges and summary statistics.
+     * Use Cases:
+     * - Organization members count badge in navigation
+     * - Settings page member summary
+     * Input: GetPrincipalsCountInput with org_id and principal_kind
+     * Output: PrincipalsCount with integer count
+     * </pre>
+     */
+    default void getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.PrincipalsCount> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetPrincipalsCountMethod(), responseObserver);
+    }
   }
 
   /**
@@ -382,6 +529,63 @@ public final class IamPolicyQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListAuthorizedPrincipalIdsMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List all principals and their roles on a resource, grouped by principal.
+     * This RPC answers: "Who has access to this resource, and what roles do they have?"
+     * Returns each principal with full display information and all their role grants,
+     * optionally including roles inherited from parent resources.
+     * Use Cases:
+     * - Organization members page (show all users and their roles)
+     * - Resource "Share" dialog (show who already has access)
+     * - Access audit views
+     * Input: ListResourceAccessInput with resource ref and include_inherited flag
+     * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+     * </pre>
+     */
+    public void listResourceAccessByPrincipal(ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListResourceAccessByPrincipalMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get all roles a specific principal has on a specific resource.
+     * This RPC answers: "What roles does [principal] have on [resource]?"
+     * Returns role metadata (code, display name, description) for each assigned role.
+     * Use Cases:
+     * - Displaying a user's current role in a resource detail view
+     * - Pre-populating role selectors when editing access
+     * - Permission summary for a specific user-resource pair
+     * Input: PrincipalResourceInput with principal and resource refs
+     * Output: PrincipalResourceRoles with list of RoleInfo entries
+     * </pre>
+     */
+    public void getPrincipalResourceRoles(ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetPrincipalResourceRolesMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Count distinct principals that have access to a resource.
+     * This RPC answers: "How many [principal-kind] have access to this organization?"
+     * Used for member count badges and summary statistics.
+     * Use Cases:
+     * - Organization members count badge in navigation
+     * - Settings page member summary
+     * Input: GetPrincipalsCountInput with org_id and principal_kind
+     * Output: PrincipalsCount with integer count
+     * </pre>
+     */
+    public void getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.PrincipalsCount> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetPrincipalsCountMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -472,6 +676,60 @@ public final class IamPolicyQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListAuthorizedPrincipalIdsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List all principals and their roles on a resource, grouped by principal.
+     * This RPC answers: "Who has access to this resource, and what roles do they have?"
+     * Returns each principal with full display information and all their role grants,
+     * optionally including roles inherited from parent resources.
+     * Use Cases:
+     * - Organization members page (show all users and their roles)
+     * - Resource "Share" dialog (show who already has access)
+     * - Access audit views
+     * Input: ListResourceAccessInput with resource ref and include_inherited flag
+     * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList listResourceAccessByPrincipal(ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListResourceAccessByPrincipalMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get all roles a specific principal has on a specific resource.
+     * This RPC answers: "What roles does [principal] have on [resource]?"
+     * Returns role metadata (code, display name, description) for each assigned role.
+     * Use Cases:
+     * - Displaying a user's current role in a resource detail view
+     * - Pre-populating role selectors when editing access
+     * - Permission summary for a specific user-resource pair
+     * Input: PrincipalResourceInput with principal and resource refs
+     * Output: PrincipalResourceRoles with list of RoleInfo entries
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles getPrincipalResourceRoles(ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetPrincipalResourceRolesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Count distinct principals that have access to a resource.
+     * This RPC answers: "How many [principal-kind] have access to this organization?"
+     * Used for member count badges and summary statistics.
+     * Use Cases:
+     * - Organization members count badge in navigation
+     * - Settings page member summary
+     * Input: GetPrincipalsCountInput with org_id and principal_kind
+     * Output: PrincipalsCount with integer count
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.PrincipalsCount getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetPrincipalsCountMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -561,6 +819,60 @@ public final class IamPolicyQueryControllerGrpc {
     public ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList listAuthorizedPrincipalIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListAuthorizedPrincipalIdsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List all principals and their roles on a resource, grouped by principal.
+     * This RPC answers: "Who has access to this resource, and what roles do they have?"
+     * Returns each principal with full display information and all their role grants,
+     * optionally including roles inherited from parent resources.
+     * Use Cases:
+     * - Organization members page (show all users and their roles)
+     * - Resource "Share" dialog (show who already has access)
+     * - Access audit views
+     * Input: ListResourceAccessInput with resource ref and include_inherited flag
+     * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList listResourceAccessByPrincipal(ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListResourceAccessByPrincipalMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get all roles a specific principal has on a specific resource.
+     * This RPC answers: "What roles does [principal] have on [resource]?"
+     * Returns role metadata (code, display name, description) for each assigned role.
+     * Use Cases:
+     * - Displaying a user's current role in a resource detail view
+     * - Pre-populating role selectors when editing access
+     * - Permission summary for a specific user-resource pair
+     * Input: PrincipalResourceInput with principal and resource refs
+     * Output: PrincipalResourceRoles with list of RoleInfo entries
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles getPrincipalResourceRoles(ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetPrincipalResourceRolesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Count distinct principals that have access to a resource.
+     * This RPC answers: "How many [principal-kind] have access to this organization?"
+     * Used for member count badges and summary statistics.
+     * Use Cases:
+     * - Organization members count badge in navigation
+     * - Settings page member summary
+     * Input: GetPrincipalsCountInput with org_id and principal_kind
+     * Output: PrincipalsCount with integer count
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.PrincipalsCount getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetPrincipalsCountMethod(), getCallOptions(), request);
     }
   }
 
@@ -656,12 +968,72 @@ public final class IamPolicyQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListAuthorizedPrincipalIdsMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List all principals and their roles on a resource, grouped by principal.
+     * This RPC answers: "Who has access to this resource, and what roles do they have?"
+     * Returns each principal with full display information and all their role grants,
+     * optionally including roles inherited from parent resources.
+     * Use Cases:
+     * - Organization members page (show all users and their roles)
+     * - Resource "Share" dialog (show who already has access)
+     * - Access audit views
+     * Input: ListResourceAccessInput with resource ref and include_inherited flag
+     * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList> listResourceAccessByPrincipal(
+        ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListResourceAccessByPrincipalMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get all roles a specific principal has on a specific resource.
+     * This RPC answers: "What roles does [principal] have on [resource]?"
+     * Returns role metadata (code, display name, description) for each assigned role.
+     * Use Cases:
+     * - Displaying a user's current role in a resource detail view
+     * - Pre-populating role selectors when editing access
+     * - Permission summary for a specific user-resource pair
+     * Input: PrincipalResourceInput with principal and resource refs
+     * Output: PrincipalResourceRoles with list of RoleInfo entries
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles> getPrincipalResourceRoles(
+        ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetPrincipalResourceRolesMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Count distinct principals that have access to a resource.
+     * This RPC answers: "How many [principal-kind] have access to this organization?"
+     * Used for member count badges and summary statistics.
+     * Use Cases:
+     * - Organization members count badge in navigation
+     * - Settings page member summary
+     * Input: GetPrincipalsCountInput with org_id and principal_kind
+     * Output: PrincipalsCount with integer count
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.PrincipalsCount> getPrincipalsCount(
+        ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetPrincipalsCountMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_CHECK_AUTHORIZATION = 1;
   private static final int METHODID_LIST_AUTHORIZED_RESOURCE_IDS = 2;
   private static final int METHODID_LIST_AUTHORIZED_PRINCIPAL_IDS = 3;
+  private static final int METHODID_LIST_RESOURCE_ACCESS_BY_PRINCIPAL = 4;
+  private static final int METHODID_GET_PRINCIPAL_RESOURCE_ROLES = 5;
+  private static final int METHODID_GET_PRINCIPALS_COUNT = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -695,6 +1067,18 @@ public final class IamPolicyQueryControllerGrpc {
         case METHODID_LIST_AUTHORIZED_PRINCIPAL_IDS:
           serviceImpl.listAuthorizedPrincipalIds((ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList>) responseObserver);
+          break;
+        case METHODID_LIST_RESOURCE_ACCESS_BY_PRINCIPAL:
+          serviceImpl.listResourceAccessByPrincipal((ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList>) responseObserver);
+          break;
+        case METHODID_GET_PRINCIPAL_RESOURCE_ROLES:
+          serviceImpl.getPrincipalResourceRoles((ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles>) responseObserver);
+          break;
+        case METHODID_GET_PRINCIPALS_COUNT:
+          serviceImpl.getPrincipalsCount((ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.PrincipalsCount>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -742,6 +1126,27 @@ public final class IamPolicyQueryControllerGrpc {
               ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput,
               ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList>(
                 service, METHODID_LIST_AUTHORIZED_PRINCIPAL_IDS)))
+        .addMethod(
+          getListResourceAccessByPrincipalMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput,
+              ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList>(
+                service, METHODID_LIST_RESOURCE_ACCESS_BY_PRINCIPAL)))
+        .addMethod(
+          getGetPrincipalResourceRolesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput,
+              ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles>(
+                service, METHODID_GET_PRINCIPAL_RESOURCE_ROLES)))
+        .addMethod(
+          getGetPrincipalsCountMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput,
+              ai.stigmer.iam.iampolicy.v1.PrincipalsCount>(
+                service, METHODID_GET_PRINCIPALS_COUNT)))
         .build();
   }
 
@@ -794,6 +1199,9 @@ public final class IamPolicyQueryControllerGrpc {
               .addMethod(getCheckAuthorizationMethod())
               .addMethod(getListAuthorizedResourceIdsMethod())
               .addMethod(getListAuthorizedPrincipalIdsMethod())
+              .addMethod(getListResourceAccessByPrincipalMethod())
+              .addMethod(getGetPrincipalResourceRolesMethod())
+              .addMethod(getGetPrincipalsCountMethod())
               .build();
         }
       }

@@ -19,10 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IamPolicyQueryController_Get_FullMethodName                        = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/get"
-	IamPolicyQueryController_CheckAuthorization_FullMethodName         = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/checkAuthorization"
-	IamPolicyQueryController_ListAuthorizedResourceIds_FullMethodName  = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAuthorizedResourceIds"
-	IamPolicyQueryController_ListAuthorizedPrincipalIds_FullMethodName = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAuthorizedPrincipalIds"
+	IamPolicyQueryController_Get_FullMethodName                           = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/get"
+	IamPolicyQueryController_CheckAuthorization_FullMethodName            = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/checkAuthorization"
+	IamPolicyQueryController_ListAuthorizedResourceIds_FullMethodName     = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAuthorizedResourceIds"
+	IamPolicyQueryController_ListAuthorizedPrincipalIds_FullMethodName    = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAuthorizedPrincipalIds"
+	IamPolicyQueryController_ListResourceAccessByPrincipal_FullMethodName = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listResourceAccessByPrincipal"
+	IamPolicyQueryController_GetPrincipalResourceRoles_FullMethodName     = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalResourceRoles"
+	IamPolicyQueryController_GetPrincipalsCount_FullMethodName            = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalsCount"
 )
 
 // IamPolicyQueryControllerClient is the client API for IamPolicyQueryController service.
@@ -81,6 +84,45 @@ type IamPolicyQueryControllerClient interface {
 	// Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
 	// Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
 	ListAuthorizedPrincipalIds(ctx context.Context, in *ListAuthorizedPrincipalIdsInput, opts ...grpc.CallOption) (*AuthorizedPrincipalIdsList, error)
+	// List all principals and their roles on a resource, grouped by principal.
+	//
+	// This RPC answers: "Who has access to this resource, and what roles do they have?"
+	// Returns each principal with full display information and all their role grants,
+	// optionally including roles inherited from parent resources.
+	//
+	// Use Cases:
+	// - Organization members page (show all users and their roles)
+	// - Resource "Share" dialog (show who already has access)
+	// - Access audit views
+	//
+	// Input: ListResourceAccessInput with resource ref and include_inherited flag
+	// Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+	ListResourceAccessByPrincipal(ctx context.Context, in *ListResourceAccessInput, opts ...grpc.CallOption) (*ResourceAccessByPrincipalList, error)
+	// Get all roles a specific principal has on a specific resource.
+	//
+	// This RPC answers: "What roles does [principal] have on [resource]?"
+	// Returns role metadata (code, display name, description) for each assigned role.
+	//
+	// Use Cases:
+	// - Displaying a user's current role in a resource detail view
+	// - Pre-populating role selectors when editing access
+	// - Permission summary for a specific user-resource pair
+	//
+	// Input: PrincipalResourceInput with principal and resource refs
+	// Output: PrincipalResourceRoles with list of RoleInfo entries
+	GetPrincipalResourceRoles(ctx context.Context, in *PrincipalResourceInput, opts ...grpc.CallOption) (*PrincipalResourceRoles, error)
+	// Count distinct principals that have access to a resource.
+	//
+	// This RPC answers: "How many [principal-kind] have access to this organization?"
+	// Used for member count badges and summary statistics.
+	//
+	// Use Cases:
+	// - Organization members count badge in navigation
+	// - Settings page member summary
+	//
+	// Input: GetPrincipalsCountInput with org_id and principal_kind
+	// Output: PrincipalsCount with integer count
+	GetPrincipalsCount(ctx context.Context, in *GetPrincipalsCountInput, opts ...grpc.CallOption) (*PrincipalsCount, error)
 }
 
 type iamPolicyQueryControllerClient struct {
@@ -125,6 +167,36 @@ func (c *iamPolicyQueryControllerClient) ListAuthorizedPrincipalIds(ctx context.
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AuthorizedPrincipalIdsList)
 	err := c.cc.Invoke(ctx, IamPolicyQueryController_ListAuthorizedPrincipalIds_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iamPolicyQueryControllerClient) ListResourceAccessByPrincipal(ctx context.Context, in *ListResourceAccessInput, opts ...grpc.CallOption) (*ResourceAccessByPrincipalList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResourceAccessByPrincipalList)
+	err := c.cc.Invoke(ctx, IamPolicyQueryController_ListResourceAccessByPrincipal_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iamPolicyQueryControllerClient) GetPrincipalResourceRoles(ctx context.Context, in *PrincipalResourceInput, opts ...grpc.CallOption) (*PrincipalResourceRoles, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PrincipalResourceRoles)
+	err := c.cc.Invoke(ctx, IamPolicyQueryController_GetPrincipalResourceRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iamPolicyQueryControllerClient) GetPrincipalsCount(ctx context.Context, in *GetPrincipalsCountInput, opts ...grpc.CallOption) (*PrincipalsCount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PrincipalsCount)
+	err := c.cc.Invoke(ctx, IamPolicyQueryController_GetPrincipalsCount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -187,6 +259,45 @@ type IamPolicyQueryControllerServer interface {
 	// Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
 	// Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
 	ListAuthorizedPrincipalIds(context.Context, *ListAuthorizedPrincipalIdsInput) (*AuthorizedPrincipalIdsList, error)
+	// List all principals and their roles on a resource, grouped by principal.
+	//
+	// This RPC answers: "Who has access to this resource, and what roles do they have?"
+	// Returns each principal with full display information and all their role grants,
+	// optionally including roles inherited from parent resources.
+	//
+	// Use Cases:
+	// - Organization members page (show all users and their roles)
+	// - Resource "Share" dialog (show who already has access)
+	// - Access audit views
+	//
+	// Input: ListResourceAccessInput with resource ref and include_inherited flag
+	// Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+	ListResourceAccessByPrincipal(context.Context, *ListResourceAccessInput) (*ResourceAccessByPrincipalList, error)
+	// Get all roles a specific principal has on a specific resource.
+	//
+	// This RPC answers: "What roles does [principal] have on [resource]?"
+	// Returns role metadata (code, display name, description) for each assigned role.
+	//
+	// Use Cases:
+	// - Displaying a user's current role in a resource detail view
+	// - Pre-populating role selectors when editing access
+	// - Permission summary for a specific user-resource pair
+	//
+	// Input: PrincipalResourceInput with principal and resource refs
+	// Output: PrincipalResourceRoles with list of RoleInfo entries
+	GetPrincipalResourceRoles(context.Context, *PrincipalResourceInput) (*PrincipalResourceRoles, error)
+	// Count distinct principals that have access to a resource.
+	//
+	// This RPC answers: "How many [principal-kind] have access to this organization?"
+	// Used for member count badges and summary statistics.
+	//
+	// Use Cases:
+	// - Organization members count badge in navigation
+	// - Settings page member summary
+	//
+	// Input: GetPrincipalsCountInput with org_id and principal_kind
+	// Output: PrincipalsCount with integer count
+	GetPrincipalsCount(context.Context, *GetPrincipalsCountInput) (*PrincipalsCount, error)
 }
 
 // UnimplementedIamPolicyQueryControllerServer should be embedded to have
@@ -207,6 +318,15 @@ func (UnimplementedIamPolicyQueryControllerServer) ListAuthorizedResourceIds(con
 }
 func (UnimplementedIamPolicyQueryControllerServer) ListAuthorizedPrincipalIds(context.Context, *ListAuthorizedPrincipalIdsInput) (*AuthorizedPrincipalIdsList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListAuthorizedPrincipalIds not implemented")
+}
+func (UnimplementedIamPolicyQueryControllerServer) ListResourceAccessByPrincipal(context.Context, *ListResourceAccessInput) (*ResourceAccessByPrincipalList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListResourceAccessByPrincipal not implemented")
+}
+func (UnimplementedIamPolicyQueryControllerServer) GetPrincipalResourceRoles(context.Context, *PrincipalResourceInput) (*PrincipalResourceRoles, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPrincipalResourceRoles not implemented")
+}
+func (UnimplementedIamPolicyQueryControllerServer) GetPrincipalsCount(context.Context, *GetPrincipalsCountInput) (*PrincipalsCount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPrincipalsCount not implemented")
 }
 func (UnimplementedIamPolicyQueryControllerServer) testEmbeddedByValue() {}
 
@@ -300,6 +420,60 @@ func _IamPolicyQueryController_ListAuthorizedPrincipalIds_Handler(srv interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IamPolicyQueryController_ListResourceAccessByPrincipal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListResourceAccessInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IamPolicyQueryControllerServer).ListResourceAccessByPrincipal(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IamPolicyQueryController_ListResourceAccessByPrincipal_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IamPolicyQueryControllerServer).ListResourceAccessByPrincipal(ctx, req.(*ListResourceAccessInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IamPolicyQueryController_GetPrincipalResourceRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrincipalResourceInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IamPolicyQueryControllerServer).GetPrincipalResourceRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IamPolicyQueryController_GetPrincipalResourceRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IamPolicyQueryControllerServer).GetPrincipalResourceRoles(ctx, req.(*PrincipalResourceInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IamPolicyQueryController_GetPrincipalsCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPrincipalsCountInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IamPolicyQueryControllerServer).GetPrincipalsCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IamPolicyQueryController_GetPrincipalsCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IamPolicyQueryControllerServer).GetPrincipalsCount(ctx, req.(*GetPrincipalsCountInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IamPolicyQueryController_ServiceDesc is the grpc.ServiceDesc for IamPolicyQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -322,6 +496,18 @@ var IamPolicyQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listAuthorizedPrincipalIds",
 			Handler:    _IamPolicyQueryController_ListAuthorizedPrincipalIds_Handler,
+		},
+		{
+			MethodName: "listResourceAccessByPrincipal",
+			Handler:    _IamPolicyQueryController_ListResourceAccessByPrincipal_Handler,
+		},
+		{
+			MethodName: "getPrincipalResourceRoles",
+			Handler:    _IamPolicyQueryController_GetPrincipalResourceRoles_Handler,
+		},
+		{
+			MethodName: "getPrincipalsCount",
+			Handler:    _IamPolicyQueryController_GetPrincipalsCount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
