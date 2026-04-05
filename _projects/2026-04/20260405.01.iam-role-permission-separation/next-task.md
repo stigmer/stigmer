@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 - **Status**: in-progress
-- **Last Session**: 2026-04-05 (Session 5) — Unit tests for ValidateGrantableRole step
-- **Active Task**: T01 phases 1-7 complete + backend validation tested; remaining work is client-side consumption (web/SDK) and build infra improvements
+- **Last Session**: 2026-04-05 (Session 6) — Track 2 backend RPCs for IAM access-list and revocation
+- **Active Task**: Backend RPCs complete; remaining work is client-side consumption (web/SDK via Track 1) and build infra improvements
 
 ## Session Progress (2026-04-05, Session 1)
 
@@ -134,11 +134,32 @@ When starting a new session:
 - These tests are dead code — they exist but are never compiled or run by Bazel
 - Pipeline construction tests (verifying step count and ordering) require Mockito, so they are deferred until Mockito is wired into the build
 
+## Session Progress (2026-04-05, Session 6)
+
+- **Track 2: Backend RPCs** — Implemented all 4 new RPCs from the IAM grantable-roles client strategy plan
+- Analyzed Planton reference implementation (Postgres: JPA, JdbcTemplate, WITH RECURSIVE CTEs, json_agg) and adapted patterns for MongoDB
+- Architectural decisions (confirmed with user):
+  1. Role metadata via `IamRoleMetadata` Java utility class (not a MongoDB collection)
+  2. In-application enrichment from `IdentityAccountRepo` (not denormalized `api_resource_index`)
+  3. Application-level hierarchy traversal (not MongoDB `$graphLookup`)
+- **Proto changes (stigmer repo)**:
+  - 3 query RPCs: `listResourceAccessByPrincipal`, `getPrincipalResourceRoles`, `getPrincipalsCount`
+  - 1 command RPC: `revokeOrgAccess`
+  - All stubs regenerated, committed: `aba762e0`
+- **Backend implementation (stigmer-cloud repo)**:
+  - `IamRoleMetadata.java` — static role display metadata (api-shape lib)
+  - `ResourceHierarchyResolver.java` — ownership chain walker using scope tuples
+  - `PrincipalEnricher.java` — batch display enrichment for identity accounts
+  - `IamPolicyRepo.java` — +5 query methods including MongoDB aggregation for count
+  - 4 handler classes following `CustomOperationHandlerV2` pipeline pattern
+  - Full Bazel build passed (57 targets), committed: `da4b45bb`
+
 ## Next Steps
 
-1. Client-side consumption of `grantable_roles` (web app role selectors, SDK validation)
+1. Client-side consumption of `grantable_roles` and new RPCs (web app role selectors, SDK validation) — via Track 1
 2. Document the leaf-package pattern as a coding guideline
 3. Wire Mockito into `MODULE.bazel` and enable existing dead test files + pipeline construction tests
+4. Add enrichment paths to `PrincipalEnricher` for non-identity-account principal kinds (service accounts, teams) when those features are built
 
 ## Context for Resume
 
@@ -157,10 +178,13 @@ When starting a new session:
 - `ValidateGrantableRole` step has 7 unit tests in `IamPolicyCreateHandlerTest.java`, wired into Bazel as `iam_policy_create_handler_test`
 - Tests are pure JUnit 5 (no Mockito) — use real protobuf objects and real proto metadata
 - Mockito is NOT available in Bazel build graph — several existing Mockito-based test files are dead code (not wired as Bazel targets)
+- **Track 2 new components**: `IamRoleMetadata` (api-shape), `ResourceHierarchyResolver`, `PrincipalEnricher`, 4 handlers, 5 repo methods — all in stigmer-cloud
+- **PrincipalEnricher** currently only enriches `identity_account` kind — extensible for other principal kinds
+- **ResourceHierarchyResolver** capped at 10 hops — hierarchy is typically 2-3 levels deep (platform -> org -> resource)
 
 ## Blockers (if any)
 
-- None — backend validation guardrail is complete and tested
+- None — backend validation guardrail and access-list RPCs are complete
 
 ## Quick Resume
 
