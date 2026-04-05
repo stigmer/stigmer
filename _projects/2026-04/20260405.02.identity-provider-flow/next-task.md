@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-05 09:00
-**Current Task**: Phase 6 — SDK React components
+**Current Task**: Phase 7 — Web app IdP management pages
 **Status**: Not Started
-**Last Session**: 2026-04-05 — Phase 5 completed (secure identity account lookups)
+**Last Session**: 2026-04-05 — Phase 6 completed (Identity Provider React SDK feature folder)
 
 ## Session Progress (2026-04-05)
 
@@ -130,6 +130,21 @@ When starting a new session:
   - Cleaned up Redis cache methods used only by dead proxies
   - All stubs regenerated in both repos
 
+- **Phase 6: Identity Provider React SDK** — Done (Session 6)
+  - **Prerequisite — listByOrg RPC**:
+    - `ListIdentityProvidersByOrgInput` message in `io.proto`, `listByOrg` RPC in `query.proto` with org-level `can_view` authorization
+    - `IdentityProviderListByOrgHandler.java` in stigmer-cloud using `findByOrg(org)` repo method
+    - Full codegen pipeline (`make protos`) — regenerated all stubs
+  - **React SDK feature folder** (`sdk/react/src/identity-provider/`, 9 files):
+    - Data hooks: `useIdentityProviderList(org)`, `useIdentityProvider(id)`, `useSsoProvider(org)`
+    - Mutation hooks: `useCreateIdentityProvider()`, `useUpdateIdentityProvider()`, `useDeleteIdentityProvider()`
+    - Styled components: `IdentityProviderListPanel`, `CreateIdentityProviderForm`
+    - Feature barrel + root barrel exports
+  - TypeScript type check passes cleanly
+  - Decision: SearchService doesn't index IdPs — dedicated `listByOrg` RPC is correct approach
+  - Decision: `useSsoProvider` treats NOT_FOUND as absence (null), not error — for unauthenticated login pages
+  - Decision: IAM policy hooks/components already exist from separate project — will be composed in Phase 7
+
 ### Key Design Decisions
 - **`idp_id` is not globally unique, but that's fine**: For direct/Auth0 accounts, idp_id is effectively unique. For federated accounts, uniqueness is the compound `(identityProviderRef.org, identityProviderRef.slug, idpId)`. No changes needed.
 - **`getByIdpId` uses direct `findByIdpId`**: Removed Auth0 Management API call + email indirection. Auth0 IDs are unique within the tenant.
@@ -161,11 +176,9 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Phase 6: SDK React components** — `identity-provider/` and `iam-policy/` feature folders with hooks and components
+1. **Phase 7: Web app IdP management pages** — Settings page composing identity-provider and iam-policy components, SSO OIDC RP login flow
 
-2. **Phase 7: Web app IdP management pages** — including SSO OIDC RP login flow
-
-3. **Phase 8: Documentation** — federation flow documentation for platform builders
+2. **Phase 8: Documentation** — federation flow documentation for platform builders
 
 ## Context for Resume
 

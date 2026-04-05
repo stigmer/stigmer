@@ -28,6 +28,13 @@ message IdentityProviderList {
   repeated IdentityProvider entries = 2;
 }
 
+// ListIdentityProvidersByOrgInput specifies the organization whose identity
+// providers should be returned.
+message ListIdentityProvidersByOrgInput {
+  // Organization slug to list identity providers for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
 // OrganizationSsoLookup identifies an organization for SSO provider discovery.
 // Used by the web app's login page to determine whether an organization has
 // SSO enabled and to retrieve the OIDC configuration needed to initiate login.

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciItChVPcmdhbml6YXRpb25Tc29Mb29rdXASFAoDb3JnGAEgASgJQge6SARyAhABIk8KD1Nzb1Byb3ZpZGVySW5mbxIUCgxkaXNwbGF5X25hbWUYASABKAkSFgoOb2lkY19jbGllbnRfaWQYAiABKAkSDgoGaXNzdWVyGAMgASgJYgZwcm90bzM", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASItChVPcmdhbml6YXRpb25Tc29Mb29rdXASFAoDb3JnGAEgASgJQge6SARyAhABIk8KD1Nzb1Byb3ZpZGVySW5mbxIUCgxkaXNwbGF5X25hbWUYASABKAkSFgoOb2lkY19jbGllbnRfaWQYAiABKAkSDgoGaXNzdWVyGAMgASgJYgZwcm90bzM", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate]);
 
 /**
  * IdentityProviderId identifies an identity provider by its unique identifier.
@@ -86,6 +86,28 @@ export const IdentityProviderListSchema: GenMessage<IdentityProviderList> = /*@_
   messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 2);
 
 /**
+ * ListIdentityProvidersByOrgInput specifies the organization whose identity
+ * providers should be returned.
+ *
+ * @generated from message ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput
+ */
+export type ListIdentityProvidersByOrgInput = Message<"ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput"> & {
+  /**
+   * Organization slug to list identity providers for.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput.
+ * Use `create(ListIdentityProvidersByOrgInputSchema)` to create a new message.
+ */
+export const ListIdentityProvidersByOrgInputSchema: GenMessage<ListIdentityProvidersByOrgInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 3);
+
+/**
  * OrganizationSsoLookup identifies an organization for SSO provider discovery.
  * Used by the web app's login page to determine whether an organization has
  * SSO enabled and to retrieve the OIDC configuration needed to initiate login.
@@ -106,7 +128,7 @@ export type OrganizationSsoLookup = Message<"ai.stigmer.iam.identityprovider.v1.
  * Use `create(OrganizationSsoLookupSchema)` to create a new message.
  */
 export const OrganizationSsoLookupSchema: GenMessage<OrganizationSsoLookup> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 3);
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 4);
 
 /**
  * SsoProviderInfo contains the minimal OIDC configuration the web app needs
@@ -149,5 +171,5 @@ export type SsoProviderInfo = Message<"ai.stigmer.iam.identityprovider.v1.SsoPro
  * Use `create(SsoProviderInfoSchema)` to create a new message.
  */
 export const SsoProviderInfoSchema: GenMessage<SsoProviderInfo> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 4);
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 5);
 

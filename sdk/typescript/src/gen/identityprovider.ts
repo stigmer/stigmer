@@ -10,7 +10,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IdentityProviderSchema, type IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { OrganizationSsoLookupSchema, SsoProviderInfoSchema, type OrganizationSsoLookup, type SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import { ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders, type OrganizationSsoLookup, type SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 
@@ -61,6 +61,12 @@ export class IdentityProviderClient {
   async getByReference(ref: ResourceRef): Promise<IdentityProvider> {
     try {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.identity_provider }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listByOrg(input: ListIdentityProvidersByOrgInput): Promise<IdentityProviders> {
+    try {
+      return await this.query.listByOrg(input);
     } catch (e) { throw wrapError(e); }
   }
 

@@ -26,10 +26,11 @@ var File_ai_stigmer_iam_identityprovider_v1_query_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_iam_identityprovider_v1_query_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/iam/identityprovider/v1/query.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a+ai/stigmer/iam/identityprovider/v1/io.proto2\xdb\x03\n" +
+	".ai/stigmer/iam/identityprovider/v1/query.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a+ai/stigmer/iam/identityprovider/v1/io.proto2\xb2\x05\n" +
 	"\x1fIdentityProviderQueryController\x12\xa3\x01\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"7¸\x183\b\x01\x10\x15\"\x05value*&unauthorized to view identity provider\x12\x82\x01\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"\x04и\x18\x01\x12\x86\x01\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"\x04и\x18\x01\x12\xd4\x01\n" +
+	"\tlistByOrg\x12C.ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput\x1a5.ai.stigmer.iam.identityprovider.v1.IdentityProviders\"K¸\x18G\b\x01\x10\x1e\"\x03org*<unauthorized to list identity providers in this organization\x12\x86\x01\n" +
 	"\x0egetSsoProvider\x129.ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup\x1a3.ai.stigmer.iam.identityprovider.v1.SsoProviderInfo\"\x04и\x18\x01\x1a\x04\xa0\xff+\x15B\xc4\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\n" +
 	"QueryProtoP\x01Zagithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
@@ -37,19 +38,23 @@ const file_ai_stigmer_iam_identityprovider_v1_query_proto_rawDesc = "" +
 var file_ai_stigmer_iam_identityprovider_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*OrganizationSsoLookup)(nil),            // 2: ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup
-	(*IdentityProvider)(nil),                 // 3: ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	(*SsoProviderInfo)(nil),                  // 4: ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
+	(*ListIdentityProvidersByOrgInput)(nil),  // 2: ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput
+	(*OrganizationSsoLookup)(nil),            // 3: ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup
+	(*IdentityProvider)(nil),                 // 4: ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	(*IdentityProviders)(nil),                // 5: ai.stigmer.iam.identityprovider.v1.IdentityProviders
+	(*SsoProviderInfo)(nil),                  // 6: ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
 }
 var file_ai_stigmer_iam_identityprovider_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.get:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
 	1, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getSsoProvider:input_type -> ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup
-	3, // 3: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.get:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	3, // 4: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getByReference:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	4, // 5: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getSsoProvider:output_type -> ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	2, // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.listByOrg:input_type -> ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput
+	3, // 3: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getSsoProvider:input_type -> ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup
+	4, // 4: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.get:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	4, // 5: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getByReference:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	5, // 6: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.listByOrg:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProviders
+	6, // 7: ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getSsoProvider:output_type -> ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

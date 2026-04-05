@@ -59,6 +59,11 @@ func (i *IdentityProviderClient) GetByReference(ctx context.Context, ref Resourc
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityProviderClient) ListByOrg(ctx context.Context, input *identityproviderv1.ListIdentityProvidersByOrgInput) (*identityproviderv1.IdentityProviders, error) {
+	resp, err := i.query.ListByOrg(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IdentityProviderClient) GetSsoProvider(ctx context.Context, input *identityproviderv1.OrganizationSsoLookup) (*identityproviderv1.SsoProviderInfo, error) {
 	resp, err := i.query.GetSsoProvider(ctx, input)
 	return resp, wrapErr(err)
