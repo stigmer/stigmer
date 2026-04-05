@@ -86,6 +86,8 @@ func (s *SQLiteSearchQueryStore) searchWithQuery(
 	// Escape the query for FTS5 (handle special characters)
 	escapedQuery := escapeFTS5Query(criteria.Query())
 
+	scopeSQL, scopeArgs := s.buildScopeFilter(criteria)
+
 	// Build the count query first (to get total counts per kind)
 	countQuery := fmt.Sprintf(`
 		SELECT kind, COUNT(*) as cnt
@@ -93,15 +95,12 @@ func (s *SQLiteSearchQueryStore) searchWithQuery(
 		WHERE search_index MATCH ?
 		  AND kind IN (%s)
 		  %s
-		  %s
 		GROUP BY kind
-	`, strings.Join(kindStrings, ","), s.buildOrgFilter(criteria), s.buildVisibilityFilter(criteria))
+	`, strings.Join(kindStrings, ","), scopeSQL)
 
 	// Build args for count query
 	countArgs := append([]interface{}{escapedQuery}, kindArgs...)
-	if criteria.HasOrgFilter() {
-		countArgs = append(countArgs, criteria.OrgFilter())
-	}
+	countArgs = append(countArgs, scopeArgs...)
 
 	// Execute count query
 	countsByKind, totalCount, err := s.executeCountQuery(ctx, countQuery, countArgs)
@@ -114,23 +113,19 @@ func (s *SQLiteSearchQueryStore) searchWithQuery(
 	}
 
 	// Build the search query with ranking
-	// Using bm25() with custom weights for ranking
 	searchQuery := fmt.Sprintf(`
 		SELECT kind, resource_id, bm25(search_index, 1.0, 0, 10.0, 5.0, 5.0) as rank
 		FROM search_index
 		WHERE search_index MATCH ?
 		  AND kind IN (%s)
 		  %s
-		  %s
 		ORDER BY rank
 		LIMIT ? OFFSET ?
-	`, strings.Join(kindStrings, ","), s.buildOrgFilter(criteria), s.buildVisibilityFilter(criteria))
+	`, strings.Join(kindStrings, ","), scopeSQL)
 
 	// Build args for search query
 	searchArgs := append([]interface{}{escapedQuery}, kindArgs...)
-	if criteria.HasOrgFilter() {
-		searchArgs = append(searchArgs, criteria.OrgFilter())
-	}
+	searchArgs = append(searchArgs, scopeArgs...)
 	searchArgs = append(searchArgs, criteria.PageSize(), criteria.Offset())
 
 	// Execute search query
@@ -156,21 +151,20 @@ func (s *SQLiteSearchQueryStore) listWithoutQuery(
 		kindArgs[i] = k.String()
 	}
 
+	scopeSQL, scopeArgs := s.buildScopeFilter(criteria)
+
 	// Build the count query
 	countQuery := fmt.Sprintf(`
 		SELECT kind, COUNT(*) as cnt
 		FROM search_index
 		WHERE kind IN (%s)
 		  %s
-		  %s
 		GROUP BY kind
-	`, strings.Join(kindStrings, ","), s.buildOrgFilter(criteria), s.buildVisibilityFilter(criteria))
+	`, strings.Join(kindStrings, ","), scopeSQL)
 
 	// Build args for count query
 	countArgs := append([]interface{}{}, kindArgs...)
-	if criteria.HasOrgFilter() {
-		countArgs = append(countArgs, criteria.OrgFilter())
-	}
+	countArgs = append(countArgs, scopeArgs...)
 
 	// Execute count query
 	countsByKind, totalCount, err := s.executeCountQuery(ctx, countQuery, countArgs)
@@ -188,16 +182,13 @@ func (s *SQLiteSearchQueryStore) listWithoutQuery(
 		FROM search_index
 		WHERE kind IN (%s)
 		  %s
-		  %s
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?
-	`, strings.Join(kindStrings, ","), s.buildOrgFilter(criteria), s.buildVisibilityFilter(criteria))
+	`, strings.Join(kindStrings, ","), scopeSQL)
 
 	// Build args for list query
 	listArgs := append([]interface{}{}, kindArgs...)
-	if criteria.HasOrgFilter() {
-		listArgs = append(listArgs, criteria.OrgFilter())
-	}
+	listArgs = append(listArgs, scopeArgs...)
 	listArgs = append(listArgs, criteria.PageSize(), criteria.Offset())
 
 	// Execute list query
@@ -209,20 +200,34 @@ func (s *SQLiteSearchQueryStore) listWithoutQuery(
 	return valueobject.NewSearchPagedResult(results, countsByKind, totalCount, criteria.PageSize())
 }
 
-// buildOrgFilter returns the SQL fragment for org filtering.
-func (s *SQLiteSearchQueryStore) buildOrgFilter(criteria *valueobject.SearchCriteria) string {
-	if criteria.HasOrgFilter() {
-		return "AND org = ?"
-	}
-	return ""
-}
+// buildScopeFilter returns a SQL WHERE fragment and its bind args for org
+// and visibility filtering. The returned fragment is intended to be appended
+// after a base WHERE clause (it starts with "AND ...").
+//
+// The three modes:
+//   - org set, crossOrgPublic false: strict org filter
+//   - org set, crossOrgPublic true:  org filter OR public from any org
+//   - org empty:                     no org filter (all accessible orgs)
+//
+// excludePublic is applied independently on top of the above.
+func (s *SQLiteSearchQueryStore) buildScopeFilter(criteria *valueobject.SearchCriteria) (string, []interface{}) {
+	var clauses []string
+	var args []interface{}
 
-// buildVisibilityFilter returns the SQL fragment for visibility filtering.
-func (s *SQLiteSearchQueryStore) buildVisibilityFilter(criteria *valueobject.SearchCriteria) string {
-	if criteria.ExcludePublic() {
-		return "AND visibility != 'visibility_public'"
+	if criteria.HasOrgFilter() {
+		if criteria.CrossOrgPublic() {
+			clauses = append(clauses, "AND (org = ? OR visibility = 'visibility_public')")
+		} else {
+			clauses = append(clauses, "AND org = ?")
+		}
+		args = append(args, criteria.OrgFilter())
 	}
-	return ""
+
+	if criteria.ExcludePublic() {
+		clauses = append(clauses, "AND visibility != 'visibility_public'")
+	}
+
+	return strings.Join(clauses, "\n		  "), args
 }
 
 // executeCountQuery executes a count query and returns counts by kind.
