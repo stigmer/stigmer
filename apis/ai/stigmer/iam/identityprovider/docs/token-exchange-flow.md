@@ -1,44 +1,43 @@
 # Token Exchange Flow
 
-How Stigmer validates external platform tokens and provisions federated identity accounts.
+How Stigmer validates external platform tokens and resolves federated identity accounts.
 
 ## Overview
 
-The token exchange flow is the mechanism by which an external platform's authenticated users gain access to Stigmer's API without creating separate Stigmer credentials. The flow converts a platform-issued OIDC access token into a Stigmer-native token.
+The token exchange flow is the mechanism by which an external platform's authenticated users gain access to Stigmer's API without creating separate Stigmer credentials. The flow validates a platform-issued OIDC access token and resolves the user's pre-created federated identity account.
 
 ```
-Step 1: Platform authenticates user
+Step 1: Platform creates a federated account (one-time, before auth)
+  └─► Platform backend calls createFederatedAccount with the user's
+      external sub, email, name, and IdentityProvider reference.
+      Stigmer returns the identity_account_id for role grants.
+
+Step 2: Platform authenticates user
   └─► User logs in to the external platform (e.g., Planton Cloud)
 
-Step 2: Platform calls Stigmer's token exchange endpoint
-  └─► POST to Stigmer's token exchange endpoint
-      Authorization: Bearer {platform_access_token}
-      Header or body: identity_provider reference (org + slug)
+Step 3: User calls Stigmer API with a platform-issued JWT
+  └─► Authorization: Bearer {platform_access_token}
 
-Step 3: Stigmer validates the token
+Step 4: Stigmer validates the token
+  ├─► Peek the JWT iss claim (without full validation)
+  ├─► Look up an IdentityProvider whose allowed_issuers contains this issuer
   ├─► Fetch current signing keys from spec.jwks_uri
   ├─► Verify JWT signature using the fetched keys
   ├─► Validate JWT claims:
   │     iss must be in spec.allowed_issuers
   │     aud must equal spec.expected_audience
-  └─► Token is valid — extract subject and proceed
+  └─► Token is valid — extract sub claim and proceed
 
-Step 4: Stigmer fetches user profile
-  └─► GET spec.userinfo_endpoint
-      Authorization: Bearer {platform_access_token}
-      Response: { sub, email, name, given_name, family_name, picture }
+Step 5: Stigmer resolves the federated account
+  ├─► Look up IdentityAccount by (identity_provider_ref, idp_id)
+  │   where idp_id is the raw sub claim from the JWT
+  ├─► If found: proceed with FGA authorization checks
+  └─► If NOT found: return 401 Unauthorized
+        ("The platform must create the account before authentication")
 
-Step 5: Stigmer JIT-provisions the federated account
-  ├─► Compute idp_id = "federated:{provider_id}:{external_sub}"
-  ├─► If no IdentityAccount with this idp_id exists:
-  │     └─► Create IdentityAccount (direct system call, no FGA check yet)
-  │         Write self-ownership FGA tuple
-  └─► If IdentityAccount already exists:
-        └─► Update email, name, picture_url from UserInfo (profile refresh)
-
-Step 6: Stigmer issues a native token
-  └─► Return a Stigmer-native JWT to the calling platform
-      The platform uses this token for all subsequent Stigmer API calls
+Step 6: Stigmer processes the API request
+  └─► The resolved identity account is used for FGA authorization
+      checks on the requested resource
 ```
 
 ## OIDC Standards
@@ -96,7 +95,7 @@ This allows tokens from either environment to authenticate via the same Identity
 | Expired tokens | Standard JWT `exp` claim validation is enforced |
 | Issuer substitution | `allowed_issuers` whitelist prevents tokens from unexpected issuers |
 | Secret exposure | No client secrets are stored in the IdentityProvider spec — only public keys (via JWKS URI) |
-| Profile staleness | UserInfo is fetched on every token exchange, keeping profile data current |
+| Profile staleness | The platform provides profile data at account creation; updates can be pushed via the update RPC |
 
 ## Related Documentation
 

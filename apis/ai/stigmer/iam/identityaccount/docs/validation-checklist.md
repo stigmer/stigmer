@@ -41,7 +41,7 @@ spec:
 
 ### Attempting to Call `create` Directly
 
-The `create` RPC is system-level. It is called by the Auth0 webhook handler and the federated JIT flow, not by end users or CLI. Direct invocation without the system machine account context will be rejected.
+The `create` RPC is system-level. It is called by the Auth0 webhook handler and the federated account creation flow, not by end users or CLI. Direct invocation without the system machine account context will be rejected.
 
 To create an account for an existing Auth0 user that Stigmer missed, use `simulateSignupWebhook`:
 
@@ -49,13 +49,9 @@ To create an account for an existing Auth0 user that Stigmer missed, use `simula
 stigmer identity-account simulate-signup-webhook --email alice@example.com
 ```
 
-### Expecting to Read `email` for Federated Accounts Immediately
+### Federated Account Must Be Created Before Authentication
 
-For federated accounts, `email` is populated during the token exchange flow when the IdentityProvider's UserInfo endpoint is called. If you create a federated account and immediately query it before any token exchange has occurred, `email` may be empty.
-
-### Attempting to Set `picture_url` for Federated Accounts Permanently
-
-For federated accounts, `picture_url` is overwritten on every token exchange from the IdentityProvider's UserInfo endpoint. Manual updates to `picture_url` on federated accounts will be overwritten the next time the account holder authenticates.
+Federated identity accounts must be explicitly created by the platform via the `createFederatedAccount` RPC before the user attempts to authenticate. If a user presents a valid JWT but no account exists for their `(identity_provider_ref, sub)` pair, Stigmer returns 401 Unauthorized.
 
 ### Confusing IdentityAccount ID with IDP ID
 

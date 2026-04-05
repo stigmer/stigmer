@@ -6,7 +6,7 @@ Comprehensive documentation for the `iam.stigmer.ai/v1` IdentityProvider resourc
 
 An IdentityProvider represents an external platform's trust relationship with Stigmer. It configures how Stigmer validates signed JWT assertions from that platform, enabling the platform's users to authenticate to Stigmer via a token exchange flow.
 
-A typical use case: a platform like Planton Cloud wants its users to access Stigmer's AI features. Instead of requiring users to create a separate Stigmer account, Planton Cloud registers an IdentityProvider. When a user authenticates on Planton Cloud, that platform exchanges the user's OIDC token for a Stigmer-native token, automatically creating a [federated IdentityAccount](../../identityaccount/docs/README.md) on first use.
+A typical use case: a platform like Planton Cloud wants its users to access Stigmer's AI features. Instead of requiring users to create a separate Stigmer account, Planton Cloud registers an IdentityProvider and explicitly creates [federated IdentityAccounts](../../identityaccount/docs/README.md) for its users. When a user authenticates on Planton Cloud, Stigmer validates the platform-issued JWT and resolves the pre-created federated account.
 
 ## Token Exchange Flow
 
@@ -25,8 +25,8 @@ User authenticates
                           Fetch user profile
                           (calls userinfo_endpoint)
                                   │
-                          JIT-provision IdentityAccount
-                          (if first time) or refresh profile
+                          Resolve federated IdentityAccount
+                          (must be pre-created by the platform)
                                   │
                           Issue Stigmer-native token
                                   │
@@ -43,7 +43,7 @@ User authenticates
 | **JWKS URI** | The endpoint Stigmer fetches signing keys from to verify JWT signatures. |
 | **Allowed issuers** | The `iss` claim values Stigmer will accept. Tokens with any other issuer are rejected. |
 | **Expected audience** | The `aud` claim value every token must include. Prevents tokens from other services being accepted. |
-| **UserInfo endpoint** | Called on every token exchange to fetch and refresh the user's profile (email, name, picture). |
+| **UserInfo endpoint** | OIDC UserInfo endpoint URL. Available for profile data fetching if needed. |
 | **No secrets stored** | The spec contains only public validation configuration — no client secrets or private keys. |
 | **Rate limit budget** | Shared requests-per-minute budget across all organizations managed through this provider. `0` means no limit. |
 

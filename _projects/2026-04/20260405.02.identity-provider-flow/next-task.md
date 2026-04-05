@@ -9,7 +9,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Fix the MongoDB email uniqueness bug, remove JIT provisioning in favor of explicit platform-driven account creation, design self-managed SSO, build SDK React components and web app pages for IdP management, and write comprehensive documentation for the complete federation flow.
 **Goal**: Make the identity provider flow production-ready: fix email uniqueness bug, implement explicit federated account creation with proper authorization, enable self-managed orgs to use SSO, build SDK-first UI for IdP management and role granting, and document all flows for platform builders.
 **Tech Stack**: Protobuf, Java (backend services, MongoDB migrations, FGA), TypeScript/React (SDK react, web app), MongoDB
-**Components**: stigmer-cloud/backend/ (MongoDB migration for email index, FederatedIdentityProvisionerImpl removal, new authorized identity account creation RPC, FGA permissions), apis/ (org spec for self-managed SSO, identity account command proto for new RPC, new FGA permissions), sdk/react/ (new identity-provider and iam-policy feature folders), client-apps/web/ (IdP management pages in settings), docs/ (federation flow documentation)
+**Components**: stigmer-cloud/backend/ (MongoDB migration for email index, FederatedIdentityResolverImpl, new authorized identity account creation RPC, FGA permissions), apis/ (org spec for self-managed SSO, identity account command proto for new RPC, new FGA permissions), sdk/react/ (new identity-provider and iam-policy feature folders), client-apps/web/ (IdP management pages in settings), docs/ (federation flow documentation)
 
 ## Essential Files to Review
 
@@ -68,53 +68,53 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-05 09:00
-**Current Task**: Phase 2 — Remove JIT Provisioning
-**Status**: In Progress
-**Last Session**: 2026-04-05 — Phase 1 completed (email uniqueness fix)
+**Current Task**: Phase 3 — New createFederatedAccount RPC
+**Status**: Not Started
+**Last Session**: 2026-04-05 — Phase 2 completed (remove JIT provisioning)
 
 ## Session Progress (2026-04-05)
 
 ### Completed
-- **Phase 1: Fix MongoDB Email Uniqueness** — Done
+- **Phase 1: Fix MongoDB Email Uniqueness** — Done (Session 1)
   - Created `U20260405_FixEmailUniqueness.java` Mongock migration in stigmer-cloud
   - Drops unique sparse index on `spec.email`, recreates as non-unique ascending index
   - Committed to stigmer-cloud: `118a88a4`
 
-### Key Design Decision: No `external_sub` Field
-- Decided NOT to add a separate `external_sub` field to `IdentityAccountSpec`
-- `idp_id` already means "the identity provider's subject identifier" for all account types
-- For federated accounts: store the raw OIDC `sub` in `idp_id` (instead of the compound key `federated:{providerId}:{sub}`)
-- `identity_provider_ref` (field 8, already exists) provides the IdP scoping
-- Compound unique index `(identity_provider_ref, idp_id)` will come in Phase 3
+- **Phase 2: Remove JIT Provisioning** — Done (Session 2)
+  - Renamed `FederatedIdentityProvisioner` -> `FederatedIdentityResolver` (interface + impl)
+  - Removed compound `idp_id` key (`federated:{providerId}:{sub}` -> raw OIDC `sub` claim)
+  - Removed `userInfoEndpoint` from `FederatedAuthenticationToken`
+  - Changed federated auth to resolve-only: 401 when account not found
+  - Added compound lookup `findByIdentityProviderRefAndIdpId` to `IdentityAccountRepo`
+  - Updated proto comments, 7 docs, all tests, all Javadoc references
+
+### Key Design Decisions
+- **No `external_sub` field**: `idp_id` already serves as the identity provider's subject identifier
+- **No data migration**: No federated account data exists — clean switch to new model
+- **`Optional<String>` resolver return**: Policy decisions (401) belong in the mapper, not the resolver
+- **Redis cache key `{org}/{slug}:{sub}`**: Matches MongoDB compound lookup fields
 
 ### Codebase Understanding Gathered
-- Mapped the full federated auth flow: `AuthenticationTokenParser` → `RequestCallerIdentityMapper` → `FederatedIdentityProvisionerImpl`
-- Identified all files that construct/use the compound `federated:` key prefix
+- Mapped the full federated auth flow: `FederatedJwtAuthenticationProvider` -> `RequestCallerIdentityMapper` -> `FederatedIdentityResolverImpl`
+- Identified all files that construct/use the compound `federated:` key prefix (all removed)
 - Reviewed FGA model for organization and identity_account
 - Verified existing `IamPermission` enum (current values through `login_to_back_office = 20`)
 - Reviewed `organization.fga` — `can_create_idp: admin` exists, need to add `can_create_identity_account: admin`
 
 ## Next Steps
 
-1. **Phase 2: Remove JIT Provisioning**
-   - Rename `FederatedIdentityProvisioner` interface to `FederatedIdentityResolver`
-   - Remove provisioning logic from `FederatedIdentityProvisionerImpl` (keep resolve-only)
-   - Remove `buildCompoundIdpId()` from `AuthenticationTokenParser`
-   - Change federated auth to look up by `(identity_provider_ref, idp_id)` instead of compound key
-   - Return 401 if federated account not found (instead of JIT creating)
-
-2. **Phase 3: New createFederatedAccount RPC**
+1. **Phase 3: New createFederatedAccount RPC**
    - Add `CreateFederatedAccountInput` message to `io.proto`
    - Add `createFederatedAccount` RPC to `command.proto`
    - Add `can_create_identity_account` to `IamPermission` enum and `organization.fga`
    - Implement handler in stigmer-cloud
-   - Add compound unique index `(identity_provider_ref, idp_id)` in new migration
+   - Add compound unique index `(identity_provider_ref, idp_id)` in new migration "009"
 
-3. Phases 4-8 follow (self-managed SSO, getByEmail security, SDK, web app, docs)
+2. Phases 4-8 follow (self-managed SSO, getByEmail security, SDK, web app, docs)
 
 ## Context for Resume
 
-- The `FederatedIdentityProvisionerImpl.java` is at `stigmer-cloud/backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/identityprovider/federation/`
+- The `FederatedIdentityResolverImpl.java` is at `stigmer-cloud/backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/identityprovider/federation/`
 - The `AuthenticationTokenParser.java` is at `stigmer-cloud/backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/jwt/`
 - The `RequestCallerIdentityMapper.java` is at `stigmer-cloud/backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/caller/`
 - Current migration order is `"008"` — next migration should be `"009"`
@@ -123,7 +123,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2" - Begin removing JIT provisioning
+- "Start Phase 3" - Begin creating the new createFederatedAccount RPC
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

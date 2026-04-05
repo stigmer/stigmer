@@ -15,8 +15,9 @@ public interface IdentityAccountSpecOrBuilder extends
    * IDP ID of the identity account.
    *
    * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
-   * For federated accounts: a compound key ensuring global uniqueness across
-   * identity providers (e.g., "federated:idp_01JXY:auth0|user-456").
+   * For federated accounts: the raw OIDC sub claim from the external identity
+   * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
+   * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
    * </pre>
    *
@@ -29,8 +30,9 @@ public interface IdentityAccountSpecOrBuilder extends
    * IDP ID of the identity account.
    *
    * For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
-   * For federated accounts: a compound key ensuring global uniqueness across
-   * identity providers (e.g., "federated:idp_01JXY:auth0|user-456").
+   * For federated accounts: the raw OIDC sub claim from the external identity
+   * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
+   * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
    * </pre>
    *
@@ -44,8 +46,7 @@ public interface IdentityAccountSpecOrBuilder extends
    * <pre>
    * Email of the identity account.
    * For direct accounts: based on the email used to sign up.
-   * For federated accounts: fetched from the IdentityProvider's UserInfo endpoint
-   * during JIT provisioning.
+   * For federated accounts: provided by the platform when creating the account.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
@@ -57,8 +58,7 @@ public interface IdentityAccountSpecOrBuilder extends
    * <pre>
    * Email of the identity account.
    * For direct accounts: based on the email used to sign up.
-   * For federated accounts: fetched from the IdentityProvider's UserInfo endpoint
-   * during JIT provisioning.
+   * For federated accounts: provided by the platform when creating the account.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
@@ -169,9 +169,10 @@ public interface IdentityAccountSpecOrBuilder extends
 
   /**
    * <pre>
-   * Reference to the IdentityProvider that provisioned this account.
+   * Reference to the IdentityProvider that owns this federated account.
    * Set only when provisioning_mode is FEDERATED. Identifies which external
-   * platform's trust relationship created this account during federated auth.
+   * platform's identity provider scopes this account. Together with idp_id,
+   * forms the unique identity for federated accounts.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
@@ -181,9 +182,10 @@ public interface IdentityAccountSpecOrBuilder extends
   boolean hasIdentityProviderRef();
   /**
    * <pre>
-   * Reference to the IdentityProvider that provisioned this account.
+   * Reference to the IdentityProvider that owns this federated account.
    * Set only when provisioning_mode is FEDERATED. Identifies which external
-   * platform's trust relationship created this account during federated auth.
+   * platform's identity provider scopes this account. Together with idp_id,
+   * forms the unique identity for federated accounts.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
@@ -193,9 +195,10 @@ public interface IdentityAccountSpecOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef();
   /**
    * <pre>
-   * Reference to the IdentityProvider that provisioned this account.
+   * Reference to the IdentityProvider that owns this federated account.
    * Set only when provisioning_mode is FEDERATED. Identifies which external
-   * platform's trust relationship created this account during federated auth.
+   * platform's identity provider scopes this account. Together with idp_id,
+   * forms the unique identity for federated accounts.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *

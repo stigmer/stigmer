@@ -33,22 +33,23 @@ const (
 // @internal
 // All FGA tuples use identity_account as the principal type.
 // Provisioning details:
-// - direct: Auth0 subject ID (e.g., "auth0|abc123")
-// - federated: compound key "federated:{provider_id}:{external_sub}"
-// - machine: Auth0 client ID with "@clients" suffix
+//   - direct: Auth0 subject ID (e.g., "auth0|abc123")
+//   - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
+//     scoped by identity_provider_ref
+//   - machine: Auth0 client ID with "@clients" suffix
 type IdentityAccountSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// IDP ID of the identity account.
 	//
 	// For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
-	// For federated accounts: a compound key ensuring global uniqueness across
-	// identity providers (e.g., "federated:idp_01JXY:auth0|user-456").
+	// For federated accounts: the raw OIDC sub claim from the external identity
+	// provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
+	// identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
 	// For machine accounts: the Auth0 client ID with "@clients" suffix.
 	IdpId string `protobuf:"bytes,1,opt,name=idp_id,json=idpId,proto3" json:"idp_id,omitempty"`
 	// Email of the identity account.
 	// For direct accounts: based on the email used to sign up.
-	// For federated accounts: fetched from the IdentityProvider's UserInfo endpoint
-	// during JIT provisioning.
+	// For federated accounts: provided by the platform when creating the account.
 	// (ignored for create) this value is assigned by backend.
 	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	// First name of the identity account.
@@ -67,9 +68,10 @@ type IdentityAccountSpec struct {
 	// Unspecified for legacy accounts created before this field was introduced.
 	// (ignored for create) this value is assigned by backend.
 	ProvisioningMode IdentityAccountProvisioningMode `protobuf:"varint,7,opt,name=provisioning_mode,json=provisioningMode,proto3,enum=ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode" json:"provisioning_mode,omitempty"`
-	// Reference to the IdentityProvider that provisioned this account.
+	// Reference to the IdentityProvider that owns this federated account.
 	// Set only when provisioning_mode is FEDERATED. Identifies which external
-	// platform's trust relationship created this account during federated auth.
+	// platform's identity provider scopes this account. Together with idp_id,
+	// forms the unique identity for federated accounts.
 	// (ignored for create) this value is assigned by backend.
 	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,8,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
 	unknownFields       protoimpl.UnknownFields
