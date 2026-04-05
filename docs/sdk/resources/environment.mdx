@@ -176,7 +176,7 @@ environmentValue, err := client.Environment.GetSecretValue(ctx, &stigmer.Environ
 </Tab>
 <Tab value="Python">
 ```python
-environmentValue = client.environments.get_secret_value(EnvironmentSecretValueInput(
+environment_value = client.environments.get_secret_value(EnvironmentSecretValueInput(
     environment_id="...",
     key="...",
 ))
