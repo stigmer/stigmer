@@ -148,7 +148,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -167,7 +170,11 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [owner, admin, member]
+      grantable_roles: [
+        owner,
+        admin,
+        member
+      ]
     }
   }];
 
@@ -203,7 +210,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {supports_public: true}
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -241,7 +251,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -259,7 +272,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {supports_public: true}
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -277,7 +293,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {supports_public: true}
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -302,7 +321,10 @@ enum ApiResourceKind {
           spec_field: "agent_id"
         }
       ]
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -322,7 +344,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {supports_public: true}
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -346,7 +371,10 @@ enum ApiResourceKind {
           spec_field: "workflow_id"
         }
       ]
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -363,7 +391,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -381,7 +412,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       requires_creator_tuple: true
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -416,7 +450,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [owner, viewer]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 }

@@ -15,7 +15,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
    * Permission required to invoke the RPC.
    * </pre>
    *
-   * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+   * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
    * @return The enum numeric value on the wire for permission.
    */
   int getPermissionValue();
@@ -24,10 +24,10 @@ public interface RpcAuthorizationConfigOrBuilder extends
    * Permission required to invoke the RPC.
    * </pre>
    *
-   * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+   * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
    * @return The permission.
    */
-  ai.stigmer.iam.iampolicy.v1.IamPermission getPermission();
+  ai.stigmer.iam.v1.IamPermission getPermission();
 
   /**
    * <pre>

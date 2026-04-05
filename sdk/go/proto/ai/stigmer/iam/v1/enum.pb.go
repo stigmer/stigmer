@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        (unknown)
-// source: ai/stigmer/iam/iampolicy/v1/enum.proto
+// source: ai/stigmer/iam/v1/enum.proto
 
-package iampolicyv1
+package iamv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -126,11 +126,11 @@ func (x IamPermission) String() string {
 }
 
 func (IamPermission) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_iam_iampolicy_v1_enum_proto_enumTypes[0].Descriptor()
+	return file_ai_stigmer_iam_v1_enum_proto_enumTypes[0].Descriptor()
 }
 
 func (IamPermission) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_iam_iampolicy_v1_enum_proto_enumTypes[0]
+	return &file_ai_stigmer_iam_v1_enum_proto_enumTypes[0]
 }
 
 func (x IamPermission) Number() protoreflect.EnumNumber {
@@ -139,7 +139,7 @@ func (x IamPermission) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use IamPermission.Descriptor instead.
 func (IamPermission) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDescGZIP(), []int{0}
+	return file_ai_stigmer_iam_v1_enum_proto_rawDescGZIP(), []int{0}
 }
 
 // IamRole defines the roles that can be assigned to principals on resources
@@ -195,11 +195,11 @@ func (x IamRole) String() string {
 }
 
 func (IamRole) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_iam_iampolicy_v1_enum_proto_enumTypes[1].Descriptor()
+	return file_ai_stigmer_iam_v1_enum_proto_enumTypes[1].Descriptor()
 }
 
 func (IamRole) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_iam_iampolicy_v1_enum_proto_enumTypes[1]
+	return &file_ai_stigmer_iam_v1_enum_proto_enumTypes[1]
 }
 
 func (x IamRole) Number() protoreflect.EnumNumber {
@@ -208,14 +208,14 @@ func (x IamRole) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use IamRole.Descriptor instead.
 func (IamRole) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_iam_v1_enum_proto_rawDescGZIP(), []int{1}
 }
 
-var File_ai_stigmer_iam_iampolicy_v1_enum_proto protoreflect.FileDescriptor
+var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
-const file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDesc = "" +
+const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/iam/iampolicy/v1/enum.proto\x12\x1bai.stigmer.iam.iampolicy.v1*\xed\x03\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xed\x03\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -247,27 +247,27 @@ const file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDesc = "" +
 	"\n" +
 	"\x06member\x10\x03\x12\n" +
 	"\n" +
-	"\x06viewer\x10\x04B\x8f\x02\n" +
-	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\tEnumProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
+	"\x06viewer\x10\x04B\xca\x01\n" +
+	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01Z?github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
 
 var (
-	file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDescOnce sync.Once
-	file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDescData []byte
+	file_ai_stigmer_iam_v1_enum_proto_rawDescOnce sync.Once
+	file_ai_stigmer_iam_v1_enum_proto_rawDescData []byte
 )
 
-func file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDescGZIP() []byte {
-	file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDescOnce.Do(func() {
-		file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDesc), len(file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDesc)))
+func file_ai_stigmer_iam_v1_enum_proto_rawDescGZIP() []byte {
+	file_ai_stigmer_iam_v1_enum_proto_rawDescOnce.Do(func() {
+		file_ai_stigmer_iam_v1_enum_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_v1_enum_proto_rawDesc), len(file_ai_stigmer_iam_v1_enum_proto_rawDesc)))
 	})
-	return file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDescData
+	return file_ai_stigmer_iam_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_iampolicy_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ai_stigmer_iam_iampolicy_v1_enum_proto_goTypes = []any{
-	(IamPermission)(0), // 0: ai.stigmer.iam.iampolicy.v1.IamPermission
-	(IamRole)(0),       // 1: ai.stigmer.iam.iampolicy.v1.IamRole
+var file_ai_stigmer_iam_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ai_stigmer_iam_v1_enum_proto_goTypes = []any{
+	(IamPermission)(0), // 0: ai.stigmer.iam.v1.IamPermission
+	(IamRole)(0),       // 1: ai.stigmer.iam.v1.IamRole
 }
-var file_ai_stigmer_iam_iampolicy_v1_enum_proto_depIdxs = []int32{
+var file_ai_stigmer_iam_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -275,26 +275,26 @@ var file_ai_stigmer_iam_iampolicy_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_ai_stigmer_iam_iampolicy_v1_enum_proto_init() }
-func file_ai_stigmer_iam_iampolicy_v1_enum_proto_init() {
-	if File_ai_stigmer_iam_iampolicy_v1_enum_proto != nil {
+func init() { file_ai_stigmer_iam_v1_enum_proto_init() }
+func file_ai_stigmer_iam_v1_enum_proto_init() {
+	if File_ai_stigmer_iam_v1_enum_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDesc), len(file_ai_stigmer_iam_iampolicy_v1_enum_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_v1_enum_proto_rawDesc), len(file_ai_stigmer_iam_v1_enum_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_ai_stigmer_iam_iampolicy_v1_enum_proto_goTypes,
-		DependencyIndexes: file_ai_stigmer_iam_iampolicy_v1_enum_proto_depIdxs,
-		EnumInfos:         file_ai_stigmer_iam_iampolicy_v1_enum_proto_enumTypes,
+		GoTypes:           file_ai_stigmer_iam_v1_enum_proto_goTypes,
+		DependencyIndexes: file_ai_stigmer_iam_v1_enum_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_iam_v1_enum_proto_enumTypes,
 	}.Build()
-	File_ai_stigmer_iam_iampolicy_v1_enum_proto = out.File
-	file_ai_stigmer_iam_iampolicy_v1_enum_proto_goTypes = nil
-	file_ai_stigmer_iam_iampolicy_v1_enum_proto_depIdxs = nil
+	File_ai_stigmer_iam_v1_enum_proto = out.File
+	file_ai_stigmer_iam_v1_enum_proto_goTypes = nil
+	file_ai_stigmer_iam_v1_enum_proto_depIdxs = nil
 }

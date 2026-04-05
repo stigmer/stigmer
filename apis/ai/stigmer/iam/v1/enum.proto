@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package ai.stigmer.iam.iampolicy.v1;
+package ai.stigmer.iam.v1;
 
 // IamPermission defines the permissions checked by the authorization
 // interceptor before an RPC handler executes.

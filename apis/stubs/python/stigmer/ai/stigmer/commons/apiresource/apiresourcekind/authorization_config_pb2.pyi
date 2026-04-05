@@ -1,3 +1,4 @@
+from ai.stigmer.iam.v1 import enum_pb2 as _enum_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -52,17 +53,19 @@ class ParentRelationConfig(_message.Message):
     def __init__(self, kind: _Optional[str] = ..., relation: _Optional[str] = ..., spec_field: _Optional[str] = ...) -> None: ...
 
 class AuthorizationConfig(_message.Message):
-    __slots__ = ("scope_type", "owner_type", "parent", "additional_parents", "visibility", "requires_creator_tuple")
+    __slots__ = ("scope_type", "owner_type", "parent", "additional_parents", "visibility", "requires_creator_tuple", "grantable_roles")
     SCOPE_TYPE_FIELD_NUMBER: _ClassVar[int]
     OWNER_TYPE_FIELD_NUMBER: _ClassVar[int]
     PARENT_FIELD_NUMBER: _ClassVar[int]
     ADDITIONAL_PARENTS_FIELD_NUMBER: _ClassVar[int]
     VISIBILITY_FIELD_NUMBER: _ClassVar[int]
     REQUIRES_CREATOR_TUPLE_FIELD_NUMBER: _ClassVar[int]
+    GRANTABLE_ROLES_FIELD_NUMBER: _ClassVar[int]
     scope_type: AuthorizationScopeType
     owner_type: OwnerAttributionType
     parent: ParentRelationConfig
     additional_parents: _containers.RepeatedCompositeFieldContainer[ParentRelationConfig]
     visibility: VisibilityConfig
     requires_creator_tuple: bool
-    def __init__(self, scope_type: _Optional[_Union[AuthorizationScopeType, str]] = ..., owner_type: _Optional[_Union[OwnerAttributionType, str]] = ..., parent: _Optional[_Union[ParentRelationConfig, _Mapping]] = ..., additional_parents: _Optional[_Iterable[_Union[ParentRelationConfig, _Mapping]]] = ..., visibility: _Optional[_Union[VisibilityConfig, _Mapping]] = ..., requires_creator_tuple: bool = ...) -> None: ...
+    grantable_roles: _containers.RepeatedScalarFieldContainer[_enum_pb2.IamRole]
+    def __init__(self, scope_type: _Optional[_Union[AuthorizationScopeType, str]] = ..., owner_type: _Optional[_Union[OwnerAttributionType, str]] = ..., parent: _Optional[_Union[ParentRelationConfig, _Mapping]] = ..., additional_parents: _Optional[_Iterable[_Union[ParentRelationConfig, _Mapping]]] = ..., visibility: _Optional[_Union[VisibilityConfig, _Mapping]] = ..., requires_creator_tuple: bool = ..., grantable_roles: _Optional[_Iterable[_Union[_enum_pb2.IamRole, str]]] = ...) -> None: ...
