@@ -6,15 +6,15 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiResourceKind } from "../apiresource/apiresourcekind/api_resource_kind_pb";
 import { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind } from "../apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamPermission } from "../../iam/iampolicy/v1/enum_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_enum } from "../../iam/iampolicy/v1/enum_pb";
+import type { IamPermission } from "../../iam/v1/enum_pb";
+import { file_ai_stigmer_iam_v1_enum } from "../../iam/v1/enum_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/commons/rpc/authorization_config.proto.
  */
 export const file_ai_stigmer_commons_rpc_authorization_config: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2NvbW1vbnMvcnBjL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEhZhaS5zdGlnbWVyLmNvbW1vbnMucnBjIogCChZScGNBdXRob3JpemF0aW9uQ29uZmlnEj4KCnBlcm1pc3Npb24YASABKA4yKi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUGVybWlzc2lvbhJWCg1yZXNvdXJjZV9raW5kGAIgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSGgoScmVzb3VyY2Vfa2luZF9wYXRoGAMgASgJEhIKCmZpZWxkX3BhdGgYBCABKAkSEQoJZXJyb3JfbXNnGAUgASgJEhMKC3Jlc291cmNlX2lkGAYgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_iam_iampolicy_v1_enum]);
+  fileDesc("CjFhaS9zdGlnbWVyL2NvbW1vbnMvcnBjL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEhZhaS5zdGlnbWVyLmNvbW1vbnMucnBjIv4BChZScGNBdXRob3JpemF0aW9uQ29uZmlnEjQKCnBlcm1pc3Npb24YASABKA4yIC5haS5zdGlnbWVyLmlhbS52MS5JYW1QZXJtaXNzaW9uElYKDXJlc291cmNlX2tpbmQYAiABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZBIaChJyZXNvdXJjZV9raW5kX3BhdGgYAyABKAkSEgoKZmllbGRfcGF0aBgEIAEoCRIRCgllcnJvcl9tc2cYBSABKAkSEwoLcmVzb3VyY2VfaWQYBiABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_iam_v1_enum]);
 
 /**
  * RpcAuthorizationConfig defines the authorization check performed before an RPC executes.
@@ -30,7 +30,7 @@ export type RpcAuthorizationConfig = Message<"ai.stigmer.commons.rpc.RpcAuthoriz
   /**
    * Permission required to invoke the RPC.
    *
-   * @generated from field: ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1;
+   * @generated from field: ai.stigmer.iam.v1.IamPermission permission = 1;
    */
   permission: IamPermission;
 

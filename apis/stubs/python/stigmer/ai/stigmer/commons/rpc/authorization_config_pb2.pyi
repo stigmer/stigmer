@@ -1,5 +1,5 @@
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2 as _api_resource_kind_pb2
-from ai.stigmer.iam.iampolicy.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.iam.v1 import enum_pb2 as _enum_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union

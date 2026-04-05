@@ -11,7 +11,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//apis/stubs/go/ai/stigmer/iam/iampolicy/v1:iampolicy",
+        "//apis/stubs/go/ai/stigmer/iam/v1:iam",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
         "@org_golang_google_protobuf//types/descriptorpb",

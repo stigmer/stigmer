@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.commons.apiresource.apiresourcekind;
 
-import "ai/stigmer/iam/iampolicy/v1/enum.proto";
+import "ai/stigmer/iam/v1/enum.proto";
 
 option java_outer_classname = "AuthorizationConfigProto";
 
@@ -208,5 +208,5 @@ message AuthorizationConfig {
   // (api_key, execution_context), inherits authorization from a parent
   // (agent_execution), is self-owned (identity_account), or has no
   // authorization (platform, api_resource_version).
-  repeated ai.stigmer.iam.iampolicy.v1.IamRole grantable_roles = 7;
+  repeated ai.stigmer.iam.v1.IamRole grantable_roles = 7;
 }

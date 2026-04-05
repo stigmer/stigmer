@@ -70,7 +70,7 @@ private static final long serialVersionUID = 0L;
    * Permission required to invoke the RPC.
    * </pre>
    *
-   * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+   * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
    * @return The enum numeric value on the wire for permission.
    */
   @java.lang.Override public int getPermissionValue() {
@@ -81,12 +81,12 @@ private static final long serialVersionUID = 0L;
    * Permission required to invoke the RPC.
    * </pre>
    *
-   * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+   * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
    * @return The permission.
    */
-  @java.lang.Override public ai.stigmer.iam.iampolicy.v1.IamPermission getPermission() {
-    ai.stigmer.iam.iampolicy.v1.IamPermission result = ai.stigmer.iam.iampolicy.v1.IamPermission.forNumber(permission_);
-    return result == null ? ai.stigmer.iam.iampolicy.v1.IamPermission.UNRECOGNIZED : result;
+  @java.lang.Override public ai.stigmer.iam.v1.IamPermission getPermission() {
+    ai.stigmer.iam.v1.IamPermission result = ai.stigmer.iam.v1.IamPermission.forNumber(permission_);
+    return result == null ? ai.stigmer.iam.v1.IamPermission.UNRECOGNIZED : result;
   }
 
   public static final int RESOURCE_KIND_FIELD_NUMBER = 2;
@@ -325,7 +325,7 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (permission_ != ai.stigmer.iam.iampolicy.v1.IamPermission.unspecified.getNumber()) {
+    if (permission_ != ai.stigmer.iam.v1.IamPermission.unspecified.getNumber()) {
       output.writeEnum(1, permission_);
     }
     if (resourceKind_ != ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind.api_resource_kind_unknown.getNumber()) {
@@ -352,7 +352,7 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (permission_ != ai.stigmer.iam.iampolicy.v1.IamPermission.unspecified.getNumber()) {
+    if (permission_ != ai.stigmer.iam.v1.IamPermission.unspecified.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(1, permission_);
     }
@@ -736,7 +736,7 @@ private static final long serialVersionUID = 0L;
      * Permission required to invoke the RPC.
      * </pre>
      *
-     * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+     * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
      * @return The enum numeric value on the wire for permission.
      */
     @java.lang.Override public int getPermissionValue() {
@@ -747,7 +747,7 @@ private static final long serialVersionUID = 0L;
      * Permission required to invoke the RPC.
      * </pre>
      *
-     * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+     * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
      * @param value The enum numeric value on the wire for permission to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -763,24 +763,24 @@ private static final long serialVersionUID = 0L;
      * Permission required to invoke the RPC.
      * </pre>
      *
-     * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+     * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
      * @return The permission.
      */
     @java.lang.Override
-    public ai.stigmer.iam.iampolicy.v1.IamPermission getPermission() {
-      ai.stigmer.iam.iampolicy.v1.IamPermission result = ai.stigmer.iam.iampolicy.v1.IamPermission.forNumber(permission_);
-      return result == null ? ai.stigmer.iam.iampolicy.v1.IamPermission.UNRECOGNIZED : result;
+    public ai.stigmer.iam.v1.IamPermission getPermission() {
+      ai.stigmer.iam.v1.IamPermission result = ai.stigmer.iam.v1.IamPermission.forNumber(permission_);
+      return result == null ? ai.stigmer.iam.v1.IamPermission.UNRECOGNIZED : result;
     }
     /**
      * <pre>
      * Permission required to invoke the RPC.
      * </pre>
      *
-     * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+     * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
      * @param value The permission to set.
      * @return This builder for chaining.
      */
-    public Builder setPermission(ai.stigmer.iam.iampolicy.v1.IamPermission value) {
+    public Builder setPermission(ai.stigmer.iam.v1.IamPermission value) {
       if (value == null) { throw new NullPointerException(); }
       bitField0_ |= 0x00000001;
       permission_ = value.getNumber();
@@ -792,7 +792,7 @@ private static final long serialVersionUID = 0L;
      * Permission required to invoke the RPC.
      * </pre>
      *
-     * <code>.ai.stigmer.iam.iampolicy.v1.IamPermission permission = 1 [json_name = "permission"];</code>
+     * <code>.ai.stigmer.iam.v1.IamPermission permission = 1 [json_name = "permission"];</code>
      * @return This builder for chaining.
      */
     public Builder clearPermission() {

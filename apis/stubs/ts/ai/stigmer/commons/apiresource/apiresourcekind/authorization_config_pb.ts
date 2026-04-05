@@ -4,13 +4,15 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { IamRole } from "../../../iam/v1/enum_pb";
+import { file_ai_stigmer_iam_v1_enum } from "../../../iam/v1/enum_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto.
  */
 export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config: GenFile = /*@__PURE__*/
-  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIisKEFZpc2liaWxpdHlDb25maWcSFwoPc3VwcG9ydHNfcHVibGljGAEgASgIIkoKFFBhcmVudFJlbGF0aW9uQ29uZmlnEgwKBGtpbmQYASABKAkSEAoIcmVsYXRpb24YAiABKAkSEgoKc3BlY19maWVsZBgDIAEoCSL5AwoTQXV0aG9yaXphdGlvbkNvbmZpZxJaCgpzY29wZV90eXBlGAEgASgOMkYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BdXRob3JpemF0aW9uU2NvcGVUeXBlElgKCm93bmVyX3R5cGUYAiABKA4yRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLk93bmVyQXR0cmlidXRpb25UeXBlElQKBnBhcmVudBgDIAEoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuUGFyZW50UmVsYXRpb25Db25maWcSYAoSYWRkaXRpb25hbF9wYXJlbnRzGAQgAygLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJUCgp2aXNpYmlsaXR5GAUgASgLMkAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5WaXNpYmlsaXR5Q29uZmlnEh4KFnJlcXVpcmVzX2NyZWF0b3JfdHVwbGUYBiABKAgqhQIKFkF1dGhvcml6YXRpb25TY29wZVR5cGUSKAokQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1VOU1BFQ0lGSUVEEAASJQohQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BMQVRGT1JNEAESKQolQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX09SR0FOSVpBVElPThACEiMKH0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9QQVJFTlQQAxInCiNBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1dORVJfT05MWRAEEiEKHUFVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9OT05FEAUqyQEKFE93bmVyQXR0cmlidXRpb25UeXBlEiYKIk9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfVU5TUEVDSUZJRUQQABIhCh1PV05FUl9BVFRSSUJVVElPTl9UWVBFX0RJUkVDVBABEiQKIE9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfSU5IRVJJVEVEEAISHwobT1dORVJfQVRUUklCVVRJT05fVFlQRV9TRUxGEAMSHwobT1dORVJfQVRUUklCVVRJT05fVFlQRV9OT05FEARCGkIYQXV0aG9yaXphdGlvbkNvbmZpZ1Byb3RvYgZwcm90bzM");
+  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIisKEFZpc2liaWxpdHlDb25maWcSFwoPc3VwcG9ydHNfcHVibGljGAEgASgIIkoKFFBhcmVudFJlbGF0aW9uQ29uZmlnEgwKBGtpbmQYASABKAkSEAoIcmVsYXRpb24YAiABKAkSEgoKc3BlY19maWVsZBgDIAEoCSKuBAoTQXV0aG9yaXphdGlvbkNvbmZpZxJaCgpzY29wZV90eXBlGAEgASgOMkYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BdXRob3JpemF0aW9uU2NvcGVUeXBlElgKCm93bmVyX3R5cGUYAiABKA4yRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLk93bmVyQXR0cmlidXRpb25UeXBlElQKBnBhcmVudBgDIAEoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuUGFyZW50UmVsYXRpb25Db25maWcSYAoSYWRkaXRpb25hbF9wYXJlbnRzGAQgAygLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJUCgp2aXNpYmlsaXR5GAUgASgLMkAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5WaXNpYmlsaXR5Q29uZmlnEh4KFnJlcXVpcmVzX2NyZWF0b3JfdHVwbGUYBiABKAgSMwoPZ3JhbnRhYmxlX3JvbGVzGAcgAygOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZSqFAgoWQXV0aG9yaXphdGlvblNjb3BlVHlwZRIoCiRBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfVU5TUEVDSUZJRUQQABIlCiFBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUExBVEZPUk0QARIpCiVBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1JHQU5JWkFUSU9OEAISIwofQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BBUkVOVBADEicKI0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PV05FUl9PTkxZEAQSIQodQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX05PTkUQBSrJAQoUT3duZXJBdHRyaWJ1dGlvblR5cGUSJgoiT1dORVJfQVRUUklCVVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEiEKHU9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfRElSRUNUEAESJAogT1dORVJfQVRUUklCVVRJT05fVFlQRV9JTkhFUklURUQQAhIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX1NFTEYQAxIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX05PTkUQBEIaQhhBdXRob3JpemF0aW9uQ29uZmlnUHJvdG9iBnByb3RvMw", [file_ai_stigmer_iam_v1_enum]);
 
 /**
  * Visibility configuration for public access support.
@@ -128,9 +130,20 @@ export const ParentRelationConfigSchema: GenMessage<ParentRelationConfig> = /*@_
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  *   requires_creator_tuple: true
+ *   grantable_roles: [owner, viewer]
  *   -> Creates: environment#organization@organization:<org_id>
  *   -> Creates: environment#owner@identity_account:<creator_id>
  *   -> Creates: environment#creator@identity_account:<creator_id>
+ *
+ * Organization with three-tier role hierarchy:
+ *   scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+ *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+ *   grantable_roles: [owner, admin, member]
+ *
+ * Owner-only resource with no role sharing (api_key, execution_context):
+ *   scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+ *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+ *   grantable_roles: [] (empty — owner is set at creation, no sharing)
  *
  * @generated from message ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig
  */
@@ -188,6 +201,23 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
    * @generated from field: bool requires_creator_tuple = 6;
    */
   requiresCreatorTuple: boolean;
+
+  /**
+   * Roles that can be granted on this resource kind via IAM policies.
+   * Drives the web app role selector and SDK validation for IAM policy creation.
+   *
+   * Each value must correspond to a directly-assignable FGA relation
+   * (defined with [identity_account] in the FGA model). Computed roles
+   * and structural relations are excluded.
+   *
+   * Empty means no user-grantable roles: the resource is either owner-only
+   * (api_key, execution_context), inherits authorization from a parent
+   * (agent_execution), is self-owned (identity_account), or has no
+   * authorization (platform, api_resource_version).
+   *
+   * @generated from field: repeated ai.stigmer.iam.v1.IamRole grantable_roles = 7;
+   */
+  grantableRoles: IamRole[];
 };
 
 /**

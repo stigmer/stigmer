@@ -43,27 +43,26 @@ public final class AuthorizationConfigProto extends com.google.protobuf.Generate
       "\n1ai/stigmer/commons/rpc/authorization_c" +
       "onfig.proto\022\026ai.stigmer.commons.rpc\032Fai/" +
       "stigmer/commons/apiresource/apiresourcek" +
-      "ind/api_resource_kind.proto\032&ai/stigmer/" +
-      "iam/iampolicy/v1/enum.proto\"\325\002\n\026RpcAutho" +
-      "rizationConfig\022J\n\npermission\030\001 \001(\0162*.ai." +
-      "stigmer.iam.iampolicy.v1.IamPermissionR\n" +
-      "permission\022d\n\rresource_kind\030\002 \001(\0162?.ai.s" +
-      "tigmer.commons.apiresource.apiresourceki" +
-      "nd.ApiResourceKindR\014resourceKind\022,\n\022reso" +
-      "urce_kind_path\030\003 \001(\tR\020resourceKindPath\022\035" +
-      "\n\nfield_path\030\004 \001(\tR\tfieldPath\022\033\n\terror_m" +
-      "sg\030\005 \001(\tR\010errorMsg\022\037\n\013resource_id\030\006 \001(\tR" +
-      "\nresourceIdB\226\001B\030AuthorizationConfigProto" +
-      "P\001\242\002\004ASCR\252\002\026Ai.Stigmer.Commons.Rpc\312\002\026Ai\\" +
-      "Stigmer\\Commons\\Rpc\342\002\"Ai\\Stigmer\\Commons" +
-      "\\Rpc\\GPBMetadata\352\002\031Ai::Stigmer::Commons:" +
-      ":Rpcb\006proto3"
+      "ind/api_resource_kind.proto\032\034ai/stigmer/" +
+      "iam/v1/enum.proto\"\313\002\n\026RpcAuthorizationCo" +
+      "nfig\022@\n\npermission\030\001 \001(\0162 .ai.stigmer.ia" +
+      "m.v1.IamPermissionR\npermission\022d\n\rresour" +
+      "ce_kind\030\002 \001(\0162?.ai.stigmer.commons.apire" +
+      "source.apiresourcekind.ApiResourceKindR\014" +
+      "resourceKind\022,\n\022resource_kind_path\030\003 \001(\t" +
+      "R\020resourceKindPath\022\035\n\nfield_path\030\004 \001(\tR\t" +
+      "fieldPath\022\033\n\terror_msg\030\005 \001(\tR\010errorMsg\022\037" +
+      "\n\013resource_id\030\006 \001(\tR\nresourceIdB\226\001B\030Auth" +
+      "orizationConfigProtoP\001\242\002\004ASCR\252\002\026Ai.Stigm" +
+      "er.Commons.Rpc\312\002\026Ai\\Stigmer\\Commons\\Rpc\342" +
+      "\002\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata\352\002\031A" +
+      "i::Stigmer::Commons::Rpcb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.EnumProto.getDescriptor(),
+          ai.stigmer.iam.v1.EnumProto.getDescriptor(),
         });
     internal_static_ai_stigmer_commons_rpc_RpcAuthorizationConfig_descriptor =
       getDescriptor().getMessageType(0);
@@ -73,7 +72,7 @@ public final class AuthorizationConfigProto extends com.google.protobuf.Generate
         new java.lang.String[] { "Permission", "ResourceKind", "ResourceKindPath", "FieldPath", "ErrorMsg", "ResourceId", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.EnumProto.getDescriptor();
+    ai.stigmer.iam.v1.EnumProto.getDescriptor();
   }
 
   // @@protoc_insertion_point(outer_class_scope)

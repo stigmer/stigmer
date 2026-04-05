@@ -8,7 +8,7 @@ package rpc
 
 import (
 	apiresourcekind "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	v1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1"
+	v1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,7 +32,7 @@ const (
 type RpcAuthorizationConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Permission required to invoke the RPC.
-	Permission v1.IamPermission `protobuf:"varint,1,opt,name=permission,proto3,enum=ai.stigmer.iam.iampolicy.v1.IamPermission" json:"permission,omitempty"`
+	Permission v1.IamPermission `protobuf:"varint,1,opt,name=permission,proto3,enum=ai.stigmer.iam.v1.IamPermission" json:"permission,omitempty"`
 	// Resource kind that the permission is checked against.
 	ResourceKind apiresourcekind.ApiResourceKind `protobuf:"varint,2,opt,name=resource_kind,json=resourceKind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"resource_kind,omitempty"`
 	// Dot-path to the field in the request that contains the resource kind value.
@@ -127,10 +127,10 @@ var File_ai_stigmer_commons_rpc_authorization_config_proto protoreflect.FileDesc
 
 const file_ai_stigmer_commons_rpc_authorization_config_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/commons/rpc/authorization_config.proto\x12\x16ai.stigmer.commons.rpc\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a&ai/stigmer/iam/iampolicy/v1/enum.proto\"\xd5\x02\n" +
-	"\x16RpcAuthorizationConfig\x12J\n" +
+	"1ai/stigmer/commons/rpc/authorization_config.proto\x12\x16ai.stigmer.commons.rpc\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\"\xcb\x02\n" +
+	"\x16RpcAuthorizationConfig\x12@\n" +
 	"\n" +
-	"permission\x18\x01 \x01(\x0e2*.ai.stigmer.iam.iampolicy.v1.IamPermissionR\n" +
+	"permission\x18\x01 \x01(\x0e2 .ai.stigmer.iam.v1.IamPermissionR\n" +
 	"permission\x12d\n" +
 	"\rresource_kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\fresourceKind\x12,\n" +
 	"\x12resource_kind_path\x18\x03 \x01(\tR\x10resourceKindPath\x12\x1d\n" +
@@ -156,11 +156,11 @@ func file_ai_stigmer_commons_rpc_authorization_config_proto_rawDescGZIP() []byte
 var file_ai_stigmer_commons_rpc_authorization_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_commons_rpc_authorization_config_proto_goTypes = []any{
 	(*RpcAuthorizationConfig)(nil),       // 0: ai.stigmer.commons.rpc.RpcAuthorizationConfig
-	(v1.IamPermission)(0),                // 1: ai.stigmer.iam.iampolicy.v1.IamPermission
+	(v1.IamPermission)(0),                // 1: ai.stigmer.iam.v1.IamPermission
 	(apiresourcekind.ApiResourceKind)(0), // 2: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
 }
 var file_ai_stigmer_commons_rpc_authorization_config_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.commons.rpc.RpcAuthorizationConfig.permission:type_name -> ai.stigmer.iam.iampolicy.v1.IamPermission
+	1, // 0: ai.stigmer.commons.rpc.RpcAuthorizationConfig.permission:type_name -> ai.stigmer.iam.v1.IamPermission
 	2, // 1: ai.stigmer.commons.rpc.RpcAuthorizationConfig.resource_kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
