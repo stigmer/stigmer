@@ -21,11 +21,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityAccountQueryController_Get_FullMethodName          = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/get"
-	IdentityAccountQueryController_WhoAmI_FullMethodName       = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/whoAmI"
-	IdentityAccountQueryController_GetByEmail_FullMethodName   = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByEmail"
-	IdentityAccountQueryController_GetByIdpId_FullMethodName   = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByIdpId"
-	IdentityAccountQueryController_GetActorInfo_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getActorInfo"
+	IdentityAccountQueryController_Get_FullMethodName              = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/get"
+	IdentityAccountQueryController_WhoAmI_FullMethodName           = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/whoAmI"
+	IdentityAccountQueryController_GetByEmail_FullMethodName       = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByEmail"
+	IdentityAccountQueryController_GetByIdpId_FullMethodName       = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByIdpId"
+	IdentityAccountQueryController_GetByExternalSub_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByExternalSub"
+	IdentityAccountQueryController_GetActorInfo_FullMethodName     = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getActorInfo"
 )
 
 // IdentityAccountQueryControllerClient is the client API for IdentityAccountQueryController service.
@@ -43,10 +44,25 @@ type IdentityAccountQueryControllerClient interface {
 	// @internal
 	// Scoped to the caller's own account, so authorization is skipped.
 	WhoAmI(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// Get an identity account by email address.
+	// Get a direct identity account by email address.
+	//
+	// Only returns direct (non-federated) accounts. Federated accounts are not
+	// returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
 	GetByEmail(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// Get an identity account by identity provider ID.
+	// Get an identity account by identity provider ID (Auth0 subject).
+	//
+	// Primarily used for direct and machine accounts where the IDP ID is
+	// the Auth0 user_id or client_id. For federated account lookups,
+	// use getByExternalSub which is scoped to a specific identity provider.
 	GetByIdpId(ctx context.Context, in *IdpId, opts ...grpc.CallOption) (*IdentityAccount, error)
+	// Get a federated identity account by identity provider reference and external subject.
+	//
+	// Used by platform backends to check whether a federated account already exists
+	// for a given OIDC subject before calling createFederatedAccount.
+	//
+	// Authorization: Requires can_create_identity_account on the organization
+	// that owns the identity provider.
+	GetByExternalSub(ctx context.Context, in *ExternalSubLookup, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Get lightweight actor information for an identity account.
 	//
 	// @internal
@@ -114,6 +130,16 @@ func (c *identityAccountQueryControllerClient) GetByIdpId(ctx context.Context, i
 	return out, nil
 }
 
+func (c *identityAccountQueryControllerClient) GetByExternalSub(ctx context.Context, in *ExternalSubLookup, opts ...grpc.CallOption) (*IdentityAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityAccount)
+	err := c.cc.Invoke(ctx, IdentityAccountQueryController_GetByExternalSub_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityAccountQueryControllerClient) GetActorInfo(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*apiresource.ApiResourceAuditActor, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(apiresource.ApiResourceAuditActor)
@@ -139,10 +165,25 @@ type IdentityAccountQueryControllerServer interface {
 	// @internal
 	// Scoped to the caller's own account, so authorization is skipped.
 	WhoAmI(context.Context, *emptypb.Empty) (*IdentityAccount, error)
-	// Get an identity account by email address.
+	// Get a direct identity account by email address.
+	//
+	// Only returns direct (non-federated) accounts. Federated accounts are not
+	// returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
 	GetByEmail(context.Context, *IdentityAccountEmail) (*IdentityAccount, error)
-	// Get an identity account by identity provider ID.
+	// Get an identity account by identity provider ID (Auth0 subject).
+	//
+	// Primarily used for direct and machine accounts where the IDP ID is
+	// the Auth0 user_id or client_id. For federated account lookups,
+	// use getByExternalSub which is scoped to a specific identity provider.
 	GetByIdpId(context.Context, *IdpId) (*IdentityAccount, error)
+	// Get a federated identity account by identity provider reference and external subject.
+	//
+	// Used by platform backends to check whether a federated account already exists
+	// for a given OIDC subject before calling createFederatedAccount.
+	//
+	// Authorization: Requires can_create_identity_account on the organization
+	// that owns the identity provider.
+	GetByExternalSub(context.Context, *ExternalSubLookup) (*IdentityAccount, error)
 	// Get lightweight actor information for an identity account.
 	//
 	// @internal
@@ -180,6 +221,9 @@ func (UnimplementedIdentityAccountQueryControllerServer) GetByEmail(context.Cont
 }
 func (UnimplementedIdentityAccountQueryControllerServer) GetByIdpId(context.Context, *IdpId) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByIdpId not implemented")
+}
+func (UnimplementedIdentityAccountQueryControllerServer) GetByExternalSub(context.Context, *ExternalSubLookup) (*IdentityAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByExternalSub not implemented")
 }
 func (UnimplementedIdentityAccountQueryControllerServer) GetActorInfo(context.Context, *IdentityAccountId) (*apiresource.ApiResourceAuditActor, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetActorInfo not implemented")
@@ -276,6 +320,24 @@ func _IdentityAccountQueryController_GetByIdpId_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityAccountQueryController_GetByExternalSub_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExternalSubLookup)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityAccountQueryControllerServer).GetByExternalSub(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityAccountQueryController_GetByExternalSub_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityAccountQueryControllerServer).GetByExternalSub(ctx, req.(*ExternalSubLookup))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityAccountQueryController_GetActorInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IdentityAccountId)
 	if err := dec(in); err != nil {
@@ -316,6 +378,10 @@ var IdentityAccountQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByIdpId",
 			Handler:    _IdentityAccountQueryController_GetByIdpId_Handler,
+		},
+		{
+			MethodName: "getByExternalSub",
+			Handler:    _IdentityAccountQueryController_GetByExternalSub_Handler,
 		},
 		{
 			MethodName: "getActorInfo",

@@ -62,6 +62,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_identityaccount_v1_ListWithIdentityOrg_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_identityaccount_v1_ExternalSubLookup_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_identityaccount_v1_ExternalSubLookup_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -96,20 +101,24 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       ".v1.IdentityAccountR\007entries\"]\n\023ListWith" +
       "IdentityOrg\022\020\n\003org\030\001 \001(\tR\003org\0224\n\004page\030\002 " +
       "\001(\0132 .ai.stigmer.commons.rpc.PageInfoR\004p" +
-      "age\"\307\002\n\033CreateFederatedAccountInput\022\030\n\003o" +
-      "rg\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022h\n\025identity_provid" +
-      "er_ref\030\002 \001(\01324.ai.stigmer.commons.apires" +
-      "ource.ApiResourceReferenceR\023identityProv" +
-      "iderRef\022)\n\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013e" +
-      "xternalSub\022\034\n\005email\030\004 \001(\tB\006\272H\003\310\001\001R\005email" +
-      "\022\035\n\nfirst_name\030\005 \001(\tR\tfirstName\022\033\n\tlast_" +
-      "name\030\006 \001(\tR\010lastName\022\037\n\013picture_url\030\007 \001(" +
-      "\tR\npictureUrlB\262\001B\007IoProtoP\001\242\002\004ASII\252\002!Ai." +
-      "Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Stig" +
-      "mer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\" +
-      "Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai:" +
-      ":Stigmer::Iam::Identityaccount::V1b\006prot" +
-      "o3"
+      "age\"\302\001\n\021ExternalSubLookup\022\030\n\003org\030\001 \001(\tB\006" +
+      "\272H\003\310\001\001R\003org\022h\n\025identity_provider_ref\030\002 \001" +
+      "(\01324.ai.stigmer.commons.apiresource.ApiR" +
+      "esourceReferenceR\023identityProviderRef\022)\n" +
+      "\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013externalSub" +
+      "\"\307\002\n\033CreateFederatedAccountInput\022\030\n\003org\030" +
+      "\001 \001(\tB\006\272H\003\310\001\001R\003org\022h\n\025identity_provider_" +
+      "ref\030\002 \001(\01324.ai.stigmer.commons.apiresour" +
+      "ce.ApiResourceReferenceR\023identityProvide" +
+      "rRef\022)\n\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013exte" +
+      "rnalSub\022\034\n\005email\030\004 \001(\tB\006\272H\003\310\001\001R\005email\022\035\n" +
+      "\nfirst_name\030\005 \001(\tR\tfirstName\022\033\n\tlast_nam" +
+      "e\030\006 \001(\tR\010lastName\022\037\n\013picture_url\030\007 \001(\tR\n" +
+      "pictureUrlB\262\001B\007IoProtoP\001\242\002\004ASII\252\002!Ai.Sti" +
+      "gmer.Iam.Identityaccount.V1\312\002!Ai\\Stigmer" +
+      "\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\Iam" +
+      "\\Identityaccount\\V1\\GPBMetadata\352\002%Ai::St" +
+      "igmer::Iam::Identityaccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -161,8 +170,14 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_ListWithIdentityOrg_descriptor,
         new java.lang.String[] { "Org", "Page", });
-    internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_descriptor =
+    internal_static_ai_stigmer_iam_identityaccount_v1_ExternalSubLookup_descriptor =
       getDescriptor().getMessageType(7);
+    internal_static_ai_stigmer_iam_identityaccount_v1_ExternalSubLookup_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_identityaccount_v1_ExternalSubLookup_descriptor,
+        new java.lang.String[] { "Org", "IdentityProviderRef", "ExternalSub", });
+    internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_descriptor =
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_descriptor,

@@ -75,7 +75,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Get an identity account by email address."
+          "description": "Get a direct identity account by email address.\n\n Only returns direct (non-federated) accounts. Federated accounts are not\n returned by this RPC — use getByExternalSub for IdP-scoped federated lookups."
         },
         {
           "name": "GetByIdpId",
@@ -83,7 +83,15 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdpId",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Get an identity account by identity provider ID."
+          "description": "Get an identity account by identity provider ID (Auth0 subject).\n\n Primarily used for direct and machine accounts where the IDP ID is\n the Auth0 user_id or client_id. For federated account lookups,\n use getByExternalSub which is scoped to a specific identity provider."
+        },
+        {
+          "name": "GetByExternalSub",
+          "inputType": "ExternalSubLookup",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.ExternalSubLookup",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "Get a federated identity account by identity provider reference and external subject.\n\n Used by platform backends to check whether a federated account already exists\n for a given OIDC subject before calling createFederatedAccount.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
         },
         {
           "name": "GetActorInfo",
@@ -199,6 +207,51 @@
             "kind": "string"
           },
           "description": "Email address of the identity account.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExternalSubLookup",
+      "description": "ExternalSubLookup identifies a federated identity account by its identity provider\n reference and external subject identifier (OIDC sub claim).\n\n Used by platform backends to check whether a federated account already exists\n before calling createFederatedAccount.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.ExternalSubLookup",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the identity provider.\n Used as the authorization scope: caller must have can_create_identity_account\n permission on this organization.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "IdentityProviderRef",
+          "jsonName": "identityProviderRef",
+          "protoField": "identity_provider_ref",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceReference"
+          },
+          "description": "Reference to the IdentityProvider that the federated account belongs to.",
+          "required": false
+        },
+        {
+          "name": "ExternalSub",
+          "jsonName": "externalSub",
+          "protoField": "external_sub",
+          "type": {
+            "kind": "string"
+          },
+          "description": "External subject identifier from the platform's OIDC provider.\n The raw OIDC sub claim (e.g., \"google-oauth2|109876543210\").",
           "required": true,
           "validation": {
             "required": true
