@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-04-05 (Session 4) — Mobile sidebar auto-close on navigate + responsive settings padding
-- **Active Task**: T01 — Phase 5 (Polish & Edge Cases) — 2 of 5 items complete
+- **Last Session**: 2026-04-05 (Session 5) — OrgSwitcher verification + PersonalEnvironmentCard bootstrap fix
+- **Active Task**: T01 — Phase 5 (Polish & Edge Cases) — 3 of 5 items complete
 
 ## Session Progress (2026-04-05)
 
@@ -47,11 +47,19 @@ Drop this file into your conversation to quickly resume work on this project.
 - `make lint` clean (0 errors, 0 warnings)
 - Key finding: backdrop/overlay/collapse was already working for ManagementSidebar via AppShell; only auto-close-on-navigate was missing
 
+### Session 5
+- Verified OrgSwitcher works correctly in management zone — dropdown opens, shows orgs, renders identically to session zone
+- Discovered and fixed bug: `PersonalEnvironmentCard.bootstrapAttempted` ref not resetting on org switch, silently preventing auto-create for new orgs
+- Code-verified all downstream SDK hooks (`useResourceAccess`, `useEnvironmentList`, `usePrincipalsCount`) properly refetch on org change
+- Confirmed `ApiKeyListPanel` is intentionally identity-scoped (no org dependency)
+- Browser-verified: all three settings sub-pages render, zone transition works, mobile auto-close works, deep-linking works
+- `make lint` clean (0 errors, 0 warnings)
+
 ## Next Steps
-1. Phase 5: Polish & edge cases (2 of 5 complete)
-   - ~~Mobile responsiveness for ManagementSidebar (backdrop, collapse behavior)~~ ✓ Done (Session 4)
-   - Verify OrgSwitcher works correctly in management zone
-   - ~~Verify deep-linking: opening /settings/api-keys directly loads correct page with management sidebar~~ ✓ Verified (Session 2)
+1. Phase 5: Polish & edge cases (3 of 5 complete)
+   - ~~Mobile responsiveness for ManagementSidebar (backdrop, collapse behavior)~~ Done (Session 4)
+   - ~~Verify OrgSwitcher works correctly in management zone~~ Done (Session 5)
+   - ~~Verify deep-linking: opening /settings/api-keys directly loads correct page with management sidebar~~ Verified (Session 2 + Session 5)
    - Ensure browser back/forward navigation works across zone transitions
    - Test SessionNavigationProvider state preservation when returning from management zone
 2. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
@@ -60,16 +68,20 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 - ManagementSidebar reuses OrgSwitcher and UserMenu directly — they are self-contained components
 - Sidebar open/close state is shared across zones via useSidebarOpen() (localStorage)
-- Existing section components (MembersSection, ApiKeysSection, EnvironmentsSection) are unchanged
+- Existing section components (MembersSection, ApiKeysSection, EnvironmentsSection) are unchanged except the bootstrap fix
 - The shared internal React lib idea was deferred — the demo views in site/ serve a different purpose (schematic illustration) and don't need real Console components
 - Mobile sidebar auto-close fires on `pathname` change only — session Sidebar's `pushState`-based navigation is a separate concern
 - `LG_BREAKPOINT` constant lives in `use-layout-state.tsx` alongside `useSidebarOpen()`
+- OrgSwitcher is zone-agnostic: uses only `useOrg()` (global context), local state, and `sidebar-*` theme tokens
+- All settings SDK hooks use a render-time state sync pattern for prop-change detection with effect-based refetch
+- `ApiKeyListPanel` is identity-scoped (no org prop) — by design, not a bug
+- Browser back/forward testing is complicated by OIDC auth pages in the history stack; real users build clean history via client-side `<Link>` navigation
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-4.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-5.md
 ```
 
 ### 2. Current Task
@@ -106,12 +118,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-4.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-5.md`
 2. [ ] Check current task status in `tasks/`
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 5 (Polish & Edge Cases) — 3 items remaining
+6. [ ] Continue with Phase 5 (Polish & Edge Cases) — 2 items remaining
 
 ## Quick Commands
 
