@@ -47,6 +47,12 @@ class IamPolicyClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def revoke_org_access(self, input: io_pb2.RevokeOrgAccessInput) -> None:
+        try:
+            self._command.revokeOrgAccess(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.IamPolicy:
         try:
             return self._query.get(io_pb2.IamPolicyId(value=id))
@@ -68,6 +74,24 @@ class IamPolicyClient:
     def list_authorized_principal_ids(self, input: io_pb2.ListAuthorizedPrincipalIdsInput) -> io_pb2.AuthorizedPrincipalIdsList:
         try:
             return self._query.listAuthorizedPrincipalIds(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_resource_access_by_principal(self, input: io_pb2.ListResourceAccessInput) -> io_pb2.ResourceAccessByPrincipalList:
+        try:
+            return self._query.listResourceAccessByPrincipal(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_principal_resource_roles(self, input: io_pb2.PrincipalResourceInput) -> io_pb2.PrincipalResourceRoles:
+        try:
+            return self._query.getPrincipalResourceRoles(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_principals_count(self, input: io_pb2.GetPrincipalsCountInput) -> io_pb2.PrincipalsCount:
+        try:
+            return self._query.getPrincipalsCount(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

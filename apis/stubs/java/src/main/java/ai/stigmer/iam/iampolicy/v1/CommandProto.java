@@ -40,30 +40,35 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "gmer/commons/apiresource/rpc_service_opt" +
       "ions.proto\032+ai/stigmer/commons/rpc/metho" +
       "d_options.proto\032%ai/stigmer/iam/iampolic" +
-      "y/v1/api.proto\032&ai/stigmer/iam/iampolicy" +
-      "/v1/spec.proto\032\033google/protobuf/empty.pr" +
-      "oto2\271\005\n\032IamPolicyCommandController\022\202\001\n\006c" +
-      "reate\022*.ai.stigmer.iam.iampolicy.v1.IamP" +
-      "olicySpec\032&.ai.stigmer.iam.iampolicy.v1." +
-      "IamPolicy\"$\302\270\030 \010\004*\034unauthorized to grant" +
-      " access\022\203\001\n\006delete\022*.ai.stigmer.iam.iamp" +
-      "olicy.v1.IamPolicySpec\032&.ai.stigmer.iam." +
-      "iampolicy.v1.IamPolicy\"%\302\270\030!\010\004*\035unauthor" +
-      "ized to revoke access\022\302\001\n\017bootstrapPolic" +
-      "y\022*.ai.stigmer.iam.iampolicy.v1.IamPolic" +
-      "ySpec\032&.ai.stigmer.iam.iampolicy.v1.IamP" +
-      "olicy\"[\302\270\030W\010\021\020\037*Hunauthorized to bootstr" +
-      "ap policy - can_bootstrap_iam permission" +
-      " required2\007stigmer\022\304\001\n\027cleanupResourcePo" +
-      "licies\022+.ai.stigmer.iam.iampolicy.v1.Api" +
-      "ResourceRef\032\026.google.protobuf.Empty\"d\302\270\030" +
-      "`\010\021\020\037*Qunauthorized to cleanup resource " +
-      "policies - can_bootstrap_iam permission " +
-      "required2\007stigmer\032\004\240\377+\nB\237\001B\014CommandProto" +
-      "P\001\242\002\004ASII\252\002\033Ai.Stigmer.Iam.Iampolicy.V1\312" +
-      "\002\033Ai\\Stigmer\\Iam\\Iampolicy\\V1\342\002\'Ai\\Stigm" +
-      "er\\Iam\\Iampolicy\\V1\\GPBMetadata\352\002\037Ai::St" +
-      "igmer::Iam::Iampolicy::V1b\006proto3"
+      "y/v1/api.proto\032$ai/stigmer/iam/iampolicy" +
+      "/v1/io.proto\032&ai/stigmer/iam/iampolicy/v" +
+      "1/spec.proto\032\033google/protobuf/empty.prot" +
+      "o2\314\006\n\032IamPolicyCommandController\022\202\001\n\006cre" +
+      "ate\022*.ai.stigmer.iam.iampolicy.v1.IamPol" +
+      "icySpec\032&.ai.stigmer.iam.iampolicy.v1.Ia" +
+      "mPolicy\"$\302\270\030 \010\004*\034unauthorized to grant a" +
+      "ccess\022\203\001\n\006delete\022*.ai.stigmer.iam.iampol" +
+      "icy.v1.IamPolicySpec\032&.ai.stigmer.iam.ia" +
+      "mpolicy.v1.IamPolicy\"%\302\270\030!\010\004*\035unauthoriz" +
+      "ed to revoke access\022\302\001\n\017bootstrapPolicy\022" +
+      "*.ai.stigmer.iam.iampolicy.v1.IamPolicyS" +
+      "pec\032&.ai.stigmer.iam.iampolicy.v1.IamPol" +
+      "icy\"[\302\270\030W\010\021\020\037*Hunauthorized to bootstrap" +
+      " policy - can_bootstrap_iam permission r" +
+      "equired2\007stigmer\022\304\001\n\027cleanupResourcePoli" +
+      "cies\022+.ai.stigmer.iam.iampolicy.v1.ApiRe" +
+      "sourceRef\032\026.google.protobuf.Empty\"d\302\270\030`\010" +
+      "\021\020\037*Qunauthorized to cleanup resource po" +
+      "licies - can_bootstrap_iam permission re" +
+      "quired2\007stigmer\022\220\001\n\017revokeOrgAccess\0221.ai" +
+      ".stigmer.iam.iampolicy.v1.RevokeOrgAcces" +
+      "sInput\032\026.google.protobuf.Empty\"2\302\270\030.\010\004**" +
+      "unauthorized to revoke organization acce" +
+      "ss\032\004\240\377+\nB\237\001B\014CommandProtoP\001\242\002\004ASII\252\002\033Ai." +
+      "Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Stigmer\\Ia" +
+      "m\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampolic" +
+      "y\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Iam::Iam" +
+      "policy::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -71,6 +76,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.ApiProto.getDescriptor(),
+          ai.stigmer.iam.iampolicy.v1.IoProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.SpecProto.getDescriptor(),
           com.google.protobuf.EmptyProto.getDescriptor(),
         });
@@ -78,6 +84,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.ApiProto.getDescriptor();
+    ai.stigmer.iam.iampolicy.v1.IoProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.SpecProto.getDescriptor();
     com.google.protobuf.EmptyProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

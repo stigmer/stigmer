@@ -24,6 +24,7 @@ const (
 	IamPolicyCommandController_Delete_FullMethodName                  = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/delete"
 	IamPolicyCommandController_BootstrapPolicy_FullMethodName         = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapPolicy"
 	IamPolicyCommandController_CleanupResourcePolicies_FullMethodName = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/cleanupResourcePolicies"
+	IamPolicyCommandController_RevokeOrgAccess_FullMethodName         = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/revokeOrgAccess"
 )
 
 // IamPolicyCommandControllerClient is the client API for IamPolicyCommandController service.
@@ -184,6 +185,30 @@ type IamPolicyCommandControllerClient interface {
 	// Input: ApiResourceRef with resource kind and ID
 	// Output: Empty (google.protobuf.Empty)
 	CleanupResourcePolicies(ctx context.Context, in *ApiResourceRef, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Revoke all of a user's access to an organization.
+	//
+	// Removes every IAM policy that grants the specified identity account access to
+	// resources within the given organization, including policies on the organization
+	// itself and on child resources (environments, agents, etc.).
+	//
+	// @internal
+	// The operation:
+	// 1. Validates the input (identity_account_id and organization_id are present)
+	// 2. Authorizes caller (can_grant_access on the organization)
+	// 3. Loads all policies where the user is principal within the org scope
+	// 4. Deletes all matching policies from MongoDB
+	// 5. Removes all corresponding tuples from OpenFGA
+	//
+	// Authorization:
+	// - Caller must have 'can_grant_access' permission on the organization
+	//
+	// Use Cases:
+	// - Removing a member from an organization
+	// - Offboarding a user from all org resources in one operation
+	//
+	// Input: RevokeOrgAccessInput with identity_account_id and organization_id
+	// Output: Empty (google.protobuf.Empty)
+	RevokeOrgAccess(ctx context.Context, in *RevokeOrgAccessInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type iamPolicyCommandControllerClient struct {
@@ -228,6 +253,16 @@ func (c *iamPolicyCommandControllerClient) CleanupResourcePolicies(ctx context.C
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, IamPolicyCommandController_CleanupResourcePolicies_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iamPolicyCommandControllerClient) RevokeOrgAccess(ctx context.Context, in *RevokeOrgAccessInput, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, IamPolicyCommandController_RevokeOrgAccess_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -392,6 +427,30 @@ type IamPolicyCommandControllerServer interface {
 	// Input: ApiResourceRef with resource kind and ID
 	// Output: Empty (google.protobuf.Empty)
 	CleanupResourcePolicies(context.Context, *ApiResourceRef) (*emptypb.Empty, error)
+	// Revoke all of a user's access to an organization.
+	//
+	// Removes every IAM policy that grants the specified identity account access to
+	// resources within the given organization, including policies on the organization
+	// itself and on child resources (environments, agents, etc.).
+	//
+	// @internal
+	// The operation:
+	// 1. Validates the input (identity_account_id and organization_id are present)
+	// 2. Authorizes caller (can_grant_access on the organization)
+	// 3. Loads all policies where the user is principal within the org scope
+	// 4. Deletes all matching policies from MongoDB
+	// 5. Removes all corresponding tuples from OpenFGA
+	//
+	// Authorization:
+	// - Caller must have 'can_grant_access' permission on the organization
+	//
+	// Use Cases:
+	// - Removing a member from an organization
+	// - Offboarding a user from all org resources in one operation
+	//
+	// Input: RevokeOrgAccessInput with identity_account_id and organization_id
+	// Output: Empty (google.protobuf.Empty)
+	RevokeOrgAccess(context.Context, *RevokeOrgAccessInput) (*emptypb.Empty, error)
 }
 
 // UnimplementedIamPolicyCommandControllerServer should be embedded to have
@@ -412,6 +471,9 @@ func (UnimplementedIamPolicyCommandControllerServer) BootstrapPolicy(context.Con
 }
 func (UnimplementedIamPolicyCommandControllerServer) CleanupResourcePolicies(context.Context, *ApiResourceRef) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CleanupResourcePolicies not implemented")
+}
+func (UnimplementedIamPolicyCommandControllerServer) RevokeOrgAccess(context.Context, *RevokeOrgAccessInput) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokeOrgAccess not implemented")
 }
 func (UnimplementedIamPolicyCommandControllerServer) testEmbeddedByValue() {}
 
@@ -505,6 +567,24 @@ func _IamPolicyCommandController_CleanupResourcePolicies_Handler(srv interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IamPolicyCommandController_RevokeOrgAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeOrgAccessInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IamPolicyCommandControllerServer).RevokeOrgAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IamPolicyCommandController_RevokeOrgAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IamPolicyCommandControllerServer).RevokeOrgAccess(ctx, req.(*RevokeOrgAccessInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IamPolicyCommandController_ServiceDesc is the grpc.ServiceDesc for IamPolicyCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -527,6 +607,10 @@ var IamPolicyCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "cleanupResourcePolicies",
 			Handler:    _IamPolicyCommandController_CleanupResourcePolicies_Handler,
+		},
+		{
+			MethodName: "revokeOrgAccess",
+			Handler:    _IamPolicyCommandController_RevokeOrgAccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

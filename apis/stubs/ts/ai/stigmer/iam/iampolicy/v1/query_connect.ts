@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AuthorizedPrincipalIdsList, AuthorizedResourceIdsList, CheckAuthorizationInput, CheckAuthorizationResult, IamPolicyId, ListAuthorizedPrincipalIdsInput, ListAuthorizedResourceIdsInput } from "./io_pb.js";
+import { AuthorizedPrincipalIdsList, AuthorizedResourceIdsList, CheckAuthorizationInput, CheckAuthorizationResult, GetPrincipalsCountInput, IamPolicyId, ListAuthorizedPrincipalIdsInput, ListAuthorizedResourceIdsInput, ListResourceAccessInput, PrincipalResourceInput, PrincipalResourceRoles, PrincipalsCount, ResourceAccessByPrincipalList } from "./io_pb.js";
 import { IamPolicy } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -99,6 +99,72 @@ export const IamPolicyQueryController = {
       name: "listAuthorizedPrincipalIds",
       I: ListAuthorizedPrincipalIdsInput,
       O: AuthorizedPrincipalIdsList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List all principals and their roles on a resource, grouped by principal.
+     *
+     * This RPC answers: "Who has access to this resource, and what roles do they have?"
+     * Returns each principal with full display information and all their role grants,
+     * optionally including roles inherited from parent resources.
+     *
+     * Use Cases:
+     * - Organization members page (show all users and their roles)
+     * - Resource "Share" dialog (show who already has access)
+     * - Access audit views
+     *
+     * Input: ListResourceAccessInput with resource ref and include_inherited flag
+     * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+     *
+     * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal
+     */
+    listResourceAccessByPrincipal: {
+      name: "listResourceAccessByPrincipal",
+      I: ListResourceAccessInput,
+      O: ResourceAccessByPrincipalList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get all roles a specific principal has on a specific resource.
+     *
+     * This RPC answers: "What roles does [principal] have on [resource]?"
+     * Returns role metadata (code, display name, description) for each assigned role.
+     *
+     * Use Cases:
+     * - Displaying a user's current role in a resource detail view
+     * - Pre-populating role selectors when editing access
+     * - Permission summary for a specific user-resource pair
+     *
+     * Input: PrincipalResourceInput with principal and resource refs
+     * Output: PrincipalResourceRoles with list of RoleInfo entries
+     *
+     * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalResourceRoles
+     */
+    getPrincipalResourceRoles: {
+      name: "getPrincipalResourceRoles",
+      I: PrincipalResourceInput,
+      O: PrincipalResourceRoles,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Count distinct principals that have access to a resource.
+     *
+     * This RPC answers: "How many [principal-kind] have access to this organization?"
+     * Used for member count badges and summary statistics.
+     *
+     * Use Cases:
+     * - Organization members count badge in navigation
+     * - Settings page member summary
+     *
+     * Input: GetPrincipalsCountInput with org_id and principal_kind
+     * Output: PrincipalsCount with integer count
+     *
+     * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalsCount
+     */
+    getPrincipalsCount: {
+      name: "getPrincipalsCount",
+      I: GetPrincipalsCountInput,
+      O: PrincipalsCount,
       kind: MethodKind.Unary,
     },
   }
