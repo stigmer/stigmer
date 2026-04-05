@@ -6,6 +6,7 @@ import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/identityprovider/v1/api.proto";
+import "ai/stigmer/iam/identityprovider/v1/io.proto";
 
 // IdentityProviderQueryController provides read operations for identity providers.
 service IdentityProviderQueryController {
@@ -31,6 +32,22 @@ service IdentityProviderQueryController {
   // Custom authorization in handler — checks both direct resource access
   // and organization-level visibility permissions.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (IdentityProvider) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Look up the SSO identity provider for an organization.
+  //
+  // Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
+  // of the IdentityProvider where is_sso_provider is true for the given org.
+  // Returns NOT_FOUND if the organization has no SSO provider configured.
+  //
+  // This endpoint is called by the web app's login page before the user has
+  // authenticated, so it requires no authorization. The response intentionally
+  // omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+  //
+  // @internal
+  // Authorization: none — unauthenticated, public endpoint for login page rendering.
+  rpc getSsoProvider(OrganizationSsoLookup) returns (SsoProviderInfo) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

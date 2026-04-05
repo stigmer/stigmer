@@ -26,9 +26,10 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.iam.identityprovider.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2
+from ai.stigmer.iam.identityprovider.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/iam/identityprovider/v1/query.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto2\xd2\x02\n\x1fIdentityProviderQueryController\x12\xa3\x01\n\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"7\xc2\xb8\x18\x33\x08\x01\x10\x15\"\x05value*&unauthorized to view identity provider\x12\x82\x01\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x15\x42\xe1\x01\n&com.ai.stigmer.iam.identityprovider.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/iam/identityprovider/v1/query.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a+ai/stigmer/iam/identityprovider/v1/io.proto2\xdb\x03\n\x1fIdentityProviderQueryController\x12\xa3\x01\n\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"7\xc2\xb8\x18\x33\x08\x01\x10\x15\"\x05value*&unauthorized to view identity provider\x12\x82\x01\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x34.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"\x04\xd0\xb8\x18\x01\x12\x86\x01\n\x0egetSsoProvider\x12\x39.ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup\x1a\x33.ai.stigmer.iam.identityprovider.v1.SsoProviderInfo\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x15\x42\xe1\x01\n&com.ai.stigmer.iam.identityprovider.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,6 +43,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IDENTITYPROVIDERQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\0303\010\001\020\025\"\005value*&unauthorized to view identity provider'
   _globals['_IDENTITYPROVIDERQUERYCONTROLLER'].methods_by_name['getByReference']._loaded_options = None
   _globals['_IDENTITYPROVIDERQUERYCONTROLLER'].methods_by_name['getByReference']._serialized_options = b'\320\270\030\001'
-  _globals['_IDENTITYPROVIDERQUERYCONTROLLER']._serialized_start=277
-  _globals['_IDENTITYPROVIDERQUERYCONTROLLER']._serialized_end=615
+  _globals['_IDENTITYPROVIDERQUERYCONTROLLER'].methods_by_name['getSsoProvider']._loaded_options = None
+  _globals['_IDENTITYPROVIDERQUERYCONTROLLER'].methods_by_name['getSsoProvider']._serialized_options = b'\320\270\030\001'
+  _globals['_IDENTITYPROVIDERQUERYCONTROLLER']._serialized_start=322
+  _globals['_IDENTITYPROVIDERQUERYCONTROLLER']._serialized_end=797
 # @@protoc_insertion_point(module_scope)
