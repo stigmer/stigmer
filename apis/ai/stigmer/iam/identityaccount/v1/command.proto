@@ -44,6 +44,24 @@ service IdentityAccountCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete identity account";
   }
 
+  // Create a federated identity account for an external platform user.
+  //
+  // Called by platform backends (via API key) when a new user signs up on their
+  // platform. The platform provides the user's OIDC subject identifier and profile
+  // data. The account must be created before the user can authenticate via the IdP.
+  //
+  // Returns the full identity account including its ID, which the platform uses
+  // to grant roles via IAM policies.
+  //
+  // Authorization: Requires can_create_identity_account on the organization
+  // that owns the identity provider.
+  rpc createFederatedAccount(CreateFederatedAccountInput) returns (IdentityAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create identity accounts in this organization";
+  }
+
   // Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
   //
   // @internal

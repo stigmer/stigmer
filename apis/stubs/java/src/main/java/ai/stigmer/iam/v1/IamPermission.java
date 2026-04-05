@@ -89,6 +89,10 @@ public enum IamPermission
    */
   can_create_environment(12),
   /**
+   * <code>can_create_identity_account = 21;</code>
+   */
+  can_create_identity_account(21),
+  /**
    * <pre>
    * Resource-level create permissions.
    * </pre>
@@ -217,6 +221,10 @@ public enum IamPermission
    */
   public static final int can_create_environment_VALUE = 12;
   /**
+   * <code>can_create_identity_account = 21;</code>
+   */
+  public static final int can_create_identity_account_VALUE = 21;
+  /**
    * <pre>
    * Resource-level create permissions.
    * </pre>
@@ -307,6 +315,7 @@ public enum IamPermission
       case 10: return can_create_project;
       case 11: return can_create_idp;
       case 12: return can_create_environment;
+      case 21: return can_create_identity_account;
       case 13: return can_create_execution_in;
       case 14: return can_create_instance;
       case 15: return can_execute;

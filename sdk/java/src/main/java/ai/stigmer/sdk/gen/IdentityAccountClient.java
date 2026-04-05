@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceAuditActor;
+import ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandControllerGrpc;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail;
@@ -38,6 +39,12 @@ public final class IdentityAccountClient {
     public IdentityAccount delete(String id) {
         try {
             return command.delete(IdentityAccountId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public IdentityAccount createFederatedAccount(CreateFederatedAccountInput input) {
+        try {
+            return command.createFederatedAccount(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
