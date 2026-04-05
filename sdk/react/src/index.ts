@@ -369,6 +369,37 @@ export type {
   UseSessionEnvPoolReturn,
 } from "./environment";
 
+// IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
+export {
+  useGrantableRoles,
+  useRoleSelector,
+  useResourceAccess,
+  usePrincipalsCount,
+  useWhoAmI,
+  useCreateIamPolicy,
+  useDeleteIamPolicy,
+  useRevokeOrgAccess,
+  RoleSelector,
+  GrantAccessForm,
+  OrgMembersPanel,
+} from "./iam-policy";
+export type {
+  UseGrantableRolesReturn,
+  RoleOption,
+  UseRoleSelectorReturn,
+  ResourceAccessRef,
+  UseResourceAccessOptions,
+  UseResourceAccessReturn,
+  UsePrincipalsCountReturn,
+  UseWhoAmIReturn,
+  UseCreateIamPolicyReturn,
+  UseDeleteIamPolicyReturn,
+  UseRevokeOrgAccessReturn,
+  RoleSelectorProps,
+  GrantAccessFormProps,
+  OrgMembersPanelProps,
+} from "./iam-policy";
+
 // Organization — behavior hook and styled form for organization creation
 export {
   useCreateOrganization,
@@ -396,6 +427,28 @@ export type {
   CreateApiKeyFormProps,
   ApiKeyCreatedAlertProps,
 } from "./api-key";
+
+// Identity Provider — data hooks, mutation hooks, and styled components for IdP management and SSO discovery
+export {
+  useIdentityProviderList,
+  useIdentityProvider,
+  useSsoProvider,
+  useCreateIdentityProvider,
+  useUpdateIdentityProvider,
+  useDeleteIdentityProvider,
+  IdentityProviderListPanel,
+  CreateIdentityProviderForm,
+} from "./identity-provider";
+export type {
+  UseIdentityProviderListReturn,
+  UseIdentityProviderReturn,
+  UseSsoProviderReturn,
+  UseCreateIdentityProviderReturn,
+  UseUpdateIdentityProviderReturn,
+  UseDeleteIdentityProviderReturn,
+  IdentityProviderListPanelProps,
+  CreateIdentityProviderFormProps,
+} from "./identity-provider";
 
 // Error — structured error display with classification, retry, and contextual guidance
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";

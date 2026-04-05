@@ -28,6 +28,12 @@ class IdentityProviderList(_message.Message):
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.IdentityProvider]
     def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.IdentityProvider, _Mapping]]] = ...) -> None: ...
 
+class ListIdentityProvidersByOrgInput(_message.Message):
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
+
 class OrganizationSsoLookup(_message.Message):
     __slots__ = ("org",)
     ORG_FIELD_NUMBER: _ClassVar[int]

@@ -6,7 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { IdentityProvider } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import { OrganizationSsoLookup, SsoProviderInfo } from "./io_pb.js";
+import { IdentityProviders, ListIdentityProvidersByOrgInput, OrganizationSsoLookup, SsoProviderInfo } from "./io_pb.js";
 
 /**
  * IdentityProviderQueryController provides read operations for identity providers.
@@ -46,6 +46,23 @@ export const IdentityProviderQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: IdentityProvider,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List all identity providers belonging to an organization.
+     *
+     * Returns every IdentityProvider whose metadata.org matches the input org.
+     * Typically a small set (1-3 per org), so results are not paginated.
+     *
+     * @internal
+     * Authorization: Requires can_view permission on the organization resource.
+     *
+     * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.listByOrg
+     */
+    listByOrg: {
+      name: "listByOrg",
+      I: ListIdentityProvidersByOrgInput,
+      O: IdentityProviders,
       kind: MethodKind.Unary,
     },
     /**

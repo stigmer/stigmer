@@ -64,6 +64,12 @@ class IdentityProviderClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_by_org(self, input: io_pb2.ListIdentityProvidersByOrgInput) -> io_pb2.IdentityProviders:
+        try:
+            return self._query.listByOrg(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get_sso_provider(self, input: io_pb2.OrganizationSsoLookup) -> io_pb2.SsoProviderInfo:
         try:
             return self._query.getSsoProvider(input)

@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	IdentityProviderQueryController_Get_FullMethodName            = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/get"
 	IdentityProviderQueryController_GetByReference_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getByReference"
+	IdentityProviderQueryController_ListByOrg_FullMethodName      = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/listByOrg"
 	IdentityProviderQueryController_GetSsoProvider_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getSsoProvider"
 )
 
@@ -45,6 +46,14 @@ type IdentityProviderQueryControllerClient interface {
 	// Custom authorization in handler — checks both direct resource access
 	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*IdentityProvider, error)
+	// List all identity providers belonging to an organization.
+	//
+	// Returns every IdentityProvider whose metadata.org matches the input org.
+	// Typically a small set (1-3 per org), so results are not paginated.
+	//
+	// @internal
+	// Authorization: Requires can_view permission on the organization resource.
+	ListByOrg(ctx context.Context, in *ListIdentityProvidersByOrgInput, opts ...grpc.CallOption) (*IdentityProviders, error)
 	// Look up the SSO identity provider for an organization.
 	//
 	// Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
@@ -88,6 +97,16 @@ func (c *identityProviderQueryControllerClient) GetByReference(ctx context.Conte
 	return out, nil
 }
 
+func (c *identityProviderQueryControllerClient) ListByOrg(ctx context.Context, in *ListIdentityProvidersByOrgInput, opts ...grpc.CallOption) (*IdentityProviders, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityProviders)
+	err := c.cc.Invoke(ctx, IdentityProviderQueryController_ListByOrg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityProviderQueryControllerClient) GetSsoProvider(ctx context.Context, in *OrganizationSsoLookup, opts ...grpc.CallOption) (*SsoProviderInfo, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SsoProviderInfo)
@@ -118,6 +137,14 @@ type IdentityProviderQueryControllerServer interface {
 	// Custom authorization in handler — checks both direct resource access
 	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*IdentityProvider, error)
+	// List all identity providers belonging to an organization.
+	//
+	// Returns every IdentityProvider whose metadata.org matches the input org.
+	// Typically a small set (1-3 per org), so results are not paginated.
+	//
+	// @internal
+	// Authorization: Requires can_view permission on the organization resource.
+	ListByOrg(context.Context, *ListIdentityProvidersByOrgInput) (*IdentityProviders, error)
 	// Look up the SSO identity provider for an organization.
 	//
 	// Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
@@ -145,6 +172,9 @@ func (UnimplementedIdentityProviderQueryControllerServer) Get(context.Context, *
 }
 func (UnimplementedIdentityProviderQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedIdentityProviderQueryControllerServer) ListByOrg(context.Context, *ListIdentityProvidersByOrgInput) (*IdentityProviders, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByOrg not implemented")
 }
 func (UnimplementedIdentityProviderQueryControllerServer) GetSsoProvider(context.Context, *OrganizationSsoLookup) (*SsoProviderInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSsoProvider not implemented")
@@ -205,6 +235,24 @@ func _IdentityProviderQueryController_GetByReference_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityProviderQueryController_ListByOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListIdentityProvidersByOrgInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityProviderQueryControllerServer).ListByOrg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityProviderQueryController_ListByOrg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityProviderQueryControllerServer).ListByOrg(ctx, req.(*ListIdentityProvidersByOrgInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityProviderQueryController_GetSsoProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(OrganizationSsoLookup)
 	if err := dec(in); err != nil {
@@ -237,6 +285,10 @@ var IdentityProviderQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _IdentityProviderQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "listByOrg",
+			Handler:    _IdentityProviderQueryController_ListByOrg_Handler,
 		},
 		{
 			MethodName: "getSsoProvider",
