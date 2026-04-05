@@ -39,6 +39,11 @@ func (i *IdentityAccountClient) Delete(ctx context.Context, id string) (*identit
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityAccountClient) CreateFederatedAccount(ctx context.Context, input *identityaccountv1.CreateFederatedAccountInput) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.command.CreateFederatedAccount(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IdentityAccountClient) SimulateSignupWebhook(ctx context.Context, input *identityaccountv1.IdentityAccountEmail) error {
 	_, err := i.command.SimulateSignupWebhook(ctx, input)
 	return wrapErr(err)

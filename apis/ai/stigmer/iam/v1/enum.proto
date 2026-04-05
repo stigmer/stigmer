@@ -32,6 +32,7 @@ enum IamPermission {
   can_create_project = 10;
   can_create_idp = 11;
   can_create_environment = 12;
+  can_create_identity_account = 21;
 
   // Resource-level create permissions.
   can_create_execution_in = 13;

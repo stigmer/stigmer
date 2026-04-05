@@ -43,6 +43,12 @@ class IdentityAccountClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def create_federated_account(self, input: io_pb2.CreateFederatedAccountInput) -> api_pb2.IdentityAccount:
+        try:
+            return self._command.createFederatedAccount(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def simulate_signup_webhook(self, input: io_pb2.IdentityAccountEmail) -> None:
         try:
             self._command.simulateSignupWebhook(input)

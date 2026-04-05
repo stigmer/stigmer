@@ -12,7 +12,7 @@ import { type ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/a
 import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityAccountIdSchema, IdentityAccountEmailSchema, IdpIdSchema, type IdentityAccountEmail } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IdentityAccountIdSchema, CreateFederatedAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, type CreateFederatedAccountInput, type IdentityAccountEmail } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
@@ -41,6 +41,12 @@ export class IdentityAccountClient {
   async delete(id: string): Promise<IdentityAccount> {
     try {
       return await this.command.delete(create(IdentityAccountIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async createFederatedAccount(input: CreateFederatedAccountInput): Promise<IdentityAccount> {
+    try {
+      return await this.command.createFederatedAccount(input);
     } catch (e) { throw wrapError(e); }
   }
 
