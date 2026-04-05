@@ -11,7 +11,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { parseTypeDocJson } from "./parser";
-import { renderDomainPage, renderMetaJson } from "./renderer";
+import { renderDomainPage, renderMetaJson, renderSummaryJson } from "./renderer";
 
 const API_JSON_PATH = path.resolve(
   process.cwd(),
@@ -25,6 +25,13 @@ const API_JSON_PATH = path.resolve(
 const OUTPUT_DIR =
   process.env.REACT_SDK_DOCS_OUTPUT_DIR ??
   path.resolve(process.cwd(), "..", "docs", "sdk", "react");
+
+const SUMMARY_JSON_PATH = path.resolve(
+  process.cwd(),
+  "src",
+  "data",
+  "react-sdk-summary.json",
+);
 
 async function main(): Promise<void> {
   console.log("[react-sdk-docs] Generating React SDK reference documentation...");
@@ -56,6 +63,10 @@ async function main(): Promise<void> {
   const metaJson = renderMetaJson(domains);
   await fs.writeFile(path.join(OUTPUT_DIR, "meta.json"), metaJson, "utf-8");
 
+  await fs.mkdir(path.dirname(SUMMARY_JSON_PATH), { recursive: true });
+  const summaryJson = renderSummaryJson(domains);
+  await fs.writeFile(SUMMARY_JSON_PATH, summaryJson, "utf-8");
+
   // Summary
   const totalHooks = domains.reduce((n, d) => n + d.hooks.length, 0);
   const totalComponents = domains.reduce((n, d) => n + d.components.length, 0);
@@ -83,6 +94,9 @@ async function main(): Promise<void> {
 
   console.log(
     `[react-sdk-docs] Written ${domains.length} pages + meta.json → ${OUTPUT_DIR}`,
+  );
+  console.log(
+    `[react-sdk-docs] Written react-sdk-summary.json → ${SUMMARY_JSON_PATH}`,
   );
 }
 

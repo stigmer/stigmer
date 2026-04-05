@@ -1,0 +1,116 @@
+{
+  "domains": [
+    {
+      "slug": "agent",
+      "title": "Agent",
+      "description": "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
+      "hooks": 6,
+      "components": 3
+    },
+    {
+      "slug": "agent-instance",
+      "title": "Agent Instance",
+      "description": "Hooks for deployed agent instances bound to an environment.",
+      "hooks": 4,
+      "components": 0
+    },
+    {
+      "slug": "api-key",
+      "title": "API Key",
+      "description": "Hooks and components for API key creation, listing, and deletion.",
+      "hooks": 3,
+      "components": 3
+    },
+    {
+      "slug": "attachment",
+      "title": "Attachment",
+      "description": "Hooks and components for file upload handling and chip display.",
+      "hooks": 1,
+      "components": 1
+    },
+    {
+      "slug": "composer",
+      "title": "Composer",
+      "description": "The unified message input with model selection, workspace, and attachments.",
+      "hooks": 1,
+      "components": 1
+    },
+    {
+      "slug": "environment",
+      "title": "Environment",
+      "description": "Hooks and components for configuration, variables, secrets, and session environment pools.",
+      "hooks": 9,
+      "components": 4
+    },
+    {
+      "slug": "error",
+      "title": "Error",
+      "description": "Components for structured error display and troubleshooting guidance.",
+      "hooks": 0,
+      "components": 2
+    },
+    {
+      "slug": "execution",
+      "title": "Execution",
+      "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
+      "hooks": 7,
+      "components": 26
+    },
+    {
+      "slug": "github",
+      "title": "GitHub",
+      "description": "Hooks and components for OAuth connection, repository search, and picker.",
+      "hooks": 3,
+      "components": 1
+    },
+    {
+      "slug": "library",
+      "title": "Library",
+      "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
+      "hooks": 4,
+      "components": 4
+    },
+    {
+      "slug": "mcp-server",
+      "title": "MCP Server",
+      "description": "Hooks and components for MCP server connections, setup, credentials, and tool management.",
+      "hooks": 8,
+      "components": 5
+    },
+    {
+      "slug": "models",
+      "title": "Models",
+      "description": "Hooks and components for model registry data and selector.",
+      "hooks": 1,
+      "components": 1
+    },
+    {
+      "slug": "organization",
+      "title": "Organization",
+      "description": "Hooks and components for organization creation.",
+      "hooks": 1,
+      "components": 1
+    },
+    {
+      "slug": "session",
+      "title": "Session",
+      "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
+      "hooks": 10,
+      "components": 0
+    },
+    {
+      "slug": "skill",
+      "title": "Skill",
+      "description": "Hooks and components for knowledge attachments, search, picker, and detail views.",
+      "hooks": 4,
+      "components": 2
+    },
+    {
+      "slug": "workspace",
+      "title": "Workspace",
+      "description": "Hooks and components for file entries, folder browsing, and code editing.",
+      "hooks": 2,
+      "components": 3
+    }
+  ]
+}

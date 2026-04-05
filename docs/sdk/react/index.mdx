@@ -5,9 +5,9 @@ description:
   components for the Stigmer API.
 ---
 
-`@stigmer/react` provides 67 React hooks and 59 UI components for the Stigmer
-API. The hooks manage data fetching, mutations, and real-time streaming. The
-components render the same views used in the Stigmer Console — session
+`@stigmer/react` provides React hooks and UI components for every domain in the
+Stigmer API. The hooks manage data fetching, mutations, and real-time streaming.
+The components render the same views used in the Stigmer Console — session
 composers, message threads, approval cards, and resource detail panels.
 
 This package requires a configured `@stigmer/sdk` client. See
@@ -121,24 +121,7 @@ function ApiKeySection() {
 The SDK is organized by domain. Each domain exports hooks for data access and
 mutations, and components for rendering UI.
 
-| Domain | Description | Hooks | Components |
-|--------|-------------|:-----:|:----------:|
-| [Session](/docs/sdk/react/session) | Conversation lifecycle, message history, artifacts, and usage. | 10 | — |
-| [Execution](/docs/sdk/react/execution) | Real-time streaming, tool calls, approvals, messages, and artifacts. | 7 | 26 |
-| [Composer](/docs/sdk/react/composer) | Unified message input with model selection, workspace, and attachments. | 1 | 1 |
-| [Agent](/docs/sdk/react/agent) | Agent definitions, search, setup orchestration, picker, and detail view. | 6 | 3 |
-| [Agent Instance](/docs/sdk/react/agent-instance) | Deployed agent instances bound to an environment. | 4 | — |
-| [MCP Server](/docs/sdk/react/mcp-server) | Server connections, setup, credentials, tool selection, and approval policies. | 8 | 5 |
-| [Skill](/docs/sdk/react/skill) | Knowledge attachments, search, picker, and detail view. | 4 | 2 |
-| [Environment](/docs/sdk/react/environment) | Configuration, variables, secrets, and session environment pool. | 9 | 4 |
-| [Workspace](/docs/sdk/react/workspace) | File entries, folder browsing, and code editor. | 2 | 3 |
-| [API Key](/docs/sdk/react/api-key) | Key creation, listing, and deletion. Cloud only. | 3 | 3 |
-| [Attachment](/docs/sdk/react/attachment) | File upload handling and chip display. | 1 | 1 |
-| [Organization](/docs/sdk/react/organization) | Organization creation. | 1 | 1 |
-| [GitHub](/docs/sdk/react/github) | OAuth connection, repository search, and picker. | 3 | 1 |
-| [Library](/docs/sdk/react/library) | Resource browsing, YAML detection, apply flow, and visibility. | 4 | 4 |
-| [Models](/docs/sdk/react/models) | Model registry data and selector. | 1 | 1 |
-| [Error](/docs/sdk/react/error) | Structured error display and secret-flow guidance. | — | 2 |
+<ReactSdkDomains />
 
 The table above excludes the core exports documented in earlier sections
 (`StigmerProvider`, `useStigmer`, deployment mode hooks, and

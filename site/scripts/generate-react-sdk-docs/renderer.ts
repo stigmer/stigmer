@@ -140,6 +140,29 @@ export function renderMetaJson(domains: Domain[]): string {
   return JSON.stringify(meta, null, 2) + "\n";
 }
 
+export interface DomainSummaryEntry {
+  slug: string;
+  title: string;
+  description: string;
+  hooks: number;
+  components: number;
+}
+
+export function renderSummaryJson(domains: Domain[]): string {
+  const entries: DomainSummaryEntry[] = domains
+    .filter((d) => d.slug !== "core")
+    .map((d) => ({
+      slug: d.slug,
+      title: d.title,
+      description: d.description,
+      hooks: d.hooks.length,
+      components: d.components.length,
+    }));
+
+  const summary = { domains: entries };
+  return JSON.stringify(summary, null, 2) + "\n";
+}
+
 // ---------------------------------------------------------------------------
 // Frontmatter
 // ---------------------------------------------------------------------------
