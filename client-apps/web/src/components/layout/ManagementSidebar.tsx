@@ -6,6 +6,7 @@ import { ArrowLeft, KeyRound, PanelLeft, Users, Box } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useSessionNavigation } from "@/contexts/session-navigation";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
@@ -25,6 +26,7 @@ const NAV_ITEMS: readonly NavItem[] = [
 export function ManagementSidebar() {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
+  const { lastSessionZonePath } = useSessionNavigation();
 
   return (
     <nav
@@ -53,7 +55,7 @@ export function ManagementSidebar() {
       {/* Back to Sessions */}
       <div className="flex-none px-3 py-1">
         <Link
-          href="/"
+          href={lastSessionZonePath ?? "/"}
           className="text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors"
         >
           <ArrowLeft className="size-4 shrink-0" />

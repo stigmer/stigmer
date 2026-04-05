@@ -20,6 +20,13 @@ interface SessionNavigationValue {
   activeSessionId: string | null;
   /** True when the app is in the "session zone" (home or session view). */
   isSessionZone: boolean;
+  /**
+   * The last pathname the user was on inside the session zone, captured
+   * when they navigated away (e.g. to `/settings`). Consumers like
+   * ManagementSidebar use this to send the user back to where they were
+   * rather than always landing on `/`.
+   */
+  lastSessionZonePath: string | null;
   /** Navigate to an existing session without a full page reload. */
   navigateToSession: (id: string) => void;
   /** Navigate to the new-session screen without a full page reload. */
@@ -76,6 +83,24 @@ export function SessionNavigationProvider({
     return isSessionZonePath(window.location.pathname);
   });
 
+  // The true session-zone pathname, updated by both pushState (in-zone
+  // navigation) and Next.js routing (zone re-entry). `prevPathname` from
+  // usePathname() only reflects Next.js navigations and misses pushState
+  // updates, so we track it separately to capture the accurate path when
+  // the user leaves the session zone. This is state (not a ref) because
+  // the render-time pathname sync block reads it, and the react-hooks/refs
+  // lint rule prohibits ref access during render.
+  const [currentSessionZonePath, setCurrentSessionZonePath] = useState(() => {
+    if (typeof window === "undefined") return "/";
+    const p = window.location.pathname;
+    return isSessionZonePath(p) ? p : "/";
+  });
+
+  // Snapshot of the last session-zone pathname, captured when the user
+  // leaves the zone. "Back to Sessions" uses this to return the user to
+  // where they were rather than always landing on `/`.
+  const [lastSessionZonePath, setLastSessionZonePath] = useState<string | null>(null);
+
   // Track Next.js router navigations (e.g. <Link> to /library) that
   // bypass pushState. When the Next.js pathname leaves the session
   // zone we clear the session state so AppShell renders {children}.
@@ -87,9 +112,13 @@ export function SessionNavigationProvider({
   if (nextPathname !== prevPathname) {
     setPrevPathname(nextPathname);
     if (!isSessionZonePath(nextPathname)) {
+      if (isSessionZone) {
+        setLastSessionZonePath(currentSessionZonePath);
+      }
       setIsSessionZone(false);
       setActiveSessionId(null);
     } else if (!isSessionZone) {
+      setCurrentSessionZonePath(nextPathname);
       setIsSessionZone(true);
       setActiveSessionId(sessionIdFromPath(nextPathname));
     }
@@ -111,6 +140,7 @@ export function SessionNavigationProvider({
     if (sessionIdRef.current !== id) {
       setActiveSessionId(id);
       setIsSessionZone(true);
+      setCurrentSessionZonePath(path);
       window.history.pushState(null, "", path);
     }
   }, []);
@@ -119,6 +149,7 @@ export function SessionNavigationProvider({
     if (sessionIdRef.current !== null || !isSessionZoneRef.current) {
       setActiveSessionId(null);
       setIsSessionZone(true);
+      setCurrentSessionZonePath("/");
       window.history.pushState(null, "", "/");
     }
   }, []);
@@ -127,6 +158,9 @@ export function SessionNavigationProvider({
   useEffect(() => {
     function handlePopState() {
       const pathname = window.location.pathname;
+      if (isSessionZonePath(pathname)) {
+        setCurrentSessionZonePath(pathname);
+      }
       setActiveSessionId(sessionIdFromPath(pathname));
       setIsSessionZone(isSessionZonePath(pathname));
     }
@@ -138,10 +172,11 @@ export function SessionNavigationProvider({
     () => ({
       activeSessionId,
       isSessionZone,
+      lastSessionZonePath,
       navigateToSession,
       navigateToHome,
     }),
-    [activeSessionId, isSessionZone, navigateToSession, navigateToHome],
+    [activeSessionId, isSessionZone, lastSessionZonePath, navigateToSession, navigateToHome],
   );
 
   return (
