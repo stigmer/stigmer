@@ -39,12 +39,12 @@ iamPolicy, err := client.IamPolicy.Get(ctx, "iamp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policy.get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+iamPolicy = client.iam_policies.get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IamPolicy iamPolicy = client.iamPolicy().get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+IamPolicy iamPolicy = client.iamPolicies().get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -81,12 +81,12 @@ iamPolicy, err := client.IamPolicy.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policy.get(id)
+iamPolicy = client.iam_policies.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IamPolicy iamPolicy = client.iamPolicy().get(id);
+IamPolicy iamPolicy = client.iamPolicies().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -132,7 +132,7 @@ result, err := client.IamPolicy.ListAuthorizedPrincipalIds(ctx, &stigmer.ListAut
 </Tab>
 <Tab value="Python">
 ```python
-result = client.iam_policy.list_authorized_principal_ids(ListAuthorizedPrincipalIdsInput(
+result = client.iam_policies.list_authorized_principal_ids(ListAuthorizedPrincipalIdsInput(
     resource=None,
     principal_kind="...",
     relation="...",
@@ -142,7 +142,7 @@ result = client.iam_policy.list_authorized_principal_ids(ListAuthorizedPrincipal
 </Tab>
 <Tab value="Java">
 ```java
-AuthorizedPrincipalIdsList result = client.iamPolicy().listAuthorizedPrincipalIds(ListAuthorizedPrincipalIdsInput.builder()
+AuthorizedPrincipalIdsList result = client.iamPolicies().listAuthorizedPrincipalIds(ListAuthorizedPrincipalIdsInput.builder()
     .resource(null)
     .principalKind("...")
     .relation("...")
@@ -189,7 +189,7 @@ result, err := client.IamPolicy.ListAuthorizedResourceIds(ctx, &stigmer.ListAuth
 </Tab>
 <Tab value="Python">
 ```python
-result = client.iam_policy.list_authorized_resource_ids(ListAuthorizedResourceIdsInput(
+result = client.iam_policies.list_authorized_resource_ids(ListAuthorizedResourceIdsInput(
     principal=None,
     resource_kind="...",
     relation="...",
@@ -199,7 +199,7 @@ result = client.iam_policy.list_authorized_resource_ids(ListAuthorizedResourceId
 </Tab>
 <Tab value="Java">
 ```java
-AuthorizedResourceIdsList result = client.iamPolicy().listAuthorizedResourceIds(ListAuthorizedResourceIdsInput.builder()
+AuthorizedResourceIdsList result = client.iamPolicies().listAuthorizedResourceIds(ListAuthorizedResourceIdsInput.builder()
     .principal(null)
     .resourceKind("...")
     .relation("...")
@@ -240,7 +240,7 @@ iamPolicy, err := client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policy.create(IamPolicySpec(
+iamPolicy = client.iam_policies.create(IamPolicySpec(
     principal=None,
     resource=None,
     relation="...",
@@ -249,7 +249,7 @@ iamPolicy = client.iam_policy.create(IamPolicySpec(
 </Tab>
 <Tab value="Java">
 ```java
-IamPolicy iamPolicy = client.iamPolicy().create(IamPolicySpec.builder()
+IamPolicy iamPolicy = client.iamPolicies().create(IamPolicySpec.builder()
     .principal(null)
     .resource(null)
     .relation("...")
@@ -289,7 +289,7 @@ iamPolicy, err := client.IamPolicy.Delete(ctx, &stigmer.IamPolicySpec{
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policy.delete(IamPolicySpec(
+iamPolicy = client.iam_policies.delete(IamPolicySpec(
     principal=None,
     resource=None,
     relation="...",
@@ -298,7 +298,7 @@ iamPolicy = client.iam_policy.delete(IamPolicySpec(
 </Tab>
 <Tab value="Java">
 ```java
-IamPolicy iamPolicy = client.iamPolicy().delete(IamPolicySpec.builder()
+IamPolicy iamPolicy = client.iamPolicies().delete(IamPolicySpec.builder()
     .principal(null)
     .resource(null)
     .relation("...")
@@ -338,7 +338,7 @@ iamPolicy, err := client.IamPolicy.BootstrapPolicy(ctx, &stigmer.IamPolicySpec{
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policy.bootstrap_policy(IamPolicySpec(
+iamPolicy = client.iam_policies.bootstrap_policy(IamPolicySpec(
     principal=None,
     resource=None,
     relation="...",
@@ -347,7 +347,7 @@ iamPolicy = client.iam_policy.bootstrap_policy(IamPolicySpec(
 </Tab>
 <Tab value="Java">
 ```java
-IamPolicy iamPolicy = client.iamPolicy().bootstrapPolicy(IamPolicySpec.builder()
+IamPolicy iamPolicy = client.iamPolicies().bootstrapPolicy(IamPolicySpec.builder()
     .principal(null)
     .resource(null)
     .relation("...")
@@ -391,7 +391,7 @@ checkAuthorizationResult, err := client.IamPolicy.CheckAuthorization(ctx, &stigm
 </Tab>
 <Tab value="Python">
 ```python
-checkAuthorizationResult = client.iam_policy.check_authorization(CheckAuthorizationInput(
+checkAuthorizationResult = client.iam_policies.check_authorization(CheckAuthorizationInput(
     policy=None,
     contextual_policies=[],
 ))
@@ -399,7 +399,7 @@ checkAuthorizationResult = client.iam_policy.check_authorization(CheckAuthorizat
 </Tab>
 <Tab value="Java">
 ```java
-CheckAuthorizationResult checkAuthorizationResult = client.iamPolicy().checkAuthorization(CheckAuthorizationInput.builder()
+CheckAuthorizationResult checkAuthorizationResult = client.iamPolicies().checkAuthorization(CheckAuthorizationInput.builder()
     .policy(null)
     .contextualPolicies(List.of())
     .build());
@@ -438,7 +438,7 @@ empty, err := client.IamPolicy.CleanupResourcePolicies(ctx, &stigmer.ApiResource
 </Tab>
 <Tab value="Python">
 ```python
-empty = client.iam_policy.cleanup_resource_policies(ApiResourceRef(
+empty = client.iam_policies.cleanup_resource_policies(ApiResourceRef(
     kind="...",
     id="...",
     relation="...",
@@ -447,7 +447,7 @@ empty = client.iam_policy.cleanup_resource_policies(ApiResourceRef(
 </Tab>
 <Tab value="Java">
 ```java
-Empty empty = client.iamPolicy().cleanupResourcePolicies(ApiResourceRef.builder()
+Empty empty = client.iamPolicies().cleanupResourcePolicies(ApiResourceRef.builder()
     .kind("...")
     .id("...")
     .relation("...")

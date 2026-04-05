@@ -36,12 +36,12 @@ identityAccount, err := client.IdentityAccount.Get(ctx, "ida_01j5q3k7m8r2s4tnz2h
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
+identityAccount = client.identity_accounts.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
+IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -77,12 +77,12 @@ identityAccount, err := client.IdentityAccount.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.get(id)
+identityAccount = client.identity_accounts.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().get(id);
+IdentityAccount identityAccount = client.identityAccounts().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -112,12 +112,12 @@ apiResourceAuditActor, err := client.IdentityAccount.GetActorInfo(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-apiResourceAuditActor = client.identity_account.get_actor_info(id)
+apiResourceAuditActor = client.identity_accounts.get_actor_info(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiResourceAuditActor apiResourceAuditActor = client.identityAccount().getActorInfo(id);
+ApiResourceAuditActor apiResourceAuditActor = client.identityAccounts().getActorInfo(id);
 ```
 </Tab>
 </SDKTabs>
@@ -151,14 +151,14 @@ identityAccount, err := client.IdentityAccount.GetByEmail(ctx, &stigmer.Identity
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.get_by_email(IdentityAccountEmail(
+identityAccount = client.identity_accounts.get_by_email(IdentityAccountEmail(
     value="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().getByEmail(IdentityAccountEmail.builder()
+IdentityAccount identityAccount = client.identityAccounts().getByEmail(IdentityAccountEmail.builder()
     .value("...")
     .build());
 ```
@@ -186,12 +186,12 @@ identityAccount, err := client.IdentityAccount.GetByIdpId(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.get_by_idp_id(id)
+identityAccount = client.identity_accounts.get_by_idp_id(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().getByIdpId(id);
+IdentityAccount identityAccount = client.identityAccounts().getByIdpId(id);
 ```
 </Tab>
 </SDKTabs>
@@ -247,7 +247,7 @@ identityAccount, err := client.IdentityAccount.Create(ctx, &stigmer.IdentityAcco
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.create(IdentityAccountInput(
+identityAccount = client.identity_accounts.create(IdentityAccountInput(
     name="my-identity-account",
     org="acme",
     slug="...",
@@ -265,7 +265,7 @@ identityAccount = client.identity_account.create(IdentityAccountInput(
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().create(IdentityAccountInput.builder()
+IdentityAccount identityAccount = client.identityAccounts().create(IdentityAccountInput.builder()
     .name("my-identity-account")
     .org("acme")
     .slug("...")
@@ -330,7 +330,7 @@ identityAccount, err := client.IdentityAccount.Update(ctx, &stigmer.IdentityAcco
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.update(IdentityAccountInput(
+identityAccount = client.identity_accounts.update(IdentityAccountInput(
     name="my-identity-account",
     org="acme",
     slug="...",
@@ -348,7 +348,7 @@ identityAccount = client.identity_account.update(IdentityAccountInput(
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().update(IdentityAccountInput.builder()
+IdentityAccount identityAccount = client.identityAccounts().update(IdentityAccountInput.builder()
     .name("my-identity-account")
     .org("acme")
     .slug("...")
@@ -387,12 +387,12 @@ identityAccount, err := client.IdentityAccount.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.delete(id)
+identityAccount = client.identity_accounts.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().delete(id);
+IdentityAccount identityAccount = client.identityAccounts().delete(id);
 ```
 </Tab>
 </SDKTabs>
@@ -426,14 +426,14 @@ empty, err := client.IdentityAccount.SimulateSignupWebhook(ctx, &stigmer.Identit
 </Tab>
 <Tab value="Python">
 ```python
-empty = client.identity_account.simulate_signup_webhook(IdentityAccountEmail(
+empty = client.identity_accounts.simulate_signup_webhook(IdentityAccountEmail(
     value="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Empty empty = client.identityAccount().simulateSignupWebhook(IdentityAccountEmail.builder()
+Empty empty = client.identityAccounts().simulateSignupWebhook(IdentityAccountEmail.builder()
     .value("...")
     .build());
 ```
@@ -463,12 +463,12 @@ identityAccount, err := client.IdentityAccount.WhoAmI(ctx)
 </Tab>
 <Tab value="Python">
 ```python
-identityAccount = client.identity_account.who_am_i()
+identityAccount = client.identity_accounts.who_am_i()
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccount().whoAmI();
+IdentityAccount identityAccount = client.identityAccounts().whoAmI();
 ```
 </Tab>
 </SDKTabs>

@@ -52,12 +52,12 @@ workflow, err := client.Workflow.Get(ctx, "wfl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflow.get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3")
+workflow = client.workflows.get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflow().get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Workflow workflow = client.workflows().get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -90,12 +90,12 @@ workflow, err := client.Workflow.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflow.get(id)
+workflow = client.workflows.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflow().get(id);
+Workflow workflow = client.workflows().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -135,7 +135,7 @@ workflow, err := client.Workflow.GetByReference(ctx, &stigmer.ApiResourceReferen
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflow.get_by_reference(ApiResourceReference(
+workflow = client.workflows.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -145,7 +145,7 @@ workflow = client.workflow.get_by_reference(ApiResourceReference(
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflow().getByReference(ApiResourceReference.builder()
+Workflow workflow = client.workflows().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -194,7 +194,7 @@ workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflow.apply(WorkflowInput(
+workflow = client.workflows.apply(WorkflowInput(
     name="my-workflow",
     org="acme",
     slug="...",
@@ -208,7 +208,7 @@ workflow = client.workflow.apply(WorkflowInput(
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflow().apply(WorkflowInput.builder()
+Workflow workflow = client.workflows().apply(WorkflowInput.builder()
     .name("my-workflow")
     .org("acme")
     .slug("...")
@@ -261,7 +261,7 @@ workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflow.create(WorkflowInput(
+workflow = client.workflows.create(WorkflowInput(
     name="my-workflow",
     org="acme",
     slug="...",
@@ -275,7 +275,7 @@ workflow = client.workflow.create(WorkflowInput(
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflow().create(WorkflowInput.builder()
+Workflow workflow = client.workflows().create(WorkflowInput.builder()
     .name("my-workflow")
     .org("acme")
     .slug("...")
@@ -328,7 +328,7 @@ workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflow.update(WorkflowInput(
+workflow = client.workflows.update(WorkflowInput(
     name="my-workflow",
     org="acme",
     slug="...",
@@ -342,7 +342,7 @@ workflow = client.workflow.update(WorkflowInput(
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflow().update(WorkflowInput.builder()
+Workflow workflow = client.workflows().update(WorkflowInput.builder()
     .name("my-workflow")
     .org("acme")
     .slug("...")
@@ -377,12 +377,12 @@ workflow, err := client.Workflow.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflow.delete(id)
+workflow = client.workflows.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflow().delete(id);
+Workflow workflow = client.workflows().delete(id);
 ```
 </Tab>
 </SDKTabs>

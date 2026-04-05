@@ -38,12 +38,12 @@ identityProvider, err := client.IdentityProvider.Get(ctx, "idp_01j5q3k7m8r2s4tnz
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+identityProvider = client.identity_providers.get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+IdentityProvider identityProvider = client.identityProviders().get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -76,12 +76,12 @@ identityProvider, err := client.IdentityProvider.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.get(id)
+identityProvider = client.identity_providers.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().get(id);
+IdentityProvider identityProvider = client.identityProviders().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -123,7 +123,7 @@ identityProvider, err := client.IdentityProvider.GetByReference(ctx, &stigmer.Ap
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.get_by_reference(ApiResourceReference(
+identityProvider = client.identity_providers.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -133,7 +133,7 @@ identityProvider = client.identity_provider.get_by_reference(ApiResourceReferenc
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().getByReference(ApiResourceReference.builder()
+IdentityProvider identityProvider = client.identityProviders().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -188,7 +188,7 @@ identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityPro
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.apply(IdentityProviderInput(
+identityProvider = client.identity_providers.apply(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
     slug="...",
@@ -204,7 +204,7 @@ identityProvider = client.identity_provider.apply(IdentityProviderInput(
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().apply(IdentityProviderInput.builder()
+IdentityProvider identityProvider = client.identityProviders().apply(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
     .slug("...")
@@ -265,7 +265,7 @@ identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityPr
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.create(IdentityProviderInput(
+identityProvider = client.identity_providers.create(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
     slug="...",
@@ -281,7 +281,7 @@ identityProvider = client.identity_provider.create(IdentityProviderInput(
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().create(IdentityProviderInput.builder()
+IdentityProvider identityProvider = client.identityProviders().create(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
     .slug("...")
@@ -340,7 +340,7 @@ identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityPr
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.update(IdentityProviderInput(
+identityProvider = client.identity_providers.update(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
     slug="...",
@@ -356,7 +356,7 @@ identityProvider = client.identity_provider.update(IdentityProviderInput(
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().update(IdentityProviderInput.builder()
+IdentityProvider identityProvider = client.identityProviders().update(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
     .slug("...")
@@ -397,12 +397,12 @@ identityProvider, err := client.IdentityProvider.Delete(ctx, &stigmer.DeleteReso
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.delete(DeleteResourceInput(resource_id=id))
+identityProvider = client.identity_providers.delete(DeleteResourceInput(resource_id=id))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().delete(DeleteResourceInput.builder()
+IdentityProvider identityProvider = client.identityProviders().delete(DeleteResourceInput.builder()
     .resourceId(id)
     .build());
 ```
