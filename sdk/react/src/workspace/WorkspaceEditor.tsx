@@ -47,6 +47,23 @@ const TYPE_LABELS: Record<string, string> = {
  * to the manual URL input.
  *
  * All visual properties flow through `--stgm-*` tokens.
+ *
+ * @example
+ * ```tsx
+ * function SessionSetup({ org }: { org: string }) {
+ *   const workspace = useWorkspaceEntries();
+ *   const gh = useGitHubConnection(org);
+ *
+ *   return (
+ *     <WorkspaceEditor
+ *       workspace={workspace}
+ *       gitHubConnection={gh}
+ *       enableGitHub
+ *       enableLocal={false}
+ *     />
+ *   );
+ * }
+ * ```
  */
 export function WorkspaceEditor({
   workspace,

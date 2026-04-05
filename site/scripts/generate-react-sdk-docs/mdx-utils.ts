@@ -191,20 +191,25 @@ export function flattenCommentParts(
     .trim();
 }
 
-/** Extract the first @example block from a TypeDoc comment, stripping outer fences. */
-export function extractExample(
+/** Extract all @example blocks from a TypeDoc comment, stripping outer fences. */
+export function extractExamples(
   comment: Comment | undefined,
-): string | null {
-  if (!comment?.blockTags) return null;
+): string[] {
+  if (!comment?.blockTags) return [];
 
-  const tag = comment.blockTags.find((t) => t.tag === "@example");
-  if (!tag?.content.length) return null;
+  const results: string[] = [];
+  for (const tag of comment.blockTags) {
+    if (tag.tag !== "@example" || !tag.content.length) continue;
 
-  const raw = tag.content
-    .map((p) => p.text)
-    .join("")
-    .trim();
+    const raw = tag.content
+      .map((p) => p.text)
+      .join("")
+      .trim();
 
-  const fenceMatch = raw.match(/^```\w*\n([\s\S]*)\n```$/);
-  return fenceMatch ? fenceMatch[1].trim() : raw;
+    const fenceMatch = raw.match(/^```\w*\n([\s\S]*)\n```$/);
+    const code = fenceMatch ? fenceMatch[1].trim() : raw;
+    if (code) results.push(code);
+  }
+
+  return results;
 }

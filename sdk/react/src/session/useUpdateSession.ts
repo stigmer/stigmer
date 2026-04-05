@@ -28,6 +28,28 @@ export interface UseUpdateSessionReturn {
  * {@link useSessionConversation} rather than used directly. Platform
  * builders who need direct session mutation can use this hook
  * standalone.
+ *
+ * @example
+ * ```tsx
+ * function RenameSession({ session }: { session: Session }) {
+ *   const { update, isUpdating, error } = useUpdateSession();
+ *
+ *   async function handleRename(newSubject: string) {
+ *     await update({
+ *       name: session.metadata!.name,
+ *       org: session.metadata!.org,
+ *       agentInstanceId: session.spec?.agentInstanceId,
+ *       subject: newSubject,
+ *     });
+ *   }
+ *
+ *   return (
+ *     <button onClick={() => handleRename("New subject")} disabled={isUpdating}>
+ *       Rename
+ *     </button>
+ *   );
+ * }
+ * ```
  */
 export function useUpdateSession(): UseUpdateSessionReturn {
   const stigmer = useStigmer();

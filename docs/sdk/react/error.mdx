@@ -38,6 +38,7 @@ const { data, isLoading, error, refetch } = useAgent(id);
 if (error) return <ErrorMessage error={error} retry={refetch} />;
 ```
 
+
 ### SecretFlowErrorGuide
 
 Contextual recovery guidance for secret-flow errors.
@@ -74,6 +75,7 @@ Platform builders embedding Stigmer components get the same guidance.
 <SecretFlowErrorGuide error={error} />
 {error && !isSecretFlowError(error) && <ErrorMessage error={error} />}
 ```
+
 
 ## Types
 

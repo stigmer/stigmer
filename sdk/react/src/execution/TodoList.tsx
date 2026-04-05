@@ -38,6 +38,14 @@ function todoSortKey(item: TodoItem): number {
  * task description.
  *
  * All visual properties flow through `--stgm-*` tokens.
+ *
+ * @example
+ * ```tsx
+ * const execution = stream.execution;
+ * const todos = execution?.status?.todos ?? {};
+ *
+ * <TodoList todos={todos} />
+ * ```
  */
 export function TodoList({ todos, className }: TodoListProps) {
   const sortedTodos = useMemo(() => {

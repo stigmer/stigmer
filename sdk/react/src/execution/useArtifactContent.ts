@@ -86,6 +86,39 @@ export interface UseArtifactContentReturn {
  *   stable but `contentHash` changes, triggering a re-fetch so the UI never
  *   shows stale content. Pass `undefined` or omit for backwards compatibility.
  *
+ * @example
+ * ```tsx
+ * function ArtifactViewer({ executionId, artifact }: {
+ *   executionId: string;
+ *   artifact: ExecutionArtifact;
+ * }) {
+ *   const shouldFetch = isTextArtifact(artifact)
+ *     && Number(artifact.sizeBytes) < 512_000;
+ *
+ *   const { content, contentType, isTruncated, isLoading } = useArtifactContent(
+ *     shouldFetch ? executionId : null,
+ *     shouldFetch ? artifact.storageKey : null,
+ *   );
+ *
+ *   if (isLoading) return <Skeleton />;
+ *   if (!content) return null;
+ *
+ *   return (
+ *     <ArtifactContentRenderer
+ *       content={content}
+ *       contentType={contentType}
+ *       isTruncated={isTruncated}
+ *     />
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Extract a single file from a directory artifact
+ * const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
+ * ```
+ *
  * @see useExecutionArtifacts — extracts artifact metadata from an execution
  * @see isTextArtifact — heuristic for whether content is fetchable as text
  */

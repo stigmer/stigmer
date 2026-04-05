@@ -8,6 +8,19 @@ import type { WorkspaceEntryInput, WorkspaceSourceInput } from "@stigmer/sdk";
  *
  * Each entry represents a code source (git repository or local directory)
  * added by the user before starting an agent session.
+ *
+ * @example
+ * ```tsx
+ * const workspace = useWorkspaceEntries();
+ *
+ * workspace.entries.map((entry) => (
+ *   <div key={entry.id}>
+ *     <span>{entry.type === "git" ? "GitHub" : "Local"}</span>
+ *     <span>{entry.name}</span>
+ *     <button onClick={() => workspace.remove(entry.id)}>Remove</button>
+ *   </div>
+ * ));
+ * ```
  */
 export interface WorkspaceEntry {
   /** Stable client-side identifier used as a React key and for removal. */
@@ -67,6 +80,31 @@ function deriveNameFromPath(path: string): string {
  * Encapsulates the non-trivial logic that platform builders should
  * not reimplement: URL validation, name derivation from git URLs or
  * local paths, and conversion to the SDK input shape.
+ *
+ * @example
+ * ```tsx
+ * function SessionSetup() {
+ *   const workspace = useWorkspaceEntries();
+ *
+ *   return (
+ *     <div>
+ *       <WorkspaceEditor workspace={workspace} />
+ *       <SessionComposer
+ *         onSubmit={(msg) => createSession(msg, workspace.toInput())}
+ *         workspace={workspace}
+ *       />
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Programmatic entry management
+ * const workspace = useWorkspaceEntries();
+ * workspace.addGitRepo("https://github.com/acme/api.git", "main");
+ * workspace.addLocalPath("/Users/dev/projects/frontend");
+ * ```
  */
 export function useWorkspaceEntries(): UseWorkspaceEntriesReturn {
   const [entries, setEntries] = useState<WorkspaceEntry[]>([]);

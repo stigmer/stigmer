@@ -31,6 +31,20 @@ export type AttachmentPhase = "uploading" | "ready" | "error";
  * The `id` is a stable string generated at add-time, used as a React
  * key and for removal. The same `File` added twice produces two
  * independent entries with distinct IDs.
+ *
+ * @example
+ * ```tsx
+ * const attachments = useAttachments();
+ *
+ * attachments.entries.map((entry) => (
+ *   <span key={entry.id}>
+ *     {entry.file.name}
+ *     {entry.phase === "uploading" && <Spinner />}
+ *     {entry.phase === "error" && <span>{entry.error}</span>}
+ *     {entry.phase === "ready" && <CheckIcon />}
+ *   </span>
+ * ));
+ * ```
  */
 export interface AttachmentEntry {
   /** Unique client-side identifier for this attachment. */

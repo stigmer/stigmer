@@ -102,6 +102,37 @@ async function fetchRepoPage(
  * Loads the first page immediately, then eagerly background-fetches
  * remaining pages so client-side search covers the full repo set.
  * Provides client-side search filtering and branch fetching.
+ *
+ * @example
+ * ```tsx
+ * function RepoList({ token }: { token: string }) {
+ *   const { repos, isLoading, search, setSearch, fetchBranches } =
+ *     useGitHubRepos(token);
+ *
+ *   if (isLoading) return <Skeleton />;
+ *
+ *   return (
+ *     <div>
+ *       <input
+ *         value={search}
+ *         onChange={(e) => setSearch(e.target.value)}
+ *         placeholder="Filter repositories…"
+ *       />
+ *       <ul>
+ *         {repos.map((repo) => (
+ *           <li key={repo.id}>{repo.fullName}</li>
+ *         ))}
+ *       </ul>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Skip fetching until a token is available
+ * const { repos } = useGitHubRepos(token ?? null);
+ * ```
  */
 export function useGitHubRepos(token: string | null): UseGitHubReposReturn {
   const [allRepos, setAllRepos] = useState<GitHubRepo[]>([]);

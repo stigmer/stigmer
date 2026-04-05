@@ -40,6 +40,15 @@ export interface ModelSelectorProps {
  *
  * Platform builders who need different rendering use
  * `useModelRegistry()` directly.
+ *
+ * @example
+ * ```tsx
+ * function ComposerHeader() {
+ *   const [modelId, setModelId] = useState<string>();
+ *
+ *   return <ModelSelector value={modelId} onValueChange={setModelId} />;
+ * }
+ * ```
  */
 export function ModelSelector({
   value,

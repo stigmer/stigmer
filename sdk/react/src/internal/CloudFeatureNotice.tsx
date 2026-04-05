@@ -21,6 +21,18 @@ export interface CloudFeatureNoticeProps {
  *
  * All visual properties flow through `--stgm-*` design tokens.
  * No Console-specific dependencies — safe for platform builder embedding.
+ *
+ * @example
+ * ```tsx
+ * const available = useResourceAvailable(ApiResourceKind.api_key);
+ * if (!available) {
+ *   return (
+ *     <CloudFeatureNotice>
+ *       API keys require Stigmer Cloud. Run with <code>--cloud</code> to enable.
+ *     </CloudFeatureNotice>
+ *   );
+ * }
+ * ```
  */
 export function CloudFeatureNotice({
   children,

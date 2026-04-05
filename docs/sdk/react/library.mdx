@@ -70,6 +70,7 @@ const handleApply = async () => {
 };
 ```
 
+
 ### useDetectSkillPackage
 
 Detects whether an execution artifact is a skill package and extracts
@@ -125,6 +126,7 @@ if (detection.detected) {
 }
 ```
 
+
 ### useDetectStigmerResource
 
 Detects whether a YAML content string represents a Stigmer platform resource.
@@ -156,6 +158,7 @@ if (detection.detected) {
   return <Badge>{detection.displayName}</Badge>;
 }
 ```
+
 
 ### useUpdateVisibility
 
@@ -204,6 +207,7 @@ const { updateVisibility, isPending } = useUpdateVisibility("skill", skill.metad
 />
 ```
 
+
 ## Components
 
 ### ResourceCountCard
@@ -251,6 +255,22 @@ const { count, isLoading } = useAgentCount("acme");
   isLoading={isLoading}
 />
 ```
+
+```tsx
+// Navigable card with SPA routing
+<ResourceCountCard
+  icon={<BotIcon className="h-5 w-5" aria-hidden="true" />}
+  label="Agents"
+  count={agentCount}
+  isLoading={isAgentLoading}
+  href="/library/agents"
+  onClick={(e) => {
+    e.preventDefault();
+    router.push("/library/agents");
+  }}
+/>
+```
+
 
 ### ResourceListView
 
@@ -306,6 +326,32 @@ stale pagination after filter changes.
 <ResourceListView items={agents} isLoading={isLoading} />
 ```
 
+```tsx
+// Full — search, scope toggle, pagination, and click handling
+const [scope, setScope] = useState<ResourceListScope>("org");
+const [query, setQuery] = useState("");
+const [page, setPage] = useState(1);
+const { agents, totalCount, totalPages, isLoading, error, refetch } =
+  useAgentList(org, { query, scope, page });
+
+<ResourceListView
+  items={agents}
+  isLoading={isLoading}
+  error={error}
+  totalCount={totalCount}
+  totalPages={totalPages}
+  currentPage={page}
+  onSearchChange={setQuery}
+  searchPlaceholder="Search agents\u2026"
+  scope={scope}
+  onScopeChange={setScope}
+  onPageChange={setPage}
+  onItemClick={(item) => console.log(item.slug)}
+  onRetry={refetch}
+/>
+```
+
+
 ### ScopeToggle
 
 Segmented control for toggling resource scope between "Org"
@@ -340,6 +386,7 @@ const [scope, setScope] = useState<ResourceListScope>("org");
 
 <ScopeToggle value={scope} onChange={setScope} />
 ```
+
 
 ### VisibilityToggle
 
@@ -377,6 +424,7 @@ properties flow through `--stgm-*` design tokens.
 />
 ```
 
+
 ## Types
 
 ### ApplyResourceResult
@@ -395,6 +443,7 @@ link to the resource in the Library (e.g., `/library/agents`).
   }}
 />
 
+
 ### detectSkillPackage
 
 Detects a skill package and extracts metadata from its SKILL.md content.
@@ -408,6 +457,15 @@ structure returns `{ detected: false }`. This function never throws.
 
 ```tsx
 function detectSkillPackage(artifact: ExecutionArtifact, skillMdContent: string): SkillPackageDetection
+```
+
+```tsx
+const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
+const detection = detectSkillPackage(artifact, content);
+
+if (detection.detected) {
+  console.log(`Skill: ${detection.skillName} (${detection.fileCount} files)`);
+}
 ```
 
 
@@ -429,6 +487,13 @@ multiple documents separated by `---`.
 function detectStigmerResource(content: string): StigmerResourceDetection
 ```
 
+```tsx
+const result = detectStigmerResource(yamlString);
+if (result.detected) {
+  console.log(`Found ${result.displayName}: ${result.resourceName}`);
+}
+```
+
 
 ### isSkillPackage
 
@@ -446,6 +511,12 @@ Returns `false` for:
 
 ```tsx
 function isSkillPackage(artifact: ExecutionArtifact): boolean
+```
+
+```tsx
+if (isSkillPackage(artifact)) {
+  // Show "Push Skill" CTA
+}
 ```
 
 
@@ -484,6 +555,17 @@ for display in error UI components.
 function parseResourceYaml(content: string, org: string): ParsedResource
 ```
 
+```tsx
+import { parseResourceYaml } from "@stigmer/react";
+
+const parsed = parseResourceYaml(yamlContent, "my-org");
+if (parsed.kind === "Agent") {
+  await stigmer.agent.apply(parsed.input);
+} else {
+  await stigmer.mcpServer.apply(parsed.input);
+}
+```
+
 
 ### PushSkillParams
 
@@ -500,6 +582,7 @@ and pushes it as a skill — no ZIP download reaches the browser.
     tag: { type: "string", description: "Optional version tag (e.g., `\"stable\"`, `\"v1.0\"`)." },
   }}
 />
+
 
 ### ResourceListScope
 
@@ -527,6 +610,13 @@ which is the format expected by both the backend and `parseResourceYaml`.
 function serializeAgentYaml(agent: Agent): string
 ```
 
+```tsx
+import { serializeAgentYaml } from "@stigmer/react";
+
+const yaml = serializeAgentYaml(agent);
+const file = new File([yaml], "my-agent.yaml", { type: "text/yaml" });
+```
+
 
 ### serializeMcpServerYaml
 
@@ -537,6 +627,13 @@ Same round-trip guarantee and snake_case convention as [`serializeAgentYaml`](#s
 
 ```tsx
 function serializeMcpServerYaml(mcpServer: McpServer): string
+```
+
+```tsx
+import { serializeMcpServerYaml } from "@stigmer/react";
+
+const yaml = serializeMcpServerYaml(mcpServer);
+const file = new File([yaml], "my-server.yaml", { type: "text/yaml" });
 ```
 
 

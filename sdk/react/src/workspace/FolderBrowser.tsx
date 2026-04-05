@@ -35,6 +35,15 @@ export interface FolderBrowserProps {
  *
  * All visual properties flow through `--stgm-*` tokens.
  * No Console-specific dependencies.
+ *
+ * @example
+ * ```tsx
+ * <FolderBrowser
+ *   onSelect={(path) => workspace.addLocalPath(path)}
+ *   onCancel={() => setShowBrowser(false)}
+ *   initialPath="/Users/dev/projects"
+ * />
+ * ```
  */
 export function FolderBrowser({
   onSelect,

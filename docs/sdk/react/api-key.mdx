@@ -43,6 +43,7 @@ if (isLoading) return <Spinner />;
 apiKeys.map((k) => k.metadata?.name);
 ```
 
+
 ### useCreateApiKey
 
 Behavior hook that wraps `apiKey.create()` with loading and error
@@ -90,6 +91,7 @@ const apiKey = await create({
 // apiKey.spec?.keyHash contains the raw key — show it once
 ```
 
+
 ### useDeleteApiKey
 
 Behavior hook that wraps `apiKey.delete()` with loading and error
@@ -123,6 +125,7 @@ const { deleteKey, isDeleting, error } = useDeleteApiKey();
 await deleteKey("key-id-abc123");
 refetch(); // refresh the list after deletion
 ```
+
 
 ## Components
 
@@ -161,6 +164,7 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 ```
 
+
 ### ApiKeyListPanel
 
 Displays a list of [`ApiKey`](/docs/sdk/resources/api-key) resources for the authenticated
@@ -195,6 +199,7 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 ```
 
+
 ### CreateApiKeyForm
 
 Compact form for creating a new API key.
@@ -226,3 +231,4 @@ All visual properties flow through `--stgm-*` design tokens.
   onCancel={() => setShowForm(false)}
 />
 ```
+

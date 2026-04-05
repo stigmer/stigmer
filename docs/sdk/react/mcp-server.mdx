@@ -56,6 +56,7 @@ async function handleDiscoverTemporary(values: Record<string, EnvVarInput>) {
 }
 ```
 
+
 ### useMcpServer
 
 Data hook that fetches a single MCP Server by organization and slug.
@@ -111,6 +112,12 @@ function McpServerDetail({ org, slug }: { org: string; slug: string }) {
 }
 ```
 
+```tsx
+// Skip fetching until slug is known
+const { mcpServer } = useMcpServer(org, slug ?? null);
+```
+
+
 ### useMcpServerCount
 
 Data hook that fetches the total count of MCP servers.
@@ -150,6 +157,12 @@ function useMcpServerCount(org: string | null, options?: UseMcpServerCountOption
 ```tsx
 const { count, isLoading } = useMcpServerCount("acme");
 ```
+
+```tsx
+// Count all accessible MCP servers including public/platform ones
+const { count } = useMcpServerCount("acme", { scope: "all" });
+```
+
 
 ### useMcpServerCredentials
 
@@ -211,6 +224,7 @@ if (!isReady) {
 }
 ```
 
+
 ### useMcpServerList
 
 Data hook that fetches a paginated list of MCP servers for the Library.
@@ -259,6 +273,12 @@ const { mcpServers, totalCount, isLoading } = useMcpServerList("acme", {
 });
 ```
 
+```tsx
+// Show all MCP servers including public/platform ones
+const { mcpServers } = useMcpServerList("acme", { scope: "all" });
+```
+
+
 ### useMcpServerSearch
 
 Data hook that searches MCP servers available in the given organization.
@@ -284,6 +304,7 @@ function useMcpServerSearch(org: string, options?: UseResourceSearchOptions): Us
 ```tsx
 const { results, isLoading, query, setQuery } = useMcpServerSearch("acme");
 ```
+
 
 ### useMcpServerSetup
 
@@ -369,6 +390,7 @@ setEnabledTools(ref, ["create_issue", "list_issues"]);
 const session = await createSession({ mcpServerUsages: usageInputs });
 ```
 
+
 ### useTriggerApprovalPolicySession
 
 Orchestration hook that auto-creates a session with the `mcp-server-creator`
@@ -413,6 +435,7 @@ async function handleGenerate() {
 }
 ```
 
+
 ## Components
 
 ### ApprovalPolicyGeneratorPanel
@@ -447,6 +470,7 @@ display newly applied policies.
   />
 )}
 ```
+
 
 ### McpServerConfigPanel
 
@@ -516,6 +540,7 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 ```
 
+
 ### McpServerDetailView
 
 Read-only detail view for an MCP Server integration.
@@ -559,6 +584,7 @@ All visual properties flow through `--stgm-*` design tokens.
 // Minimal — self-contained, fetches its own data
 <McpServerDetailView org="acme" slug="github" />
 ```
+
 
 ### McpServerPicker
 
@@ -623,6 +649,7 @@ const mcpSetup = useMcpServerSetup("acme");
 />
 ```
 
+
 ### McpToolSelector
 
 Checklist of discovered MCP server tools with approval policy badges.
@@ -666,6 +693,7 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 ```
 
+
 ## Types
 
 ### McpServerCredentialsProps
@@ -688,6 +716,7 @@ rendered — no status string inspection required.
     variables: { type: "EnvVarFormVariable[]", description: "Missing env vars to collect (one form field per variable).", required: true },
   }}
 />
+
 
 ### McpServerSetupEntry
 
@@ -728,6 +757,7 @@ the object cleanly communicates which mode the component operates in.
     onSubmitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called when the user submits credentials for a server.", required: true },
   }}
 />
+
 
 ### McpServerSetupPhase
 
@@ -773,6 +803,7 @@ Options for `UseMcpServerSetupReturn.submitEnvVars`.
   }}
 />
 
+
 ### toServerKey
 
 Builds the map key for an MCP server from its resource reference.
@@ -797,6 +828,7 @@ IDs of the session and execution created by [`useTriggerApprovalPolicySession`](
   }}
 />
 
+
 ### UseMcpServerCountOptions
 
 Options for [`useMcpServerCount`](#usemcpservercount).
@@ -807,6 +839,7 @@ Options for [`useMcpServerCount`](#usemcpservercount).
     scope: { type: "ResourceListScope", description: "Controls which MCP servers are counted.  - `\"org\"` — only MCP servers owned by the given organization. - `\"all\"` — includes public/platform MCP servers.", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
   }}
 />
+
 
 ### UseMcpServerListOptions
 
@@ -820,6 +853,7 @@ Options for [`useMcpServerList`](#usemcpserverlist).
     scope: { type: "ResourceListScope", description: "Controls which MCP servers are visible.  - `\"org\"` — only MCP servers owned by the given organization. - `\"all\"` — includes public/platform MCP servers.", typeDescriptionLink: "/docs/sdk/react/library#resourcelistscope" },
   }}
 />
+
 
 ### UseMcpServerSearchOptions
 

@@ -85,6 +85,7 @@ function CustomComposer() {
 }
 ```
 
+
 ## Components
 
 ### AttachmentChipList
@@ -112,6 +113,20 @@ All visual properties flow through `--stgm-*` tokens.
   }}
 />
 
+```tsx
+function CustomComposer() {
+  const attachments = useAttachments({ sessionId });
+
+  return (
+    <AttachmentChipList
+      entries={attachments.entries}
+      onRemove={attachments.remove}
+      onRetry={attachments.retry}
+    />
+  );
+}
+```
+
 
 ## Types
 
@@ -133,6 +148,20 @@ independent entries with distinct IDs.
     storageKey: { type: "string | null", description: "Server-assigned storage key. Set when `phase` is `\"ready\"`.", required: true },
   }}
 />
+
+```tsx
+const attachments = useAttachments();
+
+attachments.entries.map((entry) => (
+  <span key={entry.id}>
+    {entry.file.name}
+    {entry.phase === "uploading" && <Spinner />}
+    {entry.phase === "error" && <span>{entry.error}</span>}
+    {entry.phase === "ready" && <CheckIcon />}
+  </span>
+));
+```
+
 
 ### AttachmentPhase
 
@@ -187,6 +216,7 @@ Options for [`useAttachments`](#useattachments).
     onValidationError: { type: "(message: string) => void", description: "Called when a file is rejected during `addFiles` (e.g., exceeds the size limit). Consumers can use this for toast notifications." },
   }}
 />
+
 
 ### validateAttachmentSize
 
