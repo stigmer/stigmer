@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Create a new identity account.\n\n @internal\n System-level RPC used by federated JIT provisioning and Auth0 webhook flow.\n No FGA authorization — called via inProcessChannelAsSystem (machine account).\n The handler's createAuthorizationTuples step writes the self-ownership tuple after creation."
+          "description": "Create a new identity account.\n\n @internal\n System-level RPC used by Auth0 webhook flow and federated account creation.\n No FGA authorization — called via inProcessChannelAsSystem (machine account).\n The handler's createAuthorizationTuples step writes the self-ownership tuple after creation."
         },
         {
           "name": "Update",
@@ -170,7 +170,7 @@
         {
           "name": "federated",
           "number": 2,
-          "description": "Account was JIT-provisioned during federated authentication via an IdentityProvider."
+          "description": "Account was created by the platform for federated authentication via an IdentityProvider."
         },
         {
           "name": "machine",

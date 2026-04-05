@@ -29,7 +29,7 @@ export const IdentityAccountCommandController: GenService<{
    * Create a new identity account.
    *
    * @internal
-   * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+   * System-level RPC used by Auth0 webhook flow and federated account creation.
    * No FGA authorization — called via inProcessChannelAsSystem (machine account).
    * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
    *

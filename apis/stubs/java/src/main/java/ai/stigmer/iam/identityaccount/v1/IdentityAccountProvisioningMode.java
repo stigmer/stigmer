@@ -36,7 +36,7 @@ public enum IdentityAccountProvisioningMode
   direct(1),
   /**
    * <pre>
-   * Account was JIT-provisioned during federated authentication via an IdentityProvider.
+   * Account was created by the platform for federated authentication via an IdentityProvider.
    * </pre>
    *
    * <code>federated = 2;</code>
@@ -80,7 +80,7 @@ public enum IdentityAccountProvisioningMode
   public static final int direct_VALUE = 1;
   /**
    * <pre>
-   * Account was JIT-provisioned during federated authentication via an IdentityProvider.
+   * Account was created by the platform for federated authentication via an IdentityProvider.
    * </pre>
    *
    * <code>federated = 2;</code>

@@ -12,12 +12,12 @@ import (
 //
 //	An IdentityProvider represents an external platform's trust relationship with Stigmer.
 //	It is owned by an organization (e.g., "planton") and configures how Stigmer validates
-//	tokens from that platform during token exchange. The platform forwards its OIDC
-//	provider's access tokens to Stigmer's token exchange endpoint, which:
-//	- Validates the token signature against the configured JWKS
-//	- Fetches user profile data from the OIDC UserInfo endpoint
-//	- JIT-provisions a federated identity account with email, name, and picture
-//	- Issues a Stigmer-native token for subsequent API access
+//	tokens from that platform. When a user authenticates with a JWT issued by this provider,
+//	Stigmer validates the token signature against the configured JWKS and resolves the
+//	user's federated identity account by the JWT's sub claim and this provider's reference.
+//
+//	The platform is responsible for explicitly creating federated identity accounts
+//	before users can authenticate. Stigmer does not auto-provision accounts.
 //
 //	The spec contains only public validation configuration — no secrets are stored.
 //	For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint

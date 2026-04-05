@@ -35,7 +35,7 @@ export enum IdentityAccountProvisioningMode {
   direct = 1,
 
   /**
-   * Account was JIT-provisioned during federated authentication via an IdentityProvider.
+   * Account was created by the platform for federated authentication via an IdentityProvider.
    *
    * @generated from enum value: federated = 2;
    */
