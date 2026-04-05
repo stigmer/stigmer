@@ -101,9 +101,19 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Last Session**: 2026-04-05 (session 10) — @example coverage to 100% + multi-example generator fix
-**Current Task**: @example coverage COMPLETE — all hooks, components, and selected types have examples
-**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 COMPLETE, T07 COMPLETE, @example coverage COMPLETE
+**Last Session**: 2026-04-05 (session 12) — dead code cleanup + Python variable naming fix
+**Current Task**: All planned tasks and polish items COMPLETE
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 COMPLETE, T07 COMPLETE, @example coverage COMPLETE, dead code cleanup COMPLETE, Python naming COMPLETE
+
+### Session 12 Results (dead code cleanup + Python variable naming) — COMPLETE
+Removed 8 dead functions from sdk_docs.go (~200 lines) left behind by the commons refactoring, and fixed Python code examples to use PEP 8 snake_case variable names. Key outcomes:
+- **Dead code removed**: 5 section-level functions + 3 thin wrappers, all unreachable from `runSDKDocsGeneration`
+- **Python naming fix**: Added `docPyVarName` using existing `pascalToSnake`; applied in `docWriteClientAccess`, `docWriteMethodSigs`, `docWriteStreamingSigs`
+- **Minor fixes**: Unused variable, dead switch branch, stale comment
+- 12 MDX files regenerated with corrected Python variable names; 2 streaming examples corrected
+- `go build`, `go vet` clean; zero camelCase Python variables remaining
+- Commit: `c5606dce refactor(codegen): remove dead code and fix Python variable names in SDK docs generator`
+- See checkpoints/2026-04-05-session-12.md for full details
 
 ### Session 10 Results (@example coverage to 100%) — COMPLETE
 Closed all @example gaps across the React SDK. Key outcomes:
@@ -206,18 +216,18 @@ Layer 1 now links to Layer 2 via T04.
 
 ## Next Steps
 
-All planned tasks are complete. The React SDK documentation pipeline is fully operational:
+All planned tasks and polish items are complete. The React SDK documentation pipeline is fully operational:
 - 100% TSDoc coverage on all 361 exports across 18 domains
 - 100% @example coverage on all publicly exported hooks and components
 - Multi-example rendering (hooks with 2+ examples show all of them)
 - 17 auto-generated MDX reference pages with rich code examples
 - Live component previews for 54/59 components
 - CI staleness check via `gen-react-sdk-docs-check`
+- Generator: zero dead code, PEP 8-compliant Python examples
 
 Potential future work:
 1. Add `@returns` tags to hooks (currently 1.5%)
 2. Enhance `@param` docs on remaining hooks (currently 46.3%)
-3. Return to parent project for next tasks
 
 ## Quick Commands
 
