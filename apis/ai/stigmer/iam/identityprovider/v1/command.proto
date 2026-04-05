@@ -4,7 +4,7 @@ package ai.stigmer.iam.identityprovider.v1;
 
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/identityprovider/v1/api.proto";
 
 // IdentityProviderCommandController provides write operations for identity providers.
@@ -29,10 +29,10 @@ service IdentityProviderCommandController {
   // @internal
   // Authorization: Requires can_create_idp permission in the organization.
   rpc create(IdentityProvider) returns (IdentityProvider) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_idp;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create identity provider in this organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_idp;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create identity provider in this organization";
   }
 
   // Update an existing identity provider.
@@ -40,10 +40,10 @@ service IdentityProviderCommandController {
   // @internal
   // Authorization: Requires can_edit permission on the identity provider resource.
   rpc update(IdentityProvider) returns (IdentityProvider) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_provider;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update identity provider";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_provider;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update identity provider";
   }
 
   // Delete an identity provider.
@@ -54,9 +54,9 @@ service IdentityProviderCommandController {
   // @internal
   // Authorization: Requires can_delete permission on the identity provider resource.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (IdentityProvider) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_provider;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete identity provider";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_provider;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete identity provider";
   }
 }

@@ -40,28 +40,28 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ai/stigmer/agentic/workflow/v1/api.proto" +
       "\032\'ai/stigmer/agentic/workflow/v1/io.prot" +
       "o\0328ai/stigmer/commons/apiresource/rpc_se" +
-      "rvice_options.proto\032Aai/stigmer/iam/iamp" +
-      "olicy/v1/rpcauthorization/method_options" +
-      ".proto2\325\004\n\031WorkflowCommandController\022[\n\005" +
-      "apply\022(.ai.stigmer.agentic.workflow.v1.W" +
-      "orkflow\032(.ai.stigmer.agentic.workflow.v1" +
-      ".Workflow\022\252\001\n\006create\022(.ai.stigmer.agenti" +
-      "c.workflow.v1.Workflow\032(.ai.stigmer.agen" +
-      "tic.workflow.v1.Workflow\"L\302\270\030H\010\021\020\036\"\014meta" +
-      "data.org*4unauthorized to create workflo" +
-      "w in this organization\022\224\001\n\006update\022(.ai.s" +
-      "tigmer.agentic.workflow.v1.Workflow\032(.ai" +
-      ".stigmer.agentic.workflow.v1.Workflow\"6\302" +
-      "\270\0302\010\004\0202\"\013metadata.id*\037unauthorized to up" +
-      "date workflow\022\220\001\n\006delete\022*.ai.stigmer.ag" +
-      "entic.workflow.v1.WorkflowId\032(.ai.stigme" +
-      "r.agentic.workflow.v1.Workflow\"0\302\270\030,\010\002\0202" +
-      "\"\005value*\037unauthorized to delete workflow" +
-      "\032\004\240\377+2B\253\001B\014CommandProtoP\001\242\002\004ASAW\252\002\036Ai.St" +
-      "igmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\A" +
-      "gentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic\\" +
-      "Workflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::A" +
-      "gentic::Workflow::V1b\006proto3"
+      "rvice_options.proto\032+ai/stigmer/commons/" +
+      "rpc/method_options.proto2\325\004\n\031WorkflowCom" +
+      "mandController\022[\n\005apply\022(.ai.stigmer.age" +
+      "ntic.workflow.v1.Workflow\032(.ai.stigmer.a" +
+      "gentic.workflow.v1.Workflow\022\252\001\n\006create\022(" +
+      ".ai.stigmer.agentic.workflow.v1.Workflow" +
+      "\032(.ai.stigmer.agentic.workflow.v1.Workfl" +
+      "ow\"L\302\270\030H\010\007\020\036\"\014metadata.org*4unauthorized" +
+      " to create workflow in this organization" +
+      "\022\224\001\n\006update\022(.ai.stigmer.agentic.workflo" +
+      "w.v1.Workflow\032(.ai.stigmer.agentic.workf" +
+      "low.v1.Workflow\"6\302\270\0302\010\002\0202\"\013metadata.id*\037" +
+      "unauthorized to update workflow\022\220\001\n\006dele" +
+      "te\022*.ai.stigmer.agentic.workflow.v1.Work" +
+      "flowId\032(.ai.stigmer.agentic.workflow.v1." +
+      "Workflow\"0\302\270\030,\010\003\0202\"\005value*\037unauthorized " +
+      "to delete workflow\032\004\240\377+2B\253\001B\014CommandProt" +
+      "oP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow" +
+      ".V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*A" +
+      "i\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadat" +
+      "a\352\002\"Ai::Stigmer::Agentic::Workflow::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -69,17 +69,17 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.workflow.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.workflow.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflow.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.workflow.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

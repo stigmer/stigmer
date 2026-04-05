@@ -8,7 +8,7 @@ package agentv1
 
 import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,9 +26,9 @@ var File_ai_stigmer_agentic_agent_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/agent/v1/query.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a$ai/stigmer/agentic/agent/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xf8\x02\n" +
+	"'ai/stigmer/agentic/agent/v1/query.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a$ai/stigmer/agentic/agent/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xf8\x02\n" +
 	"\x14AgentQueryController\x12{\n" +
-	"\x03get\x12$.ai.stigmer.agentic.agent.v1.AgentId\x1a\".ai.stigmer.agentic.agent.v1.Agent\"*¸\x18&\b\x03\x10(\"\x05value*\x19unauthorized to get agent\x12p\n" +
+	"\x03get\x12$.ai.stigmer.agentic.agent.v1.AgentId\x1a\".ai.stigmer.agentic.agent.v1.Agent\"*¸\x18&\b\x01\x10(\"\x05value*\x19unauthorized to get agent\x12p\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.agent.v1.Agent\"\x04и\x18\x01\x12k\n" +
 	"\n" +
 	"getDefault\x123.ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest\x1a\".ai.stigmer.agentic.agent.v1.Agent\"\x04и\x18\x01\x1a\x04\xa0\xff+(B\x8b\x02\n" +

@@ -26,10 +26,10 @@ from ai.stigmer.agentic.skill.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_do
 from ai.stigmer.agentic.skill.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/skill/v1/command.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xb4\x05\n\x16SkillCommandController\x12\x99\x01\n\x04push\x12-.ai.stigmer.agentic.skill.v1.PushSkillRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">\xc2\xb8\x18:\x08\x15\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xc3\x01\n\x19pushFromExecutionArtifact\x12\x42.ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">\xc2\xb8\x18:\x08\x15\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xad\x01\n\x10updateVisibility\x12\x35.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.skill.v1.Skill\">\xc2\xb8\x18:\x08\x04\x10+\"\x0bresource_id*\'unauthorized to update skill visibility\x12\x81\x01\n\x06\x64\x65lete\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"-\xc2\xb8\x18)\x08\x02\x10+\"\x05value*\x1cunauthorized to delete skill\x1a\x04\xa0\xff++B\xc0\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/skill/v1/command.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb4\x05\n\x16SkillCommandController\x12\x99\x01\n\x04push\x12-.ai.stigmer.agentic.skill.v1.PushSkillRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">\xc2\xb8\x18:\x08\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xc3\x01\n\x19pushFromExecutionArtifact\x12\x42.ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">\xc2\xb8\x18:\x08\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xad\x01\n\x10updateVisibility\x12\x35.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.skill.v1.Skill\">\xc2\xb8\x18:\x08\x02\x10+\"\x0bresource_id*\'unauthorized to update skill visibility\x12\x81\x01\n\x06\x64\x65lete\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"-\xc2\xb8\x18)\x08\x03\x10+\"\x05value*\x1cunauthorized to delete skill\x1a\x04\xa0\xff++B\xc0\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,13 +40,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SKILLCOMMANDCONTROLLER']._loaded_options = None
   _globals['_SKILLCOMMANDCONTROLLER']._serialized_options = b'\240\377++'
   _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['push']._loaded_options = None
-  _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['push']._serialized_options = b'\302\270\030:\010\025\020\036\"\003org*/unauthorized to push skill in this organization'
+  _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['push']._serialized_options = b'\302\270\030:\010\t\020\036\"\003org*/unauthorized to push skill in this organization'
   _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['pushFromExecutionArtifact']._loaded_options = None
-  _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['pushFromExecutionArtifact']._serialized_options = b'\302\270\030:\010\025\020\036\"\003org*/unauthorized to push skill in this organization'
+  _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['pushFromExecutionArtifact']._serialized_options = b'\302\270\030:\010\t\020\036\"\003org*/unauthorized to push skill in this organization'
   _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['updateVisibility']._loaded_options = None
-  _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['updateVisibility']._serialized_options = b'\302\270\030:\010\004\020+\"\013resource_id*\'unauthorized to update skill visibility'
+  _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['updateVisibility']._serialized_options = b'\302\270\030:\010\002\020+\"\013resource_id*\'unauthorized to update skill visibility'
   _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['delete']._loaded_options = None
-  _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['delete']._serialized_options = b'\302\270\030)\010\002\020+\"\005value*\034unauthorized to delete skill'
-  _globals['_SKILLCOMMANDCONTROLLER']._serialized_start=318
-  _globals['_SKILLCOMMANDCONTROLLER']._serialized_end=1010
+  _globals['_SKILLCOMMANDCONTROLLER'].methods_by_name['delete']._serialized_options = b'\302\270\030)\010\003\020+\"\005value*\034unauthorized to delete skill'
+  _globals['_SKILLCOMMANDCONTROLLER']._serialized_start=296
+  _globals['_SKILLCOMMANDCONTROLLER']._serialized_end=988
 # @@protoc_insertion_point(module_scope)

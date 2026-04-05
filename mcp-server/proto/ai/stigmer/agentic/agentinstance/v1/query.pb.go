@@ -8,7 +8,7 @@ package agentinstancev1
 
 import (
 	apiresource "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,9 +26,9 @@ var File_ai_stigmer_agentic_agentinstance_v1_query_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentinstance_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentinstance/v1/query.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a,ai/stigmer/agentic/agentinstance/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xe8\x04\n" +
+	"/ai/stigmer/agentic/agentinstance/v1/query.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a,ai/stigmer/agentic/agentinstance/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe8\x04\n" +
 	"\x1cAgentInstanceQueryController\x12\xa4\x01\n" +
-	"\x03get\x124.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"3¸\x18/\b\x03\x10-\"\x05value*\"unauthorized to get Agent Instance\x12\x90\x01\n" +
+	"\x03get\x124.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"3¸\x18/\b\x01\x10-\"\x05value*\"unauthorized to get Agent Instance\x12\x90\x01\n" +
 	"\n" +
 	"getByAgent\x12D.ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest\x1a6.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04и\x18\x01\x12\x80\x01\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"\x04и\x18\x01\x12\x84\x01\n" +

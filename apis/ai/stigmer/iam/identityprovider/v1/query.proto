@@ -4,7 +4,7 @@ package ai.stigmer.iam.identityprovider.v1;
 
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/identityprovider/v1/api.proto";
 
 // IdentityProviderQueryController provides read operations for identity providers.
@@ -16,10 +16,10 @@ service IdentityProviderQueryController {
   // @internal
   // Authorization: Requires can_view permission on the identity provider resource.
   rpc get(ai.stigmer.commons.apiresource.ApiResourceId) returns (IdentityProvider) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_provider;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view identity provider";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_provider;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view identity provider";
   }
 
   // Get an identity provider by its organization-scoped reference (org/slug).
@@ -31,6 +31,6 @@ service IdentityProviderQueryController {
   // Custom authorization in handler — checks both direct resource access
   // and organization-level visibility permissions.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (IdentityProvider) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

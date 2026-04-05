@@ -42,27 +42,26 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ic/workflowinstance/v1/io.proto\032\'ai/stig" +
       "mer/commons/apiresource/io.proto\0328ai/sti" +
       "gmer/commons/apiresource/rpc_service_opt" +
-      "ions.proto\032Aai/stigmer/iam/iampolicy/v1/" +
-      "rpcauthorization/method_options.proto2\213\004" +
-      "\n\037WorkflowInstanceQueryController\022\263\001\n\003ge" +
-      "t\022:.ai.stigmer.agentic.workflowinstance." +
-      "v1.WorkflowInstanceId\0328.ai.stigmer.agent" +
-      "ic.workflowinstance.v1.WorkflowInstance\"" +
-      "6\302\270\0302\010\003\0203\"\005value*%unauthorized to get wo" +
-      "rkflow instance\022\242\001\n\rgetByWorkflow\022M.ai.s" +
-      "tigmer.agentic.workflowinstance.v1.GetWo" +
-      "rkflowInstancesByWorkflowRequest\032<.ai.st" +
-      "igmer.agentic.workflowinstance.v1.Workfl" +
-      "owInstanceList\"\004\320\270\030\001\022\206\001\n\016getByReference\022" +
-      "4.ai.stigmer.commons.apiresource.ApiReso" +
-      "urceReference\0328.ai.stigmer.agentic.workf" +
-      "lowinstance.v1.WorkflowInstance\"\004\320\270\030\001\032\004\240" +
-      "\377+3B\311\001B\nQueryProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer" +
-      ".Agentic.Workflowinstance.V1\312\002&Ai\\Stigme" +
-      "r\\Agentic\\Workflowinstance\\V1\342\0022Ai\\Stigm" +
-      "er\\Agentic\\Workflowinstance\\V1\\GPBMetada" +
-      "ta\352\002*Ai::Stigmer::Agentic::Workflowinsta" +
-      "nce::V1b\006proto3"
+      "ions.proto\032+ai/stigmer/commons/rpc/metho" +
+      "d_options.proto2\213\004\n\037WorkflowInstanceQuer" +
+      "yController\022\263\001\n\003get\022:.ai.stigmer.agentic" +
+      ".workflowinstance.v1.WorkflowInstanceId\032" +
+      "8.ai.stigmer.agentic.workflowinstance.v1" +
+      ".WorkflowInstance\"6\302\270\0302\010\001\0203\"\005value*%unau" +
+      "thorized to get workflow instance\022\242\001\n\rge" +
+      "tByWorkflow\022M.ai.stigmer.agentic.workflo" +
+      "winstance.v1.GetWorkflowInstancesByWorkf" +
+      "lowRequest\032<.ai.stigmer.agentic.workflow" +
+      "instance.v1.WorkflowInstanceList\"\004\320\270\030\001\022\206" +
+      "\001\n\016getByReference\0224.ai.stigmer.commons.a" +
+      "piresource.ApiResourceReference\0328.ai.sti" +
+      "gmer.agentic.workflowinstance.v1.Workflo" +
+      "wInstance\"\004\320\270\030\001\032\004\240\377+3B\311\001B\nQueryProtoP\001\242\002" +
+      "\004ASAW\252\002&Ai.Stigmer.Agentic.Workflowinsta" +
+      "nce.V1\312\002&Ai\\Stigmer\\Agentic\\Workflowinst" +
+      "ance\\V1\342\0022Ai\\Stigmer\\Agentic\\Workflowins" +
+      "tance\\V1\\GPBMetadata\352\002*Ai::Stigmer::Agen" +
+      "tic::Workflowinstance::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -71,19 +70,19 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.workflowinstance.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflowinstance.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.workflowinstance.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

@@ -8,7 +8,7 @@ package organizationv1
 
 import (
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -27,9 +27,9 @@ var File_ai_stigmer_tenancy_organization_v1_query_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_tenancy_organization_v1_query_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/tenancy/organization/v1/query.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x04\n" +
+	".ai/stigmer/tenancy/organization/v1/query.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x04\n" +
 	"\x1bOrganizationQueryController\x12\x9f\x01\n" +
-	"\x03get\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"2¸\x18.\b\x03\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n" +
+	"\x03get\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"2¸\x18.\b\x01\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n" +
 	"\x04find\x127.ai.stigmer.commons.apiresource.FindApiResourcesRequest\x1a4.ai.stigmer.tenancy.organization.v1.OrganizationList\"\x04и\x18\x01\x12f\n" +
 	"\x13findMyOrganizations\x12\x16.google.protobuf.Empty\x1a1.ai.stigmer.tenancy.organization.v1.Organizations\"\x04и\x18\x01\x12\x8c\x01\n" +
 	"\x12getByExternalOrgId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"\x04и\x18\x01\x1a\x04\xa0\xff+\x1eB\xbd\x02\n" +

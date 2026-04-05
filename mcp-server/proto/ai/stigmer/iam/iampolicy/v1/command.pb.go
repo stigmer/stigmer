@@ -8,7 +8,7 @@ package iampolicyv1
 
 import (
 	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -27,12 +27,12 @@ var File_ai_stigmer_iam_iampolicy_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_iampolicy_v1_command_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/iam/iampolicy/v1/command.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x05\n" +
+	")ai/stigmer/iam/iampolicy/v1/command.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x05\n" +
 	"\x1aIamPolicyCommandController\x12\x82\x01\n" +
-	"\x06create\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"$¸\x18 \b\b*\x1cunauthorized to grant access\x12\x83\x01\n" +
-	"\x06delete\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"%¸\x18!\b\b*\x1dunauthorized to revoke access\x12\xc2\x01\n" +
-	"\x0fbootstrapPolicy\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"[¸\x18W\b\x1d\x10\x1f*Hunauthorized to bootstrap policy - can_bootstrap_iam permission required2\astigmer\x12\xc4\x01\n" +
-	"\x17cleanupResourcePolicies\x12+.ai.stigmer.iam.iampolicy.v1.ApiResourceRef\x1a\x16.google.protobuf.Empty\"d¸\x18`\b\x1d\x10\x1f*Qunauthorized to cleanup resource policies - can_bootstrap_iam permission required2\astigmer\x1a\x04\xa0\xff+\n" +
+	"\x06create\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"$¸\x18 \b\x04*\x1cunauthorized to grant access\x12\x83\x01\n" +
+	"\x06delete\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"%¸\x18!\b\x04*\x1dunauthorized to revoke access\x12\xc2\x01\n" +
+	"\x0fbootstrapPolicy\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"[¸\x18W\b\x11\x10\x1f*Hunauthorized to bootstrap policy - can_bootstrap_iam permission required2\astigmer\x12\xc4\x01\n" +
+	"\x17cleanupResourcePolicies\x12+.ai.stigmer.iam.iampolicy.v1.ApiResourceRef\x1a\x16.google.protobuf.Empty\"d¸\x18`\b\x11\x10\x1f*Qunauthorized to cleanup resource policies - can_bootstrap_iam permission required2\astigmer\x1a\x04\xa0\xff+\n" +
 	"B\x95\x02\n" +
 	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\fCommandProtoP\x01ZSgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
 

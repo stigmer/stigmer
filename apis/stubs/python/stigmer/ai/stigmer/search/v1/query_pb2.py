@@ -22,11 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.search.v1 import io_pb2 as ai_dot_stigmer_dot_search_dot_v1_dot_io__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n ai/stigmer/search/v1/query.proto\x12\x14\x61i.stigmer.search.v1\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a\x1d\x61i/stigmer/search/v1/io.proto2j\n\rSearchService\x12Y\n\x06search\x12#.ai.stigmer.search.v1.SearchRequest\x1a$.ai.stigmer.search.v1.SearchResponse\"\x04\xd0\xb8\x18\x01\x42\x99\x01\n\x18\x63om.ai.stigmer.search.v1B\nQueryProtoP\x01\xa2\x02\x03\x41SS\xaa\x02\x14\x41i.Stigmer.Search.V1\xca\x02\x14\x41i\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17\x41i::Stigmer::Search::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n ai/stigmer/search/v1/query.proto\x12\x14\x61i.stigmer.search.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1d\x61i/stigmer/search/v1/io.proto2j\n\rSearchService\x12Y\n\x06search\x12#.ai.stigmer.search.v1.SearchRequest\x1a$.ai.stigmer.search.v1.SearchResponse\"\x04\xd0\xb8\x18\x01\x42\x99\x01\n\x18\x63om.ai.stigmer.search.v1B\nQueryProtoP\x01\xa2\x02\x03\x41SS\xaa\x02\x14\x41i.Stigmer.Search.V1\xca\x02\x14\x41i\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17\x41i::Stigmer::Search::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,6 +36,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\030com.ai.stigmer.search.v1B\nQueryProtoP\001\242\002\003ASS\252\002\024Ai.Stigmer.Search.V1\312\002\024Ai\\Stigmer\\Search\\V1\342\002 Ai\\Stigmer\\Search\\V1\\GPBMetadata\352\002\027Ai::Stigmer::Search::V1'
   _globals['_SEARCHSERVICE'].methods_by_name['search']._loaded_options = None
   _globals['_SEARCHSERVICE'].methods_by_name['search']._serialized_options = b'\320\270\030\001'
-  _globals['_SEARCHSERVICE']._serialized_start=156
-  _globals['_SEARCHSERVICE']._serialized_end=262
+  _globals['_SEARCHSERVICE']._serialized_start=134
+  _globals['_SEARCHSERVICE']._serialized_end=240
 # @@protoc_insertion_point(module_scope)

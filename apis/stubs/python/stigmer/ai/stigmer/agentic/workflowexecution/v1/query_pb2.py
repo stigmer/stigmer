@@ -25,10 +25,10 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.workflowexecution.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3ai/stigmer/agentic/workflowexecution/v1/query.proto\x12\'ai.stigmer.agentic.workflowexecution.v1\x1a\x31\x61i/stigmer/agentic/workflowexecution/v1/api.proto\x1a\x30\x61i/stigmer/agentic/workflowexecution/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x84\x06\n WorkflowExecutionQueryController\x12\xb8\x01\n\x03get\x12<.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7\xc2\xb8\x18\x33\x08\x03\x10\x34\"\x05value*&unauthorized to get workflow execution\x12\x94\x01\n\x04list\x12\x46.ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest\x1a>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList\"\x04\xd0\xb8\x18\x01\x12\xa8\x01\n\x0elistByWorkflow\x12P.ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest\x1a>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList\"\x04\xd0\xb8\x18\x01\x12\xdc\x01\n\tsubscribe\x12J.ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"E\xc2\xb8\x18\x41\x08\x03\x10\x34\"\x0c\x65xecution_id*-unauthorized to get workflow execution stream0\x01\x1a\x04\xa0\xff+4B\xfa\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3ai/stigmer/agentic/workflowexecution/v1/query.proto\x12\'ai.stigmer.agentic.workflowexecution.v1\x1a\x31\x61i/stigmer/agentic/workflowexecution/v1/api.proto\x1a\x30\x61i/stigmer/agentic/workflowexecution/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x84\x06\n WorkflowExecutionQueryController\x12\xb8\x01\n\x03get\x12<.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7\xc2\xb8\x18\x33\x08\x01\x10\x34\"\x05value*&unauthorized to get workflow execution\x12\x94\x01\n\x04list\x12\x46.ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest\x1a>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList\"\x04\xd0\xb8\x18\x01\x12\xa8\x01\n\x0elistByWorkflow\x12P.ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest\x1a>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList\"\x04\xd0\xb8\x18\x01\x12\xdc\x01\n\tsubscribe\x12J.ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"E\xc2\xb8\x18\x41\x08\x01\x10\x34\"\x0c\x65xecution_id*-unauthorized to get workflow execution stream0\x01\x1a\x04\xa0\xff+4B\xfa\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,13 +39,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER']._loaded_options = None
   _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER']._serialized_options = b'\240\377+4'
   _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\0303\010\003\0204\"\005value*&unauthorized to get workflow execution'
+  _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\0303\010\001\0204\"\005value*&unauthorized to get workflow execution'
   _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['list']._loaded_options = None
   _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['list']._serialized_options = b'\320\270\030\001'
   _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['listByWorkflow']._loaded_options = None
   _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['listByWorkflow']._serialized_options = b'\320\270\030\001'
   _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['subscribe']._loaded_options = None
-  _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['subscribe']._serialized_options = b'\302\270\030A\010\003\0204\"\014execution_id*-unauthorized to get workflow execution stream'
-  _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER']._serialized_start=323
-  _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER']._serialized_end=1095
+  _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER'].methods_by_name['subscribe']._serialized_options = b'\302\270\030A\010\001\0204\"\014execution_id*-unauthorized to get workflow execution stream'
+  _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER']._serialized_start=301
+  _globals['_WORKFLOWEXECUTIONQUERYCONTROLLER']._serialized_end=1073
 # @@protoc_insertion_point(module_scope)

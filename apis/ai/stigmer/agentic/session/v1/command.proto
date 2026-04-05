@@ -5,7 +5,7 @@ package ai.stigmer.agentic.session.v1;
 import "ai/stigmer/agentic/session/v1/api.proto";
 import "ai/stigmer/agentic/session/v1/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // SessionCommandController handles write operations for agent sessions.
 service SessionCommandController {
@@ -23,18 +23,18 @@ service SessionCommandController {
   // @internal
   // Requires can_create_session permission in the organization.
   rpc create(Session) returns (Session) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_session;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create session in this organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_session;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create session in this organization";
   }
 
   // Update an existing session (e.g., subject, thread_id, sandbox_id).
   rpc update(Session) returns (Session) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = session;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update session";
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update session";
   }
 
   // Set the session subject.
@@ -49,10 +49,10 @@ service SessionCommandController {
   // race between GenerateSessionSubject and sandbox_manager, which both run
   // in parallel during agent execution.
   rpc updateSubject(UpdateSessionSubjectRequest) returns (Session) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = session;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update session subject";
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update session subject";
   }
 
   // Set the session sandbox ID.
@@ -67,17 +67,17 @@ service SessionCommandController {
   // race between sandbox_manager and GenerateSessionSubject, which both run
   // in parallel during agent execution.
   rpc updateSandboxId(UpdateSessionSandboxIdRequest) returns (Session) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = session;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update session sandbox";
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update session sandbox";
   }
 
   // Delete a session (also cleans up thread and sandbox).
   rpc delete(SessionId) returns (Session) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = session;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete session";
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete session";
   }
 }

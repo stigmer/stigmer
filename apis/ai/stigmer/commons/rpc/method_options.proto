@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package ai.stigmer.commons.rpc;
+
+import "ai/stigmer/commons/rpc/authorization_config.proto";
+import "google/protobuf/descriptor.proto";
+
+// Custom method options for declarative RPC authorization.
+//
+// @internal
+// These extensions are read by the authorization interceptor at request time
+// to enforce permission checks before the handler executes.
+extend google.protobuf.MethodOptions {
+  // Full authorization configuration: permission, resource kind, field path, and error message.
+  ai.stigmer.commons.rpc.RpcAuthorizationConfig config = 50056;
+
+  // When true, the RPC is publicly accessible without any authentication.
+  bool is_public = 50057;
+
+  // When true, the RPC requires authentication but skips FGA authorization checks.
+  bool is_skip_authorization = 50058;
+}

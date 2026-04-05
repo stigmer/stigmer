@@ -8,7 +8,7 @@ package githubv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -263,7 +263,7 @@ var File_ai_stigmer_platform_github_v1_service_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_platform_github_v1_service_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/platform/github/v1/service.proto\x12\x1dai.stigmer.platform.github.v1\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a\x1bbuf/validate/validate.proto\"I\n" +
+	"+ai/stigmer/platform/github/v1/service.proto\x12\x1dai.stigmer.platform.github.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"I\n" +
 	"\x1bGetOAuthAuthorizeUrlRequest\x12*\n" +
 	"\fredirect_uri\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vredirectUri\"Y\n" +
 	"\x1cGetOAuthAuthorizeUrlResponse\x12#\n" +

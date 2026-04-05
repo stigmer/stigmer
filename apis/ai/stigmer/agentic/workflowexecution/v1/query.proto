@@ -5,7 +5,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
 import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // WorkflowExecutionQueryController handles read operations (Get, List, Subscribe) for WorkflowExecution resources.
 //
@@ -97,10 +97,10 @@ service WorkflowExecutionQueryController {
   //   }
   // }
   rpc get(WorkflowExecutionId) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow execution";
   }
 
   // List workflow executions with pagination and optional filtering.
@@ -176,7 +176,7 @@ service WorkflowExecutionQueryController {
   //   ]
   // }
   rpc list(ListWorkflowExecutionsRequest) returns (WorkflowExecutionList) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // List all executions for a specific Workflow or WorkflowInstance.
@@ -252,7 +252,7 @@ service WorkflowExecutionQueryController {
   //   ]
   // }
   rpc listByWorkflow(ListWorkflowExecutionsByWorkflowRequest) returns (WorkflowExecutionList) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Subscribe to real-time updates for a specific workflow execution (server streaming).
@@ -372,9 +372,9 @@ service WorkflowExecutionQueryController {
   // }
   // [Stream closes]
   rpc subscribe(SubscribeWorkflowExecutionRequest) returns (stream WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get workflow execution stream";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow execution stream";
   }
 }
