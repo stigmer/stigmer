@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 import { useSessionNavigation } from "@/contexts/session-navigation";
 import { SessionLauncher } from "@/components/session/SessionLauncher";
 import { SessionPageInner } from "@/app/sessions/[id]/SessionPage";
+import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
 import { useSidebarOpen } from "./use-layout-state";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebar = useSidebarOpen();
+  const pathname = usePathname();
   const { activeSessionId, isSessionZone } = useSessionNavigation();
+
+  const isManagementZone = pathname.startsWith("/settings");
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -61,13 +66,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="h-full w-70">
-          <Sidebar />
+          {isManagementZone ? <ManagementSidebar /> : <Sidebar />}
         </div>
       </div>
 
       {/* Main content */}
       <main className="min-w-0 flex-1 overflow-y-auto">
-        {isSessionZone ? (
+        {isManagementZone ? (
+          children
+        ) : isSessionZone ? (
           <SessionZoneContent activeSessionId={activeSessionId} />
         ) : (
           children
