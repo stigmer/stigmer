@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
@@ -1669,6 +1670,9 @@ func extractResourceAndStatusSchemas(fileDescriptors []*desc.FileDescriptor, sch
 	for _, ts := range statusNested {
 		schema.StatusNestedTypes = append(schema.StatusNestedTypes, *ts)
 	}
+	sort.Slice(schema.StatusNestedTypes, func(i, j int) bool {
+		return schema.StatusNestedTypes[i].Name < schema.StatusNestedTypes[j].Name
+	})
 }
 
 // generateSDKServiceSchemas auto-discovers all resources with gRPC services

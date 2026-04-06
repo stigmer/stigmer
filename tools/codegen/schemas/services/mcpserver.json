@@ -512,155 +512,6 @@
   },
   "statusNestedTypes": [
     {
-      "name": "DiscoveredCapabilities",
-      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.\n\n @internal\n This is a point-in-time snapshot — the server's actual capabilities may change\n if tools are added or removed.\n\n Tools vs Resource Templates:\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.\n   - resource_templates: Read-only data endpoints accessed by URI template.\n     Resource template names must NEVER appear in enabled_tools — doing so causes\n     a fatal runtime error.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
-      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
-      "fields": [
-        {
-          "name": "Tools",
-          "jsonName": "tools",
-          "protoField": "tools",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "DiscoveredTool"
-            }
-          },
-          "description": "Callable tools reported by the MCP server.",
-          "required": false
-        },
-        {
-          "name": "ResourceTemplates",
-          "jsonName": "resourceTemplates",
-          "protoField": "resource_templates",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "DiscoveredResourceTemplate"
-            }
-          },
-          "description": "Read-only data endpoints reported by the MCP server.",
-          "required": false
-        },
-        {
-          "name": "LastDiscoveredAt",
-          "jsonName": "lastDiscoveredAt",
-          "protoField": "last_discovered_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "When this snapshot was captured.",
-          "required": false
-        },
-        {
-          "name": "DiscoveredBy",
-          "jsonName": "discoveredBy",
-          "protoField": "discovered_by",
-          "type": {
-            "kind": "string",
-            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
-            "enumValues": [
-              "seedpack",
-              "cli",
-              "agent_runner",
-              "api"
-            ]
-          },
-          "description": "How this snapshot was produced.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "DiscoveredTool",
-      "description": "DiscoveredTool describes a single tool reported by an MCP server.\n\n @internal\n Maps directly to the MCP protocol's Tool type from tools/list.",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredTool",
-      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
-      "fields": [
-        {
-          "name": "Name",
-          "jsonName": "name",
-          "protoField": "name",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Unique tool name within the MCP server (case-sensitive).\n Example: \"search\", \"get_agent\", \"apply_mcp_server\"",
-          "required": false
-        },
-        {
-          "name": "Description",
-          "jsonName": "description",
-          "protoField": "description",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Human-readable description of the tool's purpose.",
-          "required": false
-        },
-        {
-          "name": "InputSchema",
-          "jsonName": "inputSchema",
-          "protoField": "input_schema",
-          "type": {
-            "kind": "struct"
-          },
-          "description": "JSON Schema describing the tool's input parameters.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "DiscoveredResourceTemplate",
-      "description": "DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.\n\n @internal\n Resource templates use URI templates (RFC 6570) with placeholders that\n clients fill in to access specific resources.",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate",
-      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
-      "fields": [
-        {
-          "name": "UriTemplate",
-          "jsonName": "uriTemplate",
-          "protoField": "uri_template",
-          "type": {
-            "kind": "string"
-          },
-          "description": "URI template with placeholders (RFC 6570).\n Example: \"stigmer://agents/{org}/{slug}\"",
-          "required": false
-        },
-        {
-          "name": "Name",
-          "jsonName": "name",
-          "protoField": "name",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Identifier for this resource template.",
-          "required": false
-        },
-        {
-          "name": "Description",
-          "jsonName": "description",
-          "protoField": "description",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Human-readable description of the resource.",
-          "required": false
-        },
-        {
-          "name": "MimeType",
-          "jsonName": "mimeType",
-          "protoField": "mime_type",
-          "type": {
-            "kind": "string"
-          },
-          "description": "MIME type of the resource content.\n Example: \"application/json\"",
-          "required": false
-        }
-      ]
-    },
-    {
       "name": "ApiResourceAudit",
       "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
@@ -686,6 +537,34 @@
             "messageType": "ApiResourceAuditInfo"
           },
           "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
           "required": false
         }
       ]
@@ -751,29 +630,150 @@
       ]
     },
     {
-      "name": "ApiResourceAuditActor",
-      "description": "ApiResourceAuditActor represents the entity that performed an action.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "name": "DiscoveredCapabilities",
+      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.\n\n @internal\n This is a point-in-time snapshot — the server's actual capabilities may change\n if tools are added or removed.\n\n Tools vs Resource Templates:\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.\n   - resource_templates: Read-only data endpoints accessed by URI template.\n     Resource template names must NEVER appear in enabled_tools — doing so causes\n     a fatal runtime error.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
       "fields": [
         {
-          "name": "Id",
-          "jsonName": "id",
-          "protoField": "id",
+          "name": "Tools",
+          "jsonName": "tools",
+          "protoField": "tools",
           "type": {
-            "kind": "string"
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredTool"
+            }
           },
-          "description": "Unique identifier of the actor.",
+          "description": "Callable tools reported by the MCP server.",
           "required": false
         },
         {
-          "name": "Avatar",
-          "jsonName": "avatar",
-          "protoField": "avatar",
+          "name": "ResourceTemplates",
+          "jsonName": "resourceTemplates",
+          "protoField": "resource_templates",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredResourceTemplate"
+            }
+          },
+          "description": "Read-only data endpoints reported by the MCP server.",
+          "required": false
+        },
+        {
+          "name": "LastDiscoveredAt",
+          "jsonName": "lastDiscoveredAt",
+          "protoField": "last_discovered_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When this snapshot was captured.",
+          "required": false
+        },
+        {
+          "name": "DiscoveredBy",
+          "jsonName": "discoveredBy",
+          "protoField": "discovered_by",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
+            "enumValues": [
+              "seedpack",
+              "cli",
+              "agent_runner",
+              "api"
+            ]
+          },
+          "description": "How this snapshot was produced.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredResourceTemplate",
+      "description": "DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.\n\n @internal\n Resource templates use URI templates (RFC 6570) with placeholders that\n clients fill in to access specific resources.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "UriTemplate",
+          "jsonName": "uriTemplate",
+          "protoField": "uri_template",
           "type": {
             "kind": "string"
           },
-          "description": "URL to the actor's avatar image.",
+          "description": "URI template with placeholders (RFC 6570).\n Example: \"stigmer://agents/{org}/{slug}\"",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identifier for this resource template.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description of the resource.",
+          "required": false
+        },
+        {
+          "name": "MimeType",
+          "jsonName": "mimeType",
+          "protoField": "mime_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "MIME type of the resource content.\n Example: \"application/json\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredTool",
+      "description": "DiscoveredTool describes a single tool reported by an MCP server.\n\n @internal\n Maps directly to the MCP protocol's Tool type from tools/list.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredTool",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique tool name within the MCP server (case-sensitive).\n Example: \"search\", \"get_agent\", \"apply_mcp_server\"",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description of the tool's purpose.",
+          "required": false
+        },
+        {
+          "name": "InputSchema",
+          "jsonName": "inputSchema",
+          "protoField": "input_schema",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "JSON Schema describing the tool's input parameters.",
           "required": false
         }
       ]

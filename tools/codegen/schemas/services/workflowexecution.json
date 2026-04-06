@@ -870,6 +870,251 @@
   },
   "statusNestedTypes": [
     {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PendingApproval",
+      "description": "A pending approval request for a tool call that requires user consent before execution.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.\n\n @internal\n\n Computed server-side by the UpdateStatus handlers on every write. The handler\n scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,\n collecting entries where status == WAITING_APPROVAL \u0026\u0026 requires_approval == true.\n Because the list is recomputed rather than merged, it is always consistent\n with the authoritative tool call state embedded in messages.\n\n Lifecycle:\n 1. Tool with requires_approval=true is about to execute\n 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message\n 3. Server recomputes pending_approvals, entry appears\n 4. User calls SubmitApproval RPC with their decision\n 5. Agent resumes, ToolCall.status advances, next recompute drops the entry",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.PendingApproval",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
+      "fields": [
+        {
+          "name": "ToolCallId",
+          "jsonName": "toolCallId",
+          "protoField": "tool_call_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the tool call waiting for approval.\n Use this when calling SubmitApproval to identify which tool call to resume.\n Format: Tool call ID from the agent runtime (e.g., \"call_abc123\")",
+          "required": false
+        },
+        {
+          "name": "ToolName",
+          "jsonName": "toolName",
+          "protoField": "tool_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the tool requiring approval.\n Matches ToolCall.name for correlation.\n Example: \"delete_repository\", \"send_email\", \"execute_sql\"",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable approval message for display.\n Copied from ToolCall.approval_message for UI convenience.\n Contains resolved placeholders (e.g., \"Delete repo: my-repo\")",
+          "required": false
+        },
+        {
+          "name": "ArgsPreview",
+          "jsonName": "argsPreview",
+          "protoField": "args_preview",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Sanitized preview of tool arguments for informed decision-making.\n Sensitive values (passwords, tokens) are redacted.\n Displayed as formatted JSON or key-value pairs in UI.\n\n Example:\n   {\n     \"repository\": \"acme/important-repo\",\n     \"force\": true,\n     \"reason\": \"cleanup\"\n   }",
+          "required": false
+        },
+        {
+          "name": "RequestedAt",
+          "jsonName": "requestedAt",
+          "protoField": "requested_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the approval was requested.\n Enables UI to show waiting duration: \"Waiting for 2 minutes\"\n Example: \"2026-01-30T15:30:00Z\"",
+          "required": false
+        },
+        {
+          "name": "FromSubAgent",
+          "jsonName": "fromSubAgent",
+          "protoField": "from_sub_agent",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True if this approval originates from a sub-agent.\n Enables differentiated UI treatment:\n   - false: \"Agent needs approval to...\"\n   - true: \"Sub-agent 'name' needs approval to...\"",
+          "required": false
+        },
+        {
+          "name": "SubAgentName",
+          "jsonName": "subAgentName",
+          "protoField": "sub_agent_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the sub-agent if from_sub_agent is true.\n Example: \"code-reviewer\", \"researcher\", \"debugger\"\n Empty if from_sub_agent is false.",
+          "required": false
+        },
+        {
+          "name": "McpServerSlug",
+          "jsonName": "mcpServerSlug",
+          "protoField": "mcp_server_slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the MCP server that provides this tool.\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"planton-cloud\", \"github\", \"slack\"",
+          "required": false
+        },
+        {
+          "name": "SubAgentSubject",
+          "jsonName": "subAgentSubject",
+          "protoField": "sub_agent_subject",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Concise subject/description of the sub-agent's task (3-10 words).\n Copied from SubAgentExecution.subject when from_sub_agent is true.\n Enables UI to show a meaningful label like \"Explore CLI rendering code\"\n instead of the generic agent type name.\n Empty when from_sub_agent is false or subject is not available.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "WorkflowPendingApproval",
+      "description": "WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.\n\n @internal\n PendingApproval is an agentexecution domain type — it describes what tool\n needs approval. WorkflowPendingApproval adds the workflow-level concern:\n which child agent execution the approval should be forwarded to.",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/api.proto",
+      "fields": [
+        {
+          "name": "Approval",
+          "jsonName": "approval",
+          "protoField": "approval",
+          "type": {
+            "kind": "message",
+            "messageType": "PendingApproval"
+          },
+          "description": "Approval details from the child agent's tool call.",
+          "required": false
+        },
+        {
+          "name": "ChildAgentExecutionId",
+          "jsonName": "childAgentExecutionId",
+          "protoField": "child_agent_execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the child agent execution to forward the approval decision to.\n\n @internal\n Set by the workflow-runner when surfacing child agent approvals\n at the workflow level. WorkflowExecution.SubmitApproval uses this\n to route the decision to the correct AgentExecution.SubmitApproval RPC.\n\n Format: AgentExecution.metadata.id (e.g., \"aex_abc123xyz456\")",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "WorkflowTask",
       "description": "WorkflowTask represents a single task within a workflow execution.\n\n @internal\n Tasks are the atomic units of work in a workflow. Each task:\n - Has a specific type (agent invocation, API call, approval, conditional, etc.)\n - Receives input parameters from the workflow context or previous tasks\n - Executes its specific logic (invoke an agent, call an API, wait for approval)\n - Produces output that can be used by subsequent tasks\n - Tracks its own execution state (pending, in-progress, completed, failed, skipped)\n\n Task Execution Flow:\n 1. Task is in PENDING state when workflow starts\n 2. When task dependencies are met, task_status changes to IN_PROGRESS\n 3. Task executes its logic (invoke agent, call API, etc.)\n 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowTask",
@@ -992,251 +1237,6 @@
             "kind": "struct"
           },
           "description": "Task-specific metadata as arbitrary JSON.\n\n @internal\n Contains task-specific information that doesn't fit in other fields.\n Used for:\n - Retry count (how many times this task was retried)\n - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)\n - API response headers (for WORKFLOW_TASK_API_CALL)\n - Approval history (who approved, when, comments)\n - Performance metrics (execution time, memory usage)",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "WorkflowPendingApproval",
-      "description": "WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.\n\n @internal\n PendingApproval is an agentexecution domain type — it describes what tool\n needs approval. WorkflowPendingApproval adds the workflow-level concern:\n which child agent execution the approval should be forwarded to.",
-      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval",
-      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/api.proto",
-      "fields": [
-        {
-          "name": "Approval",
-          "jsonName": "approval",
-          "protoField": "approval",
-          "type": {
-            "kind": "message",
-            "messageType": "PendingApproval"
-          },
-          "description": "Approval details from the child agent's tool call.",
-          "required": false
-        },
-        {
-          "name": "ChildAgentExecutionId",
-          "jsonName": "childAgentExecutionId",
-          "protoField": "child_agent_execution_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "ID of the child agent execution to forward the approval decision to.\n\n @internal\n Set by the workflow-runner when surfacing child agent approvals\n at the workflow level. WorkflowExecution.SubmitApproval uses this\n to route the decision to the correct AgentExecution.SubmitApproval RPC.\n\n Format: AgentExecution.metadata.id (e.g., \"aex_abc123xyz456\")",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "PendingApproval",
-      "description": "A pending approval request for a tool call that requires user consent before execution.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.\n\n @internal\n\n Computed server-side by the UpdateStatus handlers on every write. The handler\n scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,\n collecting entries where status == WAITING_APPROVAL \u0026\u0026 requires_approval == true.\n Because the list is recomputed rather than merged, it is always consistent\n with the authoritative tool call state embedded in messages.\n\n Lifecycle:\n 1. Tool with requires_approval=true is about to execute\n 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message\n 3. Server recomputes pending_approvals, entry appears\n 4. User calls SubmitApproval RPC with their decision\n 5. Agent resumes, ToolCall.status advances, next recompute drops the entry",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.PendingApproval",
-      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
-      "fields": [
-        {
-          "name": "ToolCallId",
-          "jsonName": "toolCallId",
-          "protoField": "tool_call_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "ID of the tool call waiting for approval.\n Use this when calling SubmitApproval to identify which tool call to resume.\n Format: Tool call ID from the agent runtime (e.g., \"call_abc123\")",
-          "required": false
-        },
-        {
-          "name": "ToolName",
-          "jsonName": "toolName",
-          "protoField": "tool_name",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Name of the tool requiring approval.\n Matches ToolCall.name for correlation.\n Example: \"delete_repository\", \"send_email\", \"execute_sql\"",
-          "required": false
-        },
-        {
-          "name": "Message",
-          "jsonName": "message",
-          "protoField": "message",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Human-readable approval message for display.\n Copied from ToolCall.approval_message for UI convenience.\n Contains resolved placeholders (e.g., \"Delete repo: my-repo\")",
-          "required": false
-        },
-        {
-          "name": "ArgsPreview",
-          "jsonName": "argsPreview",
-          "protoField": "args_preview",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Sanitized preview of tool arguments for informed decision-making.\n Sensitive values (passwords, tokens) are redacted.\n Displayed as formatted JSON or key-value pairs in UI.\n\n Example:\n   {\n     \"repository\": \"acme/important-repo\",\n     \"force\": true,\n     \"reason\": \"cleanup\"\n   }",
-          "required": false
-        },
-        {
-          "name": "RequestedAt",
-          "jsonName": "requestedAt",
-          "protoField": "requested_at",
-          "type": {
-            "kind": "string"
-          },
-          "description": "ISO 8601 timestamp when the approval was requested.\n Enables UI to show waiting duration: \"Waiting for 2 minutes\"\n Example: \"2026-01-30T15:30:00Z\"",
-          "required": false
-        },
-        {
-          "name": "FromSubAgent",
-          "jsonName": "fromSubAgent",
-          "protoField": "from_sub_agent",
-          "type": {
-            "kind": "bool"
-          },
-          "description": "True if this approval originates from a sub-agent.\n Enables differentiated UI treatment:\n   - false: \"Agent needs approval to...\"\n   - true: \"Sub-agent 'name' needs approval to...\"",
-          "required": false
-        },
-        {
-          "name": "SubAgentName",
-          "jsonName": "subAgentName",
-          "protoField": "sub_agent_name",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Name of the sub-agent if from_sub_agent is true.\n Example: \"code-reviewer\", \"researcher\", \"debugger\"\n Empty if from_sub_agent is false.",
-          "required": false
-        },
-        {
-          "name": "McpServerSlug",
-          "jsonName": "mcpServerSlug",
-          "protoField": "mcp_server_slug",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Slug of the MCP server that provides this tool.\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"planton-cloud\", \"github\", \"slack\"",
-          "required": false
-        },
-        {
-          "name": "SubAgentSubject",
-          "jsonName": "subAgentSubject",
-          "protoField": "sub_agent_subject",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Concise subject/description of the sub-agent's task (3-10 words).\n Copied from SubAgentExecution.subject when from_sub_agent is true.\n Enables UI to show a meaningful label like \"Explore CLI rendering code\"\n instead of the generic agent type name.\n Empty when from_sub_agent is false or subject is not available.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAudit",
-      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "SpecAudit",
-          "jsonName": "specAudit",
-          "protoField": "spec_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's specification (desired state).",
-          "required": false
-        },
-        {
-          "name": "StatusAudit",
-          "jsonName": "statusAudit",
-          "protoField": "status_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's status (actual state).",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAuditInfo",
-      "description": "ApiResourceAuditInfo contains detailed audit information.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "CreatedBy",
-          "jsonName": "createdBy",
-          "protoField": "created_by",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditActor"
-          },
-          "description": "Actor who created this resource.",
-          "required": false
-        },
-        {
-          "name": "CreatedAt",
-          "jsonName": "createdAt",
-          "protoField": "created_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "Timestamp when the resource was created.",
-          "required": false
-        },
-        {
-          "name": "UpdatedBy",
-          "jsonName": "updatedBy",
-          "protoField": "updated_by",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditActor"
-          },
-          "description": "Actor who last updated this resource.",
-          "required": false
-        },
-        {
-          "name": "UpdatedAt",
-          "jsonName": "updatedAt",
-          "protoField": "updated_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "Timestamp when the resource was last updated.",
-          "required": false
-        },
-        {
-          "name": "Event",
-          "jsonName": "event",
-          "protoField": "event",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Type of the last event (e.g., \"created\", \"updated\").",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAuditActor",
-      "description": "ApiResourceAuditActor represents the entity that performed an action.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "Id",
-          "jsonName": "id",
-          "protoField": "id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Unique identifier of the actor.",
-          "required": false
-        },
-        {
-          "name": "Avatar",
-          "jsonName": "avatar",
-          "protoField": "avatar",
-          "type": {
-            "kind": "string"
-          },
-          "description": "URL to the actor's avatar image.",
           "required": false
         }
       ]

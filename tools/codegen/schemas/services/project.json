@@ -309,6 +309,64 @@
   },
   "statusNestedTypes": [
     {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ApiResourceAuditInfo",
       "description": "ApiResourceAuditInfo contains detailed audit information.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
@@ -364,84 +422,6 @@
             "kind": "string"
           },
           "description": "Type of the last event (e.g., \"created\", \"updated\").",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAuditActor",
-      "description": "ApiResourceAuditActor represents the entity that performed an action.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "Id",
-          "jsonName": "id",
-          "protoField": "id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Unique identifier of the actor.",
-          "required": false
-        },
-        {
-          "name": "Avatar",
-          "jsonName": "avatar",
-          "protoField": "avatar",
-          "type": {
-            "kind": "string"
-          },
-          "description": "URL to the actor's avatar image.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ReconciliationSummary",
-      "description": "ReconciliationSummary contains the results of project reconciliation.\n Populated only in the ProjectCommandController.Apply() response to show\n what changes were made. NOT persisted to the database.\n\n In the reference-based model, individual resources are applied by the CLI\n before the project is applied. The server's reconciliation is limited to\n orphan pruning: comparing previous members with current members and\n deleting resources that are no longer in the membership list.\n\n All three fields use ApiResourceReference — the same type used in\n ProjectSpec.members — so reconciliation results are directly comparable\n with the membership list.\n\n Example CLI output:\n\n\tApplied project \"my-app\":\n\t  Members: 3 agents, 1 workflow, 2 mcp_servers\n\t  Pruned:  1 agent (removed from project)",
-      "protoType": "ai.stigmer.tenancy.project.v1.ReconciliationSummary",
-      "protoFile": "apis/ai/stigmer/tenancy/project/v1/status.proto",
-      "fields": [
-        {
-          "name": "Created",
-          "jsonName": "created",
-          "protoField": "created",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "ApiResourceReference"
-            }
-          },
-          "description": "Resources created on the server during this project apply.",
-          "required": false
-        },
-        {
-          "name": "Updated",
-          "jsonName": "updated",
-          "protoField": "updated",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "ApiResourceReference"
-            }
-          },
-          "description": "Resources updated on the server during this project apply.",
-          "required": false
-        },
-        {
-          "name": "Deleted",
-          "jsonName": "deleted",
-          "protoField": "deleted",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "ApiResourceReference"
-            }
-          },
-          "description": "Resources deleted via orphan pruning during this project apply.\n An orphan is a resource that was in the previous members list but\n is absent from the current members list.",
           "required": false
         }
       ]
@@ -531,31 +511,51 @@
       ]
     },
     {
-      "name": "ApiResourceAudit",
-      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "name": "ReconciliationSummary",
+      "description": "ReconciliationSummary contains the results of project reconciliation.\n Populated only in the ProjectCommandController.Apply() response to show\n what changes were made. NOT persisted to the database.\n\n In the reference-based model, individual resources are applied by the CLI\n before the project is applied. The server's reconciliation is limited to\n orphan pruning: comparing previous members with current members and\n deleting resources that are no longer in the membership list.\n\n All three fields use ApiResourceReference — the same type used in\n ProjectSpec.members — so reconciliation results are directly comparable\n with the membership list.\n\n Example CLI output:\n\n\tApplied project \"my-app\":\n\t  Members: 3 agents, 1 workflow, 2 mcp_servers\n\t  Pruned:  1 agent (removed from project)",
+      "protoType": "ai.stigmer.tenancy.project.v1.ReconciliationSummary",
+      "protoFile": "apis/ai/stigmer/tenancy/project/v1/status.proto",
       "fields": [
         {
-          "name": "SpecAudit",
-          "jsonName": "specAudit",
-          "protoField": "spec_audit",
+          "name": "Created",
+          "jsonName": "created",
+          "protoField": "created",
           "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiResourceReference"
+            }
           },
-          "description": "Audit info for the resource's specification (desired state).",
+          "description": "Resources created on the server during this project apply.",
           "required": false
         },
         {
-          "name": "StatusAudit",
-          "jsonName": "statusAudit",
-          "protoField": "status_audit",
+          "name": "Updated",
+          "jsonName": "updated",
+          "protoField": "updated",
           "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiResourceReference"
+            }
           },
-          "description": "Audit info for the resource's status (actual state).",
+          "description": "Resources updated on the server during this project apply.",
+          "required": false
+        },
+        {
+          "name": "Deleted",
+          "jsonName": "deleted",
+          "protoField": "deleted",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiResourceReference"
+            }
+          },
+          "description": "Resources deleted via orphan pruning during this project apply.\n An orphan is a resource that was in the previous members list but\n is absent from the current members list.",
           "required": false
         }
       ]
