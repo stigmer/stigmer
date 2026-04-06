@@ -18,6 +18,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { activeSessionId, isSessionZone } = useSessionNavigation();
 
   const isManagementZone = pathname.startsWith("/settings");
+  const isPublicZone = pathname.startsWith("/invite/");
 
   // Close the sidebar overlay when the route changes on mobile viewports.
   // Desktop keeps the sidebar open across navigations.
@@ -37,6 +38,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [sidebar]);
+
+  if (isPublicZone) {
+    return (
+      // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- app shell wraps both sidebar and main content
+      <div className="bg-background text-foreground min-h-screen">
+        <main>{children}</main>
+      </div>
+    );
+  }
 
   return (
     // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- app shell wraps both sidebar and main content
