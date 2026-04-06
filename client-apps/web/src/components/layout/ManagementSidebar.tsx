@@ -2,17 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ArrowLeft,
-  BarChart3,
-  Box,
-  Building2,
-  CreditCard,
-  KeyRound,
-  PanelLeft,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -20,22 +10,7 @@ import { useSessionNavigation } from "@/contexts/session-navigation";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
-
-interface NavItem {
-  readonly href: string;
-  readonly label: string;
-  readonly icon: React.ComponentType<{ className?: string }>;
-}
-
-const NAV_ITEMS: readonly NavItem[] = [
-  { href: "/settings/members", label: "Members", icon: Users },
-  { href: "/settings/api-keys", label: "API Keys", icon: KeyRound },
-  { href: "/settings/environments", label: "Environments", icon: Box },
-  { href: "/settings/identity-providers", label: "Identity Providers", icon: ShieldCheck },
-  { href: "/settings/billing", label: "Billing", icon: CreditCard },
-  { href: "/settings/usage", label: "Usage", icon: BarChart3 },
-  { href: "/settings/org-profile", label: "Org Profile", icon: Building2 },
-];
+import { SETTINGS_NAV_GROUPS } from "./settings-nav";
 
 export function ManagementSidebar() {
   const sidebar = useSidebarOpen();
@@ -81,29 +56,37 @@ export function ManagementSidebar() {
         <Separator className="bg-sidebar-border" />
       </div>
 
-      {/* Management nav links */}
-      <div className="flex flex-col gap-0.5 px-3 py-1">
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href
-            || pathname.startsWith(`${item.href}/`);
+      {/* Management nav links — grouped */}
+      <div className="flex flex-col gap-4 px-3 py-1">
+        {SETTINGS_NAV_GROUPS.map((group) => (
+          <div key={group.label} className="flex flex-col gap-0.5">
+            <span className="text-sidebar-muted-foreground px-2 pb-1 text-[11px] font-medium uppercase tracking-wider">
+              {group.label}
+            </span>
+            {group.items.map((item) => {
+              const isActive =
+                pathname === item.href ||
+                pathname.startsWith(`${item.href}/`);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              )}
-            >
-              <item.icon className="size-4 shrink-0" />
-              {item.label}
-            </Link>
-          );
-        })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  <item.icon className="size-4 shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {/* Spacer */}
