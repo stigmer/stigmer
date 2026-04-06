@@ -47,7 +47,7 @@ export type IamPolicySpec = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicySpec">
 
   /**
    * The permission being granted (e.g., "admin", "viewer", "owner").
-   * Maps to the role_code from IamRole.
+   * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
    * Examples: "admin", "editor", "viewer", "owner", "member"
    *
    * @internal

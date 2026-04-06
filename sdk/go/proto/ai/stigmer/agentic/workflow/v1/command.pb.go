@@ -8,7 +8,7 @@ package workflowv1
 
 import (
 	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,12 +26,12 @@ var File_ai_stigmer_agentic_workflow_v1_command_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_workflow_v1_command_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/workflow/v1/command.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a'ai/stigmer/agentic/workflow/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xd5\x04\n" +
+	",ai/stigmer/agentic/workflow/v1/command.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a'ai/stigmer/agentic/workflow/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd5\x04\n" +
 	"\x19WorkflowCommandController\x12[\n" +
 	"\x05apply\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\x12\xaa\x01\n" +
-	"\x06create\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"L¸\x18H\b\x11\x10\x1e\"\fmetadata.org*4unauthorized to create workflow in this organization\x12\x94\x01\n" +
-	"\x06update\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"6¸\x182\b\x04\x102\"\vmetadata.id*\x1funauthorized to update workflow\x12\x90\x01\n" +
-	"\x06delete\x12*.ai.stigmer.agentic.workflow.v1.WorkflowId\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"0¸\x18,\b\x02\x102\"\x05value*\x1funauthorized to delete workflow\x1a\x04\xa0\xff+2B\xa2\x02\n" +
+	"\x06create\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"L¸\x18H\b\a\x10\x1e\"\fmetadata.org*4unauthorized to create workflow in this organization\x12\x94\x01\n" +
+	"\x06update\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"6¸\x182\b\x02\x102\"\vmetadata.id*\x1funauthorized to update workflow\x12\x90\x01\n" +
+	"\x06delete\x12*.ai.stigmer.agentic.workflow.v1.WorkflowId\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"0¸\x18,\b\x03\x102\"\x05value*\x1funauthorized to delete workflow\x1a\x04\xa0\xff+2B\xa2\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\fCommandProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflow_v1_command_proto_goTypes = []any{

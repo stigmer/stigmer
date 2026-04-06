@@ -23,13 +23,13 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.iam.apikey.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2
 from ai.stigmer.iam.apikey.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/iam/apikey/v1/query.proto\x12\x18\x61i.stigmer.iam.apikey.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a\x1bgoogle/protobuf/empty.proto2\xc3\x02\n\x15\x41piKeyQueryController\x12z\n\x03get\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"-\xc2\xb8\x18)\x08\x03\x10\x0c\"\x05value*\x1cunauthorized to view api key\x12\\\n\x0cgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04\xd0\xb8\x18\x01\x12J\n\x07\x66indAll\x12\x16.google.protobuf.Empty\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x0c\x42\xaf\x01\n\x1c\x63om.ai.stigmer.iam.apikey.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SIA\xaa\x02\x18\x41i.Stigmer.Iam.Apikey.V1\xca\x02\x18\x41i\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1c\x41i::Stigmer::Iam::Apikey::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/iam/apikey/v1/query.proto\x12\x18\x61i.stigmer.iam.apikey.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xc3\x02\n\x15\x41piKeyQueryController\x12z\n\x03get\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"-\xc2\xb8\x18)\x08\x01\x10\x0c\"\x05value*\x1cunauthorized to view api key\x12\\\n\x0cgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04\xd0\xb8\x18\x01\x12J\n\x07\x66indAll\x12\x16.google.protobuf.Empty\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x0c\x42\xaf\x01\n\x1c\x63om.ai.stigmer.iam.apikey.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SIA\xaa\x02\x18\x41i.Stigmer.Iam.Apikey.V1\xca\x02\x18\x41i\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1c\x41i::Stigmer::Iam::Apikey::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,11 +40,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_APIKEYQUERYCONTROLLER']._loaded_options = None
   _globals['_APIKEYQUERYCONTROLLER']._serialized_options = b'\240\377+\014'
   _globals['_APIKEYQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_APIKEYQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030)\010\003\020\014\"\005value*\034unauthorized to view api key'
+  _globals['_APIKEYQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030)\010\001\020\014\"\005value*\034unauthorized to view api key'
   _globals['_APIKEYQUERYCONTROLLER'].methods_by_name['getByKeyHash']._loaded_options = None
   _globals['_APIKEYQUERYCONTROLLER'].methods_by_name['getByKeyHash']._serialized_options = b'\320\270\030\001'
   _globals['_APIKEYQUERYCONTROLLER'].methods_by_name['findAll']._loaded_options = None
   _globals['_APIKEYQUERYCONTROLLER'].methods_by_name['findAll']._serialized_options = b'\320\270\030\001'
-  _globals['_APIKEYQUERYCONTROLLER']._serialized_start=292
-  _globals['_APIKEYQUERYCONTROLLER']._serialized_end=615
+  _globals['_APIKEYQUERYCONTROLLER']._serialized_start=270
+  _globals['_APIKEYQUERYCONTROLLER']._serialized_end=593
 # @@protoc_insertion_point(module_scope)

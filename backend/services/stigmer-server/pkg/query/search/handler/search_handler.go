@@ -122,6 +122,7 @@ func (h *SearchHandler) buildSearchCriteria(req *searchv1.SearchRequest) (*value
 		req.Query,
 		req.Org,
 		req.ExcludePublic,
+		req.CrossOrgPublic,
 		pageNumber,
 		pageSize,
 	)

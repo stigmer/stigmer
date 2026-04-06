@@ -8,7 +8,7 @@ package identityproviderv1
 
 import (
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,12 +26,12 @@ var File_ai_stigmer_iam_identityprovider_v1_command_proto protoreflect.FileDescr
 
 const file_ai_stigmer_iam_identityprovider_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/iam/identityprovider/v1/command.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto2\xde\x05\n" +
+	"0ai/stigmer/iam/identityprovider/v1/command.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto2\xde\x05\n" +
 	"!IdentityProviderCommandController\x12s\n" +
 	"\x05apply\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x12\xcb\x01\n" +
-	"\x06create\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"U¸\x18Q\b\x18\x10\x1e\"\fmetadata.org*=unauthorized to create identity provider in this organization\x12\xb5\x01\n" +
-	"\x06update\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?¸\x18;\b\x04\x10\x15\"\vmetadata.id*(unauthorized to update identity provider\x12\xb7\x01\n" +
-	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?¸\x18;\b\x02\x10\x15\"\vresource_id*(unauthorized to delete identity provider\x1a\x04\xa0\xff+\x15B\xc3\x02\n" +
+	"\x06create\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"U¸\x18Q\b\v\x10\x1e\"\fmetadata.org*=unauthorized to create identity provider in this organization\x12\xb5\x01\n" +
+	"\x06update\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?¸\x18;\b\x02\x10\x15\"\vmetadata.id*(unauthorized to update identity provider\x12\xb7\x01\n" +
+	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?¸\x18;\b\x03\x10\x15\"\vresource_id*(unauthorized to delete identity provider\x1a\x04\xa0\xff+\x15B\xc3\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\fCommandProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var file_ai_stigmer_iam_identityprovider_v1_command_proto_goTypes = []any{

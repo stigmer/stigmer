@@ -12,18 +12,18 @@ import (
 //
 //	An IdentityProvider represents an external platform's trust relationship with Stigmer.
 //	It is owned by an organization (e.g., "planton") and configures how Stigmer validates
-//	tokens from that platform during token exchange. The platform forwards its OIDC
-//	provider's access tokens to Stigmer's token exchange endpoint, which:
-//	- Validates the token signature against the configured JWKS
-//	- Fetches user profile data from the OIDC UserInfo endpoint
-//	- JIT-provisions a federated identity account with email, name, and picture
-//	- Issues a Stigmer-native token for subsequent API access
+//	tokens from that platform. When a user authenticates with a JWT issued by this provider,
+//	Stigmer validates the token signature against the configured JWKS and resolves the
+//	user's federated identity account by the JWT's sub claim and this provider's reference.
+//
+//	The platform is responsible for explicitly creating federated identity accounts
+//	before users can authenticate. Stigmer does not auto-provision accounts.
 //
 //	The spec contains only public validation configuration — no secrets are stored.
 //	For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
 //	point to the OIDC provider's standard endpoints.
 //
-//	Example YAML:
+//	Example YAML (platform delegation):
 //	  apiVersion: iam.stigmer.ai/v1
 //	  kind: IdentityProvider
 //	  metadata:
@@ -36,6 +36,21 @@ import (
 //	    allowed_issuers: ["https://planton-prod.us.auth0.com/"]
 //	    expected_audience: "https://api.planton.ai/"
 //	    userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
+//
+//	Example YAML (self-managed SSO):
+//	  apiVersion: iam.stigmer.ai/v1
+//	  kind: IdentityProvider
+//	  metadata:
+//	    name: Acme Corp Okta
+//	    slug: acme-okta
+//	    org: acme
+//	  spec:
+//	    display_name: "Acme Corp Okta"
+//	    jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
+//	    allowed_issuers: ["https://acme.okta.com/oauth2/default"]
+//	    expected_audience: "stigmer-api"
+//	    is_sso_provider: true
+//	    oidc_client_id: "0oa1bcdef2ghijk3lmno"
 type IdentityProviderInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -62,6 +77,10 @@ type IdentityProviderInput struct {
 	RateLimitBudget int32 `json:"rate_limit_budget,omitempty" jsonschema:"Shared rate limit budget across all organizations managed via this identity provider. Expressed as requests per minute. 0 means no limit."`
 	// OIDC UserInfo endpoint URL for fetching user profile data during token exchange. Stigmer calls this endpoint with the platform's access token (as a Bearer token) to retrieve the user's email, name, and picture for the federated identity account. Profile data is updated on every token exchange to keep it fresh. This is the standard "userinfo_endpoint" metadata field defined in OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in OpenID Connect Core 1.0 (Section 5.3). For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
 	UserinfoEndpoint string `json:"userinfo_endpoint,omitempty" jsonschema:"OIDC UserInfo endpoint URL for fetching user profile data during token exchange. Stigmer calls this endpoint with the platform's access token (as a Bearer token) to retrieve the user's email, name, and picture for the federated identity account. Profile data is updated on every token exchange to keep it fresh. This is the standard 'userinfo_endpoint' metadata field defined in OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in OpenID Connect Core 1.0 (Section 5.3). For Auth0-based integrators: https://{tenant}.auth0.com/userinfo"`
+	// Whether this identity provider serves as the SSO login provider for its owning organization. When true, the Stigmer web app offers a "Sign in with [display_name]" option on the organization's login page and initiates the OIDC Authorization Code flow with PKCE using the configured oidc_client_id. Constraints: - At most one IdentityProvider per organization can be the SSO provider. - An IdP used for platform-managed organization delegation cannot also serve as an SSO provider (different trust models). - Federated identity accounts must be pre-created via createFederatedAccount before users can authenticate through SSO.
+	IsSsoProvider bool `json:"is_sso_provider,omitempty" jsonschema:"Whether this identity provider serves as the SSO login provider for its owning organization. When true, the Stigmer web app offers a 'Sign in with [display_name]' option on the organization's login page and initiates the OIDC Authorization Code flow with PKCE using the configured oidc_client_id. Constraints: - At most one IdentityProvider per organization can be the SSO provider. - An IdP used for platform-managed organization delegation cannot also serve as an SSO provider (different trust models). - Federated identity accounts must be pre-created via createFederatedAccount before users can authenticate through SSO."`
+	// OIDC client identifier for browser-based SSO login. This is the client_id registered with the external IdP (e.g., Okta, Azure AD) for Stigmer's web application. The web app uses this to build the OIDC Authorization Code request with PKCE. No client_secret is stored — the web app is a public client using PKCE (Proof Key for Code Exchange), which is the recommended approach for SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft). Required when is_sso_provider is true; must be empty otherwise.
+	OidcClientId string `json:"oidc_client_id,omitempty" jsonschema:"OIDC client identifier for browser-based SSO login. This is the client_id registered with the external IdP (e.g., Okta, Azure AD) for Stigmer's web application. The web app uses this to build the OIDC Authorization Code request with PKCE. No client_secret is stored — the web app is a public client using PKCE (Proof Key for Code Exchange), which is the recommended approach for SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft). Required when is_sso_provider is true; must be empty otherwise."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed IdentityProvider proto message.
@@ -100,5 +119,7 @@ func (input *IdentityProviderInput) specToProto() (*identityproviderv1.IdentityP
 	spec.ExpectedAudience = input.ExpectedAudience
 	spec.RateLimitBudget = input.RateLimitBudget
 	spec.UserinfoEndpoint = input.UserinfoEndpoint
+	spec.IsSsoProvider = input.IsSsoProvider
+	spec.OidcClientId = input.OidcClientId
 	return spec, nil
 }

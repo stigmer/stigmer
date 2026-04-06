@@ -38,6 +38,13 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
 
   const bootstrapAttempted = useRef(false);
 
+  // Reset the bootstrap guard when the org changes so auto-create
+  // can fire for the new organization. Declared before the bootstrap
+  // effect so React executes the reset first (effects run in order).
+  useEffect(() => {
+    bootstrapAttempted.current = false;
+  }, [org]);
+
   useEffect(() => {
     if (!org || isLoading || environment || bootstrapAttempted.current) return;
     bootstrapAttempted.current = true;

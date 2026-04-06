@@ -22,12 +22,13 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from ai.stigmer.iam.identityaccount.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"`\n\x10IdentityAccounts\x12L\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\x07\x65ntries\"1\n\x11IdentityAccountId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"4\n\x14IdentityAccountEmail\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"%\n\x05IdpId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x84\x01\n\x1cListWithIdentityAccountIdReq\x12.\n\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x34\n\x04page\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\x85\x01\n\x14IdentityAccountsList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12L\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\x07\x65ntries\"]\n\x13ListWithIdentityOrg\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12\x34\n\x04page\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04pageB\xd9\x01\n%com.ai.stigmer.iam.identityaccount.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"`\n\x10IdentityAccounts\x12L\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\x07\x65ntries\"1\n\x11IdentityAccountId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"4\n\x14IdentityAccountEmail\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"%\n\x05IdpId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x84\x01\n\x1cListWithIdentityAccountIdReq\x12.\n\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x34\n\x04page\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\x85\x01\n\x14IdentityAccountsList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12L\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\x07\x65ntries\"]\n\x13ListWithIdentityOrg\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12\x34\n\x04page\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\xc2\x01\n\x11\x45xternalSubLookup\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\"\xc7\x02\n\x1b\x43reateFederatedAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\x12\x1c\n\x05\x65mail\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x65mail\x12\x1d\n\nfirst_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n\tlast_name\x18\x06 \x01(\tR\x08lastName\x12\x1f\n\x0bpicture_url\x18\x07 \x01(\tR\npictureUrlB\xd9\x01\n%com.ai.stigmer.iam.identityaccount.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,18 +42,32 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IDENTITYACCOUNTEMAIL'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
   _globals['_IDPID'].fields_by_name['value']._loaded_options = None
   _globals['_IDPID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_IDENTITYACCOUNTS']._serialized_start=196
-  _globals['_IDENTITYACCOUNTS']._serialized_end=292
-  _globals['_IDENTITYACCOUNTID']._serialized_start=294
-  _globals['_IDENTITYACCOUNTID']._serialized_end=343
-  _globals['_IDENTITYACCOUNTEMAIL']._serialized_start=345
-  _globals['_IDENTITYACCOUNTEMAIL']._serialized_end=397
-  _globals['_IDPID']._serialized_start=399
-  _globals['_IDPID']._serialized_end=436
-  _globals['_LISTWITHIDENTITYACCOUNTIDREQ']._serialized_start=439
-  _globals['_LISTWITHIDENTITYACCOUNTIDREQ']._serialized_end=571
-  _globals['_IDENTITYACCOUNTSLIST']._serialized_start=574
-  _globals['_IDENTITYACCOUNTSLIST']._serialized_end=707
-  _globals['_LISTWITHIDENTITYORG']._serialized_start=709
-  _globals['_LISTWITHIDENTITYORG']._serialized_end=802
+  _globals['_EXTERNALSUBLOOKUP'].fields_by_name['org']._loaded_options = None
+  _globals['_EXTERNALSUBLOOKUP'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_EXTERNALSUBLOOKUP'].fields_by_name['external_sub']._loaded_options = None
+  _globals['_EXTERNALSUBLOOKUP'].fields_by_name['external_sub']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_CREATEFEDERATEDACCOUNTINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_CREATEFEDERATEDACCOUNTINPUT'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_CREATEFEDERATEDACCOUNTINPUT'].fields_by_name['external_sub']._loaded_options = None
+  _globals['_CREATEFEDERATEDACCOUNTINPUT'].fields_by_name['external_sub']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_CREATEFEDERATEDACCOUNTINPUT'].fields_by_name['email']._loaded_options = None
+  _globals['_CREATEFEDERATEDACCOUNTINPUT'].fields_by_name['email']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_IDENTITYACCOUNTS']._serialized_start=237
+  _globals['_IDENTITYACCOUNTS']._serialized_end=333
+  _globals['_IDENTITYACCOUNTID']._serialized_start=335
+  _globals['_IDENTITYACCOUNTID']._serialized_end=384
+  _globals['_IDENTITYACCOUNTEMAIL']._serialized_start=386
+  _globals['_IDENTITYACCOUNTEMAIL']._serialized_end=438
+  _globals['_IDPID']._serialized_start=440
+  _globals['_IDPID']._serialized_end=477
+  _globals['_LISTWITHIDENTITYACCOUNTIDREQ']._serialized_start=480
+  _globals['_LISTWITHIDENTITYACCOUNTIDREQ']._serialized_end=612
+  _globals['_IDENTITYACCOUNTSLIST']._serialized_start=615
+  _globals['_IDENTITYACCOUNTSLIST']._serialized_end=748
+  _globals['_LISTWITHIDENTITYORG']._serialized_start=750
+  _globals['_LISTWITHIDENTITYORG']._serialized_end=843
+  _globals['_EXTERNALSUBLOOKUP']._serialized_start=846
+  _globals['_EXTERNALSUBLOOKUP']._serialized_end=1040
+  _globals['_CREATEFEDERATEDACCOUNTINPUT']._serialized_start=1043
+  _globals['_CREATEFEDERATEDACCOUNTINPUT']._serialized_end=1370
 # @@protoc_insertion_point(module_scope)

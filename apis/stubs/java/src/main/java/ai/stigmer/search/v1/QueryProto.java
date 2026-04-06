@@ -36,28 +36,28 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n ai/stigmer/search/v1/query.proto\022\024ai.s" +
-      "tigmer.search.v1\032Aai/stigmer/iam/iampoli" +
-      "cy/v1/rpcauthorization/method_options.pr" +
-      "oto\032\035ai/stigmer/search/v1/io.proto2j\n\rSe" +
-      "archService\022Y\n\006search\022#.ai.stigmer.searc" +
-      "h.v1.SearchRequest\032$.ai.stigmer.search.v" +
-      "1.SearchResponse\"\004\320\270\030\001B\177B\nQueryProtoP\001\242\002" +
-      "\003ASS\252\002\024Ai.Stigmer.Search.V1\312\002\024Ai\\Stigmer" +
-      "\\Search\\V1\342\002 Ai\\Stigmer\\Search\\V1\\GPBMet" +
-      "adata\352\002\027Ai::Stigmer::Search::V1b\006proto3"
+      "tigmer.search.v1\032+ai/stigmer/commons/rpc" +
+      "/method_options.proto\032\035ai/stigmer/search" +
+      "/v1/io.proto2j\n\rSearchService\022Y\n\006search\022" +
+      "#.ai.stigmer.search.v1.SearchRequest\032$.a" +
+      "i.stigmer.search.v1.SearchResponse\"\004\320\270\030\001" +
+      "B\177B\nQueryProtoP\001\242\002\003ASS\252\002\024Ai.Stigmer.Sear" +
+      "ch.V1\312\002\024Ai\\Stigmer\\Search\\V1\342\002 Ai\\Stigme" +
+      "r\\Search\\V1\\GPBMetadata\352\002\027Ai::Stigmer::S" +
+      "earch::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.search.v1.IoProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.search.v1.IoProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

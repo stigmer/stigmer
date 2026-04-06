@@ -24,13 +24,13 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.iam.identityaccount.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2
 from ai.stigmer.iam.identityaccount.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/iam/identityaccount/v1/query.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xae\x06\n\x1eIdentityAccountQueryController\x12\xa6\x01\n\x03get\x12\x34.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5\xc2\xb8\x18\x31\x08\x03\x10\x0b\"\x05value*$unauthorized to get identity account\x12Z\n\x06whoAmI\x12\x16.google.protobuf.Empty\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"\x04\xd0\xb8\x18\x01\x12\xb0\x01\n\ngetByEmail\x12\x37.ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5\xc2\xb8\x18\x31\x08\x03\x10\x0b\"\x05value*$unauthorized to get identity account\x12\xa1\x01\n\ngetByIdpId\x12(.ai.stigmer.iam.identityaccount.v1.IdpId\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5\xc2\xb8\x18\x31\x08\x03\x10\x0b\"\x05value*$unauthorized to get identity account\x12\xa9\x01\n\x0cgetActorInfo\x12\x34.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActor\",\xc2\xb8\x18(\x08\x03\x10\x0b*\"unauthorized to look up actor info\x1a\x04\xa0\xff+\x0b\x42\xdc\x01\n%com.ai.stigmer.iam.identityaccount.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/iam/identityaccount/v1/query.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xfc\x07\n\x1eIdentityAccountQueryController\x12\xa6\x01\n\x03get\x12\x34.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5\xc2\xb8\x18\x31\x08\x01\x10\x0b\"\x05value*$unauthorized to get identity account\x12Z\n\x06whoAmI\x12\x16.google.protobuf.Empty\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"\x04\xd0\xb8\x18\x01\x12\xb0\x01\n\ngetByEmail\x12\x37.ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5\xc2\xb8\x18\x31\x08\x01\x10\x0b\"\x05value*$unauthorized to get identity account\x12\xa1\x01\n\ngetByIdpId\x12(.ai.stigmer.iam.identityaccount.v1.IdpId\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5\xc2\xb8\x18\x31\x08\x01\x10\x0b\"\x05value*$unauthorized to get identity account\x12\xcb\x01\n\x10getByExternalSub\x12\x34.ai.stigmer.iam.identityaccount.v1.ExternalSubLookup\x1a\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"M\xc2\xb8\x18I\x08\x15\x10\x1e\"\x03org*>unauthorized to look up identity accounts in this organization\x12\xa9\x01\n\x0cgetActorInfo\x12\x34.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActor\",\xc2\xb8\x18(\x08\x01\x10\x0b*\"unauthorized to look up actor info\x1a\x04\xa0\xff+\x0b\x42\xdc\x01\n%com.ai.stigmer.iam.identityaccount.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,15 +41,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IDENTITYACCOUNTQUERYCONTROLLER']._loaded_options = None
   _globals['_IDENTITYACCOUNTQUERYCONTROLLER']._serialized_options = b'\240\377+\013'
   _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\0301\010\003\020\013\"\005value*$unauthorized to get identity account'
+  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\0301\010\001\020\013\"\005value*$unauthorized to get identity account'
   _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['whoAmI']._loaded_options = None
   _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['whoAmI']._serialized_options = b'\320\270\030\001'
   _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getByEmail']._loaded_options = None
-  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getByEmail']._serialized_options = b'\302\270\0301\010\003\020\013\"\005value*$unauthorized to get identity account'
+  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getByEmail']._serialized_options = b'\302\270\0301\010\001\020\013\"\005value*$unauthorized to get identity account'
   _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getByIdpId']._loaded_options = None
-  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getByIdpId']._serialized_options = b'\302\270\0301\010\003\020\013\"\005value*$unauthorized to get identity account'
+  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getByIdpId']._serialized_options = b'\302\270\0301\010\001\020\013\"\005value*$unauthorized to get identity account'
+  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getByExternalSub']._loaded_options = None
+  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getByExternalSub']._serialized_options = b'\302\270\030I\010\025\020\036\"\003org*>unauthorized to look up identity accounts in this organization'
   _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getActorInfo']._loaded_options = None
-  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getActorInfo']._serialized_options = b'\302\270\030(\010\003\020\013*\"unauthorized to look up actor info'
-  _globals['_IDENTITYACCOUNTQUERYCONTROLLER']._serialized_start=373
-  _globals['_IDENTITYACCOUNTQUERYCONTROLLER']._serialized_end=1187
+  _globals['_IDENTITYACCOUNTQUERYCONTROLLER'].methods_by_name['getActorInfo']._serialized_options = b'\302\270\030(\010\001\020\013*\"unauthorized to look up actor info'
+  _globals['_IDENTITYACCOUNTQUERYCONTROLLER']._serialized_start=351
+  _globals['_IDENTITYACCOUNTQUERYCONTROLLER']._serialized_end=1371
 # @@protoc_insertion_point(module_scope)

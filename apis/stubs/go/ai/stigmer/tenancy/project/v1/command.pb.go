@@ -8,7 +8,7 @@ package projectv1
 
 import (
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,12 +26,13 @@ var File_ai_stigmer_tenancy_project_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_tenancy_project_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/tenancy/project/v1/command.proto\x12\x1dai.stigmer.tenancy.project.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a'ai/stigmer/tenancy/project/v1/api.proto\x1a&ai/stigmer/tenancy/project/v1/io.proto2\xc1\x04\n" +
+	"+ai/stigmer/tenancy/project/v1/command.proto\x12\x1dai.stigmer.tenancy.project.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a'ai/stigmer/tenancy/project/v1/api.proto\x1a&ai/stigmer/tenancy/project/v1/io.proto2\xc1\x04\n" +
 	"\x18ProjectCommandController\x12W\n" +
 	"\x05apply\x12&.ai.stigmer.tenancy.project.v1.Project\x1a&.ai.stigmer.tenancy.project.v1.Project\x12\xa5\x01\n" +
-	"\x06create\x12&.ai.stigmer.tenancy.project.v1.Project\x1a&.ai.stigmer.tenancy.project.v1.Project\"K¸\x18G\b\x17\x10\x1e\"\fmetadata.org*3unauthorized to create project in this organization\x12\x8f\x01\n" +
-	"\x06update\x12&.ai.stigmer.tenancy.project.v1.Project\x1a&.ai.stigmer.tenancy.project.v1.Project\"5¸\x181\b\x04\x10<\"\vmetadata.id*\x1eunauthorized to update project\x12\x8b\x01\n" +
-	"\x06delete\x12(.ai.stigmer.tenancy.project.v1.ProjectId\x1a&.ai.stigmer.tenancy.project.v1.Project\"/¸\x18+\b\x02\x10<\"\x05value*\x1eunauthorized to delete project\x1a\x04\xa0\xff+<B\x9c\x02\n" +
+	"\x06create\x12&.ai.stigmer.tenancy.project.v1.Project\x1a&.ai.stigmer.tenancy.project.v1.Project\"K¸\x18G\b\n" +
+	"\x10\x1e\"\fmetadata.org*3unauthorized to create project in this organization\x12\x8f\x01\n" +
+	"\x06update\x12&.ai.stigmer.tenancy.project.v1.Project\x1a&.ai.stigmer.tenancy.project.v1.Project\"5¸\x181\b\x02\x10<\"\vmetadata.id*\x1eunauthorized to update project\x12\x8b\x01\n" +
+	"\x06delete\x12(.ai.stigmer.tenancy.project.v1.ProjectId\x1a&.ai.stigmer.tenancy.project.v1.Project\"/¸\x18+\b\x03\x10<\"\x05value*\x1eunauthorized to delete project\x1a\x04\xa0\xff+<B\x9c\x02\n" +
 	"!com.ai.stigmer.tenancy.project.v1B\fCommandProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
 
 var file_ai_stigmer_tenancy_project_v1_command_proto_goTypes = []any{

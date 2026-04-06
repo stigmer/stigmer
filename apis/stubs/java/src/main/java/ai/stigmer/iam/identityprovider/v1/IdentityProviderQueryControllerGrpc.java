@@ -77,6 +77,68 @@ public final class IdentityProviderQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput,
+      ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListByOrgMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listByOrg",
+      requestType = ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput.class,
+      responseType = ai.stigmer.iam.identityprovider.v1.IdentityProviders.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput,
+      ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListByOrgMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput, ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListByOrgMethod;
+    if ((getListByOrgMethod = IdentityProviderQueryControllerGrpc.getListByOrgMethod) == null) {
+      synchronized (IdentityProviderQueryControllerGrpc.class) {
+        if ((getListByOrgMethod = IdentityProviderQueryControllerGrpc.getListByOrgMethod) == null) {
+          IdentityProviderQueryControllerGrpc.getListByOrgMethod = getListByOrgMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput, ai.stigmer.iam.identityprovider.v1.IdentityProviders>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByOrg"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityprovider.v1.IdentityProviders.getDefaultInstance()))
+              .setSchemaDescriptor(new IdentityProviderQueryControllerMethodDescriptorSupplier("listByOrg"))
+              .build();
+        }
+      }
+    }
+    return getListByOrgMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup,
+      ai.stigmer.iam.identityprovider.v1.SsoProviderInfo> getGetSsoProviderMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getSsoProvider",
+      requestType = ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup.class,
+      responseType = ai.stigmer.iam.identityprovider.v1.SsoProviderInfo.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup,
+      ai.stigmer.iam.identityprovider.v1.SsoProviderInfo> getGetSsoProviderMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup, ai.stigmer.iam.identityprovider.v1.SsoProviderInfo> getGetSsoProviderMethod;
+    if ((getGetSsoProviderMethod = IdentityProviderQueryControllerGrpc.getGetSsoProviderMethod) == null) {
+      synchronized (IdentityProviderQueryControllerGrpc.class) {
+        if ((getGetSsoProviderMethod = IdentityProviderQueryControllerGrpc.getGetSsoProviderMethod) == null) {
+          IdentityProviderQueryControllerGrpc.getGetSsoProviderMethod = getGetSsoProviderMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup, ai.stigmer.iam.identityprovider.v1.SsoProviderInfo>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getSsoProvider"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityprovider.v1.SsoProviderInfo.getDefaultInstance()))
+              .setSchemaDescriptor(new IdentityProviderQueryControllerMethodDescriptorSupplier("getSsoProvider"))
+              .build();
+        }
+      }
+    }
+    return getGetSsoProviderMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -169,6 +231,38 @@ public final class IdentityProviderQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProvider> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByReferenceMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List all identity providers belonging to an organization.
+     * Returns every IdentityProvider whose metadata.org matches the input org.
+     * Typically a small set (1-3 per org), so results are not paginated.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization resource.
+     * </pre>
+     */
+    default void listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProviders> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByOrgMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Look up the SSO identity provider for an organization.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
+     * of the IdentityProvider where is_sso_provider is true for the given org.
+     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * This endpoint is called by the web app's login page before the user has
+     * authenticated, so it requires no authorization. The response intentionally
+     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * &#64;internal
+     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * </pre>
+     */
+    default void getSsoProvider(ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.SsoProviderInfo> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetSsoProviderMethod(), responseObserver);
+    }
   }
 
   /**
@@ -232,6 +326,40 @@ public final class IdentityProviderQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List all identity providers belonging to an organization.
+     * Returns every IdentityProvider whose metadata.org matches the input org.
+     * Typically a small set (1-3 per org), so results are not paginated.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization resource.
+     * </pre>
+     */
+    public void listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProviders> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Look up the SSO identity provider for an organization.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
+     * of the IdentityProvider where is_sso_provider is true for the given org.
+     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * This endpoint is called by the web app's login page before the user has
+     * authenticated, so it requires no authorization. The response intentionally
+     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * &#64;internal
+     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * </pre>
+     */
+    public void getSsoProvider(ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.SsoProviderInfo> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetSsoProviderMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -279,6 +407,38 @@ public final class IdentityProviderQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List all identity providers belonging to an organization.
+     * Returns every IdentityProvider whose metadata.org matches the input org.
+     * Typically a small set (1-3 per org), so results are not paginated.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization resource.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityprovider.v1.IdentityProviders listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Look up the SSO identity provider for an organization.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
+     * of the IdentityProvider where is_sso_provider is true for the given org.
+     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * This endpoint is called by the web app's login page before the user has
+     * authenticated, so it requires no authorization. The response intentionally
+     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * &#64;internal
+     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityprovider.v1.SsoProviderInfo getSsoProvider(ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetSsoProviderMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -325,6 +485,38 @@ public final class IdentityProviderQueryControllerGrpc {
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List all identity providers belonging to an organization.
+     * Returns every IdentityProvider whose metadata.org matches the input org.
+     * Typically a small set (1-3 per org), so results are not paginated.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization resource.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityprovider.v1.IdentityProviders listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Look up the SSO identity provider for an organization.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
+     * of the IdentityProvider where is_sso_provider is true for the given org.
+     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * This endpoint is called by the web app's login page before the user has
+     * authenticated, so it requires no authorization. The response intentionally
+     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * &#64;internal
+     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityprovider.v1.SsoProviderInfo getSsoProvider(ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetSsoProviderMethod(), getCallOptions(), request);
     }
   }
 
@@ -375,10 +567,46 @@ public final class IdentityProviderQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List all identity providers belonging to an organization.
+     * Returns every IdentityProvider whose metadata.org matches the input org.
+     * Typically a small set (1-3 per org), so results are not paginated.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the organization resource.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProviders> listByOrg(
+        ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Look up the SSO identity provider for an organization.
+     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
+     * of the IdentityProvider where is_sso_provider is true for the given org.
+     * Returns NOT_FOUND if the organization has no SSO provider configured.
+     * This endpoint is called by the web app's login page before the user has
+     * authenticated, so it requires no authorization. The response intentionally
+     * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+     * &#64;internal
+     * Authorization: none — unauthenticated, public endpoint for login page rendering.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.SsoProviderInfo> getSsoProvider(
+        ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetSsoProviderMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
+  private static final int METHODID_LIST_BY_ORG = 2;
+  private static final int METHODID_GET_SSO_PROVIDER = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -404,6 +632,14 @@ public final class IdentityProviderQueryControllerGrpc {
         case METHODID_GET_BY_REFERENCE:
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProvider>) responseObserver);
+          break;
+        case METHODID_LIST_BY_ORG:
+          serviceImpl.listByOrg((ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProviders>) responseObserver);
+          break;
+        case METHODID_GET_SSO_PROVIDER:
+          serviceImpl.getSsoProvider((ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.SsoProviderInfo>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -437,6 +673,20 @@ public final class IdentityProviderQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.iam.identityprovider.v1.IdentityProvider>(
                 service, METHODID_GET_BY_REFERENCE)))
+        .addMethod(
+          getListByOrgMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput,
+              ai.stigmer.iam.identityprovider.v1.IdentityProviders>(
+                service, METHODID_LIST_BY_ORG)))
+        .addMethod(
+          getGetSsoProviderMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup,
+              ai.stigmer.iam.identityprovider.v1.SsoProviderInfo>(
+                service, METHODID_GET_SSO_PROVIDER)))
         .build();
   }
 
@@ -487,6 +737,8 @@ public final class IdentityProviderQueryControllerGrpc {
               .setSchemaDescriptor(new IdentityProviderQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
+              .addMethod(getListByOrgMethod())
+              .addMethod(getGetSsoProviderMethod())
               .build();
         }
       }

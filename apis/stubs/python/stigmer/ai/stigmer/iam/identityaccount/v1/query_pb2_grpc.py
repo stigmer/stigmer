@@ -38,6 +38,11 @@ class IdentityAccountQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdpId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
                 _registered_method=True)
+        self.getByExternalSub = channel.unary_unary(
+                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByExternalSub',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ExternalSubLookup.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                _registered_method=True)
         self.getActorInfo = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getActorInfo',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountId.SerializeToString,
@@ -69,14 +74,34 @@ class IdentityAccountQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByEmail(self, request, context):
-        """Get an identity account by email address.
+        """Get a direct identity account by email address.
+
+        Only returns direct (non-federated) accounts. Federated accounts are not
+        returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def getByIdpId(self, request, context):
-        """Get an identity account by identity provider ID.
+        """Get an identity account by identity provider ID (Auth0 subject).
+
+        Primarily used for direct and machine accounts where the IDP ID is
+        the Auth0 user_id or client_id. For federated account lookups,
+        use getByExternalSub which is scoped to a specific identity provider.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getByExternalSub(self, request, context):
+        """Get a federated identity account by identity provider reference and external subject.
+
+        Used by platform backends to check whether a federated account already exists
+        for a given OIDC subject before calling createFederatedAccount.
+
+        Authorization: Requires can_create_identity_account on the organization
+        that owns the identity provider.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -125,6 +150,11 @@ def add_IdentityAccountQueryControllerServicer_to_server(servicer, server):
             'getByIdpId': grpc.unary_unary_rpc_method_handler(
                     servicer.getByIdpId,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdpId.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ),
+            'getByExternalSub': grpc.unary_unary_rpc_method_handler(
+                    servicer.getByExternalSub,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ExternalSubLookup.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
             ),
             'getActorInfo': grpc.unary_unary_rpc_method_handler(
@@ -241,6 +271,33 @@ class IdentityAccountQueryController(object):
             target,
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByIdpId',
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdpId.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getByExternalSub(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByExternalSub',
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ExternalSubLookup.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
             options,
             channel_credentials,

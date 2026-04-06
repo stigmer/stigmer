@@ -32,7 +32,7 @@ const (
 	IdentityAccountProvisioningMode_identity_account_provisioning_mode_unspecified IdentityAccountProvisioningMode = 0
 	// User signed up directly via Stigmer's own authentication tenant.
 	IdentityAccountProvisioningMode_direct IdentityAccountProvisioningMode = 1
-	// Account was JIT-provisioned during federated authentication via an IdentityProvider.
+	// Account was created by the platform for federated authentication via an IdentityProvider.
 	IdentityAccountProvisioningMode_federated IdentityAccountProvisioningMode = 2
 	// Machine-to-machine client credentials account for inter-service communication.
 	IdentityAccountProvisioningMode_machine IdentityAccountProvisioningMode = 3

@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.invitation.v1;
+
+import "ai/stigmer/iam/v1/enum.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// InvitationSpec defines the user-provided configuration for an invitation.
+//
+// An invitation is a shareable link that grants a specific role to anyone
+// who redeems it. Invitations can be multi-use (persistent org invite link)
+// or single-use (targeted invitation for a specific person).
+//
+// Example YAML (persistent org invite link):
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: Invitation
+//   metadata:
+//     name: engineering-team-link
+//     org: acme
+//   spec:
+//     role: viewer
+//     max_redemptions: 0
+//     expires_at: "2026-05-06T00:00:00Z"
+//     label: "Engineering team invite"
+//
+// Example YAML (single-use targeted invite):
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: Invitation
+//   metadata:
+//     name: contractor-invite
+//     org: acme
+//   spec:
+//     role: member
+//     max_redemptions: 1
+//     expires_at: "2026-04-13T00:00:00Z"
+//     label: "Contractor onboarding"
+message InvitationSpec {
+  // The role granted to the identity account upon redemption.
+  // Must be a role listed in the organization's grantable_roles.
+  ai.stigmer.iam.v1.IamRole role = 1 [(buf.validate.field).required = true];
+
+  // Maximum number of times this invitation can be redeemed.
+  // 0 means unlimited (use for persistent org invite links).
+  // 1 means single-use (use for targeted invitations).
+  int32 max_redemptions = 2;
+
+  // When this invitation expires. Required.
+  // The backend enforces a maximum expiration window (configurable per org).
+  google.protobuf.Timestamp expires_at = 3 [(buf.validate.field).required = true];
+
+  // Human-readable label for organizational purposes.
+  // Helps admins distinguish between multiple active invitations.
+  string label = 4 [(buf.validate.field).string.max_len = 200];
+}

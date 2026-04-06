@@ -13,7 +13,7 @@ enum IdentityAccountProvisioningMode {
   // User signed up directly via Stigmer's own authentication tenant.
   direct = 1;
 
-  // Account was JIT-provisioned during federated authentication via an IdentityProvider.
+  // Account was created by the platform for federated authentication via an IdentityProvider.
   federated = 2;
 
   // Machine-to-machine client credentials account for inter-service communication.

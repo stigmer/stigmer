@@ -38,12 +38,12 @@ identityProvider, err := client.IdentityProvider.Get(ctx, "idp_01j5q3k7m8r2s4tnz
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+identity_provider = client.identity_providers.get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+IdentityProvider identityProvider = client.identityProviders().get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -54,6 +54,8 @@ IdentityProvider identityProvider = client.identityProvider().get("idp_01j5q3k7m
 |--------|-------------|
 | [`get`](#get) | Get an identity provider by its unique identifier. |
 | [`getByReference`](#getbyreference) | Get an identity provider by its organization-scoped reference (org/slug). |
+| [`getSsoProvider`](#getssoprovider) | Look up the SSO identity provider for an organization. |
+| [`listByOrg`](#listbyorg) | List all identity providers belonging to an organization. |
 | [`apply`](#apply) | Create or update an identity provider. |
 | [`create`](#create) | Create an identity provider. |
 | [`update`](#update) | Update an existing identity provider. |
@@ -76,12 +78,12 @@ identityProvider, err := client.IdentityProvider.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.get(id)
+identity_provider = client.identity_providers.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().get(id);
+IdentityProvider identityProvider = client.identityProviders().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -123,7 +125,7 @@ identityProvider, err := client.IdentityProvider.GetByReference(ctx, &stigmer.Ap
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.get_by_reference(ApiResourceReference(
+identity_provider = client.identity_providers.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -133,7 +135,7 @@ identityProvider = client.identity_provider.get_by_reference(ApiResourceReferenc
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().getByReference(ApiResourceReference.builder()
+IdentityProvider identityProvider = client.identityProviders().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -146,6 +148,90 @@ IdentityProvider identityProvider = client.identityProvider().getByReference(Api
 **Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`IdentityProvider`](#identityprovider)
+
+### getSsoProvider
+
+Look up the SSO identity provider for an organization.
+
+Returns the SSO-relevant projection (display name, OIDC client ID, issuer) of the IdentityProvider where is_sso_provider is true for the given org. Returns NOT_FOUND if the organization has no SSO provider configured.
+
+This endpoint is called by the web app's login page before the user has authenticated, so it requires no authorization. The response intentionally omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const ssoProviderInfo = await stigmer.identityProvider.getSsoProvider({
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+ssoProviderInfo, err := client.IdentityProvider.GetSsoProvider(ctx, &stigmer.OrganizationSsoLookup{
+  Org: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+sso_provider_info = client.identity_providers.get_sso_provider(OrganizationSsoLookup(
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SsoProviderInfo ssoProviderInfo = client.identityProviders().getSsoProvider(OrganizationSsoLookup.builder()
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`OrganizationSsoLookup`](#organizationssolookup)
+
+**Returns**: [`SsoProviderInfo`](#ssoproviderinfo)
+
+### listByOrg
+
+List all identity providers belonging to an organization.
+
+Returns every IdentityProvider whose metadata.org matches the input org. Typically a small set (1-3 per org), so results are not paginated.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const identityProviders = await stigmer.identityProvider.listByOrg({
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+identityProviders, err := client.IdentityProvider.ListByOrg(ctx, &stigmer.ListIdentityProvidersByOrgInput{
+  Org: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+identity_providers = client.identity_providers.list_by_org(ListIdentityProvidersByOrgInput(
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityProviders identityProviders = client.identityProviders().listByOrg(ListIdentityProvidersByOrgInput.builder()
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListIdentityProvidersByOrgInput`](#listidentityprovidersbyorginput)
+
+**Returns**: [`IdentityProviders`](#identityproviders)
 
 ### apply
 
@@ -167,6 +253,8 @@ const identityProvider = await stigmer.identityProvider.apply({
   expectedAudience: "...",
   rateLimitBudget: 0,
   userinfoEndpoint: "...",
+  isSsoProvider: false,
+  oidcClientId: "...",
 });
 ```
 </Tab>
@@ -183,12 +271,14 @@ identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityPro
   ExpectedAudience: "...",
   RateLimitBudget:  0,
   UserinfoEndpoint: "...",
+  IsSsoProvider:    false,
+  OidcClientId:     "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.apply(IdentityProviderInput(
+identity_provider = client.identity_providers.apply(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
     slug="...",
@@ -199,12 +289,14 @@ identityProvider = client.identity_provider.apply(IdentityProviderInput(
     expected_audience="...",
     rate_limit_budget=0,
     userinfo_endpoint="...",
+    is_sso_provider=False,
+    oidc_client_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().apply(IdentityProviderInput.builder()
+IdentityProvider identityProvider = client.identityProviders().apply(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
     .slug("...")
@@ -215,6 +307,8 @@ IdentityProvider identityProvider = client.identityProvider().apply(IdentityProv
     .expectedAudience("...")
     .rateLimitBudget(0)
     .userinfoEndpoint("...")
+    .isSsoProvider(false)
+    .oidcClientId("...")
     .build());
 ```
 </Tab>
@@ -244,6 +338,8 @@ const identityProvider = await stigmer.identityProvider.create({
   expectedAudience: "...",
   rateLimitBudget: 0,
   userinfoEndpoint: "...",
+  isSsoProvider: false,
+  oidcClientId: "...",
 });
 ```
 </Tab>
@@ -260,12 +356,14 @@ identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityPr
   ExpectedAudience: "...",
   RateLimitBudget:  0,
   UserinfoEndpoint: "...",
+  IsSsoProvider:    false,
+  OidcClientId:     "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.create(IdentityProviderInput(
+identity_provider = client.identity_providers.create(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
     slug="...",
@@ -276,12 +374,14 @@ identityProvider = client.identity_provider.create(IdentityProviderInput(
     expected_audience="...",
     rate_limit_budget=0,
     userinfo_endpoint="...",
+    is_sso_provider=False,
+    oidc_client_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().create(IdentityProviderInput.builder()
+IdentityProvider identityProvider = client.identityProviders().create(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
     .slug("...")
@@ -292,6 +392,8 @@ IdentityProvider identityProvider = client.identityProvider().create(IdentityPro
     .expectedAudience("...")
     .rateLimitBudget(0)
     .userinfoEndpoint("...")
+    .isSsoProvider(false)
+    .oidcClientId("...")
     .build());
 ```
 </Tab>
@@ -319,6 +421,8 @@ const identityProvider = await stigmer.identityProvider.update({
   expectedAudience: "...",
   rateLimitBudget: 0,
   userinfoEndpoint: "...",
+  isSsoProvider: false,
+  oidcClientId: "...",
 });
 ```
 </Tab>
@@ -335,12 +439,14 @@ identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityPr
   ExpectedAudience: "...",
   RateLimitBudget:  0,
   UserinfoEndpoint: "...",
+  IsSsoProvider:    false,
+  OidcClientId:     "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.update(IdentityProviderInput(
+identity_provider = client.identity_providers.update(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
     slug="...",
@@ -351,12 +457,14 @@ identityProvider = client.identity_provider.update(IdentityProviderInput(
     expected_audience="...",
     rate_limit_budget=0,
     userinfo_endpoint="...",
+    is_sso_provider=False,
+    oidc_client_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().update(IdentityProviderInput.builder()
+IdentityProvider identityProvider = client.identityProviders().update(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
     .slug("...")
@@ -367,6 +475,8 @@ IdentityProvider identityProvider = client.identityProvider().update(IdentityPro
     .expectedAudience("...")
     .rateLimitBudget(0)
     .userinfoEndpoint("...")
+    .isSsoProvider(false)
+    .oidcClientId("...")
     .build());
 ```
 </Tab>
@@ -397,12 +507,12 @@ identityProvider, err := client.IdentityProvider.Delete(ctx, &stigmer.DeleteReso
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.delete(DeleteResourceInput(resource_id=id))
+identity_provider = client.identity_providers.delete(DeleteResourceInput(resource_id=id))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().delete(DeleteResourceInput.builder()
+IdentityProvider identityProvider = client.identityProviders().delete(DeleteResourceInput.builder()
     .resourceId(id)
     .build());
 ```
@@ -437,6 +547,8 @@ Input for creating or updating an Identity Provider.
     expectedAudience: { type: "string", description: "Expected JWT audience value." },
     rateLimitBudget: { type: "number", description: "Shared rate limit budget across all organizations managed via this identity provider." },
     userinfoEndpoint: { type: "string", description: "OIDC UserInfo endpoint URL for fetching user profile data during token exchange." },
+    isSsoProvider: { type: "boolean", description: "Whether this identity provider serves as the SSO login provider for its owning organization." },
+    oidcClientId: { type: "string", description: "OIDC client identifier for browser-based SSO login." },
   }}
 />
 
@@ -450,6 +562,48 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### ListIdentityProvidersByOrgInput
+
+ListIdentityProvidersByOrgInput specifies the organization whose identity providers should be returned.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug to list identity providers for." },
+  }}
+/>
+
+### IdentityProviders
+
+IdentityProviders contains a list of identity provider resources.
+
+<TypeTable
+  type={{
+    entries: { type: "IdentityProviderInput[]", description: "Identity provider entries.", typeDescriptionLink: "#identityproviderinput" },
+  }}
+/>
+
+### OrganizationSsoLookup
+
+OrganizationSsoLookup identifies an organization for SSO provider discovery.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug to look up SSO configuration for." },
+  }}
+/>
+
+### SsoProviderInfo
+
+SsoProviderInfo contains the minimal OIDC configuration the web app needs to render an SSO login button and initiate the Authorization Code flow.
+
+<TypeTable
+  type={{
+    displayName: { type: "string", description: "Display name of the SSO provider (e.g., \"Acme Corp Okta\")." },
+    oidcClientId: { type: "string", description: "OIDC client ID for initiating the Authorization Code flow with PKCE." },
+    issuer: { type: "string", description: "OIDC issuer URL." },
   }}
 />
 

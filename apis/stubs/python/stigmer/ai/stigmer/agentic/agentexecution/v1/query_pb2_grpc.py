@@ -207,10 +207,6 @@ class AgentExecutionQueryControllerServicer(object):
         Get a usage report for a session.
 
         Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-
-        @internal
-        Authorization is handled in handler — caller must have can_view on
-        all executions in the session (same pattern as listBySession).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -222,7 +218,8 @@ class AgentExecutionQueryControllerServicer(object):
         Returns aggregated tokens, cost, and per-session breakdown with pagination.
 
         @internal
-        Authorization is handled in handler — caller must have can_view on the agent.
+        Not consumed by any UI. Authorization model TBD — when a product need
+        arises, this should likely be org-scoped (usage of agent X within org Y).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -232,9 +229,6 @@ class AgentExecutionQueryControllerServicer(object):
         """Get a usage report for an organization.
 
         Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-
-        @internal
-        Authorization is handled in handler — caller must be org member.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

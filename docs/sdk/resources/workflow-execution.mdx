@@ -40,12 +40,12 @@ workflowExecution, err := client.WorkflowExecution.Get(ctx, "wex_01j5q3k7m8r2s4t
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.get("wex_01j5q3k7m8r2s4tnz2hfp0q0c3")
+workflow_execution = client.workflow_executions.get("wex_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().get("wex_01j5q3k7m8r2s4tnz2hfp0q0c3");
+WorkflowExecution workflowExecution = client.workflowExecutions().get("wex_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -89,12 +89,12 @@ workflowExecution, err := client.WorkflowExecution.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.get(id)
+workflow_execution = client.workflow_executions.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().get(id);
+WorkflowExecution workflowExecution = client.workflowExecutions().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -136,7 +136,7 @@ result, err := client.WorkflowExecution.List(ctx, &stigmer.ListWorkflowExecution
 </Tab>
 <Tab value="Python">
 ```python
-result = client.workflow_execution.list(ListWorkflowExecutionsRequest(
+result = client.workflow_executions.list(ListWorkflowExecutionsRequest(
     page_size=0,
     page_token="...",
     phase="...",
@@ -146,7 +146,7 @@ result = client.workflow_execution.list(ListWorkflowExecutionsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecutionList result = client.workflowExecution().list(ListWorkflowExecutionsRequest.builder()
+WorkflowExecutionList result = client.workflowExecutions().list(ListWorkflowExecutionsRequest.builder()
     .pageSize(0)
     .pageToken("...")
     .phase("...")
@@ -187,7 +187,7 @@ result, err := client.WorkflowExecution.ListByWorkflow(ctx, &stigmer.ListWorkflo
 </Tab>
 <Tab value="Python">
 ```python
-result = client.workflow_execution.list_by_workflow(ListWorkflowExecutionsByWorkflowRequest(
+result = client.workflow_executions.list_by_workflow(ListWorkflowExecutionsByWorkflowRequest(
     workflow_id="...",
     page_size=0,
     page_token="...",
@@ -196,7 +196,7 @@ result = client.workflow_execution.list_by_workflow(ListWorkflowExecutionsByWork
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecutionList result = client.workflowExecution().listByWorkflow(ListWorkflowExecutionsByWorkflowRequest.builder()
+WorkflowExecutionList result = client.workflowExecutions().listByWorkflow(ListWorkflowExecutionsByWorkflowRequest.builder()
     .workflowId("...")
     .pageSize(0)
     .pageToken("...")
@@ -240,13 +240,13 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for workflowExecution in client.workflow_execution.subscribe(input):
-    # process workflowExecution
+for workflow_execution in client.workflow_executions.subscribe(input):
+    # process workflow_execution
 ```
 </Tab>
 <Tab value="Java">
 ```java
-client.workflowExecution().subscribe(input, workflowExecution -> {
+client.workflowExecutions().subscribe(input, workflowExecution -> {
     // process workflowExecution
 });
 ```
@@ -298,7 +298,7 @@ workflowExecution, err := client.WorkflowExecution.Create(ctx, &stigmer.Workflow
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.create(WorkflowExecutionInput(
+workflow_execution = client.workflow_executions.create(WorkflowExecutionInput(
     name="my-workflow-execution",
     org="acme",
     slug="...",
@@ -314,7 +314,7 @@ workflowExecution = client.workflow_execution.create(WorkflowExecutionInput(
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().create(WorkflowExecutionInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().create(WorkflowExecutionInput.builder()
     .name("my-workflow-execution")
     .org("acme")
     .slug("...")
@@ -373,7 +373,7 @@ workflowExecution, err := client.WorkflowExecution.Update(ctx, &stigmer.Workflow
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.update(WorkflowExecutionInput(
+workflow_execution = client.workflow_executions.update(WorkflowExecutionInput(
     name="my-workflow-execution",
     org="acme",
     slug="...",
@@ -389,7 +389,7 @@ workflowExecution = client.workflow_execution.update(WorkflowExecutionInput(
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().update(WorkflowExecutionInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().update(WorkflowExecutionInput.builder()
     .name("my-workflow-execution")
     .org("acme")
     .slug("...")
@@ -432,7 +432,7 @@ workflowExecution, err := client.WorkflowExecution.UpdateStatus(ctx, &stigmer.Wo
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.update_status(WorkflowExecutionUpdateStatusInput(
+workflow_execution = client.workflow_executions.update_status(WorkflowExecutionUpdateStatusInput(
     execution_id="...",
     status=None,
 ))
@@ -440,7 +440,7 @@ workflowExecution = client.workflow_execution.update_status(WorkflowExecutionUpd
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().updateStatus(WorkflowExecutionUpdateStatusInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().updateStatus(WorkflowExecutionUpdateStatusInput.builder()
     .executionId("...")
     .status(null)
     .build());
@@ -469,12 +469,12 @@ workflowExecution, err := client.WorkflowExecution.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.delete(id)
+workflow_execution = client.workflow_executions.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().delete(id);
+WorkflowExecution workflowExecution = client.workflowExecutions().delete(id);
 ```
 </Tab>
 </SDKTabs>
@@ -512,7 +512,7 @@ workflowExecution, err := client.WorkflowExecution.Pause(ctx, &stigmer.PauseWork
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.pause(PauseWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.pause(PauseWorkflowExecutionInput(
     id="...",
     reason="...",
 ))
@@ -520,7 +520,7 @@ workflowExecution = client.workflow_execution.pause(PauseWorkflowExecutionInput(
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().pause(PauseWorkflowExecutionInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().pause(PauseWorkflowExecutionInput.builder()
     .id("...")
     .reason("...")
     .build());
@@ -555,14 +555,14 @@ workflowExecution, err := client.WorkflowExecution.Resume(ctx, &stigmer.ResumeWo
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.resume(ResumeWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.resume(ResumeWorkflowExecutionInput(
     id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().resume(ResumeWorkflowExecutionInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().resume(ResumeWorkflowExecutionInput.builder()
     .id("...")
     .build());
 ```
@@ -598,7 +598,7 @@ workflowExecution, err := client.WorkflowExecution.Cancel(ctx, &stigmer.CancelWo
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.cancel(CancelWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.cancel(CancelWorkflowExecutionInput(
     id="...",
     reason="...",
 ))
@@ -606,7 +606,7 @@ workflowExecution = client.workflow_execution.cancel(CancelWorkflowExecutionInpu
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().cancel(CancelWorkflowExecutionInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().cancel(CancelWorkflowExecutionInput.builder()
     .id("...")
     .reason("...")
     .build());
@@ -643,7 +643,7 @@ workflowExecution, err := client.WorkflowExecution.Terminate(ctx, &stigmer.Termi
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.terminate(TerminateWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.terminate(TerminateWorkflowExecutionInput(
     id="...",
     reason="...",
 ))
@@ -651,7 +651,7 @@ workflowExecution = client.workflow_execution.terminate(TerminateWorkflowExecuti
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().terminate(TerminateWorkflowExecutionInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().terminate(TerminateWorkflowExecutionInput.builder()
     .id("...")
     .reason("...")
     .build());
@@ -688,7 +688,7 @@ workflowExecution, err := client.WorkflowExecution.Recover(ctx, &stigmer.Recover
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.recover(RecoverWorkflowExecutionInput(
+workflow_execution = client.workflow_executions.recover(RecoverWorkflowExecutionInput(
     id="...",
     reason="...",
 ))
@@ -696,7 +696,7 @@ workflowExecution = client.workflow_execution.recover(RecoverWorkflowExecutionIn
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().recover(RecoverWorkflowExecutionInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().recover(RecoverWorkflowExecutionInput.builder()
     .id("...")
     .reason("...")
     .build());
@@ -739,7 +739,7 @@ workflowExecution, err := client.WorkflowExecution.SubmitApproval(ctx, &stigmer.
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.submit_approval(SubmitWorkflowApprovalInput(
+workflow_execution = client.workflow_executions.submit_approval(SubmitWorkflowApprovalInput(
     execution_id="...",
     tool_call_id="...",
     action="...",
@@ -749,7 +749,7 @@ workflowExecution = client.workflow_execution.submit_approval(SubmitWorkflowAppr
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().submitApproval(SubmitWorkflowApprovalInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().submitApproval(SubmitWorkflowApprovalInput.builder()
     .executionId("...")
     .toolCallId("...")
     .action("...")
@@ -792,7 +792,7 @@ workflowExecution, err := client.WorkflowExecution.SendSignal(ctx, &stigmer.Send
 </Tab>
 <Tab value="Python">
 ```python
-workflowExecution = client.workflow_execution.send_signal(SendSignalInput(
+workflow_execution = client.workflow_executions.send_signal(SendSignalInput(
     execution_id="...",
     signal_name="...",
     payload=None,
@@ -802,7 +802,7 @@ workflowExecution = client.workflow_execution.send_signal(SendSignalInput(
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowExecution workflowExecution = client.workflowExecution().sendSignal(SendSignalInput.builder()
+WorkflowExecution workflowExecution = client.workflowExecutions().sendSignal(SendSignalInput.builder()
     .executionId("...")
     .signalName("...")
     .payload(null)

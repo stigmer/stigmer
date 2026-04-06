@@ -42,12 +42,12 @@ agent, err := client.Agent.Get(ctx, "agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent = client.agents.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -82,12 +82,12 @@ agent, err := client.Agent.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.get(id)
+agent = client.agents.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().get(id);
+Agent agent = client.agents().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -127,7 +127,7 @@ agent, err := client.Agent.GetByReference(ctx, &stigmer.ApiResourceReference{
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.get_by_reference(ApiResourceReference(
+agent = client.agents.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -137,7 +137,7 @@ agent = client.agent.get_by_reference(ApiResourceReference(
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().getByReference(ApiResourceReference.builder()
+Agent agent = client.agents().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -176,14 +176,14 @@ agent, err := client.Agent.GetDefault(ctx, &stigmer.GetDefaultAgentRequest{
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.get_default(GetDefaultAgentRequest(
+agent = client.agents.get_default(GetDefaultAgentRequest(
     org="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().getDefault(GetDefaultAgentRequest.builder()
+Agent agent = client.agents().getDefault(GetDefaultAgentRequest.builder()
     .org("...")
     .build());
 ```
@@ -235,7 +235,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.apply(AgentInput(
+agent = client.agents.apply(AgentInput(
     name="my-agent",
     org="acme",
     slug="...",
@@ -252,7 +252,7 @@ agent = client.agent.apply(AgentInput(
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().apply(AgentInput.builder()
+Agent agent = client.agents().apply(AgentInput.builder()
     .name("my-agent")
     .org("acme")
     .slug("...")
@@ -314,7 +314,7 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.create(AgentInput(
+agent = client.agents.create(AgentInput(
     name="my-agent",
     org="acme",
     slug="...",
@@ -331,7 +331,7 @@ agent = client.agent.create(AgentInput(
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().create(AgentInput.builder()
+Agent agent = client.agents().create(AgentInput.builder()
     .name("my-agent")
     .org("acme")
     .slug("...")
@@ -393,7 +393,7 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.update(AgentInput(
+agent = client.agents.update(AgentInput(
     name="my-agent",
     org="acme",
     slug="...",
@@ -410,7 +410,7 @@ agent = client.agent.update(AgentInput(
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().update(AgentInput.builder()
+Agent agent = client.agents().update(AgentInput.builder()
     .name("my-agent")
     .org("acme")
     .slug("...")
@@ -456,7 +456,7 @@ agent, err := client.Agent.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.update_visibility(UpdateVisibilityInput(
+agent = client.agents.update_visibility(UpdateVisibilityInput(
     resource_id="...",
     visibility="...",
 ))
@@ -464,7 +464,7 @@ agent = client.agent.update_visibility(UpdateVisibilityInput(
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().updateVisibility(UpdateVisibilityInput.builder()
+Agent agent = client.agents().updateVisibility(UpdateVisibilityInput.builder()
     .resourceId("...")
     .visibility("...")
     .build());
@@ -493,12 +493,12 @@ agent, err := client.Agent.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agent.delete(id)
+agent = client.agents.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agent().delete(id);
+Agent agent = client.agents().delete(id);
 ```
 </Tab>
 </SDKTabs>

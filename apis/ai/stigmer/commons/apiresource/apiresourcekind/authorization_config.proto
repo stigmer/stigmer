@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ai.stigmer.commons.apiresource.apiresourcekind;
 
+import "ai/stigmer/iam/v1/enum.proto";
+
 option java_outer_classname = "AuthorizationConfigProto";
 
 // =============================================================================
@@ -150,9 +152,20 @@ message ParentRelationConfig {
 //   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
 //   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
 //   requires_creator_tuple: true
+//   grantable_roles: [owner, viewer]
 //   -> Creates: environment#organization@organization:<org_id>
 //   -> Creates: environment#owner@identity_account:<creator_id>
 //   -> Creates: environment#creator@identity_account:<creator_id>
+//
+// Organization with three-tier role hierarchy:
+//   scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+//   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+//   grantable_roles: [owner, admin, member]
+//
+// Owner-only resource with no role sharing (api_key, execution_context):
+//   scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+//   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+//   grantable_roles: [] (empty — owner is set at creation, no sharing)
 message AuthorizationConfig {
   // Primary scope type - determines main linkage for permission inheritance.
   AuthorizationScopeType scope_type = 1;
@@ -183,4 +196,17 @@ message AuthorizationConfig {
   // a different purpose: owner is mutable (can be transferred), creator is
   // permanent attribution.
   bool requires_creator_tuple = 6;
+
+  // Roles that can be granted on this resource kind via IAM policies.
+  // Drives the web app role selector and SDK validation for IAM policy creation.
+  //
+  // Each value must correspond to a directly-assignable FGA relation
+  // (defined with [identity_account] in the FGA model). Computed roles
+  // and structural relations are excluded.
+  //
+  // Empty means no user-grantable roles: the resource is either owner-only
+  // (api_key, execution_context), inherits authorization from a parent
+  // (agent_execution), is self-owned (identity_account), or has no
+  // authorization (platform, api_resource_version).
+  repeated ai.stigmer.iam.v1.IamRole grantable_roles = 7;
 }

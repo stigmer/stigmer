@@ -38,50 +38,50 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\n0ai/stigmer/tenancy/organization/v1/com" +
       "mand.proto\022\"ai.stigmer.tenancy.organizat" +
       "ion.v1\0328ai/stigmer/commons/apiresource/r" +
-      "pc_service_options.proto\032Aai/stigmer/iam" +
-      "/iampolicy/v1/rpcauthorization/method_op" +
-      "tions.proto\032,ai/stigmer/tenancy/organiza" +
-      "tion/v1/api.proto\032+ai/stigmer/tenancy/or" +
-      "ganization/v1/io.proto2\330\004\n\035OrganizationC" +
-      "ommandController\022k\n\005apply\0220.ai.stigmer.t" +
-      "enancy.organization.v1.Organization\0320.ai" +
-      ".stigmer.tenancy.organization.v1.Organiz" +
-      "ation\022r\n\006create\0220.ai.stigmer.tenancy.org" +
-      "anization.v1.Organization\0320.ai.stigmer.t" +
-      "enancy.organization.v1.Organization\"\004\320\270\030" +
-      "\001\022\250\001\n\006update\0220.ai.stigmer.tenancy.organi" +
-      "zation.v1.Organization\0320.ai.stigmer.tena" +
-      "ncy.organization.v1.Organization\":\302\270\0306\010\004" +
-      "\020\036\"\013metadata.id*#unauthorized to update " +
-      "organization\022\244\001\n\006delete\0222.ai.stigmer.ten" +
-      "ancy.organization.v1.OrganizationId\0320.ai" +
-      ".stigmer.tenancy.organization.v1.Organiz" +
-      "ation\"4\302\270\0300\010\002\020\036\"\005value*#unauthorized to " +
-      "delete organization\032\004\240\377+\036B\273\001B\014CommandPro" +
-      "toP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Tenancy.Organiz" +
-      "ation.V1\312\002\"Ai\\Stigmer\\Tenancy\\Organizati" +
-      "on\\V1\342\002.Ai\\Stigmer\\Tenancy\\Organization\\" +
-      "V1\\GPBMetadata\352\002&Ai::Stigmer::Tenancy::O" +
-      "rganization::V1b\006proto3"
+      "pc_service_options.proto\032+ai/stigmer/com" +
+      "mons/rpc/method_options.proto\032,ai/stigme" +
+      "r/tenancy/organization/v1/api.proto\032+ai/" +
+      "stigmer/tenancy/organization/v1/io.proto" +
+      "2\330\004\n\035OrganizationCommandController\022k\n\005ap" +
+      "ply\0220.ai.stigmer.tenancy.organization.v1" +
+      ".Organization\0320.ai.stigmer.tenancy.organ" +
+      "ization.v1.Organization\022r\n\006create\0220.ai.s" +
+      "tigmer.tenancy.organization.v1.Organizat" +
+      "ion\0320.ai.stigmer.tenancy.organization.v1" +
+      ".Organization\"\004\320\270\030\001\022\250\001\n\006update\0220.ai.stig" +
+      "mer.tenancy.organization.v1.Organization" +
+      "\0320.ai.stigmer.tenancy.organization.v1.Or" +
+      "ganization\":\302\270\0306\010\002\020\036\"\013metadata.id*#unaut" +
+      "horized to update organization\022\244\001\n\006delet" +
+      "e\0222.ai.stigmer.tenancy.organization.v1.O" +
+      "rganizationId\0320.ai.stigmer.tenancy.organ" +
+      "ization.v1.Organization\"4\302\270\0300\010\003\020\036\"\005value" +
+      "*#unauthorized to delete organization\032\004\240" +
+      "\377+\036B\273\001B\014CommandProtoP\001\242\002\004ASTO\252\002\"Ai.Stigm" +
+      "er.Tenancy.Organization.V1\312\002\"Ai\\Stigmer\\" +
+      "Tenancy\\Organization\\V1\342\002.Ai\\Stigmer\\Ten" +
+      "ancy\\Organization\\V1\\GPBMetadata\352\002&Ai::S" +
+      "tigmer::Tenancy::Organization::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.tenancy.organization.v1.ApiProto.getDescriptor(),
           ai.stigmer.tenancy.organization.v1.IoProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.tenancy.organization.v1.ApiProto.getDescriptor();
     ai.stigmer.tenancy.organization.v1.IoProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

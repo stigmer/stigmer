@@ -369,14 +369,51 @@ export type {
   UseSessionEnvPoolReturn,
 } from "./environment";
 
-// Organization — behavior hook and styled form for organization creation
+// IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
+  useGrantableRoles,
+  useRoleSelector,
+  useResourceAccess,
+  usePrincipalsCount,
+  useWhoAmI,
+  useCreateIamPolicy,
+  useDeleteIamPolicy,
+  useRevokeOrgAccess,
+  RoleSelector,
+  GrantAccessForm,
+  OrgMembersPanel,
+} from "./iam-policy";
+export type {
+  UseGrantableRolesReturn,
+  RoleOption,
+  UseRoleSelectorReturn,
+  ResourceAccessRef,
+  UseResourceAccessOptions,
+  UseResourceAccessReturn,
+  UsePrincipalsCountReturn,
+  UseWhoAmIReturn,
+  UseCreateIamPolicyReturn,
+  UseDeleteIamPolicyReturn,
+  UseRevokeOrgAccessReturn,
+  RoleSelectorProps,
+  GrantAccessFormProps,
+  OrgMembersPanelProps,
+} from "./iam-policy";
+
+// Organization — data hook, behavior hooks, styled form for creation, and profile panel
+export {
+  useOrganization,
   useCreateOrganization,
+  useUpdateOrganization,
   CreateOrganizationForm,
+  OrgProfilePanel,
 } from "./organization";
 export type {
+  UseOrganizationReturn,
   UseCreateOrganizationReturn,
+  UseUpdateOrganizationReturn,
   CreateOrganizationFormProps,
+  OrgProfilePanelProps,
 } from "./organization";
 
 // API Key — data hooks, behavior hooks, and styled components for API key lifecycle
@@ -396,6 +433,61 @@ export type {
   CreateApiKeyFormProps,
   ApiKeyCreatedAlertProps,
 } from "./api-key";
+
+// Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for IdP management and SSO discovery
+export {
+  useIdentityProviderList,
+  useIdentityProvider,
+  useSsoProvider,
+  useCreateIdentityProvider,
+  useUpdateIdentityProvider,
+  useDeleteIdentityProvider,
+  IdentityProviderListPanel,
+  CreateIdentityProviderForm,
+  PROVIDER_PRESETS,
+  getPreset,
+  ProviderPicker,
+  IdentityProviderWizard,
+  IdentityProviderDetailPanel,
+} from "./identity-provider";
+export type {
+  UseIdentityProviderListReturn,
+  UseIdentityProviderReturn,
+  UseSsoProviderReturn,
+  UseCreateIdentityProviderReturn,
+  UseUpdateIdentityProviderReturn,
+  UseDeleteIdentityProviderReturn,
+  IdentityProviderListPanelProps,
+  CreateIdentityProviderFormProps,
+  ProviderPreset,
+  ProviderVariable,
+  ProviderConfig,
+  ProviderPickerProps,
+  IdentityProviderWizardProps,
+  IdentityProviderDetailPanelProps,
+} from "./identity-provider";
+
+// Invitation — data hooks, behavior hooks, and feature components for org invite links
+export {
+  useOrgInvitations,
+  useCreateInvitation,
+  useRevokeInvitation,
+  useInvitationPreview,
+  useRedeemInvitation,
+  InvitationCreatedAlert,
+  InvitationManager,
+  InvitationRedemption,
+} from "./invitation";
+export type {
+  UseOrgInvitationsReturn,
+  UseCreateInvitationReturn,
+  UseRevokeInvitationReturn,
+  UseInvitationPreviewReturn,
+  UseRedeemInvitationReturn,
+  InvitationCreatedAlertProps,
+  InvitationManagerProps,
+  InvitationRedemptionProps,
+} from "./invitation";
 
 // Error — structured error display with classification, retry, and contextual guidance
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
@@ -435,6 +527,22 @@ export type {
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./library";
+
+// Usage — org-level usage report hook, dashboard panel, and date-range utilities
+export {
+  useOrgUsageReport,
+  OrgUsagePanel,
+  DATE_RANGE_PRESETS,
+  dateRangeFromPreset,
+  formatDateRange,
+  presetLabel,
+} from "./usage";
+export type {
+  UseOrgUsageReportReturn,
+  OrgUsagePanelProps,
+  DateRange,
+  DateRangePreset,
+} from "./usage";
 
 // Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
 export {

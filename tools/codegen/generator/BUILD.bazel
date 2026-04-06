@@ -10,11 +10,13 @@ go_library(
         "sdk_client_python.go",
         "sdk_client_ts.go",
         "sdk_docs.go",
+        "sdk_kind_meta_ts.go",
     ],
     importpath = "github.com/stigmer/stigmer/tools/codegen/generator",
     visibility = ["//visibility:private"],
     deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/iam/v1:iam",
         "@org_golang_google_protobuf//proto",
     ],
 )

@@ -7,7 +7,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IamPolicySchema, type IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyIdSchema, CheckAuthorizationInputSchema, CheckAuthorizationResultSchema, ListAuthorizedResourceIdsInputSchema, AuthorizedResourceIdsListSchema, ListAuthorizedPrincipalIdsInputSchema, AuthorizedPrincipalIdsListSchema, type CheckAuthorizationInput, type CheckAuthorizationResult, type ListAuthorizedResourceIdsInput, type AuthorizedResourceIdsList, type ListAuthorizedPrincipalIdsInput, type AuthorizedPrincipalIdsList } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { IamPolicyIdSchema, RevokeOrgAccessInputSchema, CheckAuthorizationInputSchema, CheckAuthorizationResultSchema, ListAuthorizedResourceIdsInputSchema, AuthorizedResourceIdsListSchema, ListAuthorizedPrincipalIdsInputSchema, AuthorizedPrincipalIdsListSchema, ListResourceAccessInputSchema, ResourceAccessByPrincipalListSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, GetPrincipalsCountInputSchema, PrincipalsCountSchema, type RevokeOrgAccessInput, type CheckAuthorizationInput, type CheckAuthorizationResult, type ListAuthorizedResourceIdsInput, type AuthorizedResourceIdsList, type ListAuthorizedPrincipalIdsInput, type AuthorizedPrincipalIdsList, type ListResourceAccessInput, type ResourceAccessByPrincipalList, type PrincipalResourceInput, type PrincipalResourceRoles, type GetPrincipalsCountInput, type PrincipalsCount } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { ApiResourceRefSchema, IamPolicySpecSchema, type IamPolicySpec, type ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
@@ -45,6 +45,12 @@ export class IamPolicyClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async revokeOrgAccess(input: RevokeOrgAccessInput): Promise<void> {
+    try {
+      await this.command.revokeOrgAccess(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<IamPolicy> {
     try {
       return await this.query.get(create(IamPolicyIdSchema, { value: id }));
@@ -66,6 +72,24 @@ export class IamPolicyClient {
   async listAuthorizedPrincipalIds(input: ListAuthorizedPrincipalIdsInput): Promise<AuthorizedPrincipalIdsList> {
     try {
       return await this.query.listAuthorizedPrincipalIds(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listResourceAccessByPrincipal(input: ListResourceAccessInput): Promise<ResourceAccessByPrincipalList> {
+    try {
+      return await this.query.listResourceAccessByPrincipal(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getPrincipalResourceRoles(input: PrincipalResourceInput): Promise<PrincipalResourceRoles> {
+    try {
+      return await this.query.getPrincipalResourceRoles(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getPrincipalsCount(input: GetPrincipalsCountInput): Promise<PrincipalsCount> {
+    try {
+      return await this.query.getPrincipalsCount(input);
     } catch (e) { throw wrapError(e); }
   }
 }

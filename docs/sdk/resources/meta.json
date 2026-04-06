@@ -11,6 +11,7 @@
     "iam-policy",
     "identity-account",
     "identity-provider",
+    "invitation",
     "mcp-server",
     "organization",
     "project",

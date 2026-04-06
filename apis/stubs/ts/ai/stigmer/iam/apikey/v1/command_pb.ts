@@ -5,17 +5,17 @@
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { ApiKeySchema } from "./api_pb";
 import { file_ai_stigmer_iam_apikey_v1_api } from "./api_pb";
 import type { ApiKeyIdSchema } from "./io_pb";
 import { file_ai_stigmer_iam_apikey_v1_io } from "./io_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../iampolicy/v1/rpcauthorization/method_options_pb";
 
 /**
  * Describes the file ai/stigmer/iam/apikey/v1/command.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvY29tbWFuZC5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxMvoCChdBcGlLZXlDb21tYW5kQ29udHJvbGxlchJSCgZjcmVhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIE0LgYARKDAQoGdXBkYXRlEiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleRogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiNcK4GDEIBBAMIgttZXRhZGF0YS5pZCoedW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhcGkga2V5En8KBmRlbGV0ZRIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiL8K4GCsIAhAMIgV2YWx1ZSoedW5hdXRob3JpemVkIHRvIGRlbGV0ZSBhcGkga2V5GgSg/ysMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CiZhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvY29tbWFuZC5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxMvoCChdBcGlLZXlDb21tYW5kQ29udHJvbGxlchJSCgZjcmVhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIE0LgYARKDAQoGdXBkYXRlEiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleRogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiNcK4GDEIAhAMIgttZXRhZGF0YS5pZCoedW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhcGkga2V5En8KBmRlbGV0ZRIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiL8K4GCsIAxAMIgV2YWx1ZSoedW5hdXRob3JpemVkIHRvIGRlbGV0ZSBhcGkga2V5GgSg/ysMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io]);
 
 /**
  * ApiKeyCommandController handles write operations for API keys.

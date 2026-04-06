@@ -40,12 +40,12 @@ executionContext, err := client.ExecutionContext.Get(ctx, "ectx_01j5q3k7m8r2s4tn
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.get("ectx_01j5q3k7m8r2s4tnz2hfp0q0c3")
+execution_context = client.execution_contexts.get("ectx_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().get("ectx_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ExecutionContext executionContext = client.executionContexts().get("ectx_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -78,12 +78,12 @@ executionContext, err := client.ExecutionContext.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.get(id)
+execution_context = client.execution_contexts.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().get(id);
+ExecutionContext executionContext = client.executionContexts().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -117,14 +117,14 @@ executionContext, err := client.ExecutionContext.GetByExecutionId(ctx, &stigmer.
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.get_by_execution_id(ExecutionContextExecutionIdInput(
+execution_context = client.execution_contexts.get_by_execution_id(ExecutionContextExecutionIdInput(
     execution_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().getByExecutionId(ExecutionContextExecutionIdInput.builder()
+ExecutionContext executionContext = client.executionContexts().getByExecutionId(ExecutionContextExecutionIdInput.builder()
     .executionId("...")
     .build());
 ```
@@ -162,7 +162,7 @@ executionContext, err := client.ExecutionContext.GetByReference(ctx, &stigmer.Ap
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.get_by_reference(ApiResourceReference(
+execution_context = client.execution_contexts.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -172,7 +172,7 @@ executionContext = client.execution_context.get_by_reference(ApiResourceReferenc
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().getByReference(ApiResourceReference.builder()
+ExecutionContext executionContext = client.executionContexts().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -217,7 +217,7 @@ executionContext, err := client.ExecutionContext.Apply(ctx, &stigmer.ExecutionCo
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.apply(ExecutionContextInput(
+execution_context = client.execution_contexts.apply(ExecutionContextInput(
     name="my-execution-context",
     org="acme",
     slug="...",
@@ -229,7 +229,7 @@ executionContext = client.execution_context.apply(ExecutionContextInput(
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().apply(ExecutionContextInput.builder()
+ExecutionContext executionContext = client.executionContexts().apply(ExecutionContextInput.builder()
     .name("my-execution-context")
     .org("acme")
     .slug("...")
@@ -276,7 +276,7 @@ executionContext, err := client.ExecutionContext.Create(ctx, &stigmer.ExecutionC
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.create(ExecutionContextInput(
+execution_context = client.execution_contexts.create(ExecutionContextInput(
     name="my-execution-context",
     org="acme",
     slug="...",
@@ -288,7 +288,7 @@ executionContext = client.execution_context.create(ExecutionContextInput(
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().create(ExecutionContextInput.builder()
+ExecutionContext executionContext = client.executionContexts().create(ExecutionContextInput.builder()
     .name("my-execution-context")
     .org("acme")
     .slug("...")
@@ -323,12 +323,12 @@ executionContext, err := client.ExecutionContext.Delete(ctx, &stigmer.DeleteReso
 </Tab>
 <Tab value="Python">
 ```python
-executionContext = client.execution_context.delete(DeleteResourceInput(resource_id=id))
+execution_context = client.execution_contexts.delete(DeleteResourceInput(resource_id=id))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ExecutionContext executionContext = client.executionContext().delete(DeleteResourceInput.builder()
+ExecutionContext executionContext = client.executionContexts().delete(DeleteResourceInput.builder()
     .resourceId(id)
     .build());
 ```

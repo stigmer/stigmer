@@ -18,6 +18,8 @@ public final class IdentityProviderInput {
     private final String expectedAudience;
     private final int rateLimitBudget;
     private final String userinfoEndpoint;
+    private final boolean isSsoProvider;
+    private final String oidcClientId;
 
     private IdentityProviderInput(Builder builder) {
         this.name = builder.name;
@@ -30,6 +32,8 @@ public final class IdentityProviderInput {
         this.expectedAudience = builder.expectedAudience;
         this.rateLimitBudget = builder.rateLimitBudget;
         this.userinfoEndpoint = builder.userinfoEndpoint;
+        this.isSsoProvider = builder.isSsoProvider;
+        this.oidcClientId = builder.oidcClientId;
     }
 
     IdentityProvider toProto() {
@@ -49,6 +53,10 @@ public final class IdentityProviderInput {
         spec.setRateLimitBudget(this.rateLimitBudget);
         if (this.userinfoEndpoint != null) {
             spec.setUserinfoEndpoint(this.userinfoEndpoint);
+        }
+        spec.setIsSsoProvider(this.isSsoProvider);
+        if (this.oidcClientId != null) {
+            spec.setOidcClientId(this.oidcClientId);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -80,6 +88,8 @@ public final class IdentityProviderInput {
         private String expectedAudience;
         private int rateLimitBudget;
         private String userinfoEndpoint;
+        private boolean isSsoProvider;
+        private String oidcClientId;
 
         private Builder() {}
 
@@ -93,6 +103,8 @@ public final class IdentityProviderInput {
         public Builder expectedAudience(String expectedAudience) { this.expectedAudience = expectedAudience; return this; }
         public Builder rateLimitBudget(int rateLimitBudget) { this.rateLimitBudget = rateLimitBudget; return this; }
         public Builder userinfoEndpoint(String userinfoEndpoint) { this.userinfoEndpoint = userinfoEndpoint; return this; }
+        public Builder isSsoProvider(boolean isSsoProvider) { this.isSsoProvider = isSsoProvider; return this; }
+        public Builder oidcClientId(String oidcClientId) { this.oidcClientId = oidcClientId; return this; }
 
         public IdentityProviderInput build() { return new IdentityProviderInput(this); }
     }

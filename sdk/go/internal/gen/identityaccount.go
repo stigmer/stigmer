@@ -39,6 +39,11 @@ func (i *IdentityAccountClient) Delete(ctx context.Context, id string) (*identit
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityAccountClient) CreateFederatedAccount(ctx context.Context, input *identityaccountv1.CreateFederatedAccountInput) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.command.CreateFederatedAccount(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IdentityAccountClient) SimulateSignupWebhook(ctx context.Context, input *identityaccountv1.IdentityAccountEmail) error {
 	_, err := i.command.SimulateSignupWebhook(ctx, input)
 	return wrapErr(err)
@@ -61,6 +66,11 @@ func (i *IdentityAccountClient) GetByEmail(ctx context.Context, input *identitya
 
 func (i *IdentityAccountClient) GetByIdpId(ctx context.Context, id string) (*identityaccountv1.IdentityAccount, error) {
 	resp, err := i.query.GetByIdpId(ctx, &identityaccountv1.IdpId{Value: id})
+	return resp, wrapErr(err)
+}
+
+func (i *IdentityAccountClient) GetByExternalSub(ctx context.Context, input *identityaccountv1.ExternalSubLookup) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.query.GetByExternalSub(ctx, input)
 	return resp, wrapErr(err)
 }
 

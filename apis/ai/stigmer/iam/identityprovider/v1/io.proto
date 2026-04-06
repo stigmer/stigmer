@@ -27,3 +27,38 @@ message IdentityProviderList {
   // Identity providers in the current page.
   repeated IdentityProvider entries = 2;
 }
+
+// ListIdentityProvidersByOrgInput specifies the organization whose identity
+// providers should be returned.
+message ListIdentityProvidersByOrgInput {
+  // Organization slug to list identity providers for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// OrganizationSsoLookup identifies an organization for SSO provider discovery.
+// Used by the web app's login page to determine whether an organization has
+// SSO enabled and to retrieve the OIDC configuration needed to initiate login.
+message OrganizationSsoLookup {
+  // Organization slug to look up SSO configuration for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// SsoProviderInfo contains the minimal OIDC configuration the web app needs
+// to render an SSO login button and initiate the Authorization Code flow.
+//
+// This is a projection of the full IdentityProvider resource, exposing only
+// the fields safe for unauthenticated access. Internal configuration such as
+// JWKS URI, rate limits, and userinfo endpoint is intentionally excluded.
+message SsoProviderInfo {
+  // Display name of the SSO provider (e.g., "Acme Corp Okta").
+  // Shown on the login button: "Sign in with [display_name]".
+  string display_name = 1;
+
+  // OIDC client ID for initiating the Authorization Code flow with PKCE.
+  string oidc_client_id = 2;
+
+  // OIDC issuer URL. The web app appends /.well-known/openid-configuration
+  // to discover the authorization_endpoint, token_endpoint, and other
+  // OIDC metadata required for the login flow.
+  string issuer = 3;
+}

@@ -34,12 +34,12 @@ organization, err := client.Organization.Get(ctx, "org_01j5q3k7m8r2s4tnz2hfp0q0c
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3")
+organization = client.organizations.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organization().get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -74,12 +74,12 @@ organization, err := client.Organization.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organization.get(id)
+organization = client.organizations.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organization().get(id);
+Organization organization = client.organizations().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -115,7 +115,7 @@ organization, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.Organi
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organization.get_by_external_org_id(OrganizationExternalLookup(
+organization = client.organizations.get_by_external_org_id(OrganizationExternalLookup(
     identity_provider_ref=None,
     external_org_id="...",
 ))
@@ -123,7 +123,7 @@ organization = client.organization.get_by_external_org_id(OrganizationExternalLo
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organization().getByExternalOrgId(OrganizationExternalLookup.builder()
+Organization organization = client.organizations().getByExternalOrgId(OrganizationExternalLookup.builder()
     .identityProviderRef(null)
     .externalOrgId("...")
     .build());
@@ -164,7 +164,7 @@ result, err := client.Organization.Find(ctx, &stigmer.FindApiResourcesRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.organization.find(FindApiResourcesRequest(
+result = client.organizations.find(FindApiResourcesRequest(
     org="...",
     kind="...",
     page=None,
@@ -175,7 +175,7 @@ result = client.organization.find(FindApiResourcesRequest(
 </Tab>
 <Tab value="Java">
 ```java
-OrganizationList result = client.organization().find(FindApiResourcesRequest.builder()
+OrganizationList result = client.organizations().find(FindApiResourcesRequest.builder()
     .org("...")
     .kind("...")
     .page(null)
@@ -207,12 +207,12 @@ organizations, err := client.Organization.FindMyOrganizations(ctx)
 </Tab>
 <Tab value="Python">
 ```python
-organizations = client.organization.find_my_organizations()
+organizations = client.organizations.find_my_organizations()
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organizations organizations = client.organization().findMyOrganizations();
+Organizations organizations = client.organizations().findMyOrganizations();
 ```
 </Tab>
 </SDKTabs>
@@ -258,7 +258,7 @@ organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organization.apply(OrganizationInput(
+organization = client.organizations.apply(OrganizationInput(
     name="my-organization",
     org="acme",
     slug="...",
@@ -274,7 +274,7 @@ organization = client.organization.apply(OrganizationInput(
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organization().apply(OrganizationInput.builder()
+Organization organization = client.organizations().apply(OrganizationInput.builder()
     .name("my-organization")
     .org("acme")
     .slug("...")
@@ -333,7 +333,7 @@ organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organization.create(OrganizationInput(
+organization = client.organizations.create(OrganizationInput(
     name="my-organization",
     org="acme",
     slug="...",
@@ -349,7 +349,7 @@ organization = client.organization.create(OrganizationInput(
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organization().create(OrganizationInput.builder()
+Organization organization = client.organizations().create(OrganizationInput.builder()
     .name("my-organization")
     .org("acme")
     .slug("...")
@@ -408,7 +408,7 @@ organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organization.update(OrganizationInput(
+organization = client.organizations.update(OrganizationInput(
     name="my-organization",
     org="acme",
     slug="...",
@@ -424,7 +424,7 @@ organization = client.organization.update(OrganizationInput(
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organization().update(OrganizationInput.builder()
+Organization organization = client.organizations().update(OrganizationInput.builder()
     .name("my-organization")
     .org("acme")
     .slug("...")
@@ -461,12 +461,12 @@ organization, err := client.Organization.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organization.delete(id)
+organization = client.organizations.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organization().delete(id);
+Organization organization = client.organizations().delete(id);
 ```
 </Tab>
 </SDKTabs>

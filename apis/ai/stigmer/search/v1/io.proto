@@ -81,6 +81,18 @@ message SearchRequest {
   //
   // If not provided, defaults to page 1 with 20 items.
   ai.stigmer.commons.rpc.PageInfo page = 5;
+
+  // Include public resources from organizations other than the org filter.
+  //
+  // Only meaningful when org is non-empty. When true, the result set includes:
+  // 1. All authorized resources from the specified org (any visibility)
+  // 2. All authorized public resources from other orgs
+  //
+  // Use case: "All" scope in library views — shows the user's org resources
+  // plus marketplace/public resources from other organizations.
+  //
+  // Default: false (only resources matching the org filter are returned).
+  bool cross_org_public = 6;
 }
 
 // SearchResponse contains paginated search results with metadata.

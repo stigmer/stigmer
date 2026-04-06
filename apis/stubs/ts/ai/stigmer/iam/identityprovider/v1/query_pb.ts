@@ -7,15 +7,17 @@ import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiResourceIdSchema, ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../iampolicy/v1/rpcauthorization/method_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { IdentityProviderSchema } from "./api_pb";
 import { file_ai_stigmer_iam_identityprovider_v1_api } from "./api_pb";
+import type { IdentityProvidersSchema, ListIdentityProvidersByOrgInputSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema } from "./io_pb";
+import { file_ai_stigmer_iam_identityprovider_v1_io } from "./io_pb";
 
 /**
  * Describes the file ai/stigmer/iam/identityprovider/v1/query.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxMtICCh9JZGVudGl0eVByb3ZpZGVyUXVlcnlDb250cm9sbGVyEqMBCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBo0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3wrgYMwgDEBUiBXZhbHVlKiZ1bmF1dGhvcml6ZWQgdG8gdmlldyBpZGVudGl0eSBwcm92aWRlchKCAQoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiBNC4GAEaBKD/KxViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_identityprovider_v1_api]);
+  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxMrIFCh9JZGVudGl0eVByb3ZpZGVyUXVlcnlDb250cm9sbGVyEqMBCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBo0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3wrgYMwgBEBUiBXZhbHVlKiZ1bmF1dGhvcml6ZWQgdG8gdmlldyBpZGVudGl0eSBwcm92aWRlchKCAQoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiBNC4GAES1AEKCWxpc3RCeU9yZxJDLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuTGlzdElkZW50aXR5UHJvdmlkZXJzQnlPcmdJbnB1dBo1LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlcnMiS8K4GEcIARAeIgNvcmcqPHVuYXV0aG9yaXplZCB0byBsaXN0IGlkZW50aXR5IHByb3ZpZGVycyBpbiB0aGlzIG9yZ2FuaXphdGlvbhKGAQoOZ2V0U3NvUHJvdmlkZXISOS5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLk9yZ2FuaXphdGlvblNzb0xvb2t1cBozLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuU3NvUHJvdmlkZXJJbmZvIgTQuBgBGgSg/ysVYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityprovider_v1_api, file_ai_stigmer_iam_identityprovider_v1_io]);
 
 /**
  * IdentityProviderQueryController provides read operations for identity providers.
@@ -52,6 +54,43 @@ export const IdentityProviderQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof IdentityProviderSchema;
+  },
+  /**
+   * List all identity providers belonging to an organization.
+   *
+   * Returns every IdentityProvider whose metadata.org matches the input org.
+   * Typically a small set (1-3 per org), so results are not paginated.
+   *
+   * @internal
+   * Authorization: Requires can_view permission on the organization resource.
+   *
+   * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.listByOrg
+   */
+  listByOrg: {
+    methodKind: "unary";
+    input: typeof ListIdentityProvidersByOrgInputSchema;
+    output: typeof IdentityProvidersSchema;
+  },
+  /**
+   * Look up the SSO identity provider for an organization.
+   *
+   * Returns the SSO-relevant projection (display name, OIDC client ID, issuer)
+   * of the IdentityProvider where is_sso_provider is true for the given org.
+   * Returns NOT_FOUND if the organization has no SSO provider configured.
+   *
+   * This endpoint is called by the web app's login page before the user has
+   * authenticated, so it requires no authorization. The response intentionally
+   * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
+   *
+   * @internal
+   * Authorization: none — unauthenticated, public endpoint for login page rendering.
+   *
+   * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getSsoProvider
+   */
+  getSsoProvider: {
+    methodKind: "unary";
+    input: typeof OrganizationSsoLookupSchema;
+    output: typeof SsoProviderInfoSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_iam_identityprovider_v1_query, 0);

@@ -59,6 +59,16 @@ func (i *IdentityProviderClient) GetByReference(ctx context.Context, ref Resourc
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityProviderClient) ListByOrg(ctx context.Context, input *identityproviderv1.ListIdentityProvidersByOrgInput) (*identityproviderv1.IdentityProviders, error) {
+	resp, err := i.query.ListByOrg(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (i *IdentityProviderClient) GetSsoProvider(ctx context.Context, input *identityproviderv1.OrganizationSsoLookup) (*identityproviderv1.SsoProviderInfo, error) {
+	resp, err := i.query.GetSsoProvider(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // IdentityProviderInput holds the fields for creating/updating a IdentityProvider.
 type IdentityProviderInput struct {
 	Name             string
@@ -71,6 +81,8 @@ type IdentityProviderInput struct {
 	ExpectedAudience string
 	RateLimitBudget  int32
 	UserinfoEndpoint string
+	IsSsoProvider    bool
+	OidcClientId     string
 }
 
 func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
@@ -91,5 +103,7 @@ func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
 	resource.Spec.ExpectedAudience = i.ExpectedAudience
 	resource.Spec.RateLimitBudget = i.RateLimitBudget
 	resource.Spec.UserinfoEndpoint = i.UserinfoEndpoint
+	resource.Spec.IsSsoProvider = i.IsSsoProvider
+	resource.Spec.OidcClientId = i.OidcClientId
 	return resource
 }

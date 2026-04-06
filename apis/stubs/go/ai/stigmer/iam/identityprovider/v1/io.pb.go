@@ -169,6 +169,173 @@ func (x *IdentityProviderList) GetEntries() []*IdentityProvider {
 	return nil
 }
 
+// ListIdentityProvidersByOrgInput specifies the organization whose identity
+// providers should be returned.
+type ListIdentityProvidersByOrgInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization slug to list identity providers for.
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListIdentityProvidersByOrgInput) Reset() {
+	*x = ListIdentityProvidersByOrgInput{}
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListIdentityProvidersByOrgInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListIdentityProvidersByOrgInput) ProtoMessage() {}
+
+func (x *ListIdentityProvidersByOrgInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListIdentityProvidersByOrgInput.ProtoReflect.Descriptor instead.
+func (*ListIdentityProvidersByOrgInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ListIdentityProvidersByOrgInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// OrganizationSsoLookup identifies an organization for SSO provider discovery.
+// Used by the web app's login page to determine whether an organization has
+// SSO enabled and to retrieve the OIDC configuration needed to initiate login.
+type OrganizationSsoLookup struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization slug to look up SSO configuration for.
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrganizationSsoLookup) Reset() {
+	*x = OrganizationSsoLookup{}
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrganizationSsoLookup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganizationSsoLookup) ProtoMessage() {}
+
+func (x *OrganizationSsoLookup) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganizationSsoLookup.ProtoReflect.Descriptor instead.
+func (*OrganizationSsoLookup) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *OrganizationSsoLookup) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// SsoProviderInfo contains the minimal OIDC configuration the web app needs
+// to render an SSO login button and initiate the Authorization Code flow.
+//
+// This is a projection of the full IdentityProvider resource, exposing only
+// the fields safe for unauthenticated access. Internal configuration such as
+// JWKS URI, rate limits, and userinfo endpoint is intentionally excluded.
+type SsoProviderInfo struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Display name of the SSO provider (e.g., "Acme Corp Okta").
+	// Shown on the login button: "Sign in with [display_name]".
+	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// OIDC client ID for initiating the Authorization Code flow with PKCE.
+	OidcClientId string `protobuf:"bytes,2,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
+	// OIDC issuer URL. The web app appends /.well-known/openid-configuration
+	// to discover the authorization_endpoint, token_endpoint, and other
+	// OIDC metadata required for the login flow.
+	Issuer        string `protobuf:"bytes,3,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SsoProviderInfo) Reset() {
+	*x = SsoProviderInfo{}
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SsoProviderInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SsoProviderInfo) ProtoMessage() {}
+
+func (x *SsoProviderInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SsoProviderInfo.ProtoReflect.Descriptor instead.
+func (*SsoProviderInfo) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SsoProviderInfo) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *SsoProviderInfo) GetOidcClientId() string {
+	if x != nil {
+		return x.OidcClientId
+	}
+	return ""
+}
+
+func (x *SsoProviderInfo) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
 var File_ai_stigmer_iam_identityprovider_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
@@ -181,7 +348,15 @@ const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"\x14IdentityProviderList\x12\x1f\n" +
 	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
 	"totalPages\x12N\n" +
-	"\aentries\x18\x02 \x03(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\aentriesB\xbe\x02\n" +
+	"\aentries\x18\x02 \x03(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\aentries\"<\n" +
+	"\x1fListIdentityProvidersByOrgInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"2\n" +
+	"\x15OrganizationSsoLookup\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"r\n" +
+	"\x0fSsoProviderInfo\x12!\n" +
+	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12$\n" +
+	"\x0eoidc_client_id\x18\x02 \x01(\tR\foidcClientId\x12\x16\n" +
+	"\x06issuer\x18\x03 \x01(\tR\x06issuerB\xbe\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\aIoProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (
@@ -196,16 +371,19 @@ func file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_iam_identityprovider_v1_io_proto_goTypes = []any{
-	(*IdentityProviderId)(nil),   // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderId
-	(*IdentityProviders)(nil),    // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviders
-	(*IdentityProviderList)(nil), // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderList
-	(*IdentityProvider)(nil),     // 3: ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	(*IdentityProviderId)(nil),              // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderId
+	(*IdentityProviders)(nil),               // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviders
+	(*IdentityProviderList)(nil),            // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderList
+	(*ListIdentityProvidersByOrgInput)(nil), // 3: ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput
+	(*OrganizationSsoLookup)(nil),           // 4: ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup
+	(*SsoProviderInfo)(nil),                 // 5: ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
+	(*IdentityProvider)(nil),                // 6: ai.stigmer.iam.identityprovider.v1.IdentityProvider
 }
 var file_ai_stigmer_iam_identityprovider_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviders.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	3, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderList.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	6, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviders.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	6, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderList.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -225,7 +403,7 @@ func file_ai_stigmer_iam_identityprovider_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

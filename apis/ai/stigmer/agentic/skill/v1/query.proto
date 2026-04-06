@@ -6,7 +6,7 @@ import "ai/stigmer/agentic/skill/v1/api.proto";
 import "ai/stigmer/agentic/skill/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // SkillQueryController handles read operations for skills.
 service SkillQueryController {
@@ -14,10 +14,10 @@ service SkillQueryController {
 
   // Get a single skill by ID.
   rpc get(SkillId) returns (Skill) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = skill;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get skill";
+    option (ai.stigmer.commons.rpc.config).resource_kind = skill;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get skill";
   }
 
   // Get a skill by API resource reference with version support.
@@ -31,7 +31,7 @@ service SkillQueryController {
   // Authorization is handled in the handler after resolving the reference to a skill ID.
   // (Input doesn't contain skill ID, so proto-level auth cannot work)
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Skill) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Download skill artifact from storage by its storage key.
@@ -42,6 +42,6 @@ service SkillQueryController {
   // sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
   // storage key itself acts as a capability token.
   rpc getArtifact(GetArtifactRequest) returns (GetArtifactResponse) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

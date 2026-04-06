@@ -5,9 +5,11 @@
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { IamPolicySchema } from "./api_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_api } from "./api_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "./rpcauthorization/method_options_pb";
+import type { RevokeOrgAccessInputSchema } from "./io_pb";
+import { file_ai_stigmer_iam_iampolicy_v1_io } from "./io_pb";
 import type { ApiResourceRefSchema, IamPolicySpecSchema } from "./spec_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_spec } from "./spec_pb";
 import type { EmptySchema } from "@bufbuild/protobuf/wkt";
@@ -17,7 +19,7 @@ import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/iam/iampolicy/v1/command.proto.
  */
 export const file_ai_stigmer_iam_iampolicy_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxMrkFChpJYW1Qb2xpY3lDb21tYW5kQ29udHJvbGxlchKCAQoGY3JlYXRlEiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IiTCuBggCAgqHHVuYXV0aG9yaXplZCB0byBncmFudCBhY2Nlc3MSgwEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5JYW1Qb2xpY3lTcGVjGiYuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeSIlwrgYIQgIKh11bmF1dGhvcml6ZWQgdG8gcmV2b2tlIGFjY2VzcxLCAQoPYm9vdHN0cmFwUG9saWN5EiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IlvCuBhXCB0QHypIdW5hdXRob3JpemVkIHRvIGJvb3RzdHJhcCBwb2xpY3kgLSBjYW5fYm9vdHN0cmFwX2lhbSBwZXJtaXNzaW9uIHJlcXVpcmVkMgdzdGlnbWVyEsQBChdjbGVhbnVwUmVzb3VyY2VQb2xpY2llcxIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZhoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eSJkwrgYYAgdEB8qUXVuYXV0aG9yaXplZCB0byBjbGVhbnVwIHJlc291cmNlIHBvbGljaWVzIC0gY2FuX2Jvb3RzdHJhcF9pYW0gcGVybWlzc2lvbiByZXF1aXJlZDIHc3RpZ21lchoEoP8rCmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_iampolicy_v1_spec, file_google_protobuf_empty]);
+  fileDesc("CilhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxMswGChpJYW1Qb2xpY3lDb21tYW5kQ29udHJvbGxlchKCAQoGY3JlYXRlEiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IiTCuBggCAQqHHVuYXV0aG9yaXplZCB0byBncmFudCBhY2Nlc3MSgwEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5JYW1Qb2xpY3lTcGVjGiYuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeSIlwrgYIQgEKh11bmF1dGhvcml6ZWQgdG8gcmV2b2tlIGFjY2VzcxLCAQoPYm9vdHN0cmFwUG9saWN5EiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IlvCuBhXCBEQHypIdW5hdXRob3JpemVkIHRvIGJvb3RzdHJhcCBwb2xpY3kgLSBjYW5fYm9vdHN0cmFwX2lhbSBwZXJtaXNzaW9uIHJlcXVpcmVkMgdzdGlnbWVyEsQBChdjbGVhbnVwUmVzb3VyY2VQb2xpY2llcxIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZhoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eSJkwrgYYAgREB8qUXVuYXV0aG9yaXplZCB0byBjbGVhbnVwIHJlc291cmNlIHBvbGljaWVzIC0gY2FuX2Jvb3RzdHJhcF9pYW0gcGVybWlzc2lvbiByZXF1aXJlZDIHc3RpZ21lchKQAQoPcmV2b2tlT3JnQWNjZXNzEjEuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJldm9rZU9yZ0FjY2Vzc0lucHV0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5IjLCuBguCAQqKnVuYXV0aG9yaXplZCB0byByZXZva2Ugb3JnYW5pemF0aW9uIGFjY2VzcxoEoP8rCmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_io, file_ai_stigmer_iam_iampolicy_v1_spec, file_google_protobuf_empty]);
 
 /**
  * IAM Policy Command Controller
@@ -199,6 +201,38 @@ export const IamPolicyCommandController: GenService<{
   cleanupResourcePolicies: {
     methodKind: "unary";
     input: typeof ApiResourceRefSchema;
+    output: typeof EmptySchema;
+  },
+  /**
+   * Revoke all of a user's access to an organization.
+   *
+   * Removes every IAM policy that grants the specified identity account access to
+   * resources within the given organization, including policies on the organization
+   * itself and on child resources (environments, agents, etc.).
+   *
+   * @internal
+   * The operation:
+   * 1. Validates the input (identity_account_id and organization_id are present)
+   * 2. Authorizes caller (can_grant_access on the organization)
+   * 3. Loads all policies where the user is principal within the org scope
+   * 4. Deletes all matching policies from MongoDB
+   * 5. Removes all corresponding tuples from OpenFGA
+   *
+   * Authorization:
+   * - Caller must have 'can_grant_access' permission on the organization
+   *
+   * Use Cases:
+   * - Removing a member from an organization
+   * - Offboarding a user from all org resources in one operation
+   *
+   * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+   * Output: Empty (google.protobuf.Empty)
+   *
+   * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.revokeOrgAccess
+   */
+  revokeOrgAccess: {
+    methodKind: "unary";
+    input: typeof RevokeOrgAccessInputSchema;
     output: typeof EmptySchema;
   },
 }> = /*@__PURE__*/

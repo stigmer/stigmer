@@ -38,43 +38,42 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\n&ai/stigmer/iam/apikey/v1/command.proto" +
       "\022\030ai.stigmer.iam.apikey.v1\0328ai/stigmer/c" +
       "ommons/apiresource/rpc_service_options.p" +
-      "roto\032\"ai/stigmer/iam/apikey/v1/api.proto" +
-      "\032!ai/stigmer/iam/apikey/v1/io.proto\032Aai/" +
-      "stigmer/iam/iampolicy/v1/rpcauthorizatio" +
-      "n/method_options.proto2\372\002\n\027ApiKeyCommand" +
-      "Controller\022R\n\006create\022 .ai.stigmer.iam.ap" +
-      "ikey.v1.ApiKey\032 .ai.stigmer.iam.apikey.v" +
-      "1.ApiKey\"\004\320\270\030\001\022\203\001\n\006update\022 .ai.stigmer.i" +
-      "am.apikey.v1.ApiKey\032 .ai.stigmer.iam.api" +
-      "key.v1.ApiKey\"5\302\270\0301\010\004\020\014\"\013metadata.id*\036un" +
-      "authorized to update api key\022\177\n\006delete\022\"" +
-      ".ai.stigmer.iam.apikey.v1.ApiKeyId\032 .ai." +
-      "stigmer.iam.apikey.v1.ApiKey\"/\302\270\030+\010\002\020\014\"\005" +
-      "value*\036unauthorized to delete api key\032\004\240" +
-      "\377+\014B\223\001B\014CommandProtoP\001\242\002\004ASIA\252\002\030Ai.Stigm" +
-      "er.Iam.Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\Apikey" +
-      "\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetada" +
-      "ta\352\002\034Ai::Stigmer::Iam::Apikey::V1b\006proto" +
-      "3"
+      "roto\032+ai/stigmer/commons/rpc/method_opti" +
+      "ons.proto\032\"ai/stigmer/iam/apikey/v1/api." +
+      "proto\032!ai/stigmer/iam/apikey/v1/io.proto" +
+      "2\372\002\n\027ApiKeyCommandController\022R\n\006create\022 " +
+      ".ai.stigmer.iam.apikey.v1.ApiKey\032 .ai.st" +
+      "igmer.iam.apikey.v1.ApiKey\"\004\320\270\030\001\022\203\001\n\006upd" +
+      "ate\022 .ai.stigmer.iam.apikey.v1.ApiKey\032 ." +
+      "ai.stigmer.iam.apikey.v1.ApiKey\"5\302\270\0301\010\002\020" +
+      "\014\"\013metadata.id*\036unauthorized to update a" +
+      "pi key\022\177\n\006delete\022\".ai.stigmer.iam.apikey" +
+      ".v1.ApiKeyId\032 .ai.stigmer.iam.apikey.v1." +
+      "ApiKey\"/\302\270\030+\010\003\020\014\"\005value*\036unauthorized to" +
+      " delete api key\032\004\240\377+\014B\223\001B\014CommandProtoP\001" +
+      "\242\002\004ASIA\252\002\030Ai.Stigmer.Iam.Apikey.V1\312\002\030Ai\\" +
+      "Stigmer\\Iam\\Apikey\\V1\342\002$Ai\\Stigmer\\Iam\\A" +
+      "pikey\\V1\\GPBMetadata\352\002\034Ai::Stigmer::Iam:" +
+      ":Apikey::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.apikey.v1.ApiProto.getDescriptor(),
           ai.stigmer.iam.apikey.v1.IoProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.apikey.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.apikey.v1.IoProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

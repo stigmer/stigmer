@@ -11,25 +11,25 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEi0AEKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEhcKD2FsbG93ZWRfaXNzdWVycxgDIAMoCRIjChFleHBlY3RlZF9hdWRpZW5jZRgEIAEoCUIIukgFcgMYyAESGQoRcmF0ZV9saW1pdF9idWRnZXQYBSABKAUSIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQYgZwcm90bzM", [file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEiiwIKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEhcKD2FsbG93ZWRfaXNzdWVycxgDIAMoCRIjChFleHBlY3RlZF9hdWRpZW5jZRgEIAEoCUIIukgFcgMYyAESGQoRcmF0ZV9saW1pdF9idWRnZXQYBSABKAUSIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAJiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * IdentityProviderSpec defines the configuration for an external identity provider.
  *
  * An IdentityProvider represents an external platform's trust relationship with Stigmer.
  * It is owned by an organization (e.g., "planton") and configures how Stigmer validates
- * tokens from that platform during token exchange. The platform forwards its OIDC
- * provider's access tokens to Stigmer's token exchange endpoint, which:
- * - Validates the token signature against the configured JWKS
- * - Fetches user profile data from the OIDC UserInfo endpoint
- * - JIT-provisions a federated identity account with email, name, and picture
- * - Issues a Stigmer-native token for subsequent API access
+ * tokens from that platform. When a user authenticates with a JWT issued by this provider,
+ * Stigmer validates the token signature against the configured JWKS and resolves the
+ * user's federated identity account by the JWT's sub claim and this provider's reference.
+ *
+ * The platform is responsible for explicitly creating federated identity accounts
+ * before users can authenticate. Stigmer does not auto-provision accounts.
  *
  * The spec contains only public validation configuration — no secrets are stored.
  * For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
  * point to the OIDC provider's standard endpoints.
  *
- * Example YAML:
+ * Example YAML (platform delegation):
  *   apiVersion: iam.stigmer.ai/v1
  *   kind: IdentityProvider
  *   metadata:
@@ -42,6 +42,21 @@ export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__
  *     allowed_issuers: ["https://planton-prod.us.auth0.com/"]
  *     expected_audience: "https://api.planton.ai/"
  *     userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
+ *
+ * Example YAML (self-managed SSO):
+ *   apiVersion: iam.stigmer.ai/v1
+ *   kind: IdentityProvider
+ *   metadata:
+ *     name: Acme Corp Okta
+ *     slug: acme-okta
+ *     org: acme
+ *   spec:
+ *     display_name: "Acme Corp Okta"
+ *     jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
+ *     allowed_issuers: ["https://acme.okta.com/oauth2/default"]
+ *     expected_audience: "stigmer-api"
+ *     is_sso_provider: true
+ *     oidc_client_id: "0oa1bcdef2ghijk3lmno"
  *
  * @generated from message ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec
  */
@@ -112,6 +127,42 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    * @generated from field: string userinfo_endpoint = 6;
    */
   userinfoEndpoint: string;
+
+  /**
+   * Whether this identity provider serves as the SSO login provider for its
+   * owning organization.
+   *
+   * When true, the Stigmer web app offers a "Sign in with [display_name]"
+   * option on the organization's login page and initiates the OIDC
+   * Authorization Code flow with PKCE using the configured oidc_client_id.
+   *
+   * Constraints:
+   * - At most one IdentityProvider per organization can be the SSO provider.
+   * - An IdP used for platform-managed organization delegation cannot also
+   *   serve as an SSO provider (different trust models).
+   * - Federated identity accounts must be pre-created via createFederatedAccount
+   *   before users can authenticate through SSO.
+   *
+   * @generated from field: bool is_sso_provider = 7;
+   */
+  isSsoProvider: boolean;
+
+  /**
+   * OIDC client identifier for browser-based SSO login.
+   *
+   * This is the client_id registered with the external IdP (e.g., Okta,
+   * Azure AD) for Stigmer's web application. The web app uses this to
+   * build the OIDC Authorization Code request with PKCE.
+   *
+   * No client_secret is stored — the web app is a public client using PKCE
+   * (Proof Key for Code Exchange), which is the recommended approach for
+   * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+   *
+   * Required when is_sso_provider is true; must be empty otherwise.
+   *
+   * @generated from field: string oidc_client_id = 8;
+   */
+  oidcClientId: string;
 };
 
 /**

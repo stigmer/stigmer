@@ -6,7 +6,7 @@ import "ai/stigmer/agentic/skill/v1/api.proto";
 import "ai/stigmer/agentic/skill/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // SkillCommandController handles write operations for skills.
 service SkillCommandController {
@@ -30,10 +30,10 @@ service SkillCommandController {
   // 6. Update skill spec and status
   // 7. Archive the previous version (if updating)
   rpc push(PushSkillRequest) returns (Skill) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_skill;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "org";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to push skill in this organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_skill;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to push skill in this organization";
   }
 
   // Push a skill from an execution artifact already in storage.
@@ -49,10 +49,10 @@ service SkillCommandController {
   // - Requires can_view on the referenced execution (to read the artifact)
   // - Requires can_create_skill in the target organization (to push the skill)
   rpc pushFromExecutionArtifact(PushSkillFromExecutionArtifactRequest) returns (Skill) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_skill;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "org";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to push skill in this organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_skill;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to push skill in this organization";
   }
 
   // Update the visibility of an existing skill.
@@ -63,10 +63,10 @@ service SkillCommandController {
   // @internal
   // Authorization: Requires can_edit permission on the skill resource.
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Skill) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = skill;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update skill visibility";
+    option (ai.stigmer.commons.rpc.config).resource_kind = skill;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update skill visibility";
   }
 
   // Delete a skill and all its versions.
@@ -74,9 +74,9 @@ service SkillCommandController {
   // @internal
   // Removes the skill from the main collection but preserves audit history.
   rpc delete(SkillId) returns (Skill) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = skill;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete skill";
+    option (ai.stigmer.commons.rpc.config).resource_kind = skill;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete skill";
   }
 }

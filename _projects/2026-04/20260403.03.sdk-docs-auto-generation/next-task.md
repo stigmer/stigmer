@@ -13,59 +13,53 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: 2026-04-04 (Session 9)
-**Status**: T06 complete -- all three manual pages written (SDK Overview, Streaming, React SDK)
-**Active Task**: T06 wrap-up (verify index.mdx renders as landing page)
+**Last Session**: 2026-04-05 (Session 12)
+**Status**: ALL WORK COMPLETE -- T06, sub-project, and all polish items closed.
+**Active Task**: None
 
-## Session Progress (2026-04-04, Session 9)
+## Session Progress (2026-04-05, Session 12)
 
 ### Completed
-- **React SDK page** (`docs/sdk/react.mdx`): Hand-written reference page for `@stigmer/react`
-  - Installation with all peer deps (`@stigmer/sdk`, `@stigmer/protos`, `@bufbuild/protobuf`)
-  - `StigmerProvider` setup with complete working example and styles import
-  - Deployment mode reference (`"local"` vs `"cloud"`, `useDeploymentMode`, `useResourceAvailable`, `CloudFeatureNotice`)
-  - Full `StigmerProvider` props table (client, deploymentMode, preset, className, children)
-  - Domain quick-reference table: 16 domains, 67 hooks, 59 components (counts verified against `index.ts`)
-  - What's next cards linking to Streaming, Agent Execution, and Session
-- **Updated `docs/sdk/meta.json`**: Added `"react"` before `"streaming"` in pages array
-- **Sub-project scaffolding**: Created `20260404.01.sp.react-sdk-docs-auto-generation/` with T01 plan for TypeDoc-based auto-generation pipeline
+- **Dead code cleanup** (Option C): Removed 8 unreachable functions from `sdk_docs.go` (~200 lines) left behind by the commons refactoring. 5 section-level functions + 3 thin wrappers. Verified zero behavioral change via before/after MDX diff.
+- **Python variable naming** (Option D): Added `docPyVarName` using existing `pascalToSnake` helper. Applied in `docWriteClientAccess`, `docWriteMethodSigs`, `docWriteStreamingSigs`. 12 MDX files regenerated with PEP 8 snake_case variables.
+- **Minor fixes**: Removed unused `lower` variable in `docOverviewSummary`, dead switch branch in `docQuote`, stale comment in `docCollectNestedTypeNames`.
+- Commit: `c5606dce refactor(codegen): remove dead code and fix Python variable names in SDK docs generator`
 
-### Key Decisions (Session 9)
-- **Sidebar ordering**: React SDK placed before Streaming in sidebar (setup pages first, then how-to guides, then reference)
-- **Diataxis type**: Reference -- same register as SDK Overview, no tutorials, no demos
-- **Domain table approach**: Counts + descriptions per domain, not exhaustive hook/component lists. Keeps the page maintainable while giving readers discoverability.
-- **No SDKTabs**: React-only page uses plain tsx code blocks (no multi-language tabs)
-- **Scope boundary**: Page does not list every hook or component (deferred to future auto-generated per-domain pages from the sub-project)
+### Previous Session (Session 11)
+- Fix Python/Java accessor name bug: Introduced `docLangNames` struct, used canonical `pyClientFieldName()` and `javaAccessorName()` functions
+- Commit: `8168eb7a fix(codegen): correct Python/Java accessor names in SDK reference docs`
+
+### Session 10
+- T06 verification: Confirmed `docs/sdk/index.mdx` renders correctly at `/docs/sdk`
+- Quality review passed: all 7 SDKTabs, Callout, Cards render correctly
 
 ## Next Steps
 
-1. **T06 (verification)**: Verify `index.mdx` renders as section landing page in Fumadocs
-2. **Sub-project T01**: Review and approve the TypeDoc setup + proof of concept plan (`20260404.01.sp.react-sdk-docs-auto-generation/tasks/T01_0_plan.md`)
-3. **Follow-up**: Fix Python/Java accessor name bug in `sdk_docs.go` codegen (separate task)
+All planned tasks, follow-ups, and polish items are complete. This project is fully closed.
+
+Remaining optional polish (low priority):
+1. **Sub-project polish**: Improve `@returns` tags on hooks (1.5%), `@param` docs (46.3%)
 
 ## Context for Resume
 
 ### Working Tree
-Clean -- all T06 docs committed.
-
-### Committed in Session 9
-- React SDK reference page and meta.json update
-- Sub-project scaffolding for TypeDoc-based auto-generation pipeline
-
-### Committed in Session 8
-- `0330f019` -- `docs(sdk): add Streaming how-to guide for SDK Reference section`
+Clean on `main`. Feature branch `feat/react-sdk-docs-auto-generated` exists locally.
 
 ### T06 Completion Status
-All three manual pages are written:
-1. `docs/sdk/index.mdx` -- SDK Overview (session 7)
+All three manual pages written and verified:
+1. `docs/sdk/index.mdx` -- SDK Overview (session 7, **verified session 10**)
 2. `docs/sdk/streaming.mdx` -- Streaming how-to guide (session 8)
 3. `docs/sdk/react.mdx` -- React SDK reference (session 9)
 
-Remaining: verify `index.mdx` renders as the section landing page in the Fumadocs dev server.
+### Sub-Project Completion Status
+All 7 tasks complete (T01-T07):
+- 100% TSDoc coverage on 361 exports across 18 domains
+- 17 auto-generated MDX reference pages
+- 54/59 live component previews
+- CI staleness check via `gen-react-sdk-docs-check`
 
-### Key Source Files for Remaining Work
-- `docs/sdk/index.mdx` -- Verify renders as landing page
-- Sub-project: `_projects/2026-04/20260404.01.sp.react-sdk-docs-auto-generation/tasks/T01_0_plan.md` -- TypeDoc PoC plan (pending review)
+### Key Source Files
+- `tools/codegen/generator/sdk_docs.go` -- SDK docs generator (accessor bug fixed in session 11)
 
 ### Full Codegen Chain (after T07)
 ```
@@ -102,7 +96,7 @@ make gen-sdk-docs-check
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260403.03.sdk-docs-auto-generation/checkpoints/2026-04-04-session-8.md
+_projects/2026-04/20260403.03.sdk-docs-auto-generation/checkpoints/2026-04-05-session-10.md
 ```
 
 ### 2. Task Plans
@@ -120,17 +114,13 @@ _projects/2026-04/20260403.03.sdk-docs-auto-generation/tasks/
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-04-session-9.md`
-2. [ ] Review `docs/sdk/react.mdx` (React SDK reference written in session 9)
-3. [ ] Check `git status` -- working tree should be clean
-4. [ ] Verify `index.mdx` renders as section landing page in Fumadocs
-5. [ ] Review sub-project T01 plan for TypeDoc auto-generation pipeline
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-11.md`
+2. [ ] Check `git status`
+3. [ ] Pick next task from Next Steps above (optional polish only)
 
 ## Quick Commands
 
 After loading context:
-- "Verify index.mdx landing page" - Check Fumadocs rendering
-- "Review sub-project T01 plan" - Evaluate TypeDoc PoC approach
 - "Show project status" - Get overview of progress
 - "Run the SDK docs generator" - `make gen-sdk-docs`
 - "Check SDK docs freshness" - `make gen-sdk-docs-check`

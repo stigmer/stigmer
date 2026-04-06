@@ -33,12 +33,12 @@ apiKey, err := client.ApiKey.Get(ctx, "key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-apiKey = client.api_key.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3")
+api_key = client.api_keys.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKey().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ApiKey apiKey = client.apiKeys().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -71,12 +71,12 @@ apiKey, err := client.ApiKey.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-apiKey = client.api_key.get(id)
+api_key = client.api_keys.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKey().get(id);
+ApiKey apiKey = client.apiKeys().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -110,14 +110,14 @@ apiKey, err := client.ApiKey.GetByKeyHash(ctx, &stigmer.ApiKeyHash{
 </Tab>
 <Tab value="Python">
 ```python
-apiKey = client.api_key.get_by_key_hash(ApiKeyHash(
+api_key = client.api_keys.get_by_key_hash(ApiKeyHash(
     value="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKey().getByKeyHash(ApiKeyHash.builder()
+ApiKey apiKey = client.apiKeys().getByKeyHash(ApiKeyHash.builder()
     .value("...")
     .build());
 ```
@@ -147,12 +147,12 @@ apiKeys, err := client.ApiKey.FindAll(ctx)
 </Tab>
 <Tab value="Python">
 ```python
-apiKeys = client.api_key.find_all()
+api_keys = client.api_keys.find_all()
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKeys apiKeys = client.apiKey().findAll();
+ApiKeys apiKeys = client.apiKeys().findAll();
 ```
 </Tab>
 </SDKTabs>
@@ -196,7 +196,7 @@ apiKey, err := client.ApiKey.Create(ctx, &stigmer.ApiKeyInput{
 </Tab>
 <Tab value="Python">
 ```python
-apiKey = client.api_key.create(ApiKeyInput(
+api_key = client.api_keys.create(ApiKeyInput(
     name="my-api-key",
     org="acme",
     slug="...",
@@ -210,7 +210,7 @@ apiKey = client.api_key.create(ApiKeyInput(
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKey().create(ApiKeyInput.builder()
+ApiKey apiKey = client.apiKeys().create(ApiKeyInput.builder()
     .name("my-api-key")
     .org("acme")
     .slug("...")
@@ -263,7 +263,7 @@ apiKey, err := client.ApiKey.Update(ctx, &stigmer.ApiKeyInput{
 </Tab>
 <Tab value="Python">
 ```python
-apiKey = client.api_key.update(ApiKeyInput(
+api_key = client.api_keys.update(ApiKeyInput(
     name="my-api-key",
     org="acme",
     slug="...",
@@ -277,7 +277,7 @@ apiKey = client.api_key.update(ApiKeyInput(
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKey().update(ApiKeyInput.builder()
+ApiKey apiKey = client.apiKeys().update(ApiKeyInput.builder()
     .name("my-api-key")
     .org("acme")
     .slug("...")
@@ -312,12 +312,12 @@ apiKey, err := client.ApiKey.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-apiKey = client.api_key.delete(id)
+api_key = client.api_keys.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKey().delete(id);
+ApiKey apiKey = client.apiKeys().delete(id);
 ```
 </Tab>
 </SDKTabs>

@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.v1;
+
+// IamPermission defines the permissions checked by the authorization
+// interceptor before an RPC handler executes.
+//
+// Each value maps to an FGA permission name (a computed relation derived
+// from roles). Permissions are never directly assigned to principals —
+// they are granted implicitly through role assignments.
+//
+// For assignable roles, see IamRole below.
+// For structural FGA relations (organization, session, agent, etc.),
+// those are internal wiring and not represented in this enum.
+enum IamPermission {
+  unspecified = 0;
+
+  // Standard CRUD permissions.
+  can_view = 1;
+  can_edit = 2;
+  can_delete = 3;
+
+  // Access management permissions.
+  can_grant_access = 4;
+  can_view_access = 5;
+
+  // Organization-level create permissions.
+  can_create_agent = 6;
+  can_create_workflow = 7;
+  can_create_session = 8;
+  can_create_skill = 9;
+  can_create_project = 10;
+  can_create_idp = 11;
+  can_create_environment = 12;
+  can_create_identity_account = 21;
+
+  // Resource-level create permissions.
+  can_create_execution_in = 13;
+  can_create_instance = 14;
+
+  // Execution permission.
+  can_execute = 15;
+
+  // Secret access permission.
+  can_read_secrets = 16;
+
+  // Platform-level permissions.
+  can_bootstrap_iam = 17;
+  can_manage_identity_accounts = 18;
+  can_update_execution_status = 19;
+
+  // Back-office access permission.
+  login_to_back_office = 20;
+}
+
+// IamRole defines the roles that can be assigned to principals on resources
+// via IAM policies.
+//
+// Roles are human-assigned and represent a principal's relationship to a
+// resource. They are distinct from permissions (which are computed from roles
+// and checked by the authorization interceptor) and structural relations
+// (which are internal FGA wiring like organization or session links).
+//
+// Each ApiResourceKind declares which of these roles are grantable via
+// the grantable_roles field in its AuthorizationConfig.
+enum IamRole {
+  iam_role_unspecified = 0;
+
+  // Full control of the resource. Typically assigned to the creator.
+  owner = 1;
+
+  // Administrative access. Grants most permissions except ownership transfer.
+  admin = 2;
+
+  // Membership-level access. Grants read and limited write permissions.
+  member = 3;
+
+  // Read-only access to the resource.
+  viewer = 4;
+}

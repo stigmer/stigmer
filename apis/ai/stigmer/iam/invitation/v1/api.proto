@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.invitation.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/invitation/v1/enum.proto";
+import "ai/stigmer/iam/invitation/v1/spec.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Invitation is a shareable link that grants org membership with a configurable role.
+//
+// Invitations support two patterns:
+// - Multi-use (max_redemptions = 0): persistent org invite link, suitable for
+//   public sharing. Best paired with the viewer role to avoid cost exposure.
+// - Single-use (max_redemptions = 1): targeted invitation for a specific person.
+//
+// The invite URL format is: https://<host>/invite/<token>
+// where token is a server-generated cryptographically random value.
+//
+// Creating an invitation requires can_grant_access on the organization.
+// Redeeming an invitation requires only a valid token and authentication.
+message Invitation {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Invitation'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-provided invitation configuration: role, expiry, and redemption limits.
+  InvitationSpec spec = 4;
+
+  // System-managed state: token, lifecycle state, and redemption history.
+  InvitationStatus status = 5;
+}
+
+// InvitationStatus contains system-managed state for an invitation.
+message InvitationStatus {
+  // Server-generated cryptographically random token.
+  // Included in the invite URL: /invite/<token>
+  // Generated once at creation; immutable thereafter.
+  string token = 1;
+
+  // Current lifecycle state of the invitation.
+  InvitationState state = 2;
+
+  // Number of times this invitation has been successfully redeemed.
+  int32 redemption_count = 3;
+
+  // Audit trail of each successful redemption.
+  repeated InvitationRedemption redemptions = 4;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.).
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}
+
+// InvitationRedemption records a single successful redemption event.
+message InvitationRedemption {
+  // The identity account that redeemed the invitation.
+  string identity_account_id = 1;
+
+  // When the redemption occurred.
+  google.protobuf.Timestamp redeemed_at = 2;
+}

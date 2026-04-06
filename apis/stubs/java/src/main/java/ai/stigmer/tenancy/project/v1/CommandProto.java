@@ -38,47 +38,47 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/tenancy/project/v1/command." +
       "proto\022\035ai.stigmer.tenancy.project.v1\0328ai" +
       "/stigmer/commons/apiresource/rpc_service" +
-      "_options.proto\032Aai/stigmer/iam/iampolicy" +
-      "/v1/rpcauthorization/method_options.prot" +
-      "o\032\'ai/stigmer/tenancy/project/v1/api.pro" +
-      "to\032&ai/stigmer/tenancy/project/v1/io.pro" +
-      "to2\301\004\n\030ProjectCommandController\022W\n\005apply" +
-      "\022&.ai.stigmer.tenancy.project.v1.Project" +
-      "\032&.ai.stigmer.tenancy.project.v1.Project" +
-      "\022\245\001\n\006create\022&.ai.stigmer.tenancy.project" +
-      ".v1.Project\032&.ai.stigmer.tenancy.project" +
-      ".v1.Project\"K\302\270\030G\010\027\020\036\"\014metadata.org*3una" +
-      "uthorized to create project in this orga" +
-      "nization\022\217\001\n\006update\022&.ai.stigmer.tenancy" +
-      ".project.v1.Project\032&.ai.stigmer.tenancy" +
-      ".project.v1.Project\"5\302\270\0301\010\004\020<\"\013metadata." +
-      "id*\036unauthorized to update project\022\213\001\n\006d" +
-      "elete\022(.ai.stigmer.tenancy.project.v1.Pr" +
-      "ojectId\032&.ai.stigmer.tenancy.project.v1." +
-      "Project\"/\302\270\030+\010\002\020<\"\005value*\036unauthorized t" +
-      "o delete project\032\004\240\377+<B\247\001B\014CommandProtoP" +
-      "\001\242\002\004ASTP\252\002\035Ai.Stigmer.Tenancy.Project.V1" +
-      "\312\002\035Ai\\Stigmer\\Tenancy\\Project\\V1\342\002)Ai\\St" +
-      "igmer\\Tenancy\\Project\\V1\\GPBMetadata\352\002!A" +
-      "i::Stigmer::Tenancy::Project::V1b\006proto3"
+      "_options.proto\032+ai/stigmer/commons/rpc/m" +
+      "ethod_options.proto\032\'ai/stigmer/tenancy/" +
+      "project/v1/api.proto\032&ai/stigmer/tenancy" +
+      "/project/v1/io.proto2\301\004\n\030ProjectCommandC" +
+      "ontroller\022W\n\005apply\022&.ai.stigmer.tenancy." +
+      "project.v1.Project\032&.ai.stigmer.tenancy." +
+      "project.v1.Project\022\245\001\n\006create\022&.ai.stigm" +
+      "er.tenancy.project.v1.Project\032&.ai.stigm" +
+      "er.tenancy.project.v1.Project\"K\302\270\030G\010\n\020\036\"" +
+      "\014metadata.org*3unauthorized to create pr" +
+      "oject in this organization\022\217\001\n\006update\022&." +
+      "ai.stigmer.tenancy.project.v1.Project\032&." +
+      "ai.stigmer.tenancy.project.v1.Project\"5\302" +
+      "\270\0301\010\002\020<\"\013metadata.id*\036unauthorized to up" +
+      "date project\022\213\001\n\006delete\022(.ai.stigmer.ten" +
+      "ancy.project.v1.ProjectId\032&.ai.stigmer.t" +
+      "enancy.project.v1.Project\"/\302\270\030+\010\003\020<\"\005val" +
+      "ue*\036unauthorized to delete project\032\004\240\377+<" +
+      "B\247\001B\014CommandProtoP\001\242\002\004ASTP\252\002\035Ai.Stigmer." +
+      "Tenancy.Project.V1\312\002\035Ai\\Stigmer\\Tenancy\\" +
+      "Project\\V1\342\002)Ai\\Stigmer\\Tenancy\\Project\\" +
+      "V1\\GPBMetadata\352\002!Ai::Stigmer::Tenancy::P" +
+      "roject::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.tenancy.project.v1.ApiProto.getDescriptor(),
           ai.stigmer.tenancy.project.v1.IoProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.tenancy.project.v1.ApiProto.getDescriptor();
     ai.stigmer.tenancy.project.v1.IoProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

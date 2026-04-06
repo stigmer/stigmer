@@ -30,6 +30,7 @@
           "iam_policy",
           "identity_account",
           "api_key",
+          "invitation",
           "identity_provider",
           "organization",
           "platform",

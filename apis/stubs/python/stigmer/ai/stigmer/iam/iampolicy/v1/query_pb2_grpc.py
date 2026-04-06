@@ -36,6 +36,21 @@ class IamPolicyQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListAuthorizedPrincipalIdsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.AuthorizedPrincipalIdsList.FromString,
                 _registered_method=True)
+        self.listResourceAccessByPrincipal = channel.unary_unary(
+                '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listResourceAccessByPrincipal',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListResourceAccessInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ResourceAccessByPrincipalList.FromString,
+                _registered_method=True)
+        self.getPrincipalResourceRoles = channel.unary_unary(
+                '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalResourceRoles',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalResourceInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalResourceRoles.FromString,
+                _registered_method=True)
+        self.getPrincipalsCount = channel.unary_unary(
+                '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalsCount',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.GetPrincipalsCountInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalsCount.FromString,
+                _registered_method=True)
 
 
 class IamPolicyQueryControllerServicer(object):
@@ -112,6 +127,60 @@ class IamPolicyQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listResourceAccessByPrincipal(self, request, context):
+        """List all principals and their roles on a resource, grouped by principal.
+
+        This RPC answers: "Who has access to this resource, and what roles do they have?"
+        Returns each principal with full display information and all their role grants,
+        optionally including roles inherited from parent resources.
+
+        Use Cases:
+        - Organization members page (show all users and their roles)
+        - Resource "Share" dialog (show who already has access)
+        - Access audit views
+
+        Input: ListResourceAccessInput with resource ref and include_inherited flag
+        Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getPrincipalResourceRoles(self, request, context):
+        """Get all roles a specific principal has on a specific resource.
+
+        This RPC answers: "What roles does [principal] have on [resource]?"
+        Returns role metadata (code, display name, description) for each assigned role.
+
+        Use Cases:
+        - Displaying a user's current role in a resource detail view
+        - Pre-populating role selectors when editing access
+        - Permission summary for a specific user-resource pair
+
+        Input: PrincipalResourceInput with principal and resource refs
+        Output: PrincipalResourceRoles with list of RoleInfo entries
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getPrincipalsCount(self, request, context):
+        """Count distinct principals that have access to a resource.
+
+        This RPC answers: "How many [principal-kind] have access to this organization?"
+        Used for member count badges and summary statistics.
+
+        Use Cases:
+        - Organization members count badge in navigation
+        - Settings page member summary
+
+        Input: GetPrincipalsCountInput with org_id and principal_kind
+        Output: PrincipalsCount with integer count
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_IamPolicyQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -134,6 +203,21 @@ def add_IamPolicyQueryControllerServicer_to_server(servicer, server):
                     servicer.listAuthorizedPrincipalIds,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListAuthorizedPrincipalIdsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.AuthorizedPrincipalIdsList.SerializeToString,
+            ),
+            'listResourceAccessByPrincipal': grpc.unary_unary_rpc_method_handler(
+                    servicer.listResourceAccessByPrincipal,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListResourceAccessInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ResourceAccessByPrincipalList.SerializeToString,
+            ),
+            'getPrincipalResourceRoles': grpc.unary_unary_rpc_method_handler(
+                    servicer.getPrincipalResourceRoles,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalResourceInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalResourceRoles.SerializeToString,
+            ),
+            'getPrincipalsCount': grpc.unary_unary_rpc_method_handler(
+                    servicer.getPrincipalsCount,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.GetPrincipalsCountInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalsCount.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -245,6 +329,87 @@ class IamPolicyQueryController(object):
             '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAuthorizedPrincipalIds',
             ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListAuthorizedPrincipalIdsInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.AuthorizedPrincipalIdsList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listResourceAccessByPrincipal(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listResourceAccessByPrincipal',
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListResourceAccessInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ResourceAccessByPrincipalList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getPrincipalResourceRoles(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalResourceRoles',
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalResourceInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalResourceRoles.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getPrincipalsCount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalsCount',
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.GetPrincipalsCountInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalsCount.FromString,
             options,
             channel_credentials,
             insecure,

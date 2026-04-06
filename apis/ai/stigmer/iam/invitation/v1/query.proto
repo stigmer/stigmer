@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.invitation.v1;
+
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/iam/invitation/v1/api.proto";
+import "ai/stigmer/iam/invitation/v1/io.proto";
+
+// InvitationQueryController handles read operations for invitations.
+service InvitationQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = invitation;
+
+  // Get an invitation by its unique identifier.
+  //
+  // @internal
+  // Authorization: Requires can_view permission on the invitation resource.
+  rpc get(InvitationId) returns (Invitation) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = invitation;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view invitation";
+  }
+
+  // List all invitations belonging to an organization.
+  //
+  // Returns invitations ordered by creation time (newest first).
+  //
+  // @internal
+  // Authorization: Requires can_view_access permission on the organization.
+  // This is intentionally stricter than can_view — only users who can
+  // manage org access (admins and owners) should see invitation links.
+  rpc listByOrg(ListInvitationsByOrgInput) returns (Invitations) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_access;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list invitations in this organization";
+  }
+
+  // Get a preview of an invitation by its shareable token.
+  //
+  // Returns a safe projection (InvitationPreview) containing only the
+  // information needed to render the invite acceptance page: organization
+  // name, logo, the role being offered, and whether the invitation is
+  // still valid.
+  //
+  // This endpoint is called by the web app's invite page before the user
+  // has authenticated, so it requires no authorization. The response
+  // intentionally omits the token value, redemption history, and internal
+  // invitation metadata.
+  //
+  // @internal
+  // Authorization: none — unauthenticated, public endpoint for rendering
+  // the invite acceptance page. Uses is_skip_authorization following the
+  // getSsoProvider precedent.
+  rpc getByToken(InvitationTokenInput) returns (InvitationPreview) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

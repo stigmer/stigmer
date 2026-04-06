@@ -42,12 +42,12 @@ environment, err := client.Environment.Get(ctx, "env_01j5q3k7m8r2s4tnz2hfp0q0c3"
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3")
+environment = client.environments.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Environment environment = client.environments().get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -84,12 +84,12 @@ environment, err := client.Environment.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.get(id)
+environment = client.environments.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().get(id);
+Environment environment = client.environments().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -129,7 +129,7 @@ environment, err := client.Environment.GetByReference(ctx, &stigmer.ApiResourceR
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.get_by_reference(ApiResourceReference(
+environment = client.environments.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -139,7 +139,7 @@ environment = client.environment.get_by_reference(ApiResourceReference(
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().getByReference(ApiResourceReference.builder()
+Environment environment = client.environments().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -176,7 +176,7 @@ environmentValue, err := client.Environment.GetSecretValue(ctx, &stigmer.Environ
 </Tab>
 <Tab value="Python">
 ```python
-environmentValue = client.environment.get_secret_value(EnvironmentSecretValueInput(
+environment_value = client.environments.get_secret_value(EnvironmentSecretValueInput(
     environment_id="...",
     key="...",
 ))
@@ -184,7 +184,7 @@ environmentValue = client.environment.get_secret_value(EnvironmentSecretValueInp
 </Tab>
 <Tab value="Java">
 ```java
-EnvironmentValue environmentValue = client.environment().getSecretValue(EnvironmentSecretValueInput.builder()
+EnvironmentValue environmentValue = client.environments().getSecretValue(EnvironmentSecretValueInput.builder()
     .environmentId("...")
     .key("...")
     .build());
@@ -221,7 +221,7 @@ result, err := client.Environment.List(ctx, &stigmer.ListEnvironmentsRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.environment.list(ListEnvironmentsRequest(
+result = client.environments.list(ListEnvironmentsRequest(
     org="...",
     labels={},
     page_info=None,
@@ -230,7 +230,7 @@ result = client.environment.list(ListEnvironmentsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-EnvironmentList result = client.environment().list(ListEnvironmentsRequest.builder()
+EnvironmentList result = client.environments().list(ListEnvironmentsRequest.builder()
     .org("...")
     .labels(Map.of())
     .pageInfo(null)
@@ -274,7 +274,7 @@ environment, err := client.Environment.Apply(ctx, &stigmer.EnvironmentInput{
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.apply(EnvironmentInput(
+environment = client.environments.apply(EnvironmentInput(
     name="my-environment",
     org="acme",
     slug="...",
@@ -286,7 +286,7 @@ environment = client.environment.apply(EnvironmentInput(
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().apply(EnvironmentInput.builder()
+Environment environment = client.environments().apply(EnvironmentInput.builder()
     .name("my-environment")
     .org("acme")
     .slug("...")
@@ -333,7 +333,7 @@ environment, err := client.Environment.Create(ctx, &stigmer.EnvironmentInput{
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.create(EnvironmentInput(
+environment = client.environments.create(EnvironmentInput(
     name="my-environment",
     org="acme",
     slug="...",
@@ -345,7 +345,7 @@ environment = client.environment.create(EnvironmentInput(
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().create(EnvironmentInput.builder()
+Environment environment = client.environments().create(EnvironmentInput.builder()
     .name("my-environment")
     .org("acme")
     .slug("...")
@@ -392,7 +392,7 @@ environment, err := client.Environment.Update(ctx, &stigmer.EnvironmentInput{
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.update(EnvironmentInput(
+environment = client.environments.update(EnvironmentInput(
     name="my-environment",
     org="acme",
     slug="...",
@@ -404,7 +404,7 @@ environment = client.environment.update(EnvironmentInput(
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().update(EnvironmentInput.builder()
+Environment environment = client.environments().update(EnvironmentInput.builder()
     .name("my-environment")
     .org("acme")
     .slug("...")
@@ -443,7 +443,7 @@ environment, err := client.Environment.UpdateVariables(ctx, &stigmer.UpdateEnvir
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.update_variables(UpdateEnvironmentVariablesRequest(
+environment = client.environments.update_variables(UpdateEnvironmentVariablesRequest(
     environment_id="...",
     variables={},
 ))
@@ -451,7 +451,7 @@ environment = client.environment.update_variables(UpdateEnvironmentVariablesRequ
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().updateVariables(UpdateEnvironmentVariablesRequest.builder()
+Environment environment = client.environments().updateVariables(UpdateEnvironmentVariablesRequest.builder()
     .environmentId("...")
     .variables(Map.of())
     .build());
@@ -482,12 +482,12 @@ environment, err := client.Environment.Delete(ctx, &stigmer.DeleteResourceInput{
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.delete(DeleteResourceInput(resource_id=id))
+environment = client.environments.delete(DeleteResourceInput(resource_id=id))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().delete(DeleteResourceInput.builder()
+Environment environment = client.environments().delete(DeleteResourceInput.builder()
     .resourceId(id)
     .build());
 ```
@@ -527,7 +527,7 @@ environment, err := client.Environment.RemoveVariables(ctx, &stigmer.RemoveEnvir
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.remove_variables(RemoveEnvironmentVariablesRequest(
+environment = client.environments.remove_variables(RemoveEnvironmentVariablesRequest(
     environment_id="...",
     keys=[],
 ))
@@ -535,7 +535,7 @@ environment = client.environment.remove_variables(RemoveEnvironmentVariablesRequ
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().removeVariables(RemoveEnvironmentVariablesRequest.builder()
+Environment environment = client.environments().removeVariables(RemoveEnvironmentVariablesRequest.builder()
     .environmentId("...")
     .keys(List.of())
     .build());

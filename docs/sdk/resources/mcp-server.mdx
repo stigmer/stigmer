@@ -44,12 +44,12 @@ mcpServer, err := client.McpServer.Get(ctx, "mcp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+mcp_server = client.mcp_servers.get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -85,12 +85,12 @@ mcpServer, err := client.McpServer.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.get(id)
+mcp_server = client.mcp_servers.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().get(id);
+McpServer mcpServer = client.mcpServers().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -132,7 +132,7 @@ mcpServer, err := client.McpServer.GetByReference(ctx, &stigmer.ApiResourceRefer
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.get_by_reference(ApiResourceReference(
+mcp_server = client.mcp_servers.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -142,7 +142,7 @@ mcpServer = client.mcp_server.get_by_reference(ApiResourceReference(
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().getByReference(ApiResourceReference.builder()
+McpServer mcpServer = client.mcpServers().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -199,7 +199,7 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.apply(McpServerInput(
+mcp_server = client.mcp_servers.apply(McpServerInput(
     name="my-mcp-server",
     org="acme",
     slug="...",
@@ -216,7 +216,7 @@ mcpServer = client.mcp_server.apply(McpServerInput(
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().apply(McpServerInput.builder()
+McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .name("my-mcp-server")
     .org("acme")
     .slug("...")
@@ -280,7 +280,7 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.create(McpServerInput(
+mcp_server = client.mcp_servers.create(McpServerInput(
     name="my-mcp-server",
     org="acme",
     slug="...",
@@ -297,7 +297,7 @@ mcpServer = client.mcp_server.create(McpServerInput(
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().create(McpServerInput.builder()
+McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .name("my-mcp-server")
     .org("acme")
     .slug("...")
@@ -359,7 +359,7 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.update(McpServerInput(
+mcp_server = client.mcp_servers.update(McpServerInput(
     name="my-mcp-server",
     org="acme",
     slug="...",
@@ -376,7 +376,7 @@ mcpServer = client.mcp_server.update(McpServerInput(
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().update(McpServerInput.builder()
+McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .name("my-mcp-server")
     .org("acme")
     .slug("...")
@@ -422,7 +422,7 @@ mcpServer, err := client.McpServer.UpdateDiscoveredCapabilities(ctx, &stigmer.Up
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.update_discovered_capabilities(UpdateDiscoveredCapabilitiesInput(
+mcp_server = client.mcp_servers.update_discovered_capabilities(UpdateDiscoveredCapabilitiesInput(
     mcp_server_id="...",
     discovered_capabilities=None,
 ))
@@ -430,7 +430,7 @@ mcpServer = client.mcp_server.update_discovered_capabilities(UpdateDiscoveredCap
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().updateDiscoveredCapabilities(UpdateDiscoveredCapabilitiesInput.builder()
+McpServer mcpServer = client.mcpServers().updateDiscoveredCapabilities(UpdateDiscoveredCapabilitiesInput.builder()
     .mcpServerId("...")
     .discoveredCapabilities(null)
     .build());
@@ -467,7 +467,7 @@ mcpServer, err := client.McpServer.UpdateVisibility(ctx, &stigmer.UpdateVisibili
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.update_visibility(UpdateVisibilityInput(
+mcp_server = client.mcp_servers.update_visibility(UpdateVisibilityInput(
     resource_id="...",
     visibility="...",
 ))
@@ -475,7 +475,7 @@ mcpServer = client.mcp_server.update_visibility(UpdateVisibilityInput(
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().updateVisibility(UpdateVisibilityInput.builder()
+McpServer mcpServer = client.mcpServers().updateVisibility(UpdateVisibilityInput.builder()
     .resourceId("...")
     .visibility("...")
     .build());
@@ -508,12 +508,12 @@ mcpServer, err := client.McpServer.Delete(ctx, &stigmer.DeleteResourceInput{
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.delete(DeleteResourceInput(resource_id=id))
+mcp_server = client.mcp_servers.delete(DeleteResourceInput(resource_id=id))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().delete(DeleteResourceInput.builder()
+McpServer mcpServer = client.mcpServers().delete(DeleteResourceInput.builder()
     .resourceId(id)
     .build());
 ```
@@ -555,7 +555,7 @@ mcpServer, err := client.McpServer.DiscoverCapabilities(ctx, &stigmer.DiscoverCa
 </Tab>
 <Tab value="Python">
 ```python
-mcpServer = client.mcp_server.discover_capabilities(DiscoverCapabilitiesInput(
+mcp_server = client.mcp_servers.discover_capabilities(DiscoverCapabilitiesInput(
     mcp_server_id="...",
     runtime_env={},
 ))
@@ -563,7 +563,7 @@ mcpServer = client.mcp_server.discover_capabilities(DiscoverCapabilitiesInput(
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServer().discoverCapabilities(DiscoverCapabilitiesInput.builder()
+McpServer mcpServer = client.mcpServers().discoverCapabilities(DiscoverCapabilitiesInput.builder()
     .mcpServerId("...")
     .runtimeEnv(Map.of())
     .build());

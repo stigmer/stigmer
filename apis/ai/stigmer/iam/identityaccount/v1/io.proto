@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.iam.identityaccount.v1;
 
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "buf/validate/validate.proto";
@@ -52,4 +53,59 @@ message ListWithIdentityOrg {
   string org = 1;
   // Pagination parameters.
   ai.stigmer.commons.rpc.PageInfo page = 2;
+}
+
+// ExternalSubLookup identifies a federated identity account by its identity provider
+// reference and external subject identifier (OIDC sub claim).
+//
+// Used by platform backends to check whether a federated account already exists
+// before calling createFederatedAccount.
+message ExternalSubLookup {
+  // Organization that owns the identity provider.
+  // Used as the authorization scope: caller must have can_create_identity_account
+  // permission on this organization.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Reference to the IdentityProvider that the federated account belongs to.
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+
+  // External subject identifier from the platform's OIDC provider.
+  // The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
+  string external_sub = 3 [(buf.validate.field).required = true];
+}
+
+// CreateFederatedAccountInput is the command for creating a federated identity account
+// linked to an external platform's identity provider.
+//
+// Called by platform backends (via API key) when a new user signs up on their platform.
+// The platform provides the user's OIDC subject identifier and profile data.
+// The account must be created before the user can authenticate via the IdP.
+message CreateFederatedAccountInput {
+  // Organization that owns the identity provider.
+  // Used as the authorization scope: caller must have can_create_identity_account
+  // permission on this organization.
+  // Must match identity_provider_ref.org (when identity_provider_ref.org is non-empty).
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Reference to the IdentityProvider that this federated account belongs to.
+  // The IdP must exist and belong to the specified org.
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+
+  // External subject identifier from the platform's OIDC provider.
+  // The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
+  // Stored as-is without any prefix transformation.
+  // Must match the sub claim in JWTs issued by this IdP for authentication to work.
+  string external_sub = 3 [(buf.validate.field).required = true];
+
+  // Email address of the user.
+  string email = 4 [(buf.validate.field).required = true];
+
+  // First name of the user.
+  string first_name = 5;
+
+  // Last name of the user.
+  string last_name = 6;
+
+  // URL of the user's profile picture.
+  string picture_url = 7;
 }

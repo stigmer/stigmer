@@ -5,7 +5,7 @@ package ai.stigmer.agentic.agentexecution.v1;
 import "ai/stigmer/agentic/agentexecution/v1/api.proto";
 import "ai/stigmer/agentic/agentexecution/v1/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // AgentExecutionQueryController handles read operations for agent executions.
 service AgentExecutionQueryController {
@@ -13,15 +13,15 @@ service AgentExecutionQueryController {
 
   // Get a single agent execution by ID.
   rpc get(AgentExecutionId) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent execution";
   }
 
   // List all agent executions with pagination and optional filtering.
   rpc list(ListAgentExecutionsRequest) returns (AgentExecutionList) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // List all executions in a specific session.
@@ -30,7 +30,7 @@ service AgentExecutionQueryController {
   // Authorization is handled in handler via FGA query for authorized agent_execution_ids,
   // then filtered by session_id. This ensures consistent authorization pattern across all list operations.
   rpc listBySession(ListAgentExecutionsBySessionRequest) returns (AgentExecutionList) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Subscribe to real-time execution updates (streaming).
@@ -38,10 +38,10 @@ service AgentExecutionQueryController {
   // @internal
   // Authorization is handled by the FJ model via proto configuration.
   rpc subscribe(AgentExecutionId) returns (stream AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to subscribe to agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to agent execution";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -89,10 +89,10 @@ service AgentExecutionQueryController {
   //
   // @since Artifact Lifecycle (Attachments & Artifacts)
   rpc getArtifactDownloadUrl(GetArtifactDownloadUrlRequest) returns (GetArtifactDownloadUrlResponse) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to download artifact from agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to download artifact from agent execution";
   }
 
   // Read the raw content of an execution artifact.
@@ -133,10 +133,10 @@ service AgentExecutionQueryController {
   //
   // @since Artifact Lifecycle (Attachments & Artifacts)
   rpc getArtifactContent(GetArtifactContentRequest) returns (GetArtifactContentResponse) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to read artifact content from agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read artifact content from agent execution";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -150,12 +150,11 @@ service AgentExecutionQueryController {
   // Get a usage report for a session.
   //
   // Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-  //
-  // @internal
-  // Authorization is handled in handler — caller must have can_view on
-  // all executions in the session (same pattern as listBySession).
   rpc getSessionUsageReport(GetSessionUsageReportInput) returns (GetSessionUsageReportOutput) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "session_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view session usage report";
   }
 
   // Get a usage report for an agent.
@@ -163,18 +162,19 @@ service AgentExecutionQueryController {
   // Returns aggregated tokens, cost, and per-session breakdown with pagination.
   //
   // @internal
-  // Authorization is handled in handler — caller must have can_view on the agent.
+  // Not consumed by any UI. Authorization model TBD — when a product need
+  // arises, this should likely be org-scoped (usage of agent X within org Y).
   rpc getAgentUsageReport(GetAgentUsageReportInput) returns (GetAgentUsageReportOutput) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Get a usage report for an organization.
   //
   // Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-  //
-  // @internal
-  // Authorization is handled in handler — caller must be org member.
   rpc getOrgUsageReport(GetOrgUsageReportInput) returns (GetOrgUsageReportOutput) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view organization usage report";
   }
 }

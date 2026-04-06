@@ -8,7 +8,7 @@ package environmentv1
 
 import (
 	apiresource "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,11 +26,11 @@ var File_ai_stigmer_agentic_environment_v1_query_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_environment_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/environment/v1/query.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x8c\x05\n" +
+	"-ai/stigmer/agentic/environment/v1/query.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x8c\x05\n" +
 	"\x1aEnvironmentQueryController\x12\x96\x01\n" +
-	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a..ai.stigmer.agentic.environment.v1.Environment\"0¸\x18,\b\x03\x105\"\x05value*\x1funauthorized to get environment\x12|\n" +
+	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a..ai.stigmer.agentic.environment.v1.Environment\"0¸\x18,\b\x01\x105\"\x05value*\x1funauthorized to get environment\x12|\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a..ai.stigmer.agentic.environment.v1.Environment\"\x04и\x18\x01\x12\xd2\x01\n" +
-	"\x0egetSecretValue\x12>.ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput\x1a3.ai.stigmer.agentic.environment.v1.EnvironmentValue\"K¸\x18G\b\x19\x105\"\x0eenvironment_id*1unauthorized to read secret values (creator-only)\x12|\n" +
+	"\x0egetSecretValue\x12>.ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput\x1a3.ai.stigmer.agentic.environment.v1.EnvironmentValue\"K¸\x18G\b\x10\x105\"\x0eenvironment_id*1unauthorized to read secret values (creator-only)\x12|\n" +
 	"\x04list\x12:.ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest\x1a2.ai.stigmer.agentic.environment.v1.EnvironmentList\"\x04и\x18\x01\x1a\x04\xa0\xff+5B\xb9\x02\n" +
 	"%com.ai.stigmer.agentic.environment.v1B\n" +
 	"QueryProtoP\x01Z[github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"

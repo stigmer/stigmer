@@ -43,9 +43,20 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  * requires_creator_tuple: true
+ * grantable_roles: [owner, viewer]
  * -&gt; Creates: environment#organization&#64;organization:&lt;org_id&gt;
  * -&gt; Creates: environment#owner&#64;identity_account:&lt;creator_id&gt;
  * -&gt; Creates: environment#creator&#64;identity_account:&lt;creator_id&gt;
+ *
+ * Organization with three-tier role hierarchy:
+ * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+ * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+ * grantable_roles: [owner, admin, member]
+ *
+ * Owner-only resource with no role sharing (api_key, execution_context):
+ * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+ * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+ * grantable_roles: [] (empty — owner is set at creation, no sharing)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig}
@@ -73,6 +84,7 @@ private static final long serialVersionUID = 0L;
     scopeType_ = 0;
     ownerType_ = 0;
     additionalParents_ = java.util.Collections.emptyList();
+    grantableRoles_ = emptyIntList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -326,6 +338,135 @@ private static final long serialVersionUID = 0L;
     return requiresCreatorTuple_;
   }
 
+  public static final int GRANTABLE_ROLES_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.Internal.IntList grantableRoles_ =
+      emptyIntList();
+  private static final     com.google.protobuf.Internal.IntListAdapter.IntConverter<
+      ai.stigmer.iam.v1.IamRole> grantableRoles_converter_ =
+          new com.google.protobuf.Internal.IntListAdapter.IntConverter<
+              ai.stigmer.iam.v1.IamRole>() {
+            public ai.stigmer.iam.v1.IamRole convert(int from) {
+              ai.stigmer.iam.v1.IamRole result = ai.stigmer.iam.v1.IamRole.forNumber(from);
+              return result == null ? ai.stigmer.iam.v1.IamRole.UNRECOGNIZED : result;
+            }
+          };
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind via IAM policies.
+   * Drives the web app role selector and SDK validation for IAM policy creation.
+   *
+   * Each value must correspond to a directly-assignable FGA relation
+   * (defined with [identity_account] in the FGA model). Computed roles
+   * and structural relations are excluded.
+   *
+   * Empty means no user-grantable roles: the resource is either owner-only
+   * (api_key, execution_context), inherits authorization from a parent
+   * (agent_execution), is self-owned (identity_account), or has no
+   * authorization (platform, api_resource_version).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+   * @return A list containing the grantableRoles.
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.iam.v1.IamRole> getGrantableRolesList() {
+    return new com.google.protobuf.Internal.IntListAdapter<
+        ai.stigmer.iam.v1.IamRole>(grantableRoles_, grantableRoles_converter_);
+  }
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind via IAM policies.
+   * Drives the web app role selector and SDK validation for IAM policy creation.
+   *
+   * Each value must correspond to a directly-assignable FGA relation
+   * (defined with [identity_account] in the FGA model). Computed roles
+   * and structural relations are excluded.
+   *
+   * Empty means no user-grantable roles: the resource is either owner-only
+   * (api_key, execution_context), inherits authorization from a parent
+   * (agent_execution), is self-owned (identity_account), or has no
+   * authorization (platform, api_resource_version).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+   * @return The count of grantableRoles.
+   */
+  @java.lang.Override
+  public int getGrantableRolesCount() {
+    return grantableRoles_.size();
+  }
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind via IAM policies.
+   * Drives the web app role selector and SDK validation for IAM policy creation.
+   *
+   * Each value must correspond to a directly-assignable FGA relation
+   * (defined with [identity_account] in the FGA model). Computed roles
+   * and structural relations are excluded.
+   *
+   * Empty means no user-grantable roles: the resource is either owner-only
+   * (api_key, execution_context), inherits authorization from a parent
+   * (agent_execution), is self-owned (identity_account), or has no
+   * authorization (platform, api_resource_version).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+   * @param index The index of the element to return.
+   * @return The grantableRoles at the given index.
+   */
+  @java.lang.Override
+  public ai.stigmer.iam.v1.IamRole getGrantableRoles(int index) {
+    return grantableRoles_converter_.convert(grantableRoles_.getInt(index));
+  }
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind via IAM policies.
+   * Drives the web app role selector and SDK validation for IAM policy creation.
+   *
+   * Each value must correspond to a directly-assignable FGA relation
+   * (defined with [identity_account] in the FGA model). Computed roles
+   * and structural relations are excluded.
+   *
+   * Empty means no user-grantable roles: the resource is either owner-only
+   * (api_key, execution_context), inherits authorization from a parent
+   * (agent_execution), is self-owned (identity_account), or has no
+   * authorization (platform, api_resource_version).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+   * @return A list containing the enum numeric values on the wire for grantableRoles.
+   */
+  @java.lang.Override
+  public java.util.List<java.lang.Integer>
+  getGrantableRolesValueList() {
+    return grantableRoles_;
+  }
+  /**
+   * <pre>
+   * Roles that can be granted on this resource kind via IAM policies.
+   * Drives the web app role selector and SDK validation for IAM policy creation.
+   *
+   * Each value must correspond to a directly-assignable FGA relation
+   * (defined with [identity_account] in the FGA model). Computed roles
+   * and structural relations are excluded.
+   *
+   * Empty means no user-grantable roles: the resource is either owner-only
+   * (api_key, execution_context), inherits authorization from a parent
+   * (agent_execution), is self-owned (identity_account), or has no
+   * authorization (platform, api_resource_version).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+   * @param index The index of the value to return.
+   * @return The enum numeric value on the wire of grantableRoles at the given index.
+   */
+  @java.lang.Override
+  public int getGrantableRolesValue(int index) {
+    return grantableRoles_.getInt(index);
+  }
+  private int grantableRolesMemoizedSerializedSize;
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -340,6 +481,7 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
+    getSerializedSize();
     if (scopeType_ != ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeType.AUTHORIZATION_SCOPE_TYPE_UNSPECIFIED.getNumber()) {
       output.writeEnum(1, scopeType_);
     }
@@ -357,6 +499,13 @@ private static final long serialVersionUID = 0L;
     }
     if (requiresCreatorTuple_ != false) {
       output.writeBool(6, requiresCreatorTuple_);
+    }
+    if (getGrantableRolesList().size() > 0) {
+      output.writeUInt32NoTag(58);
+      output.writeUInt32NoTag(grantableRolesMemoizedSerializedSize);
+    }
+    for (int i = 0; i < grantableRoles_.size(); i++) {
+      output.writeEnumNoTag(grantableRoles_.getInt(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -396,6 +545,18 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(6, requiresCreatorTuple_);
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < grantableRoles_.size(); i++) {
+        dataSize += com.google.protobuf.CodedOutputStream
+          .computeEnumSizeNoTag(grantableRoles_.getInt(i));
+      }
+      size += dataSize;
+      if (!getGrantableRolesList().isEmpty()) {  size += 1;
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt32SizeNoTag(dataSize);
+      }grantableRolesMemoizedSerializedSize = dataSize;
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -427,6 +588,7 @@ private static final long serialVersionUID = 0L;
     }
     if (getRequiresCreatorTuple()
         != other.getRequiresCreatorTuple()) return false;
+    if (!grantableRoles_.equals(other.grantableRoles_)) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -457,6 +619,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + REQUIRES_CREATOR_TUPLE_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getRequiresCreatorTuple());
+    if (getGrantableRolesCount() > 0) {
+      hash = (37 * hash) + GRANTABLE_ROLES_FIELD_NUMBER;
+      hash = (53 * hash) + grantableRoles_.hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -592,9 +758,20 @@ private static final long serialVersionUID = 0L;
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
    * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
    * requires_creator_tuple: true
+   * grantable_roles: [owner, viewer]
    * -&gt; Creates: environment#organization&#64;organization:&lt;org_id&gt;
    * -&gt; Creates: environment#owner&#64;identity_account:&lt;creator_id&gt;
    * -&gt; Creates: environment#creator&#64;identity_account:&lt;creator_id&gt;
+   *
+   * Organization with three-tier role hierarchy:
+   * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+   * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+   * grantable_roles: [owner, admin, member]
+   *
+   * Owner-only resource with no role sharing (api_key, execution_context):
+   * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+   * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+   * grantable_roles: [] (empty — owner is set at creation, no sharing)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig}
@@ -658,6 +835,7 @@ private static final long serialVersionUID = 0L;
         visibilityBuilder_ = null;
       }
       requiresCreatorTuple_ = false;
+      grantableRoles_ = emptyIntList();
       return this;
     }
 
@@ -726,6 +904,10 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.requiresCreatorTuple_ = requiresCreatorTuple_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        grantableRoles_.makeImmutable();
+        result.grantableRoles_ = grantableRoles_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -781,6 +963,17 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getRequiresCreatorTuple() != false) {
         setRequiresCreatorTuple(other.getRequiresCreatorTuple());
+      }
+      if (!other.grantableRoles_.isEmpty()) {
+        if (grantableRoles_.isEmpty()) {
+          grantableRoles_ = other.grantableRoles_;
+          grantableRoles_.makeImmutable();
+          bitField0_ |= 0x00000040;
+        } else {
+          ensureGrantableRolesIsMutable();
+          grantableRoles_.addAll(other.grantableRoles_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -850,6 +1043,22 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
+            case 56: {
+              int tmpRaw = input.readEnum();
+              ensureGrantableRolesIsMutable();
+              grantableRoles_.addInt(tmpRaw);
+              break;
+            } // case 56
+            case 58: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              ensureGrantableRolesIsMutable();
+              while (input.getBytesUntilLimit() > 0) {
+                grantableRoles_.addInt(input.readEnum());
+              }
+              input.popLimit(limit);
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1767,6 +1976,312 @@ private static final long serialVersionUID = 0L;
     public Builder clearRequiresCreatorTuple() {
       bitField0_ = (bitField0_ & ~0x00000020);
       requiresCreatorTuple_ = false;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.Internal.IntList grantableRoles_ = emptyIntList();
+    private void ensureGrantableRolesIsMutable() {
+      if (!grantableRoles_.isModifiable()) {
+        grantableRoles_ = makeMutableCopy(grantableRoles_);
+      }
+      bitField0_ |= 0x00000040;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @return A list containing the grantableRoles.
+     */
+    public java.util.List<ai.stigmer.iam.v1.IamRole> getGrantableRolesList() {
+      return new com.google.protobuf.Internal.IntListAdapter<
+          ai.stigmer.iam.v1.IamRole>(grantableRoles_, grantableRoles_converter_);
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @return The count of grantableRoles.
+     */
+    public int getGrantableRolesCount() {
+      return grantableRoles_.size();
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @param index The index of the element to return.
+     * @return The grantableRoles at the given index.
+     */
+    public ai.stigmer.iam.v1.IamRole getGrantableRoles(int index) {
+      return grantableRoles_converter_.convert(grantableRoles_.getInt(index));
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @param index The index to set the value at.
+     * @param value The grantableRoles to set.
+     * @return This builder for chaining.
+     */
+    public Builder setGrantableRoles(
+        int index, ai.stigmer.iam.v1.IamRole value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureGrantableRolesIsMutable();
+      grantableRoles_.setInt(index, value.getNumber());
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @param value The grantableRoles to add.
+     * @return This builder for chaining.
+     */
+    public Builder addGrantableRoles(ai.stigmer.iam.v1.IamRole value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureGrantableRolesIsMutable();
+      grantableRoles_.addInt(value.getNumber());
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @param values The grantableRoles to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllGrantableRoles(
+        java.lang.Iterable<? extends ai.stigmer.iam.v1.IamRole> values) {
+      ensureGrantableRolesIsMutable();
+      for (ai.stigmer.iam.v1.IamRole value : values) {
+        grantableRoles_.addInt(value.getNumber());
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearGrantableRoles() {
+      grantableRoles_ = emptyIntList();
+      bitField0_ = (bitField0_ & ~0x00000040);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @return A list containing the enum numeric values on the wire for grantableRoles.
+     */
+    public java.util.List<java.lang.Integer>
+    getGrantableRolesValueList() {
+      grantableRoles_.makeImmutable();
+      return grantableRoles_;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of grantableRoles at the given index.
+     */
+    public int getGrantableRolesValue(int index) {
+      return grantableRoles_.getInt(index);
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @param index The index to set the value at.
+     * @param value The enum numeric value on the wire for grantableRoles to set.
+     * @return This builder for chaining.
+     */
+    public Builder setGrantableRolesValue(
+        int index, int value) {
+      ensureGrantableRolesIsMutable();
+      grantableRoles_.setInt(index, value);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @param value The enum numeric value on the wire for grantableRoles to add.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder addGrantableRolesValue(int value) {
+      ensureGrantableRolesIsMutable();
+      grantableRoles_.addInt(value);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Roles that can be granted on this resource kind via IAM policies.
+     * Drives the web app role selector and SDK validation for IAM policy creation.
+     *
+     * Each value must correspond to a directly-assignable FGA relation
+     * (defined with [identity_account] in the FGA model). Computed roles
+     * and structural relations are excluded.
+     *
+     * Empty means no user-grantable roles: the resource is either owner-only
+     * (api_key, execution_context), inherits authorization from a parent
+     * (agent_execution), is self-owned (identity_account), or has no
+     * authorization (platform, api_resource_version).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.iam.v1.IamRole grantable_roles = 7 [json_name = "grantableRoles"];</code>
+     * @param values The enum numeric values on the wire for grantableRoles to add.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder addAllGrantableRolesValue(
+        java.lang.Iterable<java.lang.Integer> values) {
+      ensureGrantableRolesIsMutable();
+      for (int value : values) {
+        grantableRoles_.addInt(value);
+      }
       onChanged();
       return this;
     }

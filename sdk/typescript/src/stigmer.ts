@@ -16,6 +16,7 @@ import type { ExecutionContextClient } from "./gen/executioncontext";
 import type { IamPolicyClient } from "./gen/iampolicy";
 import type { IdentityAccountClient } from "./gen/identityaccount";
 import type { IdentityProviderClient } from "./gen/identityprovider";
+import type { InvitationClient } from "./gen/invitation";
 import type { McpServerClient } from "./gen/mcpserver";
 import type { OrganizationClient } from "./gen/organization";
 import type { ProjectClient } from "./gen/project";
@@ -60,6 +61,7 @@ export class Stigmer {
   readonly iamPolicy: IamPolicyClient;
   readonly identityAccount: IdentityAccountClient;
   readonly identityProvider: IdentityProviderClient;
+  readonly invitation: InvitationClient;
   readonly mcpServer: McpServerClient;
   readonly organization: OrganizationClient;
   readonly project: ProjectClient;
@@ -93,6 +95,7 @@ export class Stigmer {
     this.iamPolicy = client.iamPolicy;
     this.identityAccount = client.identityAccount;
     this.identityProvider = client.identityProvider;
+    this.invitation = client.invitation;
     this.mcpServer = client.mcpServer;
     this.organization = client.organization;
     this.project = client.project;

@@ -5,7 +5,7 @@ package ai.stigmer.agentic.executioncontext.v1;
 import "ai/stigmer/agentic/executioncontext/v1/api.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // ExecutionContextCommandController handles write operations for ExecutionContext resources.
 //
@@ -33,7 +33,7 @@ service ExecutionContextCommandController {
   // Called by execution pipeline on behalf of the user.
   // Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
   rpc create(ExecutionContext) returns (ExecutionContext) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Delete an ExecutionContext.
@@ -42,6 +42,6 @@ service ExecutionContextCommandController {
   // Called when execution completes. Handler-level derived auth: checks can_edit
   // on parent agent_execution or workflow_execution.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (ExecutionContext) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

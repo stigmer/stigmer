@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package ai.stigmer.commons.rpc;
+
+import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
+import "ai/stigmer/iam/v1/enum.proto";
+
+// RpcAuthorizationConfig defines the authorization check performed before an RPC executes.
+//
+// @internal
+// The authorization interceptor reads these fields from the method option annotation
+// and performs an FGA check: does the caller have `permission` on
+// `resource_kind:<resolved_id>`?
+message RpcAuthorizationConfig {
+  // Permission required to invoke the RPC.
+  ai.stigmer.iam.v1.IamPermission permission = 1;
+
+  // Resource kind that the permission is checked against.
+  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind resource_kind = 2;
+
+  // Dot-path to the field in the request that contains the resource kind value.
+  // Used when resource_kind varies per request rather than being statically configured.
+  string resource_kind_path = 3;
+
+  // Dot-path to the field in the request that contains the resource identifier for the authorization check.
+  string field_path = 4;
+
+  // Error message returned when the caller lacks the required permission.
+  string error_msg = 5;
+
+  // Static resource identifier used when the ID is not part of the request.
+  //
+  // @internal
+  // Used for platform-level RPCs where the resource is always "stigmer".
+  string resource_id = 6;
+}

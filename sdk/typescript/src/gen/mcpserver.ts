@@ -95,6 +95,7 @@ export class McpServerClient {
         query: params.query,
         org: params.org,
         excludePublic: params.excludePublic ?? false,
+        crossOrgPublic: params.crossOrgPublic ?? false,
         page: params.page ? create(PageInfoSchema, params.page) : undefined,
       }));
       return {

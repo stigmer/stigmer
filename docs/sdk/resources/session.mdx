@@ -48,12 +48,12 @@ session, err := client.Session.Get(ctx, "ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-session = client.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
+session = client.sessions.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.session().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -89,12 +89,12 @@ session, err := client.Session.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-session = client.session.get(id)
+session = client.sessions.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.session().get(id);
+Session session = client.sessions().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -132,7 +132,7 @@ result, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.session.list(ListSessionsRequest(
+result = client.sessions.list(ListSessionsRequest(
     page_size=0,
     page_token="...",
     tags=[],
@@ -141,7 +141,7 @@ result = client.session.list(ListSessionsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-SessionList result = client.session().list(ListSessionsRequest.builder()
+SessionList result = client.sessions().list(ListSessionsRequest.builder()
     .pageSize(0)
     .pageToken("...")
     .tags(List.of())
@@ -179,7 +179,7 @@ result, err := client.Session.ListByAgent(ctx, &stigmer.ListSessionsByAgentReque
 </Tab>
 <Tab value="Python">
 ```python
-result = client.session.list_by_agent(ListSessionsByAgentRequest(
+result = client.sessions.list_by_agent(ListSessionsByAgentRequest(
     agent_id="...",
     page_size=0,
     page_token="...",
@@ -188,7 +188,7 @@ result = client.session.list_by_agent(ListSessionsByAgentRequest(
 </Tab>
 <Tab value="Java">
 ```java
-SessionList result = client.session().listByAgent(ListSessionsByAgentRequest.builder()
+SessionList result = client.sessions().listByAgent(ListSessionsByAgentRequest.builder()
     .agentId("...")
     .pageSize(0)
     .pageToken("...")
@@ -244,7 +244,7 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
 </Tab>
 <Tab value="Python">
 ```python
-session = client.session.apply(SessionInput(
+session = client.sessions.apply(SessionInput(
     name="my-session",
     org="acme",
     slug="...",
@@ -262,7 +262,7 @@ session = client.session.apply(SessionInput(
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.session().apply(SessionInput.builder()
+Session session = client.sessions().apply(SessionInput.builder()
     .name("my-session")
     .org("acme")
     .slug("...")
@@ -327,7 +327,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
 </Tab>
 <Tab value="Python">
 ```python
-session = client.session.create(SessionInput(
+session = client.sessions.create(SessionInput(
     name="my-session",
     org="acme",
     slug="...",
@@ -345,7 +345,7 @@ session = client.session.create(SessionInput(
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.session().create(SessionInput.builder()
+Session session = client.sessions().create(SessionInput.builder()
     .name("my-session")
     .org("acme")
     .slug("...")
@@ -410,7 +410,7 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
 </Tab>
 <Tab value="Python">
 ```python
-session = client.session.update(SessionInput(
+session = client.sessions.update(SessionInput(
     name="my-session",
     org="acme",
     slug="...",
@@ -428,7 +428,7 @@ session = client.session.update(SessionInput(
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.session().update(SessionInput.builder()
+Session session = client.sessions().update(SessionInput.builder()
     .name("my-session")
     .org("acme")
     .slug("...")
@@ -475,7 +475,7 @@ session, err := client.Session.UpdateSandboxId(ctx, &stigmer.UpdateSessionSandbo
 </Tab>
 <Tab value="Python">
 ```python
-session = client.session.update_sandbox_id(UpdateSessionSandboxIdRequest(
+session = client.sessions.update_sandbox_id(UpdateSessionSandboxIdRequest(
     id="...",
     sandbox_id="...",
 ))
@@ -483,7 +483,7 @@ session = client.session.update_sandbox_id(UpdateSessionSandboxIdRequest(
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.session().updateSandboxId(UpdateSessionSandboxIdRequest.builder()
+Session session = client.sessions().updateSandboxId(UpdateSessionSandboxIdRequest.builder()
     .id("...")
     .sandboxId("...")
     .build());
@@ -520,7 +520,7 @@ session, err := client.Session.UpdateSubject(ctx, &stigmer.UpdateSessionSubjectR
 </Tab>
 <Tab value="Python">
 ```python
-session = client.session.update_subject(UpdateSessionSubjectRequest(
+session = client.sessions.update_subject(UpdateSessionSubjectRequest(
     id="...",
     subject="...",
 ))
@@ -528,7 +528,7 @@ session = client.session.update_subject(UpdateSessionSubjectRequest(
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.session().updateSubject(UpdateSessionSubjectRequest.builder()
+Session session = client.sessions().updateSubject(UpdateSessionSubjectRequest.builder()
     .id("...")
     .subject("...")
     .build());
@@ -557,12 +557,12 @@ session, err := client.Session.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-session = client.session.delete(id)
+session = client.sessions.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.session().delete(id);
+Session session = client.sessions().delete(id);
 ```
 </Tab>
 </SDKTabs>

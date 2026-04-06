@@ -8,6 +8,10 @@ import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.iam.identityprovider.v1.IdentityProvider;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryControllerGrpc;
+import ai.stigmer.iam.identityprovider.v1.IdentityProviders;
+import ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput;
+import ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup;
+import ai.stigmer.iam.identityprovider.v1.SsoProviderInfo;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -60,6 +64,18 @@ public final class IdentityProviderClient {
     public IdentityProvider getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.identity_provider).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public IdentityProviders listByOrg(ListIdentityProvidersByOrgInput input) {
+        try {
+            return query.listByOrg(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SsoProviderInfo getSsoProvider(OrganizationSsoLookup input) {
+        try {
+            return query.getSsoProvider(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

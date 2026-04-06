@@ -9,13 +9,13 @@ import { file_ai_stigmer_agentic_mcpserver_v1_api } from "./api_pb";
 import type { ApiResourceIdSchema, ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../../iam/iampolicy/v1/rpcauthorization/method_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 
 /**
  * Describes the file ai/stigmer/agentic/mcpserver/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3F1ZXJ5LnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxMq8CChhNY3BTZXJ2ZXJRdWVyeUNvbnRyb2xsZXISkgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiMMK4GCwIAxAsIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIHZpZXcgbWNwIHNlcnZlchJ4Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBGgSg/yssYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3F1ZXJ5LnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxMq8CChhNY3BTZXJ2ZXJRdWVyeUNvbnRyb2xsZXISkgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiMMK4GCwIARAsIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIHZpZXcgbWNwIHNlcnZlchJ4Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBGgSg/yssYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * McpServerQueryController provides read operations for MCP server resources.

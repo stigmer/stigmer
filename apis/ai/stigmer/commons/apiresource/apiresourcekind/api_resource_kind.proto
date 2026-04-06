@@ -133,6 +133,24 @@ enum ApiResourceKind {
     }
   }];
 
+  // IAM - Organization invitation management
+
+  // Shareable link for joining an organization with a configurable role.
+  invitation = 20 [(kind_meta) = {
+    group: iam
+    version: v1
+    name: "Invitation"
+    display_name: "Invitation"
+    id_prefix: "inv"
+    is_versioned: false
+    not_search_indexed: true
+    tier: cloud_only
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+    }
+  }];
+
   // IAM - External identity provider configuration
 
   // External identity provider for federated authentication.
@@ -148,6 +166,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -166,6 +188,12 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        admin,
+        member,
+        viewer
+      ]
     }
   }];
 
@@ -201,6 +229,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {supports_public: true}
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -238,6 +270,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -255,6 +291,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {supports_public: true}
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -272,6 +312,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {supports_public: true}
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -296,6 +340,10 @@ enum ApiResourceKind {
           spec_field: "agent_id"
         }
       ]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -315,6 +363,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       visibility: {supports_public: true}
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -338,6 +390,10 @@ enum ApiResourceKind {
           spec_field: "workflow_id"
         }
       ]
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -354,6 +410,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -371,6 +431,10 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       requires_creator_tuple: true
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 
@@ -405,6 +469,10 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
     }
   }];
 }

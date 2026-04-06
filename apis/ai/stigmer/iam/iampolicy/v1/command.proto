@@ -3,8 +3,9 @@ syntax = "proto3";
 package ai.stigmer.iam.iampolicy.v1;
 
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/api.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/io.proto";
 import "ai/stigmer/iam/iampolicy/v1/spec.proto";
 import "google/protobuf/empty.proto";
 
@@ -54,8 +55,8 @@ service IamPolicyCommandController {
   // Input: IamPolicySpec containing principal, resource, and relation
   // Output: The created IamPolicy with generated ID and metadata
   rpc create(IamPolicySpec) returns (IamPolicy) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_grant_access;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to grant access";
+    option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to grant access";
   }
 
   // Delete a single IAM policy by spec
@@ -88,8 +89,8 @@ service IamPolicyCommandController {
   // Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
   // Output: The deleted IamPolicy object (for audit/confirmation purposes)
   rpc delete(IamPolicySpec) returns (IamPolicy) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_grant_access;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to revoke access";
+    option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke access";
   }
 
   // Bootstrap IAM policy during resource creation
@@ -132,10 +133,10 @@ service IamPolicyCommandController {
   // Input: IamPolicySpec containing principal, resource, and relation
   // Output: The created IamPolicy with generated ID and metadata
   rpc bootstrapPolicy(IamPolicySpec) returns (IamPolicy) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_bootstrap_iam;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to bootstrap policy - can_bootstrap_iam permission required";
+    option (ai.stigmer.commons.rpc.config).permission = can_bootstrap_iam;
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to bootstrap policy - can_bootstrap_iam permission required";
   }
 
   // Cleanup all IAM policies for a deleted resource.
@@ -170,9 +171,37 @@ service IamPolicyCommandController {
   // Input: ApiResourceRef with resource kind and ID
   // Output: Empty (google.protobuf.Empty)
   rpc cleanupResourcePolicies(ApiResourceRef) returns (google.protobuf.Empty) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_bootstrap_iam;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to cleanup resource policies - can_bootstrap_iam permission required";
+    option (ai.stigmer.commons.rpc.config).permission = can_bootstrap_iam;
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cleanup resource policies - can_bootstrap_iam permission required";
+  }
+
+  // Revoke all of a user's access to an organization.
+  //
+  // Removes every IAM policy that grants the specified identity account access to
+  // resources within the given organization, including policies on the organization
+  // itself and on child resources (environments, agents, etc.).
+  //
+  // @internal
+  // The operation:
+  // 1. Validates the input (identity_account_id and organization_id are present)
+  // 2. Authorizes caller (can_grant_access on the organization)
+  // 3. Loads all policies where the user is principal within the org scope
+  // 4. Deletes all matching policies from MongoDB
+  // 5. Removes all corresponding tuples from OpenFGA
+  //
+  // Authorization:
+  // - Caller must have 'can_grant_access' permission on the organization
+  //
+  // Use Cases:
+  // - Removing a member from an organization
+  // - Offboarding a user from all org resources in one operation
+  //
+  // Input: RevokeOrgAccessInput with identity_account_id and organization_id
+  // Output: Empty (google.protobuf.Empty)
+  rpc revokeOrgAccess(RevokeOrgAccessInput) returns (google.protobuf.Empty) {
+    option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke organization access";
   }
 }

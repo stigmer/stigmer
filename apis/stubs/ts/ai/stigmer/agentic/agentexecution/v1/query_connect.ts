@@ -166,10 +166,6 @@ export const AgentExecutionQueryController = {
      *
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      *
-     * @internal
-     * Authorization is handled in handler — caller must have can_view on
-     * all executions in the session (same pattern as listBySession).
-     *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getSessionUsageReport
      */
     getSessionUsageReport: {
@@ -184,7 +180,8 @@ export const AgentExecutionQueryController = {
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      *
      * @internal
-     * Authorization is handled in handler — caller must have can_view on the agent.
+     * Not consumed by any UI. Authorization model TBD — when a product need
+     * arises, this should likely be org-scoped (usage of agent X within org Y).
      *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getAgentUsageReport
      */
@@ -198,9 +195,6 @@ export const AgentExecutionQueryController = {
      * Get a usage report for an organization.
      *
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-     *
-     * @internal
-     * Authorization is handled in handler — caller must be org member.
      *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getOrgUsageReport
      */

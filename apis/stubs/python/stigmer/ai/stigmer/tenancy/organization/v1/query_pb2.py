@@ -24,13 +24,13 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.tenancy.organization.v1 import api_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2
 from ai.stigmer.tenancy.organization.v1 import io_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/tenancy/organization/v1/query.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x04\n\x1bOrganizationQueryController\x12\x9f\x01\n\x03get\x12\x32.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a\x30.ai.stigmer.tenancy.organization.v1.Organization\"2\xc2\xb8\x18.\x08\x03\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n\x04\x66ind\x12\x37.ai.stigmer.commons.apiresource.FindApiResourcesRequest\x1a\x34.ai.stigmer.tenancy.organization.v1.OrganizationList\"\x04\xd0\xb8\x18\x01\x12\x66\n\x13\x66indMyOrganizations\x12\x16.google.protobuf.Empty\x1a\x31.ai.stigmer.tenancy.organization.v1.Organizations\"\x04\xd0\xb8\x18\x01\x12\x8c\x01\n\x12getByExternalOrgId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a\x30.ai.stigmer.tenancy.organization.v1.Organization\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x1e\x42\xe1\x01\n&com.ai.stigmer.tenancy.organization.v1B\nQueryProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/tenancy/organization/v1/query.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x04\n\x1bOrganizationQueryController\x12\x9f\x01\n\x03get\x12\x32.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a\x30.ai.stigmer.tenancy.organization.v1.Organization\"2\xc2\xb8\x18.\x08\x01\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n\x04\x66ind\x12\x37.ai.stigmer.commons.apiresource.FindApiResourcesRequest\x1a\x34.ai.stigmer.tenancy.organization.v1.OrganizationList\"\x04\xd0\xb8\x18\x01\x12\x66\n\x13\x66indMyOrganizations\x12\x16.google.protobuf.Empty\x1a\x31.ai.stigmer.tenancy.organization.v1.Organizations\"\x04\xd0\xb8\x18\x01\x12\x8c\x01\n\x12getByExternalOrgId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a\x30.ai.stigmer.tenancy.organization.v1.Organization\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x1e\x42\xe1\x01\n&com.ai.stigmer.tenancy.organization.v1B\nQueryProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,13 +41,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ORGANIZATIONQUERYCONTROLLER']._loaded_options = None
   _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_options = b'\240\377+\036'
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030.\010\003\020\036\"\005value*!unauthorized to view organization'
+  _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030.\010\001\020\036\"\005value*!unauthorized to view organization'
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['find']._loaded_options = None
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['find']._serialized_options = b'\320\270\030\001'
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['findMyOrganizations']._loaded_options = None
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['findMyOrganizations']._serialized_options = b'\320\270\030\001'
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['getByExternalOrgId']._loaded_options = None
   _globals['_ORGANIZATIONQUERYCONTROLLER'].methods_by_name['getByExternalOrgId']._serialized_options = b'\320\270\030\001'
-  _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_start=373
-  _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_end=942
+  _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_start=351
+  _globals['_ORGANIZATIONQUERYCONTROLLER']._serialized_end=920
 # @@protoc_insertion_point(module_scope)

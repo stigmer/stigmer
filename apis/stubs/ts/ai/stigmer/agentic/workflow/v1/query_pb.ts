@@ -11,13 +11,13 @@ import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../../iam/iampolicy/v1/rpcauthorization/method_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 
 /**
  * Describes the file ai/stigmer/agentic/workflow/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MTKkAgoXV29ya2Zsb3dRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd0lkGiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93Ii3CuBgpCAMQMiIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgd29ya2Zsb3cSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciBNC4GAEaBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MTKkAgoXV29ya2Zsb3dRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd0lkGiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93Ii3CuBgpCAEQMiIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgd29ya2Zsb3cSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciBNC4GAEaBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowQueryController handles read operations for workflows.

@@ -1,18 +1,34 @@
-import { ApiKeysSection } from "@/components/settings/ApiKeysSection";
-import { EnvironmentsSection } from "@/components/settings/EnvironmentsSection";
+import Link from "next/link";
+import { SETTINGS_NAV_GROUPS } from "@/components/layout/settings-nav";
 
 export default function SettingsPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
-      <h1 className="text-foreground mb-1 text-xl font-semibold">Settings</h1>
-      <p className="text-muted-foreground mb-8 text-sm">
-        Manage your API keys, environments, and configuration.
-      </p>
-
-      <div className="space-y-10">
-        <ApiKeysSection />
-        <EnvironmentsSection />
-      </div>
+    <div className="flex flex-col gap-6">
+      {SETTINGS_NAV_GROUPS.map((group) => (
+        <section
+          key={group.label}
+          className="border-border rounded-lg border p-5"
+        >
+          <h2 className="text-foreground mb-1 text-sm font-semibold">
+            {group.label}
+          </h2>
+          <p className="text-muted-foreground mb-4 text-xs">
+            {group.description}
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {group.items.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-foreground hover:text-primary flex items-center gap-1.5 text-sm font-medium transition-colors"
+              >
+                <item.icon className="text-muted-foreground size-4 shrink-0" />
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

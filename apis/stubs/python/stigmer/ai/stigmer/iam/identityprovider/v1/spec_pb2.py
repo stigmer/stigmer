@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1b\x62uf/validate/validate.proto\"\xab\x02\n\x14IdentityProviderSpec\x12+\n\x0c\x64isplay_name\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xc8\x01R\x0b\x64isplayName\x12#\n\x08jwks_uri\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10R\x07jwksUri\x12\'\n\x0f\x61llowed_issuers\x18\x03 \x03(\tR\x0e\x61llowedIssuers\x12\x35\n\x11\x65xpected_audience\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\xc8\x01R\x10\x65xpectedAudience\x12*\n\x11rate_limit_budget\x18\x05 \x01(\x05R\x0frateLimitBudget\x12\x35\n\x11userinfo_endpoint\x18\x06 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpointB\xe0\x01\n&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1b\x62uf/validate/validate.proto\"\x83\x03\n\x14IdentityProviderSpec\x12+\n\x0c\x64isplay_name\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xc8\x01R\x0b\x64isplayName\x12#\n\x08jwks_uri\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10R\x07jwksUri\x12\'\n\x0f\x61llowed_issuers\x18\x03 \x03(\tR\x0e\x61llowedIssuers\x12\x35\n\x11\x65xpected_audience\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\xc8\x01R\x10\x65xpectedAudience\x12*\n\x11rate_limit_budget\x18\x05 \x01(\x05R\x0frateLimitBudget\x12\x35\n\x11userinfo_endpoint\x18\x06 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpoint\x12&\n\x0fis_sso_provider\x18\x07 \x01(\x08R\risSsoProvider\x12.\n\x0eoidc_client_id\x18\x08 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02R\x0coidcClientIdB\xe0\x01\n&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,6 +41,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IDENTITYPROVIDERSPEC'].fields_by_name['expected_audience']._serialized_options = b'\272H\005r\003\030\310\001'
   _globals['_IDENTITYPROVIDERSPEC'].fields_by_name['userinfo_endpoint']._loaded_options = None
   _globals['_IDENTITYPROVIDERSPEC'].fields_by_name['userinfo_endpoint']._serialized_options = b'\272H\005r\003\030\200\020'
+  _globals['_IDENTITYPROVIDERSPEC'].fields_by_name['oidc_client_id']._loaded_options = None
+  _globals['_IDENTITYPROVIDERSPEC'].fields_by_name['oidc_client_id']._serialized_options = b'\272H\005r\003\030\200\002'
   _globals['_IDENTITYPROVIDERSPEC']._serialized_start=115
-  _globals['_IDENTITYPROVIDERSPEC']._serialized_end=414
+  _globals['_IDENTITYPROVIDERSPEC']._serialized_end=502
 # @@protoc_insertion_point(module_scope)

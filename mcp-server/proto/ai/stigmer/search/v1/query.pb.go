@@ -7,7 +7,7 @@
 package searchv1
 
 import (
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -25,7 +25,7 @@ var File_ai_stigmer_search_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_search_v1_query_proto_rawDesc = "" +
 	"\n" +
-	" ai/stigmer/search/v1/query.proto\x12\x14ai.stigmer.search.v1\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a\x1dai/stigmer/search/v1/io.proto2j\n" +
+	" ai/stigmer/search/v1/query.proto\x12\x14ai.stigmer.search.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1dai/stigmer/search/v1/io.proto2j\n" +
 	"\rSearchService\x12Y\n" +
 	"\x06search\x12#.ai.stigmer.search.v1.SearchRequest\x1a$.ai.stigmer.search.v1.SearchResponse\"\x04и\x18\x01B\xe4\x01\n" +
 	"\x18com.ai.stigmer.search.v1B\n" +

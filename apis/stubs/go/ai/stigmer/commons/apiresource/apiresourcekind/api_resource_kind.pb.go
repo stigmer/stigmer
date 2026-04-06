@@ -185,6 +185,8 @@ const (
 	ApiResourceKind_identity_account ApiResourceKind = 11
 	// Credential for programmatic API access.
 	ApiResourceKind_api_key ApiResourceKind = 12
+	// Shareable link for joining an organization with a configurable role.
+	ApiResourceKind_invitation ApiResourceKind = 20
 	// External identity provider for federated authentication.
 	ApiResourceKind_identity_provider ApiResourceKind = 21
 	// Top-level tenant that owns and manages resources.
@@ -225,6 +227,7 @@ var (
 		10: "iam_policy",
 		11: "identity_account",
 		12: "api_key",
+		20: "invitation",
 		21: "identity_provider",
 		30: "organization",
 		31: "platform",
@@ -247,6 +250,7 @@ var (
 		"iam_policy":                10,
 		"identity_account":          11,
 		"api_key":                   12,
+		"invitation":                20,
 		"identity_provider":         21,
 		"organization":              30,
 		"platform":                  31,
@@ -452,7 +456,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xb8\v\n" +
+	"\astigmer\x10\x01*\xab\f\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -461,28 +465,34 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x1a/\xaa\xff++\b\x02\x10\x01\x1a\tIamPolicy\"\n" +
 	"IAM Policy*\x04iamp8\x01@\x02J\x04\b\x02\x10\x01\x12N\n" +
 	"\x10identity_account\x10\v\x1a8\xaa\xff+4\b\x02\x10\x01\x1a\x0fIdentityAccount\"\x10Identity Account*\x03ida@\x02J\x04\b\x04\x10\x03\x125\n" +
-	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x02J\x04\b\x04\x10\x01\x12S\n" +
-	"\x11identity_provider\x10\x15\x1a<\xaa\xff+8\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x02J\x04\b\x02\x10\x01\x12C\n" +
-	"\forganization\x10\x1e\x1a1\xaa\xff+-\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\x04\b\x04\x10\x01\x129\n" +
-	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02J\x04\b\x05\x10\x04\x122\n" +
-	"\x05agent\x10(\x1a'\xaa\xff+#\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12k\n" +
+	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x02J\x04\b\x04\x10\x01\x12?\n" +
+	"\n" +
+	"invitation\x10\x14\x1a/\xaa\xff++\b\x02\x10\x01\x1a\n" +
+	"Invitation\"\n" +
+	"Invitation*\x03inv8\x01@\x02J\x04\b\x02\x10\x01\x12W\n" +
+	"\x11identity_provider\x10\x15\x1a@\xaa\xff+<\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12I\n" +
+	"\forganization\x10\x1e\x1a7\xaa\xff+3\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\n" +
+	"\b\x04\x10\x01:\x04\x01\x02\x03\x04\x129\n" +
+	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +
+	"\x05agent\x10(\x1a+\xaa\xff+'\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt@\x01J\f\b\x02\x10\x01*\x02\b\x01:\x02\x01\x04\x12k\n" +
 	"\x0fagent_execution\x10)\x1aV\xaa\xff+R\b\x01\x10\x01\x1a\x0eAgentExecution\"\x0fAgent Execution*\x03aex@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
 	"\asession\x12\asession\x1a\n" +
-	"session_id\x124\n" +
-	"\asession\x10*\x1a'\xaa\xff+#\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\x04\b\x02\x10\x01\x124\n" +
-	"\x05skill\x10+\x1a)\xaa\xff+%\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12@\n" +
+	"session_id\x128\n" +
+	"\asession\x10*\x1a+\xaa\xff+'\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x128\n" +
+	"\x05skill\x10+\x1a-\xaa\xff+)\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\f\b\x02\x10\x01*\x02\b\x01:\x02\x01\x04\x12D\n" +
 	"\n" +
-	"mcp_server\x10,\x1a0\xaa\xff+,\b\x01\x10\x01\x1a\tMcpServer\"\n" +
-	"MCP Server*\x03mcp@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12f\n" +
-	"\x0eagent_instance\x10-\x1aR\xaa\xff+N\b\x01\x10\x01\x1a\rAgentInstance\"\x0eAgent Instance*\x03ain@\x01J\"\b\x02\x10\x01\"\x18\n" +
-	"\x05agent\x12\x05agent\x1a\bagent_id*\x02\b\x01\x12;\n" +
-	"\bworkflow\x102\x1a-\xaa\xff+)\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12t\n" +
-	"\x11workflow_instance\x103\x1a]\xaa\xff+Y\b\x01\x10\x01\x1a\x10WorkflowInstance\"\x11Workflow Instance*\x03win@\x01J'\b\x02\x10\x01\"!\n" +
-	"\bworkflow\x12\bworkflow\x1a\vworkflow_id\x12T\n" +
-	"\x12workflow_execution\x104\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\x04\b\x02\x10\x01\x12B\n" +
-	"\venvironment\x105\x1a1\xaa\xff+-\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x06\b\x02\x10\x010\x01\x12R\n" +
-	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x124\n" +
-	"\aproject\x10<\x1a'\xaa\xff+#\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\x04\b\x02\x10\x01:\x85\x01\n" +
+	"mcp_server\x10,\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\tMcpServer\"\n" +
+	"MCP Server*\x03mcp@\x01J\f\b\x02\x10\x01*\x02\b\x01:\x02\x01\x04\x12j\n" +
+	"\x0eagent_instance\x10-\x1aV\xaa\xff+R\b\x01\x10\x01\x1a\rAgentInstance\"\x0eAgent Instance*\x03ain@\x01J&\b\x02\x10\x01\"\x18\n" +
+	"\x05agent\x12\x05agent\x1a\bagent_id*\x02\b\x01:\x02\x01\x04\x12?\n" +
+	"\bworkflow\x102\x1a1\xaa\xff+-\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl@\x01J\f\b\x02\x10\x01*\x02\b\x01:\x02\x01\x04\x12x\n" +
+	"\x11workflow_instance\x103\x1aa\xaa\xff+]\b\x01\x10\x01\x1a\x10WorkflowInstance\"\x11Workflow Instance*\x03win@\x01J+\b\x02\x10\x01\"!\n" +
+	"\bworkflow\x12\bworkflow\x1a\vworkflow_id:\x02\x01\x04\x12X\n" +
+	"\x12workflow_execution\x104\x1a@\xaa\xff+<\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12F\n" +
+	"\venvironment\x105\x1a5\xaa\xff+1\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\n" +
+	"\b\x02\x10\x010\x01:\x02\x01\x04\x12R\n" +
+	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x128\n" +
+	"\aproject\x10<\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\b\b\x02\x10\x01:\x02\x01\x04:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

@@ -9,7 +9,7 @@ Every IdentityAccount is created in one of three provisioning modes. The mode is
 | Mode | `provisioning_mode` value | Who creates it | `idp_id` format |
 |---|---|---|---|
 | Direct | `direct` | Auth0 signup webhook | `auth0\|{subject}` |
-| Federated | `federated` | JIT provisioning via IdentityProvider | `federated:{provider_id}:{external_sub}` |
+| Federated | `federated` | Explicit creation by the platform via API | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
 | Machine | `machine` | Platform bootstrap / M2M setup | `{client_id}@clients` |
 | Legacy | `identity_account_provisioning_mode_unspecified` | Pre-dates the provisioning_mode field | Varies |
 
@@ -38,46 +38,39 @@ A direct account is created when a user signs up through Stigmer's own Auth0 ten
 
 ## Federated Mode
 
-A federated account is created automatically (Just-In-Time) when a user from an external platform authenticates to Stigmer via a configured [IdentityProvider](../../identityprovider/docs/README.md).
+A federated account is explicitly created by the platform when a new user signs up on the platform. The platform calls the `createFederatedAccount` RPC with the user's external subject, email, and name. Stigmer does **not** auto-provision accounts during authentication.
 
 ### Flow
 
 ```
-1. External platform (e.g., Planton Cloud) calls Stigmer's token exchange endpoint
-   with the user's OIDC access token
-2. Stigmer validates the token:
-   a. Fetches signing keys from the IdentityProvider's jwks_uri
-   b. Verifies the JWT signature
-   c. Validates iss (allowed_issuers) and aud (expected_audience)
-3. Stigmer fetches the user profile from the IdentityProvider's userinfo_endpoint
-4. If no IdentityAccount exists for this user+provider combination:
-   a. Creates a federated IdentityAccount with idp_id = "federated:{provider_id}:{external_sub}"
-   b. Sets email, first_name, last_name, picture_url from UserInfo
-   c. Sets identity_provider_ref to the IdentityProvider resource
-   d. Writes a self-ownership FGA tuple
-5. If the account already exists, profile fields are updated from UserInfo (kept fresh)
-6. Stigmer issues a Stigmer-native token for subsequent API access
+1. Platform backend creates a federated IdentityAccount via createFederatedAccount:
+   a. Provides the IdentityProvider reference (org + slug)
+   b. Provides the user's external sub claim (raw OIDC sub)
+   c. Provides email, first_name, last_name, picture_url
+   d. Stigmer creates the account and returns the identity_account_id
+   e. Stigmer writes a self-ownership FGA tuple
+2. Platform grants roles to the new account (e.g., member on the organization)
+3. When the user authenticates via the platform's JWT:
+   a. Stigmer validates the JWT against the IdentityProvider's JWKS
+   b. Stigmer resolves the account by (identity_provider_ref, idp_id)
+   c. If found: proceeds with FGA authorization checks
+   d. If NOT found: returns 401 Unauthorized
 ```
 
 ### Characteristics
 
 - `provisioning_mode`: `federated`
-- `idp_id`: compound key (e.g., `federated:idp_01JXY123:auth0|user-456`)
-- `email`, `first_name`, `last_name`, `picture_url`: from the IdentityProvider's UserInfo response; refreshed on every token exchange
+- `idp_id`: raw OIDC sub claim from the external provider (e.g., `google-oauth2|109876543210`)
 - `identity_provider_ref`: points to the owning IdentityProvider resource
+- Uniqueness: the pair `(identity_provider_ref, idp_id)` is unique
+- `email`, `first_name`, `last_name`, `picture_url`: provided by the platform at account creation
 - The account **cannot** log in to Stigmer directly — it has no credentials in Stigmer's Auth0
 
-### `idp_id` Compound Key
+### `idp_id` for Federated Accounts
 
-The compound key format ensures global uniqueness across all identity providers:
+The `idp_id` stores the raw OIDC `sub` claim from the external identity provider, exactly as it appears in the JWT. Uniqueness is scoped by the `identity_provider_ref` — two different identity providers can have users with the same `sub` without conflict.
 
-```
-federated:{provider_id}:{external_sub}
-           └── IdentityProvider resource ID
-                             └── User's subject ID in the external system
-```
-
-Example: `federated:idp_01JXY123:auth0|user-456`
+Example: `google-oauth2|109876543210`
 
 ## Machine Mode
 

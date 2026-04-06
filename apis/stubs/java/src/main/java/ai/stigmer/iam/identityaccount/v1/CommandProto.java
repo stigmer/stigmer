@@ -38,53 +38,58 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\n/ai/stigmer/iam/identityaccount/v1/comm" +
       "and.proto\022!ai.stigmer.iam.identityaccoun" +
       "t.v1\0328ai/stigmer/commons/apiresource/rpc" +
-      "_service_options.proto\032Aai/stigmer/iam/i" +
-      "ampolicy/v1/rpcauthorization/method_opti" +
-      "ons.proto\032+ai/stigmer/iam/identityaccoun" +
-      "t/v1/api.proto\032*ai/stigmer/iam/identitya" +
-      "ccount/v1/io.proto\032\033google/protobuf/empt" +
-      "y.proto2\362\004\n IdentityAccountCommandContro" +
-      "ller\022v\n\006create\0222.ai.stigmer.iam.identity" +
-      "account.v1.IdentityAccount\0322.ai.stigmer." +
-      "iam.identityaccount.v1.IdentityAccount\"\004" +
-      "\320\270\030\001\022\260\001\n\006update\0222.ai.stigmer.iam.identit" +
-      "yaccount.v1.IdentityAccount\0322.ai.stigmer" +
+      "_service_options.proto\032+ai/stigmer/commo" +
+      "ns/rpc/method_options.proto\032+ai/stigmer/" +
+      "iam/identityaccount/v1/api.proto\032*ai/sti" +
+      "gmer/iam/identityaccount/v1/io.proto\032\033go" +
+      "ogle/protobuf/empty.proto2\317\006\n IdentityAc" +
+      "countCommandController\022v\n\006create\0222.ai.st" +
+      "igmer.iam.identityaccount.v1.IdentityAcc" +
+      "ount\0322.ai.stigmer.iam.identityaccount.v1" +
+      ".IdentityAccount\"\004\320\270\030\001\022\260\001\n\006update\0222.ai.s" +
+      "tigmer.iam.identityaccount.v1.IdentityAc" +
+      "count\0322.ai.stigmer.iam.identityaccount.v" +
+      "1.IdentityAccount\">\302\270\030:\010\002\020\013\"\013metadata.id" +
+      "*\'unauthorized to update identity accoun" +
+      "t\022\254\001\n\006delete\0224.ai.stigmer.iam.identityac" +
+      "count.v1.IdentityAccountId\0322.ai.stigmer." +
+      "iam.identityaccount.v1.IdentityAccount\"8" +
+      "\302\270\0304\010\003\020\013\"\005value*\'unauthorized to delete " +
+      "identity account\022\332\001\n\026createFederatedAcco" +
+      "unt\022>.ai.stigmer.iam.identityaccount.v1." +
+      "CreateFederatedAccountInput\0322.ai.stigmer" +
       ".iam.identityaccount.v1.IdentityAccount\"" +
-      ">\302\270\030:\010\004\020\013\"\013metadata.id*\'unauthorized to " +
-      "update identity account\022\254\001\n\006delete\0224.ai." +
-      "stigmer.iam.identityaccount.v1.IdentityA" +
-      "ccountId\0322.ai.stigmer.iam.identityaccoun" +
-      "t.v1.IdentityAccount\"8\302\270\0304\010\002\020\013\"\005value*\'u" +
-      "nauthorized to delete identity account\022n" +
-      "\n\025simulateSignupWebhook\0227.ai.stigmer.iam" +
-      ".identityaccount.v1.IdentityAccountEmail" +
-      "\032\026.google.protobuf.Empty\"\004\320\270\030\001\032\004\240\377+\013B\267\001B" +
-      "\014CommandProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam." +
-      "Identityaccount.V1\312\002!Ai\\Stigmer\\Iam\\Iden" +
-      "tityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Identity" +
-      "account\\V1\\GPBMetadata\352\002%Ai::Stigmer::Ia" +
-      "m::Identityaccount::V1b\006proto3"
+      "L\302\270\030H\010\025\020\036\"\003org*=unauthorized to create i" +
+      "dentity accounts in this organization\022n\n" +
+      "\025simulateSignupWebhook\0227.ai.stigmer.iam." +
+      "identityaccount.v1.IdentityAccountEmail\032" +
+      "\026.google.protobuf.Empty\"\004\320\270\030\001\032\004\240\377+\013B\267\001B\014" +
+      "CommandProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.I" +
+      "dentityaccount.V1\312\002!Ai\\Stigmer\\Iam\\Ident" +
+      "ityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Identitya" +
+      "ccount\\V1\\GPBMetadata\352\002%Ai::Stigmer::Iam" +
+      "::Identityaccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.identityaccount.v1.ApiProto.getDescriptor(),
           ai.stigmer.iam.identityaccount.v1.IoProto.getDescriptor(),
           com.google.protobuf.EmptyProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.IoProto.getDescriptor();
     com.google.protobuf.EmptyProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

@@ -40,36 +40,36 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "/stigmer/agentic/session/v1/api.proto\032&a" +
       "i/stigmer/agentic/session/v1/io.proto\0328a" +
       "i/stigmer/commons/apiresource/rpc_servic" +
-      "e_options.proto\032Aai/stigmer/iam/iampolic" +
-      "y/v1/rpcauthorization/method_options.pro" +
-      "to2\235\007\n\030SessionCommandController\022W\n\005apply" +
-      "\022&.ai.stigmer.agentic.session.v1.Session" +
-      "\032&.ai.stigmer.agentic.session.v1.Session" +
-      "\022\245\001\n\006create\022&.ai.stigmer.agentic.session" +
-      ".v1.Session\032&.ai.stigmer.agentic.session" +
-      ".v1.Session\"K\302\270\030G\010\022\020\036\"\014metadata.org*3una" +
-      "uthorized to create session in this orga" +
-      "nization\022\217\001\n\006update\022&.ai.stigmer.agentic" +
-      ".session.v1.Session\032&.ai.stigmer.agentic" +
-      ".session.v1.Session\"5\302\270\0301\010\004\020*\"\013metadata." +
-      "id*\036unauthorized to update session\022\251\001\n\ru" +
-      "pdateSubject\022:.ai.stigmer.agentic.sessio" +
-      "n.v1.UpdateSessionSubjectRequest\032&.ai.st" +
-      "igmer.agentic.session.v1.Session\"4\302\270\0300\010\004" +
-      "\020*\"\002id*&unauthorized to update session s" +
-      "ubject\022\255\001\n\017updateSandboxId\022<.ai.stigmer." +
-      "agentic.session.v1.UpdateSessionSandboxI" +
-      "dRequest\032&.ai.stigmer.agentic.session.v1" +
-      ".Session\"4\302\270\0300\010\004\020*\"\002id*&unauthorized to " +
-      "update session sandbox\022\213\001\n\006delete\022(.ai.s" +
-      "tigmer.agentic.session.v1.SessionId\032&.ai" +
-      ".stigmer.agentic.session.v1.Session\"/\302\270\030" +
-      "+\010\002\020*\"\005value*\036unauthorized to delete ses" +
-      "sion\032\004\240\377+*B\247\001B\014CommandProtoP\001\242\002\004ASAS\252\002\035A" +
-      "i.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigme" +
-      "r\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agenti" +
-      "c\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::" +
-      "Agentic::Session::V1b\006proto3"
+      "e_options.proto\032+ai/stigmer/commons/rpc/" +
+      "method_options.proto2\235\007\n\030SessionCommandC" +
+      "ontroller\022W\n\005apply\022&.ai.stigmer.agentic." +
+      "session.v1.Session\032&.ai.stigmer.agentic." +
+      "session.v1.Session\022\245\001\n\006create\022&.ai.stigm" +
+      "er.agentic.session.v1.Session\032&.ai.stigm" +
+      "er.agentic.session.v1.Session\"K\302\270\030G\010\010\020\036\"" +
+      "\014metadata.org*3unauthorized to create se" +
+      "ssion in this organization\022\217\001\n\006update\022&." +
+      "ai.stigmer.agentic.session.v1.Session\032&." +
+      "ai.stigmer.agentic.session.v1.Session\"5\302" +
+      "\270\0301\010\002\020*\"\013metadata.id*\036unauthorized to up" +
+      "date session\022\251\001\n\rupdateSubject\022:.ai.stig" +
+      "mer.agentic.session.v1.UpdateSessionSubj" +
+      "ectRequest\032&.ai.stigmer.agentic.session." +
+      "v1.Session\"4\302\270\0300\010\002\020*\"\002id*&unauthorized t" +
+      "o update session subject\022\255\001\n\017updateSandb" +
+      "oxId\022<.ai.stigmer.agentic.session.v1.Upd" +
+      "ateSessionSandboxIdRequest\032&.ai.stigmer." +
+      "agentic.session.v1.Session\"4\302\270\0300\010\002\020*\"\002id" +
+      "*&unauthorized to update session sandbox" +
+      "\022\213\001\n\006delete\022(.ai.stigmer.agentic.session" +
+      ".v1.SessionId\032&.ai.stigmer.agentic.sessi" +
+      "on.v1.Session\"/\302\270\030+\010\003\020*\"\005value*\036unauthor" +
+      "ized to delete session\032\004\240\377+*B\247\001B\014Command" +
+      "ProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Sess" +
+      "ion.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002" +
+      ")Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetada" +
+      "ta\352\002!Ai::Stigmer::Agentic::Session::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -77,17 +77,17 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.session.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.session.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.session.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.session.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

@@ -59,7 +59,7 @@ stigmer identity-account update update-profile.yaml
 
 ## Federated Account — What It Looks Like
 
-A federated account has additional computed fields populated from the IdentityProvider.
+A federated account is created by the platform and has additional fields linking it to the IdentityProvider.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
@@ -68,7 +68,7 @@ metadata:
   id: ia-01HQFEDUSER
   name: Bob Jones
 spec:
-  idp_id: "federated:idp_01JXY123:auth0|user-456"
+  idp_id: "google-oauth2|109876543210"
   email: bob@partner.example.com
   first_name: Bob
   last_name: Jones
