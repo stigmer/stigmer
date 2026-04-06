@@ -400,14 +400,20 @@ export type {
   OrgMembersPanelProps,
 } from "./iam-policy";
 
-// Organization — behavior hook and styled form for organization creation
+// Organization — data hook, behavior hooks, styled form for creation, and profile panel
 export {
+  useOrganization,
   useCreateOrganization,
+  useUpdateOrganization,
   CreateOrganizationForm,
+  OrgProfilePanel,
 } from "./organization";
 export type {
+  UseOrganizationReturn,
   UseCreateOrganizationReturn,
+  UseUpdateOrganizationReturn,
   CreateOrganizationFormProps,
+  OrgProfilePanelProps,
 } from "./organization";
 
 // API Key — data hooks, behavior hooks, and styled components for API key lifecycle
