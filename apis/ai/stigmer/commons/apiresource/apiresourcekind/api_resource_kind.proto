@@ -173,7 +173,8 @@ enum ApiResourceKind {
       grantable_roles: [
         owner,
         admin,
-        member
+        member,
+        viewer
       ]
     }
   }];
