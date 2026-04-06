@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-04-05 09:00
 **Current Task**: Phase 8 — Documentation
 **Status**: Not Started
-**Last Session**: 2026-04-05 — Phase 7 completed (Web app IdP management pages with guided wizard)
+**Last Session**: 2026-04-05 — Session 8: Removed internal company references from IdP SDK placeholders, confirmed SSO flag UX
 
 ## Session Progress (2026-04-05)
 
