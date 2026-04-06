@@ -144,7 +144,7 @@ function AppearanceSubmenu() {
 function SettingsItem() {
   const router = useRouter();
   return (
-    <DropdownMenuItem onClick={() => router.push("/settings/members")}>
+    <DropdownMenuItem onClick={() => router.push("/settings")}>
       <Settings className="size-4" />
       Settings
     </DropdownMenuItem>

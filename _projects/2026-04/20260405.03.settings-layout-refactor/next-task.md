@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-04-06 (Session 8) — Placeholder nav items for future settings sections
-- **Completed Task**: T01 — Phase 5 (Polish & Edge Cases) — all 5 items complete; placeholder nav items added
+- **Last Session**: 2026-04-06 (Session 9) — Settings IA reorganization: grouped sidebar, landing page, removed shared header
+- **Completed Task**: Settings information architecture reorganization — grouped sidebar sections, landing hub page, removed redundant shared header
 
 ## Session Progress (2026-04-05)
 
@@ -79,14 +79,26 @@ Drop this file into your conversation to quickly resume work on this project.
 - Design decision: normal-looking links navigating to a "Coming soon" page (not disabled/muted items) — cleaner UX, establishes URLs for when features ship
 - ESLint clean (0 errors, 0 warnings)
 
+### Session 9 (2026-04-06)
+- **Settings IA Reorganization** — restructured the settings management zone information architecture
+- Removed shared "Settings" header and subtitle from `settings/layout.tsx` — each page already has its own `h2` with `aria-labelledby`; added `sr-only` h1 for screen reader heading hierarchy
+- Extracted shared `settings-nav.ts` config with `SETTINGS_NAV_GROUPS` constant — single source of truth for group definitions (Organization, Configuration, Billing & Usage) with types, icons, and descriptions
+- Refactored `ManagementSidebar` from flat `NAV_ITEMS` to grouped sections with muted uppercase section labels — follows Gestalt proximity principle for visual grouping
+- Reordered sidebar items: Organization (Org Profile, Members, Identity Providers), Configuration (API Keys, Environments), Billing & Usage (Billing, Usage)
+- Replaced `/settings` redirect-to-members with a landing hub page showing the three groups as bordered cards with descriptions and item links
+- Updated `UserMenu` `SettingsItem` to navigate to `/settings` (hub) instead of `/settings/members`
+- ESLint clean, zero new TypeScript errors (3 pre-existing in codegen files)
+
 ## Next Steps
 1. ~~Phase 5: Polish & edge cases~~ **Complete** (all 5 items done, Session 4-7)
 2. ~~Placeholder nav items for future sections~~ **Complete** (Session 8)
-3. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
+3. ~~Settings IA reorganization~~ **Complete** (Session 9)
+4. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
+5. Browser-verify the settings landing page and grouped sidebar
 
 ## Context for Resume
 - `ComingSoon` component is parameterized by `title` (string) and optional `icon` (Lucide component) — when a feature ships, replace the route page content and delete the `<ComingSoon />` usage
-- Placeholder nav items are in the same `NAV_ITEMS` array as real items — no separate data structure, no `disabled` flag, no special rendering logic
+- Nav items are now in grouped `SETTINGS_NAV_GROUPS` (from `settings-nav.ts`), not a flat array — both ManagementSidebar and the settings landing page import from this shared config
 - ManagementSidebar reuses OrgSwitcher and UserMenu directly — they are self-contained components
 - Sidebar open/close state is shared across zones via useSidebarOpen() (localStorage)
 - Existing section components (MembersSection, ApiKeysSection, EnvironmentsSection) are unchanged except the bootstrap fix
@@ -107,7 +119,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-06-session-8.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-06-session-9.md
 ```
 
 ### 2. Current Task
@@ -144,12 +156,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-06-session-8.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-06-session-9.md`
 2. [ ] Check current task status in `tasks/`
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with visual testing across theme presets
+6. [ ] Browser-verify settings landing page and grouped sidebar
+7. [ ] Continue with visual testing across theme presets
 
 ## Quick Commands
 
