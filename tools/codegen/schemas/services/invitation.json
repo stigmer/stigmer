@@ -392,34 +392,6 @@
   },
   "statusNestedTypes": [
     {
-      "name": "ApiResourceAuditActor",
-      "description": "ApiResourceAuditActor represents the entity that performed an action.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "Id",
-          "jsonName": "id",
-          "protoField": "id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Unique identifier of the actor.",
-          "required": false
-        },
-        {
-          "name": "Avatar",
-          "jsonName": "avatar",
-          "protoField": "avatar",
-          "type": {
-            "kind": "string"
-          },
-          "description": "URL to the actor's avatar image.",
-          "required": false
-        }
-      ]
-    },
-    {
       "name": "InvitationRedemption",
       "description": "InvitationRedemption records a single successful redemption event.",
       "protoType": "ai.stigmer.iam.invitation.v1.InvitationRedemption",
@@ -533,6 +505,34 @@
             "kind": "string"
           },
           "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
           "required": false
         }
       ]
