@@ -68,38 +68,46 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-06 15:54
-**Current Task**: Track 4B — React SDK Components (InvitationManager, InvitationRedemption)
-**Status**: Track 0, 1, 3, 4A complete; Track 2 in progress (separate conversation); Track 4B and 5 pending
-**Last Session**: 2026-04-06 (Session 3) — Completed Track 3 verification + Track 4A (invitation React hooks)
+**Current Task**: Track 2 — InvitationRedeemHandler (last handler) + Track 4B — React SDK Components
+**Status**: Track 0, 1, 3, 4A complete; Track 2 nearly complete (RedeemHandler pending); Track 4B and 5 pending
+**Last Session**: 2026-04-06 (Session 4) — Completed Track 2 backend (FGA + repo + 5 handlers), deferring RedeemHandler
 
-## Session Progress (2026-04-06, Session 3)
+## Session Progress (2026-04-06, Session 4)
 
-- Verified Track 3 (SDK Codegen) was already complete from Session 2's `make codegen` run
-  - `tools/codegen/schemas/services/invitation.json` exists (auto-generated)
-  - Generated clients present in TS, Go, Python, Java SDKs
-  - `InvitationClient` already wired in `stigmer.ts` and exported from `index.ts`
-- Completed Track 4A: Invitation React Hooks (Phase 4A)
-  - Created `sdk/react/src/invitation/` with 5 hooks + domain barrel
-  - `useOrgInvitations(org)` — data hook wrapping `listByOrg` with nullable org, fetchKey/refetch, cancellation
-  - `useCreateInvitation()` — mutation hook wrapping `create` with `InvitationInput`
-  - `useRevokeInvitation()` — mutation hook wrapping `revoke(id)`, idempotent
-  - `useInvitationPreview(token)` — data hook wrapping public `getByToken` endpoint
-  - `useRedeemInvitation()` — mutation hook wrapping `redeem(token)`, internal proto construction
-  - Updated `sdk/react/src/index.ts` barrel with invitation section
-  - Zero linter errors, TypeScript compilation passes
-- Design decisions documented in plan:
-  - Parameter simplification: hooks accept primitives, construct protos internally
-  - No `isRedeemed` success-state tracking on mutation hooks (caller handles via promise)
-  - `org` parameter naming (slug, not ID) matches domain vocabulary
-  - No `useInvitationGet(id)` — no current use case, avoids API surface bloat
-  - `useInvitationPreview` documents public endpoint semantics in JSDoc
+- Completed **Track 2: Invitation Backend** (stigmer-cloud repo) — all phases except RedeemHandler
+- Phase 2A: Created `invitation.fga` FGA model (org-scoped, admin visibility, owner CRUD)
+  - Registered in `fga.mod`, validated with `fga model validate`
+- Phase 2D: Created `InvitationTokenGenerator` utility
+  - 16 bytes SecureRandom, Base62 encoded (~22-char alphanumeric tokens)
+  - No prefix — URL path `/invite/<token>` provides context
+- Phase 2E: Created `InvitationRepo` (MongoDB) + `U20260406_InvitationIndexes` (Mongock migration)
+  - Custom queries: `findByToken`, `findByOrg` (sorted by creation time desc)
+  - Unique indexes on `metadata.id` and `status.token`
+- Created `InvitationGrpcAutoController` with `@AutoGrpcRouterController`
+- Implemented 5 handlers:
+  - `InvitationCreateHandler` — standard create pipeline + custom `ValidateInvitationSpec` (grantable role, expiry bounds, max_redemptions) + `GenerateToken`
+  - `InvitationRevokeHandler` — loads by ID, manual auth against org, sets state to revoked (idempotent)
+  - `InvitationGetHandler` — standard `GetOperationHandlerV2` with `can_view` FGA check
+  - `InvitationListByOrgHandler` — lists by org with `can_view_access` auth
+  - `InvitationGetByTokenHandler` — public endpoint, loads org via MongoTemplate cross-domain read, projects to `InvitationPreview`
+- Build verified: `make build-java` — zero compilation errors
+- FGA model validated: `fga model validate --file fga.mod` — `{"is_valid":true}`
+- Design decisions made (token format):
+  - **Base62** over Base64URL — universally safe for copy-paste across messaging platforms
+  - **16 bytes (128 bits)** over 32 bytes — sufficient for short-lived, revocable tokens, produces cleaner URLs
+  - **No prefix** — URL path is the context, keeps tokens short
+  - **Plaintext storage** — tokens are shareable, not secrets (unlike API keys)
+- Discovered: `StepResult` uses `toString()` or `authConfig.getErrorMsg()` for error messages (not `getErrorMessage()`)
 
 ## Next Steps
 
-1. **Track 2: Invitation Backend** (stigmer-cloud repo) — IN PROGRESS (separate conversation)
-   - Phase 2A: Create `invitation.fga` FGA model (organization, owner, viewer relations)
-   - Phase 2B-2E: Handlers, repos, token generation, redemption atomicity
-2. **Track 4B: React SDK Components** (depends on Track 4A — now complete)
+1. **Track 2: InvitationRedeemHandler** (stigmer-cloud repo) — NEEDS ARCHITECTURAL DISCUSSION
+   - Cross-aggregate: invitation domain needs to create IAM policies
+   - Options: call `IamPolicyRepo.save()` + `OpenFgaWriter.write()` directly, use shared `IamPolicyCreationService`, or invoke `IamPolicyCreateHandler` programmatically
+   - Atomicity: IAM policy must succeed before redemption count increments
+   - Idempotency: check if redeemer is already an org member
+   - State transitions: `active` -> `fully_redeemed` when max_redemptions reached
+2. **Track 4B: React SDK Components** (depends on Track 4A — complete)
    - `InvitationManager` — org settings panel for managing invitations (list, create, copy link, revoke)
    - `InvitationRedemption` — public invite page (show org info, accept/sign-in)
 3. **Track 5: Console Integration** (depends on Track 4B)
@@ -111,19 +119,23 @@ When starting a new session:
 - Track 0 is fully committed (commit `524766bc`)
 - Track 1 is fully committed (commit `7f92da62`)
 - Track 3 was auto-completed by the Track 1 codegen run (no separate commit needed)
-- Track 4A is committed (this session's commit)
-- Track 2 is being worked on in parallel in a separate conversation (stigmer-cloud repo)
+- Track 4A is committed (previous session's commit)
+- Track 2 backend: committed this session (5 handlers + FGA + repo + migration + token utility + controller)
+- Track 2 remaining: **InvitationRedeemHandler only** — deferred for focused architectural discussion
 - The T01 plan (`tasks/T01_0_plan.md`) has the full implementation details for all 5 tracks
 - Key design decision: `can_execute` on child resources must be explicitly enumerated, not derived from `viewer`, to prevent cost exposure
 - Key design decision: `is_skip_authorization` used for `getByToken` (public invite preview) following `getSsoProvider` precedent
+- Key design decision: Base62 tokens (16 bytes, no prefix) for invite URLs — discussed and agreed in Session 4
 - The codegen pipeline auto-generates JSON schemas from protos — never manually create `tools/codegen/schemas/services/*.json`
 - The `GeneratedClient` in `sdk/typescript/src/gen/client.ts` is auto-generated and auto-wires new resource clients, but the hand-written `Stigmer` class in `stigmer.ts` and `index.ts` barrel exports need manual updates
 - Invitation React hooks follow the exact patterns from api-key, organization, and iam-policy hooks (useState/useEffect, no React Query)
-- Cosmetic codegen JSON reordering diffs exist in working tree (not committed — functionally no-op, from `make codegen` verification)
+- Cosmetic codegen JSON reordering diffs exist in stigmer working tree (not committed — functionally no-op, from `make codegen` verification)
+- Backend handler patterns learned: `CreateOperationHandlerV2` for standard CRUD, `CustomOperationHandlerV2` for non-standard I/O types, `GetOperationHandlerV2` for reads, `@AutoGrpcRouterController` for gRPC wiring
 
 ## Quick Commands
 
 After loading context:
+- "Start RedeemHandler" - Begin the deferred cross-aggregate handler (discuss approach first)
 - "Start Track 4B" - Begin invitation React components
 - "Start Track 5" - Begin Console integration (after Track 4B)
 - "Show project status" - Get overview of progress
