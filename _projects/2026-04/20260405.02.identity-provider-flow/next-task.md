@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-05 09:00
-**Current Task**: Phase 7 — Web app IdP management pages
+**Current Task**: Phase 8 — Documentation
 **Status**: Not Started
-**Last Session**: 2026-04-05 — Phase 6 completed (Identity Provider React SDK feature folder)
+**Last Session**: 2026-04-05 — Phase 7 completed (Web app IdP management pages with guided wizard)
 
 ## Session Progress (2026-04-05)
 
@@ -145,6 +145,23 @@ When starting a new session:
   - Decision: `useSsoProvider` treats NOT_FOUND as absence (null), not error — for unauthenticated login pages
   - Decision: IAM policy hooks/components already exist from separate project — will be composed in Phase 7
 
+- **Phase 7: Web App IdP Management Pages** — Done (Session 7)
+  - **SDK React** (`sdk/react/src/identity-provider/`, 5 new files):
+    - `presets.ts` — Provider presets for Auth0, Okta, Google, Entra ID, AWS Cognito, Custom OIDC with deterministic URL template construction
+    - `useOidcDiscovery.ts` — Behavior hook for browser-side OIDC Discovery (Custom OIDC path only) with CORS fallback
+    - `ProviderPicker.tsx` — Responsive 3-column grid of provider cards with thematic SVG icons
+    - `IdentityProviderWizard.tsx` — 3-step guided creation: pick provider → configure → review + create
+    - `IdentityProviderDetailPanel.tsx` — View/edit panel with structured read-only display and inline edit mode
+    - Barrel exports updated in `index.ts` and `sdk/react/src/index.ts`
+  - **Console** (`client-apps/web/`, 3 new files, 2 modified):
+    - Added "Identity Providers" nav item to ManagementSidebar with ShieldCheck icon
+    - `/settings/identity-providers` route + `IdentityProvidersSection` with idle/creating/editing flow state
+    - Settings layout description updated to include identity providers
+  - Decision: Template-based presets (no network calls) for known providers; OIDC Discovery only for Custom OIDC
+  - Decision: Wizard augments, doesn't replace `CreateIdentityProviderForm`
+  - Decision: SSO login flow deferred — only management CRUD pages built
+  - TypeScript type check clean (zero new errors)
+
 ### Key Design Decisions
 - **`idp_id` is not globally unique, but that's fine**: For direct/Auth0 accounts, idp_id is effectively unique. For federated accounts, uniqueness is the compound `(identityProviderRef.org, identityProviderRef.slug, idpId)`. No changes needed.
 - **`getByIdpId` uses direct `findByIdpId`**: Removed Auth0 Management API call + email indirection. Auth0 IDs are unique within the tenant.
@@ -176,9 +193,9 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Phase 7: Web app IdP management pages** — Settings page composing identity-provider and iam-policy components, SSO OIDC RP login flow
+1. **Phase 8: Documentation** — federation flow documentation for platform builders
 
-2. **Phase 8: Documentation** — federation flow documentation for platform builders
+2. **SSO login flow** (deferred) — OIDC RP flow on Stigmer's login page, auto-provisioning of federated accounts for SSO
 
 ## Context for Resume
 

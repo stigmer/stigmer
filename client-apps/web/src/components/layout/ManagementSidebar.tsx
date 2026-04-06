@@ -10,6 +10,7 @@ import {
   CreditCard,
   KeyRound,
   PanelLeft,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import { cn } from "@stigmer/theme";
@@ -30,6 +31,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/settings/members", label: "Members", icon: Users },
   { href: "/settings/api-keys", label: "API Keys", icon: KeyRound },
   { href: "/settings/environments", label: "Environments", icon: Box },
+  { href: "/settings/identity-providers", label: "Identity Providers", icon: ShieldCheck },
   { href: "/settings/billing", label: "Billing", icon: CreditCard },
   { href: "/settings/usage", label: "Usage", icon: BarChart3 },
   { href: "/settings/org-profile", label: "Org Profile", icon: Building2 },
