@@ -102,6 +102,7 @@ func TestProtoTypeToPackageAlias(t *testing.T) {
 		{"ai.stigmer.agentic.skill.v1.SkillSpec", "skillv1"},
 		{"ai.stigmer.commons.apiresource.ApiResourceReference", "apiresource"},
 		{"ai.stigmer.agentic.workflow.v1.WorkflowSpec", "workflowv1"},
+		{"ai.stigmer.iam.v1.IamRole", "iamv1"},
 		{"too.short", ""},
 		{"x", ""},
 	}

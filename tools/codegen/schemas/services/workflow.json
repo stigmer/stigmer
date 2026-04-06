@@ -418,6 +418,36 @@
   },
   "statusNestedTypes": [
     {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ApiResourceAuditInfo",
       "description": "ApiResourceAuditInfo contains detailed audit information.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
@@ -582,36 +612,6 @@
             "kind": "string"
           },
           "description": "Validation process ID for tracking validation progress.\n\n @internal\n Temporal workflow ID. Format: \"validate-workflow-{workflow_id}\".",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAudit",
-      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "SpecAudit",
-          "jsonName": "specAudit",
-          "protoField": "spec_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's specification (desired state).",
-          "required": false
-        },
-        {
-          "name": "StatusAudit",
-          "jsonName": "statusAudit",
-          "protoField": "status_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's status (actual state).",
           "required": false
         }
       ]
