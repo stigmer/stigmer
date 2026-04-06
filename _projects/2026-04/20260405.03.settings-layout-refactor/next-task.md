@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-04-06 (Session 9) — Settings IA reorganization: grouped sidebar, landing page, removed shared header
-- **Completed Task**: Settings information architecture reorganization — grouped sidebar sections, landing hub page, removed redundant shared header
+- **Last Session**: 2026-04-06 (Session 10) — Org Profile page: SDK hooks, styled component, Console integration
+- **Completed Task**: Org Profile settings page — `useOrganization`, `useUpdateOrganization`, `OrgProfilePanel` in `@stigmer/react`, `OrgProfileSection` in Console, replaced ComingSoon placeholder
 
 ## Session Progress (2026-04-05)
 
@@ -89,15 +89,29 @@ Drop this file into your conversation to quickly resume work on this project.
 - Updated `UserMenu` `SettingsItem` to navigate to `/settings` (hub) instead of `/settings/members`
 - ESLint clean, zero new TypeScript errors (3 pre-existing in codegen files)
 
+### Session 10 (2026-04-06)
+- **Org Profile Page** — implemented the organization profile settings page end-to-end following SDK-first architecture
+- Created `useOrganization` data hook in `@stigmer/react` — fetches Organization by ID, follows `useEnvironment` pattern (cancellation, loading, error, refetch)
+- Created `useUpdateOrganization` mutation hook in `@stigmer/react` — wraps `organization.update()`, follows `useUpdateIdentityProvider` pattern
+- Created `OrgProfilePanel` styled component in `@stigmer/react` — self-contained profile editor with read-only identifiers (slug, ID, personal badge), editable fields (name, description with char counter, logo URL with preview), save/discard with dirty tracking
+- Created `OrgProfileSection` Console wrapper — connects `OrgProvider` context to SDK panel, calls `refresh(slug)` on update to sync sidebar
+- Replaced `ComingSoon` placeholder in `org-profile/page.tsx` with `OrgProfileSection`
+- Updated barrel exports in `organization/index.ts` and `sdk/react/src/index.ts`
+- ESLint clean (0 errors, 0 warnings), TypeScript clean for all new files
+- Decision: Slug read-only (cascading refs), Logo URL not upload (no asset storage yet), always-editable form (Jakob's Law)
+
 ## Next Steps
 1. ~~Phase 5: Polish & edge cases~~ **Complete** (all 5 items done, Session 4-7)
 2. ~~Placeholder nav items for future sections~~ **Complete** (Session 8)
 3. ~~Settings IA reorganization~~ **Complete** (Session 9)
-4. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
-5. Browser-verify the settings landing page and grouped sidebar
+4. ~~Org Profile page~~ **Complete** (Session 10)
+5. Browser-verify the Org Profile page renders and save/update flow works
+6. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
+7. Browser-verify the settings landing page and grouped sidebar
 
 ## Context for Resume
-- `ComingSoon` component is parameterized by `title` (string) and optional `icon` (Lucide component) — when a feature ships, replace the route page content and delete the `<ComingSoon />` usage
+- Org Profile page is now live — `OrgProfilePanel` in `@stigmer/react` is self-contained and embeddable; Console's `OrgProfileSection` connects it to `OrgProvider`
+- `ComingSoon` component is still used by Billing and Usage pages — parameterized by `title` (string) and optional `icon` (Lucide component)
 - Nav items are now in grouped `SETTINGS_NAV_GROUPS` (from `settings-nav.ts`), not a flat array — both ManagementSidebar and the settings landing page import from this shared config
 - ManagementSidebar reuses OrgSwitcher and UserMenu directly — they are self-contained components
 - Sidebar open/close state is shared across zones via useSidebarOpen() (localStorage)
@@ -119,7 +133,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-06-session-9.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-06-session-10.md
 ```
 
 ### 2. Current Task
@@ -156,13 +170,14 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-06-session-9.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-06-session-10.md`
 2. [ ] Check current task status in `tasks/`
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Browser-verify settings landing page and grouped sidebar
-7. [ ] Continue with visual testing across theme presets
+6. [ ] Browser-verify Org Profile page renders and save flow works
+7. [ ] Browser-verify settings landing page and grouped sidebar
+8. [ ] Continue with visual testing across theme presets
 
 ## Quick Commands
 
