@@ -14,18 +14,20 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SearchRequest(_message.Message):
-    __slots__ = ("kinds", "query", "org", "exclude_public", "page")
+    __slots__ = ("kinds", "query", "org", "exclude_public", "page", "cross_org_public")
     KINDS_FIELD_NUMBER: _ClassVar[int]
     QUERY_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
     EXCLUDE_PUBLIC_FIELD_NUMBER: _ClassVar[int]
     PAGE_FIELD_NUMBER: _ClassVar[int]
+    CROSS_ORG_PUBLIC_FIELD_NUMBER: _ClassVar[int]
     kinds: _containers.RepeatedScalarFieldContainer[_api_resource_kind_pb2.ApiResourceKind]
     query: str
     org: str
     exclude_public: bool
     page: _pagination_pb2.PageInfo
-    def __init__(self, kinds: _Optional[_Iterable[_Union[_api_resource_kind_pb2.ApiResourceKind, str]]] = ..., query: _Optional[str] = ..., org: _Optional[str] = ..., exclude_public: bool = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    cross_org_public: bool
+    def __init__(self, kinds: _Optional[_Iterable[_Union[_api_resource_kind_pb2.ApiResourceKind, str]]] = ..., query: _Optional[str] = ..., org: _Optional[str] = ..., exclude_public: bool = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., cross_org_public: bool = ...) -> None: ...
 
 class SearchResponse(_message.Message):
     __slots__ = ("entries", "counts_by_kind", "total_count", "total_pages")

@@ -11,22 +11,23 @@ import (
 //
 // This struct follows the Pulumi Args pattern for resource configuration.
 //
-// OrganizationSpec defines the configuration for an organization.
+// OrganizationSpec defines the configurable properties of an organization.
 //
+//	@internal
 //	Organizations are the top-level container for all Stigmer resources.
 //	Similar to GitHub organizations, all agents, workflows, and other resources
 //	are scoped under an organization.
 type OrganizationArgs struct {
-	// description for the organization
+	// Human-readable description of the organization.
 	Description string `json:"description,omitempty"`
-	// public url for the organization logo (optional)
+	// Public URL for the organization logo.
 	LogoUrl string `json:"logoUrl,omitempty"`
-	// How this organization is operated. Immutable after creation.  - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.  - platform_managed: Created programmatically by an external platform via an IdentityProvider.
+	// How this organization is operated.   @internal  Immutable after creation.  - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.  - platform_managed: Created programmatically by an external platform via an IdentityProvider.
 	ManagementMode string `json:"managementMode,omitempty"`
-	// Reference to the IdentityProvider that authenticates requests for this organization.  Required when management_mode is platform_managed; must be empty for self_managed.  The referenced IdentityProvider must exist and be active at creation time.  Immutable after creation.
+	// Reference to the IdentityProvider that authenticates requests for this organization.   @internal  Required when management_mode is platform_managed; must be empty for self_managed.  The referenced IdentityProvider must exist and be active at creation time.  Immutable after creation.
 	IdentityProviderRef *apiresource.ApiResourceReference `json:"identityProviderRef,omitempty"`
-	// External platform's organization identifier for reverse mapping.  Set only for platform_managed organizations. Stores the integrating platform's  own org ID so the platform can look up the corresponding Stigmer org even if  the Stigmer slug differs from the platform's original slug due to availability.
+	// External platform's organization identifier for reverse mapping.   @internal  Set only for platform_managed organizations. Stores the integrating platform's  own org ID so the platform can look up the corresponding Stigmer org even if  the Stigmer slug differs from the platform's original slug due to availability.
 	ExternalOrgId string `json:"externalOrgId,omitempty"`
-	// Whether this is a personal organization, auto-created during identity provisioning.  Personal orgs serve as the user's default workspace (like GitHub personal accounts).  Immutable after creation. Set by the server — clients cannot set this to true.
+	// Whether this is a personal organization, auto-created during identity provisioning.   @internal  Personal orgs serve as the user's default workspace (like GitHub personal accounts).  Immutable after creation. Set by the server — clients cannot set this to true.
 	IsPersonal bool `json:"isPersonal,omitempty"`
 }

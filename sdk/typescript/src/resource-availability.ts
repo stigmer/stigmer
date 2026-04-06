@@ -1,4 +1,5 @@
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { CLOUD_ONLY_KINDS } from "./gen/resource-availability";
 
 /**
  * Deployment mode of the Stigmer backend the client is connected to.
@@ -9,26 +10,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
  *   All resources (including `cloud_only`) are available.
  */
 export type DeploymentMode = "local" | "cloud";
-
-/**
- * Resource kinds whose proto `kind_meta.tier` is `cloud_only`.
- *
- * Source of truth: `api_resource_kind.proto` — each `ApiResourceKind` enum
- * value carries a `ResourceTier` in its `kind_meta` options. This set
- * mirrors those values statically so the SDK avoids runtime proto
- * descriptor reflection.
- *
- * When a new resource kind is added with `tier: cloud_only` in the proto,
- * add it here as well.
- */
-const CLOUD_ONLY_KINDS: ReadonlySet<ApiResourceKind> = new Set([
-  ApiResourceKind.api_resource_version,
-  ApiResourceKind.iam_policy,
-  ApiResourceKind.identity_account,
-  ApiResourceKind.api_key,
-  ApiResourceKind.identity_provider,
-  ApiResourceKind.platform,
-]);
 
 /**
  * Check whether a resource kind is available in the given deployment mode.

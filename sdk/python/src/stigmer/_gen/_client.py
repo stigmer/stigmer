@@ -13,6 +13,7 @@ from ._executioncontext import ExecutionContextClient
 from ._iampolicy import IamPolicyClient
 from ._identityaccount import IdentityAccountClient
 from ._identityprovider import IdentityProviderClient
+from ._invitation import InvitationClient
 from ._mcpserver import McpServerClient
 from ._organization import OrganizationClient
 from ._project import ProjectClient
@@ -36,6 +37,7 @@ class GeneratedClient:
         self.iam_policies = IamPolicyClient(channel)
         self.identity_accounts = IdentityAccountClient(channel)
         self.identity_providers = IdentityProviderClient(channel)
+        self.invitations = InvitationClient(channel)
         self.mcp_servers = McpServerClient(channel)
         self.organizations = OrganizationClient(channel)
         self.projects = ProjectClient(channel)

@@ -243,4 +243,23 @@ public interface SearchRequestOrBuilder extends
    * <code>.ai.stigmer.commons.rpc.PageInfo page = 5 [json_name = "page"];</code>
    */
   ai.stigmer.commons.rpc.PageInfoOrBuilder getPageOrBuilder();
+
+  /**
+   * <pre>
+   * Include public resources from organizations other than the org filter.
+   *
+   * Only meaningful when org is non-empty. When true, the result set includes:
+   * 1. All authorized resources from the specified org (any visibility)
+   * 2. All authorized public resources from other orgs
+   *
+   * Use case: "All" scope in library views — shows the user's org resources
+   * plus marketplace/public resources from other organizations.
+   *
+   * Default: false (only resources matching the org filter are returned).
+   * </pre>
+   *
+   * <code>bool cross_org_public = 6 [json_name = "crossOrgPublic"];</code>
+   * @return The crossOrgPublic.
+   */
+  boolean getCrossOrgPublic();
 }

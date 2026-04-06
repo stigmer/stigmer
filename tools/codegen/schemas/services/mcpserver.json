@@ -231,6 +231,7 @@
               "iam_policy",
               "identity_account",
               "api_key",
+              "invitation",
               "identity_provider",
               "organization",
               "platform",
@@ -325,6 +326,11 @@
           "name": "api_key",
           "number": 12,
           "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
         },
         {
           "name": "identity_provider",
@@ -506,6 +512,96 @@
   },
   "statusNestedTypes": [
     {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ApiResourceAuditActor",
       "description": "ApiResourceAuditActor represents the entity that performed an action.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
@@ -678,96 +774,6 @@
             "kind": "string"
           },
           "description": "MIME type of the resource content.\n Example: \"application/json\"",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAudit",
-      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "SpecAudit",
-          "jsonName": "specAudit",
-          "protoField": "spec_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's specification (desired state).",
-          "required": false
-        },
-        {
-          "name": "StatusAudit",
-          "jsonName": "statusAudit",
-          "protoField": "status_audit",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditInfo"
-          },
-          "description": "Audit info for the resource's status (actual state).",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAuditInfo",
-      "description": "ApiResourceAuditInfo contains detailed audit information.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "CreatedBy",
-          "jsonName": "createdBy",
-          "protoField": "created_by",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditActor"
-          },
-          "description": "Actor who created this resource.",
-          "required": false
-        },
-        {
-          "name": "CreatedAt",
-          "jsonName": "createdAt",
-          "protoField": "created_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "Timestamp when the resource was created.",
-          "required": false
-        },
-        {
-          "name": "UpdatedBy",
-          "jsonName": "updatedBy",
-          "protoField": "updated_by",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditActor"
-          },
-          "description": "Actor who last updated this resource.",
-          "required": false
-        },
-        {
-          "name": "UpdatedAt",
-          "jsonName": "updatedAt",
-          "protoField": "updated_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "Timestamp when the resource was last updated.",
-          "required": false
-        },
-        {
-          "name": "Event",
-          "jsonName": "event",
-          "protoField": "event",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Type of the last event (e.g., \"created\", \"updated\").",
           "required": false
         }
       ]

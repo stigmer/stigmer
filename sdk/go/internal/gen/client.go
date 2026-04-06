@@ -15,6 +15,7 @@ type Client struct {
 	IamPolicy         *IamPolicyClient
 	IdentityAccount   *IdentityAccountClient
 	IdentityProvider  *IdentityProviderClient
+	Invitation        *InvitationClient
 	McpServer         *McpServerClient
 	Organization      *OrganizationClient
 	Project           *ProjectClient
@@ -37,6 +38,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		IamPolicy:         NewIamPolicyClient(conn),
 		IdentityAccount:   NewIdentityAccountClient(conn),
 		IdentityProvider:  NewIdentityProviderClient(conn),
+		Invitation:        NewInvitationClient(conn),
 		McpServer:         NewMcpServerClient(conn),
 		Organization:      NewOrganizationClient(conn),
 		Project:           NewProjectClient(conn),

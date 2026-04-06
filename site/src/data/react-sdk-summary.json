@@ -64,6 +64,20 @@
       "components": 1
     },
     {
+      "slug": "iam-policy",
+      "title": "iam-policy",
+      "description": "",
+      "hooks": 8,
+      "components": 3
+    },
+    {
+      "slug": "identity-provider",
+      "title": "identity-provider",
+      "description": "",
+      "hooks": 6,
+      "components": 5
+    },
+    {
       "slug": "library",
       "title": "Library",
       "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
@@ -88,8 +102,8 @@
       "slug": "organization",
       "title": "Organization",
       "description": "Hooks and components for organization creation.",
-      "hooks": 1,
-      "components": 1
+      "hooks": 3,
+      "components": 2
     },
     {
       "slug": "session",
@@ -104,6 +118,13 @@
       "description": "Hooks and components for knowledge attachments, search, picker, and detail views.",
       "hooks": 4,
       "components": 2
+    },
+    {
+      "slug": "usage",
+      "title": "usage",
+      "description": "",
+      "hooks": 1,
+      "components": 1
     },
     {
       "slug": "workspace",

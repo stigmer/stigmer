@@ -39,6 +39,7 @@
                 "iam_policy",
                 "identity_account",
                 "api_key",
+                "invitation",
                 "identity_provider",
                 "organization",
                 "platform",
@@ -106,6 +107,16 @@
             "messageType": "PageInfo"
           },
           "description": "Pagination parameters.\n\n - num: Page number (1-indexed). Default: 1\n - size: Items per page. Default: 20, Maximum: 100\n\n If not provided, defaults to page 1 with 20 items.",
+          "required": false
+        },
+        {
+          "name": "CrossOrgPublic",
+          "jsonName": "crossOrgPublic",
+          "protoField": "cross_org_public",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Include public resources from organizations other than the org filter.\n\n Only meaningful when org is non-empty. When true, the result set includes:\n 1. All authorized resources from the specified org (any visibility)\n 2. All authorized public resources from other orgs\n\n Use case: \"All\" scope in library views — shows the user's org resources\n plus marketplace/public resources from other organizations.\n\n Default: false (only resources matching the org filter are returned).",
           "required": false
         }
       ]
@@ -194,6 +205,11 @@
           "name": "api_key",
           "number": 12,
           "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
         },
         {
           "name": "identity_provider",
