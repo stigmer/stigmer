@@ -120,7 +120,7 @@ export function CreateIdentityProviderForm({
           label="Name"
           value={name}
           onChange={setName}
-          placeholder="e.g. Planton Cloud"
+          placeholder="e.g. Acme Corp SSO"
           disabled={isCreating}
           required
         />

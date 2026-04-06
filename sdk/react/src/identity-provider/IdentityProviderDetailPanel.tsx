@@ -190,7 +190,7 @@ export function IdentityProviderDetailPanel({
             label="Display name"
             value={displayName}
             onChange={setDisplayName}
-            placeholder="e.g., Planton Cloud"
+            placeholder="e.g., Acme Corp SSO"
             disabled={isUpdating}
             required
           />

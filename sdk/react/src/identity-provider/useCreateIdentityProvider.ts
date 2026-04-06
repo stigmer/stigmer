@@ -32,10 +32,10 @@ export interface UseCreateIdentityProviderReturn {
  * const { create, isCreating, error } = useCreateIdentityProvider();
  *
  * const idp = await create({
- *   name: "Planton Cloud",
- *   org: "planton",
- *   jwksUri: "https://api.planton.ai/.well-known/jwks.json",
- *   allowedIssuers: ["planton-cloud"],
+ *   name: "Acme Corp SSO",
+ *   org: "acme",
+ *   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
+ *   allowedIssuers: ["https://acme.us.auth0.com/"],
  *   expectedAudience: "stigmer-api",
  * });
  * ```
