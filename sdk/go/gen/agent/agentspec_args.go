@@ -13,40 +13,24 @@ import (
 //
 // This struct follows the Pulumi Args pattern for resource configuration.
 //
-// AgentSpec defines the configurable properties of an AI agent.
+// AgentSpec defines the configurable properties of an agent.
 //
-//	This is the "Template" layer - declares capabilities and requirements.
-//
-//	Example YAML:
-//	  apiVersion: agentic.stigmer.ai/v1
-//	  kind: Agent
-//	  metadata:
-//	    name: engineering-assistant
-//	    slug: eng-assistant
-//	  spec:
-//	    description: "Helps engineering teams with code review"
-//	    instructions: "You are an engineering assistant..."
-//	    mcp_server_usages:
-//	      - mcp_server_ref:
-//	          kind: mcp_server
-//	          slug: github
-//	        enabled_tools: [search_code, create_pr]
-//	    skill_refs:
-//	      - kind: skill
-//	        slug: code-review-best-practices
+//	@internal
+//	This is the "Template" layer — declares capabilities and requirements.
+//	The overview.md file provides the SDK-facing description and example YAML.
 type AgentArgs struct {
-	// Human-readable description for UI and marketplace display.  Should explain what this agent does and its primary capabilities.
+	// Human-readable description for UI and marketplace display.
 	Description string `json:"description,omitempty"`
-	// Icon URL for marketplace and UI display.  Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
+	// Icon URL for marketplace and UI display.  Must be a publicly accessible URL to an image (SVG, PNG, or JPEG).
 	IconUrl string `json:"iconUrl,omitempty"`
-	// Instructions defining the agent's behavior and personality.  This is the agent's system prompt - the core logic that shapes its responses.  Should be at least 10 characters to ensure meaningful instructions.
+	// System prompt defining the agent's behavior and personality.
 	Instructions string `json:"instructions,omitempty"`
-	// MCP servers this Agent can use.  Each usage references a McpServer resource by its ref.  The slug from each reference must be unique within this Agent.
+	// MCP servers this agent can use.  Each entry must reference a unique McpServer resource by slug.
 	McpServerUsages []*agentv1.McpServerUsage `json:"mcpServerUsages,omitempty"`
-	// Skill resources providing agent knowledge.  Skills are injected into the agent's context as additional capabilities.
+	// Skill resources providing additional knowledge to the agent.
 	SkillRefs []*apiresource.ApiResourceReference `json:"skillRefs,omitempty"`
-	// Sub-agents that can be delegated to.  Sub-agents inherit the parent's MCP server usages but can have restricted access.
+	// Sub-agents that can be delegated to.  Sub-agents can access a subset of the parent's MCP servers and tools.
 	SubAgents []*agentv1.SubAgent `json:"subAgents,omitempty"`
-	// Environment variables required by the agent.  Uses the shared EnvironmentSpec for consistent env var handling across resources.
+	// Environment variables required by the agent.
 	EnvSpec *environmentv1.EnvironmentSpec `json:"envSpec,omitempty"`
 }

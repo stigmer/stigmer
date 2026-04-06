@@ -12,13 +12,11 @@ import (
 //
 // This struct follows the Pulumi Args pattern for resource configuration.
 //
-// McpServerSpec defines the configuration template for an MCP server.
+// McpServerSpec defines the configurable properties of an MCP server.
 //
-//	This is a reusable definition that can be referenced by multiple agents.
-//	Actual secrets/credentials are provided at runtime via AgentInstance's environment.
-//
-//	MCP (Model Context Protocol) servers provide tools and capabilities to AI agents.
-//	This spec declares the server type, connection details, and required environment variables.
+//	@internal
+//	This is the "Template" layer — declares capabilities and requirements.
+//	The overview.md file provides the SDK-facing description and example YAML.
 type McpServerArgs struct {
 	// Human-readable description for marketplace display and documentation.  Should explain what this MCP server does and its primary use cases.  Example: "GitHub MCP server for repository operations, code search, and PR management"
 	Description string `json:"description,omitempty"`
@@ -30,10 +28,10 @@ type McpServerArgs struct {
 	Stdio *mcpserverv1.StdioServerConfig `json:"stdio,omitempty"`
 	// HTTP-based server (HTTP + Server-Sent Events communication).  Used for remote/managed MCP services accessible over the network.
 	Http *mcpserverv1.HttpServerConfig `json:"http,omitempty"`
-	// Default tools to enable from this MCP server.  Empty list means all tools are enabled by default.  When specified, only these tools will be available unless overridden in McpServerUsage.  Tool names must match exactly what the MCP server reports via tools/list.  IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.  Do NOT include names from `discovered_capabilities.resource_templates` —  resource templates are read-only data endpoints, not callable tools.  Examples: ["create_pull_request", "search_code", "get_file_contents"]
+	// Default tools to enable from this MCP server.  Empty list means all tools are enabled by default.   @internal  Tool names must match exactly what the MCP server reports via tools/list.  Only names from discovered_capabilities.tools are valid here.  Do NOT include names from discovered_capabilities.resource_templates —  resource templates are read-only data endpoints, not callable tools.  Including a resource template name here causes a fatal runtime error.
 	DefaultEnabledTools []string `json:"defaultEnabledTools,omitempty"`
-	// Environment specification declaring required environment variables.  This defines the SCHEMA of required env vars - actual values are provided  at runtime via AgentInstance's environment_ref.   Use this to declare what environment variables the MCP server needs,  whether they are secrets (e.g., API tokens), and their descriptions.  Values in this spec can be empty - they serve as documentation and validation.   Example:    data:      GITHUB_TOKEN:        is_secret: true        description: "GitHub personal access token with repo scope"      GITHUB_OWNER:        is_secret: false        description: "Default GitHub organization or user"
+	// Environment variables required by the MCP server.
 	EnvSpec *environmentv1.EnvironmentSpec `json:"envSpec,omitempty"`
-	// Default tool approval policies for this MCP server.   Tools listed here require user approval before execution by default.  This is the first layer in the approval policy chain:    McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all   Use cases:  - Mark destructive operations as requiring approval by default  - Protect sensitive data access across all agents using this server  - Establish organization-wide safety policies for dangerous tools   Example (GitHub MCP):    default_tool_approvals:      - tool_name: "delete_repository"        message: "Delete repository: {{args.repo}}"      - tool_name: "force_push"        message: "Force push to {{args.branch}}"      - tool_name: "add_collaborator"        message: "Add {{args.user}} as collaborator to {{args.repo}}"   Example (Database MCP):    default_tool_approvals:      - tool_name: "execute_sql"        message: "Execute SQL: {{args.query}}"      - tool_name: "drop_table"        message: "Drop table: {{args.table_name}}"   Tools not listed here do not require approval by default.  Agents can still add approval requirements via tool_approval_overrides.
+	// Default tool approval policies for this MCP server.   @internal  Tools listed here require user approval before execution by default.  This is the first layer in the approval policy chain:    McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all   Use cases:  - Mark destructive operations as requiring approval by default  - Protect sensitive data access across all agents using this server  - Establish organization-wide safety policies for dangerous tools   Tools not listed here do not require approval by default.  Agents can still add approval requirements via tool_approval_overrides.
 	DefaultToolApprovals []*mcpserverv1.ToolApprovalPolicy `json:"defaultToolApprovals,omitempty"`
 }

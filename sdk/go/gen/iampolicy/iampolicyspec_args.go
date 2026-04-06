@@ -19,6 +19,6 @@ type IamPolicyArgs struct {
 	Principal *iampolicyv1.ApiResourceRef `json:"principal"`
 	// Resource: WHAT is being accessed  This can be any API resource that is being protected:  - organization  - environment  - cloud_resource (VPC, S3 bucket, etc.)  - service  - Any other resource that requires access control
 	Resource *iampolicyv1.ApiResourceRef `json:"resource"`
-	// Relation: HOW/what permission is being granted  This is the FGA relation/permission being granted (e.g., "admin", "viewer", "owner")  The relation value maps to the role_code from IamRole.  Examples: "admin", "editor", "viewer", "owner", "member"   When this policy is synced to OpenFGA, this becomes the relation in the tuple:  principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation
+	// The permission being granted (e.g., "admin", "viewer", "owner").  Maps to a role_code from ai.stigmer.iam.v1.IamRole.  Examples: "admin", "editor", "viewer", "owner", "member"   @internal  This is the FGA relation in the authorization tuple:  principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation
 	Relation string `json:"relation"`
 }

@@ -10,6 +10,7 @@ from ._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput
 from ._identityprovider import IdentityProviderClient, IdentityProviderInput
+from ._invitation import InvitationClient, InvitationInput
 from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, ToolApprovalPolicyInput
 from ._organization import OrganizationClient, OrganizationInput
 from ._project import ProjectClient, ProjectInput
@@ -65,6 +66,8 @@ __all__ = [
     "IdentityAccountInput",
     "IdentityProviderClient",
     "IdentityProviderInput",
+    "InvitationClient",
+    "InvitationInput",
     "McpServerClient",
     "McpServerInput",
     "StdioServerConfigInput",

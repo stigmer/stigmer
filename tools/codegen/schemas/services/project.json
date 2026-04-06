@@ -97,6 +97,7 @@
               "iam_policy",
               "identity_account",
               "api_key",
+              "invitation",
               "identity_provider",
               "organization",
               "platform",
@@ -174,6 +175,11 @@
           "name": "api_key",
           "number": 12,
           "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
         },
         {
           "name": "identity_provider",
@@ -384,6 +390,7 @@
               "iam_policy",
               "identity_account",
               "api_key",
+              "invitation",
               "identity_provider",
               "organization",
               "platform",

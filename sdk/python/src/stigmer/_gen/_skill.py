@@ -81,6 +81,7 @@ class SkillClient:
                 query=params.query,
                 org=params.org,
                 exclude_public=params.exclude_public,
+                cross_org_public=params.cross_org_public,
             )
             if params.page is not None:
                 req.page.CopyFrom(pagination_pb2.PageInfo(

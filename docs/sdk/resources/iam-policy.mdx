@@ -54,13 +54,17 @@ IamPolicy iamPolicy = client.iamPolicies().get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3"
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get an IAM policy by its unique identifier. |
+| [`getPrincipalResourceRoles`](#getprincipalresourceroles) | Get all roles a specific principal has on a specific resource. |
+| [`getPrincipalsCount`](#getprincipalscount) | Count distinct principals that have access to a resource. |
 | [`listAuthorizedPrincipalIds`](#listauthorizedprincipalids) | List all principal IDs of a specific kind that are authorized to access a resource. |
 | [`listAuthorizedResourceIds`](#listauthorizedresourceids) | List all resource IDs of a specific kind that a principal is authorized to access. |
+| [`listResourceAccessByPrincipal`](#listresourceaccessbyprincipal) | List all principals and their roles on a resource, grouped by principal. |
 | [`create`](#create) | Create a new IAM policy. |
 | [`delete`](#delete) | Delete a single IAM policy by spec. |
 | [`bootstrapPolicy`](#bootstrappolicy) | Bootstrap IAM policy during resource creation. |
 | [`checkAuthorization`](#checkauthorization) | Check if a principal is authorized to perform a relation on a resource. |
 | [`cleanupResourcePolicies`](#cleanupresourcepolicies) | Cleanup all IAM policies for a deleted resource. |
+| [`revokeOrgAccess`](#revokeorgaccess) | Revoke all of a user's access to an organization. |
 
 ### get
 
@@ -98,6 +102,104 @@ IamPolicy iamPolicy = client.iamPolicies().get(id);
 | `id` | `string` | IAM Policy identifier. |
 
 **Returns**: [`IamPolicy`](#iampolicy)
+
+### getPrincipalResourceRoles
+
+Get all roles a specific principal has on a specific resource.
+
+This RPC answers: "What roles does [principal] have on [resource]?" Returns role metadata (code, display name, description) for each assigned role.
+
+Use Cases: - Displaying a user's current role in a resource detail view - Pre-populating role selectors when editing access - Permission summary for a specific user-resource pair
+
+Input: PrincipalResourceInput with principal and resource refs Output: PrincipalResourceRoles with list of RoleInfo entries
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const principalResourceRoles = await stigmer.iamPolicy.getPrincipalResourceRoles({
+  principal: {},
+  resource: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+principalResourceRoles, err := client.IamPolicy.GetPrincipalResourceRoles(ctx, &stigmer.PrincipalResourceInput{
+  Principal: &stigmer.ApiResourceRefInput{},
+  Resource:  &stigmer.ApiResourceRefInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+principal_resource_roles = client.iam_policies.get_principal_resource_roles(PrincipalResourceInput(
+    principal=None,
+    resource=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+PrincipalResourceRoles principalResourceRoles = client.iamPolicies().getPrincipalResourceRoles(PrincipalResourceInput.builder()
+    .principal(null)
+    .resource(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`PrincipalResourceInput`](#principalresourceinput)
+
+**Returns**: [`PrincipalResourceRoles`](#principalresourceroles)
+
+### getPrincipalsCount
+
+Count distinct principals that have access to a resource.
+
+This RPC answers: "How many [principal-kind] have access to this organization?" Used for member count badges and summary statistics.
+
+Use Cases: - Organization members count badge in navigation - Settings page member summary
+
+Input: GetPrincipalsCountInput with org_id and principal_kind Output: PrincipalsCount with integer count
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const principalsCount = await stigmer.iamPolicy.getPrincipalsCount({
+  orgId: "...",
+  principalKind: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+principalsCount, err := client.IamPolicy.GetPrincipalsCount(ctx, &stigmer.GetPrincipalsCountInput{
+  OrgId:         "...",
+  PrincipalKind: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+principals_count = client.iam_policies.get_principals_count(GetPrincipalsCountInput(
+    org_id="...",
+    principal_kind="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+PrincipalsCount principalsCount = client.iamPolicies().getPrincipalsCount(GetPrincipalsCountInput.builder()
+    .orgId("...")
+    .principalKind("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetPrincipalsCountInput`](#getprincipalscountinput)
+
+**Returns**: [`PrincipalsCount`](#principalscount)
 
 ### listAuthorizedPrincipalIds
 
@@ -212,6 +314,55 @@ AuthorizedResourceIdsList result = client.iamPolicies().listAuthorizedResourceId
 **Parameters**: [`ListAuthorizedResourceIdsInput`](#listauthorizedresourceidsinput)
 
 **Returns**: [`AuthorizedResourceIdsList`](#authorizedresourceidslist)
+
+### listResourceAccessByPrincipal
+
+List all principals and their roles on a resource, grouped by principal.
+
+This RPC answers: "Who has access to this resource, and what roles do they have?" Returns each principal with full display information and all their role grants, optionally including roles inherited from parent resources.
+
+Use Cases: - Organization members page (show all users and their roles) - Resource "Share" dialog (show who already has access) - Access audit views
+
+Input: ListResourceAccessInput with resource ref and include_inherited flag Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.iamPolicy.listResourceAccessByPrincipal({
+  resource: {},
+  includeInherited: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.IamPolicy.ListResourceAccessByPrincipal(ctx, &stigmer.ListResourceAccessInput{
+  Resource:         &stigmer.ApiResourceRefInput{},
+  IncludeInherited: false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.iam_policies.list_resource_access_by_principal(ListResourceAccessInput(
+    resource=None,
+    include_inherited=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ResourceAccessByPrincipalList result = client.iamPolicies().listResourceAccessByPrincipal(ListResourceAccessInput.builder()
+    .resource(null)
+    .includeInherited(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListResourceAccessInput`](#listresourceaccessinput)
+
+**Returns**: [`ResourceAccessByPrincipalList`](#resourceaccessbyprincipallist)
 
 ### create
 
@@ -460,6 +611,51 @@ Empty empty = client.iamPolicies().cleanupResourcePolicies(ApiResourceRef.builde
 
 **Returns**: `void`
 
+### revokeOrgAccess
+
+Revoke all of a user's access to an organization.
+
+Removes every IAM policy that grants the specified identity account access to resources within the given organization, including policies on the organization itself and on child resources (environments, agents, etc.).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const empty = await stigmer.iamPolicy.revokeOrgAccess({
+  identityAccountId: "...",
+  organizationId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+empty, err := client.IamPolicy.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
+  IdentityAccountId: "...",
+  OrganizationId:    "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+empty = client.iam_policies.revoke_org_access(RevokeOrgAccessInput(
+    identity_account_id="...",
+    organization_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Empty empty = client.iamPolicies().revokeOrgAccess(RevokeOrgAccessInput.builder()
+    .identityAccountId("...")
+    .organizationId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RevokeOrgAccessInput`](#revokeorgaccessinput)
+
+**Returns**: `void`
+
 ## Types
 
 ### IamPolicyInput
@@ -511,6 +707,17 @@ ApiResourceRef represents a reference to ANY API resource in the system.
     kind: { type: "string", description: "Type of the API resource being referenced This should be the resource kind as defined in ApiResourceKind enum.", required: true },
     id: { type: "string", description: "Unique identifier of the resource This is the resource's ID field (e.g., ia-01HQUSER123, tm-01HQTEAM456).", required: true },
     relation: { type: "string", description: "Optional relation qualifier for the resource reference." },
+  }}
+/>
+
+### RevokeOrgAccessInput
+
+RevokeOrgAccessInput defines the input for revoking all of a user's access to an organization.
+
+<TypeTable
+  type={{
+    identityAccountId: { type: "string", description: "The identity account whose access is being revoked.", required: true },
+    organizationId: { type: "string", description: "The organization from which access is being revoked.", required: true },
   }}
 />
 
@@ -578,6 +785,69 @@ AuthorizedPrincipalIdsList contains all principal IDs that can access a resource
 <TypeTable
   type={{
     principalIds: { type: "string[]", description: "Principal IDs authorized to access the resource." },
+  }}
+/>
+
+### ListResourceAccessInput
+
+ListResourceAccessInput defines input for querying access grants on a resource.
+
+<TypeTable
+  type={{
+    resource: { type: "ApiResourceRefInput", description: "The resource to query access for.", typeDescriptionLink: "#apiresourcerefinput", required: true },
+    includeInherited: { type: "boolean", description: "Whether to include inherited permissions from parent resources." },
+  }}
+/>
+
+### ResourceAccessByPrincipalList
+
+ResourceAccessByPrincipalList groups access grants by principal, showing each principal and all their assigned roles on the queried resource.
+
+<TypeTable
+  type={{
+    entries: { type: "PrincipalAccessInput[]", description: "Principal access entries." },
+  }}
+/>
+
+### PrincipalResourceInput
+
+PrincipalResourceInput defines a generic input for operations involving a principal and a resource.
+
+<TypeTable
+  type={{
+    principal: { type: "ApiResourceRefInput", description: "The principal in the relationship (WHO).", typeDescriptionLink: "#apiresourcerefinput", required: true },
+    resource: { type: "ApiResourceRefInput", description: "The resource in the relationship (WHAT).", typeDescriptionLink: "#apiresourcerefinput", required: true },
+  }}
+/>
+
+### PrincipalResourceRoles
+
+PrincipalResourceRoles contains all roles a principal has on a specific resource.
+
+<TypeTable
+  type={{
+    roles: { type: "RoleInfoInput[]", description: "Roles assigned to the principal on this resource." },
+  }}
+/>
+
+### GetPrincipalsCountInput
+
+GetPrincipalsCountInput defines input for counting principals in an organization.
+
+<TypeTable
+  type={{
+    orgId: { type: "string", description: "Organization ID to count principals for.", required: true },
+    principalKind: { type: "string", description: "The kind of principals to count (identity_account or team).", required: true },
+  }}
+/>
+
+### PrincipalsCount
+
+PrincipalsCount contains the count of principals.
+
+<TypeTable
+  type={{
+    count: { type: "number", description: "Number of principals matching the query." },
   }}
 />
 

@@ -12,20 +12,21 @@ import (
 //
 // This struct follows the Pulumi Args pattern for resource configuration.
 //
-// WorkflowSpec defines the complete specification of a workflow.
+// WorkflowSpec defines the configurable properties of a workflow.
 //
+//	@internal
 //	Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
-//
 //	This replaces the old `synthesized_yaml` field with structured proto definitions.
 //	Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
 //	providing maximum flexibility and extensibility.
+//	The overview.md file provides the SDK-facing description and example YAML.
 type WorkflowArgs struct {
 	// Human-readable description for UI and marketplace display.
 	Description string `json:"description,omitempty"`
-	// Workflow document metadata (DSL version, namespace, name, version).
+	// Workflow document metadata including DSL version, namespace, name, and version.
 	Document *workflowv1.WorkflowDocument `json:"document"`
 	// Ordered list of tasks that make up this workflow.  Tasks execute sequentially unless fork/parallel is used.
 	Tasks []*workflowv1.WorkflowTask `json:"tasks,omitempty"`
-	// Environment variables required by the workflow.  Uses the shared EnvironmentSpec for consistent env var handling.
+	// Environment variables required by the workflow.
 	EnvSpec *environmentv1.EnvironmentSpec `json:"envSpec,omitempty"`
 }

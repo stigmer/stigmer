@@ -57,6 +57,14 @@ public enum ApiResourceKind
   api_key(12),
   /**
    * <pre>
+   * Shareable link for joining an organization with a configurable role.
+   * </pre>
+   *
+   * <code>invitation = 20 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  invitation(20),
+  /**
+   * <pre>
    * External identity provider for federated authentication.
    * </pre>
    *
@@ -229,6 +237,14 @@ public enum ApiResourceKind
   public static final int api_key_VALUE = 12;
   /**
    * <pre>
+   * Shareable link for joining an organization with a configurable role.
+   * </pre>
+   *
+   * <code>invitation = 20 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int invitation_VALUE = 20;
+  /**
+   * <pre>
    * External identity provider for federated authentication.
    * </pre>
    *
@@ -378,6 +394,7 @@ public enum ApiResourceKind
       case 10: return iam_policy;
       case 11: return identity_account;
       case 12: return api_key;
+      case 20: return invitation;
       case 21: return identity_provider;
       case 30: return organization;
       case 31: return platform;

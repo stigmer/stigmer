@@ -131,24 +131,18 @@ type AgentExecutionQueryControllerClient interface {
 	// Get a usage report for a session.
 	//
 	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-	//
-	// @internal
-	// Authorization is handled in handler — caller must have can_view on
-	// all executions in the session (same pattern as listBySession).
 	GetSessionUsageReport(ctx context.Context, in *GetSessionUsageReportInput, opts ...grpc.CallOption) (*GetSessionUsageReportOutput, error)
 	// Get a usage report for an agent.
 	//
 	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
 	//
 	// @internal
-	// Authorization is handled in handler — caller must have can_view on the agent.
+	// Not consumed by any UI. Authorization model TBD — when a product need
+	// arises, this should likely be org-scoped (usage of agent X within org Y).
 	GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error)
 	// Get a usage report for an organization.
 	//
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-	//
-	// @internal
-	// Authorization is handled in handler — caller must be org member.
 	GetOrgUsageReport(ctx context.Context, in *GetOrgUsageReportInput, opts ...grpc.CallOption) (*GetOrgUsageReportOutput, error)
 }
 
@@ -360,24 +354,18 @@ type AgentExecutionQueryControllerServer interface {
 	// Get a usage report for a session.
 	//
 	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-	//
-	// @internal
-	// Authorization is handled in handler — caller must have can_view on
-	// all executions in the session (same pattern as listBySession).
 	GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error)
 	// Get a usage report for an agent.
 	//
 	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
 	//
 	// @internal
-	// Authorization is handled in handler — caller must have can_view on the agent.
+	// Not consumed by any UI. Authorization model TBD — when a product need
+	// arises, this should likely be org-scoped (usage of agent X within org Y).
 	GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error)
 	// Get a usage report for an organization.
 	//
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-	//
-	// @internal
-	// Authorization is handled in handler — caller must be org member.
 	GetOrgUsageReport(context.Context, *GetOrgUsageReportInput) (*GetOrgUsageReportOutput, error)
 }
 

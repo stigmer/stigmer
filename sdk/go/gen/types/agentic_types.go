@@ -17,7 +17,7 @@ type AgentExecutionConfig struct {
 	Timeout int32 `json:"timeout,omitempty"`
 	// Temperature for LLM sampling (0.0 to 1.0).  Lower = more deterministic, Higher = more creative  Default: 0.7  Optional.
 	Temperature float32 `json:"temperature,omitempty"`
-	// Context management configuration for this agent invocation.   Controls automatic summarization behavior for long-running conversations.  When specified, overrides model defaults from the Model Registry.   Use cases:  - Disable summarization for short-lived agents  - Custom thresholds for agents with specific context requirements  - Fine-tune summarization behavior per workflow task   Example YAML:    config:      model: "claude-sonnet-4.5"      context_management:        custom_trigger_threshold: 150000        custom_target_tokens: 120000   @since Phase 3 (Context Summarization Architecture)
+	// Context management configuration for this agent invocation.  Controls automatic summarization behavior for long-running conversations.  When specified, overrides model defaults from the Model Registry.   @internal  @since Phase 3 (Context Summarization Architecture)   Use cases:  - Disable summarization for short-lived agents  - Custom thresholds for agents with specific context requirements  - Fine-tune summarization behavior per workflow task   Example YAML:    config:      model: "claude-sonnet-4.5"      context_management:        custom_trigger_threshold: 150000        custom_target_tokens: 120000
 	ContextManagement *ContextManagementConfig `json:"contextManagement,omitempty"`
 }
 
@@ -194,8 +194,9 @@ func (c *Duration) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// Export defines how to save task output to context.
+// Export defines how task output is saved to the workflow context.
 //
+//	@internal
 //	Maps to the `export:` block in Zigflow DSL.
 //
 //	Examples:
@@ -203,7 +204,7 @@ func (c *Duration) FromProto(s *structpb.Struct) error {
 //	- {"as": "${.fieldName}"} - Export specific field
 //	- {"as": "${$context + {taskName: .}}"} - Merge into context
 type Export struct {
-	// Expression defining how to export output.  Uses Zigflow expression syntax: ${...}
+	// Expression defining how to export output using ${...} syntax.
 	As string `json:"as,omitempty"`
 }
 
@@ -218,8 +219,9 @@ func (c *Export) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// FlowControl defines which task executes next.
+// FlowControl defines which task executes next after the current task completes.
 //
+//	@internal
 //	Maps to the `then:` directive in Zigflow DSL.
 //
 //	Examples:
@@ -323,7 +325,7 @@ func (c *ListenTo) FromProto(s *structpb.Struct) error {
 type SignalSpec struct {
 	// Signal identifier.
 	Id string `json:"id,omitempty"`
-	// Signal type:  - "signal": Temporal signal  - "query": Temporal query  - "update": Temporal update
+	// Signal type: "signal", "query", or "update".
 	Type string `json:"type,omitempty"`
 }
 
@@ -371,8 +373,9 @@ func (c *SwitchCase) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// WorkflowTask represents a single task in the workflow.
+// WorkflowTask represents a single executable step in a workflow.
 //
+//	@internal
 //	Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
 //	- `kind` determines the task type (set_vars, http_call, switch_case, etc.)
 //	- `task_config` contains task-specific configuration as dynamic JSON
@@ -395,7 +398,7 @@ type WorkflowTask struct {
 	Name string `json:"name,omitempty"`
 	// Task type (determines how to interpret task_config).
 	Kind string `json:"kind,omitempty"`
-	// Task-specific configuration (dynamic typed).  Structure depends on `kind` value.   Backend unmarshals this Struct to the appropriate proto message:  - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig  - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig  - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig  - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig  - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig  - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig  - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig  - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig  - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig  - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig  - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig  - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig  - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig   See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
+	// Task-specific configuration whose structure depends on the `kind` field.   @internal  Backend unmarshals this Struct to the appropriate proto message:  - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig  - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig  - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig  - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig  - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig  - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig  - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig  - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig  - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig  - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig  - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig  - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig  - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig   See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
 	TaskConfig map[string]interface{} `json:"taskConfig,omitempty"`
 	// Export configuration (how to save task output to context).  Optional - if not set, output is not saved.
 	Export *Export `json:"export,omitempty"`
@@ -436,13 +439,14 @@ func (c *WorkflowTask) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// EnvironmentSpec defines a collection of configuration and secrets.
+// EnvironmentSpec defines the configurable properties of an environment.
 //
-//	Created before AgentInstance or WorkflowInstance, referenced during instance creation.
+//	@internal
+//	The overview.md file provides the SDK-facing description and example YAML.
 type EnvironmentSpec struct {
-	// Human-readable description of this environment.  Example: "Production AWS credentials for deployment"
+	// Human-readable description for UI and listing display.
 	Description string `json:"description,omitempty"`
-	// Key-value pairs containing both configuration and secrets.  Each value includes a flag indicating whether it's a secret.  Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},            "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+	// Key-value pairs containing configuration and secrets.  Each value includes a flag indicating whether it is a secret.
 	Data map[string]*EnvironmentValue `json:"data,omitempty"`
 }
 
@@ -468,13 +472,13 @@ func (c *EnvironmentSpec) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// EnvironmentValue represents a single configuration or secret value.
+// EnvironmentValue represents a single configuration or secret entry.
 type EnvironmentValue struct {
-	// The actual value.  - If is_secret=true: This value is encrypted at rest and redacted in logs  - If is_secret=false: This value is stored as plaintext  Note: Value can be empty when defining environment variables in specs.        Actual values are typically provided at runtime during execution.
+	// The configuration or secret string.   @internal  When is_secret is true the value is encrypted at rest and redacted in logs.  When is_secret is false the value is stored as plaintext.  Value can be empty when pre-declaring keys whose values are injected at runtime.
 	Value string `json:"value,omitempty"`
-	// Whether this value should be treated as a secret.  When true:  - Value is encrypted at rest  - Value is redacted in logs  - Value requires special permissions to read  When false:  - Value is stored as plaintext  - Value is visible in audit logs
+	// Whether this value should be treated as a secret.   @internal  When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.  When false: stored as plaintext, visible in audit logs.
 	IsSecret bool `json:"isSecret,omitempty"`
-	// Optional description for documentation.  Example: "AWS access key for S3 bucket access"
+	// Human-readable description of what this value is used for.
 	Description string `json:"description,omitempty"`
 }
 
@@ -497,26 +501,16 @@ func (c *EnvironmentValue) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
+// McpAccess grants a sub-agent access to one of the parent's MCP servers.
 //
-//	Uses the same slug that identifies the McpServer resource.
-//
-//	Permission model:
-//	- SubAgent can only access servers that parent has in mcp_server_usages
-//	- SubAgent tools must be a subset of parent's enabled tools
-//
-//	Example YAML:
-//	  sub_agents:
-//	    - name: code-reviewer
-//	      mcp_access:
-//	        - mcp_server: github
-//	          enabled_tools: [search_code, get_file]
-//	        - mcp_server: slack
-//	          # enabled_tools empty = all tools from parent
+//	@internal
+//	Permission model enforced at execution time: sub-agent can only access
+//	servers in the parent's mcp_server_usages, and tools must be a subset
+//	of the parent's enabled_tools.
 type McpAccess struct {
-	// Slug of the McpServer to grant access to.  Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+	// Slug of the McpServer to grant access to.  Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
 	McpServer string `json:"mcpServer,omitempty"`
-	// Tools this SubAgent can use from this MCP server.  Must be a subset of the parent's enabled_tools for this server.  Empty list = all tools that parent has enabled (no additional restriction).  Only MCP tool names are valid — never include resource template names.
+	// Tools this sub-agent can use from this MCP server.  Must be a subset of the parent's enabled_tools for this server.  Empty list grants access to all tools the parent has enabled.
 	EnabledTools []string `json:"enabledTools,omitempty"`
 }
 
@@ -538,32 +532,20 @@ func (c *McpAccess) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// McpServerUsage declares that this Agent uses a McpServer resource.
+// McpServerUsage declares that this agent uses a McpServer resource.
 //
-//	The slug from mcp_server_ref becomes the identifier for SubAgent access.
+//	The slug from mcp_server_ref identifies this server for SubAgent access
+//	grants via McpAccess.
 //
+//	@internal
 //	Design principle: Users already named their McpServer with a slug.
-//	We use that slug as the identifier - no extra naming required.
-//
-//	Example YAML:
-//	  mcp_server_usages:
-//	    - mcp_server_ref:
-//	        kind: mcp_server
-//	        slug: github
-//	      enabled_tools: [search_code, get_file, create_pr]
-//	      tool_approval_overrides:
-//	        - tool_name: delete_repository
-//	          requires_approval: false  # Trust this agent
-//	    - mcp_server_ref:
-//	        org: acme-corp
-//	        kind: mcp_server
-//	        slug: internal-tools
+//	We use that slug as the identifier — no extra naming required.
 type McpServerUsage struct {
-	// Reference to the McpServer resource.  Must reference a resource with kind=mcp_server (44).  The slug from this reference is how SubAgents identify this server.
+	// Reference to the McpServer resource.
 	McpServerRef *ApiResourceReference `json:"mcpServerRef,omitempty"`
-	// Tools to enable from this MCP server for this Agent.  This defines the maximum tool set - SubAgents can only restrict further.  Empty list = use McpServer's default_enabled_tools (or all if not specified).   Tool names must match exactly what the MCP server reports via tools/list.  IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.  Do NOT include names from `discovered_capabilities.resource_templates` —  resource templates are read-only data endpoints, not callable tools.  Including a resource template name here causes a fatal runtime error.
+	// Tools to enable from this MCP server for this agent.  Empty list uses the McpServer's default_enabled_tools.  Sub-agents can only restrict this set further, not expand it.   @internal  Tool names must match exactly what the MCP server reports via tools/list.  Only names from discovered_capabilities.tools are valid here.  Do NOT include names from discovered_capabilities.resource_templates —  resource templates are read-only data endpoints, not callable tools.  Including a resource template name here causes a fatal runtime error.
 	EnabledTools []string `json:"enabledTools,omitempty"`
-	// Override approval requirements for specific tools.   These overrides take precedence over McpServer.default_tool_approvals,  allowing per-agent customization of the approval policy.   Use cases:  - Disable approval for a trusted automation agent  - Add approval for a tool that doesn't have default approval  - Customize the approval message for this agent's context   Example (trusted deployment agent - disable defaults):    tool_approval_overrides:      - tool_name: "delete_repository"        requires_approval: false  # Trust this agent for deletions      - tool_name: "force_push"        requires_approval: false  # Trust this agent for force pushes   Example (stricter approval for customer-facing agent):    tool_approval_overrides:      - tool_name: "send_email"        requires_approval: true        message: "Send customer communication: {{args.subject}}"      - tool_name: "create_ticket"        requires_approval: true        message: "Create support ticket for customer"
+	// Override approval requirements for specific tools.  Takes precedence over McpServer.default_tool_approvals.
 	ToolApprovalOverrides []*ToolApprovalOverride `json:"toolApprovalOverrides,omitempty"`
 }
 
@@ -601,36 +583,24 @@ func (c *McpServerUsage) FromProto(s *structpb.Struct) error {
 
 // SubAgent defines a specialized agent that the parent can delegate to.
 //
-//	SubAgents have restricted access to the parent's MCP servers.
+//	A sub-agent can only access MCP servers that the parent has in
+//	mcp_server_usages, and its tools must be a subset of the parent's
+//	enabled tools. Skills are independent of the parent.
 //
-//	Permission Model:
-//	- SubAgent can only access MCP servers that parent has in mcp_server_usages
-//	- SubAgent tools must be a subset of parent's enabled tools (can restrict, not expand)
-//	- SubAgent skills can reference any Skill resource (independent of parent)
-//
-//	Example YAML:
-//	  sub_agents:
-//	    - name: code-reviewer
-//	      description: "Reviews code changes for quality and security"
-//	      instructions: "You review code changes. Focus on security..."
-//	      mcp_access:
-//	        - mcp_server: github
-//	          enabled_tools: [search_code, get_file]
-//	      skill_refs:
-//	        - kind: skill
-//	          slug: code-review-best-practices
+//	@internal
+//	Permission model enforced at execution time by the delegation handler.
 type SubAgent struct {
-	// Unique name of the sub-agent within the parent agent.  Used for delegation routing and logging.  Examples: "code-reviewer", "researcher", "writer"
+	// Unique name of the sub-agent within the parent agent.
 	Name string `json:"name,omitempty"`
-	// Description of what this sub-agent specializes in.  Helps the parent agent decide when to delegate to this sub-agent.  Example: "Reviews code changes for security issues and best practices"
+	// What this sub-agent specializes in.
 	Description string `json:"description,omitempty"`
-	// Behavior instructions for this sub-agent.  Defines the sub-agent's personality, expertise, and constraints.  Should be at least 10 characters to ensure meaningful instructions.
+	// System prompt for this sub-agent.
 	Instructions string `json:"instructions,omitempty"`
-	// MCP server access grants for this sub-agent.  Each McpAccess references a parent's McpServerUsage by slug and  optionally restricts which tools are available.  Sub-agent can only use MCP servers listed here.
+	// MCP server access grants for this sub-agent.  Each entry references a parent McpServerUsage by slug and optionally  restricts which tools are available.
 	McpAccess []*McpAccess `json:"mcpAccess,omitempty"`
-	// Skill resources for this sub-agent's knowledge.  Skills provide domain-specific knowledge and capabilities.
+	// Skill resources for this sub-agent.
 	SkillRefs []*ApiResourceReference `json:"skillRefs,omitempty"`
-	// Model override for this sub-agent.  When set, this sub-agent uses this model instead of the parent's model.  Enables cost optimization by routing simple sub-agent tasks to cheaper models.   Examples:    - Parent uses "claude-sonnet-4" ($3/$15 per MTok)    - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)    - Code review sub-agent keeps parent model (leave empty)   When empty: inherits the parent agent's model (current behavior).
+	// Model override for this sub-agent.  When set, uses this model instead of the parent's model.  When empty, inherits the parent agent's model.
 	ModelOverride string `json:"modelOverride,omitempty"`
 }
 
@@ -681,37 +651,26 @@ func (c *SubAgent) FromProto(s *structpb.Struct) error {
 
 // ToolApprovalOverride allows per-agent customization of approval requirements.
 //
-//	## Override Semantics
+//	Set requires_approval to true to require approval even when the McpServer
+//	has no default, or to false to skip approval even when the McpServer
+//	requires it. These overrides take precedence over
+//	McpServer.default_tool_approvals but can be bypassed at execution time
+//	by AgentExecution.auto_approve_all.
 //
-//	- requires_approval=true: Tool requires approval (even if MCP has no default)
-//	- requires_approval=false: Tool does NOT require approval (overrides MCP default)
+//	@internal
+//	Policy chain (lowest to highest priority):
+//	1. McpServer.default_tool_approvals — platform/org defaults
+//	2. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
+//	3. AgentExecution.auto_approve_all — runtime bypass
 //
-//	## Message Inheritance
-//
-//	When requires_approval=true and message is empty:
-//	- If McpServer has default_tool_approvals for this tool, uses that message
-//	- Otherwise, auto-generates: "Execute tool: {tool_name}"
-//
-//	When message is provided, it overrides any McpServer default message.
-//
-//	## Policy Chain Position
-//
-//	This sits in the middle of the approval policy chain:
-//	1. McpServer.default_tool_approvals - Platform/org defaults (lowest priority)
-//	2. Agent.McpServerUsage.tool_approval_overrides (this message) - Per-agent customization
-//	3. AgentExecution.auto_approve_all - Runtime bypass (highest priority)
-//
-//	## Validation
-//
-//	The tool_name should match a tool in the referenced McpServer's tools/list.
 //	Invalid tool names are silently ignored (no approval applied).
 //	This allows forward-compatibility when MCP servers add/remove tools.
 type ToolApprovalOverride struct {
-	// Name of the tool to override.  Must match exactly (case-sensitive) with MCP server's tool name.  Example: "delete_repository", "send_email", "execute_sql"
+	// Name of the tool to override.
 	ToolName string `json:"toolName,omitempty"`
-	// Whether this tool requires approval for this agent.   false: No approval needed (overrides any McpServer default)  true: Approval required (even if McpServer has no default)   Note: This can be further overridden at execution time by  AgentExecutionSpec.auto_approve_all=true
+	// Whether this tool requires approval for this agent.
 	RequiresApproval bool `json:"requiresApproval,omitempty"`
-	// Optional: Custom approval message for this agent.  Supports {{args.field}} placeholders like ToolApprovalPolicy.message.   If empty and requires_approval=true:  - Uses McpServer's default message for this tool (if exists)  - Otherwise auto-generates: "Execute tool: {tool_name}"   Guidelines for effective messages:    - Be specific to this agent's context    - Include the most important argument values    - Keep under 100 characters for UI display
+	// Custom approval message shown to the reviewer.  Supports {{args.field}} placeholders.  When empty, falls back to the McpServer default or auto-generates  "Execute tool: {tool_name}".
 	Message string `json:"message,omitempty"`
 }
 
@@ -737,8 +696,7 @@ func (c *ToolApprovalOverride) FromProto(s *structpb.Struct) error {
 // Attachment represents a file attached to an agent execution.
 //
 //	All files must be pre-uploaded via the uploadAttachment RPC and referenced
-//	by storage_key. This ensures consistent behavior regardless of file size
-//	and avoids Temporal payload limits (2MB).
+//	by storage_key. This ensures consistent behavior regardless of file size.
 //
 //	## Usage Flow
 //
@@ -847,11 +805,11 @@ func (c *ExecutionConfig) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// ExecutionValue represents a single runtime configuration or secret value.
+// A single runtime configuration or secret value.
 type ExecutionValue struct {
-	// The actual value.  - If is_secret=true: This value is encrypted at rest and redacted in logs  - If is_secret=false: This value is stored as plaintext
+	// String content of this entry.   @internal  If is_secret=true: encrypted at rest and redacted in logs.  If is_secret=false: stored as plaintext.
 	Value string `json:"value,omitempty"`
-	// Whether this value should be treated as a secret.  When true:  - Value is encrypted at rest  - Value is redacted in logs  - Value is deleted when execution completes  When false:  - Value is stored as plaintext  - Value is visible in audit logs
+	// Whether this value should be treated as a secret.   @internal  When true: value is encrypted at rest, redacted in logs, and deleted  when execution completes.  When false: value is stored as plaintext and visible in audit logs.
 	IsSecret bool `json:"isSecret,omitempty"`
 }
 
@@ -872,13 +830,12 @@ func (c *ExecutionValue) FromProto(s *structpb.Struct) error {
 
 // HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
 //
-//	Used for remote/managed MCP services that expose an HTTP endpoint.
-//
+//	@internal
 //	Communication flow:
 //	1. Agent sends JSON-RPC requests via HTTP POST
 //	2. Server streams responses via Server-Sent Events (SSE)
 //
-//	This is useful for:
+//	Use cases:
 //	- Managed MCP services (e.g., hosted by a cloud provider)
 //	- MCP servers behind a reverse proxy or API gateway
 //	- Sharing a single MCP server instance across multiple agents
@@ -924,14 +881,14 @@ func (c *HttpServerConfig) FromProto(s *structpb.Struct) error {
 
 // StdioServerConfig defines an MCP server that runs as a subprocess.
 //
+//	@internal
 //	Communication happens via stdin/stdout using JSON-RPC messages.
+//	The agent runner starts this process and communicates via stdio.
 //
-//	This is the most common MCP server type, used for:
+//	Common examples:
 //	- Node.js servers: npx @modelcontextprotocol/server-github
 //	- Python servers: python -m mcp_server_sqlite
 //	- Go servers: ./mcp-server-binary
-//
-//	The agent runner starts this process and communicates via stdio.
 type StdioServerConfig struct {
 	// Command to execute the MCP server.  This is the executable name or path.  Examples: "npx", "python", "node", "./custom-mcp-server"
 	Command string `json:"command,omitempty"`
@@ -965,8 +922,7 @@ func (c *StdioServerConfig) FromProto(s *structpb.Struct) error {
 
 // ToolApprovalPolicy defines approval requirements for a specific tool.
 //
-//	## Message Templates
-//
+//	@internal
 //	The message field supports {{args.field}} placeholders that are resolved
 //	at runtime using the actual tool arguments. This enables contextual
 //	approval messages that help users make informed decisions.
@@ -977,26 +933,7 @@ func (c *StdioServerConfig) FromProto(s *structpb.Struct) error {
 //
 //	If a placeholder references a missing argument, it's replaced with "<unknown>".
 //
-//	## Examples
-//
-//	Simple message:
-//	  tool_name: "send_email"
-//	  message: "Send email to {{args.recipient}}"
-//	  Result: "Send email to customer@example.com"
-//
-//	Multiple placeholders:
-//	  tool_name: "delete_file"
-//	  message: "Delete {{args.path}} from {{args.repository}}"
-//	  Result: "Delete src/main.py from acme/webapp"
-//
-//	Default message (empty):
-//	  tool_name: "dangerous_operation"
-//	  message: ""
-//	  Result: "Execute tool: dangerous_operation" (auto-generated)
-//
-//	## Policy Chain
-//
-//	This policy sits at the McpServer level. The full approval policy chain is:
+//	Policy chain (lowest to highest priority):
 //	1. McpServer.default_tool_approvals (this message) - Platform/org defaults
 //	2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
 //	3. AgentExecution.auto_approve_all - Runtime bypass
@@ -1024,22 +961,24 @@ func (c *ToolApprovalPolicy) FromProto(s *structpb.Struct) error {
 
 // GitRepoSource provisions a workspace by cloning a git repository.
 //
+//	Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
+//
+//	@internal
 //	Authentication: The provisioner resolves GITHUB_TOKEN from the merged
 //	environment (Agent defaults < Environment < ExecutionContext.runtime_env)
 //	and injects it into the clone URL. The token is consumed by provisioning
 //	and stripped before forwarding to the agent runtime (see AD-05).
-//
-//	HTTPS only for MVP. SSH key authentication is a future enhancement.
+//	SSH key authentication is a future enhancement.
 type GitRepoSource struct {
-	// HTTPS clone URL (required).  Must use the https:// scheme. SSH URLs (git@...) are not supported.  Example: "https://github.com/acme/my-app.git"
+	// HTTPS clone URL for the repository.
 	Url string `json:"url,omitempty"`
-	// Branch to clone (optional).  When empty, the repository's default branch is used.  Example: "main", "develop", "feature/workspace-support"
+	// Branch to clone.   When empty, the repository's default branch is used.
 	Branch string `json:"branch,omitempty"`
-	// Commit SHA to checkout after cloning (optional).  When set, the workspace is checked out at this exact commit (detached HEAD).  When both branch and commit are set, the branch is cloned first, then  the commit is checked out -- this allows shallow clones of a specific  commit on a known branch.  When only commit is set (no branch), a full clone is required to  locate the commit.
+	// Commit SHA to checkout after cloning.   When set, the workspace is checked out at this exact commit.  When both branch and commit are set, the branch is cloned first, then  the commit is checked out.
 	Commit string `json:"commit,omitempty"`
-	// Clone depth (optional).   Presence semantics:    - Absent (not set): shallow clone with depth 1 (fast default).    - 0: full clone with complete history.    - N > 0: shallow clone with depth N.   Uses proto3 optional to distinguish "not set" from "set to 0."
+	// Number of commits to include in the clone history.   When not set, defaults to a shallow clone with depth 1. Set to 0 for  a full clone with complete history.   @internal  Uses proto3 optional to distinguish "not set" from "set to 0."  Absent: shallow clone depth 1; 0: full clone; N > 0: shallow clone depth N.
 	Depth int32 `json:"depth,omitempty"`
-	// Controls whether the platform automatically creates a branch and  pull request from the agent's file changes during execution.   This is a platform-level workflow, not an agent-level decision. The  agent focuses on making code changes; the platform packages them  incrementally — the PR appears the moment the first file is written  and the diff grows in real time as the agent works.   Requires git credentials to be configured during workspace provisioning  (GITHUB_TOKEN available in the execution environment). If credentials  are not available, the write-back is silently skipped regardless of  this setting.   Default (UNSPECIFIED): platform decides. Currently defaults to  write-back enabled when git credentials are available. Set an  explicit mode to override.
+	// Controls whether the platform creates a branch and pull request from the agent's file changes.   @internal  This is a platform-level workflow, not an agent-level decision. The  agent focuses on making code changes; the platform packages them  incrementally — the PR appears the moment the first file is written  and the diff grows in real time as the agent works.   Requires GITHUB_TOKEN in the execution environment. If credentials  are not available, the write-back is silently skipped regardless of  this setting.   Default (UNSPECIFIED): platform decides. Currently defaults to  write-back enabled when git credentials are available.
 	WriteBackMode string `json:"writeBackMode,omitempty"`
 }
 
@@ -1070,19 +1009,17 @@ func (c *GitRepoSource) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// LocalPathSource uses an existing directory on the host filesystem as the
+// LocalPathSource uses an existing directory on the host filesystem as the workspace.
 //
-//	workspace. The agent operates directly on the user's files -- changes are
-//	immediate and persistent.
+//	The agent operates directly on the user's files — changes are immediate
+//	and persistent. No copy or clone is made.
 //
+//	@internal
 //	Deployment constraint: only valid when the agent-runner is in local mode.
 //	Cloud runners reject this at provisioning time with a clear error, the same
-//	way GitRepoSource rejects SSH URLs at validation time. This is a normal
-//	deployment-specific constraint, not a schema limitation.
-//
-//	No copy or clone is made. The path is used directly as the workspace root.
+//	way GitRepoSource rejects SSH URLs at validation time.
 type LocalPathSource struct {
-	// Absolute path to an existing directory on the host filesystem (required).  The runner validates that the path exists and is a directory at  provisioning time.  Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+	// Absolute path to an existing directory on the host filesystem.
 	Path string `json:"path,omitempty"`
 }
 
@@ -1097,22 +1034,21 @@ func (c *LocalPathSource) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// WorkspaceEntry pairs a WorkspaceSource with a human-readable name,
+// WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
 //
-//	forming an addressable unit within a session's workspace.
+//	Each entry is a separate directory or repository that the agent can
+//	operate on. The name serves as the entry's identity and must be unique
+//	within a session's workspace_entries list.
 //
-//	In a multi-root workspace (VS Code model), each entry is a separate
-//	directory or repository that the agent can operate on. The name serves as
-//	the entry's identity: it appears in the system prompt, and in cloud mode
-//	it becomes the subdirectory name under the workspace root.
-//
-//	Names are auto-derived by the CLI from the repository name (last URL path
-//	segment sans ".git") or the directory basename. They must be unique within
-//	a session's workspace_entries list.
+//	@internal
+//	In a multi-root workspace (VS Code model), the name appears in the system
+//	prompt and in cloud mode it becomes the subdirectory name under the
+//	workspace root. Names are auto-derived by the CLI from the repository
+//	name (last URL path segment sans ".git") or the directory basename.
 type WorkspaceEntry struct {
-	// Short identifier for this workspace entry (required).  Used in system prompt headings and as the clone subdirectory in cloud mode.  Example: "my-app", "frontend", "shared-lib"
+	// Short identifier for this workspace entry.
 	Name string `json:"name,omitempty"`
-	// The source that provides this entry's content (required).
+	// The source that provides this entry's content.
 	Source *WorkspaceSource `json:"source,omitempty"`
 }
 
@@ -1134,13 +1070,16 @@ func (c *WorkspaceEntry) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// WorkspaceSource defines where the agent's workspace content comes from.
+// WorkspaceSource defines where the workspace content comes from.
 //
-//	This is a pure source-definition type: it describes the origin of workspace
-//	content (a git repo or a local directory) without any identity or naming.
-//	Use WorkspaceEntry to pair a source with a name for session-level usage.
+//	@internal
+//	Pure source-definition type: describes the origin of workspace content
+//	without any identity or naming. Use WorkspaceEntry to pair a source with
+//	a name for session-level usage.
 type WorkspaceSource struct {
-	GitRepo   *GitRepoSource   `json:"gitRepo,omitempty"`
+	// Clone a git repository as the workspace source.
+	GitRepo *GitRepoSource `json:"gitRepo,omitempty"`
+	// Use an existing local directory as the workspace source.
 	LocalPath *LocalPathSource `json:"localPath,omitempty"`
 }
 
@@ -1165,11 +1104,12 @@ func (c *WorkspaceSource) FromProto(s *structpb.Struct) error {
 	return nil
 }
 
-// WorkflowDocument contains workflow metadata.
+// WorkflowDocument contains workflow-level metadata for versioning and identification.
 //
+//	@internal
 //	Maps to the `document:` block in Zigflow DSL YAML.
 type WorkflowDocument struct {
-	// DSL version (semver). Must be "1.0.0" for current Zigflow.
+	// Workflow DSL version (semver). Must be "1.0.0" for the current specification.
 	Dsl string `json:"dsl,omitempty"`
 	// Workflow namespace (organization/categorization).
 	Namespace string `json:"namespace,omitempty"`

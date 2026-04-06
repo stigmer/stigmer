@@ -52,11 +52,13 @@ IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r
 |--------|-------------|
 | [`get`](#get) | Get an identity account by its unique identifier. |
 | [`getActorInfo`](#getactorinfo) | Get lightweight actor information for an identity account. |
-| [`getByEmail`](#getbyemail) | Get an identity account by email address. |
-| [`getByIdpId`](#getbyidpid) | Get an identity account by identity provider ID. |
+| [`getByEmail`](#getbyemail) | Get a direct identity account by email address. |
+| [`getByExternalSub`](#getbyexternalsub) | Get a federated identity account by identity provider reference and external subject. |
+| [`getByIdpId`](#getbyidpid) | Get an identity account by identity provider ID (Auth0 subject). |
 | [`create`](#create) | Create a new identity account. |
 | [`update`](#update) | Update an existing identity account. |
 | [`delete`](#delete) | Delete an identity account. |
+| [`createFederatedAccount`](#createfederatedaccount) | Create a federated identity account for an external platform user. |
 | [`simulateSignupWebhook`](#simulatesignupwebhook) | Trigger account provisioning for a user who exists in Auth0 but not in Stigmer. |
 | [`whoAmI`](#whoami) | Get the identity account of the currently authenticated user. |
 
@@ -132,7 +134,9 @@ ApiResourceAuditActor apiResourceAuditActor = client.identityAccounts().getActor
 
 ### getByEmail
 
-Get an identity account by email address.
+Get a direct identity account by email address.
+
+Only returns direct (non-federated) accounts. Federated accounts are not returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -169,9 +173,62 @@ IdentityAccount identityAccount = client.identityAccounts().getByEmail(IdentityA
 
 **Returns**: [`IdentityAccount`](#identityaccount)
 
+### getByExternalSub
+
+Get a federated identity account by identity provider reference and external subject.
+
+Used by platform backends to check whether a federated account already exists for a given OIDC subject before calling createFederatedAccount.
+
+Authorization: Requires can_create_identity_account on the organization that owns the identity provider.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.getByExternalSub({
+  org: "...",
+  identityProviderRef: {},
+  externalSub: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
+  Org:                 "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalSub:         "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+identity_account = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
+    org="...",
+    identity_provider_ref=None,
+    external_sub="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
+    .org("...")
+    .identityProviderRef(null)
+    .externalSub("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ExternalSubLookup`](#externalsublookup)
+
+**Returns**: [`IdentityAccount`](#identityaccount)
+
 ### getByIdpId
 
-Get an identity account by identity provider ID.
+Get an identity account by identity provider ID (Auth0 subject).
+
+Primarily used for direct and machine accounts where the IDP ID is the Auth0 user_id or client_id. For federated account lookups, use getByExternalSub which is scoped to a specific identity provider.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -405,6 +462,75 @@ IdentityAccount identityAccount = client.identityAccounts().delete(id);
 
 **Returns**: [`IdentityAccount`](#identityaccount)
 
+### createFederatedAccount
+
+Create a federated identity account for an external platform user.
+
+Called by platform backends (via API key) when a new user signs up on their platform. The platform provides the user's OIDC subject identifier and profile data. The account must be created before the user can authenticate via the IdP.
+
+Returns the full identity account including its ID, which the platform uses to grant roles via IAM policies.
+
+Authorization: Requires can_create_identity_account on the organization that owns the identity provider.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.createFederatedAccount({
+  org: "...",
+  identityProviderRef: {},
+  externalSub: "...",
+  email: "...",
+  firstName: "...",
+  lastName: "...",
+  pictureUrl: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
+  Org:                 "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalSub:         "...",
+  Email:               "...",
+  FirstName:           "...",
+  LastName:            "...",
+  PictureUrl:          "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+identity_account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+    org="...",
+    identity_provider_ref=None,
+    external_sub="...",
+    email="...",
+    first_name="...",
+    last_name="...",
+    picture_url="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
+    .org("...")
+    .identityProviderRef(null)
+    .externalSub("...")
+    .email("...")
+    .firstName("...")
+    .lastName("...")
+    .pictureUrl("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CreateFederatedAccountInput`](#createfederatedaccountinput)
+
+**Returns**: [`IdentityAccount`](#identityaccount)
+
 ### simulateSignupWebhook
 
 Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
@@ -494,7 +620,7 @@ Input for creating or updating an Identity Account.
     pictureUrl: { type: "string", description: "URL of the profile picture." },
     isMachineAccount: { type: "boolean", description: "Indicates if this is a machine account used for inter-service communication." },
     provisioningMode: { type: "IdentityAccountProvisioningMode", description: "How this identity account was provisioned.", typeDescriptionLink: "#identityaccountprovisioningmode" },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that provisioned this account.", typeDescriptionLink: "#resourceref" },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that owns this federated account.", typeDescriptionLink: "#resourceref" },
   }}
 />
 
@@ -511,6 +637,22 @@ Generic reference to any API resource by org and slug.
   }}
 />
 
+### CreateFederatedAccountInput
+
+CreateFederatedAccountInput is the command for creating a federated identity account linked to an external platform's identity provider.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the identity provider.", required: true },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that this federated account belongs to.", typeDescriptionLink: "#resourceref" },
+    externalSub: { type: "string", description: "External subject identifier from the platform's OIDC provider.", required: true },
+    email: { type: "string", description: "Email address of the user.", required: true },
+    firstName: { type: "string", description: "First name of the user." },
+    lastName: { type: "string", description: "Last name of the user." },
+    pictureUrl: { type: "string", description: "URL of the user's profile picture." },
+  }}
+/>
+
 ### IdentityAccountEmail
 
 IdentityAccountEmail identifies an identity account by its email address.
@@ -518,6 +660,18 @@ IdentityAccountEmail identifies an identity account by its email address.
 <TypeTable
   type={{
     value: { type: "string", description: "Email address of the identity account.", required: true },
+  }}
+/>
+
+### ExternalSubLookup
+
+ExternalSubLookup identifies a federated identity account by its identity provider reference and external subject identifier (OIDC sub claim).
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the identity provider.", required: true },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
+    externalSub: { type: "string", description: "External subject identifier from the platform's OIDC provider.", required: true },
   }}
 />
 
@@ -542,6 +696,6 @@ IdentityAccountProvisioningMode defines how an identity account was created.
 | Value | Description |
 |-------|-------------|
 | `direct` | User signed up directly via Stigmer's own authentication tenant. |
-| `federated` | Account was JIT-provisioned during federated authentication via an IdentityProvider. |
+| `federated` | Account was created by the platform for federated authentication via an IdentityProvider. |
 | `machine` | Machine-to-machine client credentials account for inter-service communication. |
 

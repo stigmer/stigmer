@@ -11,12 +11,15 @@
     "error",
     "execution",
     "github",
+    "iam-policy",
+    "identity-provider",
     "library",
     "mcp-server",
     "models",
     "organization",
     "session",
     "skill",
+    "usage",
     "workspace"
   ]
 }

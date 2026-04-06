@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.invitation.v1;
+
+import "ai/stigmer/iam/invitation/v1/api.proto";
+import "ai/stigmer/iam/v1/enum.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// InvitationId identifies an invitation by its unique identifier.
+message InvitationId {
+  // Unique identifier of the invitation resource.
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// Invitations contains a list of invitation resources.
+message Invitations {
+  // Invitation entries.
+  repeated Invitation entries = 1;
+}
+
+// ListInvitationsByOrgInput specifies the organization whose invitations
+// should be returned.
+message ListInvitationsByOrgInput {
+  // Organization slug to list invitations for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// InvitationTokenInput identifies an invitation by its shareable token.
+message InvitationTokenInput {
+  // The cryptographically random token from the invite URL.
+  string token = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// RedeemInvitationInput is the request to redeem an invitation.
+// The redeemer's identity is resolved from the authentication header.
+message RedeemInvitationInput {
+  // The cryptographically random token from the invite URL.
+  string token = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// InvitationPreview is a safe projection of an invitation for unauthenticated
+// users viewing an invite link.
+//
+// This message is returned by the getByToken query, which requires no
+// authentication. It intentionally omits sensitive fields (token value,
+// redemption history) and includes only the information needed to render
+// the "You've been invited to join [org]" page.
+//
+// Information disclosure is acceptable here because the token is already
+// a shared secret — knowing the org name is necessary to render the
+// invitation acceptance page.
+message InvitationPreview {
+  // Display name of the organization.
+  string organization_name = 1;
+
+  // URL-friendly identifier of the organization.
+  string organization_slug = 2;
+
+  // URL to the organization's logo image.
+  string organization_logo_url = 3;
+
+  // The role that will be granted upon redemption.
+  ai.stigmer.iam.v1.IamRole role = 4;
+
+  // When this invitation expires.
+  google.protobuf.Timestamp expires_at = 5;
+
+  // Human-readable label describing the invitation's purpose.
+  string label = 6;
+
+  // Whether this invitation can currently be redeemed.
+  // False if expired, revoked, or fully redeemed.
+  bool is_valid = 7;
+
+  // Human-readable reason when is_valid is false.
+  // Empty when the invitation is valid.
+  string invalid_reason = 8;
+}

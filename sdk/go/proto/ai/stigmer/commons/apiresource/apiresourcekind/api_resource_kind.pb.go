@@ -185,6 +185,8 @@ const (
 	ApiResourceKind_identity_account ApiResourceKind = 11
 	// Credential for programmatic API access.
 	ApiResourceKind_api_key ApiResourceKind = 12
+	// Shareable link for joining an organization with a configurable role.
+	ApiResourceKind_invitation ApiResourceKind = 20
 	// External identity provider for federated authentication.
 	ApiResourceKind_identity_provider ApiResourceKind = 21
 	// Top-level tenant that owns and manages resources.
@@ -225,6 +227,7 @@ var (
 		10: "iam_policy",
 		11: "identity_account",
 		12: "api_key",
+		20: "invitation",
 		21: "identity_provider",
 		30: "organization",
 		31: "platform",
@@ -247,6 +250,7 @@ var (
 		"iam_policy":                10,
 		"identity_account":          11,
 		"api_key":                   12,
+		"invitation":                20,
 		"identity_provider":         21,
 		"organization":              30,
 		"platform":                  31,
@@ -452,7 +456,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xe9\v\n" +
+	"\astigmer\x10\x01*\xab\f\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -461,9 +465,14 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x1a/\xaa\xff++\b\x02\x10\x01\x1a\tIamPolicy\"\n" +
 	"IAM Policy*\x04iamp8\x01@\x02J\x04\b\x02\x10\x01\x12N\n" +
 	"\x10identity_account\x10\v\x1a8\xaa\xff+4\b\x02\x10\x01\x1a\x0fIdentityAccount\"\x10Identity Account*\x03ida@\x02J\x04\b\x04\x10\x03\x125\n" +
-	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x02J\x04\b\x04\x10\x01\x12W\n" +
-	"\x11identity_provider\x10\x15\x1a@\xaa\xff+<\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12H\n" +
-	"\forganization\x10\x1e\x1a6\xaa\xff+2\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\t\b\x04\x10\x01:\x03\x01\x02\x03\x129\n" +
+	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x02J\x04\b\x04\x10\x01\x12?\n" +
+	"\n" +
+	"invitation\x10\x14\x1a/\xaa\xff++\b\x02\x10\x01\x1a\n" +
+	"Invitation\"\n" +
+	"Invitation*\x03inv8\x01@\x02J\x04\b\x02\x10\x01\x12W\n" +
+	"\x11identity_provider\x10\x15\x1a@\xaa\xff+<\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12I\n" +
+	"\forganization\x10\x1e\x1a7\xaa\xff+3\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\n" +
+	"\b\x04\x10\x01:\x04\x01\x02\x03\x04\x129\n" +
 	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +
 	"\x05agent\x10(\x1a+\xaa\xff+'\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt@\x01J\f\b\x02\x10\x01*\x02\b\x01:\x02\x01\x04\x12k\n" +
 	"\x0fagent_execution\x10)\x1aV\xaa\xff+R\b\x01\x10\x01\x1a\x0eAgentExecution\"\x0fAgent Execution*\x03aex@\x01J$\b\x03\x10\x02\x1a\x1e\n" +

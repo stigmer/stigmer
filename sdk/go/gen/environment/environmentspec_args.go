@@ -11,12 +11,13 @@ import (
 //
 // This struct follows the Pulumi Args pattern for resource configuration.
 //
-// EnvironmentSpec defines a collection of configuration and secrets.
+// EnvironmentSpec defines the configurable properties of an environment.
 //
-//	Created before AgentInstance or WorkflowInstance, referenced during instance creation.
+//	@internal
+//	The overview.md file provides the SDK-facing description and example YAML.
 type EnvironmentArgs struct {
-	// Human-readable description of this environment.  Example: "Production AWS credentials for deployment"
+	// Human-readable description for UI and listing display.
 	Description string `json:"description,omitempty"`
-	// Key-value pairs containing both configuration and secrets.  Each value includes a flag indicating whether it's a secret.  Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},            "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+	// Key-value pairs containing configuration and secrets.  Each value includes a flag indicating whether it is a secret.
 	Data map[string]*environmentv1.EnvironmentValue `json:"data,omitempty"`
 }
