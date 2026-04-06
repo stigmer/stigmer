@@ -392,34 +392,6 @@
   },
   "statusNestedTypes": [
     {
-      "name": "InvitationRedemption",
-      "description": "InvitationRedemption records a single successful redemption event.",
-      "protoType": "ai.stigmer.iam.invitation.v1.InvitationRedemption",
-      "protoFile": "apis/ai/stigmer/iam/invitation/v1/api.proto",
-      "fields": [
-        {
-          "name": "IdentityAccountId",
-          "jsonName": "identityAccountId",
-          "protoField": "identity_account_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The identity account that redeemed the invitation.",
-          "required": false
-        },
-        {
-          "name": "RedeemedAt",
-          "jsonName": "redeemedAt",
-          "protoField": "redeemed_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "When the redemption occurred.",
-          "required": false
-        }
-      ]
-    },
-    {
       "name": "ApiResourceAudit",
       "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
@@ -533,6 +505,34 @@
             "kind": "string"
           },
           "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "InvitationRedemption",
+      "description": "InvitationRedemption records a single successful redemption event.",
+      "protoType": "ai.stigmer.iam.invitation.v1.InvitationRedemption",
+      "protoFile": "apis/ai/stigmer/iam/invitation/v1/api.proto",
+      "fields": [
+        {
+          "name": "IdentityAccountId",
+          "jsonName": "identityAccountId",
+          "protoField": "identity_account_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The identity account that redeemed the invitation.",
+          "required": false
+        },
+        {
+          "name": "RedeemedAt",
+          "jsonName": "redeemedAt",
+          "protoField": "redeemed_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the redemption occurred.",
           "required": false
         }
       ]

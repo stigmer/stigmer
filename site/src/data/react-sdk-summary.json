@@ -78,6 +78,13 @@
       "components": 5
     },
     {
+      "slug": "invitation",
+      "title": "invitation",
+      "description": "",
+      "hooks": 5,
+      "components": 3
+    },
+    {
       "slug": "library",
       "title": "Library",
       "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",

@@ -363,6 +363,11 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 		typeMap[t.Name] = t
 	}
 
+	enumImports := make(map[string]string)
+	if specSchema != nil {
+		enumImports = collectSDKEnumImports(specSchema, specTypes, typeMap)
+	}
+
 	buf.WriteString("import (\n")
 	buf.WriteString("\t\"context\"\n")
 	if needsIO {
@@ -373,6 +378,18 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	}
 	buf.WriteString("\n")
 	fmt.Fprintf(&buf, "\t%s %q\n", alias, importPath)
+	if len(enumImports) > 0 {
+		var enumAliases []string
+		for a := range enumImports {
+			if a != alias {
+				enumAliases = append(enumAliases, a)
+			}
+		}
+		sort.Strings(enumAliases)
+		for _, a := range enumAliases {
+			fmt.Fprintf(&buf, "\t%s %q\n", a, enumImports[a])
+		}
+	}
 	if needsApiResource || hasInputType {
 		buf.WriteString("\tapiresource \"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource\"\n")
 	}
@@ -665,9 +682,7 @@ func goTypeForTypeSpec(ts *TypeSpec, typeMap map[string]*TypeSchema, alias strin
 	switch ts.Kind {
 	case "string":
 		if ts.EnumType != "" {
-			parts := strings.Split(ts.EnumType, ".")
-			enumName := parts[len(parts)-1]
-			return alias + "." + enumName
+			return goSDKEnumGoType(ts.EnumType)
 		}
 		return "string"
 	case "int32":
@@ -1268,6 +1283,66 @@ func (e *EnvSpecInput) toProto() *environmentv1.EnvironmentSpec {
 		return err
 	}
 	return os.WriteFile(filepath.Join(outputDir, "types.go"), formatted, 0644)
+}
+
+// =========================================================================
+// SDK enum imports (cross-package enums, e.g. ai.stigmer.iam.v1.IamRole)
+// =========================================================================
+
+const sdkProtoImportPrefix = "github.com/stigmer/stigmer/sdk/go/proto"
+
+func goSDKEnumGoType(enumProtoType string) string {
+	parts := strings.Split(enumProtoType, ".")
+	if len(parts) == 0 {
+		return "string"
+	}
+	enumName := parts[len(parts)-1]
+	pkg := protoTypeToPackageAlias(enumProtoType)
+	if pkg == "" {
+		return "string"
+	}
+	return pkg + "." + enumName
+}
+
+func walkTypeSpecEnumImports(ts *TypeSpec, out map[string]string) {
+	if ts == nil {
+		return
+	}
+	if ts.Kind == "string" && ts.EnumType != "" {
+		path := protoTypeToGoImportPath(ts.EnumType, sdkProtoImportPrefix)
+		pkgAlias := protoTypeToPackageAlias(ts.EnumType)
+		if path != "" && pkgAlias != "" {
+			out[pkgAlias] = path
+		}
+	}
+	if ts.ElementType != nil {
+		walkTypeSpecEnumImports(ts.ElementType, out)
+	}
+	if ts.KeyType != nil {
+		walkTypeSpecEnumImports(ts.KeyType, out)
+	}
+	if ts.ValueType != nil {
+		walkTypeSpecEnumImports(ts.ValueType, out)
+	}
+}
+
+func collectSDKEnumImports(specSchema *TaskConfigSchema, specTypes []*TypeSchema, typeMap map[string]*TypeSchema) map[string]string {
+	out := make(map[string]string)
+	if specSchema == nil {
+		return out
+	}
+	walkFields := func(fields []*FieldSchema) {
+		for _, f := range fields {
+			walkTypeSpecEnumImports(&f.Type, out)
+		}
+	}
+	walkFields(specSchema.Fields)
+	for _, t := range specTypes {
+		if !isSpecialType(t.Name) {
+			walkFields(t.Fields)
+		}
+	}
+	return out
 }
 
 // =========================================================================
