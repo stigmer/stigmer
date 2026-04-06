@@ -5,6 +5,7 @@ import {
   Building2,
   CreditCard,
   KeyRound,
+  Link,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -29,6 +30,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
     items: [
       { href: "/settings/org-profile", label: "Org Profile", icon: Building2 },
       { href: "/settings/members", label: "Members", icon: Users },
+      { href: "/settings/invitations", label: "Invitations", icon: Link },
       {
         href: "/settings/identity-providers",
         label: "Identity Providers",

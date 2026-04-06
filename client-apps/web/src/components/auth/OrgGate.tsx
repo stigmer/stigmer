@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCw, Building2, LogOut } from "lucide-react";
 import { CreateOrganizationForm } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -10,6 +11,9 @@ import { getRuntimeConfig } from "@/config/runtime-config";
 
 const PROVISIONING_POLL_MS = 2_000;
 const PROVISIONING_TIMEOUT_MS = 10_000;
+
+/** Routes that bypass the org gate (user may not have an org yet). */
+const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
 
 /**
  * Blocks the application shell until the user has at least one organization.
@@ -27,17 +31,24 @@ const PROVISIONING_TIMEOUT_MS = 10_000;
  *
  * Once at least one org exists, renders `children` (the normal AppShell).
  *
+ * Certain routes (e.g. {@code /invite/[token]}) bypass the gate because the
+ * user may not have an org yet — they are joining one via an invitation.
+ *
  * This is a Console-only concern — platform builders handle org provisioning
  * in their own onboarding flows.
  */
 export function OrgGate({ children }: { children: React.ReactNode }) {
   const { orgs, isLoading, error, retry, refresh } = useOrg();
+  const pathname = usePathname();
   const [provisioningStarted, setProvisioningStarted] = useState(false);
   const [provisioningTimedOut, setProvisioningTimedOut] = useState(false);
+
+  const isBypassed = ORG_GATE_BYPASS_PREFIXES.some((p) => pathname.startsWith(p));
 
   // React-sanctioned "adjust state during render" pattern: the guard on
   // `!provisioningStarted` prevents infinite re-render loops.
   if (
+    !isBypassed &&
     !provisioningStarted &&
     !isLoading &&
     orgs.length === 0 &&
@@ -66,6 +77,10 @@ export function OrgGate({ children }: { children: React.ReactNode }) {
       clearTimeout(timeout);
     };
   }, [isProvisioning, refresh]);
+
+  if (isBypassed) {
+    return <>{children}</>;
+  }
 
   // Provisioning takes render priority over isLoading/error so the user
   // sees a stable welcome screen throughout the retry loop.
