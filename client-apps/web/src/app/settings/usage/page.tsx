@@ -1,6 +1,5 @@
-import { BarChart3 } from "lucide-react";
-import { ComingSoon } from "@/components/settings/ComingSoon";
+import { UsageSection } from "@/components/settings/UsageSection";
 
 export default function UsagePage() {
-  return <ComingSoon title="Usage" icon={BarChart3} />;
+  return <UsageSection />;
 }

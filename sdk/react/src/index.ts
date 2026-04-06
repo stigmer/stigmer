@@ -506,6 +506,22 @@ export type {
   UseUpdateVisibilityReturn,
 } from "./library";
 
+// Usage — org-level usage report hook, dashboard panel, and date-range utilities
+export {
+  useOrgUsageReport,
+  OrgUsagePanel,
+  DATE_RANGE_PRESETS,
+  dateRangeFromPreset,
+  formatDateRange,
+  presetLabel,
+} from "./usage";
+export type {
+  UseOrgUsageReportReturn,
+  OrgUsagePanelProps,
+  DateRange,
+  DateRangePreset,
+} from "./usage";
+
 // Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
 export {
   useAgentInstance,
