@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-04-05 (Session 7) — Browser back/forward navigation across zone transitions
-- **Completed Task**: T01 — Phase 5 (Polish & Edge Cases) — all 5 items complete
+- **Last Session**: 2026-04-06 (Session 8) — Placeholder nav items for future settings sections
+- **Completed Task**: T01 — Phase 5 (Polish & Edge Cases) — all 5 items complete; placeholder nav items added
 
 ## Session Progress (2026-04-05)
 
@@ -70,12 +70,23 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 5 (Polish & Edge Cases) — all 5 items complete
 - ESLint clean (0 errors, 0 warnings) on changed and related files
 
+### Session 8 (2026-04-06)
+- Added three placeholder nav items to ManagementSidebar: Billing (`CreditCard`), Usage (`BarChart3`), Org Profile (`Building2`)
+- Items look and behave like normal sidebar links — same styling, hover, active state
+- Each links to its own URL (`/settings/billing`, `/settings/usage`, `/settings/org-profile`) for correct active-state highlighting and URL stability
+- Created shared `ComingSoon` component (`components/settings/ComingSoon.tsx`) — accepts `title` and optional `icon` prop, renders centered "coming soon" message
+- Created three thin route pages that render `<ComingSoon />` within the existing settings layout
+- Design decision: normal-looking links navigating to a "Coming soon" page (not disabled/muted items) — cleaner UX, establishes URLs for when features ship
+- ESLint clean (0 errors, 0 warnings)
+
 ## Next Steps
 1. ~~Phase 5: Polish & edge cases~~ **Complete** (all 5 items done, Session 4-7)
-2. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
-3. Consider adding placeholder nav items for future sections (Billing, Usage, Org Profile)
+2. ~~Placeholder nav items for future sections~~ **Complete** (Session 8)
+3. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
 
 ## Context for Resume
+- `ComingSoon` component is parameterized by `title` (string) and optional `icon` (Lucide component) — when a feature ships, replace the route page content and delete the `<ComingSoon />` usage
+- Placeholder nav items are in the same `NAV_ITEMS` array as real items — no separate data structure, no `disabled` flag, no special rendering logic
 - ManagementSidebar reuses OrgSwitcher and UserMenu directly — they are self-contained components
 - Sidebar open/close state is shared across zones via useSidebarOpen() (localStorage)
 - Existing section components (MembersSection, ApiKeysSection, EnvironmentsSection) are unchanged except the bootstrap fix
@@ -96,7 +107,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-05-session-7.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-06-session-8.md
 ```
 
 ### 2. Current Task
@@ -133,7 +144,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-05-session-7.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-06-session-8.md`
 2. [ ] Check current task status in `tasks/`
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`

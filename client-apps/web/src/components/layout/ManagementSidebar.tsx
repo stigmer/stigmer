@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, KeyRound, PanelLeft, Users, Box } from "lucide-react";
+import {
+  ArrowLeft,
+  BarChart3,
+  Box,
+  Building2,
+  CreditCard,
+  KeyRound,
+  PanelLeft,
+  Users,
+} from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +30,9 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/settings/members", label: "Members", icon: Users },
   { href: "/settings/api-keys", label: "API Keys", icon: KeyRound },
   { href: "/settings/environments", label: "Environments", icon: Box },
+  { href: "/settings/billing", label: "Billing", icon: CreditCard },
+  { href: "/settings/usage", label: "Usage", icon: BarChart3 },
+  { href: "/settings/org-profile", label: "Org Profile", icon: Building2 },
 ];
 
 export function ManagementSidebar() {
