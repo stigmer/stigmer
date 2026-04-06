@@ -3,7 +3,7 @@ syntax = "proto3";
 package ai.stigmer.iam.identityaccount.v1;
 
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "ai/stigmer/iam/identityaccount/v1/io.proto";
 import "google/protobuf/empty.proto";
@@ -15,11 +15,11 @@ service IdentityAccountCommandController {
   // Create a new identity account.
   //
   // @internal
-  // System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+  // System-level RPC used by Auth0 webhook flow and federated account creation.
   // No FGA authorization — called via inProcessChannelAsSystem (machine account).
   // The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
   rpc create(IdentityAccount) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Update an existing identity account.
@@ -27,10 +27,10 @@ service IdentityAccountCommandController {
   // @internal
   // Authorization: Requires can_edit permission on the identity account resource.
   rpc update(IdentityAccount) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update identity account";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update identity account";
   }
 
   // Delete an identity account.
@@ -38,10 +38,28 @@ service IdentityAccountCommandController {
   // @internal
   // Authorization: Requires can_delete permission on the identity account resource.
   rpc delete(IdentityAccountId) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete identity account";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete identity account";
+  }
+
+  // Create a federated identity account for an external platform user.
+  //
+  // Called by platform backends (via API key) when a new user signs up on their
+  // platform. The platform provides the user's OIDC subject identifier and profile
+  // data. The account must be created before the user can authenticate via the IdP.
+  //
+  // Returns the full identity account including its ID, which the platform uses
+  // to grant roles via IAM policies.
+  //
+  // Authorization: Requires can_create_identity_account on the organization
+  // that owns the identity provider.
+  rpc createFederatedAccount(CreateFederatedAccountInput) returns (IdentityAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create identity accounts in this organization";
   }
 
   // Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
@@ -51,6 +69,6 @@ service IdentityAccountCommandController {
   // to Stigmer with the Auth0 payload format to trigger account provisioning.
   // Authorization is skipped — this is a system-level operation.
   rpc simulateSignupWebhook(IdentityAccountEmail) returns (google.protobuf.Empty) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

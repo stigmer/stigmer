@@ -26,10 +26,10 @@ from ai.stigmer.agentic.agentinstance.v1 import api_pb2 as ai_dot_stigmer_dot_ag
 from ai.stigmer.agentic.agentinstance.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/agentinstance/v1/query.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a,ai/stigmer/agentic/agentinstance/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xe8\x04\n\x1c\x41gentInstanceQueryController\x12\xa4\x01\n\x03get\x12\x34.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a\x32.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"3\xc2\xb8\x18/\x08\x03\x10-\"\x05value*\"unauthorized to get Agent Instance\x12\x90\x01\n\ngetByAgent\x12\x44.ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest\x1a\x36.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04\xd0\xb8\x18\x01\x12\x80\x01\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x32.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"\x04\xd0\xb8\x18\x01\x12\x84\x01\n\x04list\x12>.ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest\x1a\x36.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+-B\xe6\x01\n\'com.ai.stigmer.agentic.agentinstance.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02\'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/agentinstance/v1/query.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a,ai/stigmer/agentic/agentinstance/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe8\x04\n\x1c\x41gentInstanceQueryController\x12\xa4\x01\n\x03get\x12\x34.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a\x32.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"3\xc2\xb8\x18/\x08\x01\x10-\"\x05value*\"unauthorized to get Agent Instance\x12\x90\x01\n\ngetByAgent\x12\x44.ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest\x1a\x36.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04\xd0\xb8\x18\x01\x12\x80\x01\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x32.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"\x04\xd0\xb8\x18\x01\x12\x84\x01\n\x04list\x12>.ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest\x1a\x36.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+-B\xe6\x01\n\'com.ai.stigmer.agentic.agentinstance.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02\'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,13 +40,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTINSTANCEQUERYCONTROLLER']._loaded_options = None
   _globals['_AGENTINSTANCEQUERYCONTROLLER']._serialized_options = b'\240\377+-'
   _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030/\010\003\020-\"\005value*\"unauthorized to get Agent Instance'
+  _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030/\010\001\020-\"\005value*\"unauthorized to get Agent Instance'
   _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['getByAgent']._loaded_options = None
   _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['getByAgent']._serialized_options = b'\320\270\030\001'
   _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['getByReference']._loaded_options = None
   _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['getByReference']._serialized_options = b'\320\270\030\001'
   _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['list']._loaded_options = None
   _globals['_AGENTINSTANCEQUERYCONTROLLER'].methods_by_name['list']._serialized_options = b'\320\270\030\001'
-  _globals['_AGENTINSTANCEQUERYCONTROLLER']._serialized_start=348
-  _globals['_AGENTINSTANCEQUERYCONTROLLER']._serialized_end=964
+  _globals['_AGENTINSTANCEQUERYCONTROLLER']._serialized_start=326
+  _globals['_AGENTINSTANCEQUERYCONTROLLER']._serialized_end=942
 # @@protoc_insertion_point(module_scope)

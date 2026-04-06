@@ -38,6 +38,14 @@
           "outputType": "Empty",
           "outputFullType": "google.protobuf.Empty",
           "description": "Cleanup all IAM policies for a deleted resource.\n\n Removes all IAM policies associated with a deleted resource.\n\n @internal\n Performs bidirectional cleanup:\n 1. Policies where resource is the TARGET (policies granting access TO this resource)\n 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)\n\n The operation:\n 1. Validates can_bootstrap_iam permission on platform:stigmer\n 2. Finds all policies where resource_id appears (as principal OR resource)\n 3. Deletes all matching policies from MongoDB\n 4. Removes all corresponding tuples from OpenFGA\n 5. Returns Empty (idempotent if no policies exist)\n\n Authorization:\n - Caller must have 'can_bootstrap_iam' permission on platform:stigmer\n - This is typically only granted to platform services\n\n Use Cases:\n - Resource deletion cleanup\n - Preventing orphaned FGA tuples\n - Maintaining authorization system integrity\n\n Example:\n Input: {kind: \"organization\", id: \"org_demo-123\"}\n Result: All policies referencing org_demo-123 are deleted\n\n Input: ApiResourceRef with resource kind and ID\n Output: Empty (google.protobuf.Empty)"
+        },
+        {
+          "name": "RevokeOrgAccess",
+          "inputType": "RevokeOrgAccessInput",
+          "inputFullType": "ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput",
+          "outputType": "Empty",
+          "outputFullType": "google.protobuf.Empty",
+          "description": "Revoke all of a user's access to an organization.\n\n Removes every IAM policy that grants the specified identity account access to\n resources within the given organization, including policies on the organization\n itself and on child resources (environments, agents, etc.).\n\n @internal\n The operation:\n 1. Validates the input (identity_account_id and organization_id are present)\n 2. Authorizes caller (can_grant_access on the organization)\n 3. Loads all policies where the user is principal within the org scope\n 4. Deletes all matching policies from MongoDB\n 5. Removes all corresponding tuples from OpenFGA\n\n Authorization:\n - Caller must have 'can_grant_access' permission on the organization\n\n Use Cases:\n - Removing a member from an organization\n - Offboarding a user from all org resources in one operation\n\n Input: RevokeOrgAccessInput with identity_account_id and organization_id\n Output: Empty (google.protobuf.Empty)"
         }
       ]
     },
@@ -76,6 +84,30 @@
           "outputType": "AuthorizedPrincipalIdsList",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList",
           "description": "List all principal IDs of a specific kind that are authorized to access a resource\n\n This RPC answers: \"What are all the [principal-kind] that have [relation] access on [resource]?\"\n Inverse of listAuthorizedResourceIds.\n\n Use Cases:\n - Resource access audit (who can access this?)\n - Team discovery for resources\n - Compliance and security audits\n\n Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation\n Output: AuthorizedPrincipalIdsList containing all authorized principal IDs"
+        },
+        {
+          "name": "ListResourceAccessByPrincipal",
+          "inputType": "ListResourceAccessInput",
+          "inputFullType": "ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput",
+          "outputType": "ResourceAccessByPrincipalList",
+          "outputFullType": "ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList",
+          "description": "List all principals and their roles on a resource, grouped by principal.\n\n This RPC answers: \"Who has access to this resource, and what roles do they have?\"\n Returns each principal with full display information and all their role grants,\n optionally including roles inherited from parent resources.\n\n Use Cases:\n - Organization members page (show all users and their roles)\n - Resource \"Share\" dialog (show who already has access)\n - Access audit views\n\n Input: ListResourceAccessInput with resource ref and include_inherited flag\n Output: ResourceAccessByPrincipalList with PrincipalAccess entries"
+        },
+        {
+          "name": "GetPrincipalResourceRoles",
+          "inputType": "PrincipalResourceInput",
+          "inputFullType": "ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput",
+          "outputType": "PrincipalResourceRoles",
+          "outputFullType": "ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles",
+          "description": "Get all roles a specific principal has on a specific resource.\n\n This RPC answers: \"What roles does [principal] have on [resource]?\"\n Returns role metadata (code, display name, description) for each assigned role.\n\n Use Cases:\n - Displaying a user's current role in a resource detail view\n - Pre-populating role selectors when editing access\n - Permission summary for a specific user-resource pair\n\n Input: PrincipalResourceInput with principal and resource refs\n Output: PrincipalResourceRoles with list of RoleInfo entries"
+        },
+        {
+          "name": "GetPrincipalsCount",
+          "inputType": "GetPrincipalsCountInput",
+          "inputFullType": "ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput",
+          "outputType": "PrincipalsCount",
+          "outputFullType": "ai.stigmer.iam.iampolicy.v1.PrincipalsCount",
+          "description": "Count distinct principals that have access to a resource.\n\n This RPC answers: \"How many [principal-kind] have access to this organization?\"\n Used for member count badges and summary statistics.\n\n Use Cases:\n - Organization members count badge in navigation\n - Settings page member summary\n\n Input: GetPrincipalsCountInput with org_id and principal_kind\n Output: PrincipalsCount with integer count"
         }
       ]
     }
@@ -122,7 +154,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").\n Maps to the role_code from IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"\n\n @internal\n This is the FGA relation in the authorization tuple:\n principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation",
+          "description": "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").\n Maps to a role_code from ai.stigmer.iam.v1.IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"\n\n @internal\n This is the FGA relation in the authorization tuple:\n principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation",
           "required": true,
           "validation": {
             "required": true,
@@ -179,6 +211,42 @@
           "required": false,
           "validation": {
             "maxLength": 256
+          }
+        }
+      ]
+    },
+    {
+      "name": "RevokeOrgAccessInput",
+      "description": "RevokeOrgAccessInput defines the input for revoking all of a user's access to an organization.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "IdentityAccountId",
+          "jsonName": "identityAccountId",
+          "protoField": "identity_account_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The identity account whose access is being revoked",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1
+          }
+        },
+        {
+          "name": "OrganizationId",
+          "jsonName": "organizationId",
+          "protoField": "organization_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization from which access is being revoked",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1
           }
         }
       ]
@@ -403,6 +471,172 @@
             }
           },
           "description": "Principal IDs authorized to access the resource.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListResourceAccessInput",
+      "description": "ListResourceAccessInput defines input for querying access grants on a resource.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceRef"
+          },
+          "description": "The resource to query access for",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "IncludeInherited",
+          "jsonName": "includeInherited",
+          "protoField": "include_inherited",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether to include inherited permissions from parent resources",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ResourceAccessByPrincipalList",
+      "description": "ResourceAccessByPrincipalList groups access grants by principal, showing each\n principal and all their assigned roles on the queried resource.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PrincipalAccess"
+            }
+          },
+          "description": "Principal access entries.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PrincipalResourceInput",
+      "description": "PrincipalResourceInput defines a generic input for operations involving a principal and a resource.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "Principal",
+          "jsonName": "principal",
+          "protoField": "principal",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceRef"
+          },
+          "description": "The principal in the relationship (WHO)",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceRef"
+          },
+          "description": "The resource in the relationship (WHAT)",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "PrincipalResourceRoles",
+      "description": "PrincipalResourceRoles contains all roles a principal has on a specific resource.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "Roles",
+          "jsonName": "roles",
+          "protoField": "roles",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "RoleInfo"
+            }
+          },
+          "description": "Roles assigned to the principal on this resource.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetPrincipalsCountInput",
+      "description": "GetPrincipalsCountInput defines input for counting principals in an organization.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization ID to count principals for",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1
+          }
+        },
+        {
+          "name": "PrincipalKind",
+          "jsonName": "principalKind",
+          "protoField": "principal_kind",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The kind of principals to count (identity_account or team)",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "PrincipalsCount",
+      "description": "PrincipalsCount contains the count of principals.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.PrincipalsCount",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "Count",
+          "jsonName": "count",
+          "protoField": "count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of principals matching the query.",
           "required": false
         }
       ]

@@ -15,6 +15,7 @@ public final class GeneratedClient {
     public final IamPolicyClient iamPolicy;
     public final IdentityAccountClient identityAccount;
     public final IdentityProviderClient identityProvider;
+    public final InvitationClient invitation;
     public final McpServerClient mcpServer;
     public final OrganizationClient organization;
     public final ProjectClient project;
@@ -34,6 +35,7 @@ public final class GeneratedClient {
         this.iamPolicy = new IamPolicyClient(channel);
         this.identityAccount = new IdentityAccountClient(channel);
         this.identityProvider = new IdentityProviderClient(channel);
+        this.invitation = new InvitationClient(channel);
         this.mcpServer = new McpServerClient(channel);
         this.organization = new OrganizationClient(channel);
         this.project = new ProjectClient(channel);

@@ -8,7 +8,7 @@ package workflowexecutionv1
 
 import (
 	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,12 +26,12 @@ var File_ai_stigmer_agentic_workflowexecution_v1_query_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_workflowexecution_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/workflowexecution/v1/query.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x84\x06\n" +
+	"3ai/stigmer/agentic/workflowexecution/v1/query.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x84\x06\n" +
 	" WorkflowExecutionQueryController\x12\xb8\x01\n" +
-	"\x03get\x12<.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7¸\x183\b\x03\x104\"\x05value*&unauthorized to get workflow execution\x12\x94\x01\n" +
+	"\x03get\x12<.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7¸\x183\b\x01\x104\"\x05value*&unauthorized to get workflow execution\x12\x94\x01\n" +
 	"\x04list\x12F.ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest\x1a>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList\"\x04и\x18\x01\x12\xa8\x01\n" +
 	"\x0elistByWorkflow\x12P.ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest\x1a>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList\"\x04и\x18\x01\x12\xdc\x01\n" +
-	"\tsubscribe\x12J.ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"E¸\x18A\b\x03\x104\"\fexecution_id*-unauthorized to get workflow execution stream0\x01\x1a\x04\xa0\xff+4B\xe3\x02\n" +
+	"\tsubscribe\x12J.ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"E¸\x18A\b\x01\x104\"\fexecution_id*-unauthorized to get workflow execution stream0\x01\x1a\x04\xa0\xff+4B\xe3\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\n" +
 	"QueryProtoP\x01Zggithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 

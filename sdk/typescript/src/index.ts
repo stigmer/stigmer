@@ -30,6 +30,20 @@ export {
   isResourceAvailable,
 } from "./resource-availability";
 
+// Authorization config and IAM role utilities
+export {
+  getGrantableRoles,
+  hasGrantableRoles,
+  isRoleGrantable,
+} from "./authorization-config";
+export {
+  iamRoleToString,
+  iamRoleFromString,
+  iamRoleDisplayName,
+  iamRoleDescription,
+} from "./iam-role";
+export { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
 // Search client
 export {
   SearchClient,
@@ -96,6 +110,10 @@ export {
   IdentityAccountClient,
   type IdentityAccountInput,
 } from "./gen/identityaccount";
+export {
+  InvitationClient,
+  type InvitationInput,
+} from "./gen/invitation";
 export {
   IdentityProviderClient,
   type IdentityProviderInput,

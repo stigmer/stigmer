@@ -8,7 +8,7 @@ package executioncontextv1
 
 import (
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,7 +26,7 @@ var File_ai_stigmer_agentic_executioncontext_v1_command_proto protoreflect.FileD
 
 const file_ai_stigmer_agentic_executioncontext_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"4ai/stigmer/agentic/executioncontext/v1/command.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a0ai/stigmer/agentic/executioncontext/v1/api.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xae\x03\n" +
+	"4ai/stigmer/agentic/executioncontext/v1/command.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a0ai/stigmer/agentic/executioncontext/v1/api.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xae\x03\n" +
 	"!ExecutionContextCommandController\x12{\n" +
 	"\x05apply\x128.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\x12\x82\x01\n" +
 	"\x06create\x128.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x12\x80\x01\n" +

@@ -4,7 +4,7 @@ package ai.stigmer.tenancy.organization.v1;
 
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/tenancy/organization/v1/api.proto";
 import "ai/stigmer/tenancy/organization/v1/io.proto";
 import "google/protobuf/empty.proto";
@@ -18,10 +18,10 @@ service OrganizationQueryController {
   // @internal
   // Authorization: Requires can_view permission on the organization.
   rpc get(OrganizationId) returns (Organization) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view organization";
   }
 
   // List organizations with pagination and filtering.
@@ -29,7 +29,7 @@ service OrganizationQueryController {
   // @internal
   // Authorization: Requires platform admin permission. Administrative use only.
   rpc find(ai.stigmer.commons.apiresource.FindApiResourcesRequest) returns (OrganizationList) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Find organizations the authenticated user is a member of.
@@ -38,7 +38,7 @@ service OrganizationQueryController {
   // @internal
   // Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
   rpc findMyOrganizations(google.protobuf.Empty) returns (Organizations) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Look up a platform-managed organization by its external platform coordinates.
@@ -47,6 +47,6 @@ service OrganizationQueryController {
   // @internal
   // Authorization: custom — checks can_view on the referenced IdentityProvider.
   rpc getByExternalOrgId(OrganizationExternalLookup) returns (Organization) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

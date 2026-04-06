@@ -12,7 +12,7 @@ import { type ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/a
 import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityAccountIdSchema, IdentityAccountEmailSchema, IdpIdSchema, type IdentityAccountEmail } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IdentityAccountIdSchema, CreateFederatedAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, type CreateFederatedAccountInput, type IdentityAccountEmail, type ExternalSubLookup } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
@@ -44,6 +44,12 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async createFederatedAccount(input: CreateFederatedAccountInput): Promise<IdentityAccount> {
+    try {
+      return await this.command.createFederatedAccount(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async simulateSignupWebhook(input: IdentityAccountEmail): Promise<void> {
     try {
       await this.command.simulateSignupWebhook(input);
@@ -71,6 +77,12 @@ export class IdentityAccountClient {
   async getByIdpId(id: string): Promise<IdentityAccount> {
     try {
       return await this.query.getByIdpId(create(IdpIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getByExternalSub(input: ExternalSubLookup): Promise<IdentityAccount> {
+    try {
+      return await this.query.getByExternalSub(input);
     } catch (e) { throw wrapError(e); }
   }
 

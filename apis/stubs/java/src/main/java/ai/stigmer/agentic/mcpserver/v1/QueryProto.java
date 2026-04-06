@@ -40,21 +40,20 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ai/stigmer/agentic/mcpserver/v1/api.prot" +
       "o\032\'ai/stigmer/commons/apiresource/io.pro" +
       "to\0328ai/stigmer/commons/apiresource/rpc_s" +
-      "ervice_options.proto\032Aai/stigmer/iam/iam" +
-      "policy/v1/rpcauthorization/method_option" +
-      "s.proto2\257\002\n\030McpServerQueryController\022\222\001\n" +
-      "\003get\022-.ai.stigmer.commons.apiresource.Ap" +
-      "iResourceId\032*.ai.stigmer.agentic.mcpserv" +
-      "er.v1.McpServer\"0\302\270\030,\010\003\020,\"\005value*\037unauth" +
-      "orized to view mcp server\022x\n\016getByRefere" +
-      "nce\0224.ai.stigmer.commons.apiresource.Api" +
-      "ResourceReference\032*.ai.stigmer.agentic.m" +
-      "cpserver.v1.McpServer\"\004\320\270\030\001\032\004\240\377+,B\255\001B\nQu" +
-      "eryProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.M" +
-      "cpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserv" +
-      "er\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\" +
-      "GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcps" +
-      "erver::V1b\006proto3"
+      "ervice_options.proto\032+ai/stigmer/commons" +
+      "/rpc/method_options.proto2\257\002\n\030McpServerQ" +
+      "ueryController\022\222\001\n\003get\022-.ai.stigmer.comm" +
+      "ons.apiresource.ApiResourceId\032*.ai.stigm" +
+      "er.agentic.mcpserver.v1.McpServer\"0\302\270\030,\010" +
+      "\001\020,\"\005value*\037unauthorized to view mcp ser" +
+      "ver\022x\n\016getByReference\0224.ai.stigmer.commo" +
+      "ns.apiresource.ApiResourceReference\032*.ai" +
+      ".stigmer.agentic.mcpserver.v1.McpServer\"" +
+      "\004\320\270\030\001\032\004\240\377+,B\255\001B\nQueryProtoP\001\242\002\004ASAM\252\002\037Ai" +
+      ".Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigm" +
+      "er\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Age" +
+      "ntic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stig" +
+      "mer::Agentic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -62,18 +61,18 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.mcpserver.v1.ApiProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.mcpserver.v1.ApiProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

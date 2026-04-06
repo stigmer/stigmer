@@ -42,12 +42,12 @@ skill, err := client.Skill.Get(ctx, "skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skill.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
+skill = client.skills.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skill().get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Skill skill = client.skills().get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -81,12 +81,12 @@ skill, err := client.Skill.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skill.get(id)
+skill = client.skills.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skill().get(id);
+Skill skill = client.skills().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -120,14 +120,14 @@ getArtifactResponse, err := client.Skill.GetArtifact(ctx, &stigmer.GetArtifactRe
 </Tab>
 <Tab value="Python">
 ```python
-getArtifactResponse = client.skill.get_artifact(GetArtifactRequest(
+get_artifact_response = client.skills.get_artifact(GetArtifactRequest(
     artifact_storage_key="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetArtifactResponse getArtifactResponse = client.skill().getArtifact(GetArtifactRequest.builder()
+GetArtifactResponse getArtifactResponse = client.skills().getArtifact(GetArtifactRequest.builder()
     .artifactStorageKey("...")
     .build());
 ```
@@ -167,7 +167,7 @@ skill, err := client.Skill.GetByReference(ctx, &stigmer.ApiResourceReference{
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skill.get_by_reference(ApiResourceReference(
+skill = client.skills.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -177,7 +177,7 @@ skill = client.skill.get_by_reference(ApiResourceReference(
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skill().getByReference(ApiResourceReference.builder()
+Skill skill = client.skills().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -214,7 +214,7 @@ skill, err := client.Skill.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skill.update_visibility(UpdateVisibilityInput(
+skill = client.skills.update_visibility(UpdateVisibilityInput(
     resource_id="...",
     visibility="...",
 ))
@@ -222,7 +222,7 @@ skill = client.skill.update_visibility(UpdateVisibilityInput(
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skill().updateVisibility(UpdateVisibilityInput.builder()
+Skill skill = client.skills().updateVisibility(UpdateVisibilityInput.builder()
     .resourceId("...")
     .visibility("...")
     .build());
@@ -251,12 +251,12 @@ skill, err := client.Skill.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skill.delete(id)
+skill = client.skills.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skill().delete(id);
+Skill skill = client.skills().delete(id);
 ```
 </Tab>
 </SDKTabs>
@@ -296,7 +296,7 @@ skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skill.push(PushSkillRequest(
+skill = client.skills.push(PushSkillRequest(
     org="...",
     artifact="...",
     tag="...",
@@ -306,7 +306,7 @@ skill = client.skill.push(PushSkillRequest(
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skill().push(PushSkillRequest.builder()
+Skill skill = client.skills().push(PushSkillRequest.builder()
     .org("...")
     .artifact("...")
     .tag("...")
@@ -347,7 +347,7 @@ skill, err := client.Skill.PushFromExecutionArtifact(ctx, &stigmer.PushSkillFrom
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skill.push_from_execution_artifact(PushSkillFromExecutionArtifactRequest(
+skill = client.skills.push_from_execution_artifact(PushSkillFromExecutionArtifactRequest(
     org="...",
     execution_id="...",
     storage_key="...",
@@ -357,7 +357,7 @@ skill = client.skill.push_from_execution_artifact(PushSkillFromExecutionArtifact
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skill().pushFromExecutionArtifact(PushSkillFromExecutionArtifactRequest.builder()
+Skill skill = client.skills().pushFromExecutionArtifact(PushSkillFromExecutionArtifactRequest.builder()
     .org("...")
     .executionId("...")
     .storageKey("...")

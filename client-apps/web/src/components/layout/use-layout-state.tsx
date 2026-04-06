@@ -6,6 +6,9 @@ import { useCallback, useSyncExternalStore } from "react";
 // Sidebar visibility — persisted to localStorage, syncs across tabs
 // ---------------------------------------------------------------------------
 
+/** Tailwind `lg` breakpoint — the threshold between overlay and persistent sidebar modes. */
+export const LG_BREAKPOINT = 1024;
+
 const SIDEBAR_KEY = "stigmer:sidebar-open";
 
 function getSidebarSnapshot(): boolean {

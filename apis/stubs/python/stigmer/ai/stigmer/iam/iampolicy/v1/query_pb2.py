@@ -23,12 +23,12 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.iam.iampolicy.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_api__pb2
 from ai.stigmer.iam.iampolicy.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/iam/iampolicy/v1/query.proto\x12\x1b\x61i.stigmer.iam.iampolicy.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xc8\x05\n\x18IamPolicyQueryController\x12\x85\x01\n\x03get\x12(.ai.stigmer.iam.iampolicy.v1.IamPolicyId\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\",\xc2\xb8\x18(\x08\t*$unauthorized to view access policies\x12\x87\x01\n\x12\x63heckAuthorization\x12\x34.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput\x1a\x35.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult\"\x04\xd0\xb8\x18\x01\x12\xc6\x01\n\x19listAuthorizedResourceIds\x12;.ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput\x1a\x36.ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList\"4\xc2\xb8\x18\x30\x08\t*,unauthorized to view authorized resource ids\x12\xca\x01\n\x1alistAuthorizedPrincipalIds\x12<.ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput\x1a\x37.ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList\"5\xc2\xb8\x18\x31\x08\t*-unauthorized to view authorized principal ids\x1a\x04\xa0\xff+\nB\xbe\x01\n\x1f\x63om.ai.stigmer.iam.iampolicy.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1b\x41i.Stigmer.Iam.Iampolicy.V1\xca\x02\x1b\x41i\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Iam::Iampolicy::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/iam/iampolicy/v1/query.proto\x12\x1b\x61i.stigmer.iam.iampolicy.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto2\xea\t\n\x18IamPolicyQueryController\x12\x85\x01\n\x03get\x12(.ai.stigmer.iam.iampolicy.v1.IamPolicyId\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\",\xc2\xb8\x18(\x08\x05*$unauthorized to view access policies\x12\x87\x01\n\x12\x63heckAuthorization\x12\x34.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput\x1a\x35.ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult\"\x04\xd0\xb8\x18\x01\x12\xc6\x01\n\x19listAuthorizedResourceIds\x12;.ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput\x1a\x36.ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList\"4\xc2\xb8\x18\x30\x08\x05*,unauthorized to view authorized resource ids\x12\xca\x01\n\x1alistAuthorizedPrincipalIds\x12<.ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput\x1a\x37.ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList\"5\xc2\xb8\x18\x31\x08\x05*-unauthorized to view authorized principal ids\x12\xbf\x01\n\x1dlistResourceAccessByPrincipal\x12\x34.ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput\x1a:.ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList\",\xc2\xb8\x18(\x08\x05*$unauthorized to view resource access\x12\xb3\x01\n\x19getPrincipalResourceRoles\x12\x33.ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput\x1a\x33.ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles\",\xc2\xb8\x18(\x08\x05*$unauthorized to view principal roles\x12\xa7\x01\n\x12getPrincipalsCount\x12\x34.ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput\x1a,.ai.stigmer.iam.iampolicy.v1.PrincipalsCount\"-\xc2\xb8\x18)\x08\x05*%unauthorized to view principals count\x1a\x04\xa0\xff+\nB\xbe\x01\n\x1f\x63om.ai.stigmer.iam.iampolicy.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1b\x41i.Stigmer.Iam.Iampolicy.V1\xca\x02\x1b\x41i\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Iam::Iampolicy::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,13 +39,19 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IAMPOLICYQUERYCONTROLLER']._loaded_options = None
   _globals['_IAMPOLICYQUERYCONTROLLER']._serialized_options = b'\240\377+\n'
   _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030(\010\t*$unauthorized to view access policies'
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030(\010\005*$unauthorized to view access policies'
   _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['checkAuthorization']._loaded_options = None
   _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['checkAuthorization']._serialized_options = b'\320\270\030\001'
   _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['listAuthorizedResourceIds']._loaded_options = None
-  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['listAuthorizedResourceIds']._serialized_options = b'\302\270\0300\010\t*,unauthorized to view authorized resource ids'
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['listAuthorizedResourceIds']._serialized_options = b'\302\270\0300\010\005*,unauthorized to view authorized resource ids'
   _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['listAuthorizedPrincipalIds']._loaded_options = None
-  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['listAuthorizedPrincipalIds']._serialized_options = b'\302\270\0301\010\t*-unauthorized to view authorized principal ids'
-  _globals['_IAMPOLICYQUERYCONTROLLER']._serialized_start=275
-  _globals['_IAMPOLICYQUERYCONTROLLER']._serialized_end=987
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['listAuthorizedPrincipalIds']._serialized_options = b'\302\270\0301\010\005*-unauthorized to view authorized principal ids'
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['listResourceAccessByPrincipal']._loaded_options = None
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['listResourceAccessByPrincipal']._serialized_options = b'\302\270\030(\010\005*$unauthorized to view resource access'
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['getPrincipalResourceRoles']._loaded_options = None
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['getPrincipalResourceRoles']._serialized_options = b'\302\270\030(\010\005*$unauthorized to view principal roles'
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['getPrincipalsCount']._loaded_options = None
+  _globals['_IAMPOLICYQUERYCONTROLLER'].methods_by_name['getPrincipalsCount']._serialized_options = b'\302\270\030)\010\005*%unauthorized to view principals count'
+  _globals['_IAMPOLICYQUERYCONTROLLER']._serialized_start=253
+  _globals['_IAMPOLICYQUERYCONTROLLER']._serialized_end=1511
 # @@protoc_insertion_point(module_scope)

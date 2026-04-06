@@ -5,7 +5,7 @@ package ai.stigmer.agentic.session.v1;
 import "ai/stigmer/agentic/session/v1/api.proto";
 import "ai/stigmer/agentic/session/v1/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // SessionQueryController handles read operations for agent sessions.
 service SessionQueryController {
@@ -13,10 +13,10 @@ service SessionQueryController {
 
   // Get a single session by ID.
   rpc get(SessionId) returns (Session) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = session;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get session";
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get session";
   }
 
   // List all sessions with pagination and optional filtering.
@@ -24,7 +24,7 @@ service SessionQueryController {
   // @internal
   // Authorization is handled in-handler via FGA-filtered queries.
   rpc list(ListSessionsRequest) returns (SessionList) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // List all sessions for a specific agent.
@@ -32,6 +32,6 @@ service SessionQueryController {
   // @internal
   // Authorization is handled in-handler via FGA-filtered queries.
   rpc listByAgent(ListSessionsByAgentRequest) returns (SessionList) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

@@ -23,13 +23,14 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.iam.iampolicy.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_api__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.iam.iampolicy.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2
 from ai.stigmer.iam.iampolicy.v1 import spec_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_spec__pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/iam/iampolicy/v1/command.proto\x12\x1b\x61i.stigmer.iam.iampolicy.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a\x1bgoogle/protobuf/empty.proto2\xb9\x05\n\x1aIamPolicyCommandController\x12\x82\x01\n\x06\x63reate\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"$\xc2\xb8\x18 \x08\x08*\x1cunauthorized to grant access\x12\x83\x01\n\x06\x64\x65lete\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"%\xc2\xb8\x18!\x08\x08*\x1dunauthorized to revoke access\x12\xc2\x01\n\x0f\x62ootstrapPolicy\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"[\xc2\xb8\x18W\x08\x1d\x10\x1f*Hunauthorized to bootstrap policy - can_bootstrap_iam permission required2\x07stigmer\x12\xc4\x01\n\x17\x63leanupResourcePolicies\x12+.ai.stigmer.iam.iampolicy.v1.ApiResourceRef\x1a\x16.google.protobuf.Empty\"d\xc2\xb8\x18`\x08\x1d\x10\x1f*Qunauthorized to cleanup resource policies - can_bootstrap_iam permission required2\x07stigmer\x1a\x04\xa0\xff+\nB\xc0\x01\n\x1f\x63om.ai.stigmer.iam.iampolicy.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1b\x41i.Stigmer.Iam.Iampolicy.V1\xca\x02\x1b\x41i\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Iam::Iampolicy::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/iam/iampolicy/v1/command.proto\x12\x1b\x61i.stigmer.iam.iampolicy.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a\x1bgoogle/protobuf/empty.proto2\xcc\x06\n\x1aIamPolicyCommandController\x12\x82\x01\n\x06\x63reate\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"$\xc2\xb8\x18 \x08\x04*\x1cunauthorized to grant access\x12\x83\x01\n\x06\x64\x65lete\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"%\xc2\xb8\x18!\x08\x04*\x1dunauthorized to revoke access\x12\xc2\x01\n\x0f\x62ootstrapPolicy\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"[\xc2\xb8\x18W\x08\x11\x10\x1f*Hunauthorized to bootstrap policy - can_bootstrap_iam permission required2\x07stigmer\x12\xc4\x01\n\x17\x63leanupResourcePolicies\x12+.ai.stigmer.iam.iampolicy.v1.ApiResourceRef\x1a\x16.google.protobuf.Empty\"d\xc2\xb8\x18`\x08\x11\x10\x1f*Qunauthorized to cleanup resource policies - can_bootstrap_iam permission required2\x07stigmer\x12\x90\x01\n\x0frevokeOrgAccess\x12\x31.ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput\x1a\x16.google.protobuf.Empty\"2\xc2\xb8\x18.\x08\x04**unauthorized to revoke organization access\x1a\x04\xa0\xff+\nB\xc0\x01\n\x1f\x63om.ai.stigmer.iam.iampolicy.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1b\x41i.Stigmer.Iam.Iampolicy.V1\xca\x02\x1b\x41i\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Iam::Iampolicy::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,13 +41,15 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IAMPOLICYCOMMANDCONTROLLER']._loaded_options = None
   _globals['_IAMPOLICYCOMMANDCONTROLLER']._serialized_options = b'\240\377+\n'
   _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['create']._loaded_options = None
-  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['create']._serialized_options = b'\302\270\030 \010\010*\034unauthorized to grant access'
+  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['create']._serialized_options = b'\302\270\030 \010\004*\034unauthorized to grant access'
   _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['delete']._loaded_options = None
-  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['delete']._serialized_options = b'\302\270\030!\010\010*\035unauthorized to revoke access'
+  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['delete']._serialized_options = b'\302\270\030!\010\004*\035unauthorized to revoke access'
   _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['bootstrapPolicy']._loaded_options = None
-  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['bootstrapPolicy']._serialized_options = b'\302\270\030W\010\035\020\037*Hunauthorized to bootstrap policy - can_bootstrap_iam permission required2\007stigmer'
+  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['bootstrapPolicy']._serialized_options = b'\302\270\030W\010\021\020\037*Hunauthorized to bootstrap policy - can_bootstrap_iam permission required2\007stigmer'
   _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['cleanupResourcePolicies']._loaded_options = None
-  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['cleanupResourcePolicies']._serialized_options = b'\302\270\030`\010\035\020\037*Qunauthorized to cleanup resource policies - can_bootstrap_iam permission required2\007stigmer'
-  _globals['_IAMPOLICYCOMMANDCONTROLLER']._serialized_start=308
-  _globals['_IAMPOLICYCOMMANDCONTROLLER']._serialized_end=1005
+  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['cleanupResourcePolicies']._serialized_options = b'\302\270\030`\010\021\020\037*Qunauthorized to cleanup resource policies - can_bootstrap_iam permission required2\007stigmer'
+  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['revokeOrgAccess']._loaded_options = None
+  _globals['_IAMPOLICYCOMMANDCONTROLLER'].methods_by_name['revokeOrgAccess']._serialized_options = b'\302\270\030.\010\004**unauthorized to revoke organization access'
+  _globals['_IAMPOLICYCOMMANDCONTROLLER']._serialized_start=324
+  _globals['_IAMPOLICYCOMMANDCONTROLLER']._serialized_end=1168
 # @@protoc_insertion_point(module_scope)

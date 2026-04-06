@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.platform.github.v1;
 
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "buf/validate/validate.proto";
 
 // GitHubService provides OAuth integration with GitHub.
@@ -30,7 +30,7 @@ service GitHubService {
   // scopes, and the state parameter. Authorization is skipped because this
   // is a pre-authentication step.
   rpc getOAuthAuthorizeUrl(GetOAuthAuthorizeUrlRequest) returns (GetOAuthAuthorizeUrlResponse) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Exchange a GitHub OAuth authorization code for an access token.
@@ -45,7 +45,7 @@ service GitHubService {
   // stored by the backend — the caller is responsible for persisting it and
   // including it in subsequent requests that need GitHub access.
   rpc exchangeOAuthCode(ExchangeOAuthCodeRequest) returns (ExchangeOAuthCodeResponse) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }
 

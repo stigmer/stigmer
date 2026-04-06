@@ -11,14 +11,16 @@ import (
 //
 // This struct follows the Pulumi Args pattern for resource configuration.
 //
-// AgentInstanceSpec defines a configured deployment of an Agent template.
+// AgentInstanceSpec defines the configurable properties of an agent instance.
 //
-//	This is the "Instance" layer - stateful configuration with secrets.
+//	@internal
+//	This is the "Instance" layer — stateful configuration with secrets.
+//	The overview.md file provides the SDK-facing description and example YAML.
 type AgentInstanceArgs struct {
-	// Reference to the Agent template this instance deploys.
+	// Identifier of the Agent template this instance deploys.
 	AgentId string `json:"agentId,omitempty"`
-	// Human-readable description for this instance.  Example: "Production GitHub bot for main repo"
+	// Human-readable description for UI and API display.
 	Description string `json:"description,omitempty"`
-	// References to Environment resources (can be multiple).  Environments are merged in order: later environments override earlier ones.  Example: [base-env, aws-prod-env, github-team-env]  This allows layering of configurations (base → specific overrides).
+	// References to Environment resources providing secrets and configuration at runtime.   @internal  Environments are merged in order: later environments override earlier ones.  Example: [base-env, aws-prod-env, github-team-env]  This allows layering of configurations (base → specific overrides).
 	EnvironmentRefs []*apiresource.ApiResourceReference `json:"environmentRefs,omitempty"`
 }

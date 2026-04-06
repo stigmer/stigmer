@@ -39,43 +39,43 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "oto\022\035ai.stigmer.tenancy.project.v1\032\'ai/s" +
       "tigmer/commons/apiresource/io.proto\0328ai/" +
       "stigmer/commons/apiresource/rpc_service_" +
-      "options.proto\032Aai/stigmer/iam/iampolicy/" +
-      "v1/rpcauthorization/method_options.proto" +
-      "\032\'ai/stigmer/tenancy/project/v1/api.prot" +
-      "o\032&ai/stigmer/tenancy/project/v1/io.prot" +
-      "o2\234\002\n\026ProjectQueryController\022\205\001\n\003get\022(.a" +
-      "i.stigmer.tenancy.project.v1.ProjectId\032&" +
-      ".ai.stigmer.tenancy.project.v1.Project\"," +
-      "\302\270\030(\010\003\020<\"\005value*\033unauthorized to get pro" +
-      "ject\022t\n\016getByReference\0224.ai.stigmer.comm" +
-      "ons.apiresource.ApiResourceReference\032&.a" +
-      "i.stigmer.tenancy.project.v1.Project\"\004\320\270" +
-      "\030\001\032\004\240\377+<B\245\001B\nQueryProtoP\001\242\002\004ASTP\252\002\035Ai.St" +
-      "igmer.Tenancy.Project.V1\312\002\035Ai\\Stigmer\\Te" +
-      "nancy\\Project\\V1\342\002)Ai\\Stigmer\\Tenancy\\Pr" +
-      "oject\\V1\\GPBMetadata\352\002!Ai::Stigmer::Tena" +
-      "ncy::Project::V1b\006proto3"
+      "options.proto\032+ai/stigmer/commons/rpc/me" +
+      "thod_options.proto\032\'ai/stigmer/tenancy/p" +
+      "roject/v1/api.proto\032&ai/stigmer/tenancy/" +
+      "project/v1/io.proto2\234\002\n\026ProjectQueryCont" +
+      "roller\022\205\001\n\003get\022(.ai.stigmer.tenancy.proj" +
+      "ect.v1.ProjectId\032&.ai.stigmer.tenancy.pr" +
+      "oject.v1.Project\",\302\270\030(\010\001\020<\"\005value*\033unaut" +
+      "horized to get project\022t\n\016getByReference" +
+      "\0224.ai.stigmer.commons.apiresource.ApiRes" +
+      "ourceReference\032&.ai.stigmer.tenancy.proj" +
+      "ect.v1.Project\"\004\320\270\030\001\032\004\240\377+<B\245\001B\nQueryProt" +
+      "oP\001\242\002\004ASTP\252\002\035Ai.Stigmer.Tenancy.Project." +
+      "V1\312\002\035Ai\\Stigmer\\Tenancy\\Project\\V1\342\002)Ai\\" +
+      "Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\352\002" +
+      "!Ai::Stigmer::Tenancy::Project::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.tenancy.project.v1.ApiProto.getDescriptor(),
           ai.stigmer.tenancy.project.v1.IoProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.tenancy.project.v1.ApiProto.getDescriptor();
     ai.stigmer.tenancy.project.v1.IoProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

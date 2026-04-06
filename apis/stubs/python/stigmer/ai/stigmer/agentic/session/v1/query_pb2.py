@@ -25,10 +25,10 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.agentic.session.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.session.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
-from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
+from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/session/v1/query.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x90\x03\n\x16SessionQueryController\x12\x85\x01\n\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",\xc2\xb8\x18(\x08\x03\x10*\"\x05value*\x1bunauthorized to get session\x12l\n\x04list\x12\x32.ai.stigmer.agentic.session.v1.ListSessionsRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04\xd0\xb8\x18\x01\x12z\n\x0blistByAgent\x12\x39.ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+*B\xc8\x01\n!com.ai.stigmer.agentic.session.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/session/v1/query.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x90\x03\n\x16SessionQueryController\x12\x85\x01\n\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",\xc2\xb8\x18(\x08\x01\x10*\"\x05value*\x1bunauthorized to get session\x12l\n\x04list\x12\x32.ai.stigmer.agentic.session.v1.ListSessionsRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04\xd0\xb8\x18\x01\x12z\n\x0blistByAgent\x12\x39.ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+*B\xc8\x01\n!com.ai.stigmer.agentic.session.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,11 +39,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SESSIONQUERYCONTROLLER']._loaded_options = None
   _globals['_SESSIONQUERYCONTROLLER']._serialized_options = b'\240\377+*'
   _globals['_SESSIONQUERYCONTROLLER'].methods_by_name['get']._loaded_options = None
-  _globals['_SESSIONQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030(\010\003\020*\"\005value*\033unauthorized to get session'
+  _globals['_SESSIONQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030(\010\001\020*\"\005value*\033unauthorized to get session'
   _globals['_SESSIONQUERYCONTROLLER'].methods_by_name['list']._loaded_options = None
   _globals['_SESSIONQUERYCONTROLLER'].methods_by_name['list']._serialized_options = b'\320\270\030\001'
   _globals['_SESSIONQUERYCONTROLLER'].methods_by_name['listByAgent']._loaded_options = None
   _globals['_SESSIONQUERYCONTROLLER'].methods_by_name['listByAgent']._serialized_options = b'\320\270\030\001'
-  _globals['_SESSIONQUERYCONTROLLER']._serialized_start=283
-  _globals['_SESSIONQUERYCONTROLLER']._serialized_end=683
+  _globals['_SESSIONQUERYCONTROLLER']._serialized_start=261
+  _globals['_SESSIONQUERYCONTROLLER']._serialized_end=661
 # @@protoc_insertion_point(module_scope)

@@ -13,8 +13,8 @@ export interface UseResourceSearchOptions {
    * Controls search scope.
    *
    * - `"org"` — search only within the provided organization.
-   * - `"all"` — search all organizations the caller can access,
-   *   including public/platform resources from other orgs.
+   * - `"all"` — search within the provided organization plus public
+   *   resources from other organizations.
    *
    * @default "org"
    */
@@ -72,9 +72,10 @@ export function useResourceSearch(
     setError(null);
 
     const params: ListParams = {
-      org: scope === "all" ? "" : org,
+      org,
       query: debouncedQuery || undefined,
       excludePublic: false,
+      crossOrgPublic: scope === "all",
       page: { num: 1, size: pageSize },
     };
 

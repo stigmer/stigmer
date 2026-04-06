@@ -11,12 +11,13 @@ import (
 //
 // This struct follows the Pulumi Args pattern for resource configuration.
 //
-// ExecutionContextSpec defines ephemeral runtime configuration and secrets.
+// Runtime configuration and secrets for a single execution.
 //
-//	This is created during execution and deleted when execution completes.
+//	@internal
+//	Created by the execution engine, deleted when execution completes.
 type ExecutionContextArgs struct {
-	// The execution ID this context belongs to.  This is typically a WorkflowExecution ID or AgentExecution ID.
+	// ID of the parent AgentExecution or WorkflowExecution.
 	ExecutionId string `json:"executionId,omitempty"`
-	// Key-value pairs containing both configuration and secrets.  These are provided at runtime and only exist for the duration of the execution.  Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+	// Runtime key-value pairs, each marked as secret or plaintext.   @internal  Provided at runtime and only exist for the duration of the execution.  Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
 	Data map[string]*executioncontextv1.ExecutionValue `json:"data,omitempty"`
 }

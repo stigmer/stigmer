@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Create a new identity account.\n\n @internal\n System-level RPC used by federated JIT provisioning and Auth0 webhook flow.\n No FGA authorization — called via inProcessChannelAsSystem (machine account).\n The handler's createAuthorizationTuples step writes the self-ownership tuple after creation."
+          "description": "Create a new identity account.\n\n @internal\n System-level RPC used by Auth0 webhook flow and federated account creation.\n No FGA authorization — called via inProcessChannelAsSystem (machine account).\n The handler's createAuthorizationTuples step writes the self-ownership tuple after creation."
         },
         {
           "name": "Update",
@@ -30,6 +30,14 @@
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
           "description": "Delete an identity account.\n\n @internal\n Authorization: Requires can_delete permission on the identity account resource."
+        },
+        {
+          "name": "CreateFederatedAccount",
+          "inputType": "CreateFederatedAccountInput",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "Create a federated identity account for an external platform user.\n\n Called by platform backends (via API key) when a new user signs up on their\n platform. The platform provides the user's OIDC subject identifier and profile\n data. The account must be created before the user can authenticate via the IdP.\n\n Returns the full identity account including its ID, which the platform uses\n to grant roles via IAM policies.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
         },
         {
           "name": "SimulateSignupWebhook",
@@ -67,7 +75,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Get an identity account by email address."
+          "description": "Get a direct identity account by email address.\n\n Only returns direct (non-federated) accounts. Federated accounts are not\n returned by this RPC — use getByExternalSub for IdP-scoped federated lookups."
         },
         {
           "name": "GetByIdpId",
@@ -75,7 +83,15 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdpId",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Get an identity account by identity provider ID."
+          "description": "Get an identity account by identity provider ID (Auth0 subject).\n\n Primarily used for direct and machine accounts where the IDP ID is\n the Auth0 user_id or client_id. For federated account lookups,\n use getByExternalSub which is scoped to a specific identity provider."
+        },
+        {
+          "name": "GetByExternalSub",
+          "inputType": "ExternalSubLookup",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.ExternalSubLookup",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "Get a federated identity account by identity provider reference and external subject.\n\n Used by platform backends to check whether a federated account already exists\n for a given OIDC subject before calling createFederatedAccount.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
         },
         {
           "name": "GetActorInfo",
@@ -90,6 +106,94 @@
   ],
   "methodTypes": [
     {
+      "name": "CreateFederatedAccountInput",
+      "description": "CreateFederatedAccountInput is the command for creating a federated identity account\n linked to an external platform's identity provider.\n\n Called by platform backends (via API key) when a new user signs up on their platform.\n The platform provides the user's OIDC subject identifier and profile data.\n The account must be created before the user can authenticate via the IdP.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the identity provider.\n Used as the authorization scope: caller must have can_create_identity_account\n permission on this organization.\n Must match identity_provider_ref.org (when identity_provider_ref.org is non-empty).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "IdentityProviderRef",
+          "jsonName": "identityProviderRef",
+          "protoField": "identity_provider_ref",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceReference"
+          },
+          "description": "Reference to the IdentityProvider that this federated account belongs to.\n The IdP must exist and belong to the specified org.",
+          "required": false
+        },
+        {
+          "name": "ExternalSub",
+          "jsonName": "externalSub",
+          "protoField": "external_sub",
+          "type": {
+            "kind": "string"
+          },
+          "description": "External subject identifier from the platform's OIDC provider.\n The raw OIDC sub claim (e.g., \"google-oauth2|109876543210\").\n Stored as-is without any prefix transformation.\n Must match the sub claim in JWTs issued by this IdP for authentication to work.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the user.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "FirstName",
+          "jsonName": "firstName",
+          "protoField": "first_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "First name of the user.",
+          "required": false
+        },
+        {
+          "name": "LastName",
+          "jsonName": "lastName",
+          "protoField": "last_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Last name of the user.",
+          "required": false
+        },
+        {
+          "name": "PictureUrl",
+          "jsonName": "pictureUrl",
+          "protoField": "picture_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL of the user's profile picture.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "IdentityAccountEmail",
       "description": "IdentityAccountEmail identifies an identity account by its email address.",
       "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail",
@@ -103,6 +207,51 @@
             "kind": "string"
           },
           "description": "Email address of the identity account.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExternalSubLookup",
+      "description": "ExternalSubLookup identifies a federated identity account by its identity provider\n reference and external subject identifier (OIDC sub claim).\n\n Used by platform backends to check whether a federated account already exists\n before calling createFederatedAccount.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.ExternalSubLookup",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the identity provider.\n Used as the authorization scope: caller must have can_create_identity_account\n permission on this organization.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "IdentityProviderRef",
+          "jsonName": "identityProviderRef",
+          "protoField": "identity_provider_ref",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceReference"
+          },
+          "description": "Reference to the IdentityProvider that the federated account belongs to.",
+          "required": false
+        },
+        {
+          "name": "ExternalSub",
+          "jsonName": "externalSub",
+          "protoField": "external_sub",
+          "type": {
+            "kind": "string"
+          },
+          "description": "External subject identifier from the platform's OIDC provider.\n The raw OIDC sub claim (e.g., \"google-oauth2|109876543210\").",
           "required": true,
           "validation": {
             "required": true
@@ -170,7 +319,7 @@
         {
           "name": "federated",
           "number": 2,
-          "description": "Account was JIT-provisioned during federated authentication via an IdentityProvider."
+          "description": "Account was created by the platform for federated authentication via an IdentityProvider."
         },
         {
           "name": "machine",
@@ -203,6 +352,11 @@
           "name": "api_key",
           "number": 12,
           "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
         },
         {
           "name": "identity_provider",

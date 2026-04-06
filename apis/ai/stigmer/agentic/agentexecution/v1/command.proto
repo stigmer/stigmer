@@ -6,7 +6,7 @@ import "ai/stigmer/agentic/agentexecution/v1/api.proto";
 import "ai/stigmer/agentic/agentexecution/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // AgentExecutionCommandController handles write operations for agent executions.
 // Follows the standard pattern: create, update, delete (no granular field updates).
@@ -21,7 +21,7 @@ service AgentExecutionCommandController {
   //   - If session_id provided: checks can_create_execution_in on session
   //   - If session_id NOT provided: checks can_create_execution_in on organization
   rpc create(AgentExecution) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Update an agent execution.
@@ -30,10 +30,10 @@ service AgentExecutionCommandController {
   // Used by users to update execution configuration (spec fields).
   // No individual field updates - always provide complete state.
   rpc update(AgentExecution) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent execution";
   }
 
   // Update an agent execution's status.
@@ -43,18 +43,18 @@ service AgentExecutionCommandController {
   // (messages, tool_calls, phase, etc.). Optimized for frequent status updates
   // and merges status fields with existing state.
   rpc updateStatus(AgentExecutionUpdateStatusInput) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_update_execution_status;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent execution status";
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_update_execution_status;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent execution status";
   }
 
   // Delete an agent execution by ID.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceId) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete agent execution";
   }
 
   // Submit an approval decision for a pending tool call.
@@ -94,10 +94,10 @@ service AgentExecutionCommandController {
   // If the same approval is submitted twice (same execution, tool_call, action),
   // the second call is a no-op and returns the current state.
   rpc submitApproval(SubmitApprovalInput) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "agent_execution_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to submit approval for agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "agent_execution_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to submit approval for agent execution";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -150,10 +150,10 @@ service AgentExecutionCommandController {
   //
   // @since Agent Execution Lifecycle
   rpc cancel(CancelAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to cancel agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cancel agent execution";
   }
 
   // Terminate an agent execution immediately.
@@ -206,10 +206,10 @@ service AgentExecutionCommandController {
   //
   // @since Agent Execution Lifecycle
   rpc terminate(TerminateAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to terminate agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to terminate agent execution";
   }
 
   // Recover a failed agent execution from the last checkpoint.
@@ -257,10 +257,10 @@ service AgentExecutionCommandController {
   //
   // @since Agent Execution Lifecycle
   rpc recover(RecoverAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to recover agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to recover agent execution";
   }
 
   // Pause a running agent execution.
@@ -312,10 +312,10 @@ service AgentExecutionCommandController {
   //
   // @since Agent Execution Lifecycle
   rpc pause(PauseAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to pause agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to pause agent execution";
   }
 
   // Resume a paused agent execution.
@@ -359,10 +359,10 @@ service AgentExecutionCommandController {
   //
   // @since Agent Execution Lifecycle
   rpc resume(ResumeAgentExecutionInput) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to resume agent execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to resume agent execution";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -408,6 +408,6 @@ service AgentExecutionCommandController {
   // @since Artifact Lifecycle (Attachments & Artifacts)
   rpc uploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse) {
     // No authorization - storage_key acts as capability token
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

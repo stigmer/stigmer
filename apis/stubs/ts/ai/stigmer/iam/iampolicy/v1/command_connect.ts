@@ -6,6 +6,7 @@
 import { ApiResourceRef, IamPolicySpec } from "./spec_pb.js";
 import { IamPolicy } from "./api_pb.js";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
+import { RevokeOrgAccessInput } from "./io_pb.js";
 
 /**
  * IAM Policy Command Controller
@@ -192,6 +193,39 @@ export const IamPolicyCommandController = {
     cleanupResourcePolicies: {
       name: "cleanupResourcePolicies",
       I: ApiResourceRef,
+      O: Empty,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Revoke all of a user's access to an organization.
+     *
+     * Removes every IAM policy that grants the specified identity account access to
+     * resources within the given organization, including policies on the organization
+     * itself and on child resources (environments, agents, etc.).
+     *
+     * @internal
+     * The operation:
+     * 1. Validates the input (identity_account_id and organization_id are present)
+     * 2. Authorizes caller (can_grant_access on the organization)
+     * 3. Loads all policies where the user is principal within the org scope
+     * 4. Deletes all matching policies from MongoDB
+     * 5. Removes all corresponding tuples from OpenFGA
+     *
+     * Authorization:
+     * - Caller must have 'can_grant_access' permission on the organization
+     *
+     * Use Cases:
+     * - Removing a member from an organization
+     * - Offboarding a user from all org resources in one operation
+     *
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     *
+     * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.revokeOrgAccess
+     */
+    revokeOrgAccess: {
+      name: "revokeOrgAccess",
+      I: RevokeOrgAccessInput,
       O: Empty,
       kind: MethodKind.Unary,
     },

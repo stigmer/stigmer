@@ -3,6 +3,7 @@
 import grpc
 
 from ai.stigmer.iam.iampolicy.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_api__pb2
+from ai.stigmer.iam.iampolicy.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2
 from ai.stigmer.iam.iampolicy.v1 import spec_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_spec__pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
@@ -49,6 +50,11 @@ class IamPolicyCommandControllerStub(object):
         self.cleanupResourcePolicies = channel.unary_unary(
                 '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/cleanupResourcePolicies',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_spec__pb2.ApiResourceRef.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.revokeOrgAccess = channel.unary_unary(
+                '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/revokeOrgAccess',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
 
@@ -221,6 +227,35 @@ class IamPolicyCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def revokeOrgAccess(self, request, context):
+        """Revoke all of a user's access to an organization.
+
+        Removes every IAM policy that grants the specified identity account access to
+        resources within the given organization, including policies on the organization
+        itself and on child resources (environments, agents, etc.).
+
+        @internal
+        The operation:
+        1. Validates the input (identity_account_id and organization_id are present)
+        2. Authorizes caller (can_grant_access on the organization)
+        3. Loads all policies where the user is principal within the org scope
+        4. Deletes all matching policies from MongoDB
+        5. Removes all corresponding tuples from OpenFGA
+
+        Authorization:
+        - Caller must have 'can_grant_access' permission on the organization
+
+        Use Cases:
+        - Removing a member from an organization
+        - Offboarding a user from all org resources in one operation
+
+        Input: RevokeOrgAccessInput with identity_account_id and organization_id
+        Output: Empty (google.protobuf.Empty)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_IamPolicyCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -242,6 +277,11 @@ def add_IamPolicyCommandControllerServicer_to_server(servicer, server):
             'cleanupResourcePolicies': grpc.unary_unary_rpc_method_handler(
                     servicer.cleanupResourcePolicies,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_spec__pb2.ApiResourceRef.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'revokeOrgAccess': grpc.unary_unary_rpc_method_handler(
+                    servicer.revokeOrgAccess,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
     }
@@ -367,6 +407,33 @@ class IamPolicyCommandController(object):
             target,
             '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/cleanupResourcePolicies',
             ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_spec__pb2.ApiResourceRef.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def revokeOrgAccess(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/revokeOrgAccess',
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,

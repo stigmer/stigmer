@@ -3,6 +3,8 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceAuditActor;
+import ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput;
+import ai.stigmer.iam.identityaccount.v1.ExternalSubLookup;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandControllerGrpc;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail;
@@ -41,6 +43,12 @@ public final class IdentityAccountClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public IdentityAccount createFederatedAccount(CreateFederatedAccountInput input) {
+        try {
+            return command.createFederatedAccount(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public void simulateSignupWebhook(IdentityAccountEmail input) {
         try {
             command.simulateSignupWebhook(input);
@@ -68,6 +76,12 @@ public final class IdentityAccountClient {
     public IdentityAccount getByIdpId(String id) {
         try {
             return query.getByIdpId(IdpId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public IdentityAccount getByExternalSub(ExternalSubLookup input) {
+        try {
+            return query.getByExternalSub(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

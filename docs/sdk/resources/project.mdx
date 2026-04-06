@@ -46,12 +46,12 @@ project, err := client.Project.Get(ctx, "prj_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Python">
 ```python
-project = client.project.get("prj_01j5q3k7m8r2s4tnz2hfp0q0c3")
+project = client.projects.get("prj_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Project project = client.project().get("prj_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Project project = client.projects().get("prj_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -84,12 +84,12 @@ project, err := client.Project.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-project = client.project.get(id)
+project = client.projects.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Project project = client.project().get(id);
+Project project = client.projects().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -129,7 +129,7 @@ project, err := client.Project.GetByReference(ctx, &stigmer.ApiResourceReference
 </Tab>
 <Tab value="Python">
 ```python
-project = client.project.get_by_reference(ApiResourceReference(
+project = client.projects.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -139,7 +139,7 @@ project = client.project.get_by_reference(ApiResourceReference(
 </Tab>
 <Tab value="Java">
 ```java
-Project project = client.project().getByReference(ApiResourceReference.builder()
+Project project = client.projects().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -186,7 +186,7 @@ project, err := client.Project.Apply(ctx, &stigmer.ProjectInput{
 </Tab>
 <Tab value="Python">
 ```python
-project = client.project.apply(ProjectInput(
+project = client.projects.apply(ProjectInput(
     name="my-project",
     org="acme",
     slug="...",
@@ -199,7 +199,7 @@ project = client.project.apply(ProjectInput(
 </Tab>
 <Tab value="Java">
 ```java
-Project project = client.project().apply(ProjectInput.builder()
+Project project = client.projects().apply(ProjectInput.builder()
     .name("my-project")
     .org("acme")
     .slug("...")
@@ -249,7 +249,7 @@ project, err := client.Project.Create(ctx, &stigmer.ProjectInput{
 </Tab>
 <Tab value="Python">
 ```python
-project = client.project.create(ProjectInput(
+project = client.projects.create(ProjectInput(
     name="my-project",
     org="acme",
     slug="...",
@@ -262,7 +262,7 @@ project = client.project.create(ProjectInput(
 </Tab>
 <Tab value="Java">
 ```java
-Project project = client.project().create(ProjectInput.builder()
+Project project = client.projects().create(ProjectInput.builder()
     .name("my-project")
     .org("acme")
     .slug("...")
@@ -312,7 +312,7 @@ project, err := client.Project.Update(ctx, &stigmer.ProjectInput{
 </Tab>
 <Tab value="Python">
 ```python
-project = client.project.update(ProjectInput(
+project = client.projects.update(ProjectInput(
     name="my-project",
     org="acme",
     slug="...",
@@ -325,7 +325,7 @@ project = client.project.update(ProjectInput(
 </Tab>
 <Tab value="Java">
 ```java
-Project project = client.project().update(ProjectInput.builder()
+Project project = client.projects().update(ProjectInput.builder()
     .name("my-project")
     .org("acme")
     .slug("...")
@@ -359,12 +359,12 @@ project, err := client.Project.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-project = client.project.delete(id)
+project = client.projects.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Project project = client.project().delete(id);
+Project project = client.projects().delete(id);
 ```
 </Tab>
 </SDKTabs>
@@ -433,6 +433,18 @@ ProjectStatus contains system-managed state for a Project.
   }}
 />
 
+### ReconciliationSummary
+
+ReconciliationSummary contains the results of project reconciliation.
+
+<TypeTable
+  type={{
+    created: { type: "ApiResourceReference[]", description: "Resources created on the server during this project apply.", typeDescriptionLink: "#apiresourcereference" },
+    updated: { type: "ApiResourceReference[]", description: "Resources updated on the server during this project apply.", typeDescriptionLink: "#apiresourcereference" },
+    deleted: { type: "ApiResourceReference[]", description: "Resources deleted via orphan pruning during this project apply.", typeDescriptionLink: "#apiresourcereference" },
+  }}
+/>
+
 ### ApiResourceReference
 
 Generic reference to any API resource by org and slug.
@@ -443,18 +455,6 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
-  }}
-/>
-
-### ReconciliationSummary
-
-ReconciliationSummary contains the results of project reconciliation.
-
-<TypeTable
-  type={{
-    created: { type: "ApiResourceReference[]", description: "Resources created on the server during this project apply.", typeDescriptionLink: "#apiresourcereference" },
-    updated: { type: "ApiResourceReference[]", description: "Resources updated on the server during this project apply.", typeDescriptionLink: "#apiresourcereference" },
-    deleted: { type: "ApiResourceReference[]", description: "Resources deleted via orphan pruning during this project apply.", typeDescriptionLink: "#apiresourcereference" },
   }}
 />
 

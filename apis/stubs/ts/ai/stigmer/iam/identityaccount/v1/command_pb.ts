@@ -5,10 +5,10 @@
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../iampolicy/v1/rpcauthorization/method_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { IdentityAccountSchema } from "./api_pb";
 import { file_ai_stigmer_iam_identityaccount_v1_api } from "./api_pb";
-import type { IdentityAccountEmailSchema, IdentityAccountIdSchema } from "./io_pb";
+import type { CreateFederatedAccountInputSchema, IdentityAccountEmailSchema, IdentityAccountIdSchema } from "./io_pb";
 import { file_ai_stigmer_iam_identityaccount_v1_io } from "./io_pb";
 import type { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
@@ -17,7 +17,7 @@ import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/iam/identityaccount/v1/command.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvY29tbWFuZC5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxMvIECiBJZGVudGl0eUFjY291bnRDb21tYW5kQ29udHJvbGxlchJ2CgZjcmVhdGUSMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50GjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCIE0LgYARKwAQoGdXBkYXRlEjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudBoyLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnQiPsK4GDoIBBALIgttZXRhZGF0YS5pZCondW5hdXRob3JpemVkIHRvIHVwZGF0ZSBpZGVudGl0eSBhY2NvdW50EqwBCgZkZWxldGUSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50SWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjjCuBg0CAIQCyIFdmFsdWUqJ3VuYXV0aG9yaXplZCB0byBkZWxldGUgaWRlbnRpdHkgYWNjb3VudBJuChVzaW11bGF0ZVNpZ251cFdlYmhvb2sSNy5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50RW1haWwaFi5nb29nbGUucHJvdG9idWYuRW1wdHkiBNC4GAEaBKD/KwtiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_identityaccount_v1_io, file_google_protobuf_empty]);
+  fileDesc("Ci9haS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvY29tbWFuZC5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxMs8GCiBJZGVudGl0eUFjY291bnRDb21tYW5kQ29udHJvbGxlchJ2CgZjcmVhdGUSMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50GjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCIE0LgYARKwAQoGdXBkYXRlEjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudBoyLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnQiPsK4GDoIAhALIgttZXRhZGF0YS5pZCondW5hdXRob3JpemVkIHRvIHVwZGF0ZSBpZGVudGl0eSBhY2NvdW50EqwBCgZkZWxldGUSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50SWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjjCuBg0CAMQCyIFdmFsdWUqJ3VuYXV0aG9yaXplZCB0byBkZWxldGUgaWRlbnRpdHkgYWNjb3VudBLaAQoWY3JlYXRlRmVkZXJhdGVkQWNjb3VudBI+LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5DcmVhdGVGZWRlcmF0ZWRBY2NvdW50SW5wdXQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IkzCuBhICBUQHiIDb3JnKj11bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGlkZW50aXR5IGFjY291bnRzIGluIHRoaXMgb3JnYW5pemF0aW9uEm4KFXNpbXVsYXRlU2lnbnVwV2ViaG9vaxI3LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRFbWFpbBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eSIE0LgYARoEoP8rC2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_identityaccount_v1_io, file_google_protobuf_empty]);
 
 /**
  * IdentityAccountCommandController handles write operations for identity accounts.
@@ -29,7 +29,7 @@ export const IdentityAccountCommandController: GenService<{
    * Create a new identity account.
    *
    * @internal
-   * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+   * System-level RPC used by Auth0 webhook flow and federated account creation.
    * No FGA authorization — called via inProcessChannelAsSystem (machine account).
    * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
    *
@@ -64,6 +64,26 @@ export const IdentityAccountCommandController: GenService<{
   delete: {
     methodKind: "unary";
     input: typeof IdentityAccountIdSchema;
+    output: typeof IdentityAccountSchema;
+  },
+  /**
+   * Create a federated identity account for an external platform user.
+   *
+   * Called by platform backends (via API key) when a new user signs up on their
+   * platform. The platform provides the user's OIDC subject identifier and profile
+   * data. The account must be created before the user can authenticate via the IdP.
+   *
+   * Returns the full identity account including its ID, which the platform uses
+   * to grant roles via IAM policies.
+   *
+   * Authorization: Requires can_create_identity_account on the organization
+   * that owns the identity provider.
+   *
+   * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.createFederatedAccount
+   */
+  createFederatedAccount: {
+    methodKind: "unary";
+    input: typeof CreateFederatedAccountInputSchema;
     output: typeof IdentityAccountSchema;
   },
   /**

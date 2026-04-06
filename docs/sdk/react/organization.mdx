@@ -49,6 +49,90 @@ const org = await create({
 ```
 
 
+### useOrganization
+
+Data hook that fetches a single Organization by ID.
+
+Pass `null` to skip fetching (stable no-op). When the `id` changes,
+the previous in-flight request is discarded and a fresh fetch begins.
+Call `refetch()` to re-query after mutating the organization through
+a separate hook or API call.
+
+Returns the full proto [`Organization`](/docs/sdk/resources/organization) resource so consumers
+have access to metadata (name, slug), spec (description, logo),
+and status without additional calls.
+
+**Signature**
+
+```tsx
+function useOrganization(id: string | null): UseOrganizationReturn
+```
+
+<TypeTable
+  type={{
+    id: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseOrganizationReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    organization: { type: "Organization | null", description: "The fetched Organization, or `null` while loading or on error." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the organization from the server." },
+  }}
+/>
+
+```tsx
+const { organization, isLoading, error } = useOrganization("org-id-123");
+```
+
+
+### useUpdateOrganization
+
+Mutation hook that wraps `organization.update()` with loading and
+error state.
+
+Updates an existing Organization resource. The input must include
+`name`, `org`, and `slug` to identify the target resource, along
+with the spec fields to update (`description`, `logoUrl`).
+
+Returns the full [`Organization`](/docs/sdk/resources/organization) proto including
+server-updated metadata (version, timestamps) so callers can
+immediately reference the latest state.
+
+**Signature**
+
+```tsx
+function useUpdateOrganization(): UseUpdateOrganizationReturn
+```
+
+**Returns** — `UseUpdateOrganizationReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
+    update: { type: "(input: OrganizationInput) => Promise<Organization>", description: "Submit an OrganizationInput to update an existing organization. Resolves with the updated resource." },
+  }}
+/>
+
+```tsx
+const { update, isUpdating, error } = useUpdateOrganization();
+
+const updated = await update({
+  name: "Acme Corp",
+  slug: "acme-corp",
+  org: "acme-corp",
+  description: "Updated description",
+});
+refetch(); // refresh profile view
+```
+
+
 ## Components
 
 ### CreateOrganizationForm
@@ -78,6 +162,36 @@ All visual properties flow through `--stgm-*` design tokens.
 <CreateOrganizationForm
   onCreated={(org) => console.log("Created:", org.metadata?.slug)}
   onCancel={() => setShowForm(false)}
+/>
+```
+
+
+### OrgProfilePanel
+
+Self-contained profile editor for an [`Organization`](/docs/sdk/resources/organization) resource.
+
+Fetches the organization by ID, displays editable fields (name,
+description, logo URL) and read-only identifiers (slug, ID).
+On save, calls `organization.update()` and fires `onUpdated`.
+
+All visual properties flow through `--stgm-*` design tokens. The
+component has zero dependencies on Console routing, auth context,
+or layout — platform builders can embed it directly:
+
+**Props** — `OrgProfilePanelProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save." },
+    orgId: { type: "string", description: "The ID of the organization to display and edit.", required: true },
+  }}
+/>
+
+```tsx
+<OrgProfilePanel
+  orgId="org-id-123"
+  onUpdated={(org) => console.log("Saved:", org.metadata?.name)}
 />
 ```
 

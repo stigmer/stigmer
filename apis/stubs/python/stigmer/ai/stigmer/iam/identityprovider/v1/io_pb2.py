@@ -26,7 +26,7 @@ from ai.stigmer.iam.identityprovider.v1 import api_pb2 as ai_dot_stigmer_dot_iam
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"5\n\x12IdentityProviderId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"c\n\x11IdentityProviders\x12N\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\x07\x65ntries\"\x87\x01\n\x14IdentityProviderList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12N\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\x07\x65ntriesB\xde\x01\n&com.ai.stigmer.iam.identityprovider.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"5\n\x12IdentityProviderId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"c\n\x11IdentityProviders\x12N\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\x07\x65ntries\"\x87\x01\n\x14IdentityProviderList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12N\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\x07\x65ntries\"<\n\x1fListIdentityProvidersByOrgInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"2\n\x15OrganizationSsoLookup\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"r\n\x0fSsoProviderInfo\x12!\n\x0c\x64isplay_name\x18\x01 \x01(\tR\x0b\x64isplayName\x12$\n\x0eoidc_client_id\x18\x02 \x01(\tR\x0coidcClientId\x12\x16\n\x06issuer\x18\x03 \x01(\tR\x06issuerB\xde\x01\n&com.ai.stigmer.iam.identityprovider.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,10 +36,20 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n&com.ai.stigmer.iam.identityprovider.v1B\007IoProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\352\002&Ai::Stigmer::Iam::Identityprovider::V1'
   _globals['_IDENTITYPROVIDERID'].fields_by_name['value']._loaded_options = None
   _globals['_IDENTITYPROVIDERID'].fields_by_name['value']._serialized_options = b'\272H\006r\004\020\001\030@'
+  _globals['_LISTIDENTITYPROVIDERSBYORGINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_LISTIDENTITYPROVIDERSBYORGINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_ORGANIZATIONSSOLOOKUP'].fields_by_name['org']._loaded_options = None
+  _globals['_ORGANIZATIONSSOLOOKUP'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_IDENTITYPROVIDERID']._serialized_start=158
   _globals['_IDENTITYPROVIDERID']._serialized_end=211
   _globals['_IDENTITYPROVIDERS']._serialized_start=213
   _globals['_IDENTITYPROVIDERS']._serialized_end=312
   _globals['_IDENTITYPROVIDERLIST']._serialized_start=315
   _globals['_IDENTITYPROVIDERLIST']._serialized_end=450
+  _globals['_LISTIDENTITYPROVIDERSBYORGINPUT']._serialized_start=452
+  _globals['_LISTIDENTITYPROVIDERSBYORGINPUT']._serialized_end=512
+  _globals['_ORGANIZATIONSSOLOOKUP']._serialized_start=514
+  _globals['_ORGANIZATIONSSOLOOKUP']._serialized_end=564
+  _globals['_SSOPROVIDERINFO']._serialized_start=566
+  _globals['_SSOPROVIDERINFO']._serialized_end=680
 # @@protoc_insertion_point(module_scope)

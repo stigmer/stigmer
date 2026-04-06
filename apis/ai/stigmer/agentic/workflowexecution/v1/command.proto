@@ -6,7 +6,7 @@ import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // WorkflowExecutionCommandController handles write operations (Create, Update, Delete) for WorkflowExecution resources.
 //
@@ -144,7 +144,7 @@ service WorkflowExecutionCommandController {
   //   }
   // }
   rpc create(WorkflowExecution) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Update an existing workflow execution with full state.
@@ -153,10 +153,10 @@ service WorkflowExecutionCommandController {
   // Used by users to update execution configuration (spec fields).
   // No individual field updates - always provide complete state.
   rpc update(WorkflowExecution) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow execution";
   }
 
   // Update execution status during workflow execution.
@@ -260,10 +260,10 @@ service WorkflowExecutionCommandController {
   //   }
   // }
   rpc updateStatus(WorkflowExecutionUpdateStatusInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_update_execution_status;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update workflow execution status";
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_update_execution_status;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow execution status";
   }
 
   // Submit an approval decision for a child agent's tool execution.
@@ -322,18 +322,18 @@ service WorkflowExecutionCommandController {
   //
   // @since Phase 5.3 (Approval Forwarding)
   rpc submitApproval(SubmitWorkflowApprovalInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to submit approval for workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to submit approval for workflow execution";
   }
 
   // Delete a workflow execution.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceId) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete workflow execution";
   }
 
   // Send a signal to a running workflow execution.
@@ -411,10 +411,10 @@ service WorkflowExecutionCommandController {
   //
   // @since Gap B1 (Signal-With-Start for race-proof event delivery)
   rpc sendSignal(SendSignalInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to send signal to workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to send signal to workflow execution";
   }
 
   // Cancel a running workflow execution gracefully.
@@ -477,10 +477,10 @@ service WorkflowExecutionCommandController {
   //   }
   // }
   rpc cancel(CancelWorkflowExecutionInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to cancel workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cancel workflow execution";
   }
 
   // Terminate a workflow execution immediately.
@@ -553,10 +553,10 @@ service WorkflowExecutionCommandController {
   //   }
   // }
   rpc terminate(TerminateWorkflowExecutionInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to terminate workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to terminate workflow execution";
   }
 
   // Recover a failed workflow execution from the last checkpoint.
@@ -640,10 +640,10 @@ service WorkflowExecutionCommandController {
   //   }
   // }
   rpc recover(RecoverWorkflowExecutionInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to recover workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to recover workflow execution";
   }
 
   // Pause a running workflow execution.
@@ -729,10 +729,10 @@ service WorkflowExecutionCommandController {
   //
   // @since Gap A3 (Pause/Resume Propagation)
   rpc pause(PauseWorkflowExecutionInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to pause workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to pause workflow execution";
   }
 
   // Resume a paused workflow execution.
@@ -805,9 +805,9 @@ service WorkflowExecutionCommandController {
   //
   // @since Gap A3 (Pause/Resume Propagation)
   rpc resume(ResumeWorkflowExecutionInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to resume workflow execution";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to resume workflow execution";
   }
 }

@@ -15,7 +15,7 @@ IdentityAccounts are created in one of three ways:
 | Mode | Description | `idp_id` format |
 |---|---|---|
 | `direct` | User signed up via Stigmer's Auth0 tenant | Auth0 subject ID (e.g., `auth0\|abc123`) |
-| `federated` | JIT-provisioned during federated authentication via an [IdentityProvider](../../identityprovider/docs/README.md) | Compound key: `federated:{provider_id}:{external_sub}` |
+| `federated` | Created by the platform for federated authentication via an [IdentityProvider](../../identityprovider/docs/README.md) | Raw OIDC sub claim (e.g., `google-oauth2\|109876543210`), scoped by `identity_provider_ref` |
 | `machine` | M2M client credentials for inter-service communication | Auth0 client ID with `@clients` suffix |
 
 Federated accounts have no credentials in Stigmer's Auth0 and cannot log in directly to Stigmer. They participate in FGA authorization through the token exchange flow managed by the owning IdentityProvider.
@@ -28,7 +28,7 @@ Federated accounts have no credentials in Stigmer's Auth0 and cannot log in dire
 | **Fingerprint** | Email address — the primary human-readable identifier for direct and federated accounts. |
 | **Self-ownership** | On creation, the handler writes a self-ownership FGA tuple. Each IdentityAccount is its own resource. |
 | **Machine accounts** | Identified by `@clients` suffix in `idp_id`. `is_machine_account` is `true` (computed). |
-| **System-created** | The `create` RPC is system-level — called by the Auth0 webhook and federated JIT flows, not directly by users. |
+| **System-created** | The `create` RPC is system-level — called by the Auth0 webhook and federated account creation flows, not directly by users. |
 
 ## Documentation Index
 

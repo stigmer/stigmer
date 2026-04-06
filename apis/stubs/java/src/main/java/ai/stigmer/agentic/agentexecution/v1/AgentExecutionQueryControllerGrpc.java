@@ -477,9 +477,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-     * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on
-     * all executions in the session (same pattern as listBySession).
      * </pre>
      */
     default void getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request,
@@ -492,7 +489,8 @@ public final class AgentExecutionQueryControllerGrpc {
      * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on the agent.
+     * Not consumed by any UI. Authorization model TBD — when a product need
+     * arises, this should likely be org-scoped (usage of agent X within org Y).
      * </pre>
      */
     default void getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request,
@@ -504,8 +502,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-     * &#64;internal
-     * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
     default void getOrgUsageReport(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request,
@@ -670,9 +666,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-     * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on
-     * all executions in the session (same pattern as listBySession).
      * </pre>
      */
     public void getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request,
@@ -686,7 +679,8 @@ public final class AgentExecutionQueryControllerGrpc {
      * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on the agent.
+     * Not consumed by any UI. Authorization model TBD — when a product need
+     * arises, this should likely be org-scoped (usage of agent X within org Y).
      * </pre>
      */
     public void getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request,
@@ -699,8 +693,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-     * &#64;internal
-     * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
     public void getOrgUsageReport(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request,
@@ -848,9 +840,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-     * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on
-     * all executions in the session (same pattern as listBySession).
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request) throws io.grpc.StatusException {
@@ -863,7 +852,8 @@ public final class AgentExecutionQueryControllerGrpc {
      * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on the agent.
+     * Not consumed by any UI. Authorization model TBD — when a product need
+     * arises, this should likely be org-scoped (usage of agent X within org Y).
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request) throws io.grpc.StatusException {
@@ -875,8 +865,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-     * &#64;internal
-     * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput getOrgUsageReport(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request) throws io.grpc.StatusException {
@@ -1022,9 +1010,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-     * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on
-     * all executions in the session (same pattern as listBySession).
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request) {
@@ -1037,7 +1022,8 @@ public final class AgentExecutionQueryControllerGrpc {
      * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on the agent.
+     * Not consumed by any UI. Authorization model TBD — when a product need
+     * arises, this should likely be org-scoped (usage of agent X within org Y).
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request) {
@@ -1049,8 +1035,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-     * &#64;internal
-     * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput getOrgUsageReport(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request) {
@@ -1188,9 +1172,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-     * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on
-     * all executions in the session (same pattern as listBySession).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> getSessionUsageReport(
@@ -1204,7 +1185,8 @@ public final class AgentExecutionQueryControllerGrpc {
      * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
-     * Authorization is handled in handler — caller must have can_view on the agent.
+     * Not consumed by any UI. Authorization model TBD — when a product need
+     * arises, this should likely be org-scoped (usage of agent X within org Y).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput> getAgentUsageReport(
@@ -1217,8 +1199,6 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-     * &#64;internal
-     * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput> getOrgUsageReport(

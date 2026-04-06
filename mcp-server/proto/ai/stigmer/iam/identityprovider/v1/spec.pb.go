@@ -26,18 +26,18 @@ const (
 //
 // An IdentityProvider represents an external platform's trust relationship with Stigmer.
 // It is owned by an organization (e.g., "planton") and configures how Stigmer validates
-// tokens from that platform during token exchange. The platform forwards its OIDC
-// provider's access tokens to Stigmer's token exchange endpoint, which:
-// - Validates the token signature against the configured JWKS
-// - Fetches user profile data from the OIDC UserInfo endpoint
-// - JIT-provisions a federated identity account with email, name, and picture
-// - Issues a Stigmer-native token for subsequent API access
+// tokens from that platform. When a user authenticates with a JWT issued by this provider,
+// Stigmer validates the token signature against the configured JWKS and resolves the
+// user's federated identity account by the JWT's sub claim and this provider's reference.
+//
+// The platform is responsible for explicitly creating federated identity accounts
+// before users can authenticate. Stigmer does not auto-provision accounts.
 //
 // The spec contains only public validation configuration — no secrets are stored.
 // For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
 // point to the OIDC provider's standard endpoints.
 //
-// Example YAML:
+// Example YAML (platform delegation):
 //
 //	apiVersion: iam.stigmer.ai/v1
 //	kind: IdentityProvider
@@ -51,6 +51,22 @@ const (
 //	  allowed_issuers: ["https://planton-prod.us.auth0.com/"]
 //	  expected_audience: "https://api.planton.ai/"
 //	  userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
+//
+// Example YAML (self-managed SSO):
+//
+//	apiVersion: iam.stigmer.ai/v1
+//	kind: IdentityProvider
+//	metadata:
+//	  name: Acme Corp Okta
+//	  slug: acme-okta
+//	  org: acme
+//	spec:
+//	  display_name: "Acme Corp Okta"
+//	  jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
+//	  allowed_issuers: ["https://acme.okta.com/oauth2/default"]
+//	  expected_audience: "stigmer-api"
+//	  is_sso_provider: true
+//	  oidc_client_id: "0oa1bcdef2ghijk3lmno"
 type IdentityProviderSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable display name for this identity provider.
@@ -90,8 +106,34 @@ type IdentityProviderSpec struct {
 	//
 	// For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
 	UserinfoEndpoint string `protobuf:"bytes,6,opt,name=userinfo_endpoint,json=userinfoEndpoint,proto3" json:"userinfo_endpoint,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Whether this identity provider serves as the SSO login provider for its
+	// owning organization.
+	//
+	// When true, the Stigmer web app offers a "Sign in with [display_name]"
+	// option on the organization's login page and initiates the OIDC
+	// Authorization Code flow with PKCE using the configured oidc_client_id.
+	//
+	// Constraints:
+	//   - At most one IdentityProvider per organization can be the SSO provider.
+	//   - An IdP used for platform-managed organization delegation cannot also
+	//     serve as an SSO provider (different trust models).
+	//   - Federated identity accounts must be pre-created via createFederatedAccount
+	//     before users can authenticate through SSO.
+	IsSsoProvider bool `protobuf:"varint,7,opt,name=is_sso_provider,json=isSsoProvider,proto3" json:"is_sso_provider,omitempty"`
+	// OIDC client identifier for browser-based SSO login.
+	//
+	// This is the client_id registered with the external IdP (e.g., Okta,
+	// Azure AD) for Stigmer's web application. The web app uses this to
+	// build the OIDC Authorization Code request with PKCE.
+	//
+	// No client_secret is stored — the web app is a public client using PKCE
+	// (Proof Key for Code Exchange), which is the recommended approach for
+	// SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+	//
+	// Required when is_sso_provider is true; must be empty otherwise.
+	OidcClientId  string `protobuf:"bytes,8,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IdentityProviderSpec) Reset() {
@@ -166,18 +208,34 @@ func (x *IdentityProviderSpec) GetUserinfoEndpoint() string {
 	return ""
 }
 
+func (x *IdentityProviderSpec) GetIsSsoProvider() bool {
+	if x != nil {
+		return x.IsSsoProvider
+	}
+	return false
+}
+
+func (x *IdentityProviderSpec) GetOidcClientId() string {
+	if x != nil {
+		return x.OidcClientId
+	}
+	return ""
+}
+
 var File_ai_stigmer_iam_identityprovider_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1bbuf/validate/validate.proto\"\xab\x02\n" +
+	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1bbuf/validate/validate.proto\"\x83\x03\n" +
 	"\x14IdentityProviderSpec\x12+\n" +
 	"\fdisplay_name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\vdisplayName\x12#\n" +
 	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12'\n" +
 	"\x0fallowed_issuers\x18\x03 \x03(\tR\x0eallowedIssuers\x125\n" +
 	"\x11expected_audience\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\x10expectedAudience\x12*\n" +
 	"\x11rate_limit_budget\x18\x05 \x01(\x05R\x0frateLimitBudget\x125\n" +
-	"\x11userinfo_endpoint\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpointB\xc3\x02\n" +
+	"\x11userinfo_endpoint\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpoint\x12&\n" +
+	"\x0fis_sso_provider\x18\a \x01(\bR\risSsoProvider\x12.\n" +
+	"\x0eoidc_client_id\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\foidcClientIdB\xc3\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01Zagithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (

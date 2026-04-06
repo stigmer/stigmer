@@ -1,28 +1,52 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 import { useSessionNavigation } from "@/contexts/session-navigation";
 import { SessionLauncher } from "@/components/session/SessionLauncher";
 import { SessionPageInner } from "@/app/sessions/[id]/SessionPage";
+import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
-import { useSidebarOpen } from "./use-layout-state";
+import { LG_BREAKPOINT, useSidebarOpen } from "./use-layout-state";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebar = useSidebarOpen();
+  const pathname = usePathname();
   const { activeSessionId, isSessionZone } = useSessionNavigation();
+
+  const isManagementZone = pathname.startsWith("/settings");
+  const isPublicZone = pathname.startsWith("/invite/");
+
+  // Close the sidebar overlay when the route changes on mobile viewports.
+  // Desktop keeps the sidebar open across navigations.
+  useEffect(() => {
+    if (sidebar.isOpen && window.innerWidth < LG_BREAKPOINT) {
+      sidebar.close();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on pathname only; including sidebar would re-fire on every open/close
+  }, [pathname]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && sidebar.isOpen && window.innerWidth < 1024) {
+      if (e.key === "Escape" && sidebar.isOpen && window.innerWidth < LG_BREAKPOINT) {
         sidebar.close();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [sidebar]);
+
+  if (isPublicZone) {
+    return (
+      // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- app shell wraps both sidebar and main content
+      <div className="bg-background text-foreground min-h-screen">
+        <main>{children}</main>
+      </div>
+    );
+  }
 
   return (
     // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- app shell wraps both sidebar and main content
@@ -61,13 +85,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="h-full w-70">
-          <Sidebar />
+          {isManagementZone ? <ManagementSidebar /> : <Sidebar />}
         </div>
       </div>
 
       {/* Main content */}
       <main className="min-w-0 flex-1 overflow-y-auto">
-        {isSessionZone ? (
+        {isManagementZone ? (
+          children
+        ) : isSessionZone ? (
           <SessionZoneContent activeSessionId={activeSessionId} />
         ) : (
           children

@@ -993,16 +993,15 @@ func protoTypeToPackageAlias(protoType string) string {
 		return ""
 	}
 
-	// For versioned packages (e.g., ai.stigmer.agentic.agent.v1.TypeName)
-	// Use <subdomain><version> as alias (e.g., "agentv1")
-	if len(parts) >= 6 && strings.HasPrefix(parts[len(parts)-2], "v") {
-		subdomain := parts[len(parts)-3] // e.g., "agent"
-		version := parts[len(parts)-2]   // e.g., "v1"
-		return subdomain + version       // e.g., "agentv1"
+	// Versioned packages: ... <subdomain> vN <TypeName>
+	// e.g. ai.stigmer.iam.v1.IamRole (5 parts) or ai.stigmer.agentic.agent.v1.Type (6 parts)
+	if len(parts) >= 5 && strings.HasPrefix(parts[len(parts)-2], "v") {
+		subdomain := parts[len(parts)-3]
+		version := parts[len(parts)-2]
+		return subdomain + version
 	}
 
 	// For non-versioned packages (e.g., ai.stigmer.commons.apiresource.TypeName)
-	// Use the module name as alias (e.g., "apiresource")
 	return parts[len(parts)-2]
 }
 

@@ -6,7 +6,7 @@ package ai.stigmer.agentic.workflowinstance.v1;
 import "ai/stigmer/agentic/workflowinstance/v1/api.proto";
 import "ai/stigmer/agentic/workflowinstance/v1/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // WorkflowInstanceCommandController handles write operations for workflow instances.
 //
@@ -46,7 +46,7 @@ service WorkflowInstanceCommandController {
   // 2. User has permission to access all referenced Environment resources
   // 3. Owner scope is valid for the user's organization/identity
   rpc create(WorkflowInstance) returns (WorkflowInstance) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Update an existing workflow instance.
@@ -67,10 +67,10 @@ service WorkflowInstanceCommandController {
   //
   // Error: PERMISSION_DENIED if user lacks update permission
   rpc update(WorkflowInstance) returns (WorkflowInstance) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_instance;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update workflow instance";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_instance;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow instance";
   }
 
   // Delete a workflow instance.
@@ -90,9 +90,9 @@ service WorkflowInstanceCommandController {
   // Error: PERMISSION_DENIED if user lacks delete permission
   // Error: NOT_FOUND if instance ID doesn't exist
   rpc delete(WorkflowInstanceId) returns (WorkflowInstance) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_instance;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete workflow instance";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_instance;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete workflow instance";
   }
 }

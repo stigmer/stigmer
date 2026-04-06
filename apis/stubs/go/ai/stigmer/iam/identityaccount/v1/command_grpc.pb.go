@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityAccountCommandController_Create_FullMethodName                = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/create"
-	IdentityAccountCommandController_Update_FullMethodName                = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/update"
-	IdentityAccountCommandController_Delete_FullMethodName                = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/delete"
-	IdentityAccountCommandController_SimulateSignupWebhook_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook"
+	IdentityAccountCommandController_Create_FullMethodName                 = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/create"
+	IdentityAccountCommandController_Update_FullMethodName                 = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/update"
+	IdentityAccountCommandController_Delete_FullMethodName                 = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/delete"
+	IdentityAccountCommandController_CreateFederatedAccount_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount"
+	IdentityAccountCommandController_SimulateSignupWebhook_FullMethodName  = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook"
 )
 
 // IdentityAccountCommandControllerClient is the client API for IdentityAccountCommandController service.
@@ -35,7 +36,7 @@ type IdentityAccountCommandControllerClient interface {
 	// Create a new identity account.
 	//
 	// @internal
-	// System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+	// System-level RPC used by Auth0 webhook flow and federated account creation.
 	// No FGA authorization — called via inProcessChannelAsSystem (machine account).
 	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
@@ -49,6 +50,18 @@ type IdentityAccountCommandControllerClient interface {
 	// @internal
 	// Authorization: Requires can_delete permission on the identity account resource.
 	Delete(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*IdentityAccount, error)
+	// Create a federated identity account for an external platform user.
+	//
+	// Called by platform backends (via API key) when a new user signs up on their
+	// platform. The platform provides the user's OIDC subject identifier and profile
+	// data. The account must be created before the user can authenticate via the IdP.
+	//
+	// Returns the full identity account including its ID, which the platform uses
+	// to grant roles via IAM policies.
+	//
+	// Authorization: Requires can_create_identity_account on the organization
+	// that owns the identity provider.
+	CreateFederatedAccount(ctx context.Context, in *CreateFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
 	//
 	// @internal
@@ -96,6 +109,16 @@ func (c *identityAccountCommandControllerClient) Delete(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *identityAccountCommandControllerClient) CreateFederatedAccount(ctx context.Context, in *CreateFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityAccount)
+	err := c.cc.Invoke(ctx, IdentityAccountCommandController_CreateFederatedAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityAccountCommandControllerClient) SimulateSignupWebhook(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -115,7 +138,7 @@ type IdentityAccountCommandControllerServer interface {
 	// Create a new identity account.
 	//
 	// @internal
-	// System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+	// System-level RPC used by Auth0 webhook flow and federated account creation.
 	// No FGA authorization — called via inProcessChannelAsSystem (machine account).
 	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(context.Context, *IdentityAccount) (*IdentityAccount, error)
@@ -129,6 +152,18 @@ type IdentityAccountCommandControllerServer interface {
 	// @internal
 	// Authorization: Requires can_delete permission on the identity account resource.
 	Delete(context.Context, *IdentityAccountId) (*IdentityAccount, error)
+	// Create a federated identity account for an external platform user.
+	//
+	// Called by platform backends (via API key) when a new user signs up on their
+	// platform. The platform provides the user's OIDC subject identifier and profile
+	// data. The account must be created before the user can authenticate via the IdP.
+	//
+	// Returns the full identity account including its ID, which the platform uses
+	// to grant roles via IAM policies.
+	//
+	// Authorization: Requires can_create_identity_account on the organization
+	// that owns the identity provider.
+	CreateFederatedAccount(context.Context, *CreateFederatedAccountInput) (*IdentityAccount, error)
 	// Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
 	//
 	// @internal
@@ -153,6 +188,9 @@ func (UnimplementedIdentityAccountCommandControllerServer) Update(context.Contex
 }
 func (UnimplementedIdentityAccountCommandControllerServer) Delete(context.Context, *IdentityAccountId) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedIdentityAccountCommandControllerServer) CreateFederatedAccount(context.Context, *CreateFederatedAccountInput) (*IdentityAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateFederatedAccount not implemented")
 }
 func (UnimplementedIdentityAccountCommandControllerServer) SimulateSignupWebhook(context.Context, *IdentityAccountEmail) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SimulateSignupWebhook not implemented")
@@ -231,6 +269,24 @@ func _IdentityAccountCommandController_Delete_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityAccountCommandController_CreateFederatedAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateFederatedAccountInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityAccountCommandControllerServer).CreateFederatedAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityAccountCommandController_CreateFederatedAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityAccountCommandControllerServer).CreateFederatedAccount(ctx, req.(*CreateFederatedAccountInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityAccountCommandController_SimulateSignupWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IdentityAccountEmail)
 	if err := dec(in); err != nil {
@@ -267,6 +323,10 @@ var IdentityAccountCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _IdentityAccountCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "createFederatedAccount",
+			Handler:    _IdentityAccountCommandController_CreateFederatedAccount_Handler,
 		},
 		{
 			MethodName: "simulateSignupWebhook",

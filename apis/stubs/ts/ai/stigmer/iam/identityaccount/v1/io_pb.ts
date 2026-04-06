@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { ApiResourceReference } from "../../../commons/apiresource/io_pb";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import type { PageInfo } from "../../../commons/rpc/pagination_pb";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb";
 import type { IdentityAccount } from "./api_pb";
@@ -15,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityaccount/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImsKHExpc3RXaXRoSWRlbnRpdHlBY2NvdW50SWRSZXESGwoTaWRlbnRpdHlfYWNjb3VudF9pZBgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJwChRJZGVudGl0eUFjY291bnRzTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCJSChNMaXN0V2l0aElkZW50aXR5T3JnEgsKA29yZxgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mb2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_pagination, file_ai_stigmer_iam_identityaccount_v1_api, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImsKHExpc3RXaXRoSWRlbnRpdHlBY2NvdW50SWRSZXESGwoTaWRlbnRpdHlfYWNjb3VudF9pZBgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJwChRJZGVudGl0eUFjY291bnRzTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCJSChNMaXN0V2l0aElkZW50aXR5T3JnEgsKA29yZxgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyKbAQoRRXh0ZXJuYWxTdWJMb29rdXASEwoDb3JnGAEgASgJQga6SAPIAQESUwoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBIvgBChtDcmVhdGVGZWRlcmF0ZWRBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESUwoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBEhUKBWVtYWlsGAQgASgJQga6SAPIAQESEgoKZmlyc3RfbmFtZRgFIAEoCRIRCglsYXN0X25hbWUYBiABKAkSEwoLcGljdHVyZV91cmwYByABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_rpc_pagination, file_ai_stigmer_iam_identityaccount_v1_api, file_buf_validate_validate]);
 
 /**
  * IdentityAccounts contains a list of identity account resources.
@@ -184,4 +186,121 @@ export type ListWithIdentityOrg = Message<"ai.stigmer.iam.identityaccount.v1.Lis
  */
 export const ListWithIdentityOrgSchema: GenMessage<ListWithIdentityOrg> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 6);
+
+/**
+ * ExternalSubLookup identifies a federated identity account by its identity provider
+ * reference and external subject identifier (OIDC sub claim).
+ *
+ * Used by platform backends to check whether a federated account already exists
+ * before calling createFederatedAccount.
+ *
+ * @generated from message ai.stigmer.iam.identityaccount.v1.ExternalSubLookup
+ */
+export type ExternalSubLookup = Message<"ai.stigmer.iam.identityaccount.v1.ExternalSubLookup"> & {
+  /**
+   * Organization that owns the identity provider.
+   * Used as the authorization scope: caller must have can_create_identity_account
+   * permission on this organization.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Reference to the IdentityProvider that the federated account belongs to.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+   */
+  identityProviderRef?: ApiResourceReference;
+
+  /**
+   * External subject identifier from the platform's OIDC provider.
+   * The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
+   *
+   * @generated from field: string external_sub = 3;
+   */
+  externalSub: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.
+ * Use `create(ExternalSubLookupSchema)` to create a new message.
+ */
+export const ExternalSubLookupSchema: GenMessage<ExternalSubLookup> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 7);
+
+/**
+ * CreateFederatedAccountInput is the command for creating a federated identity account
+ * linked to an external platform's identity provider.
+ *
+ * Called by platform backends (via API key) when a new user signs up on their platform.
+ * The platform provides the user's OIDC subject identifier and profile data.
+ * The account must be created before the user can authenticate via the IdP.
+ *
+ * @generated from message ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
+ */
+export type CreateFederatedAccountInput = Message<"ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput"> & {
+  /**
+   * Organization that owns the identity provider.
+   * Used as the authorization scope: caller must have can_create_identity_account
+   * permission on this organization.
+   * Must match identity_provider_ref.org (when identity_provider_ref.org is non-empty).
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Reference to the IdentityProvider that this federated account belongs to.
+   * The IdP must exist and belong to the specified org.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+   */
+  identityProviderRef?: ApiResourceReference;
+
+  /**
+   * External subject identifier from the platform's OIDC provider.
+   * The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
+   * Stored as-is without any prefix transformation.
+   * Must match the sub claim in JWTs issued by this IdP for authentication to work.
+   *
+   * @generated from field: string external_sub = 3;
+   */
+  externalSub: string;
+
+  /**
+   * Email address of the user.
+   *
+   * @generated from field: string email = 4;
+   */
+  email: string;
+
+  /**
+   * First name of the user.
+   *
+   * @generated from field: string first_name = 5;
+   */
+  firstName: string;
+
+  /**
+   * Last name of the user.
+   *
+   * @generated from field: string last_name = 6;
+   */
+  lastName: string;
+
+  /**
+   * URL of the user's profile picture.
+   *
+   * @generated from field: string picture_url = 7;
+   */
+  pictureUrl: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.
+ * Use `create(CreateFederatedAccountInputSchema)` to create a new message.
+ */
+export const CreateFederatedAccountInputSchema: GenMessage<CreateFederatedAccountInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 8);
 

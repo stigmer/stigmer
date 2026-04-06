@@ -5,7 +5,7 @@
 
 import { IdentityAccount } from "./api_pb.js";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { IdentityAccountEmail, IdentityAccountId } from "./io_pb.js";
+import { CreateFederatedAccountInput, IdentityAccountEmail, IdentityAccountId } from "./io_pb.js";
 
 /**
  * IdentityAccountCommandController handles write operations for identity accounts.
@@ -19,7 +19,7 @@ export const IdentityAccountCommandController = {
      * Create a new identity account.
      *
      * @internal
-     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * System-level RPC used by Auth0 webhook flow and federated account creation.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      *
@@ -56,6 +56,27 @@ export const IdentityAccountCommandController = {
     delete: {
       name: "delete",
       I: IdentityAccountId,
+      O: IdentityAccount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Create a federated identity account for an external platform user.
+     *
+     * Called by platform backends (via API key) when a new user signs up on their
+     * platform. The platform provides the user's OIDC subject identifier and profile
+     * data. The account must be created before the user can authenticate via the IdP.
+     *
+     * Returns the full identity account including its ID, which the platform uses
+     * to grant roles via IAM policies.
+     *
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     *
+     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.createFederatedAccount
+     */
+    createFederatedAccount: {
+      name: "createFederatedAccount",
+      I: CreateFederatedAccountInput,
       O: IdentityAccount,
       kind: MethodKind.Unary,
     },

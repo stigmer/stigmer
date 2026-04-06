@@ -41,22 +41,21 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "r/agentic/agent/v1/io.proto\032\'ai/stigmer/" +
       "commons/apiresource/io.proto\0328ai/stigmer" +
       "/commons/apiresource/rpc_service_options" +
-      ".proto\032Aai/stigmer/iam/iampolicy/v1/rpca" +
-      "uthorization/method_options.proto2\370\002\n\024Ag" +
-      "entQueryController\022{\n\003get\022$.ai.stigmer.a" +
-      "gentic.agent.v1.AgentId\032\".ai.stigmer.age" +
-      "ntic.agent.v1.Agent\"*\302\270\030&\010\003\020(\"\005value*\031un" +
-      "authorized to get agent\022p\n\016getByReferenc" +
-      "e\0224.ai.stigmer.commons.apiresource.ApiRe" +
-      "sourceReference\032\".ai.stigmer.agentic.age" +
-      "nt.v1.Agent\"\004\320\270\030\001\022k\n\ngetDefault\0223.ai.sti" +
-      "gmer.agentic.agent.v1.GetDefaultAgentReq" +
-      "uest\032\".ai.stigmer.agentic.agent.v1.Agent" +
-      "\"\004\320\270\030\001\032\004\240\377+(B\235\001B\nQueryProtoP\001\242\002\004ASAA\252\002\033A" +
-      "i.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\" +
-      "Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Ag" +
-      "ent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agenti" +
-      "c::Agent::V1b\006proto3"
+      ".proto\032+ai/stigmer/commons/rpc/method_op" +
+      "tions.proto2\370\002\n\024AgentQueryController\022{\n\003" +
+      "get\022$.ai.stigmer.agentic.agent.v1.AgentI" +
+      "d\032\".ai.stigmer.agentic.agent.v1.Agent\"*\302" +
+      "\270\030&\010\001\020(\"\005value*\031unauthorized to get agen" +
+      "t\022p\n\016getByReference\0224.ai.stigmer.commons" +
+      ".apiresource.ApiResourceReference\032\".ai.s" +
+      "tigmer.agentic.agent.v1.Agent\"\004\320\270\030\001\022k\n\ng" +
+      "etDefault\0223.ai.stigmer.agentic.agent.v1." +
+      "GetDefaultAgentRequest\032\".ai.stigmer.agen" +
+      "tic.agent.v1.Agent\"\004\320\270\030\001\032\004\240\377+(B\235\001B\nQuery" +
+      "ProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agen" +
+      "t.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\" +
+      "Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037A" +
+      "i::Stigmer::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -65,19 +64,19 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.agent.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agent.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.agent.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

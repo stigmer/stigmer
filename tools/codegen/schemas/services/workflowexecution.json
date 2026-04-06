@@ -870,94 +870,6 @@
   },
   "statusNestedTypes": [
     {
-      "name": "ApiResourceAuditInfo",
-      "description": "ApiResourceAuditInfo contains detailed audit information.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "CreatedBy",
-          "jsonName": "createdBy",
-          "protoField": "created_by",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditActor"
-          },
-          "description": "Actor who created this resource.",
-          "required": false
-        },
-        {
-          "name": "CreatedAt",
-          "jsonName": "createdAt",
-          "protoField": "created_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "Timestamp when the resource was created.",
-          "required": false
-        },
-        {
-          "name": "UpdatedBy",
-          "jsonName": "updatedBy",
-          "protoField": "updated_by",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceAuditActor"
-          },
-          "description": "Actor who last updated this resource.",
-          "required": false
-        },
-        {
-          "name": "UpdatedAt",
-          "jsonName": "updatedAt",
-          "protoField": "updated_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "Timestamp when the resource was last updated.",
-          "required": false
-        },
-        {
-          "name": "Event",
-          "jsonName": "event",
-          "protoField": "event",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Type of the last event (e.g., \"created\", \"updated\").",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceAuditActor",
-      "description": "ApiResourceAuditActor represents the entity that performed an action.",
-      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
-      "fields": [
-        {
-          "name": "Id",
-          "jsonName": "id",
-          "protoField": "id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Unique identifier of the actor.",
-          "required": false
-        },
-        {
-          "name": "Avatar",
-          "jsonName": "avatar",
-          "protoField": "avatar",
-          "type": {
-            "kind": "string"
-          },
-          "description": "URL to the actor's avatar image.",
-          "required": false
-        }
-      ]
-    },
-    {
       "name": "WorkflowTask",
       "description": "WorkflowTask represents a single task within a workflow execution.\n\n @internal\n Tasks are the atomic units of work in a workflow. Each task:\n - Has a specific type (agent invocation, API call, approval, conditional, etc.)\n - Receives input parameters from the workflow context or previous tasks\n - Executes its specific logic (invoke an agent, call an API, wait for approval)\n - Produces output that can be used by subsequent tasks\n - Tracks its own execution state (pending, in-progress, completed, failed, skipped)\n\n Task Execution Flow:\n 1. Task is in PENDING state when workflow starts\n 2. When task dependencies are met, task_status changes to IN_PROGRESS\n 3. Task executes its logic (invoke agent, call API, etc.)\n 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowTask",
@@ -1237,6 +1149,94 @@
             "messageType": "ApiResourceAuditInfo"
           },
           "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
           "required": false
         }
       ]

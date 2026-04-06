@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../iam/iampolicy/v1/rpcauthorization/method_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/method_options_pb";
 import type { SearchRequestSchema, SearchResponseSchema } from "./io_pb";
 import { file_ai_stigmer_search_v1_io } from "./io_pb";
 
@@ -12,7 +12,7 @@ import { file_ai_stigmer_search_v1_io } from "./io_pb";
  * Describes the file ai/stigmer/search/v1/query.proto.
  */
 export const file_ai_stigmer_search_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiBhaS9zdGlnbWVyL3NlYXJjaC92MS9xdWVyeS5wcm90bxIUYWkuc3RpZ21lci5zZWFyY2gudjEyagoNU2VhcmNoU2VydmljZRJZCgZzZWFyY2gSIy5haS5zdGlnbWVyLnNlYXJjaC52MS5TZWFyY2hSZXF1ZXN0GiQuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzcG9uc2UiBNC4GAFiBnByb3RvMw", [file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_search_v1_io]);
+  fileDesc("CiBhaS9zdGlnbWVyL3NlYXJjaC92MS9xdWVyeS5wcm90bxIUYWkuc3RpZ21lci5zZWFyY2gudjEyagoNU2VhcmNoU2VydmljZRJZCgZzZWFyY2gSIy5haS5zdGlnbWVyLnNlYXJjaC52MS5TZWFyY2hSZXF1ZXN0GiQuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzcG9uc2UiBNC4GAFiBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_search_v1_io]);
 
 /**
  * SearchService provides unified search and discovery across API resources.

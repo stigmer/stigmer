@@ -64,6 +64,18 @@ class IdentityProviderClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_by_org(self, input: io_pb2.ListIdentityProvidersByOrgInput) -> io_pb2.IdentityProviders:
+        try:
+            return self._query.listByOrg(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_sso_provider(self, input: io_pb2.OrganizationSsoLookup) -> io_pb2.SsoProviderInfo:
+        try:
+            return self._query.getSsoProvider(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class IdentityProviderInput:
@@ -79,6 +91,8 @@ class IdentityProviderInput:
     expected_audience: str = ""
     rate_limit_budget: int = 0
     userinfo_endpoint: str = ""
+    is_sso_provider: bool = False
+    oidc_client_id: str = ""
 
     def _to_proto(self) -> api_pb2.IdentityProvider:
         spec = spec_pb2.IdentityProviderSpec(
@@ -87,6 +101,8 @@ class IdentityProviderInput:
             expected_audience=self.expected_audience,
             rate_limit_budget=self.rate_limit_budget,
             userinfo_endpoint=self.userinfo_endpoint,
+            is_sso_provider=self.is_sso_provider,
+            oidc_client_id=self.oidc_client_id,
         )
         if self.allowed_issuers:
             spec.allowed_issuers.extend(self.allowed_issuers)

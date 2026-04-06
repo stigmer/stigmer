@@ -37,12 +37,12 @@ agentExecution, err := client.AgentExecution.Get(ctx, "aex_01j5q3k7m8r2s4tnz2hfp
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.get("aex_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent_execution = client.agent_executions.get("aex_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().get("aex_01j5q3k7m8r2s4tnz2hfp0q0c3");
+AgentExecution agentExecution = client.agentExecutions().get("aex_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -89,12 +89,12 @@ agentExecution, err := client.AgentExecution.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.get(id)
+agent_execution = client.agent_executions.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().get(id);
+AgentExecution agentExecution = client.agentExecutions().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -138,7 +138,7 @@ getAgentUsageReportOutput, err := client.AgentExecution.GetAgentUsageReport(ctx,
 </Tab>
 <Tab value="Python">
 ```python
-getAgentUsageReportOutput = client.agent_execution.get_agent_usage_report(GetAgentUsageReportInput(
+get_agent_usage_report_output = client.agent_executions.get_agent_usage_report(GetAgentUsageReportInput(
     agent_id="...",
     from_date="...",
     to_date="...",
@@ -149,7 +149,7 @@ getAgentUsageReportOutput = client.agent_execution.get_agent_usage_report(GetAge
 </Tab>
 <Tab value="Java">
 ```java
-GetAgentUsageReportOutput getAgentUsageReportOutput = client.agentExecution().getAgentUsageReport(GetAgentUsageReportInput.builder()
+GetAgentUsageReportOutput getAgentUsageReportOutput = client.agentExecutions().getAgentUsageReport(GetAgentUsageReportInput.builder()
     .agentId("...")
     .fromDate("...")
     .toDate("...")
@@ -195,7 +195,7 @@ getArtifactContentResponse, err := client.AgentExecution.GetArtifactContent(ctx,
 </Tab>
 <Tab value="Python">
 ```python
-getArtifactContentResponse = client.agent_execution.get_artifact_content(GetArtifactContentRequest(
+get_artifact_content_response = client.agent_executions.get_artifact_content(GetArtifactContentRequest(
     execution_id="...",
     storage_key="...",
     max_bytes=0,
@@ -205,7 +205,7 @@ getArtifactContentResponse = client.agent_execution.get_artifact_content(GetArti
 </Tab>
 <Tab value="Java">
 ```java
-GetArtifactContentResponse getArtifactContentResponse = client.agentExecution().getArtifactContent(GetArtifactContentRequest.builder()
+GetArtifactContentResponse getArtifactContentResponse = client.agentExecutions().getArtifactContent(GetArtifactContentRequest.builder()
     .executionId("...")
     .storageKey("...")
     .maxBytes(0)
@@ -244,7 +244,7 @@ getArtifactDownloadUrlResponse, err := client.AgentExecution.GetArtifactDownload
 </Tab>
 <Tab value="Python">
 ```python
-getArtifactDownloadUrlResponse = client.agent_execution.get_artifact_download_url(GetArtifactDownloadUrlRequest(
+get_artifact_download_url_response = client.agent_executions.get_artifact_download_url(GetArtifactDownloadUrlRequest(
     execution_id="...",
     storage_key="...",
 ))
@@ -252,7 +252,7 @@ getArtifactDownloadUrlResponse = client.agent_execution.get_artifact_download_ur
 </Tab>
 <Tab value="Java">
 ```java
-GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.agentExecution().getArtifactDownloadUrl(GetArtifactDownloadUrlRequest.builder()
+GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.agentExecutions().getArtifactDownloadUrl(GetArtifactDownloadUrlRequest.builder()
     .executionId("...")
     .storageKey("...")
     .build());
@@ -291,7 +291,7 @@ getOrgUsageReportOutput, err := client.AgentExecution.GetOrgUsageReport(ctx, &st
 </Tab>
 <Tab value="Python">
 ```python
-getOrgUsageReportOutput = client.agent_execution.get_org_usage_report(GetOrgUsageReportInput(
+get_org_usage_report_output = client.agent_executions.get_org_usage_report(GetOrgUsageReportInput(
     org_id="...",
     from_date="...",
     to_date="...",
@@ -300,7 +300,7 @@ getOrgUsageReportOutput = client.agent_execution.get_org_usage_report(GetOrgUsag
 </Tab>
 <Tab value="Java">
 ```java
-GetOrgUsageReportOutput getOrgUsageReportOutput = client.agentExecution().getOrgUsageReport(GetOrgUsageReportInput.builder()
+GetOrgUsageReportOutput getOrgUsageReportOutput = client.agentExecutions().getOrgUsageReport(GetOrgUsageReportInput.builder()
     .orgId("...")
     .fromDate("...")
     .toDate("...")
@@ -336,14 +336,14 @@ getSessionUsageReportOutput, err := client.AgentExecution.GetSessionUsageReport(
 </Tab>
 <Tab value="Python">
 ```python
-getSessionUsageReportOutput = client.agent_execution.get_session_usage_report(GetSessionUsageReportInput(
+get_session_usage_report_output = client.agent_executions.get_session_usage_report(GetSessionUsageReportInput(
     session_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetSessionUsageReportOutput getSessionUsageReportOutput = client.agentExecution().getSessionUsageReport(GetSessionUsageReportInput.builder()
+GetSessionUsageReportOutput getSessionUsageReportOutput = client.agentExecutions().getSessionUsageReport(GetSessionUsageReportInput.builder()
     .sessionId("...")
     .build());
 ```
@@ -381,7 +381,7 @@ result, err := client.AgentExecution.List(ctx, &stigmer.ListAgentExecutionsReque
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agent_execution.list(ListAgentExecutionsRequest(
+result = client.agent_executions.list(ListAgentExecutionsRequest(
     page_size=0,
     page_token="...",
     phase="...",
@@ -391,7 +391,7 @@ result = client.agent_execution.list(ListAgentExecutionsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecutionList result = client.agentExecution().list(ListAgentExecutionsRequest.builder()
+AgentExecutionList result = client.agentExecutions().list(ListAgentExecutionsRequest.builder()
     .pageSize(0)
     .pageToken("...")
     .phase("...")
@@ -430,7 +430,7 @@ result, err := client.AgentExecution.ListBySession(ctx, &stigmer.ListAgentExecut
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agent_execution.list_by_session(ListAgentExecutionsBySessionRequest(
+result = client.agent_executions.list_by_session(ListAgentExecutionsBySessionRequest(
     session_id="...",
     page_size=0,
     page_token="...",
@@ -439,7 +439,7 @@ result = client.agent_execution.list_by_session(ListAgentExecutionsBySessionRequ
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecutionList result = client.agentExecution().listBySession(ListAgentExecutionsBySessionRequest.builder()
+AgentExecutionList result = client.agentExecutions().listBySession(ListAgentExecutionsBySessionRequest.builder()
     .sessionId("...")
     .pageSize(0)
     .pageToken("...")
@@ -481,13 +481,13 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for agentExecution in client.agent_execution.subscribe(id):
-    # process agentExecution
+for agent_execution in client.agent_executions.subscribe(id):
+    # process agent_execution
 ```
 </Tab>
 <Tab value="Java">
 ```java
-client.agentExecution().subscribe(id, agentExecution -> {
+client.agentExecutions().subscribe(id, agentExecution -> {
     // process agentExecution
 });
 ```
@@ -549,7 +549,7 @@ agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecution
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.create(AgentExecutionInput(
+agent_execution = client.agent_executions.create(AgentExecutionInput(
     name="my-agent-execution",
     org="acme",
     slug="...",
@@ -569,7 +569,7 @@ agentExecution = client.agent_execution.create(AgentExecutionInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().create(AgentExecutionInput.builder()
+AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionInput.builder()
     .name("my-agent-execution")
     .org("acme")
     .slug("...")
@@ -640,7 +640,7 @@ agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecution
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.update(AgentExecutionInput(
+agent_execution = client.agent_executions.update(AgentExecutionInput(
     name="my-agent-execution",
     org="acme",
     slug="...",
@@ -660,7 +660,7 @@ agentExecution = client.agent_execution.update(AgentExecutionInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().update(AgentExecutionInput.builder()
+AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionInput.builder()
     .name("my-agent-execution")
     .org("acme")
     .slug("...")
@@ -707,7 +707,7 @@ agentExecution, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExe
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.update_status(AgentExecutionUpdateStatusInput(
+agent_execution = client.agent_executions.update_status(AgentExecutionUpdateStatusInput(
     execution_id="...",
     status=None,
 ))
@@ -715,7 +715,7 @@ agentExecution = client.agent_execution.update_status(AgentExecutionUpdateStatus
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().updateStatus(AgentExecutionUpdateStatusInput.builder()
+AgentExecution agentExecution = client.agentExecutions().updateStatus(AgentExecutionUpdateStatusInput.builder()
     .executionId("...")
     .status(null)
     .build());
@@ -744,12 +744,12 @@ agentExecution, err := client.AgentExecution.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.delete(id)
+agent_execution = client.agent_executions.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().delete(id);
+AgentExecution agentExecution = client.agentExecutions().delete(id);
 ```
 </Tab>
 </SDKTabs>
@@ -787,7 +787,7 @@ agentExecution, err := client.AgentExecution.Pause(ctx, &stigmer.PauseAgentExecu
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.pause(PauseAgentExecutionInput(
+agent_execution = client.agent_executions.pause(PauseAgentExecutionInput(
     id="...",
     reason="...",
 ))
@@ -795,7 +795,7 @@ agentExecution = client.agent_execution.pause(PauseAgentExecutionInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().pause(PauseAgentExecutionInput.builder()
+AgentExecution agentExecution = client.agentExecutions().pause(PauseAgentExecutionInput.builder()
     .id("...")
     .reason("...")
     .build());
@@ -830,14 +830,14 @@ agentExecution, err := client.AgentExecution.Resume(ctx, &stigmer.ResumeAgentExe
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.resume(ResumeAgentExecutionInput(
+agent_execution = client.agent_executions.resume(ResumeAgentExecutionInput(
     id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().resume(ResumeAgentExecutionInput.builder()
+AgentExecution agentExecution = client.agentExecutions().resume(ResumeAgentExecutionInput.builder()
     .id("...")
     .build());
 ```
@@ -873,7 +873,7 @@ agentExecution, err := client.AgentExecution.Cancel(ctx, &stigmer.CancelAgentExe
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.cancel(CancelAgentExecutionInput(
+agent_execution = client.agent_executions.cancel(CancelAgentExecutionInput(
     id="...",
     reason="...",
 ))
@@ -881,7 +881,7 @@ agentExecution = client.agent_execution.cancel(CancelAgentExecutionInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().cancel(CancelAgentExecutionInput.builder()
+AgentExecution agentExecution = client.agentExecutions().cancel(CancelAgentExecutionInput.builder()
     .id("...")
     .reason("...")
     .build());
@@ -918,7 +918,7 @@ agentExecution, err := client.AgentExecution.Terminate(ctx, &stigmer.TerminateAg
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.terminate(TerminateAgentExecutionInput(
+agent_execution = client.agent_executions.terminate(TerminateAgentExecutionInput(
     id="...",
     reason="...",
 ))
@@ -926,7 +926,7 @@ agentExecution = client.agent_execution.terminate(TerminateAgentExecutionInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().terminate(TerminateAgentExecutionInput.builder()
+AgentExecution agentExecution = client.agentExecutions().terminate(TerminateAgentExecutionInput.builder()
     .id("...")
     .reason("...")
     .build());
@@ -961,14 +961,14 @@ agentExecution, err := client.AgentExecution.Recover(ctx, &stigmer.RecoverAgentE
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.recover(RecoverAgentExecutionInput(
+agent_execution = client.agent_executions.recover(RecoverAgentExecutionInput(
     id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().recover(RecoverAgentExecutionInput.builder()
+AgentExecution agentExecution = client.agentExecutions().recover(RecoverAgentExecutionInput.builder()
     .id("...")
     .build());
 ```
@@ -1006,7 +1006,7 @@ agentExecution, err := client.AgentExecution.SubmitApproval(ctx, &stigmer.Submit
 </Tab>
 <Tab value="Python">
 ```python
-agentExecution = client.agent_execution.submit_approval(SubmitApprovalInput(
+agent_execution = client.agent_executions.submit_approval(SubmitApprovalInput(
     agent_execution_id="...",
     tool_call_id="...",
     action="...",
@@ -1016,7 +1016,7 @@ agentExecution = client.agent_execution.submit_approval(SubmitApprovalInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecution().submitApproval(SubmitApprovalInput.builder()
+AgentExecution agentExecution = client.agentExecutions().submitApproval(SubmitApprovalInput.builder()
     .agentExecutionId("...")
     .toolCallId("...")
     .action("...")
@@ -1057,7 +1057,7 @@ uploadAttachmentResponse, err := client.AgentExecution.UploadAttachment(ctx, &st
 </Tab>
 <Tab value="Python">
 ```python
-uploadAttachmentResponse = client.agent_execution.upload_attachment(UploadAttachmentRequest(
+upload_attachment_response = client.agent_executions.upload_attachment(UploadAttachmentRequest(
     filename="...",
     content="...",
     content_type="...",
@@ -1066,7 +1066,7 @@ uploadAttachmentResponse = client.agent_execution.upload_attachment(UploadAttach
 </Tab>
 <Tab value="Java">
 ```java
-UploadAttachmentResponse uploadAttachmentResponse = client.agentExecution().uploadAttachment(UploadAttachmentRequest.builder()
+UploadAttachmentResponse uploadAttachmentResponse = client.agentExecutions().uploadAttachment(UploadAttachmentRequest.builder()
     .filename("...")
     .content("...")
     .contentType("...")
@@ -1465,18 +1465,6 @@ AgentExecutionStatus contains all execution results and state.
   }}
 />
 
-### McpServerResolutionStatus
-
-McpServerResolutionStatus captures the resolution outcome for a single MCP server.
-
-<TypeTable
-  type={{
-    resolved: { type: "boolean", description: "Whether the MCP server was successfully resolved and configured." },
-    message: { type: "string", description: "Human-readable status message explaining the resolution outcome." },
-    enabledToolCount: { type: "number", description: "Number of tools enabled from this MCP server." },
-  }}
-/>
-
 ### SummarizationEvent
 
 SummarizationEvent records a single summarization occurrence during execution.
@@ -1498,6 +1486,24 @@ SummarizationEvent records a single summarization occurrence during execution.
   }}
 />
 
+### WorkspaceWriteBack
+
+WorkspaceWriteBack captures the outcome of the platform-owned git write-back workflow for a single workspace entry.
+
+<TypeTable
+  type={{
+    workspaceEntryName: { type: "string", description: "Name of the workspace entry this write-back corresponds to." },
+    branchName: { type: "string", description: "Branch created for the agent's changes." },
+    baseBranch: { type: "string", description: "Base branch the PR targets (the branch that was originally cloned)." },
+    commitSha: { type: "string", description: "Full commit SHA of the agent's changes on the branch." },
+    pullRequestUrl: { type: "string", description: "GitHub pull request URL." },
+    pullRequestNumber: { type: "number", description: "GitHub pull request number." },
+    diffSummary: { type: "string", description: "Human-readable summary of changes from `git diff --stat`." },
+    phase: { type: "WorkspaceWriteBackPhase", description: "Current phase of the write-back workflow.", typeDescriptionLink: "#workspacewritebackphase" },
+    error: { type: "string", description: "Error message if the write-back failed at any step." },
+  }}
+/>
+
 ### AgentMessage
 
 Represents a single message in the agent conversation.
@@ -1511,6 +1517,33 @@ Represents a single message in the agent conversation.
     metadata: { type: "object", description: "Optional message metadata." },
     isStreaming: { type: "boolean", description: "True while the AI is actively generating this message, false when complete." },
     llmMetrics: { type: "LlmCallMetrics", description: "LLM call metrics for this message.", typeDescriptionLink: "#llmcallmetrics" },
+  }}
+/>
+
+### ToolCall
+
+Represents a tool call made by the agent during execution.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Unique identifier for this tool call." },
+    name: { type: "string", description: "Name of the tool being called." },
+    args: { type: "object", description: "Arguments passed to the tool (JSON structure)." },
+    result: { type: "string", description: "Result returned by the tool (optional, populated after execution)." },
+    status: { type: "ToolCallStatus", description: "Status of the tool call execution.", typeDescriptionLink: "#toolcallstatus" },
+    startedAt: { type: "string", description: "ISO 8601 timestamp when the tool call started." },
+    completedAt: { type: "string", description: "ISO 8601 timestamp when the tool call completed or failed." },
+    error: { type: "string", description: "Error message if status == TOOL_CALL_FAILED." },
+    requiresApproval: { type: "boolean", description: "True if this tool requires approval before execution." },
+    approvalMessage: { type: "string", description: "Human-readable message explaining what approval is being requested." },
+    approvalRequestedAt: { type: "string", description: "ISO 8601 timestamp when approval was requested." },
+    approvalDecidedAt: { type: "string", description: "ISO 8601 timestamp when approval decision was made." },
+    approvedBy: { type: "string", description: "User ID of who made the approval decision." },
+    approvalAction: { type: "ApprovalAction", description: "The action taken by the user.", typeDescriptionLink: "#approvalaction" },
+    isStreaming: { type: "boolean", description: "True while the tool is actively producing content, false when complete." },
+    streamingSource: { type: "ToolCallStreamingSource", description: "Identifies what is currently being streamed.", typeDescriptionLink: "#toolcallstreamingsource" },
+    mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
+    argsPreview: { type: "string", description: "Sanitized preview of tool arguments for UI display." },
   }}
 />
 
@@ -1534,19 +1567,6 @@ Metrics for a single LLM API call during execution.
   }}
 />
 
-### ResolvedExecutionContext
-
-ResolvedExecutionContext captures the resolved configuration state at execution time.
-
-<TypeTable
-  type={{
-    environmentKeys: { type: "string[]", description: "Environment variable keys available to the agent (NOT values for security)." },
-    mcpServers: { type: "Record<string, McpServerResolutionStatus>", description: "MCP servers referenced by the agent and their resolution status." },
-    skillNames: { type: "string[]", description: "Names of skills injected into the agent's system prompt." },
-    excludedSkillNames: { type: "string[]", description: "Skills that were available but excluded from the system prompt because they were not relevant to the current execution context." },
-  }}
-/>
-
 ### TodoItem
 
 Represents a single item in the agent's todo list.
@@ -1558,6 +1578,19 @@ Represents a single item in the agent's todo list.
     status: { type: "TodoStatus", description: "Current status of the todo item.", typeDescriptionLink: "#todostatus" },
     createdAt: { type: "string", description: "ISO 8601 timestamp when the todo was created." },
     updatedAt: { type: "string", description: "ISO 8601 timestamp when the todo was last updated." },
+  }}
+/>
+
+### ResolvedExecutionContext
+
+ResolvedExecutionContext captures the resolved configuration state at execution time.
+
+<TypeTable
+  type={{
+    environmentKeys: { type: "string[]", description: "Environment variable keys available to the agent (NOT values for security)." },
+    mcpServers: { type: "Record<string, McpServerResolutionStatus>", description: "MCP servers referenced by the agent and their resolution status." },
+    skillNames: { type: "string[]", description: "Names of skills injected into the agent's system prompt." },
+    excludedSkillNames: { type: "string[]", description: "Skills that were available but excluded from the system prompt because they were not relevant to the current execution context." },
   }}
 />
 
@@ -1579,19 +1612,22 @@ A pending approval request for a tool call that requires user consent before exe
   }}
 />
 
-### ContextInfo
+### ExecutionArtifact
 
-ContextInfo provides visibility into context window utilization.
+ExecutionArtifact represents a file or directory published by an agent.
 
 <TypeTable
   type={{
-    currentTokenCount: { type: "number", description: "Current token count in the context window." },
-    contextWindowLimit: { type: "number", description: "Model's maximum context window size in tokens." },
-    summarizationTriggerThreshold: { type: "number", description: "Token threshold that triggers summarization." },
-    summarizationTargetTokens: { type: "number", description: "Target token count after summarization." },
-    summarizationEnabled: { type: "boolean", description: "Whether summarization is enabled for this execution." },
-    summarizationEvents: { type: "SummarizationEvent[]", description: "Summarization events that occurred during this execution.", typeDescriptionLink: "#summarizationevent" },
-    utilizationPercent: { type: "number", description: "Context utilization as a percentage (0-100)." },
+    name: { type: "string", description: "Display name for this artifact." },
+    sandboxPath: { type: "string", description: "Original path in sandbox where the artifact was created." },
+    kind: { type: "ExecutionArtifactKind", description: "Type of artifact: file or directory.", typeDescriptionLink: "#executionartifactkind" },
+    sizeBytes: { type: "number", description: "Total size in bytes." },
+    storageKey: { type: "string", description: "Storage location in R2." },
+    downloadUrl: { type: "string", description: "Pre-signed URL for downloading the artifact." },
+    createdAt: { type: "string", description: "ISO 8601 timestamp when the artifact was created." },
+    expiresAt: { type: "string", description: "ISO 8601 timestamp when the download URL expires." },
+    entries: { type: "string[]", description: "Relative file paths within a directory artifact's archive." },
+    contentHash: { type: "string", description: "SHA-256 hex digest of the uploaded artifact bytes." },
   }}
 />
 
@@ -1626,67 +1662,31 @@ Represents a sub-agent invocation within an execution.
   }}
 />
 
-### ExecutionArtifact
+### McpServerResolutionStatus
 
-ExecutionArtifact represents a file or directory published by an agent.
+McpServerResolutionStatus captures the resolution outcome for a single MCP server.
 
 <TypeTable
   type={{
-    name: { type: "string", description: "Display name for this artifact." },
-    sandboxPath: { type: "string", description: "Original path in sandbox where the artifact was created." },
-    kind: { type: "ExecutionArtifactKind", description: "Type of artifact: file or directory.", typeDescriptionLink: "#executionartifactkind" },
-    sizeBytes: { type: "number", description: "Total size in bytes." },
-    storageKey: { type: "string", description: "Storage location in R2." },
-    downloadUrl: { type: "string", description: "Pre-signed URL for downloading the artifact." },
-    createdAt: { type: "string", description: "ISO 8601 timestamp when the artifact was created." },
-    expiresAt: { type: "string", description: "ISO 8601 timestamp when the download URL expires." },
-    entries: { type: "string[]", description: "Relative file paths within a directory artifact's archive." },
-    contentHash: { type: "string", description: "SHA-256 hex digest of the uploaded artifact bytes." },
+    resolved: { type: "boolean", description: "Whether the MCP server was successfully resolved and configured." },
+    message: { type: "string", description: "Human-readable status message explaining the resolution outcome." },
+    enabledToolCount: { type: "number", description: "Number of tools enabled from this MCP server." },
   }}
 />
 
-### WorkspaceWriteBack
+### ContextInfo
 
-WorkspaceWriteBack captures the outcome of the platform-owned git write-back workflow for a single workspace entry.
-
-<TypeTable
-  type={{
-    workspaceEntryName: { type: "string", description: "Name of the workspace entry this write-back corresponds to." },
-    branchName: { type: "string", description: "Branch created for the agent's changes." },
-    baseBranch: { type: "string", description: "Base branch the PR targets (the branch that was originally cloned)." },
-    commitSha: { type: "string", description: "Full commit SHA of the agent's changes on the branch." },
-    pullRequestUrl: { type: "string", description: "GitHub pull request URL." },
-    pullRequestNumber: { type: "number", description: "GitHub pull request number." },
-    diffSummary: { type: "string", description: "Human-readable summary of changes from `git diff --stat`." },
-    phase: { type: "WorkspaceWriteBackPhase", description: "Current phase of the write-back workflow.", typeDescriptionLink: "#workspacewritebackphase" },
-    error: { type: "string", description: "Error message if the write-back failed at any step." },
-  }}
-/>
-
-### ToolCall
-
-Represents a tool call made by the agent during execution.
+ContextInfo provides visibility into context window utilization.
 
 <TypeTable
   type={{
-    id: { type: "string", description: "Unique identifier for this tool call." },
-    name: { type: "string", description: "Name of the tool being called." },
-    args: { type: "object", description: "Arguments passed to the tool (JSON structure)." },
-    result: { type: "string", description: "Result returned by the tool (optional, populated after execution)." },
-    status: { type: "ToolCallStatus", description: "Status of the tool call execution.", typeDescriptionLink: "#toolcallstatus" },
-    startedAt: { type: "string", description: "ISO 8601 timestamp when the tool call started." },
-    completedAt: { type: "string", description: "ISO 8601 timestamp when the tool call completed or failed." },
-    error: { type: "string", description: "Error message if status == TOOL_CALL_FAILED." },
-    requiresApproval: { type: "boolean", description: "True if this tool requires approval before execution." },
-    approvalMessage: { type: "string", description: "Human-readable message explaining what approval is being requested." },
-    approvalRequestedAt: { type: "string", description: "ISO 8601 timestamp when approval was requested." },
-    approvalDecidedAt: { type: "string", description: "ISO 8601 timestamp when approval decision was made." },
-    approvedBy: { type: "string", description: "User ID of who made the approval decision." },
-    approvalAction: { type: "ApprovalAction", description: "The action taken by the user.", typeDescriptionLink: "#approvalaction" },
-    isStreaming: { type: "boolean", description: "True while the tool is actively producing content, false when complete." },
-    streamingSource: { type: "ToolCallStreamingSource", description: "Identifies what is currently being streamed.", typeDescriptionLink: "#toolcallstreamingsource" },
-    mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
-    argsPreview: { type: "string", description: "Sanitized preview of tool arguments for UI display." },
+    currentTokenCount: { type: "number", description: "Current token count in the context window." },
+    contextWindowLimit: { type: "number", description: "Model's maximum context window size in tokens." },
+    summarizationTriggerThreshold: { type: "number", description: "Token threshold that triggers summarization." },
+    summarizationTargetTokens: { type: "number", description: "Target token count after summarization." },
+    summarizationEnabled: { type: "boolean", description: "Whether summarization is enabled for this execution." },
+    summarizationEvents: { type: "SummarizationEvent[]", description: "Summarization events that occurred during this execution.", typeDescriptionLink: "#summarizationevent" },
+    utilizationPercent: { type: "number", description: "Context utilization as a percentage (0-100)." },
   }}
 />
 
@@ -1724,49 +1724,6 @@ SummarizationSource identifies what triggered a context summarization event.
 | `graph_start` | Summarization triggered at the start of processing, when resuming a conversation that already exceeds the token threshold. |
 | `mid_execution` | Summarization triggered mid-execution, when accumulated tool responses push context past the token threshold. |
 
-### MessageType
-
-MessageType defines the type of message in the conversation.
-
-| Value | Description |
-|-------|-------------|
-| `MESSAGE_HUMAN` | A message sent by the user to the agent. |
-| `MESSAGE_AI` | A response generated by the AI agent. |
-| `MESSAGE_TOOL` | The result returned by a tool after execution. |
-| `MESSAGE_SYSTEM` | A system-generated message injected by the platform (e.g., budget warnings, summarization notices). |
-
-### TodoStatus
-
-TodoStatus defines the status of a todo item.
-
-| Value | Description |
-|-------|-------------|
-| `TODO_PENDING` | Task has not been started yet. |
-| `TODO_IN_PROGRESS` | Task is currently being worked on by the agent. |
-| `TODO_COMPLETED` | Task was completed successfully. |
-| `TODO_CANCELLED` | Task was cancelled and is no longer needed. |
-
-### SubAgentStatus
-
-SubAgentStatus defines the status of a sub-agent execution.
-
-| Value | Description |
-|-------|-------------|
-| `SUB_AGENT_PENDING` | Sub-agent invocation is queued and waiting to start. |
-| `SUB_AGENT_IN_PROGRESS` | Sub-agent is actively executing its delegated task. |
-| `SUB_AGENT_COMPLETED` | Sub-agent finished its task successfully and returned a result. |
-| `SUB_AGENT_FAILED` | Sub-agent encountered an error and could not complete its task. |
-| `SUB_AGENT_CANCELLED` | Parent execution was cancelled while this sub-agent was active. |
-
-### ExecutionArtifactKind
-
-ExecutionArtifactKind defines the type of artifact published by an agent.
-
-| Value | Description |
-|-------|-------------|
-| `EXECUTION_ARTIFACT_KIND_FILE` | A single file published by the agent. |
-| `EXECUTION_ARTIFACT_KIND_DIRECTORY` | A directory published by the agent, archived as a ZIP file for download. |
-
 ### WorkspaceWriteBackPhase
 
 WorkspaceWriteBackPhase tracks the progress of a single workspace write-back through its lifecycle steps.
@@ -1777,6 +1734,17 @@ WorkspaceWriteBackPhase tracks the progress of a single workspace write-back thr
 | `WORKSPACE_WRITE_BACK_PUSHED` | The branch was pushed to the remote repository. |
 | `WORKSPACE_WRITE_BACK_PR_CREATED` | A pull request was created on the remote repository. |
 | `WORKSPACE_WRITE_BACK_FAILED` | The write-back failed at some step. |
+
+### MessageType
+
+MessageType defines the type of message in the conversation.
+
+| Value | Description |
+|-------|-------------|
+| `MESSAGE_HUMAN` | A message sent by the user to the agent. |
+| `MESSAGE_AI` | A response generated by the AI agent. |
+| `MESSAGE_TOOL` | The result returned by a tool after execution. |
+| `MESSAGE_SYSTEM` | A system-generated message injected by the platform (e.g., budget warnings, summarization notices). |
 
 ### ToolCallStatus
 
@@ -1799,4 +1767,36 @@ ToolCallStreamingSource identifies what is currently being streamed on a tool ca
 |-------|-------------|
 | `TOOL_CALL_STREAMING_SOURCE_INPUT` | The LLM is generating the tool's arguments. |
 | `TOOL_CALL_STREAMING_SOURCE_OUTPUT` | The tool is executing and producing output progressively. |
+
+### TodoStatus
+
+TodoStatus defines the status of a todo item.
+
+| Value | Description |
+|-------|-------------|
+| `TODO_PENDING` | Task has not been started yet. |
+| `TODO_IN_PROGRESS` | Task is currently being worked on by the agent. |
+| `TODO_COMPLETED` | Task was completed successfully. |
+| `TODO_CANCELLED` | Task was cancelled and is no longer needed. |
+
+### ExecutionArtifactKind
+
+ExecutionArtifactKind defines the type of artifact published by an agent.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_ARTIFACT_KIND_FILE` | A single file published by the agent. |
+| `EXECUTION_ARTIFACT_KIND_DIRECTORY` | A directory published by the agent, archived as a ZIP file for download. |
+
+### SubAgentStatus
+
+SubAgentStatus defines the status of a sub-agent execution.
+
+| Value | Description |
+|-------|-------------|
+| `SUB_AGENT_PENDING` | Sub-agent invocation is queued and waiting to start. |
+| `SUB_AGENT_IN_PROGRESS` | Sub-agent is actively executing its delegated task. |
+| `SUB_AGENT_COMPLETED` | Sub-agent finished its task successfully and returned a result. |
+| `SUB_AGENT_FAILED` | Sub-agent encountered an error and could not complete its task. |
+| `SUB_AGENT_CANCELLED` | Parent execution was cancelled while this sub-agent was active. |
 

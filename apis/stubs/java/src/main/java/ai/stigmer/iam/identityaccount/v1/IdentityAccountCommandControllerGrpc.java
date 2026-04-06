@@ -108,6 +108,37 @@ public final class IdentityAccountCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getCreateFederatedAccountMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createFederatedAccount",
+      requestType = ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.class,
+      responseType = ai.stigmer.iam.identityaccount.v1.IdentityAccount.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getCreateFederatedAccountMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput, ai.stigmer.iam.identityaccount.v1.IdentityAccount> getCreateFederatedAccountMethod;
+    if ((getCreateFederatedAccountMethod = IdentityAccountCommandControllerGrpc.getCreateFederatedAccountMethod) == null) {
+      synchronized (IdentityAccountCommandControllerGrpc.class) {
+        if ((getCreateFederatedAccountMethod = IdentityAccountCommandControllerGrpc.getCreateFederatedAccountMethod) == null) {
+          IdentityAccountCommandControllerGrpc.getCreateFederatedAccountMethod = getCreateFederatedAccountMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput, ai.stigmer.iam.identityaccount.v1.IdentityAccount>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createFederatedAccount"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.IdentityAccount.getDefaultInstance()))
+              .setSchemaDescriptor(new IdentityAccountCommandControllerMethodDescriptorSupplier("createFederatedAccount"))
+              .build();
+        }
+      }
+    }
+    return getCreateFederatedAccountMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail,
       com.google.protobuf.Empty> getSimulateSignupWebhookMethod;
 
@@ -209,7 +240,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * System-level RPC used by Auth0 webhook flow and federated account creation.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -241,6 +272,23 @@ public final class IdentityAccountCommandControllerGrpc {
     default void delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Create a federated identity account for an external platform user.
+     * Called by platform backends (via API key) when a new user signs up on their
+     * platform. The platform provides the user's OIDC subject identifier and profile
+     * data. The account must be created before the user can authenticate via the IdP.
+     * Returns the full identity account including its ID, which the platform uses
+     * to grant roles via IAM policies.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    default void createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateFederatedAccountMethod(), responseObserver);
     }
 
     /**
@@ -295,7 +343,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * System-level RPC used by Auth0 webhook flow and federated account creation.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -330,6 +378,24 @@ public final class IdentityAccountCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Create a federated identity account for an external platform user.
+     * Called by platform backends (via API key) when a new user signs up on their
+     * platform. The platform provides the user's OIDC subject identifier and profile
+     * data. The account must be created before the user can authenticate via the IdP.
+     * Returns the full identity account including its ID, which the platform uses
+     * to grant roles via IAM policies.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public void createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateFederatedAccountMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -371,7 +437,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * System-level RPC used by Auth0 webhook flow and federated account creation.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -403,6 +469,23 @@ public final class IdentityAccountCommandControllerGrpc {
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create a federated identity account for an external platform user.
+     * Called by platform backends (via API key) when a new user signs up on their
+     * platform. The platform provides the user's OIDC subject identifier and profile
+     * data. The account must be created before the user can authenticate via the IdP.
+     * Returns the full identity account including its ID, which the platform uses
+     * to grant roles via IAM policies.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateFederatedAccountMethod(), getCallOptions(), request);
     }
 
     /**
@@ -443,7 +526,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * System-level RPC used by Auth0 webhook flow and federated account creation.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -475,6 +558,23 @@ public final class IdentityAccountCommandControllerGrpc {
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create a federated identity account for an external platform user.
+     * Called by platform backends (via API key) when a new user signs up on their
+     * platform. The platform provides the user's OIDC subject identifier and profile
+     * data. The account must be created before the user can authenticate via the IdP.
+     * Returns the full identity account including its ID, which the platform uses
+     * to grant roles via IAM policies.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateFederatedAccountMethod(), getCallOptions(), request);
     }
 
     /**
@@ -515,7 +615,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * System-level RPC used by Auth0 webhook flow and federated account creation.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -554,6 +654,24 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a federated identity account for an external platform user.
+     * Called by platform backends (via API key) when a new user signs up on their
+     * platform. The platform provides the user's OIDC subject identifier and profile
+     * data. The account must be created before the user can authenticate via the IdP.
+     * Returns the full identity account including its ID, which the platform uses
+     * to grant roles via IAM policies.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> createFederatedAccount(
+        ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateFederatedAccountMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
@@ -571,7 +689,8 @@ public final class IdentityAccountCommandControllerGrpc {
   private static final int METHODID_CREATE = 0;
   private static final int METHODID_UPDATE = 1;
   private static final int METHODID_DELETE = 2;
-  private static final int METHODID_SIMULATE_SIGNUP_WEBHOOK = 3;
+  private static final int METHODID_CREATE_FEDERATED_ACCOUNT = 3;
+  private static final int METHODID_SIMULATE_SIGNUP_WEBHOOK = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -600,6 +719,10 @@ public final class IdentityAccountCommandControllerGrpc {
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.iam.identityaccount.v1.IdentityAccountId) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
+          break;
+        case METHODID_CREATE_FEDERATED_ACCOUNT:
+          serviceImpl.createFederatedAccount((ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
           break;
         case METHODID_SIMULATE_SIGNUP_WEBHOOK:
@@ -645,6 +768,13 @@ public final class IdentityAccountCommandControllerGrpc {
               ai.stigmer.iam.identityaccount.v1.IdentityAccountId,
               ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getCreateFederatedAccountMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput,
+              ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
+                service, METHODID_CREATE_FEDERATED_ACCOUNT)))
         .addMethod(
           getSimulateSignupWebhookMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -703,6 +833,7 @@ public final class IdentityAccountCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getCreateFederatedAccountMethod())
               .addMethod(getSimulateSignupWebhookMethod())
               .build();
         }

@@ -42,25 +42,25 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ic/executioncontext/v1/io.proto\032\'ai/stig" +
       "mer/commons/apiresource/io.proto\0328ai/sti" +
       "gmer/commons/apiresource/rpc_service_opt" +
-      "ions.proto\032Aai/stigmer/iam/iampolicy/v1/" +
-      "rpcauthorization/method_options.proto2\323\003" +
-      "\n\037ExecutionContextQueryController\022\201\001\n\003ge" +
-      "t\022:.ai.stigmer.agentic.executioncontext." +
-      "v1.ExecutionContextId\0328.ai.stigmer.agent" +
-      "ic.executioncontext.v1.ExecutionContext\"" +
-      "\004\320\270\030\001\022\206\001\n\016getByReference\0224.ai.stigmer.co" +
-      "mmons.apiresource.ApiResourceReference\0328" +
-      ".ai.stigmer.agentic.executioncontext.v1." +
-      "ExecutionContext\"\004\320\270\030\001\022\234\001\n\020getByExecutio" +
-      "nId\022H.ai.stigmer.agentic.executioncontex" +
-      "t.v1.ExecutionContextExecutionIdInput\0328." +
-      "ai.stigmer.agentic.executioncontext.v1.E" +
-      "xecutionContext\"\004\320\270\030\001\032\004\240\377+6B\311\001B\nQueryPro" +
-      "toP\001\242\002\004ASAE\252\002&Ai.Stigmer.Agentic.Executi" +
-      "oncontext.V1\312\002&Ai\\Stigmer\\Agentic\\Execut" +
-      "ioncontext\\V1\342\0022Ai\\Stigmer\\Agentic\\Execu" +
-      "tioncontext\\V1\\GPBMetadata\352\002*Ai::Stigmer" +
-      "::Agentic::Executioncontext::V1b\006proto3"
+      "ions.proto\032+ai/stigmer/commons/rpc/metho" +
+      "d_options.proto2\323\003\n\037ExecutionContextQuer" +
+      "yController\022\201\001\n\003get\022:.ai.stigmer.agentic" +
+      ".executioncontext.v1.ExecutionContextId\032" +
+      "8.ai.stigmer.agentic.executioncontext.v1" +
+      ".ExecutionContext\"\004\320\270\030\001\022\206\001\n\016getByReferen" +
+      "ce\0224.ai.stigmer.commons.apiresource.ApiR" +
+      "esourceReference\0328.ai.stigmer.agentic.ex" +
+      "ecutioncontext.v1.ExecutionContext\"\004\320\270\030\001" +
+      "\022\234\001\n\020getByExecutionId\022H.ai.stigmer.agent" +
+      "ic.executioncontext.v1.ExecutionContextE" +
+      "xecutionIdInput\0328.ai.stigmer.agentic.exe" +
+      "cutioncontext.v1.ExecutionContext\"\004\320\270\030\001\032" +
+      "\004\240\377+6B\311\001B\nQueryProtoP\001\242\002\004ASAE\252\002&Ai.Stigm" +
+      "er.Agentic.Executioncontext.V1\312\002&Ai\\Stig" +
+      "mer\\Agentic\\Executioncontext\\V1\342\0022Ai\\Sti" +
+      "gmer\\Agentic\\Executioncontext\\V1\\GPBMeta" +
+      "data\352\002*Ai::Stigmer::Agentic::Executionco" +
+      "ntext::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -69,18 +69,18 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.executioncontext.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.executioncontext.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.executioncontext.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

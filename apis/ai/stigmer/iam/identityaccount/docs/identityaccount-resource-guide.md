@@ -41,13 +41,13 @@ status: {}  # System-managed, never set by users
 | Field | Required | Mutable | Description |
 |---|---|---|---|
 | `spec.idp_id` | Yes | No | The external identity provider's subject ID. Globally unique. See [provisioning-modes.md](provisioning-modes.md) for format details per mode. |
-| `spec.email` | No | Yes | Email address. For direct accounts: from the Auth0 sign-up. For federated accounts: from the IdentityProvider's UserInfo endpoint. Ignored on create — assigned by the backend. |
+| `spec.email` | No | Yes | Email address. For direct accounts: from the Auth0 sign-up. For federated accounts: provided by the platform when creating the account. Ignored on create — assigned by the backend. |
 | `spec.first_name` | No | Yes | First name, used in UI and audit logs. |
 | `spec.last_name` | No | Yes | Last name, used in UI and audit logs. |
 | `spec.picture_url` | No | Yes | URL to the account holder's profile picture. |
 | `spec.is_machine_account` | Never | Never | Computed. `true` when `idp_id` ends with `@clients`. Assigned by the backend. |
 | `spec.provisioning_mode` | Never | Never | Computed. One of `direct`, `federated`, or `machine`. Assigned by the backend based on `idp_id`. |
-| `spec.identity_provider_ref` | Never | Never | Computed. Set only for `federated` accounts — identifies the IdentityProvider that provisioned this account. |
+| `spec.identity_provider_ref` | Never | Never | Computed. Set only for `federated` accounts — identifies the IdentityProvider that owns this account. Together with `idp_id`, forms the unique federated identity. |
 
 ## Status Fields
 
@@ -73,7 +73,7 @@ Status is system-managed and must never be set by users.
 
 | Operation | RPC | Authorization | Notes |
 |---|---|---|---|
-| Create | `IdentityAccountCommandController.create` | None — system-level, called by webhook and federated JIT flows | Not for direct user invocation |
+| Create | `IdentityAccountCommandController.create` | None — system-level, called by webhook and federated account creation flows | Not for direct user invocation |
 | Update | `IdentityAccountCommandController.update` | `can_edit` on the IdentityAccount | Updates mutable profile fields |
 | Delete | `IdentityAccountCommandController.delete` | `can_delete` on the IdentityAccount | |
 | Simulate signup webhook | `IdentityAccountCommandController.simulateSignupWebhook` | None | Looks up an email in Auth0 and triggers account creation for users who signed up in Auth0 but not yet in Stigmer |

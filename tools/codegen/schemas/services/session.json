@@ -322,6 +322,11 @@
           "description": "Credential for programmatic API access."
         },
         {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
           "name": "identity_provider",
           "number": 21,
           "description": "External identity provider for federated authentication."

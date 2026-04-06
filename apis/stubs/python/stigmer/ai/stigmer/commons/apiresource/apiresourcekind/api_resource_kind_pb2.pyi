@@ -32,6 +32,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     iam_policy: _ClassVar[ApiResourceKind]
     identity_account: _ClassVar[ApiResourceKind]
     api_key: _ClassVar[ApiResourceKind]
+    invitation: _ClassVar[ApiResourceKind]
     identity_provider: _ClassVar[ApiResourceKind]
     organization: _ClassVar[ApiResourceKind]
     platform: _ClassVar[ApiResourceKind]
@@ -59,6 +60,7 @@ api_resource_version: ApiResourceKind
 iam_policy: ApiResourceKind
 identity_account: ApiResourceKind
 api_key: ApiResourceKind
+invitation: ApiResourceKind
 identity_provider: ApiResourceKind
 organization: ApiResourceKind
 platform: ApiResourceKind

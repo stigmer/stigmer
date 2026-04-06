@@ -3,9 +3,9 @@ syntax = "proto3";
 package ai.stigmer.iam.apikey.v1;
 
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/apikey/v1/api.proto";
 import "ai/stigmer/iam/apikey/v1/io.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 
 // ApiKeyCommandController handles write operations for API keys.
 service ApiKeyCommandController {
@@ -19,7 +19,7 @@ service ApiKeyCommandController {
   // @internal
   // Any authenticated user can create API keys, so authorization is skipped.
   rpc create(ApiKey) returns (ApiKey) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Update an existing API key.
@@ -27,10 +27,10 @@ service ApiKeyCommandController {
   // @internal
   // Authorization: Requires can_edit permission on the API key resource.
   rpc update(ApiKey) returns (ApiKey) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = api_key;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update api key";
+    option (ai.stigmer.commons.rpc.config).resource_kind = api_key;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update api key";
   }
 
   // Delete an API key.
@@ -38,9 +38,9 @@ service ApiKeyCommandController {
   // @internal
   // Authorization: Requires can_delete permission on the API key resource.
   rpc delete(ApiKeyId) returns (ApiKey) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = api_key;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete api key";
+    option (ai.stigmer.commons.rpc.config).resource_kind = api_key;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete api key";
   }
 }

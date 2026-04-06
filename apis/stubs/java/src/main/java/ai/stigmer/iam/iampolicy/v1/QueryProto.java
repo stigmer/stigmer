@@ -38,51 +38,64 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\n\'ai/stigmer/iam/iampolicy/v1/query.prot" +
       "o\022\033ai.stigmer.iam.iampolicy.v1\0328ai/stigm" +
       "er/commons/apiresource/rpc_service_optio" +
-      "ns.proto\032%ai/stigmer/iam/iampolicy/v1/ap" +
-      "i.proto\032$ai/stigmer/iam/iampolicy/v1/io." +
-      "proto\032Aai/stigmer/iam/iampolicy/v1/rpcau" +
-      "thorization/method_options.proto2\310\005\n\030Iam" +
-      "PolicyQueryController\022\205\001\n\003get\022(.ai.stigm" +
-      "er.iam.iampolicy.v1.IamPolicyId\032&.ai.sti" +
-      "gmer.iam.iampolicy.v1.IamPolicy\",\302\270\030(\010\t*" +
-      "$unauthorized to view access policies\022\207\001" +
-      "\n\022checkAuthorization\0224.ai.stigmer.iam.ia" +
-      "mpolicy.v1.CheckAuthorizationInput\0325.ai." +
-      "stigmer.iam.iampolicy.v1.CheckAuthorizat" +
-      "ionResult\"\004\320\270\030\001\022\306\001\n\031listAuthorizedResour" +
-      "ceIds\022;.ai.stigmer.iam.iampolicy.v1.List" +
-      "AuthorizedResourceIdsInput\0326.ai.stigmer." +
-      "iam.iampolicy.v1.AuthorizedResourceIdsLi" +
-      "st\"4\302\270\0300\010\t*,unauthorized to view authori" +
-      "zed resource ids\022\312\001\n\032listAuthorizedPrinc" +
-      "ipalIds\022<.ai.stigmer.iam.iampolicy.v1.Li" +
-      "stAuthorizedPrincipalIdsInput\0327.ai.stigm" +
-      "er.iam.iampolicy.v1.AuthorizedPrincipalI" +
-      "dsList\"5\302\270\0301\010\t*-unauthorized to view aut" +
-      "horized principal ids\032\004\240\377+\nB\235\001B\nQueryPro" +
-      "toP\001\242\002\004ASII\252\002\033Ai.Stigmer.Iam.Iampolicy.V" +
-      "1\312\002\033Ai\\Stigmer\\Iam\\Iampolicy\\V1\342\002\'Ai\\Sti" +
-      "gmer\\Iam\\Iampolicy\\V1\\GPBMetadata\352\002\037Ai::" +
-      "Stigmer::Iam::Iampolicy::V1b\006proto3"
+      "ns.proto\032+ai/stigmer/commons/rpc/method_" +
+      "options.proto\032%ai/stigmer/iam/iampolicy/" +
+      "v1/api.proto\032$ai/stigmer/iam/iampolicy/v" +
+      "1/io.proto2\352\t\n\030IamPolicyQueryController\022" +
+      "\205\001\n\003get\022(.ai.stigmer.iam.iampolicy.v1.Ia" +
+      "mPolicyId\032&.ai.stigmer.iam.iampolicy.v1." +
+      "IamPolicy\",\302\270\030(\010\005*$unauthorized to view " +
+      "access policies\022\207\001\n\022checkAuthorization\0224" +
+      ".ai.stigmer.iam.iampolicy.v1.CheckAuthor" +
+      "izationInput\0325.ai.stigmer.iam.iampolicy." +
+      "v1.CheckAuthorizationResult\"\004\320\270\030\001\022\306\001\n\031li" +
+      "stAuthorizedResourceIds\022;.ai.stigmer.iam" +
+      ".iampolicy.v1.ListAuthorizedResourceIdsI" +
+      "nput\0326.ai.stigmer.iam.iampolicy.v1.Autho" +
+      "rizedResourceIdsList\"4\302\270\0300\010\005*,unauthoriz" +
+      "ed to view authorized resource ids\022\312\001\n\032l" +
+      "istAuthorizedPrincipalIds\022<.ai.stigmer.i" +
+      "am.iampolicy.v1.ListAuthorizedPrincipalI" +
+      "dsInput\0327.ai.stigmer.iam.iampolicy.v1.Au" +
+      "thorizedPrincipalIdsList\"5\302\270\0301\010\005*-unauth" +
+      "orized to view authorized principal ids\022" +
+      "\277\001\n\035listResourceAccessByPrincipal\0224.ai.s" +
+      "tigmer.iam.iampolicy.v1.ListResourceAcce" +
+      "ssInput\032:.ai.stigmer.iam.iampolicy.v1.Re" +
+      "sourceAccessByPrincipalList\",\302\270\030(\010\005*$una" +
+      "uthorized to view resource access\022\263\001\n\031ge" +
+      "tPrincipalResourceRoles\0223.ai.stigmer.iam" +
+      ".iampolicy.v1.PrincipalResourceInput\0323.a" +
+      "i.stigmer.iam.iampolicy.v1.PrincipalReso" +
+      "urceRoles\",\302\270\030(\010\005*$unauthorized to view " +
+      "principal roles\022\247\001\n\022getPrincipalsCount\0224" +
+      ".ai.stigmer.iam.iampolicy.v1.GetPrincipa" +
+      "lsCountInput\032,.ai.stigmer.iam.iampolicy." +
+      "v1.PrincipalsCount\"-\302\270\030)\010\005*%unauthorized" +
+      " to view principals count\032\004\240\377+\nB\235\001B\nQuer" +
+      "yProtoP\001\242\002\004ASII\252\002\033Ai.Stigmer.Iam.Iampoli" +
+      "cy.V1\312\002\033Ai\\Stigmer\\Iam\\Iampolicy\\V1\342\002\'Ai" +
+      "\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\352\002\037" +
+      "Ai::Stigmer::Iam::Iampolicy::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.ApiProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.IoProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.IoProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

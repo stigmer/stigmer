@@ -1,7 +1,7 @@
 {
   "name": "IdentityAccountSpec",
   "kind": "IDENTITY_ACCOUNT_SPEC",
-  "description": "IdentityAccountSpec defines the configuration for an identity account.\n\n An identity account represents a user or machine principal in Stigmer.\n Accounts can be direct (signed up via Stigmer), federated (provisioned\n through an external identity provider), or machine (service-to-service\n credentials).\n\n @internal\n All FGA tuples use identity_account as the principal type.\n Provisioning details:\n - direct: Auth0 subject ID (e.g., \"auth0|abc123\")\n - federated: compound key \"federated:{provider_id}:{external_sub}\"\n - machine: Auth0 client ID with \"@clients\" suffix",
+  "description": "IdentityAccountSpec defines the configuration for an identity account.\n\n An identity account represents a user or machine principal in Stigmer.\n Accounts can be direct (signed up via Stigmer), federated (provisioned\n through an external identity provider), or machine (service-to-service\n credentials).\n\n @internal\n All FGA tuples use identity_account as the principal type.\n Provisioning details:\n - direct: Auth0 subject ID (e.g., \"auth0|abc123\")\n - federated: raw OIDC sub claim (e.g., \"google-oauth2|109876543210\"),\n   scoped by identity_provider_ref\n - machine: Auth0 client ID with \"@clients\" suffix",
   "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec",
   "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "IDP ID of the identity account.\n\n For direct accounts: the Auth0 subject ID (e.g., \"auth0|abc123\").\n For federated accounts: a compound key ensuring global uniqueness across\n identity providers (e.g., \"federated:idp_01JXY:auth0|user-456\").\n For machine accounts: the Auth0 client ID with \"@clients\" suffix.",
+      "description": "IDP ID of the identity account.\n\n For direct accounts: the Auth0 subject ID (e.g., \"auth0|abc123\").\n For federated accounts: the raw OIDC sub claim from the external identity\n provider (e.g., \"google-oauth2|109876543210\"). Uniqueness is scoped by\n identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.\n For machine accounts: the Auth0 client ID with \"@clients\" suffix.",
       "required": true,
       "validation": {
         "required": true
@@ -25,7 +25,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Email of the identity account.\n For direct accounts: based on the email used to sign up.\n For federated accounts: fetched from the IdentityProvider's UserInfo endpoint\n during JIT provisioning.\n (ignored for create) this value is assigned by backend.",
+      "description": "Email of the identity account.\n For direct accounts: based on the email used to sign up.\n For federated accounts: provided by the platform when creating the account.\n (ignored for create) this value is assigned by backend.",
       "required": false
     },
     {
@@ -92,7 +92,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the IdentityProvider that provisioned this account.\n Set only when provisioning_mode is FEDERATED. Identifies which external\n platform's trust relationship created this account during federated auth.\n (ignored for create) this value is assigned by backend.",
+      "description": "Reference to the IdentityProvider that owns this federated account.\n Set only when provisioning_mode is FEDERATED. Identifies which external\n platform's identity provider scopes this account. Together with idp_id,\n forms the unique identity for federated accounts.\n (ignored for create) this value is assigned by backend.",
       "required": false
     }
   ]

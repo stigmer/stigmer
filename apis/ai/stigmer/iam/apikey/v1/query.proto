@@ -3,9 +3,9 @@ syntax = "proto3";
 package ai.stigmer.iam.apikey.v1;
 
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/apikey/v1/api.proto";
 import "ai/stigmer/iam/apikey/v1/io.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 import "google/protobuf/empty.proto";
 
 // ApiKeyQueryController handles read operations for API keys.
@@ -14,10 +14,10 @@ service ApiKeyQueryController {
 
   // Get an API key by its unique identifier.
   rpc get(ApiKeyId) returns (ApiKey) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = api_key;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view api key";
+    option (ai.stigmer.commons.rpc.config).resource_kind = api_key;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view api key";
   }
 
   // Get an API key by its hashed key value.
@@ -26,7 +26,7 @@ service ApiKeyQueryController {
   // Authorization is handled in the handler after loading the resource
   // (input doesn't contain API key ID, so proto-level auth cannot work).
   rpc getByKeyHash(ApiKeyHash) returns (ApiKey) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // List all API keys belonging to the authenticated user.
@@ -36,6 +36,6 @@ service ApiKeyQueryController {
   // @internal
   // Scoped to the caller's own keys, so authorization is skipped.
   rpc findAll(google.protobuf.Empty) returns (ApiKeys) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

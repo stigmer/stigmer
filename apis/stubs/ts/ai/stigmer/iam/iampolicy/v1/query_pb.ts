@@ -5,17 +5,17 @@
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { IamPolicySchema } from "./api_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_api } from "./api_pb";
-import type { AuthorizedPrincipalIdsListSchema, AuthorizedResourceIdsListSchema, CheckAuthorizationInputSchema, CheckAuthorizationResultSchema, IamPolicyIdSchema, ListAuthorizedPrincipalIdsInputSchema, ListAuthorizedResourceIdsInputSchema } from "./io_pb";
+import type { AuthorizedPrincipalIdsListSchema, AuthorizedResourceIdsListSchema, CheckAuthorizationInputSchema, CheckAuthorizationResultSchema, GetPrincipalsCountInputSchema, IamPolicyIdSchema, ListAuthorizedPrincipalIdsInputSchema, ListAuthorizedResourceIdsInputSchema, ListResourceAccessInputSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, PrincipalsCountSchema, ResourceAccessByPrincipalListSchema } from "./io_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_io } from "./io_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "./rpcauthorization/method_options_pb";
 
 /**
  * Describes the file ai/stigmer/iam/iampolicy/v1/query.proto.
  */
 export const file_ai_stigmer_iam_iampolicy_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MTLIBQoYSWFtUG9saWN5UXVlcnlDb250cm9sbGVyEoUBCgNnZXQSKC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5SWQaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IizCuBgoCAkqJHVuYXV0aG9yaXplZCB0byB2aWV3IGFjY2VzcyBwb2xpY2llcxKHAQoSY2hlY2tBdXRob3JpemF0aW9uEjQuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkNoZWNrQXV0aG9yaXphdGlvbklucHV0GjUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkNoZWNrQXV0aG9yaXphdGlvblJlc3VsdCIE0LgYARLGAQoZbGlzdEF1dGhvcml6ZWRSZXNvdXJjZUlkcxI7LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5MaXN0QXV0aG9yaXplZFJlc291cmNlSWRzSW5wdXQaNi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQXV0aG9yaXplZFJlc291cmNlSWRzTGlzdCI0wrgYMAgJKix1bmF1dGhvcml6ZWQgdG8gdmlldyBhdXRob3JpemVkIHJlc291cmNlIGlkcxLKAQoabGlzdEF1dGhvcml6ZWRQcmluY2lwYWxJZHMSPC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuTGlzdEF1dGhvcml6ZWRQcmluY2lwYWxJZHNJbnB1dBo3LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BdXRob3JpemVkUHJpbmNpcGFsSWRzTGlzdCI1wrgYMQgJKi11bmF1dGhvcml6ZWQgdG8gdmlldyBhdXRob3JpemVkIHByaW5jaXBhbCBpZHMaBKD/KwpiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_io, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MTLqCQoYSWFtUG9saWN5UXVlcnlDb250cm9sbGVyEoUBCgNnZXQSKC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5SWQaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IizCuBgoCAUqJHVuYXV0aG9yaXplZCB0byB2aWV3IGFjY2VzcyBwb2xpY2llcxKHAQoSY2hlY2tBdXRob3JpemF0aW9uEjQuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkNoZWNrQXV0aG9yaXphdGlvbklucHV0GjUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkNoZWNrQXV0aG9yaXphdGlvblJlc3VsdCIE0LgYARLGAQoZbGlzdEF1dGhvcml6ZWRSZXNvdXJjZUlkcxI7LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5MaXN0QXV0aG9yaXplZFJlc291cmNlSWRzSW5wdXQaNi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQXV0aG9yaXplZFJlc291cmNlSWRzTGlzdCI0wrgYMAgFKix1bmF1dGhvcml6ZWQgdG8gdmlldyBhdXRob3JpemVkIHJlc291cmNlIGlkcxLKAQoabGlzdEF1dGhvcml6ZWRQcmluY2lwYWxJZHMSPC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuTGlzdEF1dGhvcml6ZWRQcmluY2lwYWxJZHNJbnB1dBo3LmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BdXRob3JpemVkUHJpbmNpcGFsSWRzTGlzdCI1wrgYMQgFKi11bmF1dGhvcml6ZWQgdG8gdmlldyBhdXRob3JpemVkIHByaW5jaXBhbCBpZHMSvwEKHWxpc3RSZXNvdXJjZUFjY2Vzc0J5UHJpbmNpcGFsEjQuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkxpc3RSZXNvdXJjZUFjY2Vzc0lucHV0GjouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJlc291cmNlQWNjZXNzQnlQcmluY2lwYWxMaXN0IizCuBgoCAUqJHVuYXV0aG9yaXplZCB0byB2aWV3IHJlc291cmNlIGFjY2VzcxKzAQoZZ2V0UHJpbmNpcGFsUmVzb3VyY2VSb2xlcxIzLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5QcmluY2lwYWxSZXNvdXJjZUlucHV0GjMuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlByaW5jaXBhbFJlc291cmNlUm9sZXMiLMK4GCgIBSokdW5hdXRob3JpemVkIHRvIHZpZXcgcHJpbmNpcGFsIHJvbGVzEqcBChJnZXRQcmluY2lwYWxzQ291bnQSNC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuR2V0UHJpbmNpcGFsc0NvdW50SW5wdXQaLC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuUHJpbmNpcGFsc0NvdW50Ii3CuBgpCAUqJXVuYXV0aG9yaXplZCB0byB2aWV3IHByaW5jaXBhbHMgY291bnQaBKD/KwpiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_io]);
 
 /**
  * IamPolicyQueryController handles read operations for IAM policies.
@@ -104,6 +104,69 @@ export const IamPolicyQueryController: GenService<{
     methodKind: "unary";
     input: typeof ListAuthorizedPrincipalIdsInputSchema;
     output: typeof AuthorizedPrincipalIdsListSchema;
+  },
+  /**
+   * List all principals and their roles on a resource, grouped by principal.
+   *
+   * This RPC answers: "Who has access to this resource, and what roles do they have?"
+   * Returns each principal with full display information and all their role grants,
+   * optionally including roles inherited from parent resources.
+   *
+   * Use Cases:
+   * - Organization members page (show all users and their roles)
+   * - Resource "Share" dialog (show who already has access)
+   * - Access audit views
+   *
+   * Input: ListResourceAccessInput with resource ref and include_inherited flag
+   * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
+   *
+   * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal
+   */
+  listResourceAccessByPrincipal: {
+    methodKind: "unary";
+    input: typeof ListResourceAccessInputSchema;
+    output: typeof ResourceAccessByPrincipalListSchema;
+  },
+  /**
+   * Get all roles a specific principal has on a specific resource.
+   *
+   * This RPC answers: "What roles does [principal] have on [resource]?"
+   * Returns role metadata (code, display name, description) for each assigned role.
+   *
+   * Use Cases:
+   * - Displaying a user's current role in a resource detail view
+   * - Pre-populating role selectors when editing access
+   * - Permission summary for a specific user-resource pair
+   *
+   * Input: PrincipalResourceInput with principal and resource refs
+   * Output: PrincipalResourceRoles with list of RoleInfo entries
+   *
+   * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalResourceRoles
+   */
+  getPrincipalResourceRoles: {
+    methodKind: "unary";
+    input: typeof PrincipalResourceInputSchema;
+    output: typeof PrincipalResourceRolesSchema;
+  },
+  /**
+   * Count distinct principals that have access to a resource.
+   *
+   * This RPC answers: "How many [principal-kind] have access to this organization?"
+   * Used for member count badges and summary statistics.
+   *
+   * Use Cases:
+   * - Organization members count badge in navigation
+   * - Settings page member summary
+   *
+   * Input: GetPrincipalsCountInput with org_id and principal_kind
+   * Output: PrincipalsCount with integer count
+   *
+   * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.getPrincipalsCount
+   */
+  getPrincipalsCount: {
+    methodKind: "unary";
+    input: typeof GetPrincipalsCountInputSchema;
+    output: typeof PrincipalsCountSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_iam_iampolicy_v1_query, 0);

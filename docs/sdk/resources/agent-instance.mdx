@@ -40,12 +40,12 @@ agentInstance, err := client.AgentInstance.Get(ctx, "ain_01j5q3k7m8r2s4tnz2hfp0q
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instance.get("ain_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent_instance = client.agent_instances.get("ain_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstance agentInstance = client.agentInstance().get("ain_01j5q3k7m8r2s4tnz2hfp0q0c3");
+AgentInstance agentInstance = client.agentInstances().get("ain_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -80,12 +80,12 @@ agentInstance, err := client.AgentInstance.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instance.get(id)
+agent_instance = client.agent_instances.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstance agentInstance = client.agentInstance().get(id);
+AgentInstance agentInstance = client.agentInstances().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -121,7 +121,7 @@ result, err := client.AgentInstance.GetByAgent(ctx, &stigmer.GetAgentInstancesBy
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agent_instance.get_by_agent(GetAgentInstancesByAgentRequest(
+result = client.agent_instances.get_by_agent(GetAgentInstancesByAgentRequest(
     agent_id="...",
     page_info=None,
 ))
@@ -129,7 +129,7 @@ result = client.agent_instance.get_by_agent(GetAgentInstancesByAgentRequest(
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstanceList result = client.agentInstance().getByAgent(GetAgentInstancesByAgentRequest.builder()
+AgentInstanceList result = client.agentInstances().getByAgent(GetAgentInstancesByAgentRequest.builder()
     .agentId("...")
     .pageInfo(null)
     .build());
@@ -168,7 +168,7 @@ agentInstance, err := client.AgentInstance.GetByReference(ctx, &stigmer.ApiResou
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instance.get_by_reference(ApiResourceReference(
+agent_instance = client.agent_instances.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -178,7 +178,7 @@ agentInstance = client.agent_instance.get_by_reference(ApiResourceReference(
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstance agentInstance = client.agentInstance().getByReference(ApiResourceReference.builder()
+AgentInstance agentInstance = client.agentInstances().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -217,7 +217,7 @@ result, err := client.AgentInstance.List(ctx, &stigmer.ListAgentInstancesRequest
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agent_instance.list(ListAgentInstancesRequest(
+result = client.agent_instances.list(ListAgentInstancesRequest(
     org="...",
     labels={},
     page_info=None,
@@ -226,7 +226,7 @@ result = client.agent_instance.list(ListAgentInstancesRequest(
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstanceList result = client.agentInstance().list(ListAgentInstancesRequest.builder()
+AgentInstanceList result = client.agentInstances().list(ListAgentInstancesRequest.builder()
     .org("...")
     .labels(Map.of())
     .pageInfo(null)
@@ -272,7 +272,7 @@ agentInstance, err := client.AgentInstance.Apply(ctx, &stigmer.AgentInstanceInpu
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instance.apply(AgentInstanceInput(
+agent_instance = client.agent_instances.apply(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
     slug="...",
@@ -285,7 +285,7 @@ agentInstance = client.agent_instance.apply(AgentInstanceInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstance agentInstance = client.agentInstance().apply(AgentInstanceInput.builder()
+AgentInstance agentInstance = client.agentInstances().apply(AgentInstanceInput.builder()
     .name("my-agent-instance")
     .org("acme")
     .slug("...")
@@ -337,7 +337,7 @@ agentInstance, err := client.AgentInstance.Create(ctx, &stigmer.AgentInstanceInp
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instance.create(AgentInstanceInput(
+agent_instance = client.agent_instances.create(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
     slug="...",
@@ -350,7 +350,7 @@ agentInstance = client.agent_instance.create(AgentInstanceInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstance agentInstance = client.agentInstance().create(AgentInstanceInput.builder()
+AgentInstance agentInstance = client.agentInstances().create(AgentInstanceInput.builder()
     .name("my-agent-instance")
     .org("acme")
     .slug("...")
@@ -400,7 +400,7 @@ agentInstance, err := client.AgentInstance.Update(ctx, &stigmer.AgentInstanceInp
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instance.update(AgentInstanceInput(
+agent_instance = client.agent_instances.update(AgentInstanceInput(
     name="my-agent-instance",
     org="acme",
     slug="...",
@@ -413,7 +413,7 @@ agentInstance = client.agent_instance.update(AgentInstanceInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstance agentInstance = client.agentInstance().update(AgentInstanceInput.builder()
+AgentInstance agentInstance = client.agentInstances().update(AgentInstanceInput.builder()
     .name("my-agent-instance")
     .org("acme")
     .slug("...")
@@ -447,12 +447,12 @@ agentInstance, err := client.AgentInstance.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agentInstance = client.agent_instance.delete(id)
+agent_instance = client.agent_instances.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentInstance agentInstance = client.agentInstance().delete(id);
+AgentInstance agentInstance = client.agentInstances().delete(id);
 ```
 </Tab>
 </SDKTabs>

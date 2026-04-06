@@ -6,7 +6,7 @@ import "ai/stigmer/agentic/mcpserver/v1/api.proto";
 import "ai/stigmer/agentic/mcpserver/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 
 // McpServerCommandController provides write operations for MCP server resources.
 //
@@ -46,7 +46,7 @@ service McpServerCommandController {
   // - Organization: Requires org admin role or can_create_mcp_server permission
   // - Identity Account: Automatically allowed for the authenticated user
   rpc create(McpServer) returns (McpServer) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
   // Update an existing MCP server resource.
@@ -58,10 +58,10 @@ service McpServerCommandController {
   // - Organization: Org admins or resource owner
   // - Identity Account: The owner
   rpc update(McpServer) returns (McpServer) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update mcp server";
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update mcp server";
   }
 
   // Delete an MCP server resource.
@@ -76,10 +76,10 @@ service McpServerCommandController {
   // - Organization: Org admins or resource owner
   // - Identity Account: The owner
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (McpServer) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete mcp server";
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete mcp server";
   }
 
   // Update the visibility of an existing MCP server.
@@ -90,10 +90,10 @@ service McpServerCommandController {
   // @internal
   // Authorization: Requires can_edit permission on the mcp_server resource.
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (McpServer) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update mcp server visibility";
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update mcp server visibility";
   }
 
   // Update the discovered capabilities (tools and resource templates) for an MCP server.
@@ -109,10 +109,10 @@ service McpServerCommandController {
   //
   // Authorization: Requires can_edit permission on the mcp_server resource.
   rpc updateDiscoveredCapabilities(UpdateDiscoveredCapabilitiesInput) returns (McpServer) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "mcp_server_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update mcp server capabilities";
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "mcp_server_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update mcp server capabilities";
   }
 
   // Discover the capabilities of an MCP server by connecting to it.
@@ -137,9 +137,9 @@ service McpServerCommandController {
   //
   // Authorization: Requires can_edit permission on the mcp_server resource.
   rpc discoverCapabilities(DiscoverCapabilitiesInput) returns (McpServer) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "mcp_server_id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to discover mcp server capabilities";
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "mcp_server_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to discover mcp server capabilities";
   }
 }

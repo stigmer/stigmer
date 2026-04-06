@@ -11,18 +11,18 @@ package ai.stigmer.iam.identityprovider.v1;
  *
  * An IdentityProvider represents an external platform's trust relationship with Stigmer.
  * It is owned by an organization (e.g., "planton") and configures how Stigmer validates
- * tokens from that platform during token exchange. The platform forwards its OIDC
- * provider's access tokens to Stigmer's token exchange endpoint, which:
- * - Validates the token signature against the configured JWKS
- * - Fetches user profile data from the OIDC UserInfo endpoint
- * - JIT-provisions a federated identity account with email, name, and picture
- * - Issues a Stigmer-native token for subsequent API access
+ * tokens from that platform. When a user authenticates with a JWT issued by this provider,
+ * Stigmer validates the token signature against the configured JWKS and resolves the
+ * user's federated identity account by the JWT's sub claim and this provider's reference.
+ *
+ * The platform is responsible for explicitly creating federated identity accounts
+ * before users can authenticate. Stigmer does not auto-provision accounts.
  *
  * The spec contains only public validation configuration — no secrets are stored.
  * For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
  * point to the OIDC provider's standard endpoints.
  *
- * Example YAML:
+ * Example YAML (platform delegation):
  * apiVersion: iam.stigmer.ai/v1
  * kind: IdentityProvider
  * metadata:
@@ -35,6 +35,21 @@ package ai.stigmer.iam.identityprovider.v1;
  * allowed_issuers: ["https://planton-prod.us.auth0.com/"]
  * expected_audience: "https://api.planton.ai/"
  * userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
+ *
+ * Example YAML (self-managed SSO):
+ * apiVersion: iam.stigmer.ai/v1
+ * kind: IdentityProvider
+ * metadata:
+ * name: Acme Corp Okta
+ * slug: acme-okta
+ * org: acme
+ * spec:
+ * display_name: "Acme Corp Okta"
+ * jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
+ * allowed_issuers: ["https://acme.okta.com/oauth2/default"]
+ * expected_audience: "stigmer-api"
+ * is_sso_provider: true
+ * oidc_client_id: "0oa1bcdef2ghijk3lmno"
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec}
@@ -65,6 +80,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     expectedAudience_ = "";
     userinfoEndpoint_ = "";
+    oidcClientId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -398,6 +414,100 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int IS_SSO_PROVIDER_FIELD_NUMBER = 7;
+  private boolean isSsoProvider_ = false;
+  /**
+   * <pre>
+   * Whether this identity provider serves as the SSO login provider for its
+   * owning organization.
+   *
+   * When true, the Stigmer web app offers a "Sign in with [display_name]"
+   * option on the organization's login page and initiates the OIDC
+   * Authorization Code flow with PKCE using the configured oidc_client_id.
+   *
+   * Constraints:
+   * - At most one IdentityProvider per organization can be the SSO provider.
+   * - An IdP used for platform-managed organization delegation cannot also
+   * serve as an SSO provider (different trust models).
+   * - Federated identity accounts must be pre-created via createFederatedAccount
+   * before users can authenticate through SSO.
+   * </pre>
+   *
+   * <code>bool is_sso_provider = 7 [json_name = "isSsoProvider"];</code>
+   * @return The isSsoProvider.
+   */
+  @java.lang.Override
+  public boolean getIsSsoProvider() {
+    return isSsoProvider_;
+  }
+
+  public static final int OIDC_CLIENT_ID_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object oidcClientId_ = "";
+  /**
+   * <pre>
+   * OIDC client identifier for browser-based SSO login.
+   *
+   * This is the client_id registered with the external IdP (e.g., Okta,
+   * Azure AD) for Stigmer's web application. The web app uses this to
+   * build the OIDC Authorization Code request with PKCE.
+   *
+   * No client_secret is stored — the web app is a public client using PKCE
+   * (Proof Key for Code Exchange), which is the recommended approach for
+   * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+   *
+   * Required when is_sso_provider is true; must be empty otherwise.
+   * </pre>
+   *
+   * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+   * @return The oidcClientId.
+   */
+  @java.lang.Override
+  public java.lang.String getOidcClientId() {
+    java.lang.Object ref = oidcClientId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      oidcClientId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * OIDC client identifier for browser-based SSO login.
+   *
+   * This is the client_id registered with the external IdP (e.g., Okta,
+   * Azure AD) for Stigmer's web application. The web app uses this to
+   * build the OIDC Authorization Code request with PKCE.
+   *
+   * No client_secret is stored — the web app is a public client using PKCE
+   * (Proof Key for Code Exchange), which is the recommended approach for
+   * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+   *
+   * Required when is_sso_provider is true; must be empty otherwise.
+   * </pre>
+   *
+   * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for oidcClientId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOidcClientIdBytes() {
+    java.lang.Object ref = oidcClientId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      oidcClientId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -429,6 +539,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(userinfoEndpoint_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, userinfoEndpoint_);
+    }
+    if (isSsoProvider_ != false) {
+      output.writeBool(7, isSsoProvider_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(oidcClientId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, oidcClientId_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -463,6 +579,13 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(userinfoEndpoint_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, userinfoEndpoint_);
     }
+    if (isSsoProvider_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(7, isSsoProvider_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(oidcClientId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, oidcClientId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -490,6 +613,10 @@ private static final long serialVersionUID = 0L;
         != other.getRateLimitBudget()) return false;
     if (!getUserinfoEndpoint()
         .equals(other.getUserinfoEndpoint())) return false;
+    if (getIsSsoProvider()
+        != other.getIsSsoProvider()) return false;
+    if (!getOidcClientId()
+        .equals(other.getOidcClientId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -515,6 +642,11 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getRateLimitBudget();
     hash = (37 * hash) + USERINFO_ENDPOINT_FIELD_NUMBER;
     hash = (53 * hash) + getUserinfoEndpoint().hashCode();
+    hash = (37 * hash) + IS_SSO_PROVIDER_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getIsSsoProvider());
+    hash = (37 * hash) + OIDC_CLIENT_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getOidcClientId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -618,18 +750,18 @@ private static final long serialVersionUID = 0L;
    *
    * An IdentityProvider represents an external platform's trust relationship with Stigmer.
    * It is owned by an organization (e.g., "planton") and configures how Stigmer validates
-   * tokens from that platform during token exchange. The platform forwards its OIDC
-   * provider's access tokens to Stigmer's token exchange endpoint, which:
-   * - Validates the token signature against the configured JWKS
-   * - Fetches user profile data from the OIDC UserInfo endpoint
-   * - JIT-provisions a federated identity account with email, name, and picture
-   * - Issues a Stigmer-native token for subsequent API access
+   * tokens from that platform. When a user authenticates with a JWT issued by this provider,
+   * Stigmer validates the token signature against the configured JWKS and resolves the
+   * user's federated identity account by the JWT's sub claim and this provider's reference.
+   *
+   * The platform is responsible for explicitly creating federated identity accounts
+   * before users can authenticate. Stigmer does not auto-provision accounts.
    *
    * The spec contains only public validation configuration — no secrets are stored.
    * For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
    * point to the OIDC provider's standard endpoints.
    *
-   * Example YAML:
+   * Example YAML (platform delegation):
    * apiVersion: iam.stigmer.ai/v1
    * kind: IdentityProvider
    * metadata:
@@ -642,6 +774,21 @@ private static final long serialVersionUID = 0L;
    * allowed_issuers: ["https://planton-prod.us.auth0.com/"]
    * expected_audience: "https://api.planton.ai/"
    * userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
+   *
+   * Example YAML (self-managed SSO):
+   * apiVersion: iam.stigmer.ai/v1
+   * kind: IdentityProvider
+   * metadata:
+   * name: Acme Corp Okta
+   * slug: acme-okta
+   * org: acme
+   * spec:
+   * display_name: "Acme Corp Okta"
+   * jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
+   * allowed_issuers: ["https://acme.okta.com/oauth2/default"]
+   * expected_audience: "stigmer-api"
+   * is_sso_provider: true
+   * oidc_client_id: "0oa1bcdef2ghijk3lmno"
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec}
@@ -684,6 +831,8 @@ private static final long serialVersionUID = 0L;
       expectedAudience_ = "";
       rateLimitBudget_ = 0;
       userinfoEndpoint_ = "";
+      isSsoProvider_ = false;
+      oidcClientId_ = "";
       return this;
     }
 
@@ -736,6 +885,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.userinfoEndpoint_ = userinfoEndpoint_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.isSsoProvider_ = isSsoProvider_;
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.oidcClientId_ = oidcClientId_;
+      }
     }
 
     @java.lang.Override
@@ -781,6 +936,14 @@ private static final long serialVersionUID = 0L;
       if (!other.getUserinfoEndpoint().isEmpty()) {
         userinfoEndpoint_ = other.userinfoEndpoint_;
         bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      if (other.getIsSsoProvider() != false) {
+        setIsSsoProvider(other.getIsSsoProvider());
+      }
+      if (!other.getOidcClientId().isEmpty()) {
+        oidcClientId_ = other.oidcClientId_;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -839,6 +1002,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 50
+            case 56: {
+              isSsoProvider_ = input.readBool();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
+            case 66: {
+              oidcClientId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1550,6 +1723,228 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       userinfoEndpoint_ = value;
       bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+
+    private boolean isSsoProvider_ ;
+    /**
+     * <pre>
+     * Whether this identity provider serves as the SSO login provider for its
+     * owning organization.
+     *
+     * When true, the Stigmer web app offers a "Sign in with [display_name]"
+     * option on the organization's login page and initiates the OIDC
+     * Authorization Code flow with PKCE using the configured oidc_client_id.
+     *
+     * Constraints:
+     * - At most one IdentityProvider per organization can be the SSO provider.
+     * - An IdP used for platform-managed organization delegation cannot also
+     * serve as an SSO provider (different trust models).
+     * - Federated identity accounts must be pre-created via createFederatedAccount
+     * before users can authenticate through SSO.
+     * </pre>
+     *
+     * <code>bool is_sso_provider = 7 [json_name = "isSsoProvider"];</code>
+     * @return The isSsoProvider.
+     */
+    @java.lang.Override
+    public boolean getIsSsoProvider() {
+      return isSsoProvider_;
+    }
+    /**
+     * <pre>
+     * Whether this identity provider serves as the SSO login provider for its
+     * owning organization.
+     *
+     * When true, the Stigmer web app offers a "Sign in with [display_name]"
+     * option on the organization's login page and initiates the OIDC
+     * Authorization Code flow with PKCE using the configured oidc_client_id.
+     *
+     * Constraints:
+     * - At most one IdentityProvider per organization can be the SSO provider.
+     * - An IdP used for platform-managed organization delegation cannot also
+     * serve as an SSO provider (different trust models).
+     * - Federated identity accounts must be pre-created via createFederatedAccount
+     * before users can authenticate through SSO.
+     * </pre>
+     *
+     * <code>bool is_sso_provider = 7 [json_name = "isSsoProvider"];</code>
+     * @param value The isSsoProvider to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIsSsoProvider(boolean value) {
+
+      isSsoProvider_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this identity provider serves as the SSO login provider for its
+     * owning organization.
+     *
+     * When true, the Stigmer web app offers a "Sign in with [display_name]"
+     * option on the organization's login page and initiates the OIDC
+     * Authorization Code flow with PKCE using the configured oidc_client_id.
+     *
+     * Constraints:
+     * - At most one IdentityProvider per organization can be the SSO provider.
+     * - An IdP used for platform-managed organization delegation cannot also
+     * serve as an SSO provider (different trust models).
+     * - Federated identity accounts must be pre-created via createFederatedAccount
+     * before users can authenticate through SSO.
+     * </pre>
+     *
+     * <code>bool is_sso_provider = 7 [json_name = "isSsoProvider"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearIsSsoProvider() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      isSsoProvider_ = false;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object oidcClientId_ = "";
+    /**
+     * <pre>
+     * OIDC client identifier for browser-based SSO login.
+     *
+     * This is the client_id registered with the external IdP (e.g., Okta,
+     * Azure AD) for Stigmer's web application. The web app uses this to
+     * build the OIDC Authorization Code request with PKCE.
+     *
+     * No client_secret is stored — the web app is a public client using PKCE
+     * (Proof Key for Code Exchange), which is the recommended approach for
+     * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+     *
+     * Required when is_sso_provider is true; must be empty otherwise.
+     * </pre>
+     *
+     * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+     * @return The oidcClientId.
+     */
+    public java.lang.String getOidcClientId() {
+      java.lang.Object ref = oidcClientId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        oidcClientId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * OIDC client identifier for browser-based SSO login.
+     *
+     * This is the client_id registered with the external IdP (e.g., Okta,
+     * Azure AD) for Stigmer's web application. The web app uses this to
+     * build the OIDC Authorization Code request with PKCE.
+     *
+     * No client_secret is stored — the web app is a public client using PKCE
+     * (Proof Key for Code Exchange), which is the recommended approach for
+     * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+     *
+     * Required when is_sso_provider is true; must be empty otherwise.
+     * </pre>
+     *
+     * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for oidcClientId.
+     */
+    public com.google.protobuf.ByteString
+        getOidcClientIdBytes() {
+      java.lang.Object ref = oidcClientId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        oidcClientId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * OIDC client identifier for browser-based SSO login.
+     *
+     * This is the client_id registered with the external IdP (e.g., Okta,
+     * Azure AD) for Stigmer's web application. The web app uses this to
+     * build the OIDC Authorization Code request with PKCE.
+     *
+     * No client_secret is stored — the web app is a public client using PKCE
+     * (Proof Key for Code Exchange), which is the recommended approach for
+     * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+     *
+     * Required when is_sso_provider is true; must be empty otherwise.
+     * </pre>
+     *
+     * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+     * @param value The oidcClientId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOidcClientId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      oidcClientId_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * OIDC client identifier for browser-based SSO login.
+     *
+     * This is the client_id registered with the external IdP (e.g., Okta,
+     * Azure AD) for Stigmer's web application. The web app uses this to
+     * build the OIDC Authorization Code request with PKCE.
+     *
+     * No client_secret is stored — the web app is a public client using PKCE
+     * (Proof Key for Code Exchange), which is the recommended approach for
+     * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+     *
+     * Required when is_sso_provider is true; must be empty otherwise.
+     * </pre>
+     *
+     * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOidcClientId() {
+      oidcClientId_ = getDefaultInstance().getOidcClientId();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * OIDC client identifier for browser-based SSO login.
+     *
+     * This is the client_id registered with the external IdP (e.g., Okta,
+     * Azure AD) for Stigmer's web application. The web app uses this to
+     * build the OIDC Authorization Code request with PKCE.
+     *
+     * No client_secret is stored — the web app is a public client using PKCE
+     * (Proof Key for Code Exchange), which is the recommended approach for
+     * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
+     *
+     * Required when is_sso_provider is true; must be empty otherwise.
+     * </pre>
+     *
+     * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for oidcClientId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOidcClientIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      oidcClientId_ = value;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }

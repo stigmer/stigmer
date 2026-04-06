@@ -11,6 +11,6 @@ package workflow
 type SignalArgs struct {
 	// Signal identifier.
 	Id string `json:"id"`
-	// Signal type:  - "signal": Temporal signal  - "query": Temporal query  - "update": Temporal update
+	// Signal type: "signal", "query", or "update".
 	Type string `json:"type"`
 }

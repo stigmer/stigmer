@@ -8,7 +8,8 @@ import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
  * Scope controls resource listing boundaries.
  *
  * - `"org"` — resources owned by the active organization (public and private).
- * - `"all"` — all resources the caller can access, across every organization.
+ * - `"all"` — resources owned by the active organization plus public resources
+ *   from other organizations.
  */
 export type ResourceListScope = "org" | "all";
 
@@ -23,7 +24,8 @@ export interface UseResourceListOptions {
    * Controls resource visibility scope.
    *
    * - `"org"` — all resources owned by the given organization, regardless of visibility.
-   * - `"all"` — all resources the caller is authorized to access, across all organizations.
+   * - `"all"` — all resources owned by the given organization plus public resources
+   *   from other organizations.
    *
    * @default "org"
    */
@@ -88,9 +90,10 @@ export function useResourceList(
     setError(null);
 
     const params: ListParams = {
-      org: scope === "all" ? "" : org,
+      org,
       query: query || undefined,
       excludePublic: false,
+      crossOrgPublic: scope === "all",
       page: { num: page, size: pageSize },
     };
 

@@ -39,44 +39,49 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "y.proto\022!ai.stigmer.iam.identityaccount." +
       "v1\0328ai/stigmer/commons/apiresource/rpc_s" +
       "ervice_options.proto\032+ai/stigmer/commons" +
-      "/apiresource/status.proto\032Aai/stigmer/ia" +
-      "m/iampolicy/v1/rpcauthorization/method_o" +
-      "ptions.proto\032+ai/stigmer/iam/identityacc" +
-      "ount/v1/api.proto\032*ai/stigmer/iam/identi" +
-      "tyaccount/v1/io.proto\032\033google/protobuf/e" +
-      "mpty.proto2\256\006\n\036IdentityAccountQueryContr" +
-      "oller\022\246\001\n\003get\0224.ai.stigmer.iam.identitya" +
-      "ccount.v1.IdentityAccountId\0322.ai.stigmer" +
-      ".iam.identityaccount.v1.IdentityAccount\"" +
-      "5\302\270\0301\010\003\020\013\"\005value*$unauthorized to get id" +
-      "entity account\022Z\n\006whoAmI\022\026.google.protob" +
-      "uf.Empty\0322.ai.stigmer.iam.identityaccoun" +
-      "t.v1.IdentityAccount\"\004\320\270\030\001\022\260\001\n\ngetByEmai" +
-      "l\0227.ai.stigmer.iam.identityaccount.v1.Id" +
-      "entityAccountEmail\0322.ai.stigmer.iam.iden" +
-      "tityaccount.v1.IdentityAccount\"5\302\270\0301\010\003\020\013" +
-      "\"\005value*$unauthorized to get identity ac" +
-      "count\022\241\001\n\ngetByIdpId\022(.ai.stigmer.iam.id" +
-      "entityaccount.v1.IdpId\0322.ai.stigmer.iam." +
-      "identityaccount.v1.IdentityAccount\"5\302\270\0301" +
-      "\010\003\020\013\"\005value*$unauthorized to get identit" +
-      "y account\022\251\001\n\014getActorInfo\0224.ai.stigmer." +
-      "iam.identityaccount.v1.IdentityAccountId" +
-      "\0325.ai.stigmer.commons.apiresource.ApiRes" +
-      "ourceAuditActor\",\302\270\030(\010\003\020\013*\"unauthorized " +
-      "to look up actor info\032\004\240\377+\013B\265\001B\nQueryPro" +
-      "toP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identityacc" +
-      "ount.V1\312\002!Ai\\Stigmer\\Iam\\Identityaccount" +
-      "\\V1\342\002-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\" +
-      "GPBMetadata\352\002%Ai::Stigmer::Iam::Identity" +
-      "account::V1b\006proto3"
+      "/apiresource/status.proto\032+ai/stigmer/co" +
+      "mmons/rpc/method_options.proto\032+ai/stigm" +
+      "er/iam/identityaccount/v1/api.proto\032*ai/" +
+      "stigmer/iam/identityaccount/v1/io.proto\032" +
+      "\033google/protobuf/empty.proto2\374\007\n\036Identit" +
+      "yAccountQueryController\022\246\001\n\003get\0224.ai.sti" +
+      "gmer.iam.identityaccount.v1.IdentityAcco" +
+      "untId\0322.ai.stigmer.iam.identityaccount.v" +
+      "1.IdentityAccount\"5\302\270\0301\010\001\020\013\"\005value*$unau" +
+      "thorized to get identity account\022Z\n\006whoA" +
+      "mI\022\026.google.protobuf.Empty\0322.ai.stigmer." +
+      "iam.identityaccount.v1.IdentityAccount\"\004" +
+      "\320\270\030\001\022\260\001\n\ngetByEmail\0227.ai.stigmer.iam.ide" +
+      "ntityaccount.v1.IdentityAccountEmail\0322.a" +
+      "i.stigmer.iam.identityaccount.v1.Identit" +
+      "yAccount\"5\302\270\0301\010\001\020\013\"\005value*$unauthorized " +
+      "to get identity account\022\241\001\n\ngetByIdpId\022(" +
+      ".ai.stigmer.iam.identityaccount.v1.IdpId" +
+      "\0322.ai.stigmer.iam.identityaccount.v1.Ide" +
+      "ntityAccount\"5\302\270\0301\010\001\020\013\"\005value*$unauthori" +
+      "zed to get identity account\022\313\001\n\020getByExt" +
+      "ernalSub\0224.ai.stigmer.iam.identityaccoun" +
+      "t.v1.ExternalSubLookup\0322.ai.stigmer.iam." +
+      "identityaccount.v1.IdentityAccount\"M\302\270\030I" +
+      "\010\025\020\036\"\003org*>unauthorized to look up ident" +
+      "ity accounts in this organization\022\251\001\n\014ge" +
+      "tActorInfo\0224.ai.stigmer.iam.identityacco" +
+      "unt.v1.IdentityAccountId\0325.ai.stigmer.co" +
+      "mmons.apiresource.ApiResourceAuditActor\"" +
+      ",\302\270\030(\010\001\020\013*\"unauthorized to look up actor" +
+      " info\032\004\240\377+\013B\265\001B\nQueryProtoP\001\242\002\004ASII\252\002!Ai" +
+      ".Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Sti" +
+      "gmer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer" +
+      "\\Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai" +
+      "::Stigmer::Iam::Identityaccount::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
-          ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
+          ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.identityaccount.v1.ApiProto.getDescriptor(),
           ai.stigmer.iam.identityaccount.v1.IoProto.getDescriptor(),
           com.google.protobuf.EmptyProto.getDescriptor(),
@@ -84,15 +89,15 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
-    ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
+    ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.IoProto.getDescriptor();
     com.google.protobuf.EmptyProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

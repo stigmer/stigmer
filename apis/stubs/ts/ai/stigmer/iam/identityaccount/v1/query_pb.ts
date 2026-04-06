@@ -7,10 +7,10 @@ import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import type { ApiResourceAuditActorSchema } from "../../../commons/apiresource/status_pb";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb";
-import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../iampolicy/v1/rpcauthorization/method_options_pb";
+import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
 import type { IdentityAccountSchema } from "./api_pb";
 import { file_ai_stigmer_iam_identityaccount_v1_api } from "./api_pb";
-import type { IdentityAccountEmailSchema, IdentityAccountIdSchema, IdpIdSchema } from "./io_pb";
+import type { ExternalSubLookupSchema, IdentityAccountEmailSchema, IdentityAccountIdSchema, IdpIdSchema } from "./io_pb";
 import { file_ai_stigmer_iam_identityaccount_v1_io } from "./io_pb";
 import type { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
@@ -19,7 +19,7 @@ import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/iam/identityaccount/v1/query.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvcXVlcnkucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MTKuBgoeSWRlbnRpdHlBY2NvdW50UXVlcnlDb250cm9sbGVyEqYBCgNnZXQSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50SWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjXCuBgxCAMQCyIFdmFsdWUqJHVuYXV0aG9yaXplZCB0byBnZXQgaWRlbnRpdHkgYWNjb3VudBJaCgZ3aG9BbUkSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IgTQuBgBErABCgpnZXRCeUVtYWlsEjcuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudEVtYWlsGjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCI1wrgYMQgDEAsiBXZhbHVlKiR1bmF1dGhvcml6ZWQgdG8gZ2V0IGlkZW50aXR5IGFjY291bnQSoQEKCmdldEJ5SWRwSWQSKC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRwSWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjXCuBgxCAMQCyIFdmFsdWUqJHVuYXV0aG9yaXplZCB0byBnZXQgaWRlbnRpdHkgYWNjb3VudBKpAQoMZ2V0QWN0b3JJbmZvEjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudElkGjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRBY3RvciIswrgYKAgDEAsqInVuYXV0aG9yaXplZCB0byBsb29rIHVwIGFjdG9yIGluZm8aBKD/KwtiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_identityaccount_v1_io, file_google_protobuf_empty]);
+  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvcXVlcnkucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MTL8BwoeSWRlbnRpdHlBY2NvdW50UXVlcnlDb250cm9sbGVyEqYBCgNnZXQSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50SWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjXCuBgxCAEQCyIFdmFsdWUqJHVuYXV0aG9yaXplZCB0byBnZXQgaWRlbnRpdHkgYWNjb3VudBJaCgZ3aG9BbUkSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IgTQuBgBErABCgpnZXRCeUVtYWlsEjcuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudEVtYWlsGjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCI1wrgYMQgBEAsiBXZhbHVlKiR1bmF1dGhvcml6ZWQgdG8gZ2V0IGlkZW50aXR5IGFjY291bnQSoQEKCmdldEJ5SWRwSWQSKC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRwSWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjXCuBgxCAEQCyIFdmFsdWUqJHVuYXV0aG9yaXplZCB0byBnZXQgaWRlbnRpdHkgYWNjb3VudBLLAQoQZ2V0QnlFeHRlcm5hbFN1YhI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5FeHRlcm5hbFN1Ykxvb2t1cBoyLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnQiTcK4GEkIFRAeIgNvcmcqPnVuYXV0aG9yaXplZCB0byBsb29rIHVwIGlkZW50aXR5IGFjY291bnRzIGluIHRoaXMgb3JnYW5pemF0aW9uEqkBCgxnZXRBY3RvckluZm8SNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50SWQaNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEFjdG9yIizCuBgoCAEQCyoidW5hdXRob3JpemVkIHRvIGxvb2sgdXAgYWN0b3IgaW5mbxoEoP8rC2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_identityaccount_v1_io, file_google_protobuf_empty]);
 
 /**
  * IdentityAccountQueryController handles read operations for identity accounts.
@@ -53,7 +53,10 @@ export const IdentityAccountQueryController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * Get an identity account by email address.
+   * Get a direct identity account by email address.
+   *
+   * Only returns direct (non-federated) accounts. Federated accounts are not
+   * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByEmail
    */
@@ -63,13 +66,33 @@ export const IdentityAccountQueryController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * Get an identity account by identity provider ID.
+   * Get an identity account by identity provider ID (Auth0 subject).
+   *
+   * Primarily used for direct and machine accounts where the IDP ID is
+   * the Auth0 user_id or client_id. For federated account lookups,
+   * use getByExternalSub which is scoped to a specific identity provider.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByIdpId
    */
   getByIdpId: {
     methodKind: "unary";
     input: typeof IdpIdSchema;
+    output: typeof IdentityAccountSchema;
+  },
+  /**
+   * Get a federated identity account by identity provider reference and external subject.
+   *
+   * Used by platform backends to check whether a federated account already exists
+   * for a given OIDC subject before calling createFederatedAccount.
+   *
+   * Authorization: Requires can_create_identity_account on the organization
+   * that owns the identity provider.
+   *
+   * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByExternalSub
+   */
+  getByExternalSub: {
+    methodKind: "unary";
+    input: typeof ExternalSubLookupSchema;
     output: typeof IdentityAccountSchema;
   },
   /**

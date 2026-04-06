@@ -8,7 +8,7 @@ package sessionv1
 
 import (
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1/rpcauthorization"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,14 +26,14 @@ var File_ai_stigmer_agentic_session_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/session/v1/command.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x9d\a\n" +
+	"+ai/stigmer/agentic/session/v1/command.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x9d\a\n" +
 	"\x18SessionCommandController\x12W\n" +
 	"\x05apply\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\x12\xa5\x01\n" +
-	"\x06create\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"K¸\x18G\b\x12\x10\x1e\"\fmetadata.org*3unauthorized to create session in this organization\x12\x8f\x01\n" +
-	"\x06update\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"5¸\x181\b\x04\x10*\"\vmetadata.id*\x1eunauthorized to update session\x12\xa9\x01\n" +
-	"\rupdateSubject\x12:.ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"4¸\x180\b\x04\x10*\"\x02id*&unauthorized to update session subject\x12\xad\x01\n" +
-	"\x0fupdateSandboxId\x12<.ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"4¸\x180\b\x04\x10*\"\x02id*&unauthorized to update session sandbox\x12\x8b\x01\n" +
-	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"/¸\x18+\b\x02\x10*\"\x05value*\x1eunauthorized to delete session\x1a\x04\xa0\xff+*B\x9c\x02\n" +
+	"\x06create\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"K¸\x18G\b\b\x10\x1e\"\fmetadata.org*3unauthorized to create session in this organization\x12\x8f\x01\n" +
+	"\x06update\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"5¸\x181\b\x02\x10*\"\vmetadata.id*\x1eunauthorized to update session\x12\xa9\x01\n" +
+	"\rupdateSubject\x12:.ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"4¸\x180\b\x02\x10*\"\x02id*&unauthorized to update session subject\x12\xad\x01\n" +
+	"\x0fupdateSandboxId\x12<.ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"4¸\x180\b\x02\x10*\"\x02id*&unauthorized to update session sandbox\x12\x8b\x01\n" +
+	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"/¸\x18+\b\x03\x10*\"\x05value*\x1eunauthorized to delete session\x1a\x04\xa0\xff+*B\x9c\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\fCommandProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_session_v1_command_proto_goTypes = []any{

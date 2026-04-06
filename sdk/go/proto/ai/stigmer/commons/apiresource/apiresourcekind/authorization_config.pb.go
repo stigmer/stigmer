@@ -7,6 +7,7 @@
 package apiresourcekind
 
 import (
+	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -339,9 +340,22 @@ func (x *ParentRelationConfig) GetSpecField() string {
 //	scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
 //	owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
 //	requires_creator_tuple: true
+//	grantable_roles: [owner, viewer]
 //	-> Creates: environment#organization@organization:<org_id>
 //	-> Creates: environment#owner@identity_account:<creator_id>
 //	-> Creates: environment#creator@identity_account:<creator_id>
+//
+// Organization with three-tier role hierarchy:
+//
+//	scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+//	owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+//	grantable_roles: [owner, admin, member]
+//
+// Owner-only resource with no role sharing (api_key, execution_context):
+//
+//	scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+//	owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+//	grantable_roles: [] (empty — owner is set at creation, no sharing)
 type AuthorizationConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Primary scope type - determines main linkage for permission inheritance.
@@ -368,8 +382,20 @@ type AuthorizationConfig struct {
 	// a different purpose: owner is mutable (can be transferred), creator is
 	// permanent attribution.
 	RequiresCreatorTuple bool `protobuf:"varint,6,opt,name=requires_creator_tuple,json=requiresCreatorTuple,proto3" json:"requires_creator_tuple,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Roles that can be granted on this resource kind via IAM policies.
+	// Drives the web app role selector and SDK validation for IAM policy creation.
+	//
+	// Each value must correspond to a directly-assignable FGA relation
+	// (defined with [identity_account] in the FGA model). Computed roles
+	// and structural relations are excluded.
+	//
+	// Empty means no user-grantable roles: the resource is either owner-only
+	// (api_key, execution_context), inherits authorization from a parent
+	// (agent_execution), is self-owned (identity_account), or has no
+	// authorization (platform, api_resource_version).
+	GrantableRoles []v1.IamRole `protobuf:"varint,7,rep,packed,name=grantable_roles,json=grantableRoles,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"grantable_roles,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AuthorizationConfig) Reset() {
@@ -444,18 +470,25 @@ func (x *AuthorizationConfig) GetRequiresCreatorTuple() bool {
 	return false
 }
 
+func (x *AuthorizationConfig) GetGrantableRoles() []v1.IamRole {
+	if x != nil {
+		return x.GrantableRoles
+	}
+	return nil
+}
+
 var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
 	"\n" +
-	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\";\n" +
+	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\";\n" +
 	"\x10VisibilityConfig\x12'\n" +
 	"\x0fsupports_public\x18\x01 \x01(\bR\x0esupportsPublic\"e\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +
 	"\n" +
-	"spec_field\x18\x03 \x01(\tR\tspecField\"\xcc\x04\n" +
+	"spec_field\x18\x03 \x01(\tR\tspecField\"\x91\x05\n" +
 	"\x13AuthorizationConfig\x12e\n" +
 	"\n" +
 	"scope_type\x18\x01 \x01(\x0e2F.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeTypeR\tscopeType\x12c\n" +
@@ -466,7 +499,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\n" +
 	"visibility\x18\x05 \x01(\v2@.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfigR\n" +
 	"visibility\x124\n" +
-	"\x16requires_creator_tuple\x18\x06 \x01(\bR\x14requiresCreatorTuple*\x85\x02\n" +
+	"\x16requires_creator_tuple\x18\x06 \x01(\bR\x14requiresCreatorTuple\x12C\n" +
+	"\x0fgrantable_roles\x18\a \x03(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x0egrantableRoles*\x85\x02\n" +
 	"\x16AuthorizationScopeType\x12(\n" +
 	"$AUTHORIZATION_SCOPE_TYPE_UNSPECIFIED\x10\x00\x12%\n" +
 	"!AUTHORIZATION_SCOPE_TYPE_PLATFORM\x10\x01\x12)\n" +
@@ -502,6 +536,7 @@ var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 	(*VisibilityConfig)(nil),     // 2: ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig
 	(*ParentRelationConfig)(nil), // 3: ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig
 	(*AuthorizationConfig)(nil),  // 4: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig
+	(v1.IamRole)(0),              // 5: ai.stigmer.iam.v1.IamRole
 }
 var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.scope_type:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeType
@@ -509,11 +544,12 @@ var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 	3, // 2: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.parent:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig
 	3, // 3: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.additional_parents:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig
 	2, // 4: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.visibility:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5, // 5: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.grantable_roles:type_name -> ai.stigmer.iam.v1.IamRole
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_init() }

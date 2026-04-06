@@ -80,10 +80,11 @@ func (m *McpServerClient) GetByReference(ctx context.Context, ref ResourceRef) (
 
 func (m *McpServerClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
 	req := &searchv1.SearchRequest{
-		Kinds:         []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_mcp_server},
-		Query:         params.Query,
-		Org:           params.Org,
-		ExcludePublic: params.ExcludePublic,
+		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_mcp_server},
+		Query:          params.Query,
+		Org:            params.Org,
+		ExcludePublic:  params.ExcludePublic,
+		CrossOrgPublic: params.CrossOrgPublic,
 	}
 	if params.Page != nil {
 		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}

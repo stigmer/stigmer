@@ -32,6 +32,11 @@ class IdentityAccountCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
                 _registered_method=True)
+        self.createFederatedAccount = channel.unary_unary(
+                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateFederatedAccountInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                _registered_method=True)
         self.simulateSignupWebhook = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountEmail.SerializeToString,
@@ -47,7 +52,7 @@ class IdentityAccountCommandControllerServicer(object):
         """Create a new identity account.
 
         @internal
-        System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+        System-level RPC used by Auth0 webhook flow and federated account creation.
         No FGA authorization — called via inProcessChannelAsSystem (machine account).
         The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
         """
@@ -70,6 +75,23 @@ class IdentityAccountCommandControllerServicer(object):
 
         @internal
         Authorization: Requires can_delete permission on the identity account resource.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def createFederatedAccount(self, request, context):
+        """Create a federated identity account for an external platform user.
+
+        Called by platform backends (via API key) when a new user signs up on their
+        platform. The platform provides the user's OIDC subject identifier and profile
+        data. The account must be created before the user can authenticate via the IdP.
+
+        Returns the full identity account including its ID, which the platform uses
+        to grant roles via IAM policies.
+
+        Authorization: Requires can_create_identity_account on the organization
+        that owns the identity provider.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -103,6 +125,11 @@ def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountId.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ),
+            'createFederatedAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.createFederatedAccount,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateFederatedAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
             ),
             'simulateSignupWebhook': grpc.unary_unary_rpc_method_handler(
@@ -192,6 +219,33 @@ class IdentityAccountCommandController(object):
             target,
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/delete',
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountId.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createFederatedAccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount',
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateFederatedAccountInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
             options,
             channel_credentials,

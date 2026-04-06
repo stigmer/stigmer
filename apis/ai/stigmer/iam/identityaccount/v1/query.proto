@@ -4,7 +4,7 @@ package ai.stigmer.iam.identityaccount.v1;
 
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "ai/stigmer/iam/identityaccount/v1/io.proto";
 import "google/protobuf/empty.proto";
@@ -15,10 +15,10 @@ service IdentityAccountQueryController {
 
   // Get an identity account by its unique identifier.
   rpc get(IdentityAccountId) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get identity account";
   }
 
   // Get the identity account of the currently authenticated user.
@@ -28,23 +28,44 @@ service IdentityAccountQueryController {
   // @internal
   // Scoped to the caller's own account, so authorization is skipped.
   rpc whoAmI(google.protobuf.Empty) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // Get an identity account by email address.
+  // Get a direct identity account by email address.
+  //
+  // Only returns direct (non-federated) accounts. Federated accounts are not
+  // returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
   rpc getByEmail(IdentityAccountEmail) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get identity account";
   }
 
-  // Get an identity account by identity provider ID.
+  // Get an identity account by identity provider ID (Auth0 subject).
+  //
+  // Primarily used for direct and machine accounts where the IDP ID is
+  // the Auth0 user_id or client_id. For federated account lookups,
+  // use getByExternalSub which is scoped to a specific identity provider.
   rpc getByIdpId(IdpId) returns (IdentityAccount) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get identity account";
+  }
+
+  // Get a federated identity account by identity provider reference and external subject.
+  //
+  // Used by platform backends to check whether a federated account already exists
+  // for a given OIDC subject before calling createFederatedAccount.
+  //
+  // Authorization: Requires can_create_identity_account on the organization
+  // that owns the identity provider.
+  rpc getByExternalSub(ExternalSubLookup) returns (IdentityAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to look up identity accounts in this organization";
   }
 
   // Get lightweight actor information for an identity account.
@@ -64,8 +85,8 @@ service IdentityAccountQueryController {
   //
   // Restricted to platform operators only as this is an internal cache-population mechanism.
   rpc getActorInfo(IdentityAccountId) returns (ai.stigmer.commons.apiresource.ApiResourceAuditActor) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to look up actor info";
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to look up actor info";
   }
 }

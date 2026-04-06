@@ -172,6 +172,10 @@ func runSDKClientTSGeneration(schemaDir, outputDir string) error {
 	}
 	fmt.Printf("   -> client.ts\n")
 
+	if err := generateTSKindMeta(outputDir); err != nil {
+		return fmt.Errorf("failed to generate kind-meta files: %w", err)
+	}
+
 	return nil
 }
 
@@ -654,6 +658,7 @@ func generateTSSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	fmt.Fprintf(buf, "        query: params.query,\n")
 	fmt.Fprintf(buf, "        org: params.org,\n")
 	fmt.Fprintf(buf, "        excludePublic: params.excludePublic ?? false,\n")
+	fmt.Fprintf(buf, "        crossOrgPublic: params.crossOrgPublic ?? false,\n")
 	fmt.Fprintf(buf, "        page: params.page ? create(PageInfoSchema, params.page) : undefined,\n")
 	fmt.Fprintf(buf, "      }));\n")
 	fmt.Fprintf(buf, "      return {\n")
@@ -1458,6 +1463,7 @@ export interface ListParams {
   readonly org: string;
   readonly query?: string;
   readonly excludePublic?: boolean;
+  readonly crossOrgPublic?: boolean;
   readonly page?: Page;
 }
 

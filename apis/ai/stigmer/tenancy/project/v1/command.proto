@@ -3,7 +3,7 @@ syntax = "proto3";
 package ai.stigmer.tenancy.project.v1;
 
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/tenancy/project/v1/api.proto";
 import "ai/stigmer/tenancy/project/v1/io.proto";
 
@@ -25,10 +25,10 @@ service ProjectCommandController {
   // - Organization-scoped projects: Caller must have can_create_project permission in the organization.
   // - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
   rpc create(Project) returns (Project) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_project;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create project in this organization";
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_project;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create project in this organization";
   }
 
   // Update an existing project.
@@ -36,10 +36,10 @@ service ProjectCommandController {
   // @internal
   // Authorization: Requires can_edit permission on the project.
   rpc update(Project) returns (Project) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = project;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update project";
+    option (ai.stigmer.commons.rpc.config).resource_kind = project;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update project";
   }
 
   // Delete a project.
@@ -47,9 +47,9 @@ service ProjectCommandController {
   // @internal
   // Authorization: Requires can_delete permission on the project.
   rpc delete(ProjectId) returns (Project) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = project;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete project";
+    option (ai.stigmer.commons.rpc.config).resource_kind = project;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete project";
   }
 }

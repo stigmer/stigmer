@@ -60,6 +60,22 @@
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "description": "Get an identity provider by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/planton-cloud\" to the full\n IdentityProvider resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+        },
+        {
+          "name": "ListByOrg",
+          "inputType": "ListIdentityProvidersByOrgInput",
+          "inputFullType": "ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput",
+          "outputType": "IdentityProviders",
+          "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProviders",
+          "description": "List all identity providers belonging to an organization.\n\n Returns every IdentityProvider whose metadata.org matches the input org.\n Typically a small set (1-3 per org), so results are not paginated.\n\n @internal\n Authorization: Requires can_view permission on the organization resource."
+        },
+        {
+          "name": "GetSsoProvider",
+          "inputType": "OrganizationSsoLookup",
+          "inputFullType": "ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup",
+          "outputType": "SsoProviderInfo",
+          "outputFullType": "ai.stigmer.iam.identityprovider.v1.SsoProviderInfo",
+          "description": "Look up the SSO identity provider for an organization.\n\n Returns the SSO-relevant projection (display name, OIDC client ID, issuer)\n of the IdentityProvider where is_sso_provider is true for the given org.\n Returns NOT_FOUND if the organization has no SSO provider configured.\n\n This endpoint is called by the web app's login page before the user has\n authenticated, so it requires no authorization. The response intentionally\n omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).\n\n @internal\n Authorization: none — unauthenticated, public endpoint for login page rendering."
         }
       ]
     }
@@ -97,6 +113,7 @@
               "iam_policy",
               "identity_account",
               "api_key",
+              "invitation",
               "identity_provider",
               "organization",
               "platform",
@@ -147,6 +164,108 @@
           }
         }
       ]
+    },
+    {
+      "name": "ListIdentityProvidersByOrgInput",
+      "description": "ListIdentityProvidersByOrgInput specifies the organization whose identity\n providers should be returned.",
+      "protoType": "ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput",
+      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to list identity providers for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "IdentityProviders",
+      "description": "IdentityProviders contains a list of identity provider resources.",
+      "protoType": "ai.stigmer.iam.identityprovider.v1.IdentityProviders",
+      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "IdentityProvider"
+            }
+          },
+          "description": "Identity provider entries.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "OrganizationSsoLookup",
+      "description": "OrganizationSsoLookup identifies an organization for SSO provider discovery.\n Used by the web app's login page to determine whether an organization has\n SSO enabled and to retrieve the OIDC configuration needed to initiate login.",
+      "protoType": "ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup",
+      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to look up SSO configuration for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "SsoProviderInfo",
+      "description": "SsoProviderInfo contains the minimal OIDC configuration the web app needs\n to render an SSO login button and initiate the Authorization Code flow.\n\n This is a projection of the full IdentityProvider resource, exposing only\n the fields safe for unauthenticated access. Internal configuration such as\n JWKS URI, rate limits, and userinfo endpoint is intentionally excluded.",
+      "protoType": "ai.stigmer.iam.identityprovider.v1.SsoProviderInfo",
+      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
+      "fields": [
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Display name of the SSO provider (e.g., \"Acme Corp Okta\").\n Shown on the login button: \"Sign in with [display_name]\".",
+          "required": false
+        },
+        {
+          "name": "OidcClientId",
+          "jsonName": "oidcClientId",
+          "protoField": "oidc_client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "OIDC client ID for initiating the Authorization Code flow with PKCE.",
+          "required": false
+        },
+        {
+          "name": "Issuer",
+          "jsonName": "issuer",
+          "protoField": "issuer",
+          "type": {
+            "kind": "string"
+          },
+          "description": "OIDC issuer URL. The web app appends /.well-known/openid-configuration\n to discover the authorization_endpoint, token_endpoint, and other\n OIDC metadata required for the login flow.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -174,6 +293,11 @@
           "name": "api_key",
           "number": 12,
           "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
         },
         {
           "name": "identity_provider",
