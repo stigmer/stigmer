@@ -467,13 +467,16 @@ export type {
   IdentityProviderDetailPanelProps,
 } from "./identity-provider";
 
-// Invitation — data hooks and behavior hooks for org invite links
+// Invitation — data hooks, behavior hooks, and feature components for org invite links
 export {
   useOrgInvitations,
   useCreateInvitation,
   useRevokeInvitation,
   useInvitationPreview,
   useRedeemInvitation,
+  InvitationCreatedAlert,
+  InvitationManager,
+  InvitationRedemption,
 } from "./invitation";
 export type {
   UseOrgInvitationsReturn,
@@ -481,6 +484,9 @@ export type {
   UseRevokeInvitationReturn,
   UseInvitationPreviewReturn,
   UseRedeemInvitationReturn,
+  InvitationCreatedAlertProps,
+  InvitationManagerProps,
+  InvitationRedemptionProps,
 } from "./invitation";
 
 // Error — structured error display with classification, retry, and contextual guidance
