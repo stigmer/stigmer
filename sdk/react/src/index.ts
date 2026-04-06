@@ -467,6 +467,22 @@ export type {
   IdentityProviderDetailPanelProps,
 } from "./identity-provider";
 
+// Invitation — data hooks and behavior hooks for org invite links
+export {
+  useOrgInvitations,
+  useCreateInvitation,
+  useRevokeInvitation,
+  useInvitationPreview,
+  useRedeemInvitation,
+} from "./invitation";
+export type {
+  UseOrgInvitationsReturn,
+  UseCreateInvitationReturn,
+  UseRevokeInvitationReturn,
+  UseInvitationPreviewReturn,
+  UseRedeemInvitationReturn,
+} from "./invitation";
+
 // Error — structured error display with classification, retry, and contextual guidance
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
 export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
