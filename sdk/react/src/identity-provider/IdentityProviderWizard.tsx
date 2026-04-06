@@ -345,7 +345,7 @@ function ConfigureStep({
         label="Display name"
         value={name}
         onChange={onNameChange}
-        placeholder="e.g., Planton Cloud"
+        placeholder="e.g., Acme Corp SSO"
         hint="Human-readable name shown in the UI"
         disabled={isLoading}
       />

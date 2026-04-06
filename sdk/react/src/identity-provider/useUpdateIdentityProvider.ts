@@ -31,10 +31,10 @@ export interface UseUpdateIdentityProviderReturn {
  * const { update, isUpdating, error } = useUpdateIdentityProvider();
  *
  * await update({
- *   name: "Planton Cloud",
- *   slug: "planton-cloud",
- *   org: "planton",
- *   displayName: "Planton Cloud SSO",
+ *   name: "Acme Corp SSO",
+ *   slug: "acme-sso",
+ *   org: "acme",
+ *   displayName: "Acme Corp SSO",
  *   isSsoProvider: true,
  *   oidcClientId: "abc123",
  * });
