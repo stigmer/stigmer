@@ -150,12 +150,11 @@ service AgentExecutionQueryController {
   // Get a usage report for a session.
   //
   // Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
-  //
-  // @internal
-  // Authorization is handled in handler — caller must have can_view on
-  // all executions in the session (same pattern as listBySession).
   rpc getSessionUsageReport(GetSessionUsageReportInput) returns (GetSessionUsageReportOutput) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "session_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view session usage report";
   }
 
   // Get a usage report for an agent.
@@ -163,7 +162,8 @@ service AgentExecutionQueryController {
   // Returns aggregated tokens, cost, and per-session breakdown with pagination.
   //
   // @internal
-  // Authorization is handled in handler — caller must have can_view on the agent.
+  // Not consumed by any UI. Authorization model TBD — when a product need
+  // arises, this should likely be org-scoped (usage of agent X within org Y).
   rpc getAgentUsageReport(GetAgentUsageReportInput) returns (GetAgentUsageReportOutput) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -171,10 +171,10 @@ service AgentExecutionQueryController {
   // Get a usage report for an organization.
   //
   // Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
-  //
-  // @internal
-  // Authorization is handled in handler — caller must be org member.
   rpc getOrgUsageReport(GetOrgUsageReportInput) returns (GetOrgUsageReportOutput) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view organization usage report";
   }
 }
