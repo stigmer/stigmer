@@ -428,7 +428,7 @@ export type {
   ApiKeyCreatedAlertProps,
 } from "./api-key";
 
-// Identity Provider — data hooks, mutation hooks, and styled components for IdP management and SSO discovery
+// Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for IdP management and SSO discovery
 export {
   useIdentityProviderList,
   useIdentityProvider,
@@ -438,6 +438,11 @@ export {
   useDeleteIdentityProvider,
   IdentityProviderListPanel,
   CreateIdentityProviderForm,
+  PROVIDER_PRESETS,
+  getPreset,
+  ProviderPicker,
+  IdentityProviderWizard,
+  IdentityProviderDetailPanel,
 } from "./identity-provider";
 export type {
   UseIdentityProviderListReturn,
@@ -448,6 +453,12 @@ export type {
   UseDeleteIdentityProviderReturn,
   IdentityProviderListPanelProps,
   CreateIdentityProviderFormProps,
+  ProviderPreset,
+  ProviderVariable,
+  ProviderConfig,
+  ProviderPickerProps,
+  IdentityProviderWizardProps,
+  IdentityProviderDetailPanelProps,
 } from "./identity-provider";
 
 // Error — structured error display with classification, retry, and contextual guidance

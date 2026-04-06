@@ -37,3 +37,26 @@ export {
   CreateIdentityProviderForm,
   type CreateIdentityProviderFormProps,
 } from "./CreateIdentityProviderForm";
+
+export {
+  type ProviderPreset,
+  type ProviderVariable,
+  type ProviderConfig,
+  PROVIDER_PRESETS,
+  getPreset,
+} from "./presets";
+
+export {
+  ProviderPicker,
+  type ProviderPickerProps,
+} from "./ProviderPicker";
+
+export {
+  IdentityProviderWizard,
+  type IdentityProviderWizardProps,
+} from "./IdentityProviderWizard";
+
+export {
+  IdentityProviderDetailPanel,
+  type IdentityProviderDetailPanelProps,
+} from "./IdentityProviderDetailPanel";
