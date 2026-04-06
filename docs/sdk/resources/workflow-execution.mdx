@@ -1017,6 +1017,35 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
   }}
 />
 
+### PendingApproval
+
+A pending approval request for a tool call that requires user consent before execution.
+
+<TypeTable
+  type={{
+    toolCallId: { type: "string", description: "ID of the tool call waiting for approval." },
+    toolName: { type: "string", description: "Name of the tool requiring approval." },
+    message: { type: "string", description: "Human-readable approval message for display." },
+    argsPreview: { type: "string", description: "Sanitized preview of tool arguments for informed decision-making." },
+    requestedAt: { type: "string", description: "ISO 8601 timestamp when the approval was requested." },
+    fromSubAgent: { type: "boolean", description: "True if this approval originates from a sub-agent." },
+    subAgentName: { type: "string", description: "Name of the sub-agent if from_sub_agent is true." },
+    mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
+    subAgentSubject: { type: "string", description: "Concise subject/description of the sub-agent's task (3-10 words)." },
+  }}
+/>
+
+### WorkflowPendingApproval
+
+WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
+
+<TypeTable
+  type={{
+    approval: { type: "PendingApproval", description: "Approval details from the child agent's tool call.", typeDescriptionLink: "#pendingapproval" },
+    childAgentExecutionId: { type: "string", description: "ID of the child agent execution to forward the approval decision to." },
+  }}
+/>
+
 ### WorkflowTask
 
 WorkflowTask represents a single task within a workflow execution.
@@ -1033,35 +1062,6 @@ WorkflowTask represents a single task within a workflow execution.
     completedAt: { type: "string", description: "ISO 8601 timestamp when the task reached a terminal state." },
     error: { type: "string", description: "Error message, populated only when status is WORKFLOW_TASK_FAILED." },
     metadata: { type: "object", description: "Task-specific metadata as arbitrary JSON." },
-  }}
-/>
-
-### WorkflowPendingApproval
-
-WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
-
-<TypeTable
-  type={{
-    approval: { type: "PendingApproval", description: "Approval details from the child agent's tool call.", typeDescriptionLink: "#pendingapproval" },
-    childAgentExecutionId: { type: "string", description: "ID of the child agent execution to forward the approval decision to." },
-  }}
-/>
-
-### PendingApproval
-
-A pending approval request for a tool call that requires user consent before execution.
-
-<TypeTable
-  type={{
-    toolCallId: { type: "string", description: "ID of the tool call waiting for approval." },
-    toolName: { type: "string", description: "Name of the tool requiring approval." },
-    message: { type: "string", description: "Human-readable approval message for display." },
-    argsPreview: { type: "string", description: "Sanitized preview of tool arguments for informed decision-making." },
-    requestedAt: { type: "string", description: "ISO 8601 timestamp when the approval was requested." },
-    fromSubAgent: { type: "boolean", description: "True if this approval originates from a sub-agent." },
-    subAgentName: { type: "string", description: "Name of the sub-agent if from_sub_agent is true." },
-    mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
-    subAgentSubject: { type: "string", description: "Concise subject/description of the sub-agent's task (3-10 words)." },
   }}
 />
 

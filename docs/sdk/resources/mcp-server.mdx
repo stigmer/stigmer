@@ -742,18 +742,6 @@ DiscoveredCapabilities holds the tools and resource templates reported by an MCP
   }}
 />
 
-### DiscoveredTool
-
-DiscoveredTool describes a single tool reported by an MCP server.
-
-<TypeTable
-  type={{
-    name: { type: "string", description: "Unique tool name within the MCP server (case-sensitive)." },
-    description: { type: "string", description: "Human-readable description of the tool's purpose." },
-    inputSchema: { type: "object", description: "JSON Schema describing the tool's input parameters." },
-  }}
-/>
-
 ### DiscoveredResourceTemplate
 
 DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.
@@ -764,6 +752,18 @@ DiscoveredResourceTemplate describes a parameterized resource template reported 
     name: { type: "string", description: "Identifier for this resource template." },
     description: { type: "string", description: "Human-readable description of the resource." },
     mimeType: { type: "string", description: "MIME type of the resource content." },
+  }}
+/>
+
+### DiscoveredTool
+
+DiscoveredTool describes a single tool reported by an MCP server.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "Unique tool name within the MCP server (case-sensitive)." },
+    description: { type: "string", description: "Human-readable description of the tool's purpose." },
+    inputSchema: { type: "object", description: "JSON Schema describing the tool's input parameters." },
   }}
 />
 

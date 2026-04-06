@@ -433,18 +433,6 @@ ProjectStatus contains system-managed state for a Project.
   }}
 />
 
-### ReconciliationSummary
-
-ReconciliationSummary contains the results of project reconciliation.
-
-<TypeTable
-  type={{
-    created: { type: "ApiResourceReference[]", description: "Resources created on the server during this project apply.", typeDescriptionLink: "#apiresourcereference" },
-    updated: { type: "ApiResourceReference[]", description: "Resources updated on the server during this project apply.", typeDescriptionLink: "#apiresourcereference" },
-    deleted: { type: "ApiResourceReference[]", description: "Resources deleted via orphan pruning during this project apply.", typeDescriptionLink: "#apiresourcereference" },
-  }}
-/>
-
 ### ApiResourceReference
 
 Generic reference to any API resource by org and slug.
@@ -455,6 +443,18 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### ReconciliationSummary
+
+ReconciliationSummary contains the results of project reconciliation.
+
+<TypeTable
+  type={{
+    created: { type: "ApiResourceReference[]", description: "Resources created on the server during this project apply.", typeDescriptionLink: "#apiresourcereference" },
+    updated: { type: "ApiResourceReference[]", description: "Resources updated on the server during this project apply.", typeDescriptionLink: "#apiresourcereference" },
+    deleted: { type: "ApiResourceReference[]", description: "Resources deleted via orphan pruning during this project apply.", typeDescriptionLink: "#apiresourcereference" },
   }}
 />
 

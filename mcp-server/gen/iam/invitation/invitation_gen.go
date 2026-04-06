@@ -7,7 +7,7 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/internal/convert"
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 	invitationv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/invitation/v1"
-	v1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/v1"
+	iamv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/v1"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )
@@ -95,7 +95,7 @@ func (input *InvitationInput) ToProto() (*invitationv1.Invitation, error) {
 func (input *InvitationInput) specToProto() (*invitationv1.InvitationSpec, error) {
 	spec := &invitationv1.InvitationSpec{}
 
-	spec.Role = v1.IamRole(v1.IamRole_value[input.Role])
+	spec.Role = iamv1.IamRole(iamv1.IamRole_value[input.Role])
 	spec.MaxRedemptions = input.MaxRedemptions
 	if input.ExpiresAt != "" {
 		t, err := time.Parse(time.RFC3339, input.ExpiresAt)
