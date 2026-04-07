@@ -68,9 +68,34 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-05 09:00
-**Current Task**: Phase 8 — Documentation
-**Status**: Not Started
-**Last Session**: 2026-04-05 — Session 8: Removed internal company references from IdP SDK placeholders, confirmed SSO flag UX
+**Current Task**: SSO Login Flow (next project phase)
+**Status**: Federation hardening complete — All gaps from architecture review closed
+**Last Session**: 2026-04-07 — Session 10: IdP federation hardening (issuer uniqueness + cache invalidation)
+
+## Session Progress (2026-04-07, Session 10)
+
+### Federation Hardening — Done (Session 10)
+
+Closed two production-readiness gaps identified during architecture review:
+
+- **Global issuer uniqueness at write time**: New `ValidateIssuerUniqueness` pipeline step in create/update handlers rejects duplicate issuers with `ALREADY_EXISTS`. Backed by MongoDB unique multikey index on `spec.allowedIssuers` (migration `U20260407_IssuerUniquenessIndex`, order "011").
+- **Cache invalidation on IdP mutations**: New `InvalidateFederationCaches` pipeline step calls `issuerCache.invalidate()` + `decoderCache.evictAll()` after create/update. Inner class `InvalidateCachesOnDelete` does the same on delete. Changes take effect immediately instead of waiting for 5-minute TTL.
+- **Tests**: 5 tests for issuer uniqueness, 2 for cache invalidation, 2 new tests added to existing `IdentityProviderIssuerCacheTest`.
+- All changes in stigmer-cloud on branch `feat/sso-login-flow`.
+
+### Phase 8: Documentation — Done (Session 9)
+- **New concepts page**: `docs/concepts/identity.mdx` — three account types (direct, federated, machine), Identity Provider trust model, federated auth sequence diagram, authorization basics
+- **New "Guides" section**: `docs/guides/` — new top-level sidebar section between Concepts and SDK Reference
+- **Federation guide** (`docs/guides/federation/`, 5 pages):
+  - `overview.mdx` — architecture diagram, prerequisites, card navigation to sub-pages
+  - `register-identity-provider.mdx` — IdP creation with 4-language SDK examples, field reference, Auth0/Okta/Entra ID/Cognito instructions
+  - `provision-federated-accounts.mdx` — check-then-create pattern (`getByExternalSub` + `createFederatedAccount`), complete handler example
+  - `grant-access.mdx` — IAM Policy grants, complete onboarding flow, revocation with `revokeOrgAccess`
+  - `authentication-flow.mdx` — 10-step sequence diagram, token requirements, 401 vs 403 diagnosis, troubleshooting checklist
+- Updated `docs/meta.json` and `docs/concepts/meta.json` for sidebar ordering
+- Added OIDC-related terms to Vale vocabulary (`accept.txt`)
+- All 6 doc files pass Vale linting (0 errors) and Prettier formatting
+- Committed: `8ffb9ea6`
 
 ## Session Progress (2026-04-05)
 
@@ -193,9 +218,8 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Phase 8: Documentation** — federation flow documentation for platform builders
-
-2. **SSO login flow** (deferred) — OIDC RP flow on Stigmer's login page, auto-provisioning of federated accounts for SSO
+1. **SSO login flow** — OIDC RP flow on Stigmer's login page, auto-provisioning of federated accounts for SSO
+2. **SSO documentation** — `docs/guides/federation/sso.mdx` page (after SSO login flow is built)
 
 ## Context for Resume
 
@@ -203,18 +227,24 @@ When starting a new session:
 - The `FederatedIdentityResolverImpl.java` is at `stigmer-cloud/backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/identityprovider/federation/`
 - The `AuthenticationTokenParser.java` is at `stigmer-cloud/backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/jwt/`
 - The `RequestCallerIdentityMapper.java` is at `stigmer-cloud/backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/caller/`
-- Current migration order is `"009"` — next migration should be `"010"`
+- Current migration order is `"011"` — next migration should be `"012"`
 - Branch: `feat/identity-provider-flow` (stigmer), `main` (stigmer-cloud)
 - stigmer-cloud `main` is ahead of `origin/main` by 5 commits (Phases 1-3 unpushed)
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 6" - Begin SDK React components
+- "Start SSO login flow" - Begin the next phase
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review plan" - Check `tasks/T01_0_plan.md` for full Phase 6-8 details
+- "Review plan" - Check `tasks/T01_0_plan.md` for full project details
 
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-04/20260407.01.sp.sso-login-flow/next-task.md` - Implement org-aware SSO login flow in the web app, add updateFederatedAccount and deprovisionFederatedAccount lifecycle RPCs, add SSO auto-provisioning for self-managed orgs, and surface a copyable SSO login URL in the IdP management screen.
