@@ -44,6 +44,16 @@ func (i *IdentityAccountClient) CreateFederatedAccount(ctx context.Context, inpu
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityAccountClient) UpdateFederatedAccount(ctx context.Context, input *identityaccountv1.UpdateFederatedAccountInput) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.command.UpdateFederatedAccount(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (i *IdentityAccountClient) DeprovisionFederatedAccount(ctx context.Context, input *identityaccountv1.DeprovisionFederatedAccountInput) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.command.DeprovisionFederatedAccount(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IdentityAccountClient) SimulateSignupWebhook(ctx context.Context, input *identityaccountv1.IdentityAccountEmail) error {
 	_, err := i.command.SimulateSignupWebhook(ctx, input)
 	return wrapErr(err)

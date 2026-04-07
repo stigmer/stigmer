@@ -61,4 +61,12 @@ message SsoProviderInfo {
   // to discover the authorization_endpoint, token_endpoint, and other
   // OIDC metadata required for the login flow.
   string issuer = 3;
+
+  // Expected JWT audience value for the OIDC token request.
+  // The web app passes this as the audience parameter when initiating the
+  // Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+  // a JWT access token with the correct aud claim; others determine the
+  // audience from server-side configuration and ignore this parameter.
+  // Empty means the web app should omit the audience parameter.
+  string expected_audience = 4;
 }

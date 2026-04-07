@@ -556,6 +556,204 @@ func (x *CreateFederatedAccountInput) GetPictureUrl() string {
 	return ""
 }
 
+// UpdateFederatedAccountInput is the command for updating profile fields on a
+// federated identity account identified by its natural key (identity provider
+// reference + external subject).
+//
+// Called by platform backends when a user's profile changes on their platform
+// (e.g., name update, email change). Uses full-replace semantics: all profile
+// fields must be provided. Identity keys (org, identity_provider_ref, external_sub)
+// are immutable and used only for lookup.
+type UpdateFederatedAccountInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization that owns the identity provider.
+	// Used as the authorization scope: caller must have can_create_identity_account
+	// permission on this organization.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Reference to the IdentityProvider that the federated account belongs to.
+	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	// External subject identifier (OIDC sub claim) — lookup key, not updatable.
+	ExternalSub string `protobuf:"bytes,3,opt,name=external_sub,json=externalSub,proto3" json:"external_sub,omitempty"`
+	// Updated email address.
+	Email string `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	// Updated first name.
+	FirstName string `protobuf:"bytes,5,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
+	// Updated last name.
+	LastName string `protobuf:"bytes,6,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
+	// Updated profile picture URL.
+	PictureUrl    string `protobuf:"bytes,7,opt,name=picture_url,json=pictureUrl,proto3" json:"picture_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateFederatedAccountInput) Reset() {
+	*x = UpdateFederatedAccountInput{}
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateFederatedAccountInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateFederatedAccountInput) ProtoMessage() {}
+
+func (x *UpdateFederatedAccountInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateFederatedAccountInput.ProtoReflect.Descriptor instead.
+func (*UpdateFederatedAccountInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *UpdateFederatedAccountInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *UpdateFederatedAccountInput) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.IdentityProviderRef
+	}
+	return nil
+}
+
+func (x *UpdateFederatedAccountInput) GetExternalSub() string {
+	if x != nil {
+		return x.ExternalSub
+	}
+	return ""
+}
+
+func (x *UpdateFederatedAccountInput) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *UpdateFederatedAccountInput) GetFirstName() string {
+	if x != nil {
+		return x.FirstName
+	}
+	return ""
+}
+
+func (x *UpdateFederatedAccountInput) GetLastName() string {
+	if x != nil {
+		return x.LastName
+	}
+	return ""
+}
+
+func (x *UpdateFederatedAccountInput) GetPictureUrl() string {
+	if x != nil {
+		return x.PictureUrl
+	}
+	return ""
+}
+
+// DeprovisionFederatedAccountInput is the command for revoking a federated
+// identity account's access, with an option to delete the account entirely.
+//
+// Called by platform backends when a user is removed from their platform
+// (e.g., employee offboarding, account suspension). Uses the natural key
+// (identity provider reference + external subject) for lookup.
+//
+// Two modes:
+//   - Revoke only (delete_account = false): removes all IAM policies for the
+//     account in the organization. The identity account is preserved for audit
+//     trail. The user loses access but the account record remains.
+//   - Revoke and delete (delete_account = true): revokes access AND deletes
+//     the identity account. All IAM policies across all organizations are
+//     cleaned up. Use this for permanent offboarding.
+type DeprovisionFederatedAccountInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization that owns the identity provider.
+	// Used as the authorization scope: caller must have can_create_identity_account
+	// permission on this organization.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Reference to the IdentityProvider that the federated account belongs to.
+	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	// External subject identifier (OIDC sub claim) — lookup key.
+	ExternalSub string `protobuf:"bytes,3,opt,name=external_sub,json=externalSub,proto3" json:"external_sub,omitempty"`
+	// When false (default): revoke the account's access in this organization only.
+	// When true: revoke access AND permanently delete the identity account.
+	DeleteAccount bool `protobuf:"varint,4,opt,name=delete_account,json=deleteAccount,proto3" json:"delete_account,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeprovisionFederatedAccountInput) Reset() {
+	*x = DeprovisionFederatedAccountInput{}
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeprovisionFederatedAccountInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeprovisionFederatedAccountInput) ProtoMessage() {}
+
+func (x *DeprovisionFederatedAccountInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeprovisionFederatedAccountInput.ProtoReflect.Descriptor instead.
+func (*DeprovisionFederatedAccountInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeprovisionFederatedAccountInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *DeprovisionFederatedAccountInput) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.IdentityProviderRef
+	}
+	return nil
+}
+
+func (x *DeprovisionFederatedAccountInput) GetExternalSub() string {
+	if x != nil {
+		return x.ExternalSub
+	}
+	return ""
+}
+
+func (x *DeprovisionFederatedAccountInput) GetDeleteAccount() bool {
+	if x != nil {
+		return x.DeleteAccount
+	}
+	return false
+}
+
 var File_ai_stigmer_iam_identityaccount_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
@@ -592,7 +790,22 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"first_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n" +
 	"\tlast_name\x18\x06 \x01(\tR\blastName\x12\x1f\n" +
 	"\vpicture_url\x18\a \x01(\tR\n" +
-	"pictureUrlB\xb6\x02\n" +
+	"pictureUrl\"\xc7\x02\n" +
+	"\x1bUpdateFederatedAccountInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
+	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
+	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12\x1c\n" +
+	"\x05email\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05email\x12\x1d\n" +
+	"\n" +
+	"first_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n" +
+	"\tlast_name\x18\x06 \x01(\tR\blastName\x12\x1f\n" +
+	"\vpicture_url\x18\a \x01(\tR\n" +
+	"pictureUrl\"\xf8\x01\n" +
+	" DeprovisionFederatedAccountInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
+	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
+	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12%\n" +
+	"\x0edelete_account\x18\x04 \x01(\bR\rdeleteAccountB\xb6\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\aIoProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (
@@ -607,7 +820,7 @@ func file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_goTypes = []any{
 	(*IdentityAccounts)(nil),                 // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts
 	(*IdentityAccountId)(nil),                // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountId
@@ -618,22 +831,26 @@ var file_ai_stigmer_iam_identityaccount_v1_io_proto_goTypes = []any{
 	(*ListWithIdentityOrg)(nil),              // 6: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg
 	(*ExternalSubLookup)(nil),                // 7: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup
 	(*CreateFederatedAccountInput)(nil),      // 8: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
-	(*IdentityAccount)(nil),                  // 9: ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	(*rpc.PageInfo)(nil),                     // 10: ai.stigmer.commons.rpc.PageInfo
-	(*apiresource.ApiResourceReference)(nil), // 11: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*UpdateFederatedAccountInput)(nil),      // 9: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
+	(*DeprovisionFederatedAccountInput)(nil), // 10: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
+	(*IdentityAccount)(nil),                  // 11: ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	(*rpc.PageInfo)(nil),                     // 12: ai.stigmer.commons.rpc.PageInfo
+	(*apiresource.ApiResourceReference)(nil), // 13: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_depIdxs = []int32{
-	9,  // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	10, // 1: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	9,  // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	10, // 3: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	11, // 4: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	11, // 5: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	6,  // [6:6] is the sub-list for method output_type
-	6,  // [6:6] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	11, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	12, // 1: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	11, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	12, // 3: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	13, // 4: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 5: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 6: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 7: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityaccount_v1_io_proto_init() }
@@ -648,7 +865,7 @@ func file_ai_stigmer_iam_identityaccount_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

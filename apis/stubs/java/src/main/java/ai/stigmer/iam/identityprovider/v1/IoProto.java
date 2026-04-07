@@ -79,14 +79,15 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "rR\007entries\"<\n\037ListIdentityProvidersByOrg" +
       "Input\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"2\n\025Orga" +
       "nizationSsoLookup\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R" +
-      "\003org\"r\n\017SsoProviderInfo\022!\n\014display_name\030" +
-      "\001 \001(\tR\013displayName\022$\n\016oidc_client_id\030\002 \001" +
-      "(\tR\014oidcClientId\022\026\n\006issuer\030\003 \001(\tR\006issuer" +
-      "B\266\001B\007IoProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.I" +
-      "dentityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Iden" +
-      "tityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identit" +
-      "yprovider\\V1\\GPBMetadata\352\002&Ai::Stigmer::" +
-      "Iam::Identityprovider::V1b\006proto3"
+      "\003org\"\237\001\n\017SsoProviderInfo\022!\n\014display_name" +
+      "\030\001 \001(\tR\013displayName\022$\n\016oidc_client_id\030\002 " +
+      "\001(\tR\014oidcClientId\022\026\n\006issuer\030\003 \001(\tR\006issue" +
+      "r\022+\n\021expected_audience\030\004 \001(\tR\020expectedAu" +
+      "dienceB\266\001B\007IoProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer" +
+      ".Iam.Identityprovider.V1\312\002\"Ai\\Stigmer\\Ia" +
+      "m\\Identityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\I" +
+      "dentityprovider\\V1\\GPBMetadata\352\002&Ai::Sti" +
+      "gmer::Iam::Identityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -129,7 +130,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityprovider_v1_SsoProviderInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityprovider_v1_SsoProviderInfo_descriptor,
-        new java.lang.String[] { "DisplayName", "OidcClientId", "Issuer", });
+        new java.lang.String[] { "DisplayName", "OidcClientId", "Issuer", "ExpectedAudience", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.iam.identityprovider.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

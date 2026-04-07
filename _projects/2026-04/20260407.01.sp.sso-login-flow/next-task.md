@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-07 11:49
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+**Current Task**: T01 — Phase 1 complete, ready for Phase 2
+**Status**: In Progress
 
 ## Session Progress (2026-04-07)
 
@@ -147,7 +147,25 @@ When starting a new session:
 - Updated document writer role with visual fidelity and expanded demo opportunity guidelines
 - Changelog: `_changelog/2026-04/2026-04-07-152815-visual-first-getting-started-tours.md`
 
-**Note**: The SSO login flow implementation (T01 plan) has not started yet. All three sessions were about enriching documentation.
+### Session 4 — Phase 1: Proto changes (SSO login flow)
+
+**Focus**: Implemented Phase 1 of the T01 plan — proto definitions for the SSO login flow
+
+- **T01 plan reviewed and approved** by user during this session
+- Added `expected_audience` (field 4) to `SsoProviderInfo` in `identityprovider/v1/io.proto`
+  - Needed for Auth0-based SSO setups where the web app must pass `audience` in the OIDC auth request
+  - Empty value = web app omits the parameter (works for Okta, Entra ID)
+- Added `UpdateFederatedAccountInput` message to `identityaccount/v1/io.proto`
+  - Natural-key lookup (`org`, `identity_provider_ref`, `external_sub`) + profile fields
+  - Full-replace semantics matching `CreateFederatedAccountInput`
+- Added `DeprovisionFederatedAccountInput` message to `identityaccount/v1/io.proto`
+  - Natural-key lookup + `delete_account` boolean (revoke-only vs revoke+delete)
+- Added `updateFederatedAccount` and `deprovisionFederatedAccount` RPCs to `identityaccount/v1/command.proto`
+  - Both use `can_create_identity_account` on organization (same as `createFederatedAccount`)
+- Regenerated all stubs via `make protos` — clean exit, 38 files across Go/Java/Python/TypeScript
+- Design question flagged for Phase 3: auto-provisioning vs deprovision tension (revoked user could re-provision via SSO)
+
+**Phase 1 is complete. Phase 2 (backend handlers) is next.**
 
 ## Quick Commands
 
