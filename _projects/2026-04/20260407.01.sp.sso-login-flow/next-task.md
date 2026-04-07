@@ -101,9 +101,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-07 11:49
-**Current Task**: T01 — Phases 1–4 complete, ready for Phase 5
+**Current Task**: T01 — Phases 1–5 complete, ready for Phase 6
 **Status**: In Progress
-**Last Session**: 2026-04-07 Session 7 — Phase 4: Web App SSO Login Page (complete)
+**Last Session**: 2026-04-07 Session 8 — Phase 5: SSO Login URL on IdP Detail Panel (complete)
 
 ## Session Progress (2026-04-07)
 
@@ -252,10 +252,22 @@ When starting a new session:
 
 **Phases 1–4 are complete. Phase 5 (SSO Login URL on IdP Detail Panel) is next.**
 
+### Session 8 — Phase 5: SSO Login URL on IdP Detail Panel (SSO login flow)
+
+**Focus**: Implemented Phase 5 of the T01 plan — SSO Login URL on IdP Detail Panel
+
+- Added optional `ssoLoginUrl?: string` prop to `IdentityProviderDetailPanelProps` — SDK component accepts a pre-computed URL; consumer constructs it (no Console routing knowledge in the SDK)
+- Created `CopyableField` private helper in `IdentityProviderDetailPanel.tsx` — clipboard copy with 2s "Copied" feedback, manual text selection fallback on clipboard failure, `sr-only` live region for screen reader announcement
+- Renders SSO login URL field in `ViewMode` when `isSsoProvider && ssoLoginUrl` — positioned after OIDC client ID, with hint text "Share this URL with your team members to sign in via SSO"
+- Console (`IdentityProvidersSection.tsx`) computes URL as `${window.location.origin}/login?org=${orgSlug}` when `isSsoProvider` is true
+- TypeScript check passes on both `sdk/react` and `client-apps/web` (only pre-existing `UserMenu.tsx` error)
+- Zero linter errors
+
+**Phases 1–5 are complete. Phase 6 (Documentation) is next.**
+
 ## Next Steps
 
-1. **Phase 5: SSO Login URL on IdP Detail Panel** — copyable URL field in `IdentityProviderDetailPanel` when `is_sso_provider` is true
-2. **Phase 6: Documentation** — SSO login guide, SDK reference for update/deprovision RPCs, existing federation page updates
+1. **Phase 6: Documentation** — SSO login guide, SDK reference for update/deprovision RPCs, existing federation page updates
 
 ## Context for Resume
 
@@ -269,6 +281,8 @@ When starting a new session:
 - Provider tree bifurcation: `/login` bypasses the entire auth chain, not just `AuthGuard` — `OrgProvider` and `StigmerTransportBridge` fail without auth
 - SSO and Auth0 share `/auth/callback`; `stigmer:sso:login` (ephemeral) and `stigmer:sso:session` (persistent) sessionStorage keys distinguish the flows
 - SSO logout is local-only (no RP-initiated logout with IdP); redirects to `/login?org=...` for re-auth
+- `ssoLoginUrl` prop on `IdentityProviderDetailPanel` is optional — SDK stays agnostic to Console routing; the consumer computes the full URL
+- Clipboard copy pattern (navigator.clipboard + fallback + copied state + timeout) is repeated in 6+ SDK components — candidate for shared `useCopyToClipboard` hook or `CopyableField` component in a future cleanup pass
 
 ## Quick Commands
 

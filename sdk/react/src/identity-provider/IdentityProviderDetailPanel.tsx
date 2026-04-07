@@ -15,6 +15,12 @@ export interface IdentityProviderDetailPanelProps {
   readonly onUpdated?: (idp: IdentityProvider) => void;
   /** Fired when the user clicks the back button. */
   readonly onBack?: () => void;
+  /**
+   * Pre-computed SSO login URL to display when the IdP is an SSO provider.
+   * Omit to hide the field. The consumer is responsible for constructing
+   * the URL (e.g., `${window.location.origin}/login?org=${orgSlug}`).
+   */
+  readonly ssoLoginUrl?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -45,6 +51,7 @@ export function IdentityProviderDetailPanel({
   identityProvider,
   onUpdated,
   onBack,
+  ssoLoginUrl,
   className,
 }: IdentityProviderDetailPanelProps) {
   const spec = identityProvider.spec;
@@ -180,6 +187,7 @@ export function IdentityProviderDetailPanel({
       {mode === "view" ? (
         <ViewMode
           spec={spec}
+          ssoLoginUrl={ssoLoginUrl}
           createdAt={createdAt}
           updatedAt={updatedAt}
         />
@@ -315,10 +323,12 @@ export function IdentityProviderDetailPanel({
 
 function ViewMode({
   spec,
+  ssoLoginUrl,
   createdAt,
   updatedAt,
 }: {
   spec: IdentityProvider["spec"];
+  ssoLoginUrl?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }) {
@@ -336,6 +346,13 @@ function ViewMode({
       )}
       {spec?.isSsoProvider && (
         <Field label="OIDC client ID" value={spec.oidcClientId} mono />
+      )}
+      {spec?.isSsoProvider && ssoLoginUrl && (
+        <CopyableField
+          label="SSO login URL"
+          value={ssoLoginUrl}
+          hint="Share this URL with your team members to sign in via SSO"
+        />
       )}
       {(spec?.rateLimitBudget ?? 0) > 0 && (
         <Field
@@ -383,6 +400,85 @@ function Field({
         )}
       >
         {value}
+      </dd>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// View mode — copyable field
+// ---------------------------------------------------------------------------
+
+const COPIED_FEEDBACK_MS = 2000;
+
+function CopyableField({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const valueId = "stgm-idp-sso-login-url";
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+    } catch {
+      const el = document.getElementById(valueId);
+      if (el) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+    }
+  }, [value]);
+
+  return (
+    <div>
+      <dt className="text-muted-foreground text-[0.65rem] font-medium">
+        {label}
+      </dt>
+      <dd className="mt-0.5">
+        <div className="flex items-center gap-2">
+          <span
+            id={valueId}
+            className="text-foreground break-all font-mono text-xs select-all"
+          >
+            {value}
+          </span>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={cn(
+              "shrink-0 rounded px-1.5 py-0.5 text-[0.6rem]",
+              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "transition-colors",
+            )}
+            aria-label={`Copy ${label}`}
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+        {hint && (
+          <p className="text-muted-foreground mt-0.5 text-[0.65rem]">
+            {hint}
+          </p>
+        )}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {copied && "SSO login URL copied to clipboard"}
+        </div>
       </dd>
     </div>
   );
