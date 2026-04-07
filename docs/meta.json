@@ -2,6 +2,7 @@
   "pages": [
     "getting-started",
     "concepts",
+    "guides",
     "sdk"
   ]
 }

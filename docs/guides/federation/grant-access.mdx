@@ -1,0 +1,351 @@
+---
+title: Grant access to federated users
+description:
+  Use IAM Policies to give federated Identity Accounts access to your
+  Organization's resources in Stigmer.
+---
+
+A federated Identity Account proves _who_ the user is, but not _what_ they can
+do. Without an IAM Policy, an authenticated request returns `403 Forbidden`.
+This page shows how to grant roles so federated users can access your
+Organization's resources.
+
+## How authorization works
+
+Stigmer uses fine-grained authorization (FGA) with three elements:
+
+| Element       | Meaning                                                           |
+| ------------- | ----------------------------------------------------------------- |
+| **Principal** | Who is requesting access (an Identity Account)                    |
+| **Resource**  | What they want to access (Organization, Environment, Agent, etc.) |
+| **Relation**  | What level of access they have (`admin`, `viewer`, `owner`)       |
+
+An IAM Policy binds all three. When Stigmer receives an API call, it checks
+whether a policy exists that matches the caller, the target resource, and the
+required permission.
+
+## Grant an Organization role
+
+The most common pattern is granting a role on the Organization itself. This
+gives the user access to resources within that Organization based on the
+relation.
+
+| Relation | Permissions                                            |
+| -------- | ------------------------------------------------------ |
+| `admin`  | Full access to the Organization and all its resources  |
+| `viewer` | Read-only access to the Organization and its resources |
+
+Use the account ID returned from
+[`createFederatedAccount`](/docs/guides/federation/provision-federated-accounts)
+as the principal, and the Organization ID as the resource.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const policy = await stigmer.iamPolicy.create({
+  principal: {
+    kind: "identity_account",
+    id: accountId,
+  },
+  resource: {
+    kind: "organization",
+    id: organizationId,
+  },
+  relation: "viewer",
+});
+
+console.log(`Granted viewer role: ${policy.metadata.id}`);
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+policy, err := client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+  Principal: &stigmer.ApiResourceRefInput{
+    Kind: "identity_account",
+    Id:   accountId,
+  },
+  Resource: &stigmer.ApiResourceRefInput{
+    Kind: "organization",
+    Id:   organizationId,
+  },
+  Relation: "viewer",
+})
+if err != nil {
+  return fmt.Errorf("grant org role: %w", err)
+}
+fmt.Printf("Granted viewer role: %s\n", policy.Metadata.Id)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+policy = client.iam_policies.create(IamPolicySpec(
+    principal=ApiResourceRefInput(
+        kind="identity_account",
+        id=account_id,
+    ),
+    resource=ApiResourceRefInput(
+        kind="organization",
+        id=organization_id,
+    ),
+    relation="viewer",
+))
+
+print(f"Granted viewer role: {policy.metadata.id}")
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IamPolicy policy = client.iamPolicies().create(IamPolicySpec.builder()
+    .principal(ApiResourceRefInput.builder()
+        .kind("identity_account")
+        .id(accountId)
+        .build())
+    .resource(ApiResourceRefInput.builder()
+        .kind("organization")
+        .id(organizationId)
+        .build())
+    .relation("viewer")
+    .build());
+
+System.out.println("Granted viewer role: " + policy.getMetadata().getId());
+```
+
+</Tab>
+</SDKTabs>
+
+## Complete onboarding flow
+
+In practice, you'll provision the account and grant access in a single handler.
+Here's the combined pattern:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+async function onboardUser(user: PlatformUser): Promise<void> {
+  const idpRef = {
+    org: "acme",
+    kind: "identity_provider",
+    slug: "acme-cloud-auth",
+  };
+
+  let accountId: string;
+
+  try {
+    const existing = await stigmer.identityAccount.getByExternalSub({
+      org: "acme",
+      identityProviderRef: idpRef,
+      externalSub: user.oidcSubject,
+    });
+    accountId = existing.metadata.id;
+  } catch (err) {
+    if (err.code !== "NOT_FOUND") throw err;
+
+    const account = await stigmer.identityAccount.createFederatedAccount({
+      org: "acme",
+      identityProviderRef: idpRef,
+      externalSub: user.oidcSubject,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      pictureUrl: user.avatarUrl,
+    });
+    accountId = account.metadata.id;
+  }
+
+  await stigmer.iamPolicy.create({
+    principal: { kind: "identity_account", id: accountId },
+    resource: { kind: "organization", id: organizationId },
+    relation: "viewer",
+  });
+}
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser, orgId string) error {
+  idpRef := &stigmer.ResourceRef{
+    Org:  "acme",
+    Kind: "identity_provider",
+    Slug: "acme-cloud-auth",
+  }
+
+  var accountId string
+
+  existing, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
+    Org:                 "acme",
+    IdentityProviderRef: idpRef,
+    ExternalSub:         user.OIDCSubject,
+  })
+  if err == nil {
+    accountId = existing.Metadata.Id
+  } else if status.Code(err) == codes.NotFound {
+    account, createErr := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
+      Org:                 "acme",
+      IdentityProviderRef: idpRef,
+      ExternalSub:         user.OIDCSubject,
+      Email:               user.Email,
+      FirstName:           user.FirstName,
+      LastName:            user.LastName,
+      PictureUrl:          user.AvatarURL,
+    })
+    if createErr != nil {
+      return fmt.Errorf("create account: %w", createErr)
+    }
+    accountId = account.Metadata.Id
+  } else {
+    return err
+  }
+
+  _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+    Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: accountId},
+    Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: orgId},
+    Relation:  "viewer",
+  })
+  return err
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+def onboard_user(client, user: PlatformUser, organization_id: str) -> None:
+    idp_ref = ResourceRef(org="acme", kind="identity_provider", slug="acme-cloud-auth")
+
+    try:
+        existing = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
+            org="acme",
+            identity_provider_ref=idp_ref,
+            external_sub=user.oidc_subject,
+        ))
+        account_id = existing.metadata.id
+    except RpcError as e:
+        if e.code() != StatusCode.NOT_FOUND:
+            raise
+        account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+            org="acme",
+            identity_provider_ref=idp_ref,
+            external_sub=user.oidc_subject,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            picture_url=user.avatar_url,
+        ))
+        account_id = account.metadata.id
+
+    client.iam_policies.create(IamPolicySpec(
+        principal=ApiResourceRefInput(kind="identity_account", id=account_id),
+        resource=ApiResourceRefInput(kind="organization", id=organization_id),
+        relation="viewer",
+    ))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+public void onboardUser(StigmerClient client, PlatformUser user, String organizationId) {
+    ResourceRef idpRef = ResourceRef.builder()
+        .org("acme").kind("identity_provider").slug("acme-cloud-auth").build();
+
+    String accountId;
+
+    try {
+        IdentityAccount existing = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
+            .org("acme").identityProviderRef(idpRef).externalSub(user.getOidcSubject()).build());
+        accountId = existing.getMetadata().getId();
+    } catch (StatusRuntimeException e) {
+        if (e.getStatus().getCode() != Status.Code.NOT_FOUND) throw e;
+        IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
+            .org("acme").identityProviderRef(idpRef).externalSub(user.getOidcSubject())
+            .email(user.getEmail()).firstName(user.getFirstName())
+            .lastName(user.getLastName()).pictureUrl(user.getAvatarUrl()).build());
+        accountId = account.getMetadata().getId();
+    }
+
+    client.iamPolicies().create(IamPolicySpec.builder()
+        .principal(ApiResourceRefInput.builder().kind("identity_account").id(accountId).build())
+        .resource(ApiResourceRefInput.builder().kind("organization").id(organizationId).build())
+        .relation("viewer").build());
+}
+```
+
+</Tab>
+</SDKTabs>
+
+## Revoking access
+
+When a user leaves your platform, revoke their access. The `revokeOrgAccess`
+method removes all IAM Policies for a user across the entire Organization,
+including policies on child resources like Environments and Agents.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+await stigmer.iamPolicy.revokeOrgAccess({
+  identityAccountId: accountId,
+  organizationId: organizationId,
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+_, err := client.IamPolicy.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
+  IdentityAccountId: accountId,
+  OrganizationId:    organizationId,
+})
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+client.iam_policies.revoke_org_access(RevokeOrgAccessInput(
+    identity_account_id=account_id,
+    organization_id=organization_id,
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+client.iamPolicies().revokeOrgAccess(RevokeOrgAccessInput.builder()
+    .identityAccountId(accountId)
+    .organizationId(organizationId)
+    .build());
+```
+
+</Tab>
+</SDKTabs>
+
+<Callout type="info">
+  Revoking access doesn't delete the Identity Account. The user's account still
+  exists but can no longer access any resources. If you also want to remove the
+  account, call `identityAccount.delete` after revoking access.
+</Callout>
+
+## What's next
+
+Your federated users are provisioned and authorized. Now you need to understand
+how the runtime authentication flow works when they actually call the Stigmer
+API.
+
+Next: [Authentication flow](/docs/guides/federation/authentication-flow)
+explains the end-to-end path from JWT presentation to authorized API response.
+
+For the full IAM Policy API reference, see
+[IamPolicy](/docs/sdk/resources/iam-policy).

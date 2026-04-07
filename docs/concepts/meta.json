@@ -9,6 +9,7 @@
     "sessions",
     "workflows",
     "environments",
-    "organizations"
+    "organizations",
+    "identity"
   ]
 }
