@@ -350,6 +350,7 @@ All visual properties flow through `--stgm-*` design tokens.
     identityProvider: { type: "IdentityProvider", description: "The identity provider resource to display and edit.", required: true, typeDescriptionLink: "/docs/sdk/resources/identity-provider" },
     onBack: { type: "() => void", description: "Fired when the user clicks the back button." },
     onUpdated: { type: "(idp: IdentityProvider) => void", description: "Fired with the updated resource after a successful save." },
+    ssoLoginUrl: { type: "string", description: "Pre-computed SSO login URL to display when the IdP is an SSO provider. Omit to hide the field. The consumer is responsible for constructing the URL (e.g., `${window.location.origin}/login?org=${orgSlug}`)." },
   }}
 />
 
@@ -463,6 +464,45 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ```tsx
 <ProviderPicker onSelect={(preset) => setSelectedPreset(preset)} />
+```
+
+
+### SsoLoginPrompt
+
+Org-aware SSO discovery prompt.
+
+Guides the user through finding and connecting to their
+organization's SSO provider:
+
+1. Enter an organization slug (or receive one via `initialOrg`)
+2. The component calls [`useSsoProvider`](#usessoprovider) to look up the SSO
+   configuration
+3. If found, displays a prominent "Sign in with [provider]" button
+4. If not found, displays a clear message
+
+Platform builders embed this component in their own login pages to
+offer SSO authentication. The Console composes it with an Auth0
+fallback and OIDC redirect handling.
+
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `SsoLoginPromptProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    initialOrg: { type: "string", description: "Pre-filled organization slug, typically read from a URL query parameter (e.g., `?org=acme`).  When provided, the component auto-triggers the SSO provider lookup on mount, skipping the org input step." },
+    onSsoLogin: { type: "(provider: SsoProviderInfo, org: string) => void", description: "Called when the user clicks the SSO sign-in button.  The consumer is responsible for the actual OIDC redirect — this component owns the discovery UI, not the authentication mechanics.", required: true },
+  }}
+/>
+
+```tsx
+<SsoLoginPrompt
+  initialOrg="acme"
+  onSsoLogin={(provider, org) => {
+    // Initiate OIDC redirect with provider.issuer, provider.oidcClientId
+  }}
+/>
 ```
 
 

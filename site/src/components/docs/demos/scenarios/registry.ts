@@ -14,6 +14,7 @@ import { FederationOverviewTour } from "./federation-overview-tour";
 import { RegisterIdpPlayback } from "./register-idp-playback";
 import { ProvisionGrantPlayback } from "./provision-grant-playback";
 import { MultiTenantSetupPlayback } from "./multi-tenant-setup-playback";
+import { SsoLoginPlayback } from "./sso-login-playback";
 import { QuickstartTour } from "./quickstart-tour";
 import { FirstSkillTour } from "./first-skill-tour";
 import { ConnectToolsTour } from "./connect-tools-tour";
@@ -43,6 +44,7 @@ export const SCENARIO_REGISTRY: Record<string, ComponentType> = {
   "register-idp-playback": RegisterIdpPlayback,
   "provision-grant-playback": ProvisionGrantPlayback,
   "multi-tenant-setup-playback": MultiTenantSetupPlayback,
+  "sso-login-playback": SsoLoginPlayback,
   "quickstart-tour": QuickstartTour,
   "first-skill-tour": FirstSkillTour,
   "connect-tools-tour": ConnectToolsTour,

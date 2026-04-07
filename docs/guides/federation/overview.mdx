@@ -1,16 +1,24 @@
 ---
 title: Identity federation
 description:
-  Let your platform's users access Stigmer with their existing credentials. This
-  guide covers the complete federation setup from Identity Provider registration
-  to authenticated API calls.
+  Let users access Stigmer with their existing credentials. This guide covers
+  platform-managed federation for API integration and self-managed SSO for web
+  console login.
 ---
 
-Identity federation lets your platform's users call the Stigmer API using tokens
-issued by **your** authentication system. Instead of requiring users to create
-Stigmer accounts, you register your auth provider as an Identity Provider,
-provision federated accounts for your users, and grant them access to your
-Organization's resources.
+Identity federation lets users access Stigmer with tokens issued by an external
+authentication system. Instead of requiring separate Stigmer accounts, you
+register your auth provider as an Identity Provider and Stigmer trusts its
+tokens.
+
+Federation supports two paths:
+
+- **Platform-managed federation** — Your platform backend provisions accounts
+  and grants roles via the API. Your users call the Stigmer API with JWTs from
+  your auth provider.
+- **Self-managed SSO** — Your team members sign in to the Stigmer web console
+  through your Organization's Identity Provider. Accounts are created
+  automatically on first login.
 
 <DemoFederationOverviewTour />
 
@@ -114,6 +122,19 @@ This guide is split into four pages, each covering one step of the integration:
   Provider, you can jump directly to [provisioning
   accounts](/docs/guides/federation/provision-federated-accounts).
 </Callout>
+
+## Self-managed SSO
+
+If your Organization is self-managed and you want team members to sign in to the
+Stigmer web console through your own Identity Provider, you can enable SSO.
+Stigmer creates accounts automatically on first login and assigns a viewer role.
+
+<Cards>
+  <Card href="/docs/guides/federation/sso-login" title="Set up SSO">
+    Enable SSO login for a self-managed Organization so team members sign in
+    through your Identity Provider.
+  </Card>
+</Cards>
 
 ## Multi-tenant platforms
 

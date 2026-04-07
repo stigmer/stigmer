@@ -5,10 +5,16 @@ description:
   they can authenticate with your provider's JWTs.
 ---
 
-Stigmer does not automatically create accounts when it sees a new JWT. Your
-platform backend must explicitly provision a federated Identity Account for each
-user **before** that user can call the Stigmer API. This gives you full control
-over who gets access.
+For platform-managed federation, your backend must explicitly provision a
+federated Identity Account for each user **before** that user can call the
+Stigmer API. This gives you full control over who gets access.
+
+<Callout type="info">
+  **Self-managed SSO is different.** If your Identity Provider has SSO enabled,
+  Stigmer creates accounts automatically on first login. You don't need to
+  provision accounts manually. See [Set up
+  SSO](/docs/guides/federation/sso-login) for details.
+</Callout>
 
 <DemoProvisionGrantPlayback />
 
@@ -425,6 +431,183 @@ public String provisionUser(StigmerClient client, PlatformUser user) {
 
 </Tab>
 </SDKTabs>
+
+## Update a federated account
+
+When a user's profile changes on your platform (email, name, or picture), sync
+those changes to Stigmer with `updateFederatedAccount`. The method uses the same
+natural-key lookup as provisioning: Identity Provider reference + external
+subject.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const updated = await stigmer.identityAccount.updateFederatedAccount({
+  org: "acme",
+  identityProviderRef: {
+    org: "acme",
+    kind: "identity_provider",
+    slug: "acme-cloud-auth",
+  },
+  externalSub: user.oidcSubject,
+  email: user.newEmail,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  pictureUrl: user.avatarUrl,
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+updated, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stigmer.UpdateFederatedAccountInput{
+  Org: "acme",
+  IdentityProviderRef: &stigmer.ResourceRef{
+    Org:  "acme",
+    Kind: "identity_provider",
+    Slug: "acme-cloud-auth",
+  },
+  ExternalSub: user.OIDCSubject,
+  Email:       user.NewEmail,
+  FirstName:   user.FirstName,
+  LastName:    user.LastName,
+  PictureUrl:  user.AvatarURL,
+})
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+updated = client.identity_accounts.update_federated_account(UpdateFederatedAccountInput(
+    org="acme",
+    identity_provider_ref=ResourceRef(
+        org="acme",
+        kind="identity_provider",
+        slug="acme-cloud-auth",
+    ),
+    external_sub=user.oidc_subject,
+    email=user.new_email,
+    first_name=user.first_name,
+    last_name=user.last_name,
+    picture_url=user.avatar_url,
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IdentityAccount updated = client.identityAccounts().updateFederatedAccount(UpdateFederatedAccountInput.builder()
+    .org("acme")
+    .identityProviderRef(ResourceRef.builder()
+        .org("acme")
+        .kind("identity_provider")
+        .slug("acme-cloud-auth")
+        .build())
+    .externalSub(user.getOidcSubject())
+    .email(user.getNewEmail())
+    .firstName(user.getFirstName())
+    .lastName(user.getLastName())
+    .pictureUrl(user.getAvatarUrl())
+    .build());
+```
+
+</Tab>
+</SDKTabs>
+
+The update replaces all profile fields at once. Pass the current values for any
+fields that haven't changed. Identity keys (`org`, `identityProviderRef`,
+`externalSub`) are immutable and used only for lookup.
+
+## Revoke a federated account
+
+When a user leaves your platform, revoke their Stigmer access with
+`deprovisionFederatedAccount`. You choose between two modes:
+
+- **Revoke only** (`deleteAccount: false`) — Removes all IAM Policies for this
+  account in the Organization. The account still exists but can't access
+  anything. Use this when you might re-enable access later.
+- **Revoke and delete** (`deleteAccount: true`) — Removes IAM Policies **and**
+  deletes the Identity Account. Use this when the user is permanently leaving.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const deprovisioned = await stigmer.identityAccount.deprovisionFederatedAccount(
+  {
+    org: "acme",
+    identityProviderRef: {
+      org: "acme",
+      kind: "identity_provider",
+      slug: "acme-cloud-auth",
+    },
+    externalSub: user.oidcSubject,
+    deleteAccount: false,
+  },
+);
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+deprovisioned, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &stigmer.DeprovisionFederatedAccountInput{
+  Org: "acme",
+  IdentityProviderRef: &stigmer.ResourceRef{
+    Org:  "acme",
+    Kind: "identity_provider",
+    Slug: "acme-cloud-auth",
+  },
+  ExternalSub:   user.OIDCSubject,
+  DeleteAccount: false,
+})
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+deprovisioned = client.identity_accounts.deprovision_federated_account(DeprovisionFederatedAccountInput(
+    org="acme",
+    identity_provider_ref=ResourceRef(
+        org="acme",
+        kind="identity_provider",
+        slug="acme-cloud-auth",
+    ),
+    external_sub=user.oidc_subject,
+    delete_account=False,
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IdentityAccount deprovisioned = client.identityAccounts().deprovisionFederatedAccount(DeprovisionFederatedAccountInput.builder()
+    .org("acme")
+    .identityProviderRef(ResourceRef.builder()
+        .org("acme")
+        .kind("identity_provider")
+        .slug("acme-cloud-auth")
+        .build())
+    .externalSub(user.getOidcSubject())
+    .deleteAccount(false)
+    .build());
+```
+
+</Tab>
+</SDKTabs>
+
+<Callout type="warn">
+  If you revoke-only and the Identity Provider has SSO enabled, the user can
+  sign in again through SSO and regain viewer access automatically. To
+  permanently block an SSO user, use `deleteAccount: true` or disable the
+  Identity Provider.
+</Callout>
 
 ## What's next
 
