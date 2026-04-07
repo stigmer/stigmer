@@ -22,7 +22,6 @@ import { useRevokeOrgAccess } from "./useRevokeOrgAccess";
 import { useCreateIamPolicy } from "./useCreateIamPolicy";
 import { useDeleteIamPolicy } from "./useDeleteIamPolicy";
 import { RoleSelector } from "./RoleSelector";
-import { GrantAccessForm } from "./GrantAccessForm";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -42,8 +41,9 @@ export interface OrgMembersPanelProps {
  * Self-contained panel for managing organization members.
  *
  * Displays all principals with access to the organization, their
- * role grants, and provides actions to add members, change roles,
- * and remove members. The current user is identified via
+ * role grants, and provides actions to change roles and remove
+ * members. New members are added through the invitation flow.
+ * The current user is identified via
  * `identityAccount.whoAmI()` for self-protection (disabling
  * destructive actions on yourself).
  *
@@ -65,7 +65,6 @@ export function OrgMembersPanel({
   const { account: currentAccount } = useWhoAmI();
   const currentAccountId = currentAccount?.metadata?.id ?? null;
 
-  const [showAddForm, setShowAddForm] = useState(false);
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
 
   const handleRefetch = useCallback(() => {
@@ -76,11 +75,6 @@ export function OrgMembersPanel({
   if (onRefetchRef) {
     onRefetchRef(handleRefetch);
   }
-
-  const handleGranted = useCallback(() => {
-    setShowAddForm(false);
-    handleRefetch();
-  }, [handleRefetch]);
 
   if (isLoading) {
     return (
@@ -110,43 +104,19 @@ export function OrgMembersPanel({
   return (
     <div className={cn("space-y-3", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">Members</span>
-          {count > 0 && (
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground">
-              {count}
-            </span>
-          )}
-        </div>
-        {!showAddForm && (
-          <button
-            type="button"
-            onClick={() => setShowAddForm(true)}
-            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
-          >
-            + Add member
-          </button>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-foreground">Members</span>
+        {count > 0 && (
+          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground">
+            {count}
+          </span>
         )}
       </div>
-
-      {/* Add member form */}
-      {showAddForm && (
-        <div className="border-border bg-card rounded-lg border p-4">
-          <GrantAccessForm
-            resourceKind={ApiResourceKind.organization}
-            resourceKindString="organization"
-            resourceId={orgId}
-            onGranted={handleGranted}
-            onCancel={() => setShowAddForm(false)}
-          />
-        </div>
-      )}
 
       {/* Members list */}
       {members.length === 0 ? (
         <p className="text-muted-foreground py-4 text-center text-xs">
-          No members yet. Add someone to get started.
+          No members found.
         </p>
       ) : (
         <div role="list" aria-label="Organization members" className="space-y-2">
