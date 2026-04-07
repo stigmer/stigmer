@@ -13,6 +13,8 @@ import { AuthenticationFlowPlayback } from "./authentication-flow-playback";
 import { FederationOverviewTour } from "./federation-overview-tour";
 import { RegisterIdpPlayback } from "./register-idp-playback";
 import { ProvisionGrantPlayback } from "./provision-grant-playback";
+import { MultiTenantSetupPlayback } from "./multi-tenant-setup-playback";
+import { QuickstartTour } from "./quickstart-tour";
 
 /**
  * Maps scenario directory names to their React components.
@@ -37,6 +39,8 @@ export const SCENARIO_REGISTRY: Record<string, ComponentType> = {
   "federation-overview-tour": FederationOverviewTour,
   "register-idp-playback": RegisterIdpPlayback,
   "provision-grant-playback": ProvisionGrantPlayback,
+  "multi-tenant-setup-playback": MultiTenantSetupPlayback,
+  "quickstart-tour": QuickstartTour,
 };
 
 export const PLAYBACK_SCENARIO_IDS = Object.keys(SCENARIO_REGISTRY);

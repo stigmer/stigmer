@@ -7,7 +7,7 @@ import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { ComponentPreview, DemoAgentCreationTour, DemoAgentDetail, DemoApiKeySetup, DemoApprovalFlowPlayback, DemoAuthenticationFlowPlayback, DemoDiscoverCapabilities, DemoFederationOverviewTour, DemoGeneratePolicies, DemoMcpServerCreationTour, DemoMcpServerDetail, DemoProvisionGrantPlayback, DemoQuickstartPlayback, DemoRegisterIdpPlayback, DemoSessionMemoryPlayback, DemoSkillCreationTour, DemoSkillDetail, DemoToolCallsPlayback, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
+import { ComponentPreview, DemoAgentCreationTour, DemoAgentDetail, DemoApiKeySetup, DemoApprovalFlowPlayback, DemoAuthenticationFlowPlayback, DemoDiscoverCapabilities, DemoFederationOverviewTour, DemoGeneratePolicies, DemoMcpServerCreationTour, DemoMcpServerDetail, DemoMultiTenantSetupPlayback, DemoProvisionGrantPlayback, DemoQuickstartPlayback, DemoQuickstartTour, DemoRegisterIdpPlayback, DemoSessionMemoryPlayback, DemoSkillCreationTour, DemoSkillDetail, DemoToolCallsPlayback, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -36,8 +36,10 @@ export function getMDXComponents(components?: MDXComponents) {
     DemoGeneratePolicies,
     DemoMcpServerCreationTour,
     DemoMcpServerDetail,
+    DemoMultiTenantSetupPlayback,
     DemoProvisionGrantPlayback,
     DemoQuickstartPlayback,
+    DemoQuickstartTour,
     DemoRegisterIdpPlayback,
     DemoSessionMemoryPlayback,
     DemoSkillCreationTour,
