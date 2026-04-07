@@ -449,6 +449,7 @@ export {
   ProviderPicker,
   IdentityProviderWizard,
   IdentityProviderDetailPanel,
+  SsoLoginPrompt,
 } from "./identity-provider";
 export type {
   UseIdentityProviderListReturn,
@@ -465,6 +466,7 @@ export type {
   ProviderPickerProps,
   IdentityProviderWizardProps,
   IdentityProviderDetailPanelProps,
+  SsoLoginPromptProps,
 } from "./identity-provider";
 
 // Invitation — data hooks, behavior hooks, and feature components for org invite links

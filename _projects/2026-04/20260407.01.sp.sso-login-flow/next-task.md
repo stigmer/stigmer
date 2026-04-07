@@ -101,9 +101,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-07 11:49
-**Current Task**: T01 — Phases 1, 2, and 3 complete, ready for Phase 4
+**Current Task**: T01 — Phases 1–4 complete, ready for Phase 5
 **Status**: In Progress
-**Last Session**: 2026-04-07 Session 6 — Phase 3: SSO Auto-Provisioning (complete)
+**Last Session**: 2026-04-07 Session 7 — Phase 4: Web App SSO Login Page (complete)
 
 ## Session Progress (2026-04-07)
 
@@ -237,11 +237,25 @@ When starting a new session:
 
 **Phases 1, 2, and 3 are complete. Phase 4 (Web App SSO Login Page) is next.**
 
+### Session 7 — Phase 4: Web App SSO Login Page (SSO login flow)
+
+**Focus**: Implemented Phase 4 of the T01 plan — Web App SSO Login Page
+
+- Created `sso-session.ts` — pure sessionStorage helpers for SSO login state (ephemeral pre-callback) and SSO session state (persistent across reloads), with `SsoState` interface and `isValidSsoState` type guard
+- Created `SsoLoginPrompt` SDK component in `@stigmer/react` — org input → SSO provider lookup → "Sign in with [provider]" button; 5-phase state machine; themed via `--stgm-*` tokens; exported from identity-provider barrel and root index
+- Modified `Providers.tsx` — extracted `ProvidersInner` with `PUBLIC_ROUTES` check; `/login` gets light provider tree (ConfigGate + ThemeProvider only); no AuthGuard, OrgProvider, or StigmerTransportBridge for public routes
+- Modified `AppShell.tsx` — added `/login` to `isPublicZone` check (no sidebar on login page)
+- Created `/login` page route — reads `?org=` param; creates unauthenticated `StigmerProvider` (`getAccessToken: () => null`); composes `SsoLoginPrompt` with Auth0 "Sign in with email" fallback; SSO button saves login state and calls `signinRedirect()`
+- Modified `OidcAuthProvider.tsx` — (a) `resolveActiveManager()` checks for SSO session on mount; (b) `processSsoOrAuth0Callback()` detects SSO callback via sessionStorage; (c) SSO logout clears session and redirects to `/login?org=...`
+- TypeScript check passes on both `sdk/react` and `client-apps/web` (only pre-existing `UserMenu.tsx` error)
+- Zero linter errors across all changed files
+
+**Phases 1–4 are complete. Phase 5 (SSO Login URL on IdP Detail Panel) is next.**
+
 ## Next Steps
 
-1. **Phase 4: Web App — SSO Login Page** — org discovery via URL param + text input, OIDC redirect to org's IdP, callback handling with sessionStorage-based routing
-2. **Phase 5: SSO Login URL on IdP Detail Panel** — copyable URL field in `IdentityProviderDetailPanel` (can be done in parallel with Phase 4)
-3. **Phase 6: Documentation** — SSO login guide, SDK reference for update/deprovision RPCs, existing federation page updates
+1. **Phase 5: SSO Login URL on IdP Detail Panel** — copyable URL field in `IdentityProviderDetailPanel` when `is_sso_provider` is true
+2. **Phase 6: Documentation** — SSO login guide, SDK reference for update/deprovision RPCs, existing federation page updates
 
 ## Context for Resume
 
@@ -251,6 +265,10 @@ When starting a new session:
 - Viewer role (not member) is granted per design decision 001 — member enables billable agent executions
 - The backward-compatible 5-arg `FederatedAuthenticationToken` constructor was added to avoid breaking existing code that doesn't need the SSO flag
 - All Mockito-based federation tests are now in the Bazel test cycle (previously IDE-only)
+- `SsoLoginPrompt` is in `@stigmer/react` (SDK component); OIDC redirect mechanics are in `client-apps/web` (Console concern)
+- Provider tree bifurcation: `/login` bypasses the entire auth chain, not just `AuthGuard` — `OrgProvider` and `StigmerTransportBridge` fail without auth
+- SSO and Auth0 share `/auth/callback`; `stigmer:sso:login` (ephemeral) and `stigmer:sso:session` (persistent) sessionStorage keys distinguish the flows
+- SSO logout is local-only (no RP-initiated logout with IdP); redirects to `/login?org=...` for re-auth
 
 ## Quick Commands
 
