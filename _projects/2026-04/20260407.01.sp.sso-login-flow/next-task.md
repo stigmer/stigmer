@@ -103,7 +103,7 @@ When starting a new session:
 **Created**: 2026-04-07 11:49
 **Current Task**: T01 — All 6 phases complete
 **Status**: Complete
-**Last Session**: 2026-04-07 Session 10 — Phase 6: Documentation + SSO login demo scenario
+**Last Session**: 2026-04-07 Session 11 — Lint cleanup (make check)
 
 ## Session Progress (2026-04-07)
 
@@ -308,6 +308,22 @@ When starting a new session:
 - Fixed "Org" capitalization and "session state" → "browser storage" rephrasing
 
 **Build verification:** TypeScript check and `make docs-build` both pass clean (0 errors)
+
+### Session 11 — Lint cleanup (make check)
+
+**Focus**: Ran `make check` and fixed all lint errors to get the branch clean
+
+- Ran `make check` — found 6 ESLint errors in 4 site/ files (all pre-existing, not from SSO work)
+- **Unused imports removed** (3 errors):
+  - `ApprovalAction` from `connect-tools-tour/index.tsx`
+  - `agentCreatedExecution` from `create-agent-tour/index.tsx`
+  - `skillCreatedExecution` from `first-skill-tour/index.tsx`
+- **`@typescript-eslint/no-explicit-any` fixed** (3 errors in `site/video/Root.tsx`):
+  - Introduced `RequireContext` interface for webpack `require.context` calls
+  - Cast `require` through `unknown` once via `requireWithContext` helper
+  - Replaced `as any` in `extractSteps` with `Record<string, unknown>`
+- Pre-existing `execute_graphton.py` change included (Python datetime `timezone.utc` → `UTC` modernization)
+- `make check` now passes lint (remaining failure is pre-existing `check-links` 302 from `https://manage.auth0.com/`)
 
 ## Next Steps
 

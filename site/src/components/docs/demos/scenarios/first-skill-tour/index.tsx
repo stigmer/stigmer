@@ -20,7 +20,6 @@ import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   type FirstSkillTourStep,
   firstSkillTourSteps,
-  skillCreatedExecution,
   SKILL_REFS_CODE,
   EXPERT_OUTPUT,
 } from "./steps";

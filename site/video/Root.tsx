@@ -17,13 +17,22 @@ const HEIGHT = 1080;
 // public/demos/<id>/manifest.json (produced by `make generate-narration`).
 // ---------------------------------------------------------------------------
 
-const stepsCtx = (require as any).context(
+interface RequireContext {
+  keys(): string[];
+  (id: string): Record<string, unknown>;
+}
+
+const requireWithContext = require as unknown as {
+  context(dir: string, deep: boolean, filter: RegExp): RequireContext;
+};
+
+const stepsCtx = requireWithContext.context(
   "../src/components/docs/demos/scenarios",
   true,
   /^\.\/[^/]+\/steps\.ts$/,
 );
 
-const manifestCtx = (require as any).context(
+const manifestCtx = requireWithContext.context(
   "../public/demos",
   true,
   /^\.\/[^/]+\/manifest\.json$/,
@@ -45,7 +54,7 @@ function extractSteps(
     if (
       Array.isArray(val) &&
       val.length > 0 &&
-      typeof (val[0] as any)?.delayMs === "number"
+      typeof (val[0] as Record<string, unknown>)?.delayMs === "number"
     ) {
       return val as readonly { delayMs: number }[];
     }

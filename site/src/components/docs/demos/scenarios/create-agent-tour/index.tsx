@@ -23,7 +23,6 @@ import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 import {
   type CreateAgentTourStep,
   createAgentTourSteps,
-  agentCreatedExecution,
   buildDemoAgent,
   DEMO_ORG,
   DEMO_SLUG,
