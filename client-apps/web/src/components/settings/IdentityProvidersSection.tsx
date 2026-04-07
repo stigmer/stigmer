@@ -86,6 +86,11 @@ export function IdentityProvidersSection() {
         <div className="border-border bg-card rounded-lg border p-4">
           <IdentityProviderDetailPanel
             identityProvider={flow.identityProvider}
+            ssoLoginUrl={
+              flow.identityProvider.spec?.isSsoProvider
+                ? `${window.location.origin}/login?org=${orgSlug}`
+                : undefined
+            }
             onUpdated={handleUpdated}
             onBack={() => setFlow({ phase: "idle" })}
           />
