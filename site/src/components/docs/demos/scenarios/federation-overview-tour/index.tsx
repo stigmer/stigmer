@@ -10,7 +10,7 @@ import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { BrowserView } from "../../views/BrowserView";
 import { ManagementShell } from "../../views/ManagementShell";
 import { APIExchangeView } from "../../views/APIExchangeView";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   type OverviewTourStep,
   overviewTourSteps,
@@ -78,25 +78,25 @@ function renderStep(step: OverviewTourStep) {
 
     case "user-login":
       return (
-        <BrowserView url="acme.cloud/dashboard" contentKey="login">
+        <BrowserView url="acme.cloud/dashboard" contentKey="login" zoom={DEMO_BROWSER_ZOOM}>
           <div className="flex h-full items-center justify-center bg-gradient-to-b from-background to-muted/30">
-            <div className="w-64 space-y-3 text-center">
-              <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
-                <Check className="h-4 w-4 text-emerald-500" />
+            <div className="w-56 space-y-2 text-center">
+              <div className="mx-auto flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10">
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
               </div>
               <div>
-                <h3 className="text-[11px] font-semibold text-foreground">
+                <h3 className="text-[10px] font-semibold text-foreground">
                   Welcome, Jane!
                 </h3>
-                <p className="text-[9px] text-muted-foreground">
+                <p className="text-[8px] text-muted-foreground">
                   Authenticated via Auth0
                 </p>
               </div>
-              <div className="rounded-md border border-border bg-muted/50 p-2 text-left">
-                <p className="mb-1 text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="rounded-md border border-border bg-muted/50 p-1.5 text-left">
+                <p className="mb-0.5 text-[7px] font-semibold uppercase tracking-wider text-muted-foreground">
                   JWT issued
                 </p>
-                <div className="font-mono text-[8px] text-muted-foreground">
+                <div className="font-mono text-[7px] text-muted-foreground">
                   <span className="text-primary">&quot;sub&quot;</span>
                   {": "}
                   <span>&quot;auth0|jane_doe_123&quot;</span>

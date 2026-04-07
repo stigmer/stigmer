@@ -13,7 +13,7 @@ import { BrowserView } from "../../views/BrowserView";
 import { TerminalView } from "../../views/TerminalView";
 import { APIExchangeView } from "../../views/APIExchangeView";
 import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   type AuthFlowStep,
   authFlowSteps,
@@ -67,36 +67,34 @@ function cursorTargetFor(step: AuthFlowStep): string | undefined {
 function LoginPage() {
   return (
     <div className="flex h-full items-center justify-center bg-gradient-to-b from-background to-muted/30">
-      <div className="w-56 rounded-lg border border-border bg-card p-4 shadow-sm">
-        <div className="mb-3 text-center">
-          <div className="mx-auto mb-1.5 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
-            <span className="text-[10px] font-bold text-primary">A</span>
+      <div className="w-52 rounded-lg border border-border bg-card p-3 shadow-sm">
+        <div className="mb-2 text-center">
+          <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
+            <span className="text-[9px] font-bold text-primary">A</span>
           </div>
-          <h3 className="text-[11px] font-semibold text-foreground">
+          <h3 className="text-[10px] font-semibold text-foreground">
             Acme Cloud
           </h3>
-          <p className="text-[9px] text-muted-foreground">
+          <p className="text-[8px] text-muted-foreground">
             Sign in to your account
           </p>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div>
-            <label className="text-[9px] text-muted-foreground">Email</label>
-            <div className="rounded-md border border-border bg-background px-2 py-1 text-[10px] text-foreground">
+            <label className="text-[8px] text-muted-foreground">Email</label>
+            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground">
               jane@acme.com
             </div>
           </div>
           <div>
-            <label className="text-[9px] text-muted-foreground">
-              Password
-            </label>
-            <div className="rounded-md border border-border bg-background px-2 py-1 text-[10px] text-muted-foreground">
+            <label className="text-[8px] text-muted-foreground">Password</label>
+            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-muted-foreground">
               ••••••••••
             </div>
           </div>
           <div className="relative" data-cursor-target="sign-in-btn">
-            <div className="rounded-md bg-primary py-1 text-center text-[10px] font-medium text-primary-foreground">
+            <div className="rounded-md bg-primary py-0.5 text-center text-[9px] font-medium text-primary-foreground">
               Sign in
             </div>
             <PulseHighlight />
@@ -110,24 +108,24 @@ function LoginPage() {
 function AuthenticatedPage() {
   return (
     <div className="flex h-full items-center justify-center bg-gradient-to-b from-background to-muted/30">
-      <div className="w-64 space-y-3 text-center">
-        <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
-          <Check className="h-4 w-4 text-emerald-500" />
+      <div className="w-56 space-y-2 text-center">
+        <div className="mx-auto flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10">
+          <Check className="h-3.5 w-3.5 text-emerald-500" />
         </div>
         <div>
-          <h3 className="text-[11px] font-semibold text-foreground">
+          <h3 className="text-[10px] font-semibold text-foreground">
             Welcome, Jane!
           </h3>
-          <p className="text-[9px] text-muted-foreground">
+          <p className="text-[8px] text-muted-foreground">
             Authenticated via Auth0
           </p>
         </div>
 
-        <div className="rounded-md border border-border bg-muted/50 p-2 text-left">
-          <p className="mb-1 text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="rounded-md border border-border bg-muted/50 p-1.5 text-left">
+          <p className="mb-0.5 text-[7px] font-semibold uppercase tracking-wider text-muted-foreground">
             JWT Access Token
           </p>
-          <div className="space-y-0.5 font-mono text-[8px]">
+          <div className="space-y-0 font-mono text-[7px]">
             <div className="text-muted-foreground">
               {"{"}{" "}
               <span className="text-primary">&quot;iss&quot;</span>
@@ -168,7 +166,7 @@ function renderStep(step: AuthFlowStep) {
   switch (step.view) {
     case "browser-login":
       return (
-        <BrowserView url="acme.cloud/login" contentKey="login">
+        <BrowserView url="acme.cloud/login" contentKey="login" zoom={DEMO_BROWSER_ZOOM}>
           <LoginPage />
         </BrowserView>
       );
@@ -179,6 +177,7 @@ function renderStep(step: AuthFlowStep) {
           url="acme.cloud/dashboard"
           contentKey="dashboard"
           slideDirection="forward"
+          zoom={DEMO_BROWSER_ZOOM}
         >
           <AuthenticatedPage />
         </BrowserView>

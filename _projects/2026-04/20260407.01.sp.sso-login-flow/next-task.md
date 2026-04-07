@@ -103,7 +103,7 @@ When starting a new session:
 **Created**: 2026-04-07 11:49
 **Current Task**: T01 — Phases 1–5 complete, ready for Phase 6
 **Status**: In Progress
-**Last Session**: 2026-04-07 Session 8 — Phase 5: SSO Login URL on IdP Detail Panel (complete)
+**Last Session**: 2026-04-07 Session 9 — Browser mockup scaling fix + BrowserPageCard removal
 
 ## Session Progress (2026-04-07)
 
@@ -264,6 +264,19 @@ When starting a new session:
 - Zero linter errors
 
 **Phases 1–5 are complete. Phase 6 (Documentation) is next.**
+
+### Session 9 — Browser mockup scaling fix + BrowserPageCard removal
+
+**Focus**: Fixed browser mockup over-zoom in docs and video export; removed false `BrowserPageCard` abstraction
+
+- Added `DEMO_BROWSER_ZOOM = 0.9` token to `tokens.ts` — scales BrowserView shells comfortably within docs prose
+- Added `DEMO_BROWSER_SHELL_HEIGHT = 420` token — taller internal height for centered card mockups
+- Added `zoom` prop to `BrowserView` component; changed default height fallback to `DEMO_BROWSER_SHELL_HEIGHT`
+- Applied `zoom={DEMO_BROWSER_ZOOM}` to all 5 scenarios using `BrowserView`
+- Compacted card dimensions in `LoginPage`, `SignupPage`, `TenantSignupPage` (w-56→w-52, p-4→p-3, font sizes -1px)
+- Created then deleted `BrowserPageCard.tsx` — identified as false abstraction (generic name, specific implementation)
+- Updated `_roles/002_document_writer.md`: replaced "Shared browser page components" section with "Shell-level vs. content-level abstraction" principle
+- **Design principle established**: shell-level sizing is tokenized and reusable; content inside shells is scenario-specific and stays inline
 
 ## Next Steps
 

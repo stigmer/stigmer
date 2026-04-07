@@ -10,13 +10,15 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { DEMO_SHELL_HEIGHT } from "../shared/tokens";
+import { DEMO_BROWSER_SHELL_HEIGHT } from "../shared/tokens";
 
 interface BrowserViewProps {
   readonly url: string;
   readonly contentKey: string;
   readonly slideDirection?: "forward" | "backward";
   readonly children: ReactNode;
+  /** Optional CSS zoom applied to the entire shell (chrome + content). */
+  readonly zoom?: number;
 }
 
 function tabTitle(url: string): string {
@@ -37,6 +39,7 @@ export function BrowserView({
   contentKey,
   slideDirection,
   children,
+  zoom,
 }: BrowserViewProps) {
   const slideX =
     slideDirection === "forward" ? 24 : slideDirection === "backward" ? -24 : 0;
@@ -44,7 +47,10 @@ export function BrowserView({
   return (
     <div
       className="flex flex-col overflow-hidden rounded-lg border border-border"
-      style={{ height: `var(--demo-shell-height, ${DEMO_SHELL_HEIGHT}px)` }}
+      style={{
+        height: `var(--demo-shell-height, ${DEMO_BROWSER_SHELL_HEIGHT}px)`,
+        zoom: zoom ?? undefined,
+      }}
     >
       {/* Tab strip */}
       <div className="flex items-center bg-[#202124] px-2 pt-1.5 dark:bg-[#202124]">

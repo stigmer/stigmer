@@ -35,11 +35,23 @@ All demo layout values live in a single file: `site/src/components/docs/demos/sh
 
 - **`DEMO_CONTENT_ZOOM`** — zoom level for SDK components in the content area
 - **`DEMO_SIDEBAR_ZOOM`** — zoom level for sidebar widgets
-- **`DEMO_SHELL_HEIGHT`** — container height for the demo shell
+- **`DEMO_BROWSER_ZOOM`** — zoom level for BrowserView shells (login pages, auth dashboards, external service UIs). Pass as the `zoom` prop on `BrowserView`.
+- **`DEMO_SHELL_HEIGHT`** — container height for non-browser demo shells (terminal, code editor, API exchange, management console)
+- **`DEMO_BROWSER_SHELL_HEIGHT`** — container height for BrowserView shells (taller than `DEMO_SHELL_HEIGHT` to give centered cards visible top/bottom margins)
 - **`DEMO_PLAYER_CLASSES`** — wrapper classes for ScenarioPlayer-based demos
 - **`DEMO_DETAIL_CLASSES`** — wrapper classes for standalone SDK component demos
 
 When you create a new demo, import the appropriate token from this file. Never hardcode zoom values, container heights, or wrapper class strings. This keeps all demos visually consistent — one change to `tokens.ts` updates every demo on the site.
+
+### Shell-level vs. content-level abstraction
+
+The demo framework has two layers with different abstraction rules:
+
+**Shell layer** — `BrowserView`, `TerminalView`, `CodeEditorView`, `APIExchangeView`, `ManagementShell`. These are genuinely reusable components. They render chrome (address bars, title bars, file trees, line numbers) and accept arbitrary children. Their sizing is controlled by centralized tokens (`DEMO_BROWSER_ZOOM`, `DEMO_BROWSER_SHELL_HEIGHT`, `DEMO_SHELL_HEIGHT`). Shell components belong in `shared/` or `views/`.
+
+**Content layer** — the JSX rendered *inside* a shell. Login forms, admin panels, dashboard cards, pricing tables, 404 pages. These are scenario-specific illustrations. Each scenario owns its content markup inline. Do not extract content into shared components just because two scenarios look visually similar. Visual similarity between a login page and a signup page is an industry pattern, not a shared abstraction. If a future scenario needs a different layout (a settings page, a Stripe checkout, a 404 error), it should be free to define its own content without fighting a shared component designed around a different use case.
+
+**Configurability lives in the token system.** When `DEMO_BROWSER_ZOOM` changes from 0.9 to 0.85, every piece of content inside every `BrowserView` scales proportionally — cards, fields, text, chrome, all of it. No per-element tokens or shared content components are needed for this to work.
 
 ### Visual fidelity for every scenario
 
