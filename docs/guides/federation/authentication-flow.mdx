@@ -1,0 +1,268 @@
+---
+title: How federated authentication works
+description:
+  End-to-end walkthrough of what happens when a federated user calls the Stigmer
+  API, from JWT presentation to authorized response.
+---
+
+Once you've
+[registered an Identity Provider](/docs/guides/federation/register-identity-provider),
+[provisioned federated accounts](/docs/guides/federation/provision-federated-accounts),
+and [granted access](/docs/guides/federation/grant-access), your users can call
+the Stigmer API using JWTs from your auth system. This page explains what
+happens at runtime.
+
+## The request flow
+
+<!-- vale off -->
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+sequenceDiagram
+  participant User as Platform User
+  participant App as Platform App
+  participant PIdP as Your Auth Provider
+  participant API as Stigmer API
+  participant JWKS as JWKS Endpoint
+  participant DB as Identity Store
+  participant FGA as Authorization (FGA)
+  User->>App: 1. Sign in
+  App->>PIdP: 2. Authenticate
+  PIdP-->>App: 3. JWT (access token)
+  App->>API: 4. API call + Authorization: Bearer {jwt}
+  API->>JWKS: 5. Fetch public keys (cached)
+  API->>API: 6. Validate signature, issuer, audience
+  API->>DB: 7. Resolve sub → Identity Account
+  API->>FGA: 8. Check IAM Policy
+  FGA-->>API: 9. Authorized
+  API-->>App: 10. Response
+`}
+/>
+
+<!-- vale on -->
+
+### Step-by-step breakdown
+
+**Steps 1--3: User authenticates on your platform.** Your app redirects the user
+to your auth provider (Auth0, Okta, etc.). The provider authenticates the user
+and issues a JWT. This is standard OIDC---Stigmer isn't involved yet.
+
+**Step 4: API call with JWT.** Your app calls the Stigmer API with the JWT in
+the `Authorization` header:
+
+```bash
+curl -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIs..." \
+     https://api.stigmer.ai/...
+```
+
+**Step 5: Fetch public keys.** Stigmer looks up the matching Identity Provider
+by the token's `iss` (issuer) claim and fetches the JWKS from the configured
+`jwks_uri`. Keys are cached, so this network call only happens on the first
+request or after cache expiry.
+
+**Step 6: Validate the token.** Stigmer verifies:
+
+- The JWT signature using the JWKS public keys
+- The `iss` claim matches one of the Identity Provider's `allowed_issuers`
+- The `aud` claim matches the Identity Provider's `expected_audience`
+- The token hasn't expired (`exp` claim)
+
+If any check fails, Stigmer returns `401 Unauthorized`.
+
+**Step 7: Resolve the identity.** Stigmer extracts the `sub` claim and looks up
+a federated Identity Account matching the Identity Provider + subject pair. If
+no account exists, the request fails with `401 Unauthorized`.
+
+**Step 8--9: Check authorization.** Stigmer checks whether the resolved Identity
+Account has an IAM Policy granting it the required permission on the target
+resource. If no matching policy exists, the request fails with `403 Forbidden`.
+
+**Step 10: Response.** The request proceeds normally and the response is
+returned.
+
+## Token requirements
+
+JWTs presented to Stigmer must contain these standard OIDC claims:
+
+| Claim | Required | Purpose                                                             |
+| ----- | -------- | ------------------------------------------------------------------- |
+| `iss` | Yes      | Issuer --- must match an Identity Provider's `allowed_issuers`      |
+| `sub` | Yes      | Subject --- mapped to a federated Identity Account's `externalSub`  |
+| `aud` | Yes      | Audience --- must match the Identity Provider's `expected_audience` |
+| `exp` | Yes      | Expiration --- token must not be expired                            |
+| `iat` | No       | Issued at --- informational, not validated                          |
+
+## Error responses
+
+When authentication or authorization fails, Stigmer returns specific error codes
+so you can diagnose issues:
+
+| Error              | Meaning                                      | Common cause                                               |
+| ------------------ | -------------------------------------------- | ---------------------------------------------------------- |
+| `401 Unauthorized` | Token validation failed                      | Wrong issuer, wrong audience, expired token, unknown `sub` |
+| `403 Forbidden`    | Token is valid but the user lacks permission | No IAM Policy grants the required relation on the resource |
+
+### Distinguishing 401 causes
+
+A `401` can mean different things. Here's how to narrow it down:
+
+| Scenario                                     | What happened                         | Fix                                                                     |
+| -------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| No Identity Provider matches the `iss` claim | Stigmer doesn't trust this issuer     | Check `allowed_issuers` on your Identity Provider                       |
+| `aud` doesn't match `expected_audience`      | Token was issued for a different API  | Configure your auth provider to include Stigmer's audience in the token |
+| Signature verification failed                | JWKS keys don't match the signing key | Verify `jwks_uri` points to the correct endpoint                        |
+| Token expired                                | The `exp` claim is in the past        | Issue a fresh token                                                     |
+| No federated account for this `sub`          | Account wasn't provisioned            | Call `createFederatedAccount` for this user before they authenticate    |
+
+## Calling the API from your app
+
+Your users authenticate on your platform and get a JWT. Pass that JWT directly
+to the Stigmer SDK or API. No token exchange is needed---Stigmer validates your
+provider's tokens directly.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+import { Stigmer } from "@stigmer/sdk";
+
+const stigmer = new Stigmer({
+  accessToken: userJwt,
+});
+
+const session = await stigmer.session.create({
+  agentRef: { slug: "support-agent" },
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+client, err := stigmer.NewClient(
+  stigmer.WithAccessToken(userJWT),
+)
+if err != nil {
+  log.Fatal(err)
+}
+
+session, err := client.Session.Create(ctx, &stigmer.SessionInput{
+  AgentRef: &stigmer.ResourceRef{Slug: "support-agent"},
+})
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+from stigmer import Stigmer
+
+client = Stigmer(access_token=user_jwt)
+
+session = client.sessions.create(SessionInput(
+    agent_ref=ResourceRef(slug="support-agent"),
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+StigmerClient client = StigmerClient.builder()
+    .accessToken(userJwt)
+    .build();
+
+Session session = client.sessions().create(SessionInput.builder()
+    .agentRef(ResourceRef.builder().slug("support-agent").build())
+    .build());
+```
+
+</Tab>
+</SDKTabs>
+
+## Troubleshooting checklist
+
+If federated authentication isn't working, walk through this list:
+
+<Steps>
+<Step>
+
+### Verify the Identity Provider exists
+
+List Identity Providers for your org and confirm yours is registered.
+
+```bash
+# Using the Stigmer CLI
+stigmer get identity-providers --org acme
+```
+
+</Step>
+<Step>
+
+### Decode the JWT and check claims
+
+Use [JWT.io](https://jwt.io) or a local tool to inspect the token. Verify:
+
+- `iss` matches one of your Identity Provider's `allowed_issuers`
+- `aud` matches your Identity Provider's `expected_audience`
+- `exp` is in the future
+- `sub` is the value you used as `externalSub` when creating the account
+
+</Step>
+<Step>
+
+### Confirm the federated account exists
+
+Use `getByExternalSub` with the token's `sub` claim. If this returns
+`NOT_FOUND`, the account hasn't been provisioned.
+
+</Step>
+<Step>
+
+### Check IAM Policies
+
+If you get `403`, the account exists but lacks permissions. Use
+`getPrincipalResourceRoles` to check what roles the account has on the target
+resource. If empty, create the missing IAM Policy.
+
+</Step>
+<Step>
+
+### Verify JWKS endpoint accessibility
+
+Stigmer's backend must be able to reach your `jwks_uri` over HTTPS. If you're
+running a private auth provider, ensure the endpoint is publicly accessible or
+reachable from Stigmer's infrastructure.
+
+</Step>
+</Steps>
+
+## Summary
+
+The federation setup you've completed across this guide:
+
+| Step | What you did                                                                                               | API used                                 |
+| ---- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1    | [Registered an Identity Provider](/docs/guides/federation/register-identity-provider) for your auth system | `identityProvider.create`                |
+| 2    | [Provisioned federated accounts](/docs/guides/federation/provision-federated-accounts) for your users      | `identityAccount.createFederatedAccount` |
+| 3    | [Granted access](/docs/guides/federation/grant-access) via IAM Policies                                    | `iamPolicy.create`                       |
+| 4    | Understood the runtime authentication flow (this page)                                                     | ---                                      |
+
+Your platform's users can now call the Stigmer API with JWTs from your auth
+system. Stigmer validates the token, resolves the identity, checks
+authorization, and processes the request.
+
+## What's next
+
+- **Self-managed SSO** --- If your Organization is self-managed and you want
+  users to sign in to the Stigmer web app via your auth provider, SSO support is
+  coming soon.
+- **API reference** ---
+  [IdentityProvider](/docs/sdk/resources/identity-provider),
+  [IdentityAccount](/docs/sdk/resources/identity-account),
+  [IamPolicy](/docs/sdk/resources/iam-policy)
+- **React SDK** --- If you're building a custom UI,
+  [identity-provider hooks and components](/docs/sdk/react/identity-provider)
+  and [IAM Policy hooks](/docs/sdk/react/iam-policy) provide ready-made building
+  blocks.

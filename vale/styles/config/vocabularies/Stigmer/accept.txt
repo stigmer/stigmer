@@ -89,3 +89,15 @@ stdio
 subgraph
 sdkCall
 llmLayer
+JWTs
+JWT
+JWKS
+OIDC
+PKCE
+Okta
+Cognito
+Entra
+IdP
+IdPs
+signup
+onboarding

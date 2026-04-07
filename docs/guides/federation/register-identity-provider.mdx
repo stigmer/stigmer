@@ -1,0 +1,283 @@
+---
+title: Register an Identity Provider
+description:
+  Create an Identity Provider in Stigmer to establish trust with your platform's
+  authentication system.
+---
+
+An Identity Provider tells Stigmer how to validate JWTs from your authentication
+system. Once registered, Stigmer can verify tokens presented by your users and
+resolve them to federated Identity Accounts.
+
+## What you'll need
+
+Gather these values from your OIDC provider before starting:
+
+| Value        | Where to find it                                          | Example                                           |
+| ------------ | --------------------------------------------------------- | ------------------------------------------------- |
+| **JWKS URI** | Your provider's well-known configuration or admin console | `https://acme.us.auth0.com/.well-known/jwks.json` |
+| **Issuer**   | The `iss` claim in JWTs your provider issues              | `https://acme.us.auth0.com/`                      |
+| **Audience** | The `aud` claim in JWTs intended for Stigmer              | `https://api.stigmer.ai/`                         |
+
+<Accordions>
+<Accordion title="Finding these values for common providers">
+
+**Auth0** --- Go to your Auth0 tenant dashboard. The JWKS URI is
+`https://{tenant}.auth0.com/.well-known/jwks.json`. The issuer is
+`https://{tenant}.auth0.com/`. The audience is whatever you configured in
+**APIs > Identifier**.
+
+**Okta** --- In Okta Admin, go to **Security > API > Authorization Servers**.
+The JWKS URI is `https://{domain}/oauth2/{server-id}/v1/keys`. The issuer is
+`https://{domain}/oauth2/{server-id}`. The audience is configured per
+authorization server.
+
+**Microsoft Entra ID** --- In the Azure portal, find your app registration. The
+JWKS URI is `https://login.microsoftonline.com/{tenant-id}/discovery/v2.0/keys`.
+The issuer is `https://login.microsoftonline.com/{tenant-id}/v2.0`. The audience
+is the **Application (client) ID**.
+
+**AWS Cognito** --- In the Cognito console, find your User Pool. The JWKS URI is
+`https://cognito-idp.{region}.amazonaws.com/{pool-id}/.well-known/jwks.json`.
+The issuer is `https://cognito-idp.{region}.amazonaws.com/{pool-id}`. The
+audience is the **App Client ID**.
+
+</Accordion>
+</Accordions>
+
+## Create the Identity Provider
+
+Use the SDK to register an Identity Provider in your Organization.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const idp = await stigmer.identityProvider.create({
+  name: "Acme Cloud Auth",
+  org: "acme",
+  slug: "acme-cloud-auth",
+  displayName: "Acme Cloud Auth",
+  jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
+  allowedIssuers: ["https://acme.us.auth0.com/"],
+  expectedAudience: "https://api.stigmer.ai/",
+});
+
+console.log(`Created IdP: ${idp.metadata.id}`);
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
+  Name:             "Acme Cloud Auth",
+  Org:              "acme",
+  Slug:             "acme-cloud-auth",
+  DisplayName:      "Acme Cloud Auth",
+  JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
+  AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
+  ExpectedAudience: "https://api.stigmer.ai/",
+})
+if err != nil {
+  log.Fatal(err)
+}
+fmt.Printf("Created IdP: %s\n", idp.Metadata.Id)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+idp = client.identity_providers.create(IdentityProviderInput(
+    name="Acme Cloud Auth",
+    org="acme",
+    slug="acme-cloud-auth",
+    display_name="Acme Cloud Auth",
+    jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
+    allowed_issuers=["https://acme.us.auth0.com/"],
+    expected_audience="https://api.stigmer.ai/",
+))
+
+print(f"Created IdP: {idp.metadata.id}")
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.builder()
+    .name("Acme Cloud Auth")
+    .org("acme")
+    .slug("acme-cloud-auth")
+    .displayName("Acme Cloud Auth")
+    .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
+    .allowedIssuers(List.of("https://acme.us.auth0.com/"))
+    .expectedAudience("https://api.stigmer.ai/")
+    .build());
+
+System.out.println("Created IdP: " + idp.getMetadata().getId());
+```
+
+</Tab>
+</SDKTabs>
+
+## Understand the fields
+
+| Field              | Required | Purpose                                                                                      |
+| ------------------ | -------- | -------------------------------------------------------------------------------------------- |
+| `name`             | Yes      | Human-readable name shown in the console                                                     |
+| `org`              | Yes      | The Organization slug that owns this Identity Provider                                       |
+| `slug`             | No       | URL-friendly identifier, unique within the Organization. Generated from `name` if omitted    |
+| `jwksUri`          | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures            |
+| `allowedIssuers`   | Yes      | List of `iss` values Stigmer accepts. Tokens with a different issuer are rejected            |
+| `expectedAudience` | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected                   |
+| `displayName`      | No       | Display name in the UI. Defaults to `name` if omitted                                        |
+| `isSsoProvider`    | No       | Set to `true` only when configuring SSO for a self-managed Organization. Defaults to `false` |
+| `oidcClientId`     | No       | OIDC client ID for browser-based SSO. Only required when `isSsoProvider` is `true`           |
+
+<Callout type="warn">
+  Do not set `isSsoProvider` to `true` for platform-managed Organizations. SSO
+  is designed for self-managed Organizations where users sign in directly via
+  the Stigmer web app. For platform-managed integrations, your users
+  authenticate on your platform and call the Stigmer API with their JWT.
+</Callout>
+
+## Verify the Identity Provider
+
+After creation, confirm the Identity Provider is registered correctly:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const idp = await stigmer.identityProvider.getByReference({
+  org: "acme",
+  kind: "identity_provider",
+  slug: "acme-cloud-auth",
+});
+
+console.log(`Name: ${idp.spec.displayName}`);
+console.log(`JWKS: ${idp.spec.jwksUri}`);
+console.log(`Issuers: ${idp.spec.allowedIssuers}`);
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+idp, err := client.IdentityProvider.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:  "acme",
+  Kind: "identity_provider",
+  Slug: "acme-cloud-auth",
+})
+if err != nil {
+  log.Fatal(err)
+}
+fmt.Printf("Name: %s\n", idp.Spec.DisplayName)
+fmt.Printf("JWKS: %s\n", idp.Spec.JwksUri)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+idp = client.identity_providers.get_by_reference(ApiResourceReference(
+    org="acme",
+    kind="identity_provider",
+    slug="acme-cloud-auth",
+))
+
+print(f"Name: {idp.spec.display_name}")
+print(f"JWKS: {idp.spec.jwks_uri}")
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IdentityProvider idp = client.identityProviders().getByReference(ApiResourceReference.builder()
+    .org("acme")
+    .kind("identity_provider")
+    .slug("acme-cloud-auth")
+    .build());
+
+System.out.println("Name: " + idp.getSpec().getDisplayName());
+System.out.println("JWKS: " + idp.getSpec().getJwksUri());
+```
+
+</Tab>
+</SDKTabs>
+
+## Multiple Identity Providers
+
+An Organization can have multiple Identity Providers. This is useful when your
+platform uses different auth providers for different regions or customer
+segments. Use `listByOrg` to see all providers for an Organization:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const result = await stigmer.identityProvider.listByOrg({ org: "acme" });
+
+for (const idp of result.entries) {
+  console.log(`${idp.metadata.slug}: ${idp.spec.displayName}`);
+}
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+result, err := client.IdentityProvider.ListByOrg(ctx, &stigmer.ListIdentityProvidersByOrgInput{
+  Org: "acme",
+})
+if err != nil {
+  log.Fatal(err)
+}
+for _, idp := range result.Entries {
+  fmt.Printf("%s: %s\n", idp.Metadata.Slug, idp.Spec.DisplayName)
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+result = client.identity_providers.list_by_org(ListIdentityProvidersByOrgInput(
+    org="acme",
+))
+
+for idp in result.entries:
+    print(f"{idp.metadata.slug}: {idp.spec.display_name}")
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IdentityProviders result = client.identityProviders().listByOrg(ListIdentityProvidersByOrgInput.builder()
+    .org("acme")
+    .build());
+
+for (IdentityProvider idp : result.getEntries()) {
+  System.out.println(idp.getMetadata().getSlug() + ": " + idp.getSpec().getDisplayName());
+}
+```
+
+</Tab>
+</SDKTabs>
+
+## What's next
+
+Your Identity Provider is registered. Stigmer can now validate JWTs from your
+auth system, but there are no federated accounts yet---tokens from unknown
+subjects will be rejected.
+
+Next:
+[Provision federated accounts](/docs/guides/federation/provision-federated-accounts)
+for your users so Stigmer can resolve their tokens to Identity Accounts.
+
+For the full Identity Provider API reference, see
+[IdentityProvider](/docs/sdk/resources/identity-provider).
