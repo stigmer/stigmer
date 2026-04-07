@@ -21,28 +21,97 @@ Gather these values from your OIDC provider before starting:
 | **Issuer**   | The `iss` claim in JWTs your provider issues              | `https://acme.us.auth0.com/`                      |
 | **Audience** | The `aud` claim in JWTs intended for Stigmer              | `https://api.stigmer.ai/`                         |
 
+<Callout type="tip">
+  Every OIDC provider publishes a discovery document at `https://
+  {provider - base - url}/.well-known/openid-configuration`. Open that URL in
+  your browser and look for the `issuer` and `jwks_uri` fields—they give you two
+  of the three values you need.
+</Callout>
+
 <Accordions>
-<Accordion title="Finding these values for common providers">
+<Accordion title="Auth0">
 
-**Auth0** --- Go to your Auth0 tenant dashboard. The JWKS URI is
-`https://{tenant}.auth0.com/.well-known/jwks.json`. The issuer is
-`https://{tenant}.auth0.com/`. The audience is whatever you configured in
-**APIs > Identifier**.
+In the [Auth0 Dashboard](https://manage.auth0.com/), find your **tenant domain**
+(for example, `acme.us.auth0.com`) under **Settings > General**.
 
-**Okta** --- In Okta Admin, go to **Security > API > Authorization Servers**.
-The JWKS URI is `https://{domain}/oauth2/{server-id}/v1/keys`. The issuer is
-`https://{domain}/oauth2/{server-id}`. The audience is configured per
-authorization server.
+| Value        | How to find it                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| **JWKS URI** | `https://{tenant}.auth0.com/.well-known/jwks.json`                                         |
+| **Issuer**   | `https://{tenant}.auth0.com/`                                                              |
+| **Audience** | Go to **Applications > APIs**, select your API, and copy the **Identifier** (API Audience) |
 
-**Microsoft Entra ID** --- In the Azure portal, find your app registration. The
-JWKS URI is `https://login.microsoftonline.com/{tenant-id}/discovery/v2.0/keys`.
-The issuer is `https://login.microsoftonline.com/{tenant-id}/v2.0`. The audience
-is the **Application (client) ID**.
+You can also verify these values by opening
+`https://{tenant}.auth0.com/.well-known/openid-configuration` in your browser.
 
-**AWS Cognito** --- In the Cognito console, find your User Pool. The JWKS URI is
-`https://cognito-idp.{region}.amazonaws.com/{pool-id}/.well-known/jwks.json`.
-The issuer is `https://cognito-idp.{region}.amazonaws.com/{pool-id}`. The
-audience is the **App Client ID**.
+See the Auth0 docs:
+[Tenant Settings](https://auth0.com/docs/get-started/tenant-settings) ·
+[JSON Web Key Sets](https://auth0.com/docs/jwks) ·
+[Configure Applications with OIDC Discovery](https://auth0.com/docs/configure/applications/configure-applications-with-oidc-discovery)
+
+</Accordion>
+<Accordion title="Okta">
+
+In the [Okta Admin Console](https://developer.okta.com/login/), go to
+**Security > API > Authorization Servers** and select the server you want to
+use.
+
+| Value        | How to find it                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| **JWKS URI** | `https://{domain}/oauth2/{server-id}/v1/keys`                                                |
+| **Issuer**   | `https://{domain}/oauth2/{server-id}` — shown on the authorization server's **Settings** tab |
+| **Audience** | On the same **Settings** tab, copy the **Audience** value (set when the server was created)  |
+
+You can also open
+`https://{domain}/oauth2/{server-id}/.well-known/openid-configuration` to see
+the `issuer` and `jwks_uri` fields directly.
+
+See the Okta docs:
+[Authorization Servers](https://developer.okta.com/docs/concepts/auth-servers/)
+·
+[Create an Authorization Server](https://developer.okta.com/docs/guides/customize-authz-server/main)
+
+</Accordion>
+<Accordion title="Microsoft Entra ID">
+
+In the [Azure Portal](https://portal.azure.com/), go to **Microsoft Entra ID >
+App registrations** and select your application.
+
+| Value        | How to find it                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| **JWKS URI** | `https://login.microsoftonline.com/{tenant-id}/discovery/v2.0/keys`                               |
+| **Issuer**   | `https://login.microsoftonline.com/{tenant-id}/v2.0` — find the Tenant ID on the **Overview** tab |
+| **Audience** | The **Application (client) ID** from the **Overview** tab of your app registration                |
+
+Open
+`https://login.microsoftonline.com/{tenant-id}/v2.0/.well-known/openid-configuration`
+to verify the `issuer` and `jwks_uri` fields.
+
+See the Microsoft docs:
+[Register an application](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
+·
+[Access tokens](https://learn.microsoft.com/en-us/entra/identity-platform/access-tokens)
+
+</Accordion>
+<Accordion title="AWS Cognito">
+
+In the [AWS Cognito Console](https://console.aws.amazon.com/cognito/), select
+your **User Pool** and note the **Pool ID** (for example, `us-east-1_abc123`)
+and **Region**.
+
+| Value        | How to find it                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------- |
+| **JWKS URI** | `https://cognito-idp.{region}.amazonaws.com/{pool-id}/.well-known/jwks.json`                |
+| **Issuer**   | `https://cognito-idp.{region}.amazonaws.com/{pool-id}`                                      |
+| **Audience** | Go to **App integration > App clients**, select your app client, and copy the **Client ID** |
+
+Open
+`https://cognito-idp.{region}.amazonaws.com/{pool-id}/.well-known/openid-configuration`
+to confirm the values.
+
+See the AWS docs:
+[Verifying a JSON web token](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html)
+·
+[User pool endpoints](https://docs.aws.amazon.com/cognito/latest/developerguide/federation-endpoints.html)
 
 </Accordion>
 </Accordions>
