@@ -54,23 +54,33 @@ more precise language. Never use a right-column term in a left-column context.
 Scan this table to find the right word for your context. Detailed entries with
 definitions, API names, and examples follow below.
 
-| Term                   | Sales site            | Quickstart / tutorial          | Concepts / how-to   | Reference / SDK                              | README             |
-| ---------------------- | --------------------- | ------------------------------ | ------------------- | -------------------------------------------- | ------------------ |
-| **Agent**              | Agent                 | Agent                          | Agent               | Agent, `kind: Agent`                         | Agent              |
-| **Skill**              | domain knowledge      | Skill ("domain knowledge")     | Skill               | Skill, `skill_refs`                          | Skill              |
-| **MCP Server**         | tools                 | MCP server ("tool connection") | MCP Server          | McpServer, `mcp_server_usages`               | MCP server         |
-| **Session**            | conversation          | Session ("conversation")       | Session             | Session, `kind: Session`                     | Session            |
-| **Workflow**           | multi-step automation | Workflow                       | Workflow            | Workflow, `kind: Workflow`                   | Workflow           |
-| **Approval flow**      | approval flow         | approval flow                  | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval`       | HITL, approval     |
-| **Organization**       | Organization          | Organization                   | Organization        | Organization, `kind: organization`           | Organization       |
-| **Project**            | Project               | Project                        | Project             | Project, `kind: project`                     | Project            |
-| **Environment**        | Environment           | Environment                    | Environment         | Environment, `kind: Environment`             | Environment        |
-| **Identity Provider**  | ---                   | identity provider              | Identity Provider   | IdentityProvider, `kind: identity_provider`  | Identity Provider  |
-| **Identity Account**   | ---                   | ---                            | Identity Account    | IdentityAccount, `kind: identity_account`    | Identity Account   |
-| **Agent Instance**     | ---                   | Agent Instance                 | Agent Instance      | AgentInstance, `kind: AgentInstance`         | Agent Instance     |
-| **Agent Execution**    | ---                   | run, execution                 | Agent Execution     | AgentExecution, `kind: AgentExecution`       | Agent Execution    |
-| **Workflow Execution** | ---                   | run, execution                 | Workflow Execution  | WorkflowExecution, `kind: WorkflowExecution` | Workflow Execution |
-| **Sub-Agent**          | ---                   | ---                            | Sub-Agent           | SubAgent, `sub_agents`                       | Sub-Agent          |
+| Term              | Sales site            | Quickstart / tutorial          | Concepts / how-to   | Reference / SDK                        | README         |
+| ----------------- | --------------------- | ------------------------------ | ------------------- | -------------------------------------- | -------------- |
+| **Agent**         | Agent                 | Agent                          | Agent               | Agent, `kind: Agent`                   | Agent          |
+| **Skill**         | domain knowledge      | Skill ("domain knowledge")     | Skill               | Skill, `skill_refs`                    | Skill          |
+| **MCP Server**    | tools                 | MCP server ("tool connection") | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
+| **Session**       | conversation          | Session ("conversation")       | Session             | Session, `kind: Session`               | Session        |
+| **Workflow**      | multi-step automation | Workflow                       | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
+| **Approval flow** | approval flow         | approval flow                  | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
+| **Organization**  | Organization          | Organization                   | Organization        | Organization, `kind: organization`     | Organization   |
+| **Project**       | Project               | Project                        | Project             | Project, `kind: project`               | Project        |
+| **Environment**   | Environment           | Environment                    | Environment         | Environment, `kind: Environment`       | Environment    |
+
+<!-- vale Stigmer.terms = NO -->
+
+| **Identity Provider** | --- | identity provider | Identity Provider |
+IdentityProvider, `kind: identity_provider` | Identity Provider |
+
+<!-- vale Stigmer.terms = YES -->
+
+| **Identity Account** | --- | --- | Identity Account | IdentityAccount,
+`kind: identity_account` | Identity Account | | **Agent Instance** | --- | Agent
+Instance | Agent Instance | AgentInstance, `kind: AgentInstance` | Agent
+Instance | | **Agent Execution** | --- | run, execution | Agent Execution |
+AgentExecution, `kind: AgentExecution` | Agent Execution | | **Workflow
+Execution** | --- | run, execution | Workflow Execution | WorkflowExecution,
+`kind: WorkflowExecution` | Workflow Execution | | **Sub-Agent** | --- | --- |
+Sub-Agent | SubAgent, `sub_agents` | Sub-Agent |
 
 Dash (—) means the term should not appear in that context.
 

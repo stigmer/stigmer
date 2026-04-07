@@ -26,7 +26,9 @@ export interface UseSubmitApprovalReturn {
    * approve one tool while another decision is still in flight.
    */
   readonly submittingToolCallIds: ReadonlySet<string>;
+  /** Error from the last failed approval submission, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 

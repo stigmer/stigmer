@@ -9,7 +9,7 @@ description: Hooks and components for API key creation, listing, and deletion.
 
 ### useApiKeyList
 
-Data hook that fetches all [`ApiKey`](/docs/sdk/resources/api-key) entries for the
+Data hook that fetches all `ApiKey` entries for the
 authenticated identity.
 
 API keys are identity-scoped — the server returns every key owned
@@ -53,7 +53,7 @@ Creates an API key resource. The caller provides an
 `ApiKeyInput` with `name`, `org`, and optionally `expiresAt`
 or `neverExpires`.
 
-**Critical**: The returned [`ApiKey`](/docs/sdk/resources/api-key) is the *only* time the
+**Critical**: The returned `ApiKey` is the *only* time the
 raw key value is available — it is returned in `spec.keyHash` of
 the create response. After creation the server stores only the
 hash; subsequent queries return an empty `keyHash` and only the
@@ -98,7 +98,7 @@ Behavior hook that wraps `apiKey.delete()` with loading and error
 state.
 
 Deletes an API key by its resource ID. Returns the deleted
-[`ApiKey`](/docs/sdk/resources/api-key) on success so callers can confirm which key was
+`ApiKey` on success so callers can confirm which key was
 removed. The deletion is permanent — the key can no longer be
 used for authentication.
 
@@ -167,7 +167,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### ApiKeyListPanel
 
-Displays a list of [`ApiKey`](/docs/sdk/resources/api-key) resources for the authenticated
+Displays a list of `ApiKey` resources for the authenticated
 identity with inline delete confirmation.
 
 Each key is rendered as a row showing name, fingerprint, creation
@@ -206,7 +206,7 @@ Compact form for creating a new API key.
 
 Collects a **name** (required) and an **expiry** choice (30 / 60 /
 90 days or never), then creates the key via [`useCreateApiKey`](#usecreateapikey).
-On success it fires `onCreated` with the full [`ApiKey`](/docs/sdk/resources/api-key)
+On success it fires `onCreated` with the full `ApiKey`
 response, which includes the raw key in `spec.keyHash`.
 
 All visual properties flow through `--stgm-*` design tokens.

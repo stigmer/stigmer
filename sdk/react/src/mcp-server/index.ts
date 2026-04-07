@@ -44,7 +44,10 @@ export type {
 } from "./useMcpServerSetup";
 
 export { McpServerDetailView } from "./McpServerDetailView";
-export type { McpServerDetailViewProps } from "./McpServerDetailView";
+export type {
+  McpServerDetailViewProps,
+  CapabilityTab,
+} from "./McpServerDetailView";
 
 export { useDiscoverCapabilities } from "./useDiscoverCapabilities";
 export type { UseDiscoverCapabilitiesReturn } from "./useDiscoverCapabilities";

@@ -8,7 +8,9 @@
 
 /** A closed date range where both ends are ISO date strings (YYYY-MM-DD). */
 export interface DateRange {
+  /** Start date (inclusive) in YYYY-MM-DD format. */
   readonly from: string;
+  /** End date (inclusive) in YYYY-MM-DD format. */
   readonly to: string;
 }
 

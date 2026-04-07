@@ -12,6 +12,7 @@ import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agen
  * for traceability in the UI (e.g., tooltip or detail view).
  */
 export interface SessionWriteBackEntry {
+  /** The proto write-back record containing branch, PR URL, and commit details. */
   readonly writeBack: WorkspaceWriteBack;
   /** ID of the execution that produced this write-back. */
   readonly executionId: string;

@@ -12,27 +12,46 @@
 
 /** OIDC configuration derived from a provider preset or discovery. */
 export interface ProviderConfig {
+  /** The OIDC issuer URL (e.g. `https://accounts.google.com`). */
   readonly issuer: string;
+  /** URL of the JSON Web Key Set endpoint for token verification. */
   readonly jwksUri: string;
+  /** Issuer URLs accepted during token validation (may include aliases). */
   readonly allowedIssuers: readonly string[];
+  /** OIDC UserInfo endpoint for fetching profile claims. */
   readonly userinfoEndpoint?: string;
 }
 
 /** A user-fillable variable required by a provider preset. */
 export interface ProviderVariable {
+  /** Unique identifier used as the key in the collected values record. */
   readonly key: string;
+  /** Human-readable label displayed next to the input field. */
   readonly label: string;
+  /** Placeholder text shown inside the empty input field. */
   readonly placeholder: string;
+  /** Optional helper text displayed below the input field. */
   readonly hint?: string;
+  /** Input type: `"text"` for free-form input, `"select"` for a dropdown. */
   readonly type: "text" | "select";
-  readonly options?: readonly { readonly value: string; readonly label: string }[];
+  /** Available options when `type` is `"select"`. */
+  readonly options?: readonly {
+    /** Option value submitted to the config builder. */
+    readonly value: string;
+    /** Display label shown in the dropdown. */
+    readonly label: string;
+  }[];
 }
 
 /** A well-known identity provider preset with URL templates. */
 export interface ProviderPreset {
+  /** Stable identifier for this preset (e.g. `"auth0"`, `"okta"`, `"custom"`). */
   readonly id: string;
+  /** Display name shown in the provider selection UI. */
   readonly label: string;
+  /** Short description of the provider, shown below the label. */
   readonly description: string;
+  /** Variables the user must fill in to construct the OIDC configuration. */
   readonly variables: readonly ProviderVariable[];
   /**
    * Build the OIDC configuration from the user's variable values.

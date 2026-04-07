@@ -675,6 +675,35 @@ artifacts with SKILL.md) and use a separate detection path via
 [`isSkillPackage`](#isskillpackage) / [`detectSkillPackage`](#detectskillpackage).
 
 
+### UseResourceSearchOptions
+
+Shared options for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`).
+
+<TypeTable
+  type={{
+    debounceMs: { type: "number", description: "Debounce delay for query changes in milliseconds." },
+    pageSize: { type: "number", description: "Maximum results per page." },
+    scope: { type: "\"org\" | \"all\"", description: "Controls search scope.  - `\"org\"` — search only within the provided organization. - `\"all\"` — search within the provided organization plus public   resources from other organizations." },
+  }}
+/>
+
+
+### UseResourceSearchReturn
+
+Shared return value for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`).
+
+<TypeTable
+  type={{
+    error: { type: "string | null", description: "Error message from the last failed search, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while a search request is in flight." },
+    query: { type: "string", description: "Current search query text." },
+    refetch: { type: "() => void", description: "Re-run the current search with the same parameters." },
+    results: { type: "readonly SearchResult[]", description: "Matching resources from the most recent search." },
+    setQuery: { type: "(query: string) => void", description: "Update the search query (triggers a debounced re-search)." },
+  }}
+/>
+
+
 ### VisibilityResourceKind
 
 Resource kinds that support the `updateVisibility` RPC.

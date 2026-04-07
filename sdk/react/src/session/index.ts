@@ -1,5 +1,6 @@
 export { useCreateSession } from "./useCreateSession";
 export type {
+  SharedSessionFields,
   CreateSessionInput,
   CreateSessionResult,
   UseCreateSessionReturn,

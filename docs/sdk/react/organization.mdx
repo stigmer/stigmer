@@ -17,7 +17,7 @@ agents, environments, skills, MCP servers, and other platform
 resources. The caller provides an `OrganizationInput` with
 `name`, `org`, and optionally `description` and `logoUrl`.
 
-Returns the full [`Organization`](/docs/sdk/resources/organization) proto including
+Returns the full `Organization` proto including
 server-generated metadata (id, slug, version, timestamps) so
 callers can immediately reference the created resource.
 
@@ -58,7 +58,7 @@ the previous in-flight request is discarded and a fresh fetch begins.
 Call `refetch()` to re-query after mutating the organization through
 a separate hook or API call.
 
-Returns the full proto [`Organization`](/docs/sdk/resources/organization) resource so consumers
+Returns the full proto `Organization` resource so consumers
 have access to metadata (name, slug), spec (description, logo),
 and status without additional calls.
 
@@ -99,7 +99,7 @@ Updates an existing Organization resource. The input must include
 `name`, `org`, and `slug` to identify the target resource, along
 with the spec fields to update (`description`, `logoUrl`).
 
-Returns the full [`Organization`](/docs/sdk/resources/organization) proto including
+Returns the full `Organization` proto including
 server-updated metadata (version, timestamps) so callers can
 immediately reference the latest state.
 
@@ -137,7 +137,7 @@ refetch(); // refresh profile view
 
 ### CreateOrganizationForm
 
-Compact form for creating a new [`Organization`](/docs/sdk/resources/organization) resource.
+Compact form for creating a new `Organization` resource.
 
 Collects a name, auto-generates a URL-friendly slug, and accepts an
 optional description. The slug is derived from the name by default
@@ -168,7 +168,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### OrgProfilePanel
 
-Self-contained profile editor for an [`Organization`](/docs/sdk/resources/organization) resource.
+Self-contained profile editor for an `Organization` resource.
 
 Fetches the organization by ID, displays editable fields (name,
 description, logo URL) and read-only identifiers (slug, ID).

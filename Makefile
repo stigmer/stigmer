@@ -228,11 +228,7 @@ check-links: ## Check for broken links in documentation
 		echo ""; \
 		exit 1; \
 	}
-	@lychee --no-progress --exclude-path docs/_archive \
-		--root-dir . --fallback-extensions mdx \
-		--scheme https --scheme http \
-		--accept '100..=199,200..=299,403,415' \
-		docs/
+	@lychee --config .lychee.toml --root-dir . docs/
 
 # ─── Dependencies ─────────────────────────────
 

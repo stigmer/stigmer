@@ -36,7 +36,9 @@ export interface AgentPickerProps {
    * @default "org"
    */
   readonly scope?: "org" | "all";
+  /** Prevents interaction with the picker when `true`. */
   readonly disabled?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
