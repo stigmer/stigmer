@@ -1,15 +1,45 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { User } from "oidc-client-ts";
+import type { User, UserManager } from "oidc-client-ts";
 import { AuthContext } from "../context";
 import { setAuthToken } from "../token-store";
 import type { AuthState, AuthUser } from "../types";
 import type { OidcConfig } from "./types";
 import { createUserManager } from "./oidc-manager";
+import {
+  getSsoLoginState,
+  clearSsoLoginState,
+  saveSsoSession,
+  getSsoSession,
+  clearSsoSession,
+  isValidSsoState,
+} from "./sso-session";
 
 const CALLBACK_PATH = "/auth/callback";
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
+
+/**
+ * Resolve the UserManager for the current session.
+ *
+ * If an SSO session exists in sessionStorage (written after a successful
+ * SSO callback), create a UserManager configured for the SSO IdP so that
+ * `getUser()` restores the SSO session and `automaticSilentRenew` renews
+ * against the correct token endpoint.
+ *
+ * Otherwise, fall back to the Auth0 manager from runtime config.
+ */
+function resolveActiveManager(auth0Config: OidcConfig) {
+  const ssoSession = getSsoSession();
+  if (ssoSession && isValidSsoState(ssoSession)) {
+    return createUserManager({
+      issuer: ssoSession.issuer,
+      clientId: ssoSession.clientId,
+      audience: ssoSession.audience,
+    });
+  }
+  return createUserManager(auth0Config);
+}
 
 /**
  * OIDC auth provider — manages the full OIDC lifecycle.
@@ -18,6 +48,13 @@ const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
  * track authentication state. Provides the standard {@link AuthState} via
  * {@link AuthContext}, keeping the public API identical to
  * `DisabledAuthProvider`.
+ *
+ * **SSO support**: Detects SSO callbacks via `stigmer:sso:login` in
+ * sessionStorage. When present, creates a temporary SSO `UserManager` for
+ * the code exchange, then persists the SSO config as `stigmer:sso:session`
+ * so future page loads restore the session with the correct IdP. On
+ * logout, SSO sessions are cleared locally and the user is redirected to
+ * `/login?org=...` (no RP-initiated logout with the SSO IdP).
  *
  * **Callback detection**: On mount, if the current path is `/auth/callback`,
  * the provider processes the Authorization Code exchange via
@@ -41,7 +78,7 @@ export default function OidcAuthProvider({
   config: OidcConfig;
   children: React.ReactNode;
 }) {
-  const managerRef = useRef(createUserManager(config));
+  const managerRef = useRef(resolveActiveManager(config));
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -54,7 +91,7 @@ export default function OidcAuthProvider({
     const init = async () => {
       try {
         if (isCallback) {
-          const callbackUser = await manager.signinRedirectCallback();
+          const callbackUser = await processSsoOrAuth0Callback(manager);
           setUser(callbackUser);
           setAuthToken(callbackUser.access_token);
 
@@ -123,13 +160,24 @@ export default function OidcAuthProvider({
   const logout = useCallback(async () => {
     setIsLoggingOut(true);
     setAuthToken(null);
+
+    const ssoSession = getSsoSession();
+    if (ssoSession) {
+      clearSsoSession();
+      try {
+        await managerRef.current.removeUser();
+      } catch {
+        // Best-effort — the session storage entry may already be gone.
+      }
+      const orgParam = ssoSession.org ? `?org=${encodeURIComponent(ssoSession.org)}` : "";
+      window.location.replace(`/login${orgParam}`);
+      return;
+    }
+
     try {
       await managerRef.current.signoutRedirect();
     } catch (err) {
       console.error("[auth] signoutRedirect failed, falling back:", err);
-      // Fallback: manually navigate to Auth0's OIDC logout endpoint.
-      // This handles cases where oidc-client-ts can't construct the
-      // request (e.g. missing id_token_hint or stale metadata).
       const issuer = config.issuer.replace(/\/+$/, "");
       const params = new URLSearchParams({
         client_id: config.clientId,
@@ -181,4 +229,40 @@ export default function OidcAuthProvider({
   }
 
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+}
+
+// ---------------------------------------------------------------------------
+// SSO callback detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Process the `/auth/callback` for either an SSO or Auth0 login.
+ *
+ * Checks sessionStorage for SSO login state (written by the login page
+ * before the SSO redirect). If present, creates an SSO-specific
+ * UserManager to exchange the authorization code, persists the SSO
+ * session config for future page loads, and cleans up the ephemeral
+ * login state. If absent, delegates to the default Auth0 manager.
+ */
+async function processSsoOrAuth0Callback(
+  auth0Manager: UserManager,
+): Promise<User> {
+  const ssoLogin = getSsoLoginState();
+
+  if (ssoLogin && isValidSsoState(ssoLogin)) {
+    const ssoManager = createUserManager({
+      issuer: ssoLogin.issuer,
+      clientId: ssoLogin.clientId,
+      audience: ssoLogin.audience,
+    });
+
+    const callbackUser = await ssoManager.signinRedirectCallback();
+
+    saveSsoSession(ssoLogin);
+    clearSsoLoginState();
+
+    return callbackUser;
+  }
+
+  return auth0Manager.signinRedirectCallback();
 }

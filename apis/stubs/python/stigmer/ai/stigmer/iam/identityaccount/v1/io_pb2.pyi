@@ -85,3 +85,33 @@ class CreateFederatedAccountInput(_message.Message):
     last_name: str
     picture_url: str
     def __init__(self, org: _Optional[str] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., external_sub: _Optional[str] = ..., email: _Optional[str] = ..., first_name: _Optional[str] = ..., last_name: _Optional[str] = ..., picture_url: _Optional[str] = ...) -> None: ...
+
+class UpdateFederatedAccountInput(_message.Message):
+    __slots__ = ("org", "identity_provider_ref", "external_sub", "email", "first_name", "last_name", "picture_url")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    IDENTITY_PROVIDER_REF_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_SUB_FIELD_NUMBER: _ClassVar[int]
+    EMAIL_FIELD_NUMBER: _ClassVar[int]
+    FIRST_NAME_FIELD_NUMBER: _ClassVar[int]
+    LAST_NAME_FIELD_NUMBER: _ClassVar[int]
+    PICTURE_URL_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    identity_provider_ref: _io_pb2.ApiResourceReference
+    external_sub: str
+    email: str
+    first_name: str
+    last_name: str
+    picture_url: str
+    def __init__(self, org: _Optional[str] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., external_sub: _Optional[str] = ..., email: _Optional[str] = ..., first_name: _Optional[str] = ..., last_name: _Optional[str] = ..., picture_url: _Optional[str] = ...) -> None: ...
+
+class DeprovisionFederatedAccountInput(_message.Message):
+    __slots__ = ("org", "identity_provider_ref", "external_sub", "delete_account")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    IDENTITY_PROVIDER_REF_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_SUB_FIELD_NUMBER: _ClassVar[int]
+    DELETE_ACCOUNT_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    identity_provider_ref: _io_pb2.ApiResourceReference
+    external_sub: str
+    delete_account: bool
+    def __init__(self, org: _Optional[str] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., external_sub: _Optional[str] = ..., delete_account: bool = ...) -> None: ...

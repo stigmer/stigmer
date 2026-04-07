@@ -98,8 +98,8 @@ function useAgentCount(org: string | null, options?: UseAgentCountOptions): UseA
 <TypeTable
   type={{
     count: { type: "number | undefined", description: "Total number of agents matching the current filters. `undefined` until the first successful fetch completes." },
-    error: { type: "string | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
+    error: { type: "string | null", description: "Error message from the last failed fetch, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
     refetch: { type: "() => void", description: "Re-fetch the count with the same parameters." },
   }}
 />
@@ -263,7 +263,7 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>): UseAgentSetu
     reset: { type: "() => void", description: "Reset to `idle` state, clearing all phase data and errors." },
     resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env_spec`, checks for an existing personal instance, and diffs env_spec keys against the personal environment. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm." },
     state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving environment / creating instance - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
-    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<{ agentName: string; agentRef: ResourceRef; resolution: AgentResolution; status: \"ready\" }>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Creates or updates the personal environment   with the provided values, then creates a personal agent instance.   Returns `{ resolution: { mode: \"saved\", instanceId } }`. - `false` — Collects values as `runtimeEnv` without any API calls.   Returns `{ resolution: { mode: \"oneTime\", runtimeEnv } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
+    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Creates or updates the personal environment   with the provided values, then creates a personal agent instance.   Returns `{ resolution: { mode: \"saved\", instanceId } }`. - `false` — Collects values as `runtimeEnv` without any API calls.   Returns `{ resolution: { mode: \"oneTime\", runtimeEnv } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
   }}
 />
 
@@ -389,9 +389,9 @@ behavior is delegated to `EnvVarForm`.
 <TypeTable
   type={{
     agentName: { type: "string", description: "Agent display name shown in the form header.", required: true },
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save for future runs\" toggle. Platform builders can override this to match their default secret-persistence policy." },
-    disabled: { type: "boolean", description: "" },
+    disabled: { type: "boolean", description: "Prevents interaction with all form inputs when `true`." },
     hideSaveToggle: { type: "boolean", description: "When `true`, the save toggle is hidden and the form always uses `defaultSaveForFuture` as the submit value. Useful for platform builders who want to enforce a single persistence policy." },
     isSubmitting: { type: "boolean", description: "When true, the submit button shows a spinner and inputs are disabled." },
     onCancel: { type: "() => void", description: "Called when the user clicks the back/cancel button." },
@@ -443,8 +443,8 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    disabled: { type: "boolean", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "Prevents interaction with the picker when `true`." },
     onChange: { type: "(ref: ResourceRef | null) => void", description: "Called when the selection changes. Pass null to deselect.", required: true },
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an agent is selected (for chip rendering)." },
     org: { type: "string", description: "Organization slug used as the default search scope.", required: true },
@@ -502,12 +502,23 @@ narrowing in consumer code.
 
 ### AgentSetupReadyResult
 
-Result returned by `useAgentSetup.submitEnvVars` — always `"ready"`.
+Result returned by `useAgentSetup().submitEnvVars()` — always `"ready"`.
+
+Also used as the `"ready"` variant of [`AgentSetupResult`](#agentsetupresult).
+
+<TypeTable
+  type={{
+    agentName: { type: "string", description: "Display name of the resolved agent.", required: true },
+    agentRef: { type: "ResourceRef", description: "Reference to the resolved agent.", required: true },
+    resolution: { type: "AgentResolution", description: "How the agent was resolved — determines session creation strategy.", required: true, typeDescriptionLink: "#agentresolution" },
+    status: { type: "\"ready\"", description: "The agent is ready for session creation.", required: true },
+  }}
+/>
 
 
 ### AgentSetupResult
 
-Result returned by `useAgentSetup.resolveAgent`.
+Result returned by `useAgentSetup().resolveAgent()`.
 
 - `"ready"` — the agent can be used immediately.
 - `"needsEnvVars"` — the agent requires environment variables

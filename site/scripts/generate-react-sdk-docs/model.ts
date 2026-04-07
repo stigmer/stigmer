@@ -37,6 +37,8 @@ export interface Hook {
 export interface Component {
   name: string;
   description: CommentPart[];
+  /** Whether the component function declares any parameters. */
+  hasProps: boolean;
   /** Resolved props interface (set during linking). */
   propsInterface: TypeDef | null;
   examples: string[];

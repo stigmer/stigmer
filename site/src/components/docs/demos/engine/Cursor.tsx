@@ -3,6 +3,7 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTimeSource } from "./TimeSource";
+import { scrollTargetIntoView } from "./scroll-utils";
 
 interface CursorProps {
   /**
@@ -32,42 +33,6 @@ const MAX_RETRIES = 12;
 const SCROLL_SETTLE_MS = 400;
 
 /**
- * Scroll the target element into view inside its nearest scrollable
- * ancestor using the browser's native `scrollIntoView`. This handles
- * CSS `zoom` correctly (manual `scrollTop` arithmetic does not).
- *
- * After scrolling the internal container, page scroll is immediately
- * restored so the demo block doesn't jump on the page.
- *
- * @returns `true` when scrolling was necessary.
- */
-function scrollTargetIntoView(el: Element): boolean {
-  const scrollParent = findScrollParent(el);
-  if (!scrollParent) return false;
-
-  const pRect = scrollParent.getBoundingClientRect();
-  const eRect = el.getBoundingClientRect();
-  const isVisible = eRect.top >= pRect.top && eRect.bottom <= pRect.bottom;
-  if (isVisible) return false;
-
-  const pageX = window.scrollX;
-  const pageY = window.scrollY;
-  el.scrollIntoView({ block: "center", behavior: "smooth" });
-  window.scrollTo(pageX, pageY);
-  return true;
-}
-
-function findScrollParent(el: Element): Element | null {
-  let parent = el.parentElement;
-  while (parent) {
-    const { overflowY } = getComputedStyle(parent);
-    if (overflowY === "auto" || overflowY === "scroll") return parent;
-    parent = parent.parentElement;
-  }
-  return null;
-}
-
-/**
  * Animated cursor overlay for guided-tour demos.
  *
  * Renders a small pointer that smoothly animates to the target
@@ -85,32 +50,63 @@ function findScrollParent(el: Element): Element | null {
  */
 export function Cursor({ target, containerRef }: CursorProps) {
   const [pos, setPos] = useState<Position | null>(null);
-  const [clicking, setClicking] = useState(false);
+  const timeSource = useTimeSource();
+
+  // ---------------------------------------------------------------------------
+  // Browser-only clicking state (setTimeout-driven)
+  // ---------------------------------------------------------------------------
+  const [browserClicking, setBrowserClicking] = useState(false);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const timeSource = useTimeSource();
 
-  /*
-   * Video-export path: compute position synchronously.
-   *
-   * In Remotion, each frame is a fully-rendered DOM snapshot.
-   * setTimeout never fires, so the normal polling/delay flow
-   * produces no result. Instead we read the target element's
-   * position directly via getBoundingClientRect — the DOM is
-   * already laid out when this effect runs.
-   *
-   * getBoundingClientRect returns viewport coordinates (post-zoom),
-   * but position:absolute inside a CSS-zoomed container uses CSS
-   * coordinates (pre-zoom). We divide by the effective zoom to
-   * convert viewport offsets back to the container's CSS space.
-   */
+  // ---------------------------------------------------------------------------
+  // Video-export clicking state (timeline-derived)
+  //
+  // Records the timeline time when a new target appeared. The click
+  // ripple triggers once CLICK_DELAY_MS has elapsed, matching the
+  // browser path's setTimeout behaviour deterministically.
+  // ---------------------------------------------------------------------------
+  const [targetArrivalMs, setTargetArrivalMs] = useState<number | null>(null);
+  const prevTargetRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     if (!timeSource) return;
+    if (target !== prevTargetRef.current) {
+      prevTargetRef.current = target;
+      setTargetArrivalMs(target ? timeSource.currentTimeMs : null);
+    }
+    // Only react to target identity changes, not every frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+
+  const videoClicking =
+    timeSource != null &&
+    targetArrivalMs != null &&
+    timeSource.currentTimeMs - targetArrivalMs >= CLICK_DELAY_MS;
+
+  const isClicking = timeSource ? videoClicking : browserClicking;
+
+  // ---------------------------------------------------------------------------
+  // Video-export path: compute position synchronously.
+  //
+  // Runs when `target` changes — not every frame. The effect checks
+  // for the TimeSource context but does not depend on it so the
+  // unstable context reference does not cause per-frame re-runs.
+  //
+  // getBoundingClientRect returns viewport coordinates (post-zoom),
+  // but position:absolute inside a CSS-zoomed container uses CSS
+  // coordinates (pre-zoom). We divide by the effective zoom to
+  // convert viewport offsets back to the container's CSS space.
+  // ---------------------------------------------------------------------------
+  const isVideoRef = useRef(false);
+  isVideoRef.current = timeSource != null;
+
+  useEffect(() => {
+    if (!isVideoRef.current) return;
 
     if (!target) {
       setPos(null);
-      setClicking(false);
       return;
     }
 
@@ -128,17 +124,18 @@ export function Cursor({ target, containerRef }: CursorProps) {
       x: (eRect.left - cRect.left + eRect.width / 2) / zoom,
       y: (eRect.top - cRect.top + eRect.height / 2) / zoom,
     });
-    setClicking(false);
-  }, [timeSource, target, containerRef]);
+  }, [target, containerRef]);
 
-  /* Live-site path: poll for target, scroll, settle, then animate. */
+  // ---------------------------------------------------------------------------
+  // Live-site path: poll for target, scroll, settle, then animate.
+  // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (timeSource) return;
+    if (isVideoRef.current) return;
 
     clearTimeout(clickTimerRef.current);
     clearTimeout(retryTimerRef.current);
     clearTimeout(settleTimerRef.current);
-    setClicking(false);
+    setBrowserClicking(false);
 
     if (!target) {
       setPos(null);
@@ -186,7 +183,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
             });
 
             clickTimerRef.current = setTimeout(() => {
-              if (!cancelled) setClicking(true);
+              if (!cancelled) setBrowserClicking(true);
             }, CLICK_DELAY_MS);
           });
         },
@@ -203,7 +200,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
       clearTimeout(settleTimerRef.current);
       clearTimeout(clickTimerRef.current);
     };
-  }, [timeSource, target, containerRef]);
+  }, [target, containerRef]);
 
   useEffect(() => {
     return () => {
@@ -227,7 +224,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
           <CursorIcon />
 
           <AnimatePresence>
-            {clicking && (
+            {isClicking && (
               <motion.span
                 key="ripple"
                 className="absolute left-0 top-0 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary/50"

@@ -110,7 +110,7 @@ function personalEnvHasKey(
  * Handles the full OAuth flow: generating the authorize URL via the
  * Stigmer backend, exchanging the code for a token, validating it,
  * and persisting it in the user's server-side personal
- * {@link Environment}.
+ * `Environment`.
  *
  * **Storage strategy:** The token is stored encrypted in the personal
  * environment (server-side). On OAuth callback the token is written

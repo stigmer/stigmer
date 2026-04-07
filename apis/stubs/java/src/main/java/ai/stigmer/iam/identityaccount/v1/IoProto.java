@@ -71,6 +71,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_identityaccount_v1_UpdateFederatedAccountInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_identityaccount_v1_UpdateFederatedAccountInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_identityaccount_v1_DeprovisionFederatedAccountInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_identityaccount_v1_DeprovisionFederatedAccountInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -114,11 +124,26 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "rnalSub\022\034\n\005email\030\004 \001(\tB\006\272H\003\310\001\001R\005email\022\035\n" +
       "\nfirst_name\030\005 \001(\tR\tfirstName\022\033\n\tlast_nam" +
       "e\030\006 \001(\tR\010lastName\022\037\n\013picture_url\030\007 \001(\tR\n" +
-      "pictureUrlB\262\001B\007IoProtoP\001\242\002\004ASII\252\002!Ai.Sti" +
-      "gmer.Iam.Identityaccount.V1\312\002!Ai\\Stigmer" +
-      "\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\Iam" +
-      "\\Identityaccount\\V1\\GPBMetadata\352\002%Ai::St" +
-      "igmer::Iam::Identityaccount::V1b\006proto3"
+      "pictureUrl\"\307\002\n\033UpdateFederatedAccountInp" +
+      "ut\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022h\n\025identity" +
+      "_provider_ref\030\002 \001(\01324.ai.stigmer.commons" +
+      ".apiresource.ApiResourceReferenceR\023ident" +
+      "ityProviderRef\022)\n\014external_sub\030\003 \001(\tB\006\272H" +
+      "\003\310\001\001R\013externalSub\022\034\n\005email\030\004 \001(\tB\006\272H\003\310\001\001" +
+      "R\005email\022\035\n\nfirst_name\030\005 \001(\tR\tfirstName\022\033" +
+      "\n\tlast_name\030\006 \001(\tR\010lastName\022\037\n\013picture_u" +
+      "rl\030\007 \001(\tR\npictureUrl\"\370\001\n DeprovisionFede" +
+      "ratedAccountInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003" +
+      "org\022h\n\025identity_provider_ref\030\002 \001(\01324.ai." +
+      "stigmer.commons.apiresource.ApiResourceR" +
+      "eferenceR\023identityProviderRef\022)\n\014externa" +
+      "l_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013externalSub\022%\n\016dele" +
+      "te_account\030\004 \001(\010R\rdeleteAccountB\262\001B\007IoPr" +
+      "otoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identityac" +
+      "count.V1\312\002!Ai\\Stigmer\\Iam\\Identityaccoun" +
+      "t\\V1\342\002-Ai\\Stigmer\\Iam\\Identityaccount\\V1" +
+      "\\GPBMetadata\352\002%Ai::Stigmer::Iam::Identit" +
+      "yaccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -182,6 +207,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_descriptor,
         new java.lang.String[] { "Org", "IdentityProviderRef", "ExternalSub", "Email", "FirstName", "LastName", "PictureUrl", });
+    internal_static_ai_stigmer_iam_identityaccount_v1_UpdateFederatedAccountInput_descriptor =
+      getDescriptor().getMessageType(9);
+    internal_static_ai_stigmer_iam_identityaccount_v1_UpdateFederatedAccountInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_identityaccount_v1_UpdateFederatedAccountInput_descriptor,
+        new java.lang.String[] { "Org", "IdentityProviderRef", "ExternalSub", "Email", "FirstName", "LastName", "PictureUrl", });
+    internal_static_ai_stigmer_iam_identityaccount_v1_DeprovisionFederatedAccountInput_descriptor =
+      getDescriptor().getMessageType(10);
+    internal_static_ai_stigmer_iam_identityaccount_v1_DeprovisionFederatedAccountInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_identityaccount_v1_DeprovisionFederatedAccountInput_descriptor,
+        new java.lang.String[] { "Org", "IdentityProviderRef", "ExternalSub", "DeleteAccount", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.rpc.PaginationProto.getDescriptor();

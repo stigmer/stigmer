@@ -46,26 +46,44 @@ export function toServerKey(ref: ResourceRef): string {
  *   the "no env_spec needed" and "env vars resolved" cases.
  */
 export type McpServerSetupPhase =
-  | { readonly status: "loading" }
   | {
+      /** Fetching the full MCP server resource (spec + status). */
+      readonly status: "loading";
+    }
+  | {
+      /** The server has env vars missing from the user's personal environment. */
       readonly status: "needsSetup";
+      /** The fetched MCP server resource. */
       readonly mcpServer: McpServer;
+      /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: EnvVarFormVariable[];
+      /** Tools discovered by the MCP server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
+      /** Per-tool approval policies from the server spec. */
       readonly toolApprovals: ToolApprovalPolicy[];
     }
   | {
+      /** Environment variables are being persisted or the instance is being provisioned. */
       readonly status: "submitting";
+      /** The fetched MCP server resource. */
       readonly mcpServer: McpServer;
+      /** Environment variables collected from the user. */
       readonly missingVariables: EnvVarFormVariable[];
+      /** Tools discovered by the MCP server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
+      /** Per-tool approval policies from the server spec. */
       readonly toolApprovals: ToolApprovalPolicy[];
     }
   | {
+      /** The server is fully configured and ready for session creation. */
       readonly status: "ready";
+      /** The fetched MCP server resource. */
       readonly mcpServer: McpServer;
+      /** Tools discovered by the MCP server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
+      /** Per-tool approval policies from the server spec. */
       readonly toolApprovals: ToolApprovalPolicy[];
+      /** Tool names enabled for this session, after user selection. */
       readonly enabledTools: string[];
     };
 
@@ -80,6 +98,7 @@ export type McpServerSetupPhase =
  * Matches the pattern established by `AgentSetupState`.
  */
 export type McpServerSetupEntry = McpServerSetupPhase & {
+  /** Error from the last async transition, or `null` when healthy. */
   readonly error: Error | null;
 };
 
@@ -107,45 +126,104 @@ export type McpServerSetupState = Readonly<
  * produced by {@link toServerKey}) identifying the target entry.
  */
 export type McpServerSetupAction =
-  | { readonly type: "ADD_SERVER"; readonly key: string }
   | {
+      /** Add a new server entry in `loading` phase. */
+      readonly type: "ADD_SERVER";
+      /** Server key (`"org/slug"`). */
+      readonly key: string;
+    }
+  | {
+      /** Server resolved but needs env var collection. */
       readonly type: "RESOLVE_NEEDS_SETUP";
+      /** Server key (`"org/slug"`). */
       readonly key: string;
+      /** The fetched MCP server resource. */
       readonly mcpServer: McpServer;
+      /** Variables the user must provide. */
       readonly missingVariables: EnvVarFormVariable[];
+      /** Tools discovered by the server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
+      /** Per-tool approval policies from the server spec. */
       readonly toolApprovals: ToolApprovalPolicy[];
     }
   | {
+      /** Server resolved and is ready (no env vars needed). */
       readonly type: "RESOLVE_READY";
+      /** Server key (`"org/slug"`). */
       readonly key: string;
+      /** The fetched MCP server resource. */
       readonly mcpServer: McpServer;
+      /** Tools discovered by the server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
+      /** Per-tool approval policies from the server spec. */
       readonly toolApprovals: ToolApprovalPolicy[];
+      /** Tool names enabled for this session. */
       readonly enabledTools: string[];
     }
   | {
+      /** Re-evaluate missing variables after pool values arrive. */
       readonly type: "POOL_RESOLVE";
+      /** Server key (`"org/slug"`). */
       readonly key: string;
+      /** Updated missing variables (may be empty if pool covered all). */
       readonly missingVariables: EnvVarFormVariable[];
+      /** Tool names enabled for this session. */
       readonly enabledTools: string[];
     }
-  | { readonly type: "SUBMIT_START"; readonly key: string }
   | {
+      /** Begin persisting env vars for this server. */
+      readonly type: "SUBMIT_START";
+      /** Server key (`"org/slug"`). */
+      readonly key: string;
+    }
+  | {
+      /** Env var submission succeeded — server is ready. */
       readonly type: "SUBMIT_DONE";
+      /** Server key (`"org/slug"`). */
       readonly key: string;
+      /** Tool names enabled for this session. */
       readonly enabledTools: string[];
     }
   | {
+      /** Update the enabled tools list for a ready server. */
       readonly type: "SET_ENABLED_TOOLS";
+      /** Server key (`"org/slug"`). */
       readonly key: string;
+      /** New set of enabled tool names. */
       readonly enabledTools: string[];
     }
-  | { readonly type: "SUBMIT_FAIL"; readonly key: string; readonly error: Error }
-  | { readonly type: "SET_ERROR"; readonly key: string; readonly error: Error }
-  | { readonly type: "CLEAR_ERROR"; readonly key: string }
-  | { readonly type: "REMOVE_SERVER"; readonly key: string }
-  | { readonly type: "RESET" };
+  | {
+      /** Env var submission failed — revert to `needsSetup`. */
+      readonly type: "SUBMIT_FAIL";
+      /** Server key (`"org/slug"`). */
+      readonly key: string;
+      /** The error that occurred during submission. */
+      readonly error: Error;
+    }
+  | {
+      /** Set an error on a specific server entry. */
+      readonly type: "SET_ERROR";
+      /** Server key (`"org/slug"`). */
+      readonly key: string;
+      /** The error to set. */
+      readonly error: Error;
+    }
+  | {
+      /** Clear the error on a specific server entry. */
+      readonly type: "CLEAR_ERROR";
+      /** Server key (`"org/slug"`). */
+      readonly key: string;
+    }
+  | {
+      /** Remove a server entry from the state. */
+      readonly type: "REMOVE_SERVER";
+      /** Server key (`"org/slug"`). */
+      readonly key: string;
+    }
+  | {
+      /** Reset all server entries to the initial empty state. */
+      readonly type: "RESET";
+    };
 
 // ---------------------------------------------------------------------------
 // Initial state

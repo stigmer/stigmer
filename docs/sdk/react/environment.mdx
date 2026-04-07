@@ -17,7 +17,7 @@ configuration values and secrets. The caller provides an
 `EnvironmentInput` with `name`, `org`, and optionally
 `description` and `data` (key-value pairs).
 
-Returns the full [`Environment`](/docs/sdk/resources/environment) proto including
+Returns the full `Environment` proto including
 server-generated metadata (id, version, timestamps) so callers
 can immediately reference the created resource.
 
@@ -67,7 +67,7 @@ fields change, the previous in-flight request is discarded and a
 fresh fetch begins. Call `refetch()` to re-query after mutating the
 environment through a separate hook or API call.
 
-Returns the full proto [`Environment`](/docs/sdk/resources/environment) resource so consumers
+Returns the full proto `Environment` resource so consumers
 have access to metadata, spec (including `data` key-value pairs),
 and status without additional calls.
 
@@ -111,7 +111,7 @@ const { environment, isLoading, error } = useEnvironment({
 
 ### useEnvironmentList
 
-Data hook that fetches a paginated list of [`Environment`](/docs/sdk/resources/environment) entries
+Data hook that fetches a paginated list of `Environment` entries
 for a given organization, with optional label filtering.
 
 Pass `null` as `org` to skip fetching (stable no-op). When the org
@@ -159,7 +159,7 @@ const { environments, isLoading } = useEnvironmentList("acme", {
 ### usePersonalEnvironment
 
 Layer 2 orchestration hook that manages the caller's personal
-[`Environment`](/docs/sdk/resources/environment) for a given organization.
+`Environment` for a given organization.
 
 Encapsulates the "personal environment" convention: label
 (`stigmer.ai/personal: "true"`), unique slug per user, and
@@ -232,7 +232,7 @@ Removes the specified keys from the environment's `spec.data`.
 Keys that do not exist are silently ignored. Variables not
 mentioned in the request are preserved unchanged.
 
-Returns the full [`Environment`](/docs/sdk/resources/environment) proto (with secrets redacted)
+Returns the full `Environment` proto (with secrets redacted)
 so callers can immediately reference the latest state.
 
 This is a Layer 1 building-block hook for the **Environment Flow**
@@ -389,7 +389,7 @@ full `EnvironmentInput` including the environment's `name`
 and `org` (used by the backend to identify the resource) and all
 spec fields.
 
-Returns the full [`Environment`](/docs/sdk/resources/environment) proto including
+Returns the full `Environment` proto including
 server-updated metadata (version, timestamps) so callers can
 immediately reference the latest state.
 
@@ -440,7 +440,7 @@ environment's `spec.data`. Only the keys included in the request
 are affected — existing variables not mentioned are preserved.
 Secret values are encrypted server-side before persistence.
 
-Returns the full [`Environment`](/docs/sdk/resources/environment) proto (with secrets redacted)
+Returns the full `Environment` proto (with secrets redacted)
 so callers can immediately reference the latest state.
 
 This is a Layer 1 building-block hook for the **Environment Flow**
@@ -482,7 +482,7 @@ const env = await updateVariables({
 
 ### CreateEnvironmentForm
 
-Compact form for creating a new [`Environment`](/docs/sdk/resources/environment) resource.
+Compact form for creating a new `Environment` resource.
 
 Collects a name and optional description, then creates the
 environment via `useCreateEnvironment`. Variables can be added
@@ -515,7 +515,7 @@ stores. All visual properties flow through `--stgm-*` design tokens.
 
 ### EnvironmentListPanel
 
-Displays a list of [`Environment`](/docs/sdk/resources/environment) resources for an organization
+Displays a list of `Environment` resources for an organization
 with expandable inline variable editors.
 
 Each environment is rendered as a collapsible card showing name,
@@ -562,7 +562,7 @@ All visual properties flow through `--stgm-*` design tokens.
 ### EnvironmentVariableEditor
 
 Self-contained component that displays and manages all variables for
-a single [`Environment`](/docs/sdk/resources/environment). Fetches environment data by ID, renders
+a single `Environment`. Fetches environment data by ID, renders
 an editable variable list, and commits changes inline per variable.
 
 Each variable supports inline editing with immediate save, secret

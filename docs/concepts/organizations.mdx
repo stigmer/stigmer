@@ -1,9 +1,9 @@
 ---
 title: Organizations
 description:
-  Organizations and Projects provide multi-tenant resource grouping in Stigmer.
-  Learn how resources are scoped, how projects work, and how Cloud and local
-  modes differ.
+  Organizations are tenant boundaries that group resources and control access.
+  Learn the two management modes, how multi-tenant platforms use
+  platform-managed Organizations, and how resources are scoped.
 ---
 
 Every resource in Stigmer — Agents, Skills, MCP Servers, Sessions, Environments
@@ -44,10 +44,10 @@ spec:
 
 Key properties:
 
-| Field             | Purpose                                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `slug`            | URL-friendly identifier, unique across the platform                                                  |
-| `management_mode` | `self_managed` (you control everything) or `platform_managed` (Stigmer Cloud manages infrastructure) |
+| Field             | Purpose                                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `slug`            | URL-friendly identifier, unique across the platform                                                                                              |
+| `management_mode` | `self_managed` (you operate the org directly) or `platform_managed` (an external platform creates and operates the org via an Identity Provider) |
 
 ### Projects
 
@@ -68,6 +68,119 @@ spec:
 When you run `stigmer apply`, the CLI scans the Project directory and applies
 all resource definitions it finds. This makes Projects the unit of deployment —
 everything in a Project directory deploys together.
+
+## Management modes
+
+Every Organization has a `management_mode` that determines who operates it. The
+mode is set at creation and cannot change afterward.
+
+### Self-managed
+
+You create a self-managed Organization when you sign up for Stigmer directly.
+You own the Organization and manage its resources, users, and settings through
+the Stigmer UI, CLI, or API. Authentication uses Stigmer's own login, or you can
+configure an SSO Identity Provider so your team signs in with existing
+credentials.
+
+```yaml
+apiVersion: tenancy.stigmer.ai/v1
+kind: Organization
+metadata:
+  name: Acme Corp
+  slug: acme
+spec:
+  management_mode: self_managed
+```
+
+Self-managed is the default. If you are a team using Stigmer to build and run
+Agents, this is the mode you use.
+
+### Platform-managed
+
+A platform-managed Organization is created programmatically by an **external
+platform** that builds on Stigmer. The platform registers an Identity Provider,
+then creates Organizations on behalf of its own customers. Each Organization is
+linked to the platform's Identity Provider via `identity_provider_ref`, and the
+platform can store its own tenant identifier in `external_org_id` for reverse
+lookup.
+
+```yaml
+apiVersion: tenancy.stigmer.ai/v1
+kind: Organization
+metadata:
+  name: Tenant Alpha
+  slug: tenant-alpha
+spec:
+  management_mode: platform_managed
+  identity_provider_ref:
+    kind: identity_provider
+    slug: acme-cloud
+    org: acme
+  external_org_id: "acme-tenant-alpha-id"
+```
+
+Platform-managed Organizations are operated by the platform, not by their end
+users. The platform's backend provisions users, grants access, and manages
+resources through the Stigmer API. End users authenticate with tokens from the
+platform's Identity Provider — they never interact with Stigmer's own login.
+
+## Multi-tenant platforms
+
+When a platform serves multiple customers and each customer needs isolated
+Agents, Skills, Sessions, and access controls, the platform creates one
+platform-managed Organization per customer. The Organization boundary gives each
+tenant full resource isolation — an Agent in one Organization cannot see or
+access resources in another.
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph TD
+  Platform["Platform backend<br/>(Acme Cloud)"]
+  IdP["IdentityProvider<br/>(acme-cloud)"]
+  OrgA["Organization<br/>(tenant-alpha)"]
+  OrgB["Organization<br/>(tenant-beta)"]
+  OrgC["Organization<br/>(tenant-gamma)"]
+  A1["Agent: support-bot"]
+  A2["Skill: kb-alpha"]
+  B1["Agent: support-bot"]
+  B2["Skill: kb-beta"]
+  C1["Agent: ops-assistant"]
+  C2["Skill: runbook"]
+  Platform --> IdP
+  Platform --> OrgA
+  Platform --> OrgB
+  Platform --> OrgC
+  OrgA --> A1
+  OrgA --> A2
+  OrgB --> B1
+  OrgB --> B2
+  OrgC --> C1
+  OrgC --> C2
+`}
+/>
+
+The pattern works like this:
+
+1. The platform registers a single Identity Provider in its own Organization.
+2. For each new customer, the platform creates a platform-managed Organization
+   linked to that Identity Provider.
+3. When a customer's user signs up, the platform provisions a federated Identity
+   Account in the customer's Organization and grants it an appropriate role.
+4. The user authenticates with a JWT from the platform's auth system. Stigmer
+   validates the token, resolves the user's federated account, and checks IAM
+   Policies scoped to the tenant's Organization.
+
+Because every resource — Agents, Skills, MCP Servers, Sessions, IAM Policies —
+is scoped to an Organization, tenants cannot see or affect each other's
+resources. The Identity Provider is shared (it authenticates all tenants), but
+the Organization boundary keeps each tenant's data and access separate.
+
+<Callout type="info">
+  For step-by-step instructions on setting up a multi-tenant platform, see the
+  [Multi-tenant platform setup](/docs/guides/federation/multi-tenant-setup)
+  guide.
+</Callout>
 
 ## Cloud vs. local
 
@@ -114,3 +227,15 @@ skill_refs:
 
 This keeps resource definitions portable — they reference resources by name, not
 by internal IDs.
+
+## What's next
+
+- Building a platform with federated authentication? The
+  [Identity federation guide](/docs/guides/federation/overview) walks through
+  Identity Provider registration, account provisioning, and access granting.
+- Need tenant isolation for multiple customers? The
+  [Multi-tenant platform setup](/docs/guides/federation/multi-tenant-setup)
+  guide covers creating platform-managed Organizations and provisioning users
+  per tenant.
+- For API details, see the
+  [Organization SDK reference](/docs/sdk/resources/organization).

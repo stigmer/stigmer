@@ -109,3 +109,67 @@ message CreateFederatedAccountInput {
   // URL of the user's profile picture.
   string picture_url = 7;
 }
+
+// UpdateFederatedAccountInput is the command for updating profile fields on a
+// federated identity account identified by its natural key (identity provider
+// reference + external subject).
+//
+// Called by platform backends when a user's profile changes on their platform
+// (e.g., name update, email change). Uses full-replace semantics: all profile
+// fields must be provided. Identity keys (org, identity_provider_ref, external_sub)
+// are immutable and used only for lookup.
+message UpdateFederatedAccountInput {
+  // Organization that owns the identity provider.
+  // Used as the authorization scope: caller must have can_create_identity_account
+  // permission on this organization.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Reference to the IdentityProvider that the federated account belongs to.
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+
+  // External subject identifier (OIDC sub claim) — lookup key, not updatable.
+  string external_sub = 3 [(buf.validate.field).required = true];
+
+  // Updated email address.
+  string email = 4 [(buf.validate.field).required = true];
+
+  // Updated first name.
+  string first_name = 5;
+
+  // Updated last name.
+  string last_name = 6;
+
+  // Updated profile picture URL.
+  string picture_url = 7;
+}
+
+// DeprovisionFederatedAccountInput is the command for revoking a federated
+// identity account's access, with an option to delete the account entirely.
+//
+// Called by platform backends when a user is removed from their platform
+// (e.g., employee offboarding, account suspension). Uses the natural key
+// (identity provider reference + external subject) for lookup.
+//
+// Two modes:
+//   - Revoke only (delete_account = false): removes all IAM policies for the
+//     account in the organization. The identity account is preserved for audit
+//     trail. The user loses access but the account record remains.
+//   - Revoke and delete (delete_account = true): revokes access AND deletes
+//     the identity account. All IAM policies across all organizations are
+//     cleaned up. Use this for permanent offboarding.
+message DeprovisionFederatedAccountInput {
+  // Organization that owns the identity provider.
+  // Used as the authorization scope: caller must have can_create_identity_account
+  // permission on this organization.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Reference to the IdentityProvider that the federated account belongs to.
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+
+  // External subject identifier (OIDC sub claim) — lookup key.
+  string external_sub = 3 [(buf.validate.field).required = true];
+
+  // When false (default): revoke the account's access in this organization only.
+  // When true: revoke access AND permanently delete the identity account.
+  bool delete_account = 4;
+}

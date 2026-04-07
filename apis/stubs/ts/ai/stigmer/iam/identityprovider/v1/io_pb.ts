@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASItChVPcmdhbml6YXRpb25Tc29Mb29rdXASFAoDb3JnGAEgASgJQge6SARyAhABIk8KD1Nzb1Byb3ZpZGVySW5mbxIUCgxkaXNwbGF5X25hbWUYASABKAkSFgoOb2lkY19jbGllbnRfaWQYAiABKAkSDgoGaXNzdWVyGAMgASgJYgZwcm90bzM", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASItChVPcmdhbml6YXRpb25Tc29Mb29rdXASFAoDb3JnGAEgASgJQge6SARyAhABImoKD1Nzb1Byb3ZpZGVySW5mbxIUCgxkaXNwbGF5X25hbWUYASABKAkSFgoOb2lkY19jbGllbnRfaWQYAiABKAkSDgoGaXNzdWVyGAMgASgJEhkKEWV4cGVjdGVkX2F1ZGllbmNlGAQgASgJYgZwcm90bzM", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate]);
 
 /**
  * IdentityProviderId identifies an identity provider by its unique identifier.
@@ -164,6 +164,18 @@ export type SsoProviderInfo = Message<"ai.stigmer.iam.identityprovider.v1.SsoPro
    * @generated from field: string issuer = 3;
    */
   issuer: string;
+
+  /**
+   * Expected JWT audience value for the OIDC token request.
+   * The web app passes this as the audience parameter when initiating the
+   * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+   * a JWT access token with the correct aud claim; others determine the
+   * audience from server-side configuration and ignore this parameter.
+   * Empty means the web app should omit the audience parameter.
+   *
+   * @generated from field: string expected_audience = 4;
+   */
+  expectedAudience: string;
 };
 
 /**

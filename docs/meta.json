@@ -1,7 +1,8 @@
 {
   "pages": [
     "getting-started",
-    "concepts",
-    "sdk"
+    "guides",
+    "sdk",
+    "concepts"
   ]
 }

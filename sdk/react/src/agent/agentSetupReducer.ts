@@ -18,9 +18,22 @@ import type { AgentEnvFormVariable } from "./AgentEnvForm";
  *   Create the session with `agentRef` directly.
  */
 export type AgentResolution =
-  | { readonly mode: "saved"; readonly instanceId: string }
-  | { readonly mode: "oneTime"; readonly runtimeEnv: Record<string, EnvVarInput> }
-  | { readonly mode: "direct" };
+  | {
+      /** Secrets were persisted to the user's personal environment. */
+      readonly mode: "saved";
+      /** ID of the personal agent instance to use for session creation. */
+      readonly instanceId: string;
+    }
+  | {
+      /** Secrets were collected but not persisted — pass to execution only. */
+      readonly mode: "oneTime";
+      /** Collected secrets to forward as execution-scoped runtime env vars. */
+      readonly runtimeEnv: Record<string, EnvVarInput>;
+    }
+  | {
+      /** The agent has no `env_spec` and needs no secrets. */
+      readonly mode: "direct";
+    };
 
 // ---------------------------------------------------------------------------
 // State machine — phases of the agent setup flow
@@ -36,26 +49,48 @@ export type AgentResolution =
  * narrowing in consumer code.
  */
 export type AgentSetupPhase =
-  | { readonly status: "idle" }
-  | { readonly status: "resolving"; readonly agentRef: ResourceRef }
   | {
+      /** No agent resolution has been initiated. */
+      readonly status: "idle";
+    }
+  | {
+      /** The agent blueprint is being fetched and its env spec is being evaluated. */
+      readonly status: "resolving";
+      /** Reference to the agent being resolved. */
+      readonly agentRef: ResourceRef;
+    }
+  | {
+      /** The agent requires environment variables that the user has not yet provided. */
       readonly status: "needsEnvVars";
+      /** Reference to the agent being set up. */
       readonly agentRef: ResourceRef;
+      /** Server-assigned ID of the agent blueprint. */
       readonly agentId: string;
+      /** Display name of the agent. */
       readonly agentName: string;
+      /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: AgentEnvFormVariable[];
     }
   | {
+      /** Environment variables are being persisted or the instance is being provisioned. */
       readonly status: "submitting";
+      /** Reference to the agent being set up. */
       readonly agentRef: ResourceRef;
+      /** Server-assigned ID of the agent blueprint. */
       readonly agentId: string;
+      /** Display name of the agent. */
       readonly agentName: string;
+      /** Environment variables that were collected from the user. */
       readonly missingVariables: AgentEnvFormVariable[];
     }
   | {
+      /** The agent is fully resolved and ready for session creation. */
       readonly status: "ready";
+      /** Reference to the resolved agent. */
       readonly agentRef: ResourceRef;
+      /** Display name of the resolved agent. */
       readonly agentName: string;
+      /** How the agent was resolved — determines session creation strategy. */
       readonly resolution: AgentResolution;
     };
 
@@ -68,6 +103,7 @@ export type AgentSetupPhase =
  * error messages without losing the current phase context.
  */
 export type AgentSetupState = AgentSetupPhase & {
+  /** Error from the last async transition, or `null` when healthy. */
   readonly error: Error | null;
 };
 
@@ -76,28 +112,47 @@ export type AgentSetupState = AgentSetupPhase & {
 // ---------------------------------------------------------------------------
 
 /**
- * Result returned by {@link useAgentSetup.resolveAgent}.
+ * Result returned by `useAgentSetup().resolveAgent()`.
+ *
+ * - `"ready"` — the agent can be used immediately.
+ * - `"needsEnvVars"` — the agent requires environment variables
+ *   the user has not yet provided.
+ */
+/**
+ * Result returned by `useAgentSetup().submitEnvVars()` — always `"ready"`.
+ *
+ * Also used as the `"ready"` variant of {@link AgentSetupResult}.
+ */
+export interface AgentSetupReadyResult {
+  /** The agent is ready for session creation. */
+  readonly status: "ready";
+  /** Reference to the resolved agent. */
+  readonly agentRef: ResourceRef;
+  /** Display name of the resolved agent. */
+  readonly agentName: string;
+  /** How the agent was resolved — determines session creation strategy. */
+  readonly resolution: AgentResolution;
+}
+
+/**
+ * Result returned by `useAgentSetup().resolveAgent()`.
  *
  * - `"ready"` — the agent can be used immediately.
  * - `"needsEnvVars"` — the agent requires environment variables
  *   the user has not yet provided.
  */
 export type AgentSetupResult =
+  | AgentSetupReadyResult
   | {
-      readonly status: "ready";
-      readonly agentRef: ResourceRef;
-      readonly agentName: string;
-      readonly resolution: AgentResolution;
-    }
-  | {
+      /** The agent requires env vars the user has not yet provided. */
       readonly status: "needsEnvVars";
+      /** Reference to the agent being set up. */
       readonly agentRef: ResourceRef;
+      /** Display name of the agent. */
       readonly agentName: string;
+      /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: AgentEnvFormVariable[];
     };
-
-/** Result returned by {@link useAgentSetup.submitEnvVars} — always `"ready"`. */
-export type AgentSetupReadyResult = AgentSetupResult & { readonly status: "ready" };
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -105,34 +160,68 @@ export type AgentSetupReadyResult = AgentSetupResult & { readonly status: "ready
 
 /** Action union for the agent setup state machine managed by {@link agentSetupReducer}. */
 export type AgentSetupAction =
-  | { readonly type: "RESOLVE_START"; readonly agentRef: ResourceRef }
   | {
+      /** Begin resolving an agent's requirements. */
+      readonly type: "RESOLVE_START";
+      /** Reference to the agent to resolve. */
+      readonly agentRef: ResourceRef;
+    }
+  | {
+      /** Agent resolved but requires env vars from the user. */
       readonly type: "RESOLVE_NEEDS_ENV";
+      /** Reference to the agent. */
       readonly agentRef: ResourceRef;
+      /** Server-assigned agent ID. */
       readonly agentId: string;
+      /** Display name of the agent. */
       readonly agentName: string;
+      /** Variables the user must provide. */
       readonly missingVariables: AgentEnvFormVariable[];
     }
   | {
+      /** Agent resolved and is ready for session creation. */
       readonly type: "RESOLVE_READY";
+      /** Reference to the resolved agent. */
       readonly agentRef: ResourceRef;
+      /** Display name of the resolved agent. */
       readonly agentName: string;
+      /** Resolution strategy for session creation. */
       readonly resolution: AgentResolution;
     }
   | {
+      /** Re-evaluate missing variables after pool values arrive. */
       readonly type: "POOL_RESOLVE";
+      /** Updated missing variables (may be empty if pool covered all). */
       readonly missingVariables: AgentEnvFormVariable[];
     }
-  | { readonly type: "SUBMIT_START" }
   | {
+      /** Begin persisting env vars or creating an agent instance. */
+      readonly type: "SUBMIT_START";
+    }
+  | {
+      /** Env var submission succeeded — agent is ready. */
       readonly type: "SUBMIT_READY";
+      /** Reference to the resolved agent. */
       readonly agentRef: ResourceRef;
+      /** Display name of the resolved agent. */
       readonly agentName: string;
+      /** Resolution strategy for session creation. */
       readonly resolution: AgentResolution;
     }
-  | { readonly type: "ERROR"; readonly error: Error }
-  | { readonly type: "CLEAR_ERROR" }
-  | { readonly type: "RESET" };
+  | {
+      /** An async operation failed. */
+      readonly type: "ERROR";
+      /** The error that occurred. */
+      readonly error: Error;
+    }
+  | {
+      /** Clear the error without changing phase. */
+      readonly type: "CLEAR_ERROR";
+    }
+  | {
+      /** Reset to idle state. */
+      readonly type: "RESET";
+    };
 
 // ---------------------------------------------------------------------------
 // Reducer

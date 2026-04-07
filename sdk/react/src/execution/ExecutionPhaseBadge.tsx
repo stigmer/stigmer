@@ -85,7 +85,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
 ]);
 
 /**
- * Displays the lifecycle phase of an {@link AgentExecution} as an
+ * Displays the lifecycle phase of an `AgentExecution` as an
  * inline badge with a status icon and label.
  *
  * Renders nothing for `EXECUTION_PHASE_UNSPECIFIED`.

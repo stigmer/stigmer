@@ -1,0 +1,12 @@
+{
+  "title": "Identity federation",
+  "pages": [
+    "overview",
+    "register-identity-provider",
+    "provision-federated-accounts",
+    "grant-access",
+    "authentication-flow",
+    "sso-login",
+    "multi-tenant-setup"
+  ]
+}

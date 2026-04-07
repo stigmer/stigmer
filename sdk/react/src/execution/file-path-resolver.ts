@@ -8,8 +8,18 @@ const PLATFORM_DIR_NAME = ".stigmer";
  * platform mount (`.stigmer/`) namespace.
  */
 export type PathClassification =
-  | { readonly kind: "workspace"; readonly remainder: string }
-  | { readonly kind: "platform"; readonly subpath: string };
+  | {
+      /** The path targets a workspace source entry. */
+      readonly kind: "workspace";
+      /** Path relative to the workspace root, with `.stigmer/` prefix stripped. */
+      readonly remainder: string;
+    }
+  | {
+      /** The path targets the virtual platform mount (`.stigmer/`). */
+      readonly kind: "platform";
+      /** Path within the platform namespace, after the `.stigmer/` prefix. */
+      readonly subpath: string;
+    };
 
 /**
  * Classifies whether a path targets the virtual platform mount
@@ -80,8 +90,22 @@ export function resolveGitBrowseUrl(
  * to decide rendering (anchor vs. copy button).
  */
 export type ResolvedPathAction =
-  | { readonly action: "link"; readonly url: string; readonly tooltip: string }
-  | { readonly action: "copy"; readonly value: string; readonly tooltip: string };
+  | {
+      /** Open the path as a navigable URL (e.g. GitHub blob link). */
+      readonly action: "link";
+      /** Resolved external URL to open. */
+      readonly url: string;
+      /** Human-readable label for the link action. */
+      readonly tooltip: string;
+    }
+  | {
+      /** Copy the path to the clipboard (no navigable URL available). */
+      readonly action: "copy";
+      /** Resolved path string to copy. */
+      readonly value: string;
+      /** Human-readable label for the copy action. */
+      readonly tooltip: string;
+    };
 
 /**
  * Resolves a tool-call file path to a user action.

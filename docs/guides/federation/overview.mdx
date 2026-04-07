@@ -1,0 +1,153 @@
+---
+title: Identity federation
+description:
+  Let users access Stigmer with their existing credentials. This guide covers
+  platform-managed federation for API integration and self-managed SSO for web
+  console login.
+---
+
+Identity federation lets users access Stigmer with tokens issued by an external
+authentication system. Instead of requiring separate Stigmer accounts, you
+register your auth provider as an Identity Provider and Stigmer trusts its
+tokens.
+
+Federation supports two paths:
+
+- **Platform-managed federation** — Your platform backend provisions accounts
+  and grants roles via the API. Your users call the Stigmer API with JWTs from
+  your auth provider.
+- **Self-managed SSO** — Your team members sign in to the Stigmer web console
+  through your Organization's Identity Provider. Accounts are created
+  automatically on first login.
+
+<DemoFederationOverviewTour />
+
+## When you need this
+
+You're building a platform on Stigmer and your users already authenticate
+through your own OIDC-compatible provider (Auth0, Okta, Entra ID, AWS Cognito,
+or any custom OIDC server). You want those users to interact with Stigmer
+Agents, Sessions, and other resources without a separate Stigmer login.
+
+## What you'll build
+
+By the end of this guide, your platform will:
+
+1. Have an Identity Provider registered in Stigmer that trusts your auth system
+2. Provision federated accounts for your users as they sign up
+3. Grant those users appropriate roles on your Organization
+4. Accept API calls authenticated with JWTs from your provider
+
+## Architecture
+
+{/* vale off */}
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+flowchart LR
+  subgraph yourPlatform ["Your platform"]
+    IdP["Auth provider<br/>(Auth0, Okta, etc.)"]
+    Backend["Platform backend"]
+    App["Platform app"]
+  end
+  subgraph stigmer ["Stigmer"]
+    SIdP["IdentityProvider"]
+    SAcct["IdentityAccount<br/>(federated)"]
+    SPolicy["IamPolicy"]
+    SAPI["Stigmer API"]
+  end
+  Backend -->|"1. Register"| SIdP
+  Backend -->|"2. Provision"| SAcct
+  Backend -->|"3. Grant role"| SPolicy
+  App -->|"4. Call with JWT"| SAPI
+  SAPI -->|"Validate via JWKS"| SIdP
+  SAPI -->|"Resolve identity"| SAcct
+  SAPI -->|"Check access"| SPolicy
+`}
+/>
+
+{/* vale on */}
+
+The setup happens once per user (steps 1--3). After that, every API call follows
+the same path: present a JWT, Stigmer validates it against your Identity
+Provider's JWKS endpoint, resolves the caller to a federated account, and checks
+IAM Policies.
+
+## Prerequisites
+
+Before starting, you need:
+
+- A **Stigmer Organization** (either self-managed or platform-managed)
+- An **API key** with admin access to that Organization
+- An **OIDC-compatible auth provider** with:
+  - A JWKS endpoint URL (typically `https://your-domain/.well-known/jwks.json`)
+  - The issuer URL (the `iss` claim value in your JWTs)
+  - The audience value (the `aud` claim your provider puts in tokens intended
+    for Stigmer)
+
+## Guide structure
+
+This guide is split into four pages, each covering one step of the integration:
+
+<Cards>
+  <Card
+    href="/docs/guides/federation/register-identity-provider"
+    title="1. Register an Identity Provider"
+  >
+    Create and configure the trust relationship between your auth system and
+    Stigmer.
+  </Card>
+  <Card
+    href="/docs/guides/federation/provision-federated-accounts"
+    title="2. Provision federated accounts"
+  >
+    Create Identity Accounts for your users so Stigmer can resolve their tokens.
+  </Card>
+  <Card href="/docs/guides/federation/grant-access" title="3. Grant access">
+    Assign roles to federated accounts so they can access your Organization's
+    resources.
+  </Card>
+  <Card
+    href="/docs/guides/federation/authentication-flow"
+    title="4. Authentication flow"
+  >
+    Understand the end-to-end flow from JWT presentation to authorized API
+    response.
+  </Card>
+</Cards>
+
+<Callout type="info">
+  Each page is self-contained. If you've already registered an Identity
+  Provider, you can jump directly to [provisioning
+  accounts](/docs/guides/federation/provision-federated-accounts).
+</Callout>
+
+## Self-managed SSO
+
+If your Organization is self-managed and you want team members to sign in to the
+Stigmer web console through your own Identity Provider, you can enable SSO.
+Stigmer creates accounts automatically on first login and assigns a viewer role.
+
+<Cards>
+  <Card href="/docs/guides/federation/sso-login" title="Set up SSO">
+    Enable SSO login for a self-managed Organization so team members sign in
+    through your Identity Provider.
+  </Card>
+</Cards>
+
+## Multi-tenant platforms
+
+The four steps above cover federation for a single Organization. If your
+platform serves multiple customers and each customer needs isolated resources,
+you also need to create a separate Organization per tenant.
+
+<Cards>
+  <Card
+    href="/docs/guides/federation/multi-tenant-setup"
+    title="Multi-tenant platform setup"
+  >
+    Create platform-managed Organizations to give each of your customers
+    isolated Agents, Skills, and Sessions.
+  </Card>
+</Cards>

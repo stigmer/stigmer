@@ -97,8 +97,8 @@ jobs:
     name: Links (Lychee)
     runs-on: ubuntu-latest
     # Non-blocking: external links are inherently flaky in CI due to rate
-    # limiting, transient failures, and geo-blocks. Tighten after tuning
-    # exclusions in a .lychee.toml config.
+    # limiting, transient failures, and geo-blocks. Exclusions for known
+    # vendor dashboard URLs live in .lychee.toml.
     continue-on-error: true
     steps:
       - name: Checkout
@@ -108,12 +108,7 @@ jobs:
         uses: lycheeverse/lychee-action@v2
         with:
           args: >-
-            --no-progress
-            --exclude-path docs/_archive
+            --config .lychee.toml
             --root-dir .
-            --fallback-extensions mdx
-            --scheme https
-            --scheme http
-            --accept '100..=199,200..=299,403,415'
             docs/
           fail: true

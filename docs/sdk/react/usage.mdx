@@ -57,10 +57,10 @@ return <div>Total cost: {formatCost(report.totalCostUsd)}</div>;
 
 ### OrgUsagePanel
 
-Self-contained dashboard panel showing organization-wide usage metrics.
+Self-contained dashboard panel showing organization-wide LLM usage metrics.
 
-Displays summary cards (total cost, executions, tokens, active agents),
-a daily cost bar chart, per-model breakdown, and top agents by cost.
+Displays summary cards (total cost, LLM calls, tokens), a daily cost
+bar chart, and per-model breakdown with call counts and token splits.
 Data is fetched via `getOrgUsageReport` with a configurable date range.
 
 All visual properties flow through `--stgm-*` design tokens. Zero
@@ -93,8 +93,8 @@ A closed date range where both ends are ISO date strings (YYYY-MM-DD).
 
 <TypeTable
   type={{
-    from: { type: "string", description: "", required: true },
-    to: { type: "string", description: "", required: true },
+    from: { type: "string", description: "Start date (inclusive) in YYYY-MM-DD format.", required: true },
+    to: { type: "string", description: "End date (inclusive) in YYYY-MM-DD format.", required: true },
   }}
 />
 

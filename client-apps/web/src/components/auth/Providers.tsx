@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -11,6 +12,18 @@ import { Toaster } from "@/components/ui/sonner";
 import { OrgProvider } from "@/contexts/org-context";
 import { OrgGate } from "@/components/auth/OrgGate";
 import { loadRuntimeConfig } from "@/config/runtime-config";
+
+/**
+ * Routes rendered without the authenticated provider chain.
+ *
+ * Public routes receive only ConfigGate + ThemeProvider. They do NOT
+ * receive AuthProvider, AuthGuard, StigmerTransportBridge, OrgProvider,
+ * or OrgGate — those assume an authenticated user and would fail or
+ * redirect on pre-authentication pages.
+ *
+ * The login page creates its own unauthenticated StigmerProvider.
+ */
+const PUBLIC_ROUTES = ["/login"] as const;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,7 +44,7 @@ const queryClient = new QueryClient({
 /**
  * Application-level provider composition root.
  *
- * Establishes the provider nesting order:
+ * Establishes the provider nesting order for authenticated routes:
  * 0. ConfigGate              — loads /config.json before anything else runs
  * 1. ThemeProvider            — manages dark/light/system class on <html>
  * 2. AuthProvider             — resolves auth mode and provides AuthContext
@@ -41,6 +54,9 @@ const queryClient = new QueryClient({
  * 6. OrgProvider              — fetches organizations and provides OrgContext
  * 7. OrgGate                  — blocks app until user has at least one organization
  * 8. Toaster                  — sonner toast container (themed, top-right)
+ *
+ * Public routes (e.g. `/login`) receive only ConfigGate + ThemeProvider.
+ * They manage their own SDK client and provider.
  *
  * Query retry strategy:
  * - Only transient errors (server / unavailable) are retried once
@@ -53,24 +69,42 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ConfigGate>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AuthProvider>
-          <Suspense fallback={<SuspenseFallback />}>
-            <AuthGuard>
-              <QueryClientProvider client={queryClient}>
-                <StigmerTransportBridge>
-                  <OrgProvider>
-                    <OrgGate>
-                      {children}
-                      <Toaster />
-                    </OrgGate>
-                  </OrgProvider>
-                </StigmerTransportBridge>
-              </QueryClientProvider>
-            </AuthGuard>
-          </Suspense>
-        </AuthProvider>
+        <ProvidersInner>{children}</ProvidersInner>
       </ThemeProvider>
     </ConfigGate>
+  );
+}
+
+/**
+ * Switches between the full authenticated chain and a passthrough for
+ * public routes. Separated from {@link Providers} so `usePathname()` is
+ * called inside the ConfigGate / ThemeProvider tree.
+ */
+function ProvidersInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isPublic = PUBLIC_ROUTES.some((r) => pathname.startsWith(r));
+
+  if (isPublic) {
+    return <>{children}</>;
+  }
+
+  return (
+    <AuthProvider>
+      <Suspense fallback={<SuspenseFallback />}>
+        <AuthGuard>
+          <QueryClientProvider client={queryClient}>
+            <StigmerTransportBridge>
+              <OrgProvider>
+                <OrgGate>
+                  {children}
+                  <Toaster />
+                </OrgGate>
+              </OrgProvider>
+            </StigmerTransportBridge>
+          </QueryClientProvider>
+        </AuthGuard>
+      </Suspense>
+    </AuthProvider>
   );
 }
 

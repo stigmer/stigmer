@@ -34,6 +34,7 @@ export interface ToolArgsViewProps {
   readonly args: Record<string, unknown> | null;
   /** MCP server slug for MCP tool classification and metadata. */
   readonly mcpServerSlug?: string;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

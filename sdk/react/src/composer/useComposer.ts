@@ -40,10 +40,15 @@ export interface UseComposerReturn {
    * then specifying overrides.
    */
   readonly textareaProps: {
+    /** Ref to the underlying `<textarea>` element. */
     readonly ref: RefObject<HTMLTextAreaElement | null>;
+    /** Current message text bound to the textarea. */
     readonly value: string;
+    /** Change handler that updates message state and triggers auto-resize. */
     readonly onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    /** Key handler that submits on Enter and allows Shift+Enter for newlines. */
     readonly onKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
+    /** Whether the textarea is disabled (prevents typing and submission). */
     readonly disabled: boolean;
   };
   /** Whether the current message is non-empty and the input is not disabled. */

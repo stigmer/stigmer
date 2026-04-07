@@ -66,6 +66,16 @@ export function McpToolDetail({ toolCall, className }: McpToolDetailProps) {
 // Metadata
 // ---------------------------------------------------------------------------
 
+/** Props for {@link McpMetadataRow}. */
+export interface McpMetadataRowProps {
+  /** Slug of the MCP server that owns the tool. */
+  readonly mcpServerSlug: string;
+  /** Name of the tool that was invoked. */
+  readonly toolName: string;
+  /** Human-readable execution duration, or `null` if still running. */
+  readonly duration: string | null;
+}
+
 /**
  * Displays MCP server slug, tool name, and optional duration as a
  * compact metadata row above tool arguments.
@@ -74,11 +84,7 @@ export function McpMetadataRow({
   mcpServerSlug,
   toolName,
   duration,
-}: {
-  mcpServerSlug: string;
-  toolName: string;
-  duration: string | null;
-}) {
+}: McpMetadataRowProps) {
   const hasMetadata = mcpServerSlug || duration;
   if (!hasMetadata) return null;
 
@@ -101,13 +107,19 @@ export function McpMetadataRow({
 // Arguments — structured key-value rendering
 // ---------------------------------------------------------------------------
 
+/** Props for {@link McpArgsView}. */
+export interface McpArgsViewProps {
+  /** Tool argument map to render as a key-value list. */
+  readonly args: Record<string, unknown>;
+}
+
 /**
  * Renders MCP tool arguments as a structured key-value list.
  *
  * Scalars display inline; objects and arrays collapse into
  * formatted JSON blocks via {@link CollapsibleJsonBlock}.
  */
-export function McpArgsView({ args }: { args: Record<string, unknown> }) {
+export function McpArgsView({ args }: McpArgsViewProps) {
   const entries = Object.entries(args);
   if (entries.length === 0) return null;
 

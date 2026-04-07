@@ -62,6 +62,39 @@ service IdentityAccountCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create identity accounts in this organization";
   }
 
+  // Update profile fields on a federated identity account.
+  //
+  // Looks up the account by natural key (identity_provider_ref + external_sub)
+  // and updates email, name, and picture. Identity keys are immutable.
+  //
+  // Called by platform backends when a user's profile changes on their platform.
+  //
+  // Authorization: Requires can_create_identity_account on the organization
+  // that owns the identity provider.
+  rpc updateFederatedAccount(UpdateFederatedAccountInput) returns (IdentityAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage identity accounts in this organization";
+  }
+
+  // Deprovision a federated identity account by revoking access or deleting it.
+  //
+  // Looks up the account by natural key (identity_provider_ref + external_sub).
+  // When delete_account is false, revokes all IAM policies in the organization.
+  // When delete_account is true, revokes policies and deletes the account.
+  //
+  // Called by platform backends during user offboarding.
+  //
+  // Authorization: Requires can_create_identity_account on the organization
+  // that owns the identity provider.
+  rpc deprovisionFederatedAccount(DeprovisionFederatedAccountInput) returns (IdentityAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage identity accounts in this organization";
+  }
+
   // Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
   //
   // @internal

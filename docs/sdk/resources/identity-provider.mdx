@@ -604,6 +604,7 @@ SsoProviderInfo contains the minimal OIDC configuration the web app needs to ren
     displayName: { type: "string", description: "Display name of the SSO provider (e.g., \"Acme Corp Okta\")." },
     oidcClientId: { type: "string", description: "OIDC client ID for initiating the Authorization Code flow with PKCE." },
     issuer: { type: "string", description: "OIDC issuer URL." },
+    expectedAudience: { type: "string", description: "Expected JWT audience value for the OIDC token request." },
   }}
 />
 

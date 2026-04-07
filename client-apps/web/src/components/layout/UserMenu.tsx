@@ -143,11 +143,9 @@ function AppearanceSubmenu() {
 
 function SettingsItem() {
   return (
-    <DropdownMenuItem asChild>
-      <Link href="/settings">
-        <Settings className="size-4" />
-        Settings
-      </Link>
+    <DropdownMenuItem render={<Link href="/settings" />}>
+      <Settings className="size-4" />
+      Settings
     </DropdownMenuItem>
   );
 }

@@ -75,7 +75,7 @@
       "title": "identity-provider",
       "description": "",
       "hooks": 6,
-      "components": 5
+      "components": 6
     },
     {
       "slug": "invitation",

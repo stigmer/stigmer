@@ -68,9 +68,18 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-06 15:54
-**Current Task**: ALL TRACKS CODE-COMPLETE — ready for smoke test and PRs
-**Status**: Tracks 0, 1, 2, 3, 4A, 4B, 5 all complete
-**Last Session**: 2026-04-06 (Session 6) — Completed InvitationRedeemHandler + Console integration
+**Current Task**: ALL TRACKS CODE-COMPLETE + post-ship refinement
+**Status**: Tracks 0, 1, 2, 3, 4A, 4B, 5 all complete. Post-ship cleanup done.
+**Last Session**: 2026-04-07 (Session 7) — Removed "Add member" from OrgMembersPanel
+
+## Session Progress (2026-04-07, Session 7)
+
+- Removed "+ Add member" button and inline `GrantAccessForm` from `OrgMembersPanel`
+  - Member addition now flows exclusively through the invitation system
+  - `GrantAccessForm` remains exported as a standalone SDK primitive
+  - Updated empty state text and JSDoc
+- Committed: `d09eee8d`
+- Changelog: `_changelog/2026-04/2026-04-07-102859-remove-add-member-from-org-members-panel.md`
 
 ## Session Progress (2026-04-06, Session 6)
 
@@ -110,7 +119,7 @@ When starting a new session:
 
 1. **End-to-end manual smoke test** of the invitation flow
 2. **Create PR for stigmer-cloud** (InvitationRedeemHandler)
-3. **Create PR for stigmer** (Console integration + changelog)
+3. **Create PR for stigmer** (Console integration + OrgMembersPanel cleanup + changelogs)
 4. **Address pre-existing Go codegen error** (`invitationv1.IamRole` undefined in `sdk/go/internal/gen/invitation.go`) — separate issue
 
 ## Context for Resume

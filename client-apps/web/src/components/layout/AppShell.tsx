@@ -18,7 +18,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { activeSessionId, isSessionZone } = useSessionNavigation();
 
   const isManagementZone = pathname.startsWith("/settings");
-  const isPublicZone = pathname.startsWith("/invite/");
+  const isPublicZone =
+    pathname.startsWith("/invite/") || pathname.startsWith("/login");
 
   // Close the sidebar overlay when the route changes on mobile viewports.
   // Desktop keeps the sidebar open across navigations.
