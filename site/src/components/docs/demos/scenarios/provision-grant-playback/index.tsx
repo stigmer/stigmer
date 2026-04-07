@@ -8,7 +8,7 @@ import { BrowserView } from "../../views/BrowserView";
 import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { TerminalView } from "../../views/TerminalView";
 import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 
 const FILE_TREE: FileTreeEntry[] = [
   { name: "src", type: "folder", depth: 0 },
@@ -50,34 +50,34 @@ function cursorTargetFor(step: ProvisionGrantStep): string | undefined {
 function SignupPage() {
   return (
     <div className="flex h-full items-center justify-center bg-gradient-to-b from-background to-muted/30">
-      <div className="w-56 rounded-lg border border-border bg-card p-4 shadow-sm">
-        <div className="mb-3 text-center">
-          <div className="mx-auto mb-1.5 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
-            <span className="text-[10px] font-bold text-primary">A</span>
+      <div className="w-52 rounded-lg border border-border bg-card p-3 shadow-sm">
+        <div className="mb-2 text-center">
+          <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
+            <span className="text-[9px] font-bold text-primary">A</span>
           </div>
-          <h3 className="text-[11px] font-semibold text-foreground">
+          <h3 className="text-[10px] font-semibold text-foreground">
             Acme Cloud
           </h3>
-          <p className="text-[9px] text-muted-foreground">
+          <p className="text-[8px] text-muted-foreground">
             Create your account
           </p>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div>
-            <label className="text-[9px] text-muted-foreground">Name</label>
-            <div className="rounded-md border border-border bg-background px-2 py-1 text-[10px] text-foreground">
+            <label className="text-[8px] text-muted-foreground">Name</label>
+            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground">
               Jane Doe
             </div>
           </div>
           <div>
-            <label className="text-[9px] text-muted-foreground">Email</label>
-            <div className="rounded-md border border-border bg-background px-2 py-1 text-[10px] text-foreground">
+            <label className="text-[8px] text-muted-foreground">Email</label>
+            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground">
               jane@acme.com
             </div>
           </div>
           <div className="relative" data-cursor-target="signup-btn">
-            <div className="rounded-md bg-primary py-1 text-center text-[10px] font-medium text-primary-foreground">
+            <div className="rounded-md bg-primary py-0.5 text-center text-[9px] font-medium text-primary-foreground">
               Create account
             </div>
             <PulseHighlight />
@@ -96,7 +96,7 @@ function renderStep(step: ProvisionGrantStep) {
   switch (step.view) {
     case "user-signup":
       return (
-        <BrowserView url="acme.cloud/signup" contentKey="signup">
+        <BrowserView url="acme.cloud/signup" contentKey="signup" zoom={DEMO_BROWSER_ZOOM}>
           <SignupPage />
         </BrowserView>
       );

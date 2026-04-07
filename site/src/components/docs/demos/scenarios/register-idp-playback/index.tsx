@@ -20,7 +20,7 @@ import {
 import { BrowserView } from "../../views/BrowserView";
 import { ManagementShell } from "../../views/ManagementShell";
 import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import { type RegisterIdpStep, registerIdpSteps } from "./steps";
 
 const noop = () => {};
@@ -351,6 +351,7 @@ function renderStep(step: RegisterIdpStep) {
         <BrowserView
           url="manage.auth0.com/dashboard/us/acme/apis"
           contentKey="dashboard"
+          zoom={DEMO_BROWSER_ZOOM}
         >
           <AuthDashboardPage />
         </BrowserView>
