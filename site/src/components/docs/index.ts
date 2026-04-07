@@ -13,8 +13,10 @@ export { AuthenticationFlowPlayback as DemoAuthenticationFlowPlayback } from "./
 export { FederationOverviewTour as DemoFederationOverviewTour } from "./demos/scenarios/federation-overview-tour";
 export { RegisterIdpPlayback as DemoRegisterIdpPlayback } from "./demos/scenarios/register-idp-playback";
 export { ProvisionGrantPlayback as DemoProvisionGrantPlayback } from "./demos/scenarios/provision-grant-playback";
+export { MultiTenantSetupPlayback as DemoMultiTenantSetupPlayback } from "./demos/scenarios/multi-tenant-setup-playback";
 export { CopyMarkdownButton } from "./copy-markdown-button";
 export { QuickstartPlayback as DemoQuickstartPlayback } from "./demos/scenarios/quickstart-playback";
+export { QuickstartTour as DemoQuickstartTour } from "./demos/scenarios/quickstart-tour";
 export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
