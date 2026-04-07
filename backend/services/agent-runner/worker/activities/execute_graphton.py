@@ -4,6 +4,7 @@ import contextlib
 import logging
 import os
 import traceback
+from datetime import datetime, timezone
 from typing import cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
@@ -362,6 +363,9 @@ async def _execute_graphton_impl(
         # Phase 4: Stream execution
         # ─────────────────────────────────────────────────────────────────
         setup.status_builder.current_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
+        setup.status_builder.current_status.started_at = (
+            datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        )
         activity_logger.info(
             "Execution %s phase set to IN_PROGRESS (building locally)",
             execution_id,

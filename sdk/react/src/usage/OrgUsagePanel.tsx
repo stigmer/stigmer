@@ -5,7 +5,6 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import type {
-  AgentUsageSummary,
   DailyCostEntry,
   GetOrgUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
@@ -32,10 +31,10 @@ export interface OrgUsagePanelProps {
 }
 
 /**
- * Self-contained dashboard panel showing organization-wide usage metrics.
+ * Self-contained dashboard panel showing organization-wide LLM usage metrics.
  *
- * Displays summary cards (total cost, executions, tokens, active agents),
- * a daily cost bar chart, per-model breakdown, and top agents by cost.
+ * Displays summary cards (total cost, LLM calls, tokens), a daily cost
+ * bar chart, and per-model breakdown with call counts and token splits.
  * Data is fetched via `getOrgUsageReport` with a configurable date range.
  *
  * All visual properties flow through `--stgm-*` design tokens. Zero
@@ -66,8 +65,8 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
             />
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }, (_, i) => (
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: 3 }, (_, i) => (
             <div
               key={i}
               className="h-[72px] animate-pulse rounded-lg bg-muted/40"
@@ -107,11 +106,7 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
         <ModelBreakdownList models={report.modelBreakdown} />
       )}
 
-      {report.topAgentsByCost.length > 0 && (
-        <TopAgentsList agents={report.topAgentsByCost} />
-      )}
-
-      {report.totalExecutions === 0 && <EmptyState />}
+      {report.modelBreakdown.length === 0 && <EmptyState />}
     </div>
   );
 }
@@ -165,29 +160,28 @@ function DateRangeSelector({
 // ---------------------------------------------------------------------------
 
 function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
-  const totalTokens = report.modelBreakdown.reduce(
-    (sum, m) =>
-      sum +
-      m.inputTokens +
-      m.outputTokens +
-      m.cacheCreationTokens +
-      m.cacheReadTokens,
-    0,
+  const { totalLlmCalls, totalTokens } = report.modelBreakdown.reduce(
+    (acc, m) => ({
+      totalLlmCalls: acc.totalLlmCalls + m.callCount,
+      totalTokens:
+        acc.totalTokens +
+        m.inputTokens +
+        m.outputTokens +
+        m.cacheCreationTokens +
+        m.cacheReadTokens,
+    }),
+    { totalLlmCalls: 0, totalTokens: 0 },
   );
 
   const cards: { label: string; value: string }[] = [
     { label: "Total Cost", value: formatCost(report.totalCostUsd) },
-    {
-      label: "Executions",
-      value: formatCompactNumber(report.totalExecutions),
-    },
+    { label: "LLM Calls", value: formatCompactNumber(totalLlmCalls) },
     { label: "Tokens", value: formatCompactNumber(totalTokens) },
-    { label: "Agents", value: formatCompactNumber(report.totalAgents) },
   ];
 
   return (
     <div
-      className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+      className="grid grid-cols-3 gap-3"
       role="group"
       aria-label="Usage summary"
     >
@@ -315,122 +309,83 @@ function ModelBreakdownList({
       >
         <div
           role="row"
-          className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground"
+          className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground"
         >
           <span role="columnheader">Model</span>
           <span role="columnheader" className="text-right">
-            Tokens
+            Calls
+          </span>
+          <span role="columnheader" className="text-right">
+            Input
+          </span>
+          <span role="columnheader" className="text-right">
+            Output
           </span>
           <span role="columnheader" className="text-right">
             Cost
           </span>
         </div>
         {models.map((m) => {
-          const totalTokens =
-            m.inputTokens +
-            m.outputTokens +
-            m.cacheCreationTokens +
-            m.cacheReadTokens;
+          const totalInput =
+            m.inputTokens + m.cacheCreationTokens + m.cacheReadTokens;
+          const hasCache = m.cacheReadTokens > 0 || m.cacheCreationTokens > 0;
+
           return (
             <div
               key={`${m.model}\0${m.provider}`}
-              role="row"
-              className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b border-border/50 px-3.5 py-2 last:border-b-0"
+              className="border-b border-border/50 px-3.5 py-2 last:border-b-0"
             >
-              <div role="cell" className="min-w-0">
-                <span className="block truncate text-xs font-medium text-foreground">
-                  {m.model}
+              <div
+                role="row"
+                className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4"
+              >
+                <div role="cell" className="min-w-0">
+                  <span className="block truncate text-xs font-medium text-foreground">
+                    {m.model}
+                  </span>
+                  <span className="text-[0.65rem] text-muted-foreground">
+                    {m.provider}
+                  </span>
+                </div>
+                <span
+                  role="cell"
+                  className="self-center text-right text-xs tabular-nums text-muted-foreground"
+                >
+                  {formatCompactNumber(m.callCount)}
                 </span>
-                <span className="text-[0.65rem] text-muted-foreground">
-                  {m.provider}
+                <span
+                  role="cell"
+                  className="self-center text-right text-xs tabular-nums text-muted-foreground"
+                >
+                  {formatCompactNumber(totalInput)}
+                </span>
+                <span
+                  role="cell"
+                  className="self-center text-right text-xs tabular-nums text-muted-foreground"
+                >
+                  {formatCompactNumber(m.outputTokens)}
+                </span>
+                <span
+                  role="cell"
+                  className="self-center text-right text-xs tabular-nums text-foreground"
+                >
+                  {formatCost(m.estimatedCostUsd)}
                 </span>
               </div>
-              <span
-                role="cell"
-                className="self-center text-right text-xs tabular-nums text-muted-foreground"
-              >
-                {formatCompactNumber(totalTokens)}
-              </span>
-              <span
-                role="cell"
-                className="self-center text-right text-xs tabular-nums text-foreground"
-              >
-                {formatCost(m.estimatedCostUsd)}
-              </span>
+              {hasCache && (
+                <div className="mt-0.5 text-[0.6rem] tabular-nums text-muted-foreground">
+                  cache{" "}
+                  {m.cacheReadTokens > 0 &&
+                    `${formatCompactNumber(m.cacheReadTokens)} read`}
+                  {m.cacheReadTokens > 0 && m.cacheCreationTokens > 0 &&
+                    " · "}
+                  {m.cacheCreationTokens > 0 &&
+                    `${formatCompactNumber(m.cacheCreationTokens)} write`}
+                </div>
+              )}
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// TopAgentsList (internal)
-// ---------------------------------------------------------------------------
-
-function TopAgentsList({
-  agents,
-}: {
-  agents: readonly AgentUsageSummary[];
-}) {
-  return (
-    <div>
-      <h3 className="mb-2 text-xs font-semibold text-foreground">
-        Top Agents by Cost
-      </h3>
-      <div
-        className="rounded-lg border border-border bg-card"
-        role="table"
-        aria-label="Top agents by cost"
-      >
-        <div
-          role="row"
-          className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground"
-        >
-          <span role="columnheader">Agent</span>
-          <span role="columnheader" className="text-right">
-            Runs
-          </span>
-          <span role="columnheader" className="text-right">
-            Tokens
-          </span>
-          <span role="columnheader" className="text-right">
-            Cost
-          </span>
-        </div>
-        {agents.map((a) => (
-          <div
-            key={a.agentId}
-            role="row"
-            className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 border-b border-border/50 px-3.5 py-2 last:border-b-0"
-          >
-            <span
-              role="cell"
-              className="truncate text-xs font-medium text-foreground"
-            >
-              {a.agentName || a.agentId}
-            </span>
-            <span
-              role="cell"
-              className="text-right text-xs tabular-nums text-muted-foreground"
-            >
-              {formatCompactNumber(a.executionCount)}
-            </span>
-            <span
-              role="cell"
-              className="text-right text-xs tabular-nums text-muted-foreground"
-            >
-              {formatCompactNumber(a.totalTokens)}
-            </span>
-            <span
-              role="cell"
-              className="text-right text-xs tabular-nums text-foreground"
-            >
-              {formatCost(a.estimatedCostUsd)}
-            </span>
-          </div>
-        ))}
       </div>
     </div>
   );
