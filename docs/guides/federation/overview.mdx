@@ -12,6 +12,8 @@ Stigmer accounts, you register your auth provider as an Identity Provider,
 provision federated accounts for your users, and grant them access to your
 Organization's resources.
 
+<DemoFederationOverviewTour />
+
 ## When you need this
 
 You're building a platform on Stigmer and your users already authenticate
@@ -30,7 +32,7 @@ By the end of this guide, your platform will:
 
 ## Architecture
 
-<!-- vale off -->
+{/* vale off */}
 
 {/* prettier-ignore */}
 <Mermaid
@@ -57,7 +59,7 @@ flowchart LR
 `}
 />
 
-<!-- vale on -->
+{/* vale on */}
 
 The setup happens once per user (steps 1--3). After that, every API call follows
 the same path: present a JWT, Stigmer validates it against your Identity

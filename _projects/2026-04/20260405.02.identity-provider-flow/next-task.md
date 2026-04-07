@@ -69,10 +69,35 @@ When starting a new session:
 
 **Created**: 2026-04-05 09:00
 **Current Task**: SSO Login Flow (next project phase)
-**Status**: Federation hardening complete — All gaps from architecture review closed
-**Last Session**: 2026-04-07 — Session 10: IdP federation hardening (issuer uniqueness + cache invalidation)
+**Status**: Federation documentation, visual demos, and hardening complete
+**Last Session**: 2026-04-07 — Session 11: Federation visual scenarios + mid-step interaction framework
 
-## Session Progress (2026-04-07, Session 10)
+## Session Progress (2026-04-07, Session 11)
+
+### Federation Visual Scenarios — Done (Session 11)
+
+Built 4 interactive demo scenarios for the federation documentation with narration and video export:
+
+- **federation-overview-tour** — 5-step overview (IdP registration with real ProviderPicker, account provisioning, access granting, user login, API authorization)
+- **register-idp-playback** — 5-step walkthrough (Auth0 dashboard → pick provider → configure → registered)
+- **provision-grant-playback** — 7-step code flow (signup → check → create federated account → grant IAM Policy)
+- **authentication-flow-playback** — 8-step end-to-end (login → JWT → API call → validation → resolution → 200/401/403)
+- 4 new view components: BrowserView, TerminalView, APIExchangeView, CodeEditorView
+- All embedded in federation guide MDX pages with narration audio
+
+### Mid-Step Interaction Framework — Done (Session 11)
+
+- `useStepInteractions` hook with percentage-based timing (`atPercent`) synced to narration duration
+- Extracted scroll helpers from Cursor.tsx into shared `scroll-utils.ts`
+- Browser path (setTimeout) and video export path (Remotion time source) both supported
+- Actions: scroll-to, set-cursor, clear-cursor — opt-in, backward compatible
+- Wired: Auth0 dashboard scroll-to-audience (register-idp), cursor-walks-through-checks (auth-flow)
+
+### ManagementShell Redesign — Done (Session 11)
+
+- Rebuilt with CSS zoom approach: authored at real-app dimensions, uniformly scaled to fit demo container
+- All 3 nav groups (Organization, Configuration, Billing & Usage) with all 8 items from `settings-nav.ts`
+- Future-proof: new nav items automatically fit at correct proportions
 
 ### Federation Hardening — Done (Session 10)
 

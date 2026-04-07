@@ -10,13 +10,15 @@ platform backend must explicitly provision a federated Identity Account for each
 user **before** that user can call the Stigmer API. This gives you full control
 over who gets access.
 
+<DemoProvisionGrantPlayback />
+
 ## The provisioning pattern
 
 The standard pattern is check-then-create: first check whether the user already
 has a federated account, then create one if they don't. This is typically called
 from a signup webhook or user-creation handler on your platform.
 
-<!-- vale off -->
+{/* vale off */}
 
 {/* prettier-ignore */}
 <Mermaid
@@ -30,7 +32,7 @@ flowchart TD
 `}
 />
 
-<!-- vale on -->
+{/* vale on */}
 
 ## Check for an existing account
 
