@@ -101,8 +101,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-07 11:49
-**Current Task**: T01 — Phases 1 and 2 complete, ready for Phase 3
+**Current Task**: T01 — Phases 1, 2, and 3 complete, ready for Phase 4
 **Status**: In Progress
+**Last Session**: 2026-04-07 Session 6 — Phase 3: SSO Auto-Provisioning (complete)
 
 ## Session Progress (2026-04-07)
 
@@ -202,6 +203,54 @@ When starting a new session:
 - `backend/services/.../IdentityProviderGetSsoProviderHandler.java` — populated `expectedAudience`
 - `backend/libs/.../IdentityAccountRedisCacheRepo.java` — added `deleteIdentityAccountIdByIdpId`
 - Plus 31 generated stub files from Phase 1 (Go/Java/Python/TypeScript/Dart)
+
+### Session 6 — Phase 3: SSO Auto-Provisioning (SSO login flow)
+
+**Focus**: Implemented Phase 3 of the T01 plan — SSO auto-provisioning on first login
+
+**Architecture decision**: Introduced a new `SsoAutoProvisioner` component instead of modifying `FederatedIdentityResolverImpl`. The resolver's contract is read-only lookup; mixing creation logic into it would violate separation of concerns. The mapper (`RequestCallerIdentityMapper`) orchestrates the fallback: resolve → if empty + SSO → auto-provision.
+
+**Changes in api-authentication (shared library):**
+- `FederatedAuthenticationToken.java` — Added `isSsoProvider` field carried from the IdP spec; added backward-compatible 5-arg constructor defaulting to `false`
+- `SsoAutoProvisioner.java` — NEW interface: `String provision(FederatedAuthenticationToken)`
+- `SsoAutoProvisioningException.java` — NEW custom exception for provisioning failures
+- `RequestCallerIdentityMapper.java` — Added SSO fallback: if resolver returns empty and token is SSO, delegates to `SsoAutoProvisioner`; graceful degradation if provisioner not wired
+- `FederatedIdentityResolver.java` — Updated javadoc to clarify read-only contract and reference `SsoAutoProvisioner`
+- `BUILD.bazel` — Added `JUNIT5_DEPS`, `MOCKITO_DEPS`, registered `authentication_token_parser_test` and `request_caller_identity_mapper_test`
+- `RequestCallerIdentityMapperTest.java` — NEW: tests existing-account resolution, SSO auto-provisioning trigger, non-SSO rejection, missing provisioner graceful handling
+
+**Changes in stigmer-service (domain implementation):**
+- `FederatedJwtAuthenticationProvider.java` — Passes `spec.getIsSsoProvider()` to `FederatedAuthenticationToken` constructor
+- `SsoAutoProvisionerImpl.java` — NEW: extracts OIDC claims (email, name, picture) from JWT, creates identity account via `IdentityAccountGrpcRepo`, grants viewer role via `IamPolicyGrpcRepo`, caches mapping, handles `ALREADY_EXISTS` race condition
+- `FederatedIdentityResolverImpl.java` — Updated javadoc to reference `SsoAutoProvisionerImpl`
+- `FederatedJwtAuthenticationProviderTest.java` — Added `isSsoProvider` flag propagation tests
+- `SsoAutoProvisionerImplTest.java` — NEW: comprehensive tests (successful provisioning, claim extraction variants, race condition, missing email, creation failure, best-effort role/cache failures)
+- `BUILD.bazel` — Added `MOCKITO_DEPS`, registered 5 federation/SSO test targets
+
+**Changes in stigmer (apis):**
+- `identityprovider/v1/spec.proto` — Updated `is_sso_provider` field comment and top-level spec comment to describe auto-provisioning behavior
+
+**Build infrastructure:**
+- `MODULE.bazel` — Added `mockito-core:5.14.2` and `mockito-junit-jupiter:5.14.2` to Maven dependencies
+- Registered 7 new Bazel test targets across both BUILD files
+- Full `bazel test //backend/...` passes: 15/15 tests green
+
+**Phases 1, 2, and 3 are complete. Phase 4 (Web App SSO Login Page) is next.**
+
+## Next Steps
+
+1. **Phase 4: Web App — SSO Login Page** — org discovery via URL param + text input, OIDC redirect to org's IdP, callback handling with sessionStorage-based routing
+2. **Phase 5: SSO Login URL on IdP Detail Panel** — copyable URL field in `IdentityProviderDetailPanel` (can be done in parallel with Phase 4)
+3. **Phase 6: Documentation** — SSO login guide, SDK reference for update/deprovision RPCs, existing federation page updates
+
+## Context for Resume
+
+- `SsoAutoProvisioner` is an interface in the shared `api-authentication` library; `SsoAutoProvisionerImpl` is the domain implementation in `stigmer-service`
+- The mapper (`RequestCallerIdentityMapper`) uses `@Autowired(required = false)` for the provisioner — graceful degradation if not configured
+- Race condition handling: if concurrent auto-provisioning creates a duplicate, `ALREADY_EXISTS` is caught and the existing account is re-queried
+- Viewer role (not member) is granted per design decision 001 — member enables billable agent executions
+- The backward-compatible 5-arg `FederatedAuthenticationToken` constructor was added to avoid breaking existing code that doesn't need the SSO flag
+- All Mockito-based federation tests are now in the Bazel test cycle (previously IDE-only)
 
 ## Quick Commands
 
