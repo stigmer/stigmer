@@ -28,6 +28,8 @@ interface CodeEditorViewProps {
   readonly highlightLines?: readonly number[];
   /** Optional file explorer sidebar entries. */
   readonly fileTree?: readonly FileTreeEntry[];
+  /** Workspace folder name shown in the title bar and explorer. Defaults to `stigmer-federation`. */
+  readonly workspaceName?: string;
   readonly contentKey: string;
   readonly slideDirection?: "forward" | "backward";
 }
@@ -53,6 +55,7 @@ export function CodeEditorView({
   lines,
   highlightLines,
   fileTree,
+  workspaceName = "stigmer-federation",
   contentKey,
   slideDirection,
 }: CodeEditorViewProps) {
@@ -75,7 +78,7 @@ export function CodeEditorView({
             <span className="h-2 w-2 rounded-full bg-[#28c840]" />
           </div>
           <span className="flex-1 text-center text-[9px] text-[#9d9d9d]">
-            {filename} — stigmer-federation
+            {filename} — {workspaceName}
           </span>
           <div className="w-[42px]" />
         </div>
@@ -102,7 +105,7 @@ export function CodeEditorView({
             </div>
             <div className="px-1.5 pb-1 text-[9px] font-semibold text-[#cccccc]">
               <ChevronDown className="mr-0.5 inline h-2.5 w-2.5" />
-              stigmer-federation
+              {workspaceName}
             </div>
             <div className="flex-1 overflow-y-auto">
               {fileTree.map((entry, i) => {

@@ -11,6 +11,8 @@ export interface TerminalLine {
 
 interface TerminalViewProps {
   readonly title?: string;
+  /** Working directory shown in the prompt. Defaults to `~/stigmer-federation`. */
+  readonly cwd?: string;
   readonly lines: readonly TerminalLine[];
   readonly contentKey: string;
   readonly slideDirection?: "forward" | "backward";
@@ -29,6 +31,7 @@ interface TerminalViewProps {
  */
 export function TerminalView({
   title = "Terminal",
+  cwd = "~/stigmer-federation",
   lines,
   contentKey,
   slideDirection,
@@ -97,7 +100,7 @@ export function TerminalView({
             <div key={i} className={colorClass}>
               {line.type === "prompt" && (
                 <span className="mr-1 text-[#bd93f9]">
-                  ~/stigmer-federation
+                  {cwd}
                 </span>
               )}
               {line.type === "prompt" && (

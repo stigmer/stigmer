@@ -8,6 +8,17 @@
  * to build before they start coding.
  */
 
+import { create } from "@bufbuild/protobuf";
+import {
+  EnvironmentSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import {
+  EnvironmentSpecSchema,
+  EnvironmentValueSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import { samples } from "@stigmer/react/demo";
 import type { ScenarioStep } from "../../engine/ScenarioPlayer";
 import type { TerminalLine } from "../../views/TerminalView";
 
@@ -21,6 +32,56 @@ export type QuickstartTourStep =
   | { view: "terminal-generic" }
   | { view: "code-domain-question" }
   | { view: "terminal-domain-fail" };
+
+// ---------------------------------------------------------------------------
+// Fixture data — API keys (real SDK components need this)
+// ---------------------------------------------------------------------------
+
+let _apiKeyList: ReturnType<typeof create<typeof ApiKeysSchema>> | undefined;
+
+export function getApiKeyList() {
+  if (!_apiKeyList) {
+    _apiKeyList = create(ApiKeysSchema, {
+      entries: [
+        samples.apiKey({
+          id: "apk-00000000-0000-0000-0000-000000000001",
+          name: "ci-pipeline",
+          fingerprint: "Kd9m2R",
+        }),
+        samples.apiKey({
+          id: "apk-00000000-0000-0000-0000-000000000002",
+          name: "local-dev",
+          fingerprint: "Yw3pLx",
+        }),
+      ],
+    });
+  }
+  return _apiKeyList;
+}
+
+export const CREATED_KEY_NAME = "quickstart-key";
+export const CREATED_RAW_KEY = "sk_live_dEm0k3y_a1b2c3d4e5f6g7h8";
+
+export const PERSONAL_ENVIRONMENT = create(EnvironmentSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Environment",
+  metadata: create(ApiResourceMetadataSchema, {
+    id: "env-00000000-0000-0000-0000-000000000099",
+    name: "Personal Environment",
+    slug: "env-personal",
+    org: "demo-org",
+    labels: { "stigmer.ai/personal": "true" },
+  }),
+  spec: create(EnvironmentSpecSchema, {
+    description: "Your private secrets and configuration.",
+    data: {
+      STIGMER_API_KEY: create(EnvironmentValueSchema, {
+        value: "",
+        isSecret: true,
+      }),
+    },
+  }),
+});
 
 // ---------------------------------------------------------------------------
 // Fixture data — code snippets

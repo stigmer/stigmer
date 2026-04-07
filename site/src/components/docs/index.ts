@@ -17,6 +17,9 @@ export { MultiTenantSetupPlayback as DemoMultiTenantSetupPlayback } from "./demo
 export { CopyMarkdownButton } from "./copy-markdown-button";
 export { QuickstartPlayback as DemoQuickstartPlayback } from "./demos/scenarios/quickstart-playback";
 export { QuickstartTour as DemoQuickstartTour } from "./demos/scenarios/quickstart-tour";
+export { FirstSkillTour as DemoFirstSkillTour } from "./demos/scenarios/first-skill-tour";
+export { ConnectToolsTour as DemoConnectToolsTour } from "./demos/scenarios/connect-tools-tour";
+export { CreateAgentTour as DemoCreateAgentTour } from "./demos/scenarios/create-agent-tour";
 export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
