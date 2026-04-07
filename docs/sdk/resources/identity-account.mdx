@@ -57,8 +57,10 @@ IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r
 | [`getByIdpId`](#getbyidpid) | Get an identity account by identity provider ID (Auth0 subject). |
 | [`create`](#create) | Create a new identity account. |
 | [`update`](#update) | Update an existing identity account. |
+| [`updateFederatedAccount`](#updatefederatedaccount) | Update profile fields on a federated identity account. |
 | [`delete`](#delete) | Delete an identity account. |
 | [`createFederatedAccount`](#createfederatedaccount) | Create a federated identity account for an external platform user. |
+| [`deprovisionFederatedAccount`](#deprovisionfederatedaccount) | Deprovision a federated identity account by revoking access or deleting it. |
 | [`simulateSignupWebhook`](#simulatesignupwebhook) | Trigger account provisioning for a user who exists in Auth0 but not in Stigmer. |
 | [`whoAmI`](#whoami) | Get the identity account of the currently authenticated user. |
 
@@ -427,6 +429,75 @@ IdentityAccount identityAccount = client.identityAccounts().update(IdentityAccou
 
 **Returns**: [`IdentityAccount`](#identityaccount)
 
+### updateFederatedAccount
+
+Update profile fields on a federated identity account.
+
+Looks up the account by natural key (identity_provider_ref + external_sub) and updates email, name, and picture. Identity keys are immutable.
+
+Called by platform backends when a user's profile changes on their platform.
+
+Authorization: Requires can_create_identity_account on the organization that owns the identity provider.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.updateFederatedAccount({
+  org: "...",
+  identityProviderRef: {},
+  externalSub: "...",
+  email: "...",
+  firstName: "...",
+  lastName: "...",
+  pictureUrl: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stigmer.UpdateFederatedAccountInput{
+  Org:                 "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalSub:         "...",
+  Email:               "...",
+  FirstName:           "...",
+  LastName:            "...",
+  PictureUrl:          "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+identity_account = client.identity_accounts.update_federated_account(UpdateFederatedAccountInput(
+    org="...",
+    identity_provider_ref=None,
+    external_sub="...",
+    email="...",
+    first_name="...",
+    last_name="...",
+    picture_url="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccounts().updateFederatedAccount(UpdateFederatedAccountInput.builder()
+    .org("...")
+    .identityProviderRef(null)
+    .externalSub("...")
+    .email("...")
+    .firstName("...")
+    .lastName("...")
+    .pictureUrl("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateFederatedAccountInput`](#updatefederatedaccountinput)
+
+**Returns**: [`IdentityAccount`](#identityaccount)
+
 ### delete
 
 Delete an identity account.
@@ -528,6 +599,63 @@ IdentityAccount identityAccount = client.identityAccounts().createFederatedAccou
 </SDKTabs>
 
 **Parameters**: [`CreateFederatedAccountInput`](#createfederatedaccountinput)
+
+**Returns**: [`IdentityAccount`](#identityaccount)
+
+### deprovisionFederatedAccount
+
+Deprovision a federated identity account by revoking access or deleting it.
+
+Looks up the account by natural key (identity_provider_ref + external_sub). When delete_account is false, revokes all IAM policies in the organization. When delete_account is true, revokes policies and deletes the account.
+
+Called by platform backends during user offboarding.
+
+Authorization: Requires can_create_identity_account on the organization that owns the identity provider.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.deprovisionFederatedAccount({
+  org: "...",
+  identityProviderRef: {},
+  externalSub: "...",
+  deleteAccount: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &stigmer.DeprovisionFederatedAccountInput{
+  Org:                 "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalSub:         "...",
+  DeleteAccount:       false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+identity_account = client.identity_accounts.deprovision_federated_account(DeprovisionFederatedAccountInput(
+    org="...",
+    identity_provider_ref=None,
+    external_sub="...",
+    delete_account=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccounts().deprovisionFederatedAccount(DeprovisionFederatedAccountInput.builder()
+    .org("...")
+    .identityProviderRef(null)
+    .externalSub("...")
+    .deleteAccount(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`DeprovisionFederatedAccountInput`](#deprovisionfederatedaccountinput)
 
 **Returns**: [`IdentityAccount`](#identityaccount)
 
@@ -650,6 +778,35 @@ CreateFederatedAccountInput is the command for creating a federated identity acc
     firstName: { type: "string", description: "First name of the user." },
     lastName: { type: "string", description: "Last name of the user." },
     pictureUrl: { type: "string", description: "URL of the user's profile picture." },
+  }}
+/>
+
+### UpdateFederatedAccountInput
+
+UpdateFederatedAccountInput is the command for updating profile fields on a federated identity account identified by its natural key (identity provider reference + external subject).
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the identity provider.", required: true },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
+    externalSub: { type: "string", description: "External subject identifier (OIDC sub claim) — lookup key, not updatable.", required: true },
+    email: { type: "string", description: "Updated email address.", required: true },
+    firstName: { type: "string", description: "Updated first name." },
+    lastName: { type: "string", description: "Updated last name." },
+    pictureUrl: { type: "string", description: "Updated profile picture URL." },
+  }}
+/>
+
+### DeprovisionFederatedAccountInput
+
+DeprovisionFederatedAccountInput is the command for revoking a federated identity account's access, with an option to delete the account entirely.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the identity provider.", required: true },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
+    externalSub: { type: "string", description: "External subject identifier (OIDC sub claim) — lookup key.", required: true },
+    deleteAccount: { type: "boolean", description: "When false (default): revoke the account's access in this organization only." },
   }}
 />
 

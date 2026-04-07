@@ -101,9 +101,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-07 11:49
-**Current Task**: T01 — Phases 1–5 complete, ready for Phase 6
-**Status**: In Progress
-**Last Session**: 2026-04-07 Session 9 — Browser mockup scaling fix + BrowserPageCard removal
+**Current Task**: T01 — All 6 phases complete
+**Status**: Complete
+**Last Session**: 2026-04-07 Session 10 — Phase 6: Documentation + SSO login demo scenario
 
 ## Session Progress (2026-04-07)
 
@@ -278,9 +278,41 @@ When starting a new session:
 - Updated `_roles/002_document_writer.md`: replaced "Shared browser page components" section with "Shell-level vs. content-level abstraction" principle
 - **Design principle established**: shell-level sizing is tokenized and reusable; content inside shells is scenario-specific and stays inline
 
+### Session 10 — Phase 6: Documentation + SSO login demo scenario
+
+**Focus**: Completed Phase 6 (Documentation) of the T01 plan — the final phase. Created the SSO login guide, updated existing federation docs, regenerated SDK reference pages, and built an interactive `sso-login-playback` demo scenario.
+
+**Documentation changes (6a: Federation guides):**
+- Created `docs/guides/federation/sso-login.mdx` — comprehensive "Set up SSO" how-to guide covering prerequisites, Identity Provider configuration, SSO registration with SDK examples in 4 languages, sharing the SSO login URL, first-login auto-provisioning behavior, role management, revocation, and troubleshooting (4 troubleshooting steps)
+- Updated `docs/guides/federation/overview.mdx` — introduced SSO as a distinct path alongside platform-managed federation, added "Self-managed SSO" section with card link
+- Updated `docs/guides/federation/provision-federated-accounts.mdx` — added "Update a federated account" and "Revoke a federated account" sections with SDK examples in all 4 languages, added SSO vs platform-managed callout
+- Updated `docs/guides/federation/authentication-flow.mdx` — updated identity resolution to describe SSO auto-provisioning path, added SSO login flow Mermaid sequence diagram, updated troubleshooting table
+- Updated `docs/guides/federation/meta.json` — added `sso-login` to sidebar navigation
+
+**Documentation changes (6b: SDK reference):**
+- Regenerated `docs/sdk/resources/identity-account.mdx` via `make gen-sdk-docs` — new entries for `updateFederatedAccount` and `deprovisionFederatedAccount` with parameters, return types, and code examples
+
+**SSO login demo scenario (6c: Interactive demo):**
+- Created `site/src/components/docs/demos/scenarios/sso-login-playback/steps.ts` — 4-step sequence with typed discriminated union, narration scripts
+- Created `site/src/components/docs/demos/scenarios/sso-login-playback/index.tsx` — full scenario component with 4 inline content views:
+  1. `IdpDetailContent` (ManagementShell) — IdP detail panel with SSO badge, OIDC fields, copyable SSO Login URL with PulseHighlight cursor
+  2. `SsoLoginPage` (BrowserView) — SSO login page with org discovery, "Sign in with Acme SSO" button with PulseHighlight cursor
+  3. `ExternalIdpLogin` (BrowserView) — external IdP login form (Acme Identity branding)
+  4. `ConsoleWelcome` (BrowserView) — welcome state with role/org info card
+- Registered in `registry.ts`, exported from `docs/index.ts`, wired into `mdx.tsx`
+- Embedded `<DemoSsoLoginPlayback />` in `sso-login.mdx` after intro paragraph
+
+**Vale linting fixes:**
+- Rephrased "auto-" compounds across all modified docs to satisfy Microsoft.Auto rule
+- Renamed "Deprovision" heading to "Revoke" to avoid Vale.Spelling flag
+- Fixed "Org" capitalization and "session state" → "browser storage" rephrasing
+
+**Build verification:** TypeScript check and `make docs-build` both pass clean (0 errors)
+
 ## Next Steps
 
-1. **Phase 6: Documentation** — SSO login guide, SDK reference for update/deprovision RPCs, existing federation page updates
+1. **T01 is complete** — All 6 phases delivered (proto, backend handlers, auto-provisioning, web app SSO login, IdP detail panel URL, documentation + demo)
+2. **Return to parent project** — Review `20260405.02.identity-provider-flow` for remaining sub-projects or wrap-up
 
 ## Context for Resume
 
