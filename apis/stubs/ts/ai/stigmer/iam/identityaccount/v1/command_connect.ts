@@ -5,7 +5,7 @@
 
 import { IdentityAccount } from "./api_pb.js";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { CreateFederatedAccountInput, IdentityAccountEmail, IdentityAccountId } from "./io_pb.js";
+import { CreateFederatedAccountInput, DeprovisionFederatedAccountInput, IdentityAccountEmail, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pb.js";
 
 /**
  * IdentityAccountCommandController handles write operations for identity accounts.
@@ -77,6 +77,45 @@ export const IdentityAccountCommandController = {
     createFederatedAccount: {
       name: "createFederatedAccount",
       I: CreateFederatedAccountInput,
+      O: IdentityAccount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update profile fields on a federated identity account.
+     *
+     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * and updates email, name, and picture. Identity keys are immutable.
+     *
+     * Called by platform backends when a user's profile changes on their platform.
+     *
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     *
+     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.updateFederatedAccount
+     */
+    updateFederatedAccount: {
+      name: "updateFederatedAccount",
+      I: UpdateFederatedAccountInput,
+      O: IdentityAccount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Deprovision a federated identity account by revoking access or deleting it.
+     *
+     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * When delete_account is false, revokes all IAM policies in the organization.
+     * When delete_account is true, revokes policies and deletes the account.
+     *
+     * Called by platform backends during user offboarding.
+     *
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     *
+     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.deprovisionFederatedAccount
+     */
+    deprovisionFederatedAccount: {
+      name: "deprovisionFederatedAccount",
+      I: DeprovisionFederatedAccountInput,
       O: IdentityAccount,
       kind: MethodKind.Unary,
     },

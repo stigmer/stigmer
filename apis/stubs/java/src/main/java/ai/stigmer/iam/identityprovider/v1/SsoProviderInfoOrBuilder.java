@@ -75,4 +75,34 @@ public interface SsoProviderInfoOrBuilder extends
    */
   com.google.protobuf.ByteString
       getIssuerBytes();
+
+  /**
+   * <pre>
+   * Expected JWT audience value for the OIDC token request.
+   * The web app passes this as the audience parameter when initiating the
+   * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+   * a JWT access token with the correct aud claim; others determine the
+   * audience from server-side configuration and ignore this parameter.
+   * Empty means the web app should omit the audience parameter.
+   * </pre>
+   *
+   * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+   * @return The expectedAudience.
+   */
+  java.lang.String getExpectedAudience();
+  /**
+   * <pre>
+   * Expected JWT audience value for the OIDC token request.
+   * The web app passes this as the audience parameter when initiating the
+   * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+   * a JWT access token with the correct aud claim; others determine the
+   * audience from server-side configuration and ignore this parameter.
+   * Empty means the web app should omit the audience parameter.
+   * </pre>
+   *
+   * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+   * @return The bytes for expectedAudience.
+   */
+  com.google.protobuf.ByteString
+      getExpectedAudienceBytes();
 }

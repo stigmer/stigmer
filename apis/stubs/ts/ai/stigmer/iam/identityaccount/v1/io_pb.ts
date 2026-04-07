@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityaccount/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImsKHExpc3RXaXRoSWRlbnRpdHlBY2NvdW50SWRSZXESGwoTaWRlbnRpdHlfYWNjb3VudF9pZBgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJwChRJZGVudGl0eUFjY291bnRzTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCJSChNMaXN0V2l0aElkZW50aXR5T3JnEgsKA29yZxgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyKbAQoRRXh0ZXJuYWxTdWJMb29rdXASEwoDb3JnGAEgASgJQga6SAPIAQESUwoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBIvgBChtDcmVhdGVGZWRlcmF0ZWRBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESUwoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBEhUKBWVtYWlsGAQgASgJQga6SAPIAQESEgoKZmlyc3RfbmFtZRgFIAEoCRIRCglsYXN0X25hbWUYBiABKAkSEwoLcGljdHVyZV91cmwYByABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_rpc_pagination, file_ai_stigmer_iam_identityaccount_v1_api, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImsKHExpc3RXaXRoSWRlbnRpdHlBY2NvdW50SWRSZXESGwoTaWRlbnRpdHlfYWNjb3VudF9pZBgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJwChRJZGVudGl0eUFjY291bnRzTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCJSChNMaXN0V2l0aElkZW50aXR5T3JnEgsKA29yZxgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyKbAQoRRXh0ZXJuYWxTdWJMb29rdXASEwoDb3JnGAEgASgJQga6SAPIAQESUwoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBIvgBChtDcmVhdGVGZWRlcmF0ZWRBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESUwoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBEhUKBWVtYWlsGAQgASgJQga6SAPIAQESEgoKZmlyc3RfbmFtZRgFIAEoCRIRCglsYXN0X25hbWUYBiABKAkSEwoLcGljdHVyZV91cmwYByABKAki+AEKG1VwZGF0ZUZlZGVyYXRlZEFjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARJTChVpZGVudGl0eV9wcm92aWRlcl9yZWYYAiABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2USHAoMZXh0ZXJuYWxfc3ViGAMgASgJQga6SAPIAQESFQoFZW1haWwYBCABKAlCBrpIA8gBARISCgpmaXJzdF9uYW1lGAUgASgJEhEKCWxhc3RfbmFtZRgGIAEoCRITCgtwaWN0dXJlX3VybBgHIAEoCSLCAQogRGVwcm92aXNpb25GZWRlcmF0ZWRBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESUwoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBEhYKDmRlbGV0ZV9hY2NvdW50GAQgASgIYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_rpc_pagination, file_ai_stigmer_iam_identityaccount_v1_api, file_buf_validate_validate]);
 
 /**
  * IdentityAccounts contains a list of identity account resources.
@@ -303,4 +303,134 @@ export type CreateFederatedAccountInput = Message<"ai.stigmer.iam.identityaccoun
  */
 export const CreateFederatedAccountInputSchema: GenMessage<CreateFederatedAccountInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 8);
+
+/**
+ * UpdateFederatedAccountInput is the command for updating profile fields on a
+ * federated identity account identified by its natural key (identity provider
+ * reference + external subject).
+ *
+ * Called by platform backends when a user's profile changes on their platform
+ * (e.g., name update, email change). Uses full-replace semantics: all profile
+ * fields must be provided. Identity keys (org, identity_provider_ref, external_sub)
+ * are immutable and used only for lookup.
+ *
+ * @generated from message ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
+ */
+export type UpdateFederatedAccountInput = Message<"ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput"> & {
+  /**
+   * Organization that owns the identity provider.
+   * Used as the authorization scope: caller must have can_create_identity_account
+   * permission on this organization.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Reference to the IdentityProvider that the federated account belongs to.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+   */
+  identityProviderRef?: ApiResourceReference;
+
+  /**
+   * External subject identifier (OIDC sub claim) — lookup key, not updatable.
+   *
+   * @generated from field: string external_sub = 3;
+   */
+  externalSub: string;
+
+  /**
+   * Updated email address.
+   *
+   * @generated from field: string email = 4;
+   */
+  email: string;
+
+  /**
+   * Updated first name.
+   *
+   * @generated from field: string first_name = 5;
+   */
+  firstName: string;
+
+  /**
+   * Updated last name.
+   *
+   * @generated from field: string last_name = 6;
+   */
+  lastName: string;
+
+  /**
+   * Updated profile picture URL.
+   *
+   * @generated from field: string picture_url = 7;
+   */
+  pictureUrl: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.
+ * Use `create(UpdateFederatedAccountInputSchema)` to create a new message.
+ */
+export const UpdateFederatedAccountInputSchema: GenMessage<UpdateFederatedAccountInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 9);
+
+/**
+ * DeprovisionFederatedAccountInput is the command for revoking a federated
+ * identity account's access, with an option to delete the account entirely.
+ *
+ * Called by platform backends when a user is removed from their platform
+ * (e.g., employee offboarding, account suspension). Uses the natural key
+ * (identity provider reference + external subject) for lookup.
+ *
+ * Two modes:
+ *   - Revoke only (delete_account = false): removes all IAM policies for the
+ *     account in the organization. The identity account is preserved for audit
+ *     trail. The user loses access but the account record remains.
+ *   - Revoke and delete (delete_account = true): revokes access AND deletes
+ *     the identity account. All IAM policies across all organizations are
+ *     cleaned up. Use this for permanent offboarding.
+ *
+ * @generated from message ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
+ */
+export type DeprovisionFederatedAccountInput = Message<"ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput"> & {
+  /**
+   * Organization that owns the identity provider.
+   * Used as the authorization scope: caller must have can_create_identity_account
+   * permission on this organization.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Reference to the IdentityProvider that the federated account belongs to.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+   */
+  identityProviderRef?: ApiResourceReference;
+
+  /**
+   * External subject identifier (OIDC sub claim) — lookup key.
+   *
+   * @generated from field: string external_sub = 3;
+   */
+  externalSub: string;
+
+  /**
+   * When false (default): revoke the account's access in this organization only.
+   * When true: revoke access AND permanently delete the identity account.
+   *
+   * @generated from field: bool delete_account = 4;
+   */
+  deleteAccount: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.
+ * Use `create(DeprovisionFederatedAccountInputSchema)` to create a new message.
+ */
+export const DeprovisionFederatedAccountInputSchema: GenMessage<DeprovisionFederatedAccountInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 10);
 

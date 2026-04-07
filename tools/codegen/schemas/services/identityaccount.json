@@ -40,6 +40,22 @@
           "description": "Create a federated identity account for an external platform user.\n\n Called by platform backends (via API key) when a new user signs up on their\n platform. The platform provides the user's OIDC subject identifier and profile\n data. The account must be created before the user can authenticate via the IdP.\n\n Returns the full identity account including its ID, which the platform uses\n to grant roles via IAM policies.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
         },
         {
+          "name": "UpdateFederatedAccount",
+          "inputType": "UpdateFederatedAccountInput",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "Update profile fields on a federated identity account.\n\n Looks up the account by natural key (identity_provider_ref + external_sub)\n and updates email, name, and picture. Identity keys are immutable.\n\n Called by platform backends when a user's profile changes on their platform.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
+        },
+        {
+          "name": "DeprovisionFederatedAccount",
+          "inputType": "DeprovisionFederatedAccountInput",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "Deprovision a federated identity account by revoking access or deleting it.\n\n Looks up the account by natural key (identity_provider_ref + external_sub).\n When delete_account is false, revokes all IAM policies in the organization.\n When delete_account is true, revokes policies and deletes the account.\n\n Called by platform backends during user offboarding.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
+        },
+        {
           "name": "SimulateSignupWebhook",
           "inputType": "IdentityAccountEmail",
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail",
@@ -189,6 +205,149 @@
             "kind": "string"
           },
           "description": "URL of the user's profile picture.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateFederatedAccountInput",
+      "description": "UpdateFederatedAccountInput is the command for updating profile fields on a\n federated identity account identified by its natural key (identity provider\n reference + external subject).\n\n Called by platform backends when a user's profile changes on their platform\n (e.g., name update, email change). Uses full-replace semantics: all profile\n fields must be provided. Identity keys (org, identity_provider_ref, external_sub)\n are immutable and used only for lookup.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the identity provider.\n Used as the authorization scope: caller must have can_create_identity_account\n permission on this organization.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "IdentityProviderRef",
+          "jsonName": "identityProviderRef",
+          "protoField": "identity_provider_ref",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceReference"
+          },
+          "description": "Reference to the IdentityProvider that the federated account belongs to.",
+          "required": false
+        },
+        {
+          "name": "ExternalSub",
+          "jsonName": "externalSub",
+          "protoField": "external_sub",
+          "type": {
+            "kind": "string"
+          },
+          "description": "External subject identifier (OIDC sub claim) — lookup key, not updatable.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Updated email address.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "FirstName",
+          "jsonName": "firstName",
+          "protoField": "first_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Updated first name.",
+          "required": false
+        },
+        {
+          "name": "LastName",
+          "jsonName": "lastName",
+          "protoField": "last_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Updated last name.",
+          "required": false
+        },
+        {
+          "name": "PictureUrl",
+          "jsonName": "pictureUrl",
+          "protoField": "picture_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Updated profile picture URL.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DeprovisionFederatedAccountInput",
+      "description": "DeprovisionFederatedAccountInput is the command for revoking a federated\n identity account's access, with an option to delete the account entirely.\n\n Called by platform backends when a user is removed from their platform\n (e.g., employee offboarding, account suspension). Uses the natural key\n (identity provider reference + external subject) for lookup.\n\n Two modes:\n   - Revoke only (delete_account = false): removes all IAM policies for the\n     account in the organization. The identity account is preserved for audit\n     trail. The user loses access but the account record remains.\n   - Revoke and delete (delete_account = true): revokes access AND deletes\n     the identity account. All IAM policies across all organizations are\n     cleaned up. Use this for permanent offboarding.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the identity provider.\n Used as the authorization scope: caller must have can_create_identity_account\n permission on this organization.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "IdentityProviderRef",
+          "jsonName": "identityProviderRef",
+          "protoField": "identity_provider_ref",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceReference"
+          },
+          "description": "Reference to the IdentityProvider that the federated account belongs to.",
+          "required": false
+        },
+        {
+          "name": "ExternalSub",
+          "jsonName": "externalSub",
+          "protoField": "external_sub",
+          "type": {
+            "kind": "string"
+          },
+          "description": "External subject identifier (OIDC sub claim) — lookup key.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "DeleteAccount",
+          "jsonName": "deleteAccount",
+          "protoField": "delete_account",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When false (default): revoke the account's access in this organization only.\n When true: revoke access AND permanently delete the identity account.",
           "required": false
         }
       ]
