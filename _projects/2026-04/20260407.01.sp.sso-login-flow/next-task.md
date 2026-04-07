@@ -101,7 +101,7 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-07 11:49
-**Current Task**: T01 — Phase 1 complete, ready for Phase 2
+**Current Task**: T01 — Phases 1 and 2 complete, ready for Phase 3
 **Status**: In Progress
 
 ## Session Progress (2026-04-07)
@@ -166,6 +166,42 @@ When starting a new session:
 - Design question flagged for Phase 3: auto-provisioning vs deprovision tension (revoked user could re-provision via SSO)
 
 **Phase 1 is complete. Phase 2 (backend handlers) is next.**
+
+### Session 5 — Phase 2: Backend lifecycle RPC handlers (SSO login flow)
+
+**Focus**: Implemented Phase 2 of the T01 plan — backend handlers for federated account lifecycle RPCs
+
+- **2a: `expectedAudience` in GetSsoProvider** — already done in Session 4 (discovered during this session)
+- **2b: `revokeOrgAccess` on `IamPolicyGrpcRepo`** — already done in Session 4
+  - Added `revokeOrgAccess(String identityAccountId, String orgSlug)` to `IamPolicyGrpcRepo` interface
+  - Implemented in `IamPolicyGrpcRepoImpl` using `iamChannelAsSystem` (system credentials, bypasses auth)
+  - Follows the same cross-domain in-process gRPC pattern as `createPolicy`, `bootstrapPolicy`, `cleanupResourcePolicies`
+- **2c: `UpdateFederatedAccountHandler`** — NEW handler
+  - Pipeline: validateFieldConstraints → authorize → validateIdentityProvider → lookupByExternalSub → updateProfileFields → transformResponse → sendResponse
+  - Natural-key lookup via `findByIdentityProviderRefAndIdpId(org, slug, externalSub)`
+  - Full-replace semantics for profile fields (email, firstName, lastName, pictureUrl)
+  - Updates `metadata.name` to track email changes (name = email for federated accounts)
+  - Direct `IdentityAccountRepo.save()` — same-domain, no standard update pipeline (authorization model mismatch: org-level `can_create_identity_account` vs account-level `can_edit`)
+- **2d: `DeprovisionFederatedAccountHandler`** — NEW handler
+  - Pipeline: validateFieldConstraints → authorize → validateIdentityProvider → lookupByExternalSub → revokeOrgAccess → deleteAccount (conditional) → cleanupCache → sendResponse
+  - `RevokeOrgAccess` step delegates to `IamPolicyGrpcRepo.revokeOrgAccess()` (cross-domain, system credentials)
+  - `DeleteAccount` step uses `shouldExecute()` guard — only runs when `delete_account = true`
+  - `CleanupCache` step clears stale Redis entry from federation resolver cache (best-effort)
+  - Returns the deprovisioned `IdentityAccount` for audit trail
+- **Build**: Bazel build (57 targets) and all 8 backend tests pass clean
+- **Design decision**: Direct repo save for update handler (not standard update pipeline) because authorization model differs (org-level vs account-level)
+- **Design decision**: `revokeOrgAccess` added to shared `IamPolicyGrpcRepo` interface (Option A from plan) — canonical cross-domain pattern, discoverable, reusable in Phase 3
+
+**Phases 1 and 2 are complete. Phase 3 (SSO auto-provisioning) is next.**
+
+**Files changed in stigmer-cloud (uncommitted on `feat/sso-login-flow`):**
+- `backend/services/stigmer-service/.../handler/UpdateFederatedAccountHandler.java` — NEW
+- `backend/services/stigmer-service/.../handler/DeprovisionFederatedAccountHandler.java` — NEW
+- `backend/libs/.../IamPolicyGrpcRepo.java` — added `revokeOrgAccess`
+- `backend/services/.../IamPolicyGrpcRepoImpl.java` — implemented `revokeOrgAccess`
+- `backend/services/.../IdentityProviderGetSsoProviderHandler.java` — populated `expectedAudience`
+- `backend/libs/.../IdentityAccountRedisCacheRepo.java` — added `deleteIdentityAccountIdByIdpId`
+- Plus 31 generated stub files from Phase 1 (Go/Java/Python/TypeScript/Dart)
 
 ## Quick Commands
 
