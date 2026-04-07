@@ -2,10 +2,29 @@
 
 import { type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Box, Building2, KeyRound, User, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  BarChart3,
+  Box,
+  Building2,
+  CreditCard,
+  KeyRound,
+  Link as LinkIcon,
+  ShieldCheck,
+  User,
+  Users,
+} from "lucide-react";
 import { DEMO_SHELL_HEIGHT } from "../shared/tokens";
 
-export type ManagementNavId = "members" | "api-keys" | "environments";
+export type ManagementNavId =
+  | "org-profile"
+  | "members"
+  | "invitations"
+  | "identity-providers"
+  | "api-keys"
+  | "environments"
+  | "billing"
+  | "usage";
 
 interface NavItem {
   readonly id: ManagementNavId;
@@ -13,27 +32,52 @@ interface NavItem {
   readonly icon: React.ComponentType<{ className?: string }>;
 }
 
-const NAV_ITEMS: readonly NavItem[] = [
-  { id: "members", label: "Members", icon: Users },
-  { id: "api-keys", label: "API Keys", icon: KeyRound },
-  { id: "environments", label: "Environments", icon: Box },
+interface NavGroup {
+  readonly heading: string;
+  readonly items: readonly NavItem[];
+}
+
+const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    heading: "Organization",
+    items: [
+      { id: "org-profile", label: "Org Profile", icon: Building2 },
+      { id: "members", label: "Members", icon: Users },
+      { id: "invitations", label: "Invitations", icon: LinkIcon },
+      {
+        id: "identity-providers",
+        label: "Identity Providers",
+        icon: ShieldCheck,
+      },
+    ],
+  },
+  {
+    heading: "Configuration",
+    items: [
+      { id: "api-keys", label: "API Keys", icon: KeyRound },
+      { id: "environments", label: "Environments", icon: Box },
+    ],
+  },
+  {
+    heading: "Billing & Usage",
+    items: [
+      { id: "billing", label: "Billing", icon: CreditCard },
+      { id: "usage", label: "Usage", icon: BarChart3 },
+    ],
+  },
 ];
 
+/**
+ * Sidebar zoom factor. The sidebar is authored at real-app dimensions
+ * (text-sm, size-4 icons, standard spacing) then uniformly scaled
+ * down to fit the demo shell height. This keeps proportions identical
+ * to the real Console and future nav items will fit without tweaks.
+ */
+const SIDEBAR_ZOOM = 0.55;
+
 interface ManagementShellProps {
-  /** Which management nav item is currently selected. */
   activeNav?: ManagementNavId;
-  /**
-   * Stable key for the content area — changing this key triggers
-   * a fade transition between views.
-   */
   contentKey: string;
-  /**
-   * Direction of the slide transition when `contentKey` changes.
-   *
-   * - `"forward"` — slides in from the right (navigating deeper)
-   * - `"backward"` — slides in from the left (going back)
-   * - `undefined` — fades in without sliding
-   */
   slideDirection?: "forward" | "backward";
   children: ReactNode;
 }
@@ -41,11 +85,11 @@ interface ManagementShellProps {
 /**
  * Schematic management zone layout for demo scenarios.
  *
- * Mirrors the Console's management sidebar: org indicator,
- * "Back to Sessions", Members / API Keys / Environments nav,
- * and user profile. This is a docs illustration — it
- * communicates the management zone navigation without
- * depending on any internal Console components.
+ * Mirrors the real Console ManagementSidebar with all three
+ * navigation groups (Organization, Configuration, Billing & Usage),
+ * a "Back to Sessions" link, and a user profile footer. The sidebar
+ * is rendered at real-app proportions and uniformly zoomed to fit
+ * the demo container.
  */
 export function ManagementShell({
   activeNav,
@@ -61,43 +105,52 @@ export function ManagementShell({
       className="flex overflow-hidden rounded-lg border border-border bg-card"
       style={{ height: `var(--demo-shell-height, ${DEMO_SHELL_HEIGHT}px)` }}
     >
-      {/* Management sidebar */}
+      {/* Management sidebar — real-app layout scaled via zoom */}
       <nav
-        className="flex w-28 shrink-0 flex-col border-r border-border bg-muted"
+        className="flex shrink-0 flex-col border-r border-border bg-muted"
         aria-label="Demo management navigation"
+        style={{ zoom: SIDEBAR_ZOOM, width: `${170 / SIDEBAR_ZOOM}px` }}
       >
-        {/* Org indicator */}
-        <div className="flex items-center gap-1.5 px-3 py-2">
-          <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />
-          <span className="truncate text-[10px] font-semibold text-foreground">
+        {/* Org switcher */}
+        <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10">
+            <span className="text-[10px] font-bold text-primary">A</span>
+          </div>
+          <span className="truncate text-sm font-semibold text-foreground">
             Acme Corp
           </span>
         </div>
 
         {/* Back to Sessions */}
-        <div className="px-2">
-          <div className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] text-muted-foreground">
-            <ArrowLeft className="h-3 w-3 shrink-0" />
+        <div className="px-3 pb-1">
+          <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground">
+            <ArrowLeft className="size-4 shrink-0" />
             <span>Back to Sessions</span>
           </div>
         </div>
 
-        {/* Separator */}
-        <div className="mx-3 my-1.5 border-t border-border" />
+        <div className="mx-3 my-0.5 border-t border-border" />
 
-        {/* Management nav */}
-        <div className="flex flex-col gap-0.5 px-2">
-          {NAV_ITEMS.map((item) => (
-            <div
-              key={item.id}
-              className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] transition-colors ${
-                activeNav === item.id
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              <item.icon className="h-3 w-3 shrink-0" />
-              <span>{item.label}</span>
+        {/* Grouped navigation */}
+        <div className="flex flex-col gap-3 px-3 pt-1">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.heading} className="flex flex-col gap-0.5">
+              <span className="px-2 pb-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                {group.heading}
+              </span>
+              {group.items.map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
+                    activeNav === item.id
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <item.icon className="size-4 shrink-0" />
+                  <span>{item.label}</span>
+                </div>
+              ))}
             </div>
           ))}
         </div>
@@ -106,11 +159,13 @@ export function ManagementShell({
         <div className="flex-1" />
 
         {/* User profile */}
-        <div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
-          <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20">
-            <User className="h-2.5 w-2.5 text-muted-foreground" />
+        <div className="flex items-center gap-2 border-t border-border px-4 py-2">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20">
+            <User className="size-3 text-muted-foreground" />
           </div>
-          <span className="truncate text-[9px] text-muted-foreground">You</span>
+          <span className="truncate text-xs text-muted-foreground">
+            you@acme.com
+          </span>
         </div>
       </nav>
 

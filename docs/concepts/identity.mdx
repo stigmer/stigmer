@@ -62,7 +62,7 @@ Federated authentication is **explicit, not automatic**. Stigmer does not create
 accounts on the fly when it sees a new token. Instead, the platform backend
 provisions accounts ahead of time:
 
-<!-- vale off -->
+{/* vale off */}
 
 {/* prettier-ignore */}
 <Mermaid
@@ -82,7 +82,7 @@ sequenceDiagram
 `}
 />
 
-<!-- vale on -->
+{/* vale on */}
 
 Steps 1--3 happen once per user during onboarding. Steps 4--8 happen on every
 API call. If a token's `sub` doesn't match any federated account, Stigmer

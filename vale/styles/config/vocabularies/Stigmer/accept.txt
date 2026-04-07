@@ -47,8 +47,8 @@ stderr
 localhost
 Ollama
 ADRs
-backend
-backends
+[Bb]ackend
+[Bb]ackends
 namespaces
 hardcoding
 versionable
@@ -101,3 +101,5 @@ IdP
 IdPs
 signup
 onboarding
+sequenceDiagram
+yourPlatform

@@ -9,6 +9,10 @@ import { QuickstartPlayback } from "./quickstart-playback";
 import { SessionMemoryPlayback } from "./session-memory-playback";
 import { SkillCreationTour } from "./skill-creation-tour";
 import { ToolCallsPlayback } from "./tool-calls-playback";
+import { AuthenticationFlowPlayback } from "./authentication-flow-playback";
+import { FederationOverviewTour } from "./federation-overview-tour";
+import { RegisterIdpPlayback } from "./register-idp-playback";
+import { ProvisionGrantPlayback } from "./provision-grant-playback";
 
 /**
  * Maps scenario directory names to their React components.
@@ -29,6 +33,10 @@ export const SCENARIO_REGISTRY: Record<string, ComponentType> = {
   "session-memory-playback": SessionMemoryPlayback,
   "skill-creation-tour": SkillCreationTour,
   "tool-calls-playback": ToolCallsPlayback,
+  "authentication-flow-playback": AuthenticationFlowPlayback,
+  "federation-overview-tour": FederationOverviewTour,
+  "register-idp-playback": RegisterIdpPlayback,
+  "provision-grant-playback": ProvisionGrantPlayback,
 };
 
 export const PLAYBACK_SCENARIO_IDS = Object.keys(SCENARIO_REGISTRY);
