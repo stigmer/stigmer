@@ -5,6 +5,7 @@
     "register-identity-provider",
     "provision-federated-accounts",
     "grant-access",
-    "authentication-flow"
+    "authentication-flow",
+    "multi-tenant-setup"
   ]
 }
