@@ -41,6 +41,16 @@ All demo layout values live in a single file: `site/src/components/docs/demos/sh
 
 When you create a new demo, import the appropriate token from this file. Never hardcode zoom values, container heights, or wrapper class strings. This keeps all demos visually consistent — one change to `tokens.ts` updates every demo on the site.
 
+### Visual fidelity for every scenario
+
+The demo framework includes a full set of view shells that replicate real application surfaces: browser chrome, terminal emulators, code editors, API network panels, and the management console sidebar. Each view is built to look and feel authentic — complete with title bars, tab strips, address bars, traffic lights, line numbers, and syntax highlighting. They are not placeholders or wireframes.
+
+When you create a demo scenario, use the view that matches what the user would actually see. If the step shows a terminal command, render it in the terminal view — not as a code block with a caption. If the step shows a browser login page, render it in the browser view with a realistic address bar and page content. If the step shows code the developer would write, render it in the code editor view with a file tree and line numbers.
+
+The management console sidebar (`ManagementShell`) mirrors the real web app's navigation exactly — same groups, same items, same ordering. It uses CSS zoom to scale real-app dimensions into the demo container, so proportions stay correct and new navigation items automatically fit without layout adjustments.
+
+**Rule**: every visual in a demo should feel like a screenshot of the real thing. If a view looks schematic or placeholder-like, improve it until a reader cannot immediately tell it is a demo.
+
 ### When to create a demo scenario
 
 Look for demo opportunities on every page. If the page describes any of the following, it should have a live demo:
@@ -48,6 +58,10 @@ Look for demo opportunities on every page. If the page describes any of the foll
 - A UI the user would see in the console (composer, message thread, skill detail, agent detail, settings panel)
 - A multi-step workflow (creating a skill, configuring an MCP server, setting up API keys)
 - A before-and-after change (agent behavior with and without a skill)
+- A terminal interaction (CLI commands, API calls with curl, output inspection)
+- A code-writing task (SDK usage, configuration files, handler implementations)
+- An external service interaction (auth provider dashboards, third-party settings pages)
+- An API processing flow (token validation, identity resolution, authorization checks)
 
 Two demo patterns exist:
 
@@ -78,6 +92,28 @@ The `Cursor` component (`site/src/components/docs/demos/engine/Cursor.tsx`) rend
 See `generate-policies-playback`, `discover-capabilities-playback`, `api-key-setup`, and `approval-flow-playback` for working examples.
 
 **Self-check**: review every playback scenario's step list and ask: "Is there a step where the UI changes because of a user action, but no cursor movement is shown?" If yes, the scenario is incomplete.
+
+### Mid-step interactions
+
+A single scenario step can contain timed interactions — scrolling, cursor movement, or cursor removal — that fire at specific points during the narration. This lets a step reveal content below the fold, walk the cursor through a list of items, or draw attention to a specific element without advancing to a new step.
+
+Mid-step interactions use percentage-based timing (`atPercent: 0.0` to `1.0`) relative to the narration clip duration. The framework reads the clip length from the narration manifest and computes the exact fire time. If narration is re-generated with different text or pacing, every interaction automatically adjusts because the timing is proportional, not hardcoded.
+
+**Available actions:**
+
+- **`scroll-to`** — Smoothly scrolls a `[data-scroll-target="id"]` element into view inside its nearest scrollable ancestor. Use this when important content sits below the fold and the narration is about to reference it.
+- **`set-cursor`** — Moves the animated cursor to a `[data-cursor-target="id"]` element mid-step. Use this to walk the cursor through a sequence of items (like validation checks) while narration explains each one.
+- **`clear-cursor`** — Removes the cursor. Use this after the cursor has served its purpose within a step so it does not linger.
+
+**When to add mid-step interactions:**
+
+- A step's narration references content that is not visible in the initial viewport. Add a `scroll-to` timed to fire just before the narration reaches that content.
+- A step shows a list of items (validation checks, configuration fields, pipeline stages) and the narration explains each one in sequence. Add `set-cursor` actions at intervals matching the narration flow.
+- A step's cursor would distract from a visual result. Add `clear-cursor` near the end of the step.
+
+**Video export**: mid-step interactions work in both browser playback and Remotion video export. The framework uses the Remotion time source for synchronous, frame-accurate firing in video. No additional wiring is needed — if it works in the browser, it works in the video.
+
+**Self-check**: read the narration for each step and ask: "Does the narration mention something the viewer cannot currently see?" If yes, add a `scroll-to` or `set-cursor` interaction timed to the relevant phrase.
 
 ### Narration for playback demos
 

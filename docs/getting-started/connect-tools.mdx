@@ -6,11 +6,10 @@ description:
 ---
 
 import {
+  DemoConnectToolsTour,
   DemoMcpServerCreationTour,
   DemoDiscoverCapabilities,
   DemoGeneratePolicies,
-  DemoToolCallsPlayback,
-  DemoApprovalFlowPlayback,
 } from "@/components/docs";
 
 ## What you'll build
@@ -22,6 +21,8 @@ working end-to-end from your code.
 
 **Time**: ~15 minutes **Prerequisites**: Completed
 [Your first Skill](/docs/getting-started/first-skill)
+
+<DemoConnectToolsTour />
 
 ## The problem
 
@@ -241,11 +242,6 @@ Order #ORD-4821 has been shipped.
 - Estimated delivery: April 5, 2026
 ```
 
-Here is what that conversation looks like inside the Stigmer web app — watch the
-Agent call the tool and return structured data:
-
-<DemoToolCallsPlayback />
-
 </Step>
 <Step>
 
@@ -423,11 +419,6 @@ The return has been processed.
 - Refund: $79.99 to original payment method
 - Estimated refund date: April 7, 2026
 ```
-
-Here is what that approval flow looks like in the Stigmer web app — the Agent
-pauses, waits for a human decision, and then completes the action:
-
-<DemoApprovalFlowPlayback />
 
 </Step>
 </Steps>

@@ -129,7 +129,25 @@ When starting a new session:
 - Embedded `<DemoMultiTenantSetupPlayback />` in `multi-tenant-setup.mdx` after intro paragraph
 - TypeScript check and Next.js build both pass (exit code 0)
 
-**Note**: The SSO login flow implementation (T01 plan) has not started yet. Both sessions were about enriching the identity federation documentation.
+### Session 3 — Visual-first Getting Started tours
+
+**Focus**: Added multi-surface overview tours to all four Getting Started pages (side task, not part of SSO login flow)
+
+- Created 4 new ScenarioPlayer tour scenarios: `quickstart-tour`, `first-skill-tour`, `connect-tools-tour`, `create-agent-tour`
+- Each tour shows the full page journey (console → code → terminal) in 4–6 steps at the top of "What you'll build"
+- Replaced custom mock UI components with real `@stigmer/react` SDK components:
+  - `ApiKeyCreatedAlert` + `ApiKeyListPanel` (quickstart)
+  - `McpServerDetailView` (connect-tools)
+  - `AgentDetailView` (create-agent)
+- Made `CodeEditorView` workspace name and `TerminalView` cwd configurable (was hardcoded to federation paths)
+- Added `scroll-to` mid-step interactions for connect-tools-tour (tools/policies below fold)
+- Removed redundant sections from quickstart.mdx ("See it in action", "Now try a domain question") and connect-tools.mdx (inline conversation playbacks)
+- Generated narration audio for all 4 tours
+- Registered all scenarios in registry, exports, and MDX
+- Updated document writer role with visual fidelity and expanded demo opportunity guidelines
+- Changelog: `_changelog/2026-04/2026-04-07-152815-visual-first-getting-started-tours.md`
+
+**Note**: The SSO login flow implementation (T01 plan) has not started yet. All three sessions were about enriching documentation.
 
 ## Quick Commands
 

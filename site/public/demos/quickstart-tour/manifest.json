@@ -1,0 +1,21 @@
+{
+  "steps": [
+    {
+      "src": "/demos/quickstart-tour/step-0.mp3",
+      "durationMs": 5600
+    },
+    {
+      "src": "/demos/quickstart-tour/step-1.mp3",
+      "durationMs": 6350
+    },
+    {
+      "src": "/demos/quickstart-tour/step-2.mp3",
+      "durationMs": 5638
+    },
+    null,
+    {
+      "src": "/demos/quickstart-tour/step-4.mp3",
+      "durationMs": 4963
+    }
+  ]
+}
