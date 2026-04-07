@@ -65,6 +65,8 @@ definitions, API names, and examples follow below.
 | **Organization**       | Organization          | Organization                   | Organization        | Organization, `kind: organization`           | Organization       |
 | **Project**            | Project               | Project                        | Project             | Project, `kind: project`                     | Project            |
 | **Environment**        | Environment           | Environment                    | Environment         | Environment, `kind: Environment`             | Environment        |
+| **Identity Provider**  | ---                   | identity provider              | Identity Provider   | IdentityProvider, `kind: identity_provider`  | Identity Provider  |
+| **Identity Account**   | ---                   | ---                            | Identity Account    | IdentityAccount, `kind: identity_account`    | Identity Account   |
 | **Agent Instance**     | ---                   | Agent Instance                 | Agent Instance      | AgentInstance, `kind: AgentInstance`         | Agent Instance     |
 | **Agent Execution**    | ---                   | run, execution                 | Agent Execution     | AgentExecution, `kind: AgentExecution`       | Agent Execution    |
 | **Workflow Execution** | ---                   | run, execution                 | Workflow Execution  | WorkflowExecution, `kind: WorkflowExecution` | Workflow Execution |
@@ -360,6 +362,61 @@ used generically ("environment variables").
 - **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
   prefix `ectx`), which provides ephemeral runtime secrets to a specific
   execution. See [Execution Context](#execution-context).
+
+---
+
+#### Identity Provider
+
+An external trust relationship that tells Stigmer how to validate tokens from
+your authentication system.
+
+- **Capitalize**: Yes, when referring to the Stigmer resource.
+- **API surface**: `kind: identity_provider`, prefix `idp`. proto:
+  `iam/identityprovider/v1/spec.proto`.
+- **Key fields**: `jwks_uri`, `allowed_issuers`, `expected_audience`,
+  `is_sso_provider`, `oidc_client_id`.
+- **Context rule**: Do not use on the sales site. In quickstart, say "identity
+  provider" in lowercase on first use with a brief gloss. In concepts and
+  how-to, capitalize as "Identity Provider." In reference, use
+  `IdentityProvider`.
+- **Note**: An Identity Provider is not a user database---it defines how Stigmer
+  validates externally issued JWTs. It is owned by an Organization and can
+  authenticate users across multiple platform-managed Organizations.
+
+---
+
+#### Identity Account
+
+A principal that Stigmer can authenticate and authorize. Comes in three types:
+Direct (user signed up on Stigmer), Federated (provisioned by a platform
+backend), and Machine (service-to-service).
+
+- **Capitalize**: Yes, when referring to the Stigmer resource.
+- **API surface**: `kind: identity_account`, prefix `ida`. proto:
+  `iam/identityaccount/v1/spec.proto`.
+- **Key fields**: `provisioning_mode` (`direct`, `federated`, `machine`),
+  `identity_provider_ref`, `idp_id`.
+- **Context rule**: Do not use on the sales site. In how-to and concept docs,
+  capitalize as "Identity Account." In reference, use `IdentityAccount`. In
+  quickstart, avoid unless the tutorial covers federation.
+- **Note**: Federated accounts are provisioned explicitly via
+  `createFederatedAccount`---Stigmer never creates accounts automatically from
+  tokens.
+
+---
+
+#### Identity federation
+
+The pattern of letting users from an external authentication system access
+Stigmer without creating Stigmer-native accounts.
+
+- **Capitalize**: No. "Identity federation" is a pattern, not a Stigmer resource
+  type. Do not capitalize "federation" unless it starts a sentence.
+- **Related resources**: Identity Provider, Identity Account, IAM Policy.
+- **Context rule**: Use in federation guides and concept pages. On the sales
+  site, say "your users sign in with their existing credentials" without naming
+  the mechanism. In quickstart, avoid unless the tutorial covers federation
+  setup.
 
 ---
 
