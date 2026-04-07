@@ -9,8 +9,18 @@ export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenar
 export { SessionMemoryPlayback as DemoSessionMemoryPlayback } from "./demos/scenarios/session-memory-playback";
 export { SkillDetail as DemoSkillDetail } from "./demos/scenarios/skill-detail";
 export { ToolCallsPlayback as DemoToolCallsPlayback } from "./demos/scenarios/tool-calls-playback";
+export { AuthenticationFlowPlayback as DemoAuthenticationFlowPlayback } from "./demos/scenarios/authentication-flow-playback";
+export { FederationOverviewTour as DemoFederationOverviewTour } from "./demos/scenarios/federation-overview-tour";
+export { RegisterIdpPlayback as DemoRegisterIdpPlayback } from "./demos/scenarios/register-idp-playback";
+export { ProvisionGrantPlayback as DemoProvisionGrantPlayback } from "./demos/scenarios/provision-grant-playback";
+export { MultiTenantSetupPlayback as DemoMultiTenantSetupPlayback } from "./demos/scenarios/multi-tenant-setup-playback";
+export { SsoLoginPlayback as DemoSsoLoginPlayback } from "./demos/scenarios/sso-login-playback";
 export { CopyMarkdownButton } from "./copy-markdown-button";
 export { QuickstartPlayback as DemoQuickstartPlayback } from "./demos/scenarios/quickstart-playback";
+export { QuickstartTour as DemoQuickstartTour } from "./demos/scenarios/quickstart-tour";
+export { FirstSkillTour as DemoFirstSkillTour } from "./demos/scenarios/first-skill-tour";
+export { ConnectToolsTour as DemoConnectToolsTour } from "./demos/scenarios/connect-tools-tour";
+export { CreateAgentTour as DemoCreateAgentTour } from "./demos/scenarios/create-agent-tour";
 export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";

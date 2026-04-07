@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ns/rpc/method_options.proto\032+ai/stigmer/" +
       "iam/identityaccount/v1/api.proto\032*ai/sti" +
       "gmer/iam/identityaccount/v1/io.proto\032\033go" +
-      "ogle/protobuf/empty.proto2\317\006\n IdentityAc" +
+      "ogle/protobuf/empty.proto2\223\n\n IdentityAc" +
       "countCommandController\022v\n\006create\0222.ai.st" +
       "igmer.iam.identityaccount.v1.IdentityAcc" +
       "ount\0322.ai.stigmer.iam.identityaccount.v1" +
@@ -60,15 +60,27 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "CreateFederatedAccountInput\0322.ai.stigmer" +
       ".iam.identityaccount.v1.IdentityAccount\"" +
       "L\302\270\030H\010\025\020\036\"\003org*=unauthorized to create i" +
-      "dentity accounts in this organization\022n\n" +
-      "\025simulateSignupWebhook\0227.ai.stigmer.iam." +
-      "identityaccount.v1.IdentityAccountEmail\032" +
-      "\026.google.protobuf.Empty\"\004\320\270\030\001\032\004\240\377+\013B\267\001B\014" +
-      "CommandProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.I" +
-      "dentityaccount.V1\312\002!Ai\\Stigmer\\Iam\\Ident" +
-      "ityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Identitya" +
-      "ccount\\V1\\GPBMetadata\352\002%Ai::Stigmer::Iam" +
-      "::Identityaccount::V1b\006proto3"
+      "dentity accounts in this organization\022\332\001" +
+      "\n\026updateFederatedAccount\022>.ai.stigmer.ia" +
+      "m.identityaccount.v1.UpdateFederatedAcco" +
+      "untInput\0322.ai.stigmer.iam.identityaccoun" +
+      "t.v1.IdentityAccount\"L\302\270\030H\010\025\020\036\"\003org*=una" +
+      "uthorized to manage identity accounts in" +
+      " this organization\022\344\001\n\033deprovisionFedera" +
+      "tedAccount\022C.ai.stigmer.iam.identityacco" +
+      "unt.v1.DeprovisionFederatedAccountInput\032" +
+      "2.ai.stigmer.iam.identityaccount.v1.Iden" +
+      "tityAccount\"L\302\270\030H\010\025\020\036\"\003org*=unauthorized" +
+      " to manage identity accounts in this org" +
+      "anization\022n\n\025simulateSignupWebhook\0227.ai." +
+      "stigmer.iam.identityaccount.v1.IdentityA" +
+      "ccountEmail\032\026.google.protobuf.Empty\"\004\320\270\030" +
+      "\001\032\004\240\377+\013B\267\001B\014CommandProtoP\001\242\002\004ASII\252\002!Ai.S" +
+      "tigmer.Iam.Identityaccount.V1\312\002!Ai\\Stigm" +
+      "er\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\I" +
+      "am\\Identityaccount\\V1\\GPBMetadata\352\002%Ai::" +
+      "Stigmer::Iam::Identityaccount::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

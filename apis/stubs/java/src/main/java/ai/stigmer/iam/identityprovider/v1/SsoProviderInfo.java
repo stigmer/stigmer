@@ -40,6 +40,7 @@ private static final long serialVersionUID = 0L;
     displayName_ = "";
     oidcClientId_ = "";
     issuer_ = "";
+    expectedAudience_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -207,6 +208,63 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int EXPECTED_AUDIENCE_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object expectedAudience_ = "";
+  /**
+   * <pre>
+   * Expected JWT audience value for the OIDC token request.
+   * The web app passes this as the audience parameter when initiating the
+   * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+   * a JWT access token with the correct aud claim; others determine the
+   * audience from server-side configuration and ignore this parameter.
+   * Empty means the web app should omit the audience parameter.
+   * </pre>
+   *
+   * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+   * @return The expectedAudience.
+   */
+  @java.lang.Override
+  public java.lang.String getExpectedAudience() {
+    java.lang.Object ref = expectedAudience_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      expectedAudience_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Expected JWT audience value for the OIDC token request.
+   * The web app passes this as the audience parameter when initiating the
+   * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+   * a JWT access token with the correct aud claim; others determine the
+   * audience from server-side configuration and ignore this parameter.
+   * Empty means the web app should omit the audience parameter.
+   * </pre>
+   *
+   * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+   * @return The bytes for expectedAudience.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getExpectedAudienceBytes() {
+    java.lang.Object ref = expectedAudience_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      expectedAudience_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -230,6 +288,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(issuer_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, issuer_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(expectedAudience_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, expectedAudience_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -247,6 +308,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(issuer_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, issuer_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(expectedAudience_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, expectedAudience_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -269,6 +333,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getOidcClientId())) return false;
     if (!getIssuer()
         .equals(other.getIssuer())) return false;
+    if (!getExpectedAudience()
+        .equals(other.getExpectedAudience())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -286,6 +352,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getOidcClientId().hashCode();
     hash = (37 * hash) + ISSUER_FIELD_NUMBER;
     hash = (53 * hash) + getIssuer().hashCode();
+    hash = (37 * hash) + EXPECTED_AUDIENCE_FIELD_NUMBER;
+    hash = (53 * hash) + getExpectedAudience().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -429,6 +497,7 @@ private static final long serialVersionUID = 0L;
       displayName_ = "";
       oidcClientId_ = "";
       issuer_ = "";
+      expectedAudience_ = "";
       return this;
     }
 
@@ -471,6 +540,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.issuer_ = issuer_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.expectedAudience_ = expectedAudience_;
+      }
     }
 
     @java.lang.Override
@@ -498,6 +570,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getIssuer().isEmpty()) {
         issuer_ = other.issuer_;
         bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (!other.getExpectedAudience().isEmpty()) {
+        expectedAudience_ = other.expectedAudience_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -541,6 +618,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              expectedAudience_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -845,6 +927,123 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       issuer_ = value;
       bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object expectedAudience_ = "";
+    /**
+     * <pre>
+     * Expected JWT audience value for the OIDC token request.
+     * The web app passes this as the audience parameter when initiating the
+     * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+     * a JWT access token with the correct aud claim; others determine the
+     * audience from server-side configuration and ignore this parameter.
+     * Empty means the web app should omit the audience parameter.
+     * </pre>
+     *
+     * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+     * @return The expectedAudience.
+     */
+    public java.lang.String getExpectedAudience() {
+      java.lang.Object ref = expectedAudience_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        expectedAudience_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Expected JWT audience value for the OIDC token request.
+     * The web app passes this as the audience parameter when initiating the
+     * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+     * a JWT access token with the correct aud claim; others determine the
+     * audience from server-side configuration and ignore this parameter.
+     * Empty means the web app should omit the audience parameter.
+     * </pre>
+     *
+     * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+     * @return The bytes for expectedAudience.
+     */
+    public com.google.protobuf.ByteString
+        getExpectedAudienceBytes() {
+      java.lang.Object ref = expectedAudience_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        expectedAudience_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Expected JWT audience value for the OIDC token request.
+     * The web app passes this as the audience parameter when initiating the
+     * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+     * a JWT access token with the correct aud claim; others determine the
+     * audience from server-side configuration and ignore this parameter.
+     * Empty means the web app should omit the audience parameter.
+     * </pre>
+     *
+     * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+     * @param value The expectedAudience to set.
+     * @return This builder for chaining.
+     */
+    public Builder setExpectedAudience(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      expectedAudience_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Expected JWT audience value for the OIDC token request.
+     * The web app passes this as the audience parameter when initiating the
+     * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+     * a JWT access token with the correct aud claim; others determine the
+     * audience from server-side configuration and ignore this parameter.
+     * Empty means the web app should omit the audience parameter.
+     * </pre>
+     *
+     * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearExpectedAudience() {
+      expectedAudience_ = getDefaultInstance().getExpectedAudience();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Expected JWT audience value for the OIDC token request.
+     * The web app passes this as the audience parameter when initiating the
+     * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+     * a JWT access token with the correct aud claim; others determine the
+     * audience from server-side configuration and ignore this parameter.
+     * Empty means the web app should omit the audience parameter.
+     * </pre>
+     *
+     * <code>string expected_audience = 4 [json_name = "expectedAudience"];</code>
+     * @param value The bytes for expectedAudience to set.
+     * @return This builder for chaining.
+     */
+    public Builder setExpectedAudienceBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      expectedAudience_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

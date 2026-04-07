@@ -280,9 +280,16 @@ type SsoProviderInfo struct {
 	// OIDC issuer URL. The web app appends /.well-known/openid-configuration
 	// to discover the authorization_endpoint, token_endpoint, and other
 	// OIDC metadata required for the login flow.
-	Issuer        string `protobuf:"bytes,3,opt,name=issuer,proto3" json:"issuer,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Issuer string `protobuf:"bytes,3,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	// Expected JWT audience value for the OIDC token request.
+	// The web app passes this as the audience parameter when initiating the
+	// Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
+	// a JWT access token with the correct aud claim; others determine the
+	// audience from server-side configuration and ignore this parameter.
+	// Empty means the web app should omit the audience parameter.
+	ExpectedAudience string `protobuf:"bytes,4,opt,name=expected_audience,json=expectedAudience,proto3" json:"expected_audience,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SsoProviderInfo) Reset() {
@@ -336,6 +343,13 @@ func (x *SsoProviderInfo) GetIssuer() string {
 	return ""
 }
 
+func (x *SsoProviderInfo) GetExpectedAudience() string {
+	if x != nil {
+		return x.ExpectedAudience
+	}
+	return ""
+}
+
 var File_ai_stigmer_iam_identityprovider_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
@@ -352,11 +366,12 @@ const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"\x1fListIdentityProvidersByOrgInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"2\n" +
 	"\x15OrganizationSsoLookup\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"r\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x9f\x01\n" +
 	"\x0fSsoProviderInfo\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12$\n" +
 	"\x0eoidc_client_id\x18\x02 \x01(\tR\foidcClientId\x12\x16\n" +
-	"\x06issuer\x18\x03 \x01(\tR\x06issuerB\xbd\x02\n" +
+	"\x06issuer\x18\x03 \x01(\tR\x06issuer\x12+\n" +
+	"\x11expected_audience\x18\x04 \x01(\tR\x10expectedAudienceB\xbd\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\aIoProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (

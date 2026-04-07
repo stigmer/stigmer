@@ -3,7 +3,7 @@ title: Quickstart
 description: Call the Stigmer API from your code in 5 minutes.
 ---
 
-import { DemoApiKeySetup, DemoQuickstartPlayback } from "@/components/docs";
+import { DemoApiKeySetup, DemoQuickstartTour } from "@/components/docs";
 
 ## What you'll build
 
@@ -13,6 +13,8 @@ Stigmer Cloud, send a message, and get a response through the SDK.
 **Time**: ~5 minutes **Prerequisites**: A browser and one of:
 [Node.js](https://nodejs.org/) 20+, [Go](https://go.dev/) 1.21+,
 [Python](https://python.org/) 3.11+, or [Java](https://jdk.java.net/) 17+
+
+<DemoQuickstartTour />
 
 <Steps>
 <Step>
@@ -677,44 +679,16 @@ It works. Your Agent answered a general knowledge question accurately.
 </Step>
 </Steps>
 
-## Now try a domain question
-
-Change the message in your code to something specific to your business:
-
-```
-"What is your return policy for defective items?"
-```
-
-Run it again. This time the response is different:
-
-```
-I don't have specific information about your company's return policy
-for defective items. In general, many companies accept returns for
-defective products within a certain timeframe, but the details vary.
-
-I'd recommend checking your company's return policy documentation or
-contacting your support team for accurate information.
-```
-
-The Agent answered the general question well. But when you asked about **your**
-business, it couldn't help — it doesn't know your return policy, your product
-catalog, or your escalation process. It's guessing.
-
-## See it in action
-
-Here is what that conversation looks like inside the Stigmer web app. The
-assistant responds to each question, but the answers stay generic — the Agent
-has no domain knowledge yet.
-
-<DemoQuickstartPlayback />
-
 ## What just happened
 
 You called an Agent from your own code through a real API. No Agent
 configuration. No infrastructure setup. The built-in assistant handled your
 request automatically.
 
-The Agent is good at general knowledge. But it doesn't know anything specific to
-your business — and your customers can tell. In the next guide, you will teach
-your Agent domain knowledge through the Stigmer web app. Same question,
-completely different answer.
+The Agent is good at general knowledge — ask about best practices for handling
+complaints, and it gives a solid answer. But change the question to "What is
+your return policy for defective items?" and it can only guess. It doesn't know
+your return policy, your product catalog, or your escalation process.
+
+In the next guide, you will teach your Agent domain knowledge through the
+Stigmer web app. Same question, completely different answer.

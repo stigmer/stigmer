@@ -20,5 +20,50 @@
     "Interface",
     "Property",
     "TypeAlias"
-  ]
+  ],
+  "externalSymbolLinkMappings": {
+    "@stigmer/sdk": {
+      "Stigmer": "/docs/sdk",
+      "Stigmer.getAuthCredential": "/docs/sdk",
+      "SessionInput": "/docs/sdk/resources/session",
+      "ResourceRef": "/docs/sdk/resources/commons",
+      "OrganizationInput": "/docs/sdk/resources/organization",
+      "ApiKeyInput": "/docs/sdk/resources/api-key",
+      "IdentityProviderInput": "/docs/sdk/resources/identity-provider",
+      "InvitationInput": "/docs/sdk/resources/invitation",
+      "AgentInstanceInput": "/docs/sdk/resources/agent-instance",
+      "EnvironmentInput": "/docs/sdk/resources/environment",
+      "CLOUD_ONLY_KINDS": "#"
+    },
+    "@stigmer/protos": {
+      "Session": "/docs/sdk/resources/session",
+      "AgentExecution": "/docs/sdk/resources/agent-execution",
+      "Agent": "/docs/sdk/resources/agent",
+      "Environment": "/docs/sdk/resources/environment",
+      "Organization": "/docs/sdk/resources/organization",
+      "ApiKey": "/docs/sdk/resources/api-key",
+      "IdentityProvider": "/docs/sdk/resources/identity-provider",
+      "IdentityAccount": "/docs/sdk/resources/identity-account",
+      "Invitation": "/docs/sdk/resources/invitation",
+      "InvitationPreview": "/docs/sdk/resources/invitation",
+      "AgentInstance": "/docs/sdk/resources/agent-instance",
+      "McpServer": "/docs/sdk/resources/mcp-server",
+      "Skill": "/docs/sdk/resources/skill",
+      "IamPolicy": "/docs/sdk/resources/iam-policy",
+      "IamPolicySpec": "/docs/sdk/resources/iam-policy",
+      "LlmCallMetrics": "/docs/sdk/resources/agent-execution",
+      "TodoItem": "/docs/sdk/resources/agent-execution"
+    },
+    "@stigmer/react": {
+      "DISABLED_PROVIDERS": "#",
+      "MARKDOWN_COMPONENTS": "#",
+      "CollapsibleJsonBlock": "#",
+      "TEXT_EXTENSIONS": "#",
+      "submitEnvVars": "#",
+      "McpServerSetupAction": "#",
+      "getOrCreate": "#",
+      "useAgentSetup.resolveAgent": "#",
+      "useAgentSetup.submitEnvVars": "#"
+    }
+  }
 }

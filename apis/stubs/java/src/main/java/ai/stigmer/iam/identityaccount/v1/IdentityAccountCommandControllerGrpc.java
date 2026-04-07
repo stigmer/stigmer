@@ -139,6 +139,68 @@ public final class IdentityAccountCommandControllerGrpc {
     return getCreateFederatedAccountMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getUpdateFederatedAccountMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateFederatedAccount",
+      requestType = ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.class,
+      responseType = ai.stigmer.iam.identityaccount.v1.IdentityAccount.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getUpdateFederatedAccountMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput, ai.stigmer.iam.identityaccount.v1.IdentityAccount> getUpdateFederatedAccountMethod;
+    if ((getUpdateFederatedAccountMethod = IdentityAccountCommandControllerGrpc.getUpdateFederatedAccountMethod) == null) {
+      synchronized (IdentityAccountCommandControllerGrpc.class) {
+        if ((getUpdateFederatedAccountMethod = IdentityAccountCommandControllerGrpc.getUpdateFederatedAccountMethod) == null) {
+          IdentityAccountCommandControllerGrpc.getUpdateFederatedAccountMethod = getUpdateFederatedAccountMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput, ai.stigmer.iam.identityaccount.v1.IdentityAccount>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateFederatedAccount"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.IdentityAccount.getDefaultInstance()))
+              .setSchemaDescriptor(new IdentityAccountCommandControllerMethodDescriptorSupplier("updateFederatedAccount"))
+              .build();
+        }
+      }
+    }
+    return getUpdateFederatedAccountMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getDeprovisionFederatedAccountMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "deprovisionFederatedAccount",
+      requestType = ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.class,
+      responseType = ai.stigmer.iam.identityaccount.v1.IdentityAccount.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getDeprovisionFederatedAccountMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput, ai.stigmer.iam.identityaccount.v1.IdentityAccount> getDeprovisionFederatedAccountMethod;
+    if ((getDeprovisionFederatedAccountMethod = IdentityAccountCommandControllerGrpc.getDeprovisionFederatedAccountMethod) == null) {
+      synchronized (IdentityAccountCommandControllerGrpc.class) {
+        if ((getDeprovisionFederatedAccountMethod = IdentityAccountCommandControllerGrpc.getDeprovisionFederatedAccountMethod) == null) {
+          IdentityAccountCommandControllerGrpc.getDeprovisionFederatedAccountMethod = getDeprovisionFederatedAccountMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput, ai.stigmer.iam.identityaccount.v1.IdentityAccount>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "deprovisionFederatedAccount"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.IdentityAccount.getDefaultInstance()))
+              .setSchemaDescriptor(new IdentityAccountCommandControllerMethodDescriptorSupplier("deprovisionFederatedAccount"))
+              .build();
+        }
+      }
+    }
+    return getDeprovisionFederatedAccountMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail,
       com.google.protobuf.Empty> getSimulateSignupWebhookMethod;
 
@@ -293,6 +355,37 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update profile fields on a federated identity account.
+     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * and updates email, name, and picture. Identity keys are immutable.
+     * Called by platform backends when a user's profile changes on their platform.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    default void updateFederatedAccount(ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateFederatedAccountMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Deprovision a federated identity account by revoking access or deleting it.
+     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * When delete_account is false, revokes all IAM policies in the organization.
+     * When delete_account is true, revokes policies and deletes the account.
+     * Called by platform backends during user offboarding.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    default void deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeprovisionFederatedAccountMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
@@ -400,6 +493,39 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update profile fields on a federated identity account.
+     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * and updates email, name, and picture. Identity keys are immutable.
+     * Called by platform backends when a user's profile changes on their platform.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public void updateFederatedAccount(ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateFederatedAccountMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Deprovision a federated identity account by revoking access or deleting it.
+     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * When delete_account is false, revokes all IAM policies in the organization.
+     * When delete_account is true, revokes policies and deletes the account.
+     * Called by platform backends during user offboarding.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public void deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getDeprovisionFederatedAccountMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
@@ -490,6 +616,37 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update profile fields on a federated identity account.
+     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * and updates email, name, and picture. Identity keys are immutable.
+     * Called by platform backends when a user's profile changes on their platform.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount updateFederatedAccount(ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateFederatedAccountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Deprovision a federated identity account by revoking access or deleting it.
+     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * When delete_account is false, revokes all IAM policies in the organization.
+     * When delete_account is true, revokes policies and deletes the account.
+     * Called by platform backends during user offboarding.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getDeprovisionFederatedAccountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
@@ -575,6 +732,37 @@ public final class IdentityAccountCommandControllerGrpc {
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCreateFederatedAccountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update profile fields on a federated identity account.
+     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * and updates email, name, and picture. Identity keys are immutable.
+     * Called by platform backends when a user's profile changes on their platform.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount updateFederatedAccount(ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateFederatedAccountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Deprovision a federated identity account by revoking access or deleting it.
+     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * When delete_account is false, revokes all IAM policies in the organization.
+     * When delete_account is true, revokes policies and deletes the account.
+     * Called by platform backends during user offboarding.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getDeprovisionFederatedAccountMethod(), getCallOptions(), request);
     }
 
     /**
@@ -672,6 +860,39 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update profile fields on a federated identity account.
+     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * and updates email, name, and picture. Identity keys are immutable.
+     * Called by platform backends when a user's profile changes on their platform.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> updateFederatedAccount(
+        ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateFederatedAccountMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Deprovision a federated identity account by revoking access or deleting it.
+     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * When delete_account is false, revokes all IAM policies in the organization.
+     * When delete_account is true, revokes policies and deletes the account.
+     * Called by platform backends during user offboarding.
+     * Authorization: Requires can_create_identity_account on the organization
+     * that owns the identity provider.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> deprovisionFederatedAccount(
+        ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getDeprovisionFederatedAccountMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
      * &#64;internal
      * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
@@ -690,7 +911,9 @@ public final class IdentityAccountCommandControllerGrpc {
   private static final int METHODID_UPDATE = 1;
   private static final int METHODID_DELETE = 2;
   private static final int METHODID_CREATE_FEDERATED_ACCOUNT = 3;
-  private static final int METHODID_SIMULATE_SIGNUP_WEBHOOK = 4;
+  private static final int METHODID_UPDATE_FEDERATED_ACCOUNT = 4;
+  private static final int METHODID_DEPROVISION_FEDERATED_ACCOUNT = 5;
+  private static final int METHODID_SIMULATE_SIGNUP_WEBHOOK = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -723,6 +946,14 @@ public final class IdentityAccountCommandControllerGrpc {
           break;
         case METHODID_CREATE_FEDERATED_ACCOUNT:
           serviceImpl.createFederatedAccount((ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
+          break;
+        case METHODID_UPDATE_FEDERATED_ACCOUNT:
+          serviceImpl.updateFederatedAccount((ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
+          break;
+        case METHODID_DEPROVISION_FEDERATED_ACCOUNT:
+          serviceImpl.deprovisionFederatedAccount((ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
           break;
         case METHODID_SIMULATE_SIGNUP_WEBHOOK:
@@ -775,6 +1006,20 @@ public final class IdentityAccountCommandControllerGrpc {
               ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput,
               ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
                 service, METHODID_CREATE_FEDERATED_ACCOUNT)))
+        .addMethod(
+          getUpdateFederatedAccountMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput,
+              ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
+                service, METHODID_UPDATE_FEDERATED_ACCOUNT)))
+        .addMethod(
+          getDeprovisionFederatedAccountMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput,
+              ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
+                service, METHODID_DEPROVISION_FEDERATED_ACCOUNT)))
         .addMethod(
           getSimulateSignupWebhookMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -834,6 +1079,8 @@ public final class IdentityAccountCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getCreateFederatedAccountMethod())
+              .addMethod(getUpdateFederatedAccountMethod())
+              .addMethod(getDeprovisionFederatedAccountMethod())
               .addMethod(getSimulateSignupWebhookMethod())
               .build();
         }

@@ -55,6 +55,7 @@ export interface AgentEnvFormProps {
   readonly onCancel?: () => void;
   /** When true, the submit button shows a spinner and inputs are disabled. */
   readonly isSubmitting?: boolean;
+  /** Prevents interaction with all form inputs when `true`. */
   readonly disabled?: boolean;
   /**
    * Initial state of the "Save for future runs" toggle.
@@ -75,6 +76,7 @@ export interface AgentEnvFormProps {
    * Passed through to {@link EnvVarForm}.
    */
   readonly poolValues?: EnvVarFormProps["poolValues"];
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

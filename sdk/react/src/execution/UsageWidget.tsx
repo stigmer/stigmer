@@ -25,7 +25,7 @@ export interface UsageWidgetProps {
 
 /**
  * Right-sidebar widget that displays session-level cost and token
- * usage aggregated from per-message {@link LlmCallMetrics}.
+ * usage aggregated from per-message `LlmCallMetrics`.
  *
  * Usage data is computed purely from messages the frontend already
  * has — no server RPC is required for the real-time widget.

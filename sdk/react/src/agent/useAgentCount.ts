@@ -26,7 +26,9 @@ export interface UseAgentCountReturn {
    * until the first successful fetch completes.
    */
   readonly count: number | undefined;
+  /** `true` while the count fetch is in flight. */
   readonly isLoading: boolean;
+  /** Error message from the last failed fetch, or `null` when healthy. */
   readonly error: string | null;
   /** Re-fetch the count with the same parameters. */
   readonly refetch: () => void;

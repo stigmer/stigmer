@@ -1,0 +1,661 @@
+---
+title: Multi-tenant platform setup
+description:
+  Create platform-managed Organizations to give each of your customers isolated
+  Agents, Skills, and Sessions on Stigmer.
+---
+
+If your platform serves multiple customers and each customer needs their own
+isolated set of Agents, Skills, Sessions, and access controls, you create one
+**platform-managed Organization** per customer. Each Organization is a full
+tenant boundary — resources inside one Organization are invisible to users in
+another.
+
+<DemoMultiTenantSetupPlayback />
+
+## When you need this
+
+You already have a working
+[Identity Provider](/docs/guides/federation/register-identity-provider) and
+understand
+[federated accounts](/docs/guides/federation/provision-federated-accounts). Now
+you need to extend that setup for multiple tenants:
+
+- Your platform has multiple customers (tenants)
+- Each customer needs their own Agents, Skills, MCP Servers, and Sessions
+- You want tenant boundaries on Stigmer to mirror your own platform's tenant
+  structure
+- You want to provision users and manage resources per tenant through your
+  platform's backend
+
+## Prerequisites
+
+Before starting, you need:
+
+- A **Stigmer Organization** that owns your Identity Provider (for example,
+  `acme`)
+- A **registered Identity Provider** in that Organization (see
+  [Register an Identity Provider](/docs/guides/federation/register-identity-provider))
+- An **API key** with admin access to the Organization that owns the Identity
+  Provider
+
+## Architecture
+
+{/* vale off */}
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+flowchart TD
+  subgraph platform ["Your platform (Acme Cloud)"]
+    Backend["Platform backend"]
+    IdP["Auth provider<br/>(Auth0, Okta, etc.)"]
+  end
+  subgraph stigmer ["Stigmer"]
+    SIdP["IdentityProvider<br/>(acme-cloud-auth)"]
+    subgraph tenantA ["Organization: tenant-alpha"]
+      AcctA["Federated accounts"]
+      ResA["Agents, Skills, Sessions"]
+    end
+    subgraph tenantB ["Organization: tenant-beta"]
+      AcctB["Federated accounts"]
+      ResB["Agents, Skills, Sessions"]
+    end
+  end
+  Backend -->|"Register once"| SIdP
+  Backend -->|"Create per tenant"| tenantA
+  Backend -->|"Create per tenant"| tenantB
+  SIdP -.->|"Authenticates"| AcctA
+  SIdP -.->|"Authenticates"| AcctB
+`}
+/>
+
+{/* vale on */}
+
+The Identity Provider is registered once in your platform's Organization. For
+each new customer, your backend creates a platform-managed Organization linked
+to that Identity Provider. Users in different tenant Organizations share the
+same authentication system but have completely separate resources and access
+controls.
+
+## Create a platform-managed Organization
+
+When a new customer signs up on your platform, create a platform-managed
+Organization for them. Three fields are specific to this pattern:
+
+| Field                 | Purpose                                                                      |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `managementMode`      | Set to `platform_managed` to indicate an external platform operates this org |
+| `identityProviderRef` | Reference to your Identity Provider — links this org to your auth system     |
+| `externalOrgId`       | Your platform's own identifier for this tenant, used for reverse lookup      |
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const tenantOrg = await stigmer.organization.create({
+  name: "Tenant Alpha",
+  slug: "tenant-alpha",
+  description: "Acme Cloud customer: Tenant Alpha",
+  managementMode: "platform_managed",
+  identityProviderRef: {
+    org: "acme",
+    kind: "identity_provider",
+    slug: "acme-cloud-auth",
+  },
+  externalOrgId: "acme-tenant-alpha-id",
+});
+
+console.log(`Created tenant org: ${tenantOrg.metadata.id}`);
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+tenantOrg, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
+  Name:           "Tenant Alpha",
+  Slug:           "tenant-alpha",
+  Description:    "Acme Cloud customer: Tenant Alpha",
+  ManagementMode: "platform_managed",
+  IdentityProviderRef: &stigmer.ResourceRef{
+    Org:  "acme",
+    Kind: "identity_provider",
+    Slug: "acme-cloud-auth",
+  },
+  ExternalOrgId: "acme-tenant-alpha-id",
+})
+if err != nil {
+  return fmt.Errorf("create tenant org: %w", err)
+}
+fmt.Printf("Created tenant org: %s\n", tenantOrg.Metadata.Id)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+tenant_org = client.organizations.create(OrganizationInput(
+    name="Tenant Alpha",
+    slug="tenant-alpha",
+    description="Acme Cloud customer: Tenant Alpha",
+    management_mode="platform_managed",
+    identity_provider_ref=ResourceRef(
+        org="acme",
+        kind="identity_provider",
+        slug="acme-cloud-auth",
+    ),
+    external_org_id="acme-tenant-alpha-id",
+))
+
+print(f"Created tenant org: {tenant_org.metadata.id}")
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+Organization tenantOrg = client.organizations().create(OrganizationInput.builder()
+    .name("Tenant Alpha")
+    .slug("tenant-alpha")
+    .description("Acme Cloud customer: Tenant Alpha")
+    .managementMode("platform_managed")
+    .identityProviderRef(ResourceRef.builder()
+        .org("acme")
+        .kind("identity_provider")
+        .slug("acme-cloud-auth")
+        .build())
+    .externalOrgId("acme-tenant-alpha-id")
+    .build());
+
+System.out.println("Created tenant org: " + tenantOrg.getMetadata().getId());
+```
+
+</Tab>
+</SDKTabs>
+
+<Callout type="warn">
+  `managementMode` and `identityProviderRef` are immutable after creation. You
+  cannot convert a self-managed Organization to platform-managed or change which
+  Identity Provider it uses.
+</Callout>
+
+## Look up an Organization by external ID
+
+Your platform stores its own tenant identifiers. When you need to find the
+corresponding Stigmer Organization, use `getByExternalOrgId` with your Identity
+Provider reference and the external ID you assigned at creation.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const tenantOrg = await stigmer.organization.getByExternalOrgId({
+  identityProviderRef: {
+    org: "acme",
+    kind: "identity_provider",
+    slug: "acme-cloud-auth",
+  },
+  externalOrgId: "acme-tenant-alpha-id",
+});
+
+console.log(`Found org: ${tenantOrg.metadata.slug} (${tenantOrg.metadata.id})`);
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+tenantOrg, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.OrganizationExternalLookup{
+  IdentityProviderRef: &stigmer.ResourceRef{
+    Org:  "acme",
+    Kind: "identity_provider",
+    Slug: "acme-cloud-auth",
+  },
+  ExternalOrgId: "acme-tenant-alpha-id",
+})
+if err != nil {
+  return fmt.Errorf("lookup tenant org: %w", err)
+}
+fmt.Printf("Found org: %s (%s)\n", tenantOrg.Metadata.Slug, tenantOrg.Metadata.Id)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+tenant_org = client.organizations.get_by_external_org_id(OrganizationExternalLookup(
+    identity_provider_ref=ResourceRef(
+        org="acme",
+        kind="identity_provider",
+        slug="acme-cloud-auth",
+    ),
+    external_org_id="acme-tenant-alpha-id",
+))
+
+print(f"Found org: {tenant_org.metadata.slug} ({tenant_org.metadata.id})")
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+Organization tenantOrg = client.organizations().getByExternalOrgId(OrganizationExternalLookup.builder()
+    .identityProviderRef(ResourceRef.builder()
+        .org("acme")
+        .kind("identity_provider")
+        .slug("acme-cloud-auth")
+        .build())
+    .externalOrgId("acme-tenant-alpha-id")
+    .build());
+
+System.out.println("Found org: " + tenantOrg.getMetadata().getSlug() + " (" + tenantOrg.getMetadata().getId() + ")");
+```
+
+</Tab>
+</SDKTabs>
+
+This is useful when a user in your platform performs an action that requires
+looking up their Stigmer Organization. Your platform knows its own tenant ID;
+`getByExternalOrgId` maps it to the Stigmer Organization without requiring you
+to store Stigmer IDs in a separate mapping.
+
+## Provision users per tenant
+
+When a user signs up on your platform, provision a federated Identity Account in
+their **tenant's Organization** — not in your platform's Organization. The
+Identity Provider reference stays the same (it's your platform's auth system),
+but the `org` field points to the tenant's Organization.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const account = await stigmer.identityAccount.createFederatedAccount({
+  org: "tenant-alpha",
+  identityProviderRef: {
+    org: "acme",
+    kind: "identity_provider",
+    slug: "acme-cloud-auth",
+  },
+  externalSub: user.oidcSubject,
+  email: user.email,
+  firstName: user.firstName,
+  lastName: user.lastName,
+});
+
+console.log(`Provisioned user in tenant-alpha: ${account.metadata.id}`);
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
+  Org: "tenant-alpha",
+  IdentityProviderRef: &stigmer.ResourceRef{
+    Org:  "acme",
+    Kind: "identity_provider",
+    Slug: "acme-cloud-auth",
+  },
+  ExternalSub: user.OIDCSubject,
+  Email:       user.Email,
+  FirstName:   user.FirstName,
+  LastName:    user.LastName,
+})
+if err != nil {
+  return fmt.Errorf("provision user: %w", err)
+}
+fmt.Printf("Provisioned user in tenant-alpha: %s\n", account.Metadata.Id)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+    org="tenant-alpha",
+    identity_provider_ref=ResourceRef(
+        org="acme",
+        kind="identity_provider",
+        slug="acme-cloud-auth",
+    ),
+    external_sub=user.oidc_subject,
+    email=user.email,
+    first_name=user.first_name,
+    last_name=user.last_name,
+))
+
+print(f"Provisioned user in tenant-alpha: {account.metadata.id}")
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
+    .org("tenant-alpha")
+    .identityProviderRef(ResourceRef.builder()
+        .org("acme")
+        .kind("identity_provider")
+        .slug("acme-cloud-auth")
+        .build())
+    .externalSub(user.getOidcSubject())
+    .email(user.getEmail())
+    .firstName(user.getFirstName())
+    .lastName(user.getLastName())
+    .build());
+
+System.out.println("Provisioned user in tenant-alpha: " + account.getMetadata().getId());
+```
+
+</Tab>
+</SDKTabs>
+
+<Callout type="info">
+  The same `externalSub` (OIDC subject) can exist in multiple tenant
+  Organizations. The uniqueness constraint is **Organization + Identity Provider
+  + external subject**. This means a user who belongs to multiple tenants on
+  your platform can have a separate federated account in each tenant's
+  Organization.
+</Callout>
+
+## Grant access within tenant Organizations
+
+After provisioning, grant the user a role on their tenant's Organization. This
+follows the same pattern as
+[granting access](/docs/guides/federation/grant-access) in a single-org setup,
+but scoped to the tenant's Organization ID.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+await stigmer.iamPolicy.create({
+  principal: { kind: "identity_account", id: account.metadata.id },
+  resource: { kind: "organization", id: tenantOrg.metadata.id },
+  relation: "viewer",
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+_, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+  Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: account.Metadata.Id},
+  Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: tenantOrg.Metadata.Id},
+  Relation:  "viewer",
+})
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+client.iam_policies.create(IamPolicySpec(
+    principal=ApiResourceRefInput(kind="identity_account", id=account.metadata.id),
+    resource=ApiResourceRefInput(kind="organization", id=tenant_org.metadata.id),
+    relation="viewer",
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+client.iamPolicies().create(IamPolicySpec.builder()
+    .principal(ApiResourceRefInput.builder().kind("identity_account").id(account.getMetadata().getId()).build())
+    .resource(ApiResourceRefInput.builder().kind("organization").id(tenantOrg.getMetadata().getId()).build())
+    .relation("viewer")
+    .build());
+```
+
+</Tab>
+</SDKTabs>
+
+Because IAM Policies are scoped to a specific Organization, a user with `viewer`
+on `tenant-alpha` cannot see resources in `tenant-beta`. The Organization
+boundary enforces tenant isolation at the authorization layer.
+
+## Complete tenant onboarding flow
+
+Here's the full pattern that runs when a new customer signs up on your platform:
+
+{/* vale off */}
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+flowchart TD
+  A["New customer signs up"] --> B["Create platform-managed Organization"]
+  B --> C["Store Stigmer org ID alongside tenant ID"]
+  C --> D["Customer's first user signs up"]
+  D --> E["Look up tenant org by external ID"]
+  E --> F["createFederatedAccount in tenant org"]
+  F --> G["Grant org role via IAM Policy"]
+  G --> H["User calls Stigmer API with JWT"]
+`}
+/>
+
+{/* vale on */}
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+async function onboardTenant(tenant: PlatformTenant): Promise<string> {
+  const idpRef = {
+    org: "acme",
+    kind: "identity_provider",
+    slug: "acme-cloud-auth",
+  };
+
+  const tenantOrg = await stigmer.organization.create({
+    name: tenant.name,
+    slug: tenant.slug,
+    description: `Acme Cloud customer: ${tenant.name}`,
+    managementMode: "platform_managed",
+    identityProviderRef: idpRef,
+    externalOrgId: tenant.id,
+  });
+
+  return tenantOrg.metadata.id;
+}
+
+async function onboardTenantUser(
+  tenantExternalId: string,
+  user: PlatformUser,
+): Promise<void> {
+  const idpRef = {
+    org: "acme",
+    kind: "identity_provider",
+    slug: "acme-cloud-auth",
+  };
+
+  const tenantOrg = await stigmer.organization.getByExternalOrgId({
+    identityProviderRef: idpRef,
+    externalOrgId: tenantExternalId,
+  });
+
+  const account = await stigmer.identityAccount.createFederatedAccount({
+    org: tenantOrg.metadata.slug,
+    identityProviderRef: idpRef,
+    externalSub: user.oidcSubject,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+  });
+
+  await stigmer.iamPolicy.create({
+    principal: { kind: "identity_account", id: account.metadata.id },
+    resource: { kind: "organization", id: tenantOrg.metadata.id },
+    relation: "viewer",
+  });
+}
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+func onboardTenant(ctx context.Context, client *stigmer.Client, tenant PlatformTenant) (string, error) {
+  idpRef := &stigmer.ResourceRef{
+    Org:  "acme",
+    Kind: "identity_provider",
+    Slug: "acme-cloud-auth",
+  }
+
+  tenantOrg, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
+    Name:                tenant.Name,
+    Slug:                tenant.Slug,
+    Description:         fmt.Sprintf("Acme Cloud customer: %s", tenant.Name),
+    ManagementMode:      "platform_managed",
+    IdentityProviderRef: idpRef,
+    ExternalOrgId:       tenant.ID,
+  })
+  if err != nil {
+    return "", fmt.Errorf("create tenant org: %w", err)
+  }
+
+  return tenantOrg.Metadata.Id, nil
+}
+
+func onboardTenantUser(ctx context.Context, client *stigmer.Client, tenantExternalID string, user PlatformUser) error {
+  idpRef := &stigmer.ResourceRef{
+    Org:  "acme",
+    Kind: "identity_provider",
+    Slug: "acme-cloud-auth",
+  }
+
+  tenantOrg, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.OrganizationExternalLookup{
+    IdentityProviderRef: idpRef,
+    ExternalOrgId:       tenantExternalID,
+  })
+  if err != nil {
+    return fmt.Errorf("lookup tenant org: %w", err)
+  }
+
+  account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
+    Org:                 tenantOrg.Metadata.Slug,
+    IdentityProviderRef: idpRef,
+    ExternalSub:         user.OIDCSubject,
+    Email:               user.Email,
+    FirstName:           user.FirstName,
+    LastName:            user.LastName,
+  })
+  if err != nil {
+    return fmt.Errorf("provision user: %w", err)
+  }
+
+  _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+    Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: account.Metadata.Id},
+    Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: tenantOrg.Metadata.Id},
+    Relation:  "viewer",
+  })
+  return err
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+def onboard_tenant(client, tenant: PlatformTenant) -> str:
+    idp_ref = ResourceRef(org="acme", kind="identity_provider", slug="acme-cloud-auth")
+
+    tenant_org = client.organizations.create(OrganizationInput(
+        name=tenant.name,
+        slug=tenant.slug,
+        description=f"Acme Cloud customer: {tenant.name}",
+        management_mode="platform_managed",
+        identity_provider_ref=idp_ref,
+        external_org_id=tenant.id,
+    ))
+
+    return tenant_org.metadata.id
+
+
+def onboard_tenant_user(client, tenant_external_id: str, user: PlatformUser) -> None:
+    idp_ref = ResourceRef(org="acme", kind="identity_provider", slug="acme-cloud-auth")
+
+    tenant_org = client.organizations.get_by_external_org_id(OrganizationExternalLookup(
+        identity_provider_ref=idp_ref,
+        external_org_id=tenant_external_id,
+    ))
+
+    account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+        org=tenant_org.metadata.slug,
+        identity_provider_ref=idp_ref,
+        external_sub=user.oidc_subject,
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+    ))
+
+    client.iam_policies.create(IamPolicySpec(
+        principal=ApiResourceRefInput(kind="identity_account", id=account.metadata.id),
+        resource=ApiResourceRefInput(kind="organization", id=tenant_org.metadata.id),
+        relation="viewer",
+    ))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+public String onboardTenant(StigmerClient client, PlatformTenant tenant) {
+    ResourceRef idpRef = ResourceRef.builder()
+        .org("acme").kind("identity_provider").slug("acme-cloud-auth").build();
+
+    Organization tenantOrg = client.organizations().create(OrganizationInput.builder()
+        .name(tenant.getName())
+        .slug(tenant.getSlug())
+        .description("Acme Cloud customer: " + tenant.getName())
+        .managementMode("platform_managed")
+        .identityProviderRef(idpRef)
+        .externalOrgId(tenant.getId())
+        .build());
+
+    return tenantOrg.getMetadata().getId();
+}
+
+public void onboardTenantUser(StigmerClient client, String tenantExternalId, PlatformUser user) {
+    ResourceRef idpRef = ResourceRef.builder()
+        .org("acme").kind("identity_provider").slug("acme-cloud-auth").build();
+
+    Organization tenantOrg = client.organizations().getByExternalOrgId(OrganizationExternalLookup.builder()
+        .identityProviderRef(idpRef)
+        .externalOrgId(tenantExternalId)
+        .build());
+
+    IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
+        .org(tenantOrg.getMetadata().getSlug())
+        .identityProviderRef(idpRef)
+        .externalSub(user.getOidcSubject())
+        .email(user.getEmail())
+        .firstName(user.getFirstName())
+        .lastName(user.getLastName())
+        .build());
+
+    client.iamPolicies().create(IamPolicySpec.builder()
+        .principal(ApiResourceRefInput.builder().kind("identity_account").id(account.getMetadata().getId()).build())
+        .resource(ApiResourceRefInput.builder().kind("organization").id(tenantOrg.getMetadata().getId()).build())
+        .relation("viewer")
+        .build());
+}
+```
+
+</Tab>
+</SDKTabs>
+
+## What's next
+
+Your multi-tenant setup is complete. Each tenant has their own Organization with
+isolated resources and access controls. To understand how the runtime
+authentication flow works when tenant users call the Stigmer API, see the
+[Authentication flow](/docs/guides/federation/authentication-flow) page.
+
+For conceptual background on how Organizations serve as tenant boundaries, see
+[Organizations](/docs/concepts/organizations). For API details, see the
+[Organization SDK reference](/docs/sdk/resources/organization).

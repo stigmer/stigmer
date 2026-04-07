@@ -10,11 +10,17 @@ import {
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
-interface SharedSessionFields {
+/** Shared fields present in both variants of {@link CreateSessionInput}. */
+export interface SharedSessionFields {
+  /** Organization slug for the new session. */
   readonly org: string;
+  /** Workspace source entries to attach to the session. */
   readonly workspaceEntries?: WorkspaceEntryInput[];
+  /** Initial conversation subject (defaults to `PENDING_SUBJECT`). */
   readonly subject?: string;
+  /** MCP server configurations to include for tool access. */
   readonly mcpServerUsages?: McpServerUsageInput[];
+  /** Skill references to enable for executions in this session. */
   readonly skillRefs?: ResourceRef[];
 }
 
@@ -32,8 +38,18 @@ interface SharedSessionFields {
  */
 export type CreateSessionInput = SharedSessionFields &
   (
-    | { readonly agentInstanceId: string; readonly agentRef?: never }
-    | { readonly agentRef: ResourceRef; readonly agentInstanceId?: never }
+    | {
+        /** Pre-provisioned AgentInstance ID to bind the session to. */
+        readonly agentInstanceId: string;
+        /** @internal Discriminant — excluded when `agentInstanceId` is provided. */
+        readonly agentRef?: never;
+      }
+    | {
+        /** Agent blueprint reference resolved to its default instance at creation time. */
+        readonly agentRef: ResourceRef;
+        /** @internal Discriminant — excluded when `agentRef` is provided. */
+        readonly agentInstanceId?: never;
+      }
   );
 
 /** Resolved output of {@link UseCreateSessionReturn.create}. */

@@ -60,3 +60,8 @@ export {
   IdentityProviderDetailPanel,
   type IdentityProviderDetailPanelProps,
 } from "./IdentityProviderDetailPanel";
+
+export {
+  SsoLoginPrompt,
+  type SsoLoginPromptProps,
+} from "./SsoLoginPrompt";

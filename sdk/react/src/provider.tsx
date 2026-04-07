@@ -11,6 +11,7 @@ import { DeploymentModeContext } from "./deployment-mode";
 export interface StigmerProviderProps {
   /** A configured {@link Stigmer} client instance. */
   readonly client: Stigmer;
+  /** React children rendered inside the provider scope. */
   readonly children: ReactNode;
   /**
    * Deployment mode of the connected Stigmer backend.

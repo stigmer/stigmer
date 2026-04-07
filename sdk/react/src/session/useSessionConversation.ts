@@ -117,6 +117,7 @@ export interface UseSessionConversationReturn {
   readonly isSending: boolean;
   /** Error from the last sendFollowUp attempt, or null. */
   readonly sendError: Error | null;
+  /** Reset `sendError` to `null`. */
   readonly clearSendError: () => void;
 
   /** The user's message text, shown in the thread before the stream delivers it. */
@@ -139,13 +140,19 @@ export interface UseSessionConversationReturn {
   ) => Promise<void>;
   /** Set of tool call IDs currently being submitted for approval. */
   readonly submittingApprovalIds: ReadonlySet<string>;
+  /** Error from the last approval submission, or `null` when healthy. */
   readonly approvalError: Error | null;
+  /** Reset `approvalError` to `null`. */
   readonly clearApprovalError: () => void;
 
+  /** `true` while the session or execution list is loading. */
   readonly isLoading: boolean;
+  /** Error from session or execution list loading, or `null` when healthy. */
   readonly loadError: Error | null;
 
+  /** Error from the execution stream, or `null` when healthy. */
   readonly streamError: Error | null;
+  /** Reset the stream error and re-establish the execution stream subscription. */
   readonly reconnectStream: () => void;
 }
 

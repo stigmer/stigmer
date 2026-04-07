@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceAuditActor;
 import ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput;
+import ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput;
 import ai.stigmer.iam.identityaccount.v1.ExternalSubLookup;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandControllerGrpc;
@@ -11,6 +12,7 @@ import ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountId;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryControllerGrpc;
 import ai.stigmer.iam.identityaccount.v1.IdpId;
+import ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput;
 import com.google.protobuf.Empty;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -46,6 +48,18 @@ public final class IdentityAccountClient {
     public IdentityAccount createFederatedAccount(CreateFederatedAccountInput input) {
         try {
             return command.createFederatedAccount(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public IdentityAccount updateFederatedAccount(UpdateFederatedAccountInput input) {
+        try {
+            return command.updateFederatedAccount(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public IdentityAccount deprovisionFederatedAccount(DeprovisionFederatedAccountInput input) {
+        try {
+            return command.deprovisionFederatedAccount(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

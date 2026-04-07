@@ -76,7 +76,9 @@ export const DemoVideo: React.FC<DemoVideoProps> = ({
           stepStartTimesMs={timeline.stepStartTimesMs}
         >
           <VideoExportProvider>
-            <Component />
+            <div className="mx-auto w-full max-w-4xl rounded-xl ring-1 ring-white/[0.06]">
+              <Component />
+            </div>
           </VideoExportProvider>
         </TimeSourceProvider>
       </div>

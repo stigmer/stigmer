@@ -61,6 +61,7 @@ export {
   resolvedSubject,
 } from "./session";
 export type {
+  SharedSessionFields,
   CreateSessionInput,
   CreateSessionResult,
   UseCreateSessionReturn,
@@ -149,6 +150,8 @@ export type {
   ToolCallGroupProps,
   ToolCallDetailProps,
   McpToolDetailProps,
+  McpArgsViewProps,
+  McpMetadataRowProps,
   ToolArgsViewProps,
   ToolCallItemProps,
   SubAgentSectionProps,
@@ -243,6 +246,7 @@ export type {
   McpServerConfigPanelProps,
   McpServerCredentialsProps,
   McpServerDetailViewProps,
+  CapabilityTab,
   McpToolSelectorProps,
   UseDiscoverCapabilitiesReturn,
   UseMcpServerCredentialsReturn,
@@ -449,6 +453,7 @@ export {
   ProviderPicker,
   IdentityProviderWizard,
   IdentityProviderDetailPanel,
+  SsoLoginPrompt,
 } from "./identity-provider";
 export type {
   UseIdentityProviderListReturn,
@@ -465,6 +470,7 @@ export type {
   ProviderPickerProps,
   IdentityProviderWizardProps,
   IdentityProviderDetailPanelProps,
+  SsoLoginPromptProps,
 } from "./identity-provider";
 
 // Invitation — data hooks, behavior hooks, and feature components for org invite links
@@ -527,6 +533,12 @@ export type {
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./library";
+
+// Search — shared search/list/count infrastructure re-exported for public API surface
+export type {
+  UseResourceSearchOptions,
+  UseResourceSearchReturn,
+} from "./search";
 
 // Usage — org-level usage report hook, dashboard panel, and date-range utilities
 export {

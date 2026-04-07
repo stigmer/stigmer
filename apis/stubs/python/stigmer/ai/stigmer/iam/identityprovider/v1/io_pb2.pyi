@@ -41,11 +41,13 @@ class OrganizationSsoLookup(_message.Message):
     def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class SsoProviderInfo(_message.Message):
-    __slots__ = ("display_name", "oidc_client_id", "issuer")
+    __slots__ = ("display_name", "oidc_client_id", "issuer", "expected_audience")
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     OIDC_CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
     ISSUER_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_AUDIENCE_FIELD_NUMBER: _ClassVar[int]
     display_name: str
     oidc_client_id: str
     issuer: str
-    def __init__(self, display_name: _Optional[str] = ..., oidc_client_id: _Optional[str] = ..., issuer: _Optional[str] = ...) -> None: ...
+    expected_audience: str
+    def __init__(self, display_name: _Optional[str] = ..., oidc_client_id: _Optional[str] = ..., issuer: _Optional[str] = ..., expected_audience: _Optional[str] = ...) -> None: ...

@@ -24,7 +24,8 @@ import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { Tabs, type TabItem } from "../internal/Tabs";
 
-type CapabilityTab = "tools" | "policies" | "resources";
+/** Tab identifier for the MCP server capability panel. */
+export type CapabilityTab = "tools" | "policies" | "resources";
 
 /** Props for {@link McpServerDetailView}. */
 export interface McpServerDetailViewProps {

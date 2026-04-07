@@ -37,6 +37,16 @@ class IdentityAccountCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateFederatedAccountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
                 _registered_method=True)
+        self.updateFederatedAccount = channel.unary_unary(
+                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/updateFederatedAccount',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.UpdateFederatedAccountInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                _registered_method=True)
+        self.deprovisionFederatedAccount = channel.unary_unary(
+                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                _registered_method=True)
         self.simulateSignupWebhook = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountEmail.SerializeToString,
@@ -97,6 +107,37 @@ class IdentityAccountCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateFederatedAccount(self, request, context):
+        """Update profile fields on a federated identity account.
+
+        Looks up the account by natural key (identity_provider_ref + external_sub)
+        and updates email, name, and picture. Identity keys are immutable.
+
+        Called by platform backends when a user's profile changes on their platform.
+
+        Authorization: Requires can_create_identity_account on the organization
+        that owns the identity provider.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def deprovisionFederatedAccount(self, request, context):
+        """Deprovision a federated identity account by revoking access or deleting it.
+
+        Looks up the account by natural key (identity_provider_ref + external_sub).
+        When delete_account is false, revokes all IAM policies in the organization.
+        When delete_account is true, revokes policies and deletes the account.
+
+        Called by platform backends during user offboarding.
+
+        Authorization: Requires can_create_identity_account on the organization
+        that owns the identity provider.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def simulateSignupWebhook(self, request, context):
         """Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
 
@@ -130,6 +171,16 @@ def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
             'createFederatedAccount': grpc.unary_unary_rpc_method_handler(
                     servicer.createFederatedAccount,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateFederatedAccountInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ),
+            'updateFederatedAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateFederatedAccount,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.UpdateFederatedAccountInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ),
+            'deprovisionFederatedAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.deprovisionFederatedAccount,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
             ),
             'simulateSignupWebhook': grpc.unary_unary_rpc_method_handler(
@@ -246,6 +297,60 @@ class IdentityAccountCommandController(object):
             target,
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount',
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateFederatedAccountInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateFederatedAccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/updateFederatedAccount',
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.UpdateFederatedAccountInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def deprovisionFederatedAccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount',
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
             options,
             channel_credentials,

@@ -20,11 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityAccountCommandController_Create_FullMethodName                 = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/create"
-	IdentityAccountCommandController_Update_FullMethodName                 = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/update"
-	IdentityAccountCommandController_Delete_FullMethodName                 = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/delete"
-	IdentityAccountCommandController_CreateFederatedAccount_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount"
-	IdentityAccountCommandController_SimulateSignupWebhook_FullMethodName  = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook"
+	IdentityAccountCommandController_Create_FullMethodName                      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/create"
+	IdentityAccountCommandController_Update_FullMethodName                      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/update"
+	IdentityAccountCommandController_Delete_FullMethodName                      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/delete"
+	IdentityAccountCommandController_CreateFederatedAccount_FullMethodName      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount"
+	IdentityAccountCommandController_UpdateFederatedAccount_FullMethodName      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/updateFederatedAccount"
+	IdentityAccountCommandController_DeprovisionFederatedAccount_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount"
+	IdentityAccountCommandController_SimulateSignupWebhook_FullMethodName       = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook"
 )
 
 // IdentityAccountCommandControllerClient is the client API for IdentityAccountCommandController service.
@@ -62,6 +64,27 @@ type IdentityAccountCommandControllerClient interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	CreateFederatedAccount(ctx context.Context, in *CreateFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
+	// Update profile fields on a federated identity account.
+	//
+	// Looks up the account by natural key (identity_provider_ref + external_sub)
+	// and updates email, name, and picture. Identity keys are immutable.
+	//
+	// Called by platform backends when a user's profile changes on their platform.
+	//
+	// Authorization: Requires can_create_identity_account on the organization
+	// that owns the identity provider.
+	UpdateFederatedAccount(ctx context.Context, in *UpdateFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
+	// Deprovision a federated identity account by revoking access or deleting it.
+	//
+	// Looks up the account by natural key (identity_provider_ref + external_sub).
+	// When delete_account is false, revokes all IAM policies in the organization.
+	// When delete_account is true, revokes policies and deletes the account.
+	//
+	// Called by platform backends during user offboarding.
+	//
+	// Authorization: Requires can_create_identity_account on the organization
+	// that owns the identity provider.
+	DeprovisionFederatedAccount(ctx context.Context, in *DeprovisionFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
 	//
 	// @internal
@@ -119,6 +142,26 @@ func (c *identityAccountCommandControllerClient) CreateFederatedAccount(ctx cont
 	return out, nil
 }
 
+func (c *identityAccountCommandControllerClient) UpdateFederatedAccount(ctx context.Context, in *UpdateFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityAccount)
+	err := c.cc.Invoke(ctx, IdentityAccountCommandController_UpdateFederatedAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityAccountCommandControllerClient) DeprovisionFederatedAccount(ctx context.Context, in *DeprovisionFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityAccount)
+	err := c.cc.Invoke(ctx, IdentityAccountCommandController_DeprovisionFederatedAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityAccountCommandControllerClient) SimulateSignupWebhook(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -164,6 +207,27 @@ type IdentityAccountCommandControllerServer interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	CreateFederatedAccount(context.Context, *CreateFederatedAccountInput) (*IdentityAccount, error)
+	// Update profile fields on a federated identity account.
+	//
+	// Looks up the account by natural key (identity_provider_ref + external_sub)
+	// and updates email, name, and picture. Identity keys are immutable.
+	//
+	// Called by platform backends when a user's profile changes on their platform.
+	//
+	// Authorization: Requires can_create_identity_account on the organization
+	// that owns the identity provider.
+	UpdateFederatedAccount(context.Context, *UpdateFederatedAccountInput) (*IdentityAccount, error)
+	// Deprovision a federated identity account by revoking access or deleting it.
+	//
+	// Looks up the account by natural key (identity_provider_ref + external_sub).
+	// When delete_account is false, revokes all IAM policies in the organization.
+	// When delete_account is true, revokes policies and deletes the account.
+	//
+	// Called by platform backends during user offboarding.
+	//
+	// Authorization: Requires can_create_identity_account on the organization
+	// that owns the identity provider.
+	DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error)
 	// Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
 	//
 	// @internal
@@ -191,6 +255,12 @@ func (UnimplementedIdentityAccountCommandControllerServer) Delete(context.Contex
 }
 func (UnimplementedIdentityAccountCommandControllerServer) CreateFederatedAccount(context.Context, *CreateFederatedAccountInput) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateFederatedAccount not implemented")
+}
+func (UnimplementedIdentityAccountCommandControllerServer) UpdateFederatedAccount(context.Context, *UpdateFederatedAccountInput) (*IdentityAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateFederatedAccount not implemented")
+}
+func (UnimplementedIdentityAccountCommandControllerServer) DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeprovisionFederatedAccount not implemented")
 }
 func (UnimplementedIdentityAccountCommandControllerServer) SimulateSignupWebhook(context.Context, *IdentityAccountEmail) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SimulateSignupWebhook not implemented")
@@ -287,6 +357,42 @@ func _IdentityAccountCommandController_CreateFederatedAccount_Handler(srv interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityAccountCommandController_UpdateFederatedAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateFederatedAccountInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityAccountCommandControllerServer).UpdateFederatedAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityAccountCommandController_UpdateFederatedAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityAccountCommandControllerServer).UpdateFederatedAccount(ctx, req.(*UpdateFederatedAccountInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityAccountCommandController_DeprovisionFederatedAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeprovisionFederatedAccountInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityAccountCommandControllerServer).DeprovisionFederatedAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityAccountCommandController_DeprovisionFederatedAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityAccountCommandControllerServer).DeprovisionFederatedAccount(ctx, req.(*DeprovisionFederatedAccountInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityAccountCommandController_SimulateSignupWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IdentityAccountEmail)
 	if err := dec(in); err != nil {
@@ -327,6 +433,14 @@ var IdentityAccountCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "createFederatedAccount",
 			Handler:    _IdentityAccountCommandController_CreateFederatedAccount_Handler,
+		},
+		{
+			MethodName: "updateFederatedAccount",
+			Handler:    _IdentityAccountCommandController_UpdateFederatedAccount_Handler,
+		},
+		{
+			MethodName: "deprovisionFederatedAccount",
+			Handler:    _IdentityAccountCommandController_DeprovisionFederatedAccount_Handler,
 		},
 		{
 			MethodName: "simulateSignupWebhook",

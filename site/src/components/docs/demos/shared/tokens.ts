@@ -14,12 +14,36 @@ export const DEMO_CONTENT_ZOOM = 0.82;
 export const DEMO_SIDEBAR_ZOOM = 0.85;
 
 /**
+ * Zoom applied to BrowserView shells (login pages, auth dashboards,
+ * external service UIs). Slightly below 1 so the browser mockup sits
+ * comfortably within the docs page without dominating the prose. In
+ * video export mode this compounds with the DemoVideo zoom (2×),
+ * giving an effective 1.8× magnification instead of 2×.
+ */
+export const DEMO_BROWSER_ZOOM = 0.9;
+
+/**
  * Fixed height of the AppShell demo container in pixels.
  * On the docs site, this is the default. In video export mode,
  * the CSS variable `--demo-shell-height` overrides this value
  * to fill more of the video frame.
  */
 export const DEMO_SHELL_HEIGHT = 380;
+
+/**
+ * Default height for BrowserView shells.
+ *
+ * Taller than DEMO_SHELL_HEIGHT because browser mockups display
+ * centered cards (login, signup) that need visible top/bottom
+ * margins to look like a real web page. At 420px with
+ * DEMO_BROWSER_ZOOM (0.9) the rendered height is ~378px — nearly
+ * identical to the original 380px shell — but the internal content
+ * area grows from ~314px to ~354px, giving cards comfortable margins.
+ *
+ * In video export mode, `--demo-shell-height` overrides this
+ * (just like DEMO_SHELL_HEIGHT) so video proportions are unaffected.
+ */
+export const DEMO_BROWSER_SHELL_HEIGHT = 420;
 
 /**
  * Shell height for video export compositions.
