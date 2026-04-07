@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { LogOut, Settings, User, ChevronsUpDown, SunMoon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/auth";
 import { cn, THEME_PRESETS, resolvePresetClass } from "@stigmer/theme";
@@ -142,11 +142,12 @@ function AppearanceSubmenu() {
 }
 
 function SettingsItem() {
-  const router = useRouter();
   return (
-    <DropdownMenuItem onClick={() => router.push("/settings")}>
-      <Settings className="size-4" />
-      Settings
+    <DropdownMenuItem asChild>
+      <Link href="/settings">
+        <Settings className="size-4" />
+        Settings
+      </Link>
     </DropdownMenuItem>
   );
 }

@@ -85,7 +85,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="h-full w-70">
-          {isManagementZone ? <ManagementSidebar /> : <Sidebar />}
+          <div
+            key={isManagementZone ? "management" : "session"}
+            className="h-full animate-in fade-in duration-150"
+          >
+            {isManagementZone ? <ManagementSidebar /> : <Sidebar />}
+          </div>
         </div>
       </div>
 
