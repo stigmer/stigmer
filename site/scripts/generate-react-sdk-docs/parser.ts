@@ -431,6 +431,7 @@ function parseComponent(
 ): Component {
   const sig = reflection.signatures?.[0];
   const comment = sig?.comment;
+  const hasProps = (sig?.parameters?.length ?? 0) > 0;
 
   return {
     name: reflection.name,
@@ -442,6 +443,7 @@ function parseComponent(
           currentDomain,
         )
       : [],
+    hasProps,
     propsInterface: null,
     examples: extractExamples(comment),
     sourceUrl: reflection.sources?.[0]?.url ?? "",
@@ -621,7 +623,7 @@ function linkAssociatedTypes(
     if (def) {
       component.propsInterface = def;
       def.associatedExport = component.name;
-    } else {
+    } else if (component.hasProps) {
       warnings.push(`Component ${component.name} has no props interface`);
     }
   }

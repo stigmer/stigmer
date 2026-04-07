@@ -16,7 +16,7 @@ fields change, the previous in-flight request is discarded and a
 fresh fetch begins. Call `refetch()` to re-query after mutating the
 agent instance through a separate hook or API call.
 
-Returns the full proto [`AgentInstance`](/docs/sdk/resources/agent-instance) resource so consumers
+Returns the full proto `AgentInstance` resource so consumers
 have access to metadata, spec (including `environment_refs` and
 agent reference), and status without additional calls.
 
@@ -58,7 +58,7 @@ const { agentInstance, isLoading, error } = useAgentInstance({
 
 ### useAgentInstanceList
 
-Data hook that fetches a paginated list of [`AgentInstance`](/docs/sdk/resources/agent-instance) entries
+Data hook that fetches a paginated list of `AgentInstance` entries
 for a given organization, with optional label filtering.
 
 Pass `null` as `org` to skip fetching (stable no-op). When the org
@@ -111,7 +111,7 @@ Agent blueprint bound to one or more Environments. The caller
 provides an `AgentInstanceInput` with `name`, `org`, and
 optionally `agentId`, `description`, and `environmentRefs`.
 
-Returns the full [`AgentInstance`](/docs/sdk/resources/agent-instance) proto including
+Returns the full `AgentInstance` proto including
 server-generated metadata (id, version, timestamps) so callers
 can immediately reference the created resource.
 
@@ -156,7 +156,7 @@ const instance = await create({
 ### usePersonalAgentInstance
 
 Layer 2 orchestration hook that manages the caller's personal
-[`AgentInstance`](/docs/sdk/resources/agent-instance) for a given organization, optionally scoped
+`AgentInstance` for a given organization, optionally scoped
 to a specific agent.
 
 Encapsulates the "personal agent instance" convention: unique slug

@@ -162,7 +162,7 @@ await create({
 ### useExecutionArtifacts
 
 Pure derivation hook that extracts artifact metadata from an
-[`AgentExecution`](/docs/sdk/resources/agent-execution) snapshot.
+`AgentExecution` snapshot.
 
 Follows the same pattern as [`useSessionUsage`](/docs/sdk/react/session#usesessionusage): a `useMemo`-based
 derivation with no side effects and no data fetching. The execution
@@ -210,7 +210,7 @@ if (hasArtifacts) {
 
 ### useExecutionStream
 
-Behavior hook that subscribes to real-time [`AgentExecution`](/docs/sdk/resources/agent-execution)
+Behavior hook that subscribes to real-time `AgentExecution`
 updates via `stigmer.agentExecution.subscribe()`.
 
 Manages the full subscription lifecycle: connection establishment,
@@ -353,8 +353,8 @@ function useSubmitApproval(): UseSubmitApprovalReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    error: { type: "Error | null", description: "" },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed approval submission, or `null` when healthy." },
     submitApproval: { type: "(executionId: string, toolCallId: string, action: ApprovalAction, comment?: string) => Promise<void>", description: "Submit an approval decision for a specific tool call within an execution. Resolves when the backend accepts the decision; the execution stream will deliver the updated state." },
     submittingToolCallIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted. Enables per-button loading state in batch approval scenarios where the user may approve one tool while another decision is still in flight." },
   }}
@@ -370,7 +370,7 @@ await submitApproval(executionId, toolCallId, ApprovalAction.APPROVAL_ACTION_APP
 ### useWorkspaceWriteBacks
 
 Pure derivation hook that extracts workspace write-back data from an
-[`AgentExecution`](/docs/sdk/resources/agent-execution) snapshot.
+`AgentExecution` snapshot.
 
 Follows the same `useMemo`-based derivation pattern as
 [`useExecutionArtifacts`](#useexecutionartifacts): no side effects, no data fetching.
@@ -815,6 +815,14 @@ formatted JSON blocks via `CollapsibleJsonBlock`.
 
 <ComponentPreview component="McpArgsView" />
 
+**Props** — `McpArgsViewProps`
+
+<TypeTable
+  type={{
+    args: { type: "Record<string, unknown>", description: "Tool argument map to render as a key-value list.", required: true },
+  }}
+/>
+
 
 ### McpMetadataRow
 
@@ -822,6 +830,16 @@ Displays MCP server slug, tool name, and optional duration as a
 compact metadata row above tool arguments.
 
 <ComponentPreview component="McpMetadataRow" />
+
+**Props** — `McpMetadataRowProps`
+
+<TypeTable
+  type={{
+    duration: { type: "string | null", description: "Human-readable execution duration, or `null` if still running.", required: true },
+    mcpServerSlug: { type: "string", description: "Slug of the MCP server that owns the tool.", required: true },
+    toolName: { type: "string", description: "Name of the tool that was invoked.", required: true },
+  }}
+/>
 
 
 ### McpToolDetail
@@ -888,7 +906,7 @@ All visual properties flow through `--stgm-*` tokens.
 ### MessageThread
 
 Renders a continuous conversation thread from one or more
-[`AgentExecution`](/docs/sdk/resources/agent-execution) snapshots.
+`AgentExecution` snapshots.
 
 Composes [`MessageEntry`](#messageentry), [`ToolCallGroup`](#toolcallgroup), and
 [`ExecutionPhaseBadge`](#executionphasebadge) into a scrollable, auto-scrolling log
@@ -1103,7 +1121,7 @@ appropriate category-specific view:
 <TypeTable
   type={{
     args: { type: "Record<string, unknown> | null", description: "Parsed tool arguments — either from `ToolCall.args` or `JSON.parse(PendingApproval.argsPreview)`.", required: true },
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     mcpServerSlug: { type: "string", description: "MCP server slug for MCP tool classification and metadata." },
     toolName: { type: "string", description: "Raw tool name as it appears on the ToolCall or PendingApproval. Used for category resolution and MCP metadata display.", required: true },
   }}

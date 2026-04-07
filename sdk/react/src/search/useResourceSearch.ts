@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListParams, ListResult } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
+/** Shared options for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`). */
 export interface UseResourceSearchOptions {
   /** Maximum results per page. @default 30 */
   readonly pageSize?: number;
@@ -21,12 +22,19 @@ export interface UseResourceSearchOptions {
   readonly scope?: "org" | "all";
 }
 
+/** Shared return value for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`). */
 export interface UseResourceSearchReturn {
+  /** Matching resources from the most recent search. */
   readonly results: readonly SearchResult[];
+  /** `true` while a search request is in flight. */
   readonly isLoading: boolean;
+  /** Error message from the last failed search, or `null` when healthy. */
   readonly error: string | null;
+  /** Current search query text. */
   readonly query: string;
+  /** Update the search query (triggers a debounced re-search). */
   readonly setQuery: (query: string) => void;
+  /** Re-run the current search with the same parameters. */
   readonly refetch: () => void;
 }
 

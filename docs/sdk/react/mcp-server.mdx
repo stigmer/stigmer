@@ -569,7 +569,7 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
     credentialPoolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Pre-fill function for credential form inputs. When provided, the EnvVarForm receives these as `poolValues`, populating fields on mount. Useful for demo scenarios that simulate a user having already entered credentials." },
-    defaultCapabilityTab: { type: "CapabilityTab", description: "Initial active capability tab. Defaults to `\"tools\"`. Useful for deep-linking or demo scenarios that need to start on a specific tab." },
+    defaultCapabilityTab: { type: "CapabilityTab", description: "Initial active capability tab. Defaults to `\"tools\"`. Useful for deep-linking or demo scenarios that need to start on a specific tab.", typeDescriptionLink: "#capabilitytab" },
     defaultShowCredentialForm: { type: "boolean", description: "When `true`, the credential form inside the Tools tab opens immediately on mount (instead of waiting for a Discover click). Useful for guided tours and demo scenarios that need to show the credential entry step without user interaction." },
     isVisibilityPending: { type: "boolean", description: "`true` while a visibility update RPC is in flight." },
     onPolicySessionCreated: { type: "(info: { executionId: string; sessionId: string }) => void", description: "Called after the approval-policy generation session and execution have been created successfully.  When provided, the component delegates post-trigger behavior to the consumer (e.g. navigating to a session page) instead of rendering the inline ApprovalPolicyGeneratorPanel.  When omitted, the inline panel is shown as a fallback." },
@@ -695,6 +695,11 @@ All visual properties flow through `--stgm-*` design tokens.
 
 
 ## Types
+
+### CapabilityTab
+
+Tab identifier for the MCP server capability panel.
+
 
 ### McpServerCredentialsProps
 

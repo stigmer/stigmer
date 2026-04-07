@@ -1,0 +1,19 @@
+# Lychee link checker configuration
+# https://lychee.cli.rs/usage/config/
+
+# Vendor dashboard / console URLs always redirect to a login page (HTTP 302).
+# They are "open your admin panel" links in how-to guides — not broken.
+exclude = [
+  "https://manage\\.auth0\\.com/",
+  "https://developer\\.okta\\.com/login/",
+  "https://portal\\.azure\\.com/",
+  "https://console\\.aws\\.amazon\\.com/",
+  "https://console\\.anthropic\\.com/"
+]
+
+exclude_path = ["docs/_archive"]
+
+fallback_extensions = ["mdx"]
+no_progress = true
+scheme = ["https", "http"]
+accept = ["100..=199", "200..=299", "403", "415"]

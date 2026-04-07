@@ -16,6 +16,7 @@ import { isTerminalPhase } from "../execution/execution-phases";
  * Apply CTA is enabled in the preview modal.
  */
 export interface SessionArtifactEntry {
+  /** The proto artifact record containing name, path, size, and download URL. */
   readonly artifact: ExecutionArtifact;
   /** ID of the execution that produced this artifact version. */
   readonly executionId: string;

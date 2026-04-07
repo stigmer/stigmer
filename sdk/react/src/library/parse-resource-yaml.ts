@@ -28,8 +28,18 @@ import type { StigmerResourceKind } from "./detect-stigmer-resource";
  * ```
  */
 export type ParsedResource =
-  | { readonly kind: "Agent"; readonly input: AgentInput }
-  | { readonly kind: "McpServer"; readonly input: McpServerInput };
+  | {
+      /** The parsed resource is an Agent blueprint. */
+      readonly kind: "Agent";
+      /** SDK input suitable for `stigmer.agent.apply()`. */
+      readonly input: AgentInput;
+    }
+  | {
+      /** The parsed resource is an MCP server definition. */
+      readonly kind: "McpServer";
+      /** SDK input suitable for `stigmer.mcpServer.apply()`. */
+      readonly input: McpServerInput;
+    };
 
 /**
  * Parses a Stigmer resource YAML string into the corresponding SDK input

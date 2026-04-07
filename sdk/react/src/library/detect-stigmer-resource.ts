@@ -22,7 +22,10 @@ export type StigmerResourceKind = "Agent" | "McpServer";
  * can narrow the type with a simple `if (result.detected)` check.
  */
 export type StigmerResourceDetection =
-  | { readonly detected: false }
+  | {
+      /** Discriminant — `false` when no recognized resource was found. */
+      readonly detected: false;
+    }
   | {
       /** Discriminant — always `true` when a resource was found. */
       readonly detected: true;

@@ -15,7 +15,10 @@ import { parse as parseYaml } from "yaml";
  * - **Package detection** (`detectSkillPackage`): Skill packages (directory with SKILL.md) — pushed via `pushFromExecutionArtifact()`
  */
 export type SkillPackageDetection =
-  | { readonly detected: false }
+  | {
+      /** Discriminant — `false` when no skill package was detected. */
+      readonly detected: false;
+    }
   | {
       /** Discriminant — always `true` when a skill package was detected. */
       readonly detected: true;

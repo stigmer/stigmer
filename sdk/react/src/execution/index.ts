@@ -48,7 +48,11 @@ export { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 export type { ToolCallDetailProps } from "./ToolCallDetail";
 
 export { McpToolDetail, McpArgsView, McpMetadataRow, parseMcpResult } from "./McpToolDetail";
-export type { McpToolDetailProps } from "./McpToolDetail";
+export type {
+  McpToolDetailProps,
+  McpArgsViewProps,
+  McpMetadataRowProps,
+} from "./McpToolDetail";
 
 export { ToolArgsView } from "./ToolArgsView";
 export type { ToolArgsViewProps } from "./ToolArgsView";
