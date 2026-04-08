@@ -176,26 +176,35 @@ When starting a new session:
 | Deprecation via label | Servers removed from registry get labeled, not deleted |
 | Preserve curated fields on upsert | Sync never overwrites `default_tool_approvals`, `default_enabled_tools`, or `discovered_capabilities` |
 
+## Session Progress (2026-04-08, Session 5)
+
+- Fixed `make check` failures in both Stigmer OSS and Stigmer Cloud
+- **Stigmer OSS codegen bug**: `emitNestedToProto` in `sdk_client.go` did not handle `timestamp` fields in nested types — caused type mismatch in generated `McpServerSourceInput.toProto()`. Fixed by expanding the imperative code-path gate to include `timestamp` fields alongside `struct` fields.
+- Regenerated `sdk/go/internal/gen/mcpserver.go` — compiles cleanly
+- **Stigmer Cloud compilation fixes** (3 errors):
+  - `McpRegistryTransformer.java`: removed wildcard import causing ambiguous `Package` reference with `java.lang.Package`
+  - `McpRegistrySyncScheduleRegistrar.java`: replaced `WorkflowClient.getScheduleClient()` (doesn't exist) with `ScheduleClient.newInstance(WorkflowServiceStubs)` — the correct Temporal SDK 1.31.0 API
+  - `McpRegistrySyncScheduleRegistrar.java`: added missing `io.temporal.api.enums.v1.ScheduleOverlapPolicy` import
+- Both repos pass `make check` (Stigmer OSS: all lints + 1447 tests; Stigmer Cloud: Bazel build + 15 tests)
+
 ## Next Steps
 
-1. **Commit changes** in both repos (stigmer OSS + stigmer-cloud)
+1. **Commit changes** in both repos (stigmer OSS codegen fix committed; stigmer-cloud needs commit + PR)
 2. **Create PRs** for both repos
-3. **Regenerate proto stubs** to pick up `McpServerSource` (already done in stigmer-cloud)
-4. **Test sync workflow** locally or in staging — verify end-to-end flow
-5. **Post-launch**: Add manual curation layer for `default_tool_approvals` and category labels
-6. **Future**: Consider additional sources (Smithery, if they add a public API)
+3. **Test sync workflow** locally or in staging — verify end-to-end flow
+4. **Post-launch**: Add manual curation layer for `default_tool_approvals` and category labels
+5. **Future**: Consider additional sources (Smithery, if they add a public API)
 
 ## Context for Resume
 
-- The sync pipeline is fully implemented but not yet committed or tested
-- **stigmer OSS** has uncommitted changes: proto change + seedpack cleanup (12 files)
-- **stigmer-cloud** has uncommitted changes: new temporal package + regenerated stubs (21 files)
+- **stigmer OSS**: Session 4 proto/seedpack changes + Session 5 codegen fix — needs commit and PR
+- **stigmer-cloud**: Session 4 temporal workflow + Session 5 compilation fixes — needs commit and PR
 - The `identityprovider` stubs in stigmer-cloud were regenerated alongside mcpserver stubs — may be from a concurrent change; verify before committing
-- Previous chat: [MCP Marketplace Catalog](8873560d-13ec-473d-ad14-440423338b58)
+- Previous chats: [MCP Marketplace Catalog](8873560d-13ec-473d-ad14-440423338b58)
 
 ## Blockers
 
-None — all code is written and design decisions resolved.
+None — all code compiles and tests pass.
 
 ## Quick Commands
 

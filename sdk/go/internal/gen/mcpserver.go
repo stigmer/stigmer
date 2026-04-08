@@ -202,11 +202,15 @@ func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 }
 
 func (i *McpServerSourceInput) toProto() *mcpserverv1.McpServerSource {
-	return &mcpserverv1.McpServerSource{
-		Registry:      i.Registry,
-		RegistryName:  i.RegistryName,
-		Version:       i.Version,
-		RepositoryUrl: i.RepositoryUrl,
-		LastSyncedAt:  i.LastSyncedAt,
+	p := &mcpserverv1.McpServerSource{}
+	p.Registry = i.Registry
+	p.RegistryName = i.RegistryName
+	p.Version = i.Version
+	p.RepositoryUrl = i.RepositoryUrl
+	if i.LastSyncedAt != "" {
+		if t, err := time.Parse(time.RFC3339, i.LastSyncedAt); err == nil {
+			p.LastSyncedAt = timestamppb.New(t)
+		}
 	}
+	return p
 }
