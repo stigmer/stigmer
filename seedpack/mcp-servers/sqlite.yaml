@@ -1,0 +1,32 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: sqlite
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "database"
+  tags:
+    - sqlite
+    - sql
+    - database
+    - relational
+    - embedded
+spec:
+  description: "SQLite database queries, table management, and schema exploration for local embedded databases."
+  icon_url: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/sqlite/sqlite-original.svg"
+  stdio:
+    command: "uvx"
+    args:
+      - "mcp-server-sqlite"
+      - "--db-path"
+      - "${SQLITE_DB_PATH}"
+  env_spec:
+    data:
+      SQLITE_DB_PATH:
+        is_secret: false
+        description: "Filesystem path to the SQLite database file (e.g., /data/app.db). The file will be created if it does not exist."
+  default_tool_approvals:
+    - tool_name: "write_query"
+      message: "Execute write query on database"
+    - tool_name: "create_table"
+      message: "Create table in database"

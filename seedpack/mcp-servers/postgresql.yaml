@@ -1,0 +1,26 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: postgresql
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "database"
+  tags:
+    - postgresql
+    - postgres
+    - sql
+    - database
+    - relational
+spec:
+  description: "PostgreSQL database exploration, SQL execution with read-only safety, query analysis, and performance optimization."
+  icon_url: "https://wiki.postgresql.org/images/a/a4/PostgreSQL_logo.3colors.svg"
+  stdio:
+    command: "uvx"
+    args:
+      - "postgres-mcp"
+      - "--access-mode=restricted"
+  env_spec:
+    data:
+      DATABASE_URI:
+        is_secret: true
+        description: "PostgreSQL connection URI (e.g., postgresql://user:password@localhost:5432/dbname). See https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING-URIS for format."
