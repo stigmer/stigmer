@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-08 08:56
-**Current Task**: T01 complete, pre-T02 infrastructure work complete
-**Status**: Complete — ready for T02
+**Current Task**: T02 complete
+**Status**: Complete — ready for T03
 
 ## Session Progress (2026-04-08, Session 1)
 
@@ -96,12 +96,9 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T02**: Tier 1 Servers — Developer Tools & Databases (GitLab, Linear, Jira, PostgreSQL, SQLite, MySQL, MongoDB)
-   - PostgreSQL, Filesystem, and SQLite are now **unblocked** by `${VAR}` arg interpolation
-   - Research each server's distribution format (npm, Go, Docker) and env vars before writing
-2. **T03**: Tier 1 Servers — Communication & Productivity (Discord, Gmail, Notion, Google Drive, Google Calendar)
-3. **T04**: Tier 1 Servers — Cloud, Observability & Utility (AWS, Kubernetes, Sentry, Fetch, Puppeteer)
-4. **T05**: Registry Sync Exploration (optional/stretch)
+1. **T03**: Tier 1 Servers — Communication & Productivity (Discord, Gmail, Notion, Google Drive, Google Calendar)
+2. **T04**: Tier 1 Servers — Cloud, Observability & Utility (AWS, Kubernetes, Sentry, Fetch, Puppeteer)
+3. **T05**: Registry Sync Exploration (optional/stretch)
 
 ## Context for Resume
 
@@ -109,14 +106,51 @@ When starting a new session:
 - The contributor guide is in `seedpack/mcp-servers/CONTRIBUTING.md`
 - `${VAR}` interpolation in stdio args is now implemented — servers that take core config as CLI args (PostgreSQL connection URL, Filesystem paths) can now be parameterized per-user through `env_spec`
 - Interpolation uses strict mode: missing vars produce clear errors, not silent literal pass-through
-- `env_spec` is the universal "what does the server need?" declaration — works the same whether the binary reads values from env vars or CLI args
+- `env_spec` is the universal "what does the server need?" declaration — works the same whether the binary reads values from env vars, CLI args, or HTTP headers
 - `mcp-server-stigmer.yaml` now uses `metadata.tags` (searchable) instead of `spec.tags`
 - `github.yaml` now uses the official `github/github-mcp-server` Go binary instead of the deprecated `@modelcontextprotocol/server-github` npm package
+- T02 introduced two new transport patterns: `spec.http` (Linear, Atlassian) and `uvx` command (PostgreSQL, SQLite)
+- `CONTRIBUTING.md` updated with HTTP server template and uvx runtime examples
+- Seedpack now has 11 total MCP server definitions across 3 transport types
+
+## Session Progress (2026-04-08, Session 3)
+
+- Researched 7 MCP servers: Linear, Atlassian, MongoDB, MySQL, GitLab, PostgreSQL, SQLite
+- Discovered 5 surprises requiring design decisions:
+  1. Linear and Atlassian (Jira) are HTTP-only remote servers — no stdio npm packages exist
+  2. The reference `@modelcontextprotocol/server-postgres` is archived with a known SQL injection vulnerability
+  3. Official SQLite MCP server is Python-only (uvx, not npx)
+  4. GitLab npm package source removed from `modelcontextprotocol/servers` main branch (still published on npm by GitLab PBC)
+  5. No official MySQL MCP server exists — best option is community `@benborla29/mcp-server-mysql`
+- All 5 decisions resolved collaboratively:
+  - Linear + Atlassian: use `spec.http` with Bearer token auth (first HTTP servers in seedpack)
+  - PostgreSQL: use `crystaldba/postgres-mcp` (Python/uvx) — `DATABASE_URI` env var, restricted mode with SQL injection protections
+  - SQLite: confirmed `uvx` available in agent-runner Dockerfile
+  - GitLab: use npm package via npx (works with any GitLab tier, not just Premium)
+  - MySQL: community package accepted
+- Wrote 7 new McpServer YAMLs — all pass `stigmer validate`:
+  - HTTP: `linear.yaml`, `atlassian.yaml`
+  - npx stdio: `mongodb.yaml`, `mysql.yaml`, `gitlab.yaml`
+  - uvx stdio: `postgresql.yaml`, `sqlite.yaml`
+- Added `default_tool_approvals` for MongoDB (drop-database, drop-collection, delete-many), GitLab (create_or_update_file, push_files, fork_repository), SQLite (write_query, create_table)
+- Updated `CONTRIBUTING.md`: added HTTP server template, uvx runtime examples, updated env_spec docs for 3 delivery mechanisms
+
+### Decisions Made
+
+| Decision | Resolution | Rationale |
+|----------|------------|-----------|
+| Add `spec.http` servers? | Yes — Linear and Atlassian | Agent-runner already supports `streamable_http`. Exercises the full platform. |
+| PostgreSQL package? | `crystaldba/postgres-mcp` (Python/uvx) | 2.4k stars, MIT, `DATABASE_URI` env var, restricted mode with pglast SQL protections. Reference server archived + vulnerable. |
+| SQLite runtime? | `uvx` (Python) | Agent-runner Dockerfile installs `uv`/`uvx`. |
+| GitLab approach? | npm package via npx | Published by GitLab PBC, not deprecated. HTTP requires Premium/Ultimate + Duo. |
+| MySQL community pkg? | Yes — `@benborla29/mcp-server-mysql` | 1.4k stars, read-only by default. No official alternative. |
+| Atlassian scope? | `atlassian` (not `jira`) | Official endpoint covers Jira + Confluence + Compass. |
+| Atlassian auth? | Bearer (service account API key) | Basic auth requires base64 encoding which doesn't fit `${VAR}` model cleanly. |
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T02" - Start next batch of server definitions
+- "Continue with T03" - Start next batch of server definitions
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

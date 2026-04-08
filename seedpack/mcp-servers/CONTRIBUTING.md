@@ -4,8 +4,8 @@ Step-by-step guide for adding new McpServer definitions to the Stigmer seedpack.
 
 ## Prerequisites
 
-- The MCP server must be publicly available (npm, PyPI, or binary)
-- The server must use environment variables or CLI arguments for configuration
+- The MCP server must be publicly available (npm, PyPI, binary, or hosted HTTP endpoint)
+- The server must use environment variables, CLI arguments, or HTTP headers for configuration
 - You need the server's actual tool list (from documentation or discovery)
 
 ## Step 1: Research the Server
@@ -14,7 +14,7 @@ Find the following from the upstream source (npm page, GitHub README, MCP Regist
 
 | What | Where to look |
 |------|---------------|
-| Package name | npm / PyPI / GitHub releases |
+| Package or endpoint | npm / PyPI / GitHub releases / vendor docs |
 | Environment variables | README "Configuration" or "Setup" section |
 | Which env vars are secrets | Any tokens, keys, passwords = secret |
 | Tool list | README "Tools" section, or run `stigmer discover` |
@@ -23,7 +23,13 @@ Find the following from the upstream source (npm page, GitHub README, MCP Regist
 
 ## Step 2: Write the YAML
 
-Create a file in `seedpack/mcp-servers/<name>.yaml` using this template:
+Create a file in `seedpack/mcp-servers/<name>.yaml`. Choose the template that
+matches the server's transport type.
+
+### Template: stdio server (subprocess)
+
+Most MCP servers run as local subprocesses communicating via stdin/stdout.
+The agent-runner supports three common runtimes:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -40,7 +46,7 @@ spec:
   description: "<what it does — 1 sentence, purpose-driven>"
   icon_url: "<publicly accessible icon URL>"
   stdio:
-    command: "npx"
+    command: "npx"            # or "uvx" (Python) or "go" (Go modules)
     args:
       - "-y"
       - "<npm-package-name>"
@@ -55,6 +61,51 @@ spec:
     - tool_name: "<destructive-tool>"
       message: "<action verb> {{args.key_param}}"
 ```
+
+**Runtime examples:**
+
+| Runtime | command | args example |
+|---------|---------|--------------|
+| npm (Node.js) | `npx` | `["-y", "@modelcontextprotocol/server-slack"]` |
+| PyPI (Python) | `uvx` | `["mcp-server-sqlite", "--db-path", "${DB_PATH}"]` |
+| Go modules | `go` | `["run", "github.com/org/server@latest", "stdio"]` |
+
+### Template: HTTP server (remote)
+
+Some MCP servers are hosted services accessible over HTTP (Streamable HTTP
+transport). These use `spec.http` instead of `spec.stdio`:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: <upstream-name>
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "<category>"
+  tags:
+    - <tag1>
+    - <tag2>
+spec:
+  description: "<what it does — 1 sentence, purpose-driven>"
+  icon_url: "<publicly accessible icon URL>"
+  http:
+    url: "<MCP endpoint URL>"
+    headers:
+      Authorization: "Bearer ${API_KEY}"
+  env_spec:
+    data:
+      API_KEY:
+        is_secret: true
+        description: "<what it is, format, required permissions/scopes>"
+  default_tool_approvals:
+    - tool_name: "<destructive-tool>"
+      message: "<action verb> {{args.key_param}}"
+```
+
+Header and query param values support `${VAR_NAME}` placeholders, resolved
+from the same `env_spec` pool as stdio args. Unresolved placeholders in HTTP
+configs log a warning (lenient mode) rather than failing hard.
 
 ### Naming
 
@@ -91,17 +142,20 @@ lowercase, hyphenated terms that describe the server's domain and capabilities.
 - Write descriptions that tell users exactly what to create and what permissions/scopes to grant
 
 `env_spec` is the universal declaration of what the server needs from the user,
-regardless of how the server binary consumes those values. The agent-runner
-delivers declared env vars to the subprocess in two ways:
+regardless of how the server consumes those values. The agent-runner delivers
+declared env vars through three mechanisms:
 
-1. **Process environment** — all declared keys are set in the subprocess `env`
-2. **Argument interpolation** — args containing `${VAR_NAME}` are resolved from
-   the same pool before the subprocess starts
+1. **Process environment** (stdio) — all declared keys are set in the subprocess `env`
+2. **Argument interpolation** (stdio) — args containing `${VAR_NAME}` are resolved
+   from the same pool before the subprocess starts
+3. **Header/query param interpolation** (http) — `${VAR_NAME}` placeholders in
+   `headers` and `query_params` are resolved before each request
 
 This means servers that read configuration from positional CLI arguments
-(e.g. PostgreSQL connection URL, Filesystem paths) can be parameterized
-the same way as servers that read from `process.env`. From the user's
-perspective, the `EnvVarForm` experience is identical in both cases.
+(e.g. PostgreSQL connection URL, Filesystem paths), environment variables
+(e.g. MongoDB connection string), or HTTP headers (e.g. Linear API key)
+can all be parameterized the same way. From the user's perspective, the
+`EnvVarForm` experience is identical in all cases.
 
 ### Tool Approvals
 

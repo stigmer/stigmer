@@ -1,0 +1,36 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: gitlab
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "developer"
+  tags:
+    - gitlab
+    - git
+    - vcs
+    - code-review
+    - merge-request
+spec:
+  description: "GitLab repository management, merge request workflows, issue tracking, and CI/CD pipeline operations."
+  icon_url: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/gitlab.svg"
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-gitlab"
+  env_spec:
+    data:
+      GITLAB_PERSONAL_ACCESS_TOKEN:
+        is_secret: true
+        description: "GitLab Personal Access Token. Create at https://gitlab.com/-/user_settings/personal_access_tokens with 'api' scope for full access or 'read_api' for read-only."
+      GITLAB_API_URL:
+        is_secret: false
+        description: "GitLab API base URL (e.g., https://gitlab.example.com/api/v4). Omit for gitlab.com."
+  default_tool_approvals:
+    - tool_name: "create_or_update_file"
+      message: "Write file {{args.file_path}} in {{args.project_id}}"
+    - tool_name: "push_files"
+      message: "Push files to {{args.branch}} in {{args.project_id}}"
+    - tool_name: "fork_repository"
+      message: "Fork repository {{args.project_id}}"
