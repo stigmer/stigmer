@@ -68,10 +68,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-08 08:56
-**Current Task**: T01 (Create First 3 Definitions)
+**Current Task**: T01 complete, pre-T02 infrastructure work complete
 **Status**: Complete — ready for T02
 
-## Session Progress (2026-04-08)
+## Session Progress (2026-04-08, Session 1)
 
 - Studied McpServer proto schema (6 proto files) and existing `mcp-server-stigmer.yaml`
 - Established marketplace YAML template and merge checklist
@@ -83,10 +83,22 @@ When starting a new session:
 - Changed `mcp-server-stigmer.yaml` from `@v0.0.52` to `@latest` (user decision: no version pinning)
 - User removed `default_tool_approvals` from `mcp-server-stigmer.yaml` (intentional)
 
+## Session Progress (2026-04-08, Session 2)
+
+- Resolved all 3 open questions from Session 1
+- Added `${VAR}` interpolation to stdio args in agent-runner `config_transformer.py` (strict mode)
+- Fixed `mcp-server-stigmer.yaml`: moved `spec.tags` to `metadata.tags` (now searchable)
+- Updated `github.yaml`: switched from deprecated npm package to official `github/github-mcp-server` Go binary via `go run`
+- Added `GITHUB_HOST` and `GITHUB_TOOLSETS` env_spec entries to `github.yaml`
+- Updated proto docs on `StdioServerConfig.args` to document `${VAR}` syntax
+- Updated `CONTRIBUTING.md` with arg interpolation docs and security note
+- 10 new unit tests — all 42 config transformer tests pass, all 58 placeholder resolver tests pass
+
 ## Next Steps
 
-1. **T02**: Tier 1 Servers — Developer Tools & Databases (GitLab, Linear, Jira, SQLite, MySQL, MongoDB)
-   - Note: PostgreSQL/Filesystem/SQLite need `${VAR}` arg interpolation in the agent-runner before they fit the marketplace model cleanly
+1. **T02**: Tier 1 Servers — Developer Tools & Databases (GitLab, Linear, Jira, PostgreSQL, SQLite, MySQL, MongoDB)
+   - PostgreSQL, Filesystem, and SQLite are now **unblocked** by `${VAR}` arg interpolation
+   - Research each server's distribution format (npm, Go, Docker) and env vars before writing
 2. **T03**: Tier 1 Servers — Communication & Productivity (Discord, Gmail, Notion, Google Drive, Google Calendar)
 3. **T04**: Tier 1 Servers — Cloud, Observability & Utility (AWS, Kubernetes, Sentry, Fetch, Puppeteer)
 4. **T05**: Registry Sync Exploration (optional/stretch)
@@ -95,9 +107,11 @@ When starting a new session:
 
 - The marketplace template and checklist are in `tasks/T01_1_execution.md`
 - The contributor guide is in `seedpack/mcp-servers/CONTRIBUTING.md`
-- Servers that take core config as positional CLI args (not env vars) don't fit the marketplace model — the agent-runner `config_transformer.py` passes `stdio.args` as-is without `${VAR}` interpolation
-- `spec.tags` vs `metadata.tags` gap: search indexer only uses `metadata.tags`; existing `mcp-server-stigmer.yaml` only uses `spec.tags` (pre-existing, not fixed in T01)
-- `@modelcontextprotocol/server-github` is deprecated upstream — development moved to `github/github-mcp-server` repo
+- `${VAR}` interpolation in stdio args is now implemented — servers that take core config as CLI args (PostgreSQL connection URL, Filesystem paths) can now be parameterized per-user through `env_spec`
+- Interpolation uses strict mode: missing vars produce clear errors, not silent literal pass-through
+- `env_spec` is the universal "what does the server need?" declaration — works the same whether the binary reads values from env vars or CLI args
+- `mcp-server-stigmer.yaml` now uses `metadata.tags` (searchable) instead of `spec.tags`
+- `github.yaml` now uses the official `github/github-mcp-server` Go binary instead of the deprecated `@modelcontextprotocol/server-github` npm package
 
 ## Quick Commands
 

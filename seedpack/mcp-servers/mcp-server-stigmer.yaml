@@ -5,11 +5,11 @@ metadata:
   visibility: visibility_public
   labels:
     stigmer.ai/system: "true"
-spec:
-  description: "Built-in MCP server that exposes Stigmer resources (agents, skills, workflows, MCP servers) to MCP clients via the Model Context Protocol."
   tags:
     - system
     - built-in
+spec:
+  description: "Built-in MCP server that exposes Stigmer resources (agents, skills, workflows, MCP servers) to MCP clients via the Model Context Protocol."
   stdio:
     command: "go"
     args:
