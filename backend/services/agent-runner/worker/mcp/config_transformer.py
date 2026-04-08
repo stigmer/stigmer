@@ -48,8 +48,8 @@ from ai.stigmer.agentic.mcpserver.v1.spec_pb2 import (
 
 # Import placeholder resolution from dedicated module
 from worker.mcp.placeholder_resolver import (
-    PlaceholderResolver,
     PlaceholderResolutionError,
+    PlaceholderResolver,
 )
 
 logger = logging.getLogger(__name__)

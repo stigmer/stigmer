@@ -1,0 +1,58 @@
+{
+  "name": "McpServerSource",
+  "description": "McpServerSource tracks provenance for MCP server definitions that were\n imported from an external registry or catalog via automated sync.\n\n This enables:\n - Traceability: users can inspect the upstream source of any marketplace entry.\n - Freshness tracking: the platform knows when a definition was last synced.\n - Deprecation detection: if a server disappears from the source registry,\n   the sync workflow can flag it as deprecated.\n - Deduplication: source.registry_name is the natural key for upsert logic.",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerSource",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Registry",
+      "jsonName": "registry",
+      "protoField": "registry",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Registry or catalog this definition was sourced from.\n Example: \"registry.modelcontextprotocol.io\"",
+      "required": false
+    },
+    {
+      "name": "RegistryName",
+      "jsonName": "registryName",
+      "protoField": "registry_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Name/identifier in the source registry (exact, unmodified).\n This is the canonical key used for dedup and update matching.\n Example: \"ai.exa/exa\"",
+      "required": false
+    },
+    {
+      "name": "Version",
+      "jsonName": "version",
+      "protoField": "version",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Version from the source registry at the time of last sync.\n Example: \"3.1.3\"",
+      "required": false
+    },
+    {
+      "name": "RepositoryUrl",
+      "jsonName": "repositoryUrl",
+      "protoField": "repository_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Repository URL for the MCP server source code.\n Lets users inspect the upstream implementation for trust and transparency.\n Example: \"https://github.com/exa-labs/exa-mcp-server\"",
+      "required": false
+    },
+    {
+      "name": "LastSyncedAt",
+      "jsonName": "lastSyncedAt",
+      "protoField": "last_synced_at",
+      "type": {
+        "kind": "timestamp"
+      },
+      "description": "Timestamp of last successful sync from the source.",
+      "required": false
+    }
+  ]
+}

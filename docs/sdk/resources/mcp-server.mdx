@@ -177,6 +177,7 @@ const mcpServer = await stigmer.mcpServer.apply({
   defaultEnabledTools: [],
   envSpec: {},
   defaultToolApprovals: [],
+  source: {},
 });
 ```
 </Tab>
@@ -194,6 +195,7 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
   DefaultEnabledTools:  []string{},
   EnvSpec:              &stigmer.EnvSpecInput{},
   DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  Source:               &stigmer.McpServerSourceInput{},
 })
 ```
 </Tab>
@@ -211,6 +213,7 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     default_enabled_tools=[],
     env_spec=None,
     default_tool_approvals=[],
+    source=None,
 ))
 ```
 </Tab>
@@ -228,6 +231,7 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .defaultEnabledTools(List.of())
     .envSpec(null)
     .defaultToolApprovals(List.of())
+    .source(null)
     .build());
 ```
 </Tab>
@@ -258,6 +262,7 @@ const mcpServer = await stigmer.mcpServer.create({
   defaultEnabledTools: [],
   envSpec: {},
   defaultToolApprovals: [],
+  source: {},
 });
 ```
 </Tab>
@@ -275,6 +280,7 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
   DefaultEnabledTools:  []string{},
   EnvSpec:              &stigmer.EnvSpecInput{},
   DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  Source:               &stigmer.McpServerSourceInput{},
 })
 ```
 </Tab>
@@ -292,6 +298,7 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     default_enabled_tools=[],
     env_spec=None,
     default_tool_approvals=[],
+    source=None,
 ))
 ```
 </Tab>
@@ -309,6 +316,7 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .defaultEnabledTools(List.of())
     .envSpec(null)
     .defaultToolApprovals(List.of())
+    .source(null)
     .build());
 ```
 </Tab>
@@ -337,6 +345,7 @@ const mcpServer = await stigmer.mcpServer.update({
   defaultEnabledTools: [],
   envSpec: {},
   defaultToolApprovals: [],
+  source: {},
 });
 ```
 </Tab>
@@ -354,6 +363,7 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
   DefaultEnabledTools:  []string{},
   EnvSpec:              &stigmer.EnvSpecInput{},
   DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  Source:               &stigmer.McpServerSourceInput{},
 })
 ```
 </Tab>
@@ -371,6 +381,7 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     default_enabled_tools=[],
     env_spec=None,
     default_tool_approvals=[],
+    source=None,
 ))
 ```
 </Tab>
@@ -388,6 +399,7 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .defaultEnabledTools(List.of())
     .envSpec(null)
     .defaultToolApprovals(List.of())
+    .source(null)
     .build());
 ```
 </Tab>
@@ -594,6 +606,7 @@ Input for creating or updating a MCP Server.
     defaultEnabledTools: { type: "string[]", description: "Default tools to enable from this MCP server." },
     envSpec: { type: "EnvSpecInput", description: "Environment variables required by the MCP server.", typeDescriptionLink: "#envspecinput" },
     defaultToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Default tool approval policies for this MCP server.", typeDescriptionLink: "#toolapprovalpolicyinput" },
+    source: { type: "McpServerSourceInput", description: "Source/provenance of this MCP server definition.", typeDescriptionLink: "#mcpserversourceinput" },
   }}
 />
 
@@ -653,6 +666,20 @@ ToolApprovalPolicy defines approval requirements for a specific tool.
   type={{
     toolName: { type: "string", description: "Name of the tool (must match tools/list from MCP server exactly)." },
     message: { type: "string", description: "Human-readable message shown to user when approval is requested." },
+  }}
+/>
+
+### McpServerSourceInput
+
+McpServerSource tracks provenance for MCP server definitions that were imported from an external registry or catalog via automated sync.
+
+<TypeTable
+  type={{
+    registry: { type: "string", description: "Registry or catalog this definition was sourced from." },
+    registryName: { type: "string", description: "Name/identifier in the source registry (exact, unmodified)." },
+    version: { type: "string", description: "Version from the source registry at the time of last sync." },
+    repositoryUrl: { type: "string", description: "Repository URL for the MCP server source code." },
+    lastSyncedAt: { type: "string", description: "Timestamp of last successful sync from the source." },
   }}
 />
 

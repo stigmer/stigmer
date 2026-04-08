@@ -4,6 +4,7 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 import "ai/stigmer/agentic/environment/v1/spec.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // McpServerSpec defines the configurable properties of an MCP server.
 //
@@ -69,6 +70,11 @@ message McpServerSpec {
   // Tools not listed here do not require approval by default.
   // Agents can still add approval requirements via tool_approval_overrides.
   repeated ToolApprovalPolicy default_tool_approvals = 9;
+
+  // Source/provenance of this MCP server definition.
+  // Populated by automated sync workflows (e.g. MCP Registry sync).
+  // Empty for hand-authored definitions like the system mcp-server-stigmer.
+  McpServerSource source = 10;
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess.
@@ -203,4 +209,36 @@ message ToolApprovalPolicy {
   //   - Keep under 100 characters for UI display
   //   - Use action verbs: "Delete", "Send", "Execute", "Create"
   string message = 2;
+}
+
+// McpServerSource tracks provenance for MCP server definitions that were
+// imported from an external registry or catalog via automated sync.
+//
+// This enables:
+// - Traceability: users can inspect the upstream source of any marketplace entry.
+// - Freshness tracking: the platform knows when a definition was last synced.
+// - Deprecation detection: if a server disappears from the source registry,
+//   the sync workflow can flag it as deprecated.
+// - Deduplication: source.registry_name is the natural key for upsert logic.
+message McpServerSource {
+  // Registry or catalog this definition was sourced from.
+  // Example: "registry.modelcontextprotocol.io"
+  string registry = 1;
+
+  // Name/identifier in the source registry (exact, unmodified).
+  // This is the canonical key used for dedup and update matching.
+  // Example: "ai.exa/exa"
+  string registry_name = 2;
+
+  // Version from the source registry at the time of last sync.
+  // Example: "3.1.3"
+  string version = 3;
+
+  // Repository URL for the MCP server source code.
+  // Lets users inspect the upstream implementation for trust and transparency.
+  // Example: "https://github.com/exa-labs/exa-mcp-server"
+  string repository_url = 4;
+
+  // Timestamp of last successful sync from the source.
+  google.protobuf.Timestamp last_synced_at = 5;
 }

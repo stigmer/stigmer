@@ -610,6 +610,50 @@ private static final long serialVersionUID = 0L;
     return defaultToolApprovals_.get(index);
   }
 
+  public static final int SOURCE_FIELD_NUMBER = 10;
+  private ai.stigmer.agentic.mcpserver.v1.McpServerSource source_;
+  /**
+   * <pre>
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   * @return Whether the source field is set.
+   */
+  @java.lang.Override
+  public boolean hasSource() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   * @return The source.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.mcpserver.v1.McpServerSource getSource() {
+    return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
+  }
+  /**
+   * <pre>
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder getSourceOrBuilder() {
+    return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -647,6 +691,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < defaultToolApprovals_.size(); i++) {
       output.writeMessage(9, defaultToolApprovals_.get(i));
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(10, getSource());
     }
     getUnknownFields().writeTo(output);
   }
@@ -700,6 +747,10 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(10, getSource());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -730,6 +781,11 @@ private static final long serialVersionUID = 0L;
     }
     if (!getDefaultToolApprovalsList()
         .equals(other.getDefaultToolApprovalsList())) return false;
+    if (hasSource() != other.hasSource()) return false;
+    if (hasSource()) {
+      if (!getSource()
+          .equals(other.getSource())) return false;
+    }
     if (!getServerTypeCase().equals(other.getServerTypeCase())) return false;
     switch (serverTypeCase_) {
       case 4:
@@ -773,6 +829,10 @@ private static final long serialVersionUID = 0L;
     if (getDefaultToolApprovalsCount() > 0) {
       hash = (37 * hash) + DEFAULT_TOOL_APPROVALS_FIELD_NUMBER;
       hash = (53 * hash) + getDefaultToolApprovalsList().hashCode();
+    }
+    if (hasSource()) {
+      hash = (37 * hash) + SOURCE_FIELD_NUMBER;
+      hash = (53 * hash) + getSource().hashCode();
     }
     switch (serverTypeCase_) {
       case 4:
@@ -926,6 +986,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetEnvSpecFieldBuilder();
         internalGetDefaultToolApprovalsFieldBuilder();
+        internalGetSourceFieldBuilder();
       }
     }
     @java.lang.Override
@@ -956,6 +1017,11 @@ private static final long serialVersionUID = 0L;
         defaultToolApprovalsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000080);
+      source_ = null;
+      if (sourceBuilder_ != null) {
+        sourceBuilder_.dispose();
+        sourceBuilder_ = null;
+      }
       serverTypeCase_ = 0;
       serverType_ = null;
       return this;
@@ -1025,6 +1091,12 @@ private static final long serialVersionUID = 0L;
             ? envSpec_
             : envSpecBuilder_.build();
         to_bitField0_ |= 0x00000001;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.source_ = sourceBuilder_ == null
+            ? source_
+            : sourceBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1112,6 +1184,9 @@ private static final long serialVersionUID = 0L;
             defaultToolApprovalsBuilder_.addAllMessages(other.defaultToolApprovals_);
           }
         }
+      }
+      if (other.hasSource()) {
+        mergeSource(other.getSource());
       }
       switch (other.getServerTypeCase()) {
         case STDIO: {
@@ -1206,6 +1281,13 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 74
+            case 82: {
+              input.readMessage(
+                  internalGetSourceFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2901,6 +2983,181 @@ private static final long serialVersionUID = 0L;
         defaultToolApprovals_ = null;
       }
       return defaultToolApprovalsBuilder_;
+    }
+
+    private ai.stigmer.agentic.mcpserver.v1.McpServerSource source_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder> sourceBuilder_;
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     * @return Whether the source field is set.
+     */
+    public boolean hasSource() {
+      return ((bitField0_ & 0x00000100) != 0);
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     * @return The source.
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerSource getSource() {
+      if (sourceBuilder_ == null) {
+        return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
+      } else {
+        return sourceBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public Builder setSource(ai.stigmer.agentic.mcpserver.v1.McpServerSource value) {
+      if (sourceBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        source_ = value;
+      } else {
+        sourceBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public Builder setSource(
+        ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder builderForValue) {
+      if (sourceBuilder_ == null) {
+        source_ = builderForValue.build();
+      } else {
+        sourceBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public Builder mergeSource(ai.stigmer.agentic.mcpserver.v1.McpServerSource value) {
+      if (sourceBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0) &&
+          source_ != null &&
+          source_ != ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance()) {
+          getSourceBuilder().mergeFrom(value);
+        } else {
+          source_ = value;
+        }
+      } else {
+        sourceBuilder_.mergeFrom(value);
+      }
+      if (source_ != null) {
+        bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public Builder clearSource() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      source_ = null;
+      if (sourceBuilder_ != null) {
+        sourceBuilder_.dispose();
+        sourceBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder getSourceBuilder() {
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return internalGetSourceFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder getSourceOrBuilder() {
+      if (sourceBuilder_ != null) {
+        return sourceBuilder_.getMessageOrBuilder();
+      } else {
+        return source_ == null ?
+            ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
+      }
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder> 
+        internalGetSourceFieldBuilder() {
+      if (sourceBuilder_ == null) {
+        sourceBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder>(
+                getSource(),
+                getParentForChildren(),
+                isClean());
+        source_ = null;
+      }
+      return sourceBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.McpServerSpec)

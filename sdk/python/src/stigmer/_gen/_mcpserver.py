@@ -125,6 +125,7 @@ class McpServerInput:
     default_enabled_tools: list[str] = field(default_factory=list)
     env_spec: EnvSpecInput | None = None
     default_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
+    source: McpServerSourceInput | None = None
 
     def _to_proto(self) -> api_pb2.McpServer:
         spec = spec_pb2.McpServerSpec(
@@ -141,6 +142,8 @@ class McpServerInput:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
         for item in self.default_tool_approvals:
             spec.default_tool_approvals.append(item._to_proto())
+        if self.source is not None:
+            spec.source.CopyFrom(self.source._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -208,5 +211,27 @@ class ToolApprovalPolicyInput:
             tool_name=self.tool_name,
             message=self.message,
         )
+        return msg
+
+
+@dataclass
+class McpServerSourceInput:
+    """SDK input type for McpServerSource."""
+
+    registry: str = ""
+    registry_name: str = ""
+    version: str = ""
+    repository_url: str = ""
+    last_synced_at: str = ""
+
+    def _to_proto(self) -> spec_pb2.McpServerSource:
+        msg = spec_pb2.McpServerSource(
+            registry=self.registry,
+            registry_name=self.registry_name,
+            version=self.version,
+            repository_url=self.repository_url,
+        )
+        if self.last_synced_at:
+            msg.last_synced_at.FromJsonString(self.last_synced_at)
         return msg
 

@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"time"
 
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
@@ -11,6 +12,7 @@ import (
 	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // McpServerClient provides operations on mcpserver resources.
@@ -113,6 +115,7 @@ type McpServerInput struct {
 	DefaultEnabledTools  []string
 	EnvSpec              *EnvSpecInput
 	DefaultToolApprovals []*ToolApprovalPolicyInput
+	Source               *McpServerSourceInput
 }
 
 // StdioServerConfigInput is the SDK input type for StdioServerConfig.
@@ -134,6 +137,15 @@ type HttpServerConfigInput struct {
 type ToolApprovalPolicyInput struct {
 	ToolName string
 	Message  string
+}
+
+// McpServerSourceInput is the SDK input type for McpServerSource.
+type McpServerSourceInput struct {
+	Registry      string
+	RegistryName  string
+	Version       string
+	RepositoryUrl string
+	LastSyncedAt  string
 }
 
 func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
@@ -176,6 +188,9 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 	for _, item := range i.DefaultToolApprovals {
 		resource.Spec.DefaultToolApprovals = append(resource.Spec.DefaultToolApprovals, item.toProto())
 	}
+	if i.Source != nil {
+		resource.Spec.Source = i.Source.toProto()
+	}
 	return resource
 }
 
@@ -183,5 +198,15 @@ func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 	return &mcpserverv1.ToolApprovalPolicy{
 		ToolName: i.ToolName,
 		Message:  i.Message,
+	}
+}
+
+func (i *McpServerSourceInput) toProto() *mcpserverv1.McpServerSource {
+	return &mcpserverv1.McpServerSource{
+		Registry:      i.Registry,
+		RegistryName:  i.RegistryName,
+		Version:       i.Version,
+		RepositoryUrl: i.RepositoryUrl,
+		LastSyncedAt:  i.LastSyncedAt,
 	}
 }
