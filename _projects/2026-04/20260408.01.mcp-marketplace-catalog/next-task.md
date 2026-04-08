@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-08 08:56
-**Current Task**: T02 complete
-**Status**: Complete — ready for T03
+**Current Task**: Automated MCP Registry sync pipeline — implementation complete, pending commit + PR
+**Status**: In progress — code complete, needs commit/PR/test
 
 ## Session Progress (2026-04-08, Session 1)
 
@@ -147,13 +147,62 @@ When starting a new session:
 | Atlassian scope? | `atlassian` (not `jira`) | Official endpoint covers Jira + Confluence + Compass. |
 | Atlassian auth? | Bearer (service account API key) | Basic auth requires base64 encoding which doesn't fit `${VAR}` model cleanly. |
 
+## Session Progress (2026-04-08, Session 4)
+
+- **Major pivot**: Replaced manual YAML authoring (T03/T04/T05) with automated MCP Registry sync pipeline
+- Researched official MCP Registry API (`registry.modelcontextprotocol.io/v0/servers`) and 5 alternative directories
+- Concluded official registry is the only Phase 1 source with a structured REST API
+- **stigmer OSS changes** (12 files):
+  - Added `McpServerSource` message + `source` field (field 10) to `McpServerSpec` proto
+  - Deleted 10 handcrafted marketplace YAMLs from `seedpack/mcp-servers/`
+  - Updated `CONTRIBUTING.md` to reflect automated sync model
+- **stigmer-cloud changes** (16 new Java files + regenerated stubs):
+  - Full Temporal workflow: `McpRegistrySyncWorkflow` with 3 activities
+  - `FetchRegistryPageActivity`: paginated HTTP GET to registry API
+  - `UpsertMcpServerBatchActivity`: batch upsert with spec merge (preserves `default_tool_approvals`, `default_enabled_tools`, `discovered_capabilities`)
+  - `MarkDeprecatedServersActivity`: labels removed servers as `stigmer.ai/deprecated`
+  - `McpRegistryTransformer`: registry JSON → McpServer proto mapping (stdio/http, env vars, icons)
+  - Temporal Schedule registrar for daily cron execution
+  - Worker config wiring all components
+
+### Key Decisions (Session 4)
+
+| Decision | Rationale |
+|----------|-----------|
+| Temporal workflow over CLI command | Scheduled, reliable, observable, no manual trigger |
+| Official MCP Registry only (Phase 1) | Only source with structured REST API |
+| DB-only catalog (not seedpack) | Seedpack is compile-time; DB is for continuously-updated catalog |
+| Delete handcrafted YAMLs | Will be auto-synced from registry |
+| Deprecation via label | Servers removed from registry get labeled, not deleted |
+| Preserve curated fields on upsert | Sync never overwrites `default_tool_approvals`, `default_enabled_tools`, or `discovered_capabilities` |
+
+## Next Steps
+
+1. **Commit changes** in both repos (stigmer OSS + stigmer-cloud)
+2. **Create PRs** for both repos
+3. **Regenerate proto stubs** to pick up `McpServerSource` (already done in stigmer-cloud)
+4. **Test sync workflow** locally or in staging — verify end-to-end flow
+5. **Post-launch**: Add manual curation layer for `default_tool_approvals` and category labels
+6. **Future**: Consider additional sources (Smithery, if they add a public API)
+
+## Context for Resume
+
+- The sync pipeline is fully implemented but not yet committed or tested
+- **stigmer OSS** has uncommitted changes: proto change + seedpack cleanup (12 files)
+- **stigmer-cloud** has uncommitted changes: new temporal package + regenerated stubs (21 files)
+- The `identityprovider` stubs in stigmer-cloud were regenerated alongside mcpserver stubs — may be from a concurrent change; verify before committing
+- Previous chat: [MCP Marketplace Catalog](8873560d-13ec-473d-ad14-440423338b58)
+
+## Blockers
+
+None — all code is written and design decisions resolved.
+
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Start next batch of server definitions
+- "Commit and PR" - Commit changes in both repos and create PRs
+- "Test sync workflow" - Verify the Temporal workflow end-to-end
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 
 ---
 

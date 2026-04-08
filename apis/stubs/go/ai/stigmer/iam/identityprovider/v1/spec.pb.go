@@ -30,8 +30,9 @@ const (
 // Stigmer validates the token signature against the configured JWKS and resolves the
 // user's federated identity account by the JWT's sub claim and this provider's reference.
 //
-// The platform is responsible for explicitly creating federated identity accounts
-// before users can authenticate. Stigmer does not auto-provision accounts.
+// For platform-managed IdPs, the platform is responsible for explicitly creating
+// federated identity accounts before users can authenticate. For SSO providers
+// (is_sso_provider = true), Stigmer auto-provisions accounts on first login.
 //
 // The spec contains only public validation configuration — no secrets are stored.
 // For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
@@ -113,12 +114,15 @@ type IdentityProviderSpec struct {
 	// option on the organization's login page and initiates the OIDC
 	// Authorization Code flow with PKCE using the configured oidc_client_id.
 	//
+	// On first login, SSO users are auto-provisioned: Stigmer creates a
+	// federated identity account from the JWT's OIDC claims and grants the
+	// viewer role on the organization. Org admins can upgrade viewers to
+	// members when ready.
+	//
 	// Constraints:
 	//   - At most one IdentityProvider per organization can be the SSO provider.
 	//   - An IdP used for platform-managed organization delegation cannot also
 	//     serve as an SSO provider (different trust models).
-	//   - Federated identity accounts must be pre-created via createFederatedAccount
-	//     before users can authenticate through SSO.
 	IsSsoProvider bool `protobuf:"varint,7,opt,name=is_sso_provider,json=isSsoProvider,proto3" json:"is_sso_provider,omitempty"`
 	// OIDC client identifier for browser-based SSO login.
 	//

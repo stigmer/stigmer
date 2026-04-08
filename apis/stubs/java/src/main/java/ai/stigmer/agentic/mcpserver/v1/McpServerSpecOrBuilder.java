@@ -376,5 +376,38 @@ public interface McpServerSpecOrBuilder extends
   ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getDefaultToolApprovalsOrBuilder(
       int index);
 
+  /**
+   * <pre>
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   * @return Whether the source field is set.
+   */
+  boolean hasSource();
+  /**
+   * <pre>
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   * @return The source.
+   */
+  ai.stigmer.agentic.mcpserver.v1.McpServerSource getSource();
+  /**
+   * <pre>
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   */
+  ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder getSourceOrBuilder();
+
   ai.stigmer.agentic.mcpserver.v1.McpServerSpec.ServerTypeCase getServerTypeCase();
 }

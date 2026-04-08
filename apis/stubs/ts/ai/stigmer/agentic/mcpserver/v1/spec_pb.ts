@@ -7,13 +7,15 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvironmentSpec } from "../../environment/v1/spec_pb";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/mcpserver/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEinAMKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKCGVudl9zcGVjGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U3BlYxJTChZkZWZhdWx0X3Rvb2xfYXBwcm92YWxzGAkgAygLMjMuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Ub29sQXBwcm92YWxQb2xpY3lCFAoLc2VydmVyX3R5cGUSBbpIAggBIk8KEVN0ZGlvU2VydmVyQ29uZmlnEhcKB2NvbW1hbmQYASABKAlCBrpIA8gBARIMCgRhcmdzGAIgAygJEhMKC3dvcmtpbmdfZGlyGAMgASgJIuACChBIdHRwU2VydmVyQ29uZmlnEhgKA3VybBgBIAEoCUILukgIyAEBcgOIAQESTwoHaGVhZGVycxgCIAMoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5IZWFkZXJzRW50cnkSWAoMcXVlcnlfcGFyYW1zGAMgAygLMkIuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnLlF1ZXJ5UGFyYW1zRW50cnkSIwoPdGltZW91dF9zZWNvbmRzGAQgASgFQgq6SAcaBRisAigAGi4KDEhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGjIKEFF1ZXJ5UGFyYW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJBChJUb29sQXBwcm92YWxQb2xpY3kSGgoJdG9vbF9uYW1lGAEgASgJQge6SARyAhABEg8KB21lc3NhZ2UYAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEi3gMKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKCGVudl9zcGVjGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U3BlYxJTChZkZWZhdWx0X3Rvb2xfYXBwcm92YWxzGAkgAygLMjMuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Ub29sQXBwcm92YWxQb2xpY3kSQAoGc291cmNlGAogASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJTb3VyY2VCFAoLc2VydmVyX3R5cGUSBbpIAggBIk8KEVN0ZGlvU2VydmVyQ29uZmlnEhcKB2NvbW1hbmQYASABKAlCBrpIA8gBARIMCgRhcmdzGAIgAygJEhMKC3dvcmtpbmdfZGlyGAMgASgJIuACChBIdHRwU2VydmVyQ29uZmlnEhgKA3VybBgBIAEoCUILukgIyAEBcgOIAQESTwoHaGVhZGVycxgCIAMoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5IZWFkZXJzRW50cnkSWAoMcXVlcnlfcGFyYW1zGAMgAygLMkIuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnLlF1ZXJ5UGFyYW1zRW50cnkSIwoPdGltZW91dF9zZWNvbmRzGAQgASgFQgq6SAcaBRisAigAGi4KDEhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGjIKEFF1ZXJ5UGFyYW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJBChJUb29sQXBwcm92YWxQb2xpY3kSGgoJdG9vbF9uYW1lGAEgASgJQge6SARyAhABEg8KB21lc3NhZ2UYAiABKAkilwEKD01jcFNlcnZlclNvdXJjZRIQCghyZWdpc3RyeRgBIAEoCRIVCg1yZWdpc3RyeV9uYW1lGAIgASgJEg8KB3ZlcnNpb24YAyABKAkSFgoOcmVwb3NpdG9yeV91cmwYBCABKAkSMgoObGFzdF9zeW5jZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_spec, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * McpServerSpec defines the configurable properties of an MCP server.
@@ -119,6 +121,15 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
    * @generated from field: repeated ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9;
    */
   defaultToolApprovals: ToolApprovalPolicy[];
+
+  /**
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
+   *
+   * @generated from field: ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10;
+   */
+  source?: McpServerSource;
 };
 
 /**
@@ -154,9 +165,26 @@ export type StdioServerConfig = Message<"ai.stigmer.agentic.mcpserver.v1.StdioSe
 
   /**
    * Arguments to pass to the command.
+   *
+   * Argument values can reference environment variables using ${VAR_NAME} syntax.
+   * These placeholders are resolved at runtime from the execution environment
+   * (same source as HTTP header/query param placeholders). This enables MCP
+   * servers that take core configuration as positional CLI arguments (e.g.
+   * database connection URLs, directory paths) to be parameterized per-user
+   * through env_spec.
+   *
+   * Resolution uses strict mode: missing variables produce a clear error
+   * rather than passing a literal "${VAR}" to the subprocess.
+   *
+   * Note: resolved values appear in the subprocess argv, which is visible
+   * via /proc/<pid>/cmdline within the container. In the containerized
+   * agent-runner environment this is not a practical concern, but callers
+   * should be aware when debugging.
+   *
    * Examples:
-   * - For npx: ["-y", "@modelcontextprotocol/server-github"]
-   * - For python: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
+   *   ["-y", "@modelcontextprotocol/server-github"]
+   *   ["-y", "@modelcontextprotocol/server-postgres", "${POSTGRES_CONNECTION_URL}"]
+   *   ["-m", "mcp_server_sqlite", "--db-path", "${DB_PATH}/data.sqlite"]
    *
    * @generated from field: repeated string args = 2;
    */
@@ -307,4 +335,67 @@ export type ToolApprovalPolicy = Message<"ai.stigmer.agentic.mcpserver.v1.ToolAp
  */
 export const ToolApprovalPolicySchema: GenMessage<ToolApprovalPolicy> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 3);
+
+/**
+ * McpServerSource tracks provenance for MCP server definitions that were
+ * imported from an external registry or catalog via automated sync.
+ *
+ * This enables:
+ * - Traceability: users can inspect the upstream source of any marketplace entry.
+ * - Freshness tracking: the platform knows when a definition was last synced.
+ * - Deprecation detection: if a server disappears from the source registry,
+ *   the sync workflow can flag it as deprecated.
+ * - Deduplication: source.registry_name is the natural key for upsert logic.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServerSource
+ */
+export type McpServerSource = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSource"> & {
+  /**
+   * Registry or catalog this definition was sourced from.
+   * Example: "registry.modelcontextprotocol.io"
+   *
+   * @generated from field: string registry = 1;
+   */
+  registry: string;
+
+  /**
+   * Name/identifier in the source registry (exact, unmodified).
+   * This is the canonical key used for dedup and update matching.
+   * Example: "ai.exa/exa"
+   *
+   * @generated from field: string registry_name = 2;
+   */
+  registryName: string;
+
+  /**
+   * Version from the source registry at the time of last sync.
+   * Example: "3.1.3"
+   *
+   * @generated from field: string version = 3;
+   */
+  version: string;
+
+  /**
+   * Repository URL for the MCP server source code.
+   * Lets users inspect the upstream implementation for trust and transparency.
+   * Example: "https://github.com/exa-labs/exa-mcp-server"
+   *
+   * @generated from field: string repository_url = 4;
+   */
+  repositoryUrl: string;
+
+  /**
+   * Timestamp of last successful sync from the source.
+   *
+   * @generated from field: google.protobuf.Timestamp last_synced_at = 5;
+   */
+  lastSyncedAt?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.McpServerSource.
+ * Use `create(McpServerSourceSchema)` to create a new message.
+ */
+export const McpServerSourceSchema: GenMessage<McpServerSource> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 4);
 

@@ -3,10 +3,13 @@
 package mcpserver
 
 import (
+	"fmt"
 	"github.com/stigmer/stigmer/mcp-server/internal/convert"
 	environmentv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	"time"
 )
 
 // McpServerSpec defines the configurable properties of an MCP server.
@@ -42,14 +45,16 @@ type McpServerInput struct {
 	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the MCP server."`
 	// Default tool approval policies for this MCP server. @internal Tools listed here require user approval before execution by default. This is the first layer in the approval policy chain: McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all Use cases: - Mark destructive operations as requiring approval by default - Protect sensitive data access across all agents using this server - Establish organization-wide safety policies for dangerous tools Tools not listed here do not require approval by default. Agents can still add approval requirements via tool_approval_overrides.
 	DefaultToolApprovals []ToolApprovalPolicyInput `json:"default_tool_approvals,omitempty" jsonschema:"Default tool approval policies for this MCP server. @internal Tools listed here require user approval before execution by default. This is the first layer in the approval policy chain: McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all Use cases: - Mark destructive operations as requiring approval by default - Protect sensitive data access across all agents using this server - Establish organization-wide safety policies for dangerous tools Tools not listed here do not require approval by default. Agents can still add approval requirements via tool_approval_overrides."`
+	// Source/provenance of this MCP server definition. Populated by automated sync workflows (e.g. MCP Registry sync). Empty for hand-authored definitions like the system mcp-server-stigmer.
+	Source *McpServerSourceInput `json:"source,omitempty" jsonschema:"Source/provenance of this MCP server definition. Populated by automated sync workflows (e.g. MCP Registry sync). Empty for hand-authored definitions like the system mcp-server-stigmer."`
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess. @internal Communication happens via stdin/stdout using JSON-RPC messages. The agent runner starts this process and communicates via stdio. Common examples: - Node.js servers: npx @modelcontextprotocol/server-github - Python servers: python -m mcp_server_sqlite - Go servers: ./mcp-server-binary
 type StdioServerConfigInput struct {
 	// Command to execute the MCP server. This is the executable name or path. Examples: "npx", "python", "node", "./custom-mcp-server"
 	Command string `json:"command" jsonschema:"Command to execute the MCP server. This is the executable name or path. Examples: 'npx', 'python', 'node', './custom-mcp-server'"`
-	// Arguments to pass to the command. Examples: - For npx: ["-y", "@modelcontextprotocol/server-github"] - For python: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
-	Args []string `json:"args,omitempty" jsonschema:"Arguments to pass to the command. Examples: - For npx: ['-y', '@modelcontextprotocol/server-github'] - For python: ['-m', 'mcp_server_sqlite', '--db-path', '/data/db.sqlite']"`
+	// Arguments to pass to the command. Argument values can reference environment variables using ${VAR_NAME} syntax. These placeholders are resolved at runtime from the execution environment (same source as HTTP header/query param placeholders). This enables MCP servers that take core configuration as positional CLI arguments (e.g. database connection URLs, directory paths) to be parameterized per-user through env_spec. Resolution uses strict mode: missing variables produce a clear error rather than passing a literal "${VAR}" to the subprocess. Note: resolved values appear in the subprocess argv, which is visible via /proc/<pid>/cmdline within the container. In the containerized agent-runner environment this is not a practical concern, but callers should be aware when debugging. Examples: ["-y", "@modelcontextprotocol/server-github"] ["-y", "@modelcontextprotocol/server-postgres", "${POSTGRES_CONNECTION_URL}"] ["-m", "mcp_server_sqlite", "--db-path", "${DB_PATH}/data.sqlite"]
+	Args []string `json:"args,omitempty" jsonschema:"Arguments to pass to the command. Argument values can reference environment variables using ${VAR_NAME} syntax. These placeholders are resolved at runtime from the execution environment (same source as HTTP header/query param placeholders). This enables MCP servers that take core configuration as positional CLI arguments (e.g. database connection URLs, directory paths) to be parameterized per-user through env_spec. Resolution uses strict mode: missing variables produce a clear error rather than passing a literal '${VAR}' to the subprocess. Note: resolved values appear in the subprocess argv, which is visible via /proc/<pid>/cmdline within the container. In the containerized agent-runner environment this is not a practical concern, but callers should be aware when debugging. Examples: ['-y', '@modelcontextprotocol/server-github'] ['-y', '@modelcontextprotocol/server-postgres', '${POSTGRES_CONNECTION_URL}'] ['-m', 'mcp_server_sqlite', '--db-path', '${DB_PATH}/data.sqlite']"`
 	// Working directory for the process. If not specified, the process inherits the agent runner's working directory. Use absolute paths or paths relative to the agent runner's context.
 	WorkingDir string `json:"working_dir,omitempty" jsonschema:"Working directory for the process. If not specified, the process inherits the agent runner's working directory. Use absolute paths or paths relative to the agent runner's context."`
 }
@@ -90,6 +95,20 @@ type ToolApprovalPolicyInput struct {
 	ToolName string `json:"tool_name,omitempty" jsonschema:"Name of the tool (must match tools/list from MCP server exactly). Case-sensitive matching against tool names reported by the MCP server. Example: 'delete_repository', 'send_email', 'execute_sql'"`
 	// Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: "Execute tool: {tool_name}" Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: "Delete", "Send", "Execute", "Create"
 	Message string `json:"message,omitempty" jsonschema:"Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: 'Execute tool: {tool_name}' Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: 'Delete', 'Send', 'Execute', 'Create'"`
+}
+
+// McpServerSource tracks provenance for MCP server definitions that were imported from an external registry or catalog via automated sync. This enables: - Traceability: users can inspect the upstream source of any marketplace entry. - Freshness tracking: the platform knows when a definition was last synced. - Deprecation detection: if a server disappears from the source registry, the sync workflow can flag it as deprecated. - Deduplication: source.registry_name is the natural key for upsert logic.
+type McpServerSourceInput struct {
+	// Registry or catalog this definition was sourced from. Example: "registry.modelcontextprotocol.io"
+	Registry string `json:"registry,omitempty" jsonschema:"Registry or catalog this definition was sourced from. Example: 'registry.modelcontextprotocol.io'"`
+	// Name/identifier in the source registry (exact, unmodified). This is the canonical key used for dedup and update matching. Example: "ai.exa/exa"
+	RegistryName string `json:"registry_name,omitempty" jsonschema:"Name/identifier in the source registry (exact, unmodified). This is the canonical key used for dedup and update matching. Example: 'ai.exa/exa'"`
+	// Version from the source registry at the time of last sync. Example: "3.1.3"
+	Version string `json:"version,omitempty" jsonschema:"Version from the source registry at the time of last sync. Example: '3.1.3'"`
+	// Repository URL for the MCP server source code. Lets users inspect the upstream implementation for trust and transparency. Example: "https://github.com/exa-labs/exa-mcp-server"
+	RepositoryUrl string `json:"repository_url,omitempty" jsonschema:"Repository URL for the MCP server source code. Lets users inspect the upstream implementation for trust and transparency. Example: 'https://github.com/exa-labs/exa-mcp-server'"`
+	// Timestamp of last successful sync from the source.
+	LastSyncedAt string `json:"last_synced_at,omitempty" jsonschema:"Timestamp of last successful sync from the source."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed McpServer proto message.
@@ -153,6 +172,13 @@ func (input *McpServerInput) specToProto() (*mcpserverv1.McpServerSpec, error) {
 		}
 		spec.DefaultToolApprovals = append(spec.DefaultToolApprovals, v)
 	}
+	if input.Source != nil {
+		v, err := input.Source.toProto()
+		if err != nil {
+			return nil, err
+		}
+		spec.Source = v
+	}
 	return spec, nil
 }
 
@@ -206,5 +232,22 @@ func (input *ToolApprovalPolicyInput) toProto() (*mcpserverv1.ToolApprovalPolicy
 
 	result.ToolName = input.ToolName
 	result.Message = input.Message
+	return result, nil
+}
+
+func (input *McpServerSourceInput) toProto() (*mcpserverv1.McpServerSource, error) {
+	result := &mcpserverv1.McpServerSource{}
+
+	result.Registry = input.Registry
+	result.RegistryName = input.RegistryName
+	result.Version = input.Version
+	result.RepositoryUrl = input.RepositoryUrl
+	if input.LastSyncedAt != "" {
+		t, err := time.Parse(time.RFC3339, input.LastSyncedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse last_synced_at: %w", err)
+		}
+		result.LastSyncedAt = timestamppb.New(t)
+	}
 	return result, nil
 }

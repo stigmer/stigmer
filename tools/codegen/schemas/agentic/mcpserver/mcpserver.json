@@ -99,6 +99,17 @@
       },
       "description": "Default tool approval policies for this MCP server.\n\n @internal\n Tools listed here require user approval before execution by default.\n This is the first layer in the approval policy chain:\n   McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all\n\n Use cases:\n - Mark destructive operations as requiring approval by default\n - Protect sensitive data access across all agents using this server\n - Establish organization-wide safety policies for dangerous tools\n\n Tools not listed here do not require approval by default.\n Agents can still add approval requirements via tool_approval_overrides.",
       "required": false
+    },
+    {
+      "name": "Source",
+      "jsonName": "source",
+      "protoField": "source",
+      "type": {
+        "kind": "message",
+        "messageType": "McpServerSource"
+      },
+      "description": "Source/provenance of this MCP server definition.\n Populated by automated sync workflows (e.g. MCP Registry sync).\n Empty for hand-authored definitions like the system mcp-server-stigmer.",
+      "required": false
     }
   ]
 }
