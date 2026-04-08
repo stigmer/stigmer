@@ -11,16 +11,25 @@ metadata:
     - vcs
     - code-review
     - pull-request
+    - actions
+    - code-security
 spec:
-  description: "GitHub repository operations, code search, issue tracking, and pull request management."
+  description: "GitHub repository operations, code search, issue tracking, pull request management, Actions workflows, and code security analysis."
   icon_url: "https://github.githubassets.com/favicons/favicon.svg"
   stdio:
-    command: "npx"
+    command: "go"
     args:
-      - "-y"
-      - "@modelcontextprotocol/server-github"
+      - "run"
+      - "github.com/github/github-mcp-server/cmd/github-mcp-server@latest"
+      - "stdio"
   env_spec:
     data:
       GITHUB_PERSONAL_ACCESS_TOKEN:
         is_secret: true
         description: "GitHub personal access token. Create at https://github.com/settings/tokens with 'repo' scope for private repos or 'public_repo' for public-only access."
+      GITHUB_HOST:
+        is_secret: false
+        description: "GitHub Enterprise hostname (e.g., https://github.example.com). Omit for github.com."
+      GITHUB_TOOLSETS:
+        is_secret: false
+        description: "Comma-separated list of toolsets to enable (e.g., repos,issues,pull_requests,actions,code_security). Omit for default toolsets."

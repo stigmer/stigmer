@@ -5,7 +5,7 @@ Step-by-step guide for adding new McpServer definitions to the Stigmer seedpack.
 ## Prerequisites
 
 - The MCP server must be publicly available (npm, PyPI, or binary)
-- The server must use environment variables for credentials (not positional args)
+- The server must use environment variables or CLI arguments for configuration
 - You need the server's actual tool list (from documentation or discovery)
 
 ## Step 1: Research the Server
@@ -44,6 +44,8 @@ spec:
     args:
       - "-y"
       - "<npm-package-name>"
+      # Args can use ${VAR_NAME} for servers that take config as CLI arguments:
+      # - "${CONNECTION_URL}"
   env_spec:
     data:
       ENV_VAR_NAME:
@@ -87,6 +89,19 @@ lowercase, hyphenated terms that describe the server's domain and capabilities.
 - Set `is_secret: true` for tokens, keys, and passwords
 - Never set `value` for secrets
 - Write descriptions that tell users exactly what to create and what permissions/scopes to grant
+
+`env_spec` is the universal declaration of what the server needs from the user,
+regardless of how the server binary consumes those values. The agent-runner
+delivers declared env vars to the subprocess in two ways:
+
+1. **Process environment** — all declared keys are set in the subprocess `env`
+2. **Argument interpolation** — args containing `${VAR_NAME}` are resolved from
+   the same pool before the subprocess starts
+
+This means servers that read configuration from positional CLI arguments
+(e.g. PostgreSQL connection URL, Filesystem paths) can be parameterized
+the same way as servers that read from `process.env`. From the user's
+perspective, the `EnvVarForm` experience is identical in both cases.
 
 ### Tool Approvals
 
@@ -149,12 +164,21 @@ Make sure every `tool_name` in `default_tool_approvals` matches exactly
 
 Before adding a server, verify it fits the Stigmer marketplace model:
 
-- **env-var based credentials**: The server must read credentials from environment
-  variables, not from positional CLI arguments. Servers that require per-user
-  values in `args` (like connection URLs or directory paths) don't fit the
-  blueprint model cleanly — the agent-runner passes args as-is without interpolation.
+- **Parameterizable via env_spec**: All per-user configuration (credentials,
+  connection URLs, paths) must be declarable in `env_spec.data`. The server can
+  consume these values via process environment variables or via `${VAR}` placeholders
+  in stdio args — both are supported.
 - **stdio or http transport**: The server must communicate via stdin/stdout (subprocess)
   or HTTP+SSE (remote).
+
+### Security note on `${VAR}` in stdio args
+
+Resolved values in stdio args appear in the subprocess `argv`, which is visible
+via `/proc/<pid>/cmdline` within the same container. In the containerized
+agent-runner environment this is not a practical risk (single process per
+container), but it differs from process `env` which is restricted to
+`/proc/<pid>/environ` (same-user access only). For maximum isolation,
+prefer servers that read secrets from environment variables when possible.
 
 ## Reference
 
