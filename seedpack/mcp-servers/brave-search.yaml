@@ -1,0 +1,25 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: brave-search
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "search"
+  tags:
+    - brave
+    - search
+    - web-search
+    - local-search
+spec:
+  description: "Web and local search powered by the Brave Search API with pagination, freshness controls, and smart local-to-web fallback."
+  icon_url: "https://brave.com/static-assets/images/brave-logo-sans-text.svg"
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-brave-search"
+  env_spec:
+    data:
+      BRAVE_API_KEY:
+        is_secret: true
+        description: "Brave Search API key. Sign up at https://brave.com/search/api/ (free tier: 2,000 queries/month). Generate at https://api.search.brave.com/app/keys."
