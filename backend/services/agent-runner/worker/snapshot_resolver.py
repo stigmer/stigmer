@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -79,7 +79,7 @@ def generate_snapshot_name() -> str:
     Returns:
         A name like ``stigmer-mcp-20260409-153000``.
     """
-    ts = datetime.now(timezone.utc).strftime(SNAPSHOT_TIMESTAMP_FORMAT)
+    ts = datetime.now(UTC).strftime(SNAPSHOT_TIMESTAMP_FORMAT)
     return f"{SNAPSHOT_NAME_PREFIX}{ts}"
 
 

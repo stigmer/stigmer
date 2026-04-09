@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from graphton.core import ModelRegistry
 from graphton.core.models import parse_model_string
@@ -172,10 +172,11 @@ async def classify_tools(
         len(tools), server_name, economy_model,
     )
 
-    result = await structured_model.ainvoke([
+    raw_result = await structured_model.ainvoke([
         SystemMessage(content=_SYSTEM_PROMPT),
         HumanMessage(content=user_prompt),
     ])
+    result = cast(ClassifyToolApprovalsOutput, raw_result)
 
     approval_count = sum(1 for a in result.approvals if a.requires_approval)
     logger.info(

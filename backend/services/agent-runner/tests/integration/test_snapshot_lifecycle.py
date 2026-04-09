@@ -125,7 +125,6 @@ class TestSnapshotResolver:
 
         resolver = SnapshotResolver(self.daytona, cache_ttl_seconds=0)
 
-        original_prefix = "stigmer-mcp-"
         import worker.snapshot_resolver as sr_module
         saved = sr_module.SNAPSHOT_NAME_PREFIX
         sr_module.SNAPSHOT_NAME_PREFIX = f"stigmer-nonexistent-{uuid.uuid4().hex[:8]}-"

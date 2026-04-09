@@ -253,10 +253,13 @@ async def build_mcp_snapshot(
 
     daytona = Daytona(DaytonaConfig(api_key=api_key))
 
-    base_image = input.base_image or os.getenv(
-        "STIGMER_MCP_SNAPSHOT_BASE_IMAGE",
-        "ghcr.io/stigmer/agent-sandbox-full:latest",
-    )
+    if input.base_image:
+        base_image = input.base_image
+    else:
+        base_image = os.getenv(
+            "STIGMER_MCP_SNAPSHOT_BASE_IMAGE",
+            "ghcr.io/stigmer/agent-sandbox-full:latest",
+        )
     packages = _resolve_packages(input)
 
     total_count = sum(len(v) for v in packages.values())
