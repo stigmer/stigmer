@@ -503,6 +503,21 @@ async def _perform_setup_core(
     )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Connect backfill: trigger the connect RPC for MCP servers that are
+    # either never-discovered or stale (>24h since last discovery).
+    # Runs synchronously so status.tool_approvals are populated before
+    # the approval chain runs.
+    # ─────────────────────────────────────────────────────────────────────
+    if mcp_servers:
+        mcp_servers = await _backfill_undiscovered_servers(
+            mcp_servers=mcp_servers,
+            merged_env_vars=merged_env_vars,
+            api_key=api_key,
+            obo_ch=obo_ch,
+            logger=logger,
+        )
+
+    # ─────────────────────────────────────────────────────────────────────
     # Workspace provisioning (sequential — needs merged_env_vars)
     # ─────────────────────────────────────────────────────────────────────
     provision_results: list[ProvisionResult] = []
@@ -874,10 +889,11 @@ async def _perform_setup_core(
 
     logger.info(
         "Built ApprovalConfig: auto_approve_all=%s, overrides=%d, "
-        "default_policies=%d servers, tool_mapping=%d tools",
+        "pinned=%d servers, status=%d servers, tool_mapping=%d tools",
         approval_config.auto_approve_all,
         len(approval_config.tool_approval_overrides),
-        len(approval_config.default_tool_approvals),
+        len(approval_config.pinned_tool_approvals),
+        len(approval_config.status_tool_approvals),
         len(approval_config.tool_to_mcp_server),
     )
 
@@ -1391,3 +1407,128 @@ async def _fetch_mcp_servers(
             "limited capabilities"
         )
         return []
+
+
+_BACKFILL_STALENESS_THRESHOLD_SECONDS = 24 * 60 * 60  # 24 hours
+
+
+def _needs_backfill(server: Any) -> bool:
+    """Check whether an MCP server needs a connect backfill.
+
+    Returns True in two cases:
+    1. Never discovered — ``last_discovered_at`` is unset/zero or the
+       ``status``/``discovered_capabilities`` fields are absent.
+    2. Stale — ``last_discovered_at`` is older than the staleness
+       threshold (24 hours).  This keeps tools and approval policies
+       fresh without requiring manual intervention.
+
+    Null-safe: handles missing ``status``, missing
+    ``discovered_capabilities``, and missing ``last_discovered_at``
+    via the ``AttributeError`` guard.
+    """
+    import time
+
+    try:
+        caps = server.status.discovered_capabilities
+        ts = caps.last_discovered_at
+        if not ts.seconds and not ts.nanos:
+            return True
+        return (time.time() - ts.seconds) > _BACKFILL_STALENESS_THRESHOLD_SECONDS
+    except AttributeError:
+        return True
+
+
+def _extract_runtime_env_for_server(
+    server: Any,
+    merged_env_vars: dict[str, str],
+) -> dict[str, str] | None:
+    """Extract the MCP server's required env vars from the merged env.
+
+    Returns only the keys declared in ``spec.env_spec`` that are present
+    in the execution's merged environment.  Returns None if the server
+    has no env_spec (no env vars needed).
+    """
+    try:
+        env_spec = server.spec.env_spec
+        if not env_spec or not env_spec.variables:
+            return None
+    except AttributeError:
+        return None
+
+    runtime_env: dict[str, str] = {}
+    for var in env_spec.variables:
+        key = var.name if hasattr(var, "name") else str(var)
+        if key in merged_env_vars:
+            runtime_env[key] = merged_env_vars[key]
+
+    return runtime_env or None
+
+
+async def _backfill_undiscovered_servers(
+    *,
+    mcp_servers: list[Any],
+    merged_env_vars: dict[str, str],
+    api_key: str,
+    obo_ch: Any,
+    logger: logging.Logger,
+) -> list[Any]:
+    """Run connect backfill for MCP servers that need it.
+
+    Triggers the ``connect`` RPC synchronously for servers that are either
+    never-discovered (``last_discovered_at`` is unset) or stale (older
+    than :data:`_BACKFILL_STALENESS_THRESHOLD_SECONDS`).  The RPC starts
+    a Temporal workflow (discover + classify) and returns the updated
+    server with populated ``status.discovered_capabilities`` and
+    ``status.tool_approvals``.
+
+    The returned list replaces any backfilled servers with the fresh
+    versions from the connect response.
+
+    Non-fatal: if connect fails for a server, the original (stale) server
+    is kept and execution continues without current approval policies for
+    that server's tools.
+    """
+    servers_needing_backfill = [
+        (i, s) for i, s in enumerate(mcp_servers) if _needs_backfill(s)
+    ]
+
+    if not servers_needing_backfill:
+        return mcp_servers
+
+    logger.info(
+        "Connect backfill needed for %d MCP server(s): %s",
+        len(servers_needing_backfill),
+        [s.metadata.name for _, s in servers_needing_backfill],
+    )
+
+    mcp_client = McpServerClient(api_key, channel=obo_ch)
+    result = list(mcp_servers)
+
+    for idx, server in servers_needing_backfill:
+        slug = server.metadata.slug or server.metadata.name
+        try:
+            runtime_env = _extract_runtime_env_for_server(
+                server, merged_env_vars,
+            )
+            updated = await mcp_client.connect(
+                mcp_server_id=server.metadata.id,
+                runtime_env=runtime_env,
+                timeout=60.0,
+            )
+            result[idx] = updated
+
+            tool_count = len(updated.status.discovered_capabilities.tools)
+            approval_count = len(updated.status.tool_approvals)
+            logger.info(
+                "Connect backfill for MCP server '%s' — "
+                "discovered %d tools, classified %d approval policies",
+                slug, tool_count, approval_count,
+            )
+        except Exception as e:
+            logger.warning(
+                "Connect backfill failed for MCP server '%s': %s. "
+                "Continuing without current approval policies for this server.",
+                slug, e,
+            )
+
+    return result

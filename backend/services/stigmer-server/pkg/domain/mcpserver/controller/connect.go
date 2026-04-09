@@ -21,12 +21,13 @@ import (
 )
 
 const (
-	connectWorkflowName = "stigmer/mcp-server/discover"
+	connectWorkflowName = "stigmer/mcp-server/connect"
 	connectTimeout      = 45 * time.Second
 	personalEnvLabel    = "stigmer.ai/personal"
 )
 
-// connectWorkflowInput matches the Python DiscoverMcpServerInput dataclass.
+// connectWorkflowInput matches the Python DiscoverMcpServerInput dataclass
+// used by ConnectMcpServerWorkflow (discover + classify).
 //
 // Follows the slim-payload pattern: only reference IDs are passed through
 // Temporal. The Python activity reads environment variables from the
