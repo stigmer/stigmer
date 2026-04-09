@@ -78,7 +78,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build protos codegen gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check
+.PHONY: build protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check
 build: ## Build the Stigmer CLI binary
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -136,7 +136,10 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 	fi; \
 	echo "✓ React SDK docs are up to date"
 
-codegen: protos gen-sdk-docs ## Regenerate all derived code (stubs + SDK docs)
+gen-narration: ## Generate narration audio for demo scenarios
+	$(MAKE) -C site generate-narration
+
+codegen: protos gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
 
 # ─── Test ─────────────────────────────────────
 
