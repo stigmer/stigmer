@@ -12,7 +12,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Tech Stack**: Protobuf, Python/LangChain (agent-runner), Java/Spring (stigmer-cloud), TypeScript/React (SDK), OpenFGA
 
-## Task Summary (4 phases)
+## Task Summary (4 phases + follow-up)
 
 | Task | Name | Scope | Status |
 |------|------|-------|--------|
@@ -20,55 +20,56 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Python Classifier + Connect Workflow + Graphton Backfill | agent-runner | **COMPLETE** |
 | T03 | Java Handlers + Auth Wiring + FGA Deploy | stigmer-cloud | **COMPLETE** |
 | T04 | React SDK + UI Redesign + Cleanup | stigmer OSS sdk/react | **COMPLETE** |
+| T05 | Docs, Demos, and Site Updates | stigmer OSS docs/site | **COMPLETE** |
 
 ## Current State
-- **Status**: ALL PHASES COMPLETE (T01 + T02 + T03 + T04)
-- **Last Session**: April 9, 2026 (Session 4) — T04 fully implemented
+- **Status**: ALL TASKS COMPLETE (T01–T05)
+- **Last Session**: April 9, 2026 (Session 5) — docs/demos/site fully updated
 - **Active Task**: None — project complete
 
-## Session Progress (2026-04-09, Session 4)
+## Session Progress (2026-04-09, Session 5)
 
 ### What was accomplished
-- **T04: React SDK + UI Redesign + Cleanup** (stigmer OSS sdk/react + client-apps/web)
-  - **New: `useMcpServerConnect.ts`** — clean domain-aligned hook
-    - `connect()`, `isConnecting`, `error`, `clearError`
-    - Calls `stigmer.mcpServer.connect(input)` (same RPC as before, renamed API)
-  - **Rewritten: `McpServerDetailView.tsx`** (1126 → 817 lines)
-    - ConnectBar above tabs: single Connect/Reconnect button with credential gating
-    - ToolsTabContent: pure read-only tool list (no action bar)
-    - PoliciesTabContent: two visual groups — Pinned (pin icon) + Auto-classified (sparkle icon)
-    - New icons: ConnectIcon, PinIcon, Spinner
-    - Removed: `onPolicySessionCreated` prop, policy generation callbacks
-  - **Deleted: 3 files, 551 lines removed**
-    - `useDiscoverCapabilities.ts` (120 lines) — replaced by `useMcpServerConnect`
-    - `useTriggerApprovalPolicySession.ts` (265 lines) — deep-agent policy generation eliminated
-    - `ApprovalPolicyGeneratorPanel.tsx` (166 lines) — inline streaming panel removed
-  - **Updated exports**: barrel exports in `index.ts` and `src/index.ts`
-  - **Updated demo fixtures**: `discoverCapabilities` → `connect`, stale JSDoc cleanup
-  - **Updated Console**: `McpServerDetailPage.tsx` — removed `onPolicySessionCreated` and `useSessionNavigation`
+- **T05: Documentation, Demos, and Site Updates** (stigmer OSS docs + site)
+  - Ran `make codegen` — full pipeline from protos through stubs, all SDKs, and SDK docs
+  - Fixed broken fixture data in `mcp-server-detail/index.tsx` and `preview-configs.ts`
+  - Created new `connect-playback` demo (6-step unified Connect flow)
+  - Deleted old `discover-capabilities-playback` and `generate-policies-playback` demos
+  - Merged connect-tools-tour from 6 beats to 5 (combined discover + policies into single "connected" beat)
+  - Updated demo wiring: exports, MDX component map, scenario registry
+  - Removed stale narration manifests and audio files for deleted demos
+  - Rewrote `connect-tools.mdx` tutorial — merged Discover + Generate steps into single Connect step
+  - Updated `concepts/tools.mdx`, `concepts/approval-flows.mdx`, `vocabulary.md` for new field names
+  - Fixed JSDoc in `McpToolSelector.tsx` and `McpServerConfigPanel.tsx`
+  - Fixed `apis/.../mcpserver/docs/overview.md` YAML example
+  - Regenerated SDK docs to pick up all source fixes
+  - Verified: site builds cleanly, zero stale references remain
 
 ### Key decisions made
-- **ConnectBar is internal** (not exported) — hook is the headless integration point
-- **Full transparency in Policies tab** — both pinned and auto-classified shown, no deduplication
-- **No deprecation path** — pre-1.0 platform, clean rename
+- New `connect-playback` demo replaces both old playback demos
+- Connect-tools-tour merged to 5 beats (policies tab shown as the combined result)
+- Approval flows concepts page now explains two-tier model (auto-classified + pinned)
+- Tutorial keeps policies callout minimal — two-tier detail deferred to concepts page
 
-### Files modified (T04 scope)
-- **stigmer** repo: 1 new file, 5 modified files, 3 deleted files, +281 −914 lines
-- **TypeScript**: `sdk/react` and `client-apps/web` both compile cleanly
-- **ESLint**: `client-apps/web` passes
+### Files modified (55 files, +147 −1591 lines)
+- **docs/**: 5 hand-written pages, 2 auto-generated SDK docs
+- **site/src/**: 7 modified files, 4 deleted files, 2 new files
+- **sdk/react/src/**: 2 JSDoc fixes
+- **apis/**: 1 overview.md update
+- **site/public/demos/**: 6 narration files deleted
 
-## Follow-Up Tasks
+## Remaining Follow-Up
 
-1. **Docs update**: `docs/sdk/react/mcp-server.mdx` references deleted hooks/components
-2. **Site demos**: 3 demo scenario files use deleted proto constructs (`DiscoverySource`, `defaultToolApprovals`)
-3. **Generated docs**: `sdk/react/typedoc-output.json` will regenerate on next build
+1. **Narration regeneration**: Run `make generate-narration` to create audio for the new `connect-playback` and updated `connect-tools-tour` demos
+2. **stigmer-cloud uncommitted change**: `McpServerConnectHandler.java` has a pending change (separate repo)
 
 ## Context for Resume
+- T05 plan file: `/Users/suresh/.cursor/plans/mcp_docs_and_demos_update_b577450a.plan.md`
 - T04 plan file: `/Users/suresh/.cursor/plans/t04_react_sdk_connect_18636d2f.plan.md`
 - T02 plan file: `/Users/suresh/.cursor/plans/t02_connect_workflow_56354de5.plan.md`
 - T03 plan file: `/Users/suresh/.cursor/plans/t03_java_connect_handler_2c7830b8.plan.md`
 - T01 plan file: `/Users/suresh/.cursor/plans/t01_proto_fga_codegen_69f35673.plan.md`
-- The full connect flow is now wired end-to-end: Proto → Python classifier → Java handler → React SDK
+- The full connect flow is now wired end-to-end: Proto → Python classifier → Java handler → React SDK → Docs + Demos
 - FGA model is deployed to production with `can_connect: viewer`
 - The old `DiscoverMcpServerWorkflow` is retained in Python for in-flight backward compat
 
@@ -76,7 +77,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260408.02.mcp-connect-flow/checkpoints/2026-04-09-session-4.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260408.02.mcp-connect-flow/checkpoints/2026-04-09-session-5.md
 ```
 
 ### 2. Task Plans
