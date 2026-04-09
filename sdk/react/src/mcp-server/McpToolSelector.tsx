@@ -11,7 +11,7 @@ import { ScrollFade } from "../internal/ScrollFade";
 export interface McpToolSelectorProps {
   /** Discovered tools from `status.discovered_capabilities.tools`. */
   readonly tools: DiscoveredTool[];
-  /** Approval policies from `spec.default_tool_approvals`. */
+  /** Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`. */
   readonly toolApprovals: ToolApprovalPolicy[];
   /** Currently enabled tool names (controlled). */
   readonly enabledTools: string[];

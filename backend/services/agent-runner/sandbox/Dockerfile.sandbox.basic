@@ -1,10 +1,14 @@
-# Lightweight Basic Sandbox (~300MB)
-# Python + Node + Git only - No cloud CLIs
+# Basic Sandbox (~500MB)
+# Python + Node + Go + uv/uvx + Git — all MCP server runtimes included
+#
+# Covers the three MCP server distribution methods:
+#   npx    — npm packages      (e.g., npx @modelcontextprotocol/server-github)
+#   uvx    — Python packages   (e.g., uvx mcp-server-sqlite)
+#   go run — Go modules        (e.g., go run github.com/org/mcp-server@latest)
 #
 # Use this for:
-# - Basic isolation without bloat
+# - Daytona sandboxes (default image for agent execution)
 # - CI/CD pipelines
-# - Users without local tools
 # - Quick testing in clean environment
 
 FROM python:3.11-slim
@@ -28,6 +32,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Verify Node.js installation
 RUN node --version && npm --version
 
+# Go toolchain (for 'go run' of Go-based MCP servers)
+COPY --from=public.ecr.aws/docker/library/golang:1.25 /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# uv / uvx (Python package runner — the PyPI equivalent of npx)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
 # Set working directory
 WORKDIR /workspace
 
@@ -36,19 +47,27 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
     rm /tmp/requirements.txt
 
-# Create non-root user for security
+# Create non-root user for security (UID 1000 = standard first non-privileged user)
 RUN groupadd -g 1000 sandbox && \
-    useradd -r -u 1000 -g sandbox sandbox && \
-    chown -R sandbox:sandbox /workspace
+    useradd -r -u 1000 -g sandbox -m sandbox && \
+    mkdir -p /home/sandbox/go && \
+    chown -R sandbox:sandbox /workspace /home/sandbox/go
+
+ENV GOPATH="/home/sandbox/go"
+ENV PATH="${GOPATH}/bin:${PATH}"
 
 # Switch to non-root user
 USER sandbox
 
-# Verify installations
+# Verify all runtimes are available under the non-root user
 RUN python --version && \
     pip --version && \
     node --version && \
     npm --version && \
+    npx --version && \
+    go version && \
+    uv --version && \
+    uvx --version && \
     git --version && \
     curl --version && \
     jq --version

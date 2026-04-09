@@ -33,7 +33,7 @@ func main() {
 		// Step 1: Create MCP Server for testing
 		// ============================================================================
 		// Using filesystem MCP server which is commonly available.
-		// In a real test environment, you would configure default_tool_approvals
+		// In a real test environment, you would configure pinned_tool_approvals
 		// on this server to require approval for write operations.
 		testMcpServer, err := mcpserver.Stdio(
 			mcpserver.WithName("hitl-test-mcp-server"),
@@ -112,6 +112,6 @@ Always be helpful and follow the user's instructions.`,
 
 	log.Println("✅ HITL approval test fixtures created successfully!")
 	log.Println("")
-	log.Println("Note: To enable approval requirements, configure default_tool_approvals")
+	log.Println("Note: To enable approval requirements, configure pinned_tool_approvals")
 	log.Println("on the MCP server via the API or stigmer-service configuration.")
 }

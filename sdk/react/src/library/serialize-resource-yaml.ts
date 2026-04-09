@@ -266,9 +266,9 @@ function buildMcpServerSpec(
     result.default_enabled_tools = [...spec.defaultEnabledTools];
   }
 
-  if (spec.defaultToolApprovals.length > 0) {
-    result.default_tool_approvals =
-      spec.defaultToolApprovals.map(serializeToolApprovalPolicy);
+  if (spec.pinnedToolApprovals.length > 0) {
+    result.pinned_tool_approvals =
+      spec.pinnedToolApprovals.map(serializeToolApprovalPolicy);
   }
 
   if (spec.envSpec) {

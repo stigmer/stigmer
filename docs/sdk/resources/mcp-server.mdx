@@ -6,7 +6,9 @@ title: MCP Server
 
 An MCP Server defines a reusable tool provider that agents can connect to via the
 Model Context Protocol. It declares the server type (stdio or HTTP), connection
-details, required environment variables, and default tool approval policies.
+details, and required environment variables. Tool approval policies are
+auto-classified when you connect, and manual overrides go in
+`pinned_tool_approvals`.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -24,7 +26,7 @@ spec:
       GITHUB_TOKEN:
         is_secret: true
         description: "GitHub personal access token"
-  default_tool_approvals:
+  pinned_tool_approvals:
     - tool_name: delete_repository
       message: "Delete repository: {{args.repo}}"
 ```
@@ -63,10 +65,9 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`apply`](#apply) | Create or update an MCP server resource. |
 | [`create`](#create) | Create an MCP server resource. |
 | [`update`](#update) | Update an existing MCP server resource. |
-| [`updateDiscoveredCapabilities`](#updatediscoveredcapabilities) | Update the discovered capabilities (tools and resource templates) for an MCP server. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing MCP server. |
 | [`delete`](#delete) | Delete an MCP server resource. |
-| [`discoverCapabilities`](#discovercapabilities) | Discover the capabilities of an MCP server by connecting to it. |
+| [`connect`](#connect) | Connect to an MCP server: discover its tools and classify approval policies. |
 
 ### get
 
@@ -176,24 +177,26 @@ const mcpServer = await stigmer.mcpServer.apply({
   http: {},
   defaultEnabledTools: [],
   envSpec: {},
-  defaultToolApprovals: [],
+  source: {},
+  pinnedToolApprovals: [],
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
-  Name:                 "my-mcp-server",
-  Org:                  "acme",
-  Slug:                 "...",
-  Labels:               map[string]string{},
-  Description:          "...",
-  IconUrl:              "...",
-  Stdio:                &stigmer.StdioServerConfigInput{},
-  Http:                 &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools:  []string{},
-  EnvSpec:              &stigmer.EnvSpecInput{},
-  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  Name:                "my-mcp-server",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  IconUrl:             "...",
+  Stdio:               &stigmer.StdioServerConfigInput{},
+  Http:                &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools: []string{},
+  EnvSpec:             &stigmer.EnvSpecInput{},
+  Source:              &stigmer.McpServerSourceInput{},
+  PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
 })
 ```
 </Tab>
@@ -210,7 +213,8 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     http=None,
     default_enabled_tools=[],
     env_spec=None,
-    default_tool_approvals=[],
+    source=None,
+    pinned_tool_approvals=[],
 ))
 ```
 </Tab>
@@ -227,7 +231,8 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .http(null)
     .defaultEnabledTools(List.of())
     .envSpec(null)
-    .defaultToolApprovals(List.of())
+    .source(null)
+    .pinnedToolApprovals(List.of())
     .build());
 ```
 </Tab>
@@ -257,24 +262,26 @@ const mcpServer = await stigmer.mcpServer.create({
   http: {},
   defaultEnabledTools: [],
   envSpec: {},
-  defaultToolApprovals: [],
+  source: {},
+  pinnedToolApprovals: [],
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
-  Name:                 "my-mcp-server",
-  Org:                  "acme",
-  Slug:                 "...",
-  Labels:               map[string]string{},
-  Description:          "...",
-  IconUrl:              "...",
-  Stdio:                &stigmer.StdioServerConfigInput{},
-  Http:                 &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools:  []string{},
-  EnvSpec:              &stigmer.EnvSpecInput{},
-  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  Name:                "my-mcp-server",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  IconUrl:             "...",
+  Stdio:               &stigmer.StdioServerConfigInput{},
+  Http:                &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools: []string{},
+  EnvSpec:             &stigmer.EnvSpecInput{},
+  Source:              &stigmer.McpServerSourceInput{},
+  PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
 })
 ```
 </Tab>
@@ -291,7 +298,8 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     http=None,
     default_enabled_tools=[],
     env_spec=None,
-    default_tool_approvals=[],
+    source=None,
+    pinned_tool_approvals=[],
 ))
 ```
 </Tab>
@@ -308,7 +316,8 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .http(null)
     .defaultEnabledTools(List.of())
     .envSpec(null)
-    .defaultToolApprovals(List.of())
+    .source(null)
+    .pinnedToolApprovals(List.of())
     .build());
 ```
 </Tab>
@@ -336,24 +345,26 @@ const mcpServer = await stigmer.mcpServer.update({
   http: {},
   defaultEnabledTools: [],
   envSpec: {},
-  defaultToolApprovals: [],
+  source: {},
+  pinnedToolApprovals: [],
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
-  Name:                 "my-mcp-server",
-  Org:                  "acme",
-  Slug:                 "...",
-  Labels:               map[string]string{},
-  Description:          "...",
-  IconUrl:              "...",
-  Stdio:                &stigmer.StdioServerConfigInput{},
-  Http:                 &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools:  []string{},
-  EnvSpec:              &stigmer.EnvSpecInput{},
-  DefaultToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  Name:                "my-mcp-server",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  IconUrl:             "...",
+  Stdio:               &stigmer.StdioServerConfigInput{},
+  Http:                &stigmer.HttpServerConfigInput{},
+  DefaultEnabledTools: []string{},
+  EnvSpec:             &stigmer.EnvSpecInput{},
+  Source:              &stigmer.McpServerSourceInput{},
+  PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
 })
 ```
 </Tab>
@@ -370,7 +381,8 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     http=None,
     default_enabled_tools=[],
     env_spec=None,
-    default_tool_approvals=[],
+    source=None,
+    pinned_tool_approvals=[],
 ))
 ```
 </Tab>
@@ -387,58 +399,14 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .http(null)
     .defaultEnabledTools(List.of())
     .envSpec(null)
-    .defaultToolApprovals(List.of())
+    .source(null)
+    .pinnedToolApprovals(List.of())
     .build());
 ```
 </Tab>
 </SDKTabs>
 
 **Parameters**: [`McpServerInput`](#mcpserverinput)
-
-**Returns**: [`McpServer`](#mcpserver)
-
-### updateDiscoveredCapabilities
-
-Update the discovered capabilities (tools and resource templates) for an MCP server.
-
-Only modifies status.discovered_capabilities, leaving spec, validation state, and other status fields untouched.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const mcpServer = await stigmer.mcpServer.updateDiscoveredCapabilities({
-  mcpServerId: "...",
-  discoveredCapabilities: {},
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-mcpServer, err := client.McpServer.UpdateDiscoveredCapabilities(ctx, &stigmer.UpdateDiscoveredCapabilitiesInput{
-  McpServerId:            "...",
-  DiscoveredCapabilities: &stigmer.DiscoveredCapabilitiesInput{},
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-mcp_server = client.mcp_servers.update_discovered_capabilities(UpdateDiscoveredCapabilitiesInput(
-    mcp_server_id="...",
-    discovered_capabilities=None,
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-McpServer mcpServer = client.mcpServers().updateDiscoveredCapabilities(UpdateDiscoveredCapabilitiesInput.builder()
-    .mcpServerId("...")
-    .discoveredCapabilities(null)
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`UpdateDiscoveredCapabilitiesInput`](#updatediscoveredcapabilitiesinput)
 
 **Returns**: [`McpServer`](#mcpserver)
 
@@ -530,16 +498,16 @@ McpServer mcpServer = client.mcpServers().delete(DeleteResourceInput.builder()
 
 **Returns**: [`McpServer`](#mcpserver)
 
-### discoverCapabilities
+### connect
 
-Discover the capabilities of an MCP server by connecting to it.
+Connect to an MCP server: discover its tools and classify approval policies.
 
-Connects to the MCP server, enumerates tools and resource templates, and stores the result. Blocks until discovery completes (up to ~30 seconds) and returns the updated McpServer with populated status.discovered_capabilities.
+Connects to the MCP server, enumerates tools and resource templates, classifies tool approval policies via a lightweight LLM, and stores the results in status.discovered_capabilities and status.tool_approvals. Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const mcpServer = await stigmer.mcpServer.discoverCapabilities({
+const mcpServer = await stigmer.mcpServer.connect({
   mcpServerId: "...",
   runtimeEnv: {},
 });
@@ -547,7 +515,7 @@ const mcpServer = await stigmer.mcpServer.discoverCapabilities({
 </Tab>
 <Tab value="Go">
 ```go
-mcpServer, err := client.McpServer.DiscoverCapabilities(ctx, &stigmer.DiscoverCapabilitiesInput{
+mcpServer, err := client.McpServer.Connect(ctx, &stigmer.ConnectInput{
   McpServerId: "...",
   RuntimeEnv:  map[string]string{},
 })
@@ -555,7 +523,7 @@ mcpServer, err := client.McpServer.DiscoverCapabilities(ctx, &stigmer.DiscoverCa
 </Tab>
 <Tab value="Python">
 ```python
-mcp_server = client.mcp_servers.discover_capabilities(DiscoverCapabilitiesInput(
+mcp_server = client.mcp_servers.connect(ConnectInput(
     mcp_server_id="...",
     runtime_env={},
 ))
@@ -563,7 +531,7 @@ mcp_server = client.mcp_servers.discover_capabilities(DiscoverCapabilitiesInput(
 </Tab>
 <Tab value="Java">
 ```java
-McpServer mcpServer = client.mcpServers().discoverCapabilities(DiscoverCapabilitiesInput.builder()
+McpServer mcpServer = client.mcpServers().connect(ConnectInput.builder()
     .mcpServerId("...")
     .runtimeEnv(Map.of())
     .build());
@@ -571,7 +539,7 @@ McpServer mcpServer = client.mcpServers().discoverCapabilities(DiscoverCapabilit
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`DiscoverCapabilitiesInput`](#discovercapabilitiesinput)
+**Parameters**: [`ConnectInput`](#connectinput)
 
 **Returns**: [`McpServer`](#mcpserver)
 
@@ -593,7 +561,8 @@ Input for creating or updating a MCP Server.
     http: { type: "HttpServerConfigInput", description: "HTTP-based server (HTTP + Server-Sent Events communication).", typeDescriptionLink: "#httpserverconfiginput" },
     defaultEnabledTools: { type: "string[]", description: "Default tools to enable from this MCP server." },
     envSpec: { type: "EnvSpecInput", description: "Environment variables required by the MCP server.", typeDescriptionLink: "#envspecinput" },
-    defaultToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Default tool approval policies for this MCP server.", typeDescriptionLink: "#toolapprovalpolicyinput" },
+    source: { type: "McpServerSourceInput", description: "Source/provenance of this MCP server definition.", typeDescriptionLink: "#mcpserversourceinput" },
+    pinnedToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Manual tool approval overrides set by the MCP server owner.", typeDescriptionLink: "#toolapprovalpolicyinput" },
   }}
 />
 
@@ -645,6 +614,20 @@ EnvironmentValue represents a single configuration or secret entry.
   }}
 />
 
+### McpServerSourceInput
+
+McpServerSource tracks provenance for MCP server definitions that were imported from an external registry or catalog via automated sync.
+
+<TypeTable
+  type={{
+    registry: { type: "string", description: "Registry or catalog this definition was sourced from." },
+    registryName: { type: "string", description: "Name/identifier in the source registry (exact, unmodified)." },
+    version: { type: "string", description: "Version from the source registry at the time of last sync." },
+    repositoryUrl: { type: "string", description: "Repository URL for the MCP server source code." },
+    lastSyncedAt: { type: "string", description: "Timestamp of last successful sync from the source." },
+  }}
+/>
+
 ### ToolApprovalPolicyInput
 
 ToolApprovalPolicy defines approval requirements for a specific tool.
@@ -667,25 +650,14 @@ Input for updating the visibility of any API resource.
   }}
 />
 
-### UpdateDiscoveredCapabilitiesInput
+### ConnectInput
 
-UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.
-
-<TypeTable
-  type={{
-    mcpServerId: { type: "string", description: "System-generated ID of the MCP server to update.", required: true },
-    discoveredCapabilities: { type: "DiscoveredCapabilitiesInput", description: "Discovered tools and resource templates to store.", required: true },
-  }}
-/>
-
-### DiscoverCapabilitiesInput
-
-DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
+ConnectInput is the request for the connect RPC.
 
 <TypeTable
   type={{
-    mcpServerId: { type: "string", description: "System-generated ID of the MCP server to discover.", required: true },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time discovery.", typeDescriptionLink: "#envvarinput" },
+    mcpServerId: { type: "string", description: "System-generated ID of the MCP server to connect to.", required: true },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use.", typeDescriptionLink: "#envvarinput" },
   }}
 />
 
@@ -725,6 +697,7 @@ McpServerStatus represents the system-managed state of an MCP server definition.
     validationState: { type: "ValidationState", description: "Validation state of the MCP server definition.", typeDescriptionLink: "#validationstate" },
     validationMessage: { type: "string", description: "Human-readable validation message." },
     discoveredCapabilities: { type: "DiscoveredCapabilities", description: "Tools and resource templates discovered from the MCP server.", typeDescriptionLink: "#discoveredcapabilities" },
+    toolApprovals: { type: "ToolApprovalPolicy[]", description: "System-generated tool approval policies.", typeDescriptionLink: "#toolapprovalpolicy" },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />
@@ -738,7 +711,6 @@ DiscoveredCapabilities holds the tools and resource templates reported by an MCP
     tools: { type: "DiscoveredTool[]", description: "Callable tools reported by the MCP server.", typeDescriptionLink: "#discoveredtool" },
     resourceTemplates: { type: "DiscoveredResourceTemplate[]", description: "Read-only data endpoints reported by the MCP server.", typeDescriptionLink: "#discoveredresourcetemplate" },
     lastDiscoveredAt: { type: "string", description: "When this snapshot was captured." },
-    discoveredBy: { type: "DiscoverySource", description: "How this snapshot was produced.", typeDescriptionLink: "#discoverysource" },
   }}
 />
 
@@ -767,6 +739,17 @@ DiscoveredTool describes a single tool reported by an MCP server.
   }}
 />
 
+### ToolApprovalPolicy
+
+ToolApprovalPolicy defines approval requirements for a specific tool.
+
+<TypeTable
+  type={{
+    toolName: { type: "string", description: "Name of the tool (must match tools/list from MCP server exactly)." },
+    message: { type: "string", description: "Human-readable message shown to user when approval is requested." },
+  }}
+/>
+
 ### ValidationState
 
 ValidationState represents the structural validity of an MCP server definition.
@@ -775,15 +758,4 @@ ValidationState represents the structural validity of an MCP server definition.
 |-------|-------------|
 | `valid` | The MCP server definition is structurally valid. |
 | `invalid` | The MCP server definition is invalid. |
-
-### DiscoverySource
-
-DiscoverySource identifies how discovered capabilities were obtained.
-
-| Value | Description |
-|-------|-------------|
-| `seedpack` | Statically defined in the seedpack (built-in servers with known tool sets). |
-| `cli` | Discovered by the CLI via `stigmer discover mcp-server <name>`. |
-| `agent_runner` | Discovered by the agent-runner at runtime (future). |
-| `api` | Discovered via the discoverCapabilities RPC (web console or API). |
 

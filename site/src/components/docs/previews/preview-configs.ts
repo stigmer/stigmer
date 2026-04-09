@@ -381,7 +381,7 @@ function buildRichMcpServer() {
   server.spec = create(McpServerSpecSchema, {
     description: server.spec!.description,
     defaultEnabledTools: ["get_order", "list_orders"],
-    defaultToolApprovals: [
+    pinnedToolApprovals: [
       create(ToolApprovalPolicySchema, {
         toolName: "process_return",
         message: "This tool processes refunds. Approve to continue.",

@@ -109,7 +109,7 @@ spec:
          choose `stdio`.
        - **Tool gates**: `default_enabled_tools` sets the ceiling for all
          agents. Exclude destructive tools unless explicitly requested.
-       - **Approval policies**: `default_tool_approvals` for operations that
+       - **Approval policies**: `pinned_tool_approvals` for operations that
          delete, modify state irreversibly, or send external communications.
          Use `{{args.field}}` in messages (not `${field}`).
        - **Credential schema**: `env_spec` declares what the server needs.

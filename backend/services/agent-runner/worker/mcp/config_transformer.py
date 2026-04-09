@@ -1,20 +1,26 @@
 """Configuration transformer for MCP servers.
 
-Transforms Stigmer McpServerSpec proto messages into LangGraph's 
+Transforms Stigmer McpServerSpec proto messages into LangGraph's
 MultiServerMCPClient format. This module handles:
 - Stdio transport configuration (subprocess-based MCP servers)
 - HTTP transport configuration (remote MCP servers)
-- Placeholder resolution for environment variables (${VAR_NAME})
+- ${VAR_NAME} placeholder resolution in stdio args and HTTP headers/query params
 - Tool filtering from McpServerUsage.enabled_tools
+
+Placeholder resolution:
+    Stdio args use **strict** mode — a missing variable raises
+    PlaceholderResolutionError to prevent confusing subprocess failures.
+    HTTP headers/query params use **lenient** mode for backward
+    compatibility (unresolved placeholders are preserved with a warning).
 
 LangGraph expects server configurations in specific formats:
 
 Stdio transport:
     {
         "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "args": ["-y", "@modelcontextprotocol/server-postgres", "postgres://..."],
         "transport": "stdio",
-        "env": {"GITHUB_TOKEN": "..."}
+        "env": {"POSTGRES_URL": "postgres://..."}
     }
 
 HTTP transport (Streamable HTTP):
@@ -41,12 +47,20 @@ from ai.stigmer.agentic.mcpserver.v1.spec_pb2 import (
 )
 
 # Import placeholder resolution from dedicated module
-from worker.mcp.placeholder_resolver import PlaceholderResolver
+from worker.mcp.placeholder_resolver import (
+    PlaceholderResolutionError,
+    PlaceholderResolver,
+)
 
 logger = logging.getLogger(__name__)
 
-# Module-level resolver instance (lenient mode for backward compatibility)
+# Module-level resolver instances.
+# HTTP headers/query params use lenient mode for backward compatibility —
+# unresolved placeholders are preserved with a warning.
+# Stdio args use strict mode because an unresolved placeholder in a CLI
+# argument would cause a confusing server startup failure.
 _resolver = PlaceholderResolver(strict=False)
+_strict_resolver = PlaceholderResolver(strict=True)
 
 # Platform infrastructure env vars that the agent-runner auto-injects into MCP
 # server subprocesses when declared in the server's env_spec but absent from
@@ -231,33 +245,81 @@ def transform_mcp_config(
     return config, tools
 
 
+def _resolve_stdio_args(
+    args: list[str],
+    env_vars: dict[str, str],
+) -> list[str]:
+    """Resolve ${VAR_NAME} placeholders in stdio arguments.
+
+    MCP servers that take configuration as positional CLI arguments
+    (e.g. PostgreSQL connection URL, Filesystem paths) need their args
+    interpolated from the user's environment at runtime.
+
+    Uses strict mode: a missing variable raises PlaceholderResolutionError
+    rather than silently passing a literal ``${VAR}`` to the subprocess,
+    which would produce a confusing server startup failure.
+
+    Args:
+        args: Raw argument list, potentially containing ${VAR_NAME} placeholders.
+        env_vars: Resolved environment variables for substitution.
+
+    Returns:
+        New list with all placeholders resolved.
+
+    Raises:
+        PlaceholderResolutionError: If any placeholder references a variable
+            not present in env_vars.
+    """
+    if not args:
+        return []
+
+    resolved: list[str] = []
+    for i, arg in enumerate(args):
+        resolved.append(
+            _strict_resolver.resolve(arg, env_vars, context=f"stdio arg[{i}]")
+        )
+    return resolved
+
+
 def _transform_stdio_config(
     stdio: StdioServerConfig,
     env_vars: dict[str, str],
 ) -> dict[str, Any]:
     """Transform StdioServerConfig to LangGraph stdio format.
-    
+
+    Arguments containing ${VAR_NAME} placeholders are resolved against
+    env_vars before being placed in the config. This enables MCP servers
+    that take core configuration as positional CLI arguments (e.g.
+    database connection URLs, directory paths) to be parameterized
+    per-user through env_spec — the same mechanism used for servers
+    that read from process environment variables.
+
     Args:
         stdio: StdioServerConfig proto message.
-        env_vars: Environment variables to pass to the subprocess.
-        
+        env_vars: Environment variables for placeholder resolution and
+            subprocess environment.
+
     Returns:
         Dictionary with stdio transport configuration.
+
+    Raises:
+        PlaceholderResolutionError: If an arg contains a ${VAR_NAME}
+            placeholder that cannot be resolved from env_vars.
     """
     config: dict[str, Any] = {
         "transport": "stdio",
         "command": stdio.command,
-        "args": list(stdio.args) if stdio.args else [],
+        "args": _resolve_stdio_args(list(stdio.args) if stdio.args else [], env_vars),
     }
-    
+
     # Include environment variables for the subprocess
     if env_vars:
         config["env"] = dict(env_vars)
-    
+
     # Include working directory if specified
     if stdio.working_dir:
         config["cwd"] = stdio.working_dir
-    
+
     return config
 
 
@@ -386,7 +448,7 @@ def transform_all_mcp_configs(
             result_servers[slug] = config
             result_tools[slug] = tools
             
-        except ValueError as e:
+        except (ValueError, PlaceholderResolutionError) as e:
             logger.error(f"Failed to transform MCP server '{slug}': {e}")
             continue
     

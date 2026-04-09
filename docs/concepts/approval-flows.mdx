@@ -35,7 +35,7 @@ override the one above it.
 <Mermaid
   chart={`
 graph TD
-  M["MCP Server<br/>default_tool_approvals"] --> A["Agent<br/>tool_approval_overrides"]
+  M["MCP Server<br/>tool_approvals + pinned_tool_approvals"] --> A["Agent<br/>tool_approval_overrides"]
   A --> S["Session<br/>tool_approval_overrides"]
   S --> R["Runtime<br/>auto_approve_all"]
 `}
@@ -43,15 +43,22 @@ graph TD
 
 ### 1. MCP Server defaults
 
-The [MCP Server](/docs/concepts/tools) resource defines default approval
-policies for its tools. These apply to every Agent that uses this server:
+The [MCP Server](/docs/concepts/tools) resource carries approval policies at two
+levels. System-generated policies live in `status.tool_approvals` — Stigmer
+classifies each tool automatically when you click Connect. Manual overrides live
+in `spec.pinned_tool_approvals` — these persist across reconnects and take
+precedence over the automatic classifications:
 
 ```yaml
-# In the McpServer definition
-spec:
-  default_tool_approvals:
+# Auto-classified (status.tool_approvals) — regenerated on each Connect
+status:
+  tool_approvals:
     - tool_name: process_return
       message: "Process return for order '{{args.order_id}}'"
+
+# Manual overrides (spec.pinned_tool_approvals) — set by the server owner
+spec:
+  pinned_tool_approvals:
     - tool_name: delete_agent
       message: "Permanently delete agent '{{args.slug}}'"
 ```

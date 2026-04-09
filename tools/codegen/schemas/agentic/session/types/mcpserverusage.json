@@ -43,7 +43,7 @@
           "messageType": "ToolApprovalOverride"
         }
       },
-      "description": "Override approval requirements for specific tools.\n Takes precedence over McpServer.default_tool_approvals.",
+      "description": "Override approval requirements for specific tools.\n Takes precedence over McpServerSpec.pinned_tool_approvals and\n McpServerStatus.tool_approvals.",
       "required": false
     }
   ]

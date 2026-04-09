@@ -2,8 +2,7 @@ import type { ComponentType } from "react";
 import { AgentCreationTour } from "./agent-creation-tour";
 import { ApiKeySetup } from "./api-key-setup";
 import { ApprovalFlowPlayback } from "./approval-flow-playback";
-import { DiscoverCapabilitiesPlayback } from "./discover-capabilities-playback";
-import { GeneratePoliciesPlayback } from "./generate-policies-playback";
+import { ConnectPlayback } from "./connect-playback";
 import { McpServerCreationTour } from "./mcp-server-creation-tour";
 import { QuickstartPlayback } from "./quickstart-playback";
 import { SessionMemoryPlayback } from "./session-memory-playback";
@@ -32,8 +31,7 @@ export const SCENARIO_REGISTRY: Record<string, ComponentType> = {
   "agent-creation-tour": AgentCreationTour,
   "api-key-setup": ApiKeySetup,
   "approval-flow-playback": ApprovalFlowPlayback,
-  "discover-capabilities-playback": DiscoverCapabilitiesPlayback,
-  "generate-policies-playback": GeneratePoliciesPlayback,
+  "connect-playback": ConnectPlayback,
   "mcp-server-creation-tour": McpServerCreationTour,
   "quickstart-playback": QuickstartPlayback,
   "session-memory-playback": SessionMemoryPlayback,

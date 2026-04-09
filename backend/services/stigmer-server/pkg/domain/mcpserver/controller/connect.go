@@ -21,25 +21,26 @@ import (
 )
 
 const (
-	discoverWorkflowName = "stigmer/mcp-server/discover"
-	discoverTimeout      = 45 * time.Second
-	personalEnvLabel     = "stigmer.ai/personal"
+	connectWorkflowName = "stigmer/mcp-server/connect"
+	connectTimeout      = 45 * time.Second
+	personalEnvLabel    = "stigmer.ai/personal"
 )
 
-// discoverWorkflowInput matches the Python DiscoverMcpServerInput dataclass.
+// connectWorkflowInput matches the Python DiscoverMcpServerInput dataclass
+// used by ConnectMcpServerWorkflow (discover + classify).
 //
 // Follows the slim-payload pattern: only reference IDs are passed through
 // Temporal. The Python activity reads environment variables from the
 // pre-created ExecutionContext, keeping secrets out of Temporal's durable
 // workflow history.
-type discoverWorkflowInput struct {
+type connectWorkflowInput struct {
 	McpServerID              string `json:"mcp_server_id"`
 	ExecutionContextID       string `json:"execution_context_id,omitempty"`
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 }
 
-// discoverWorkflowOutput matches the Python DiscoverMcpServerOutput dataclass.
-type discoverWorkflowOutput struct {
+// connectWorkflowOutput matches the Python DiscoverMcpServerOutput dataclass.
+type connectWorkflowOutput struct {
 	Tools             []discoveredToolResult             `json:"tools"`
 	ResourceTemplates []discoveredResourceTemplateResult `json:"resource_templates"`
 }
@@ -57,8 +58,8 @@ type discoveredResourceTemplateResult struct {
 	MimeType    string `json:"mime_type"`
 }
 
-// DiscoverCapabilities triggers server-side MCP discovery via a Temporal workflow
-// on the agent-runner.
+// Connect triggers server-side MCP discovery and tool approval classification
+// via a Temporal workflow on the agent-runner.
 //
 // Lifecycle:
 //  1. Resolve environment variables (from runtime_env or personal environment)
@@ -67,13 +68,13 @@ type discoveredResourceTemplateResult struct {
 //  4. Block until the workflow completes
 //  5. Delete the ExecutionContext (defer cleanup)
 //  6. Store discovered capabilities on the McpServer resource
-func (c *McpServerController) DiscoverCapabilities(
+func (c *McpServerController) Connect(
 	ctx context.Context,
-	input *mcpserverv1.DiscoverCapabilitiesInput,
+	input *mcpserverv1.ConnectInput,
 ) (*mcpserverv1.McpServer, error) {
 	if c.temporalClient == nil {
 		return nil, grpclib.FailedPreconditionError(
-			"server-side discovery is not available: Temporal not configured",
+			"connect is not available: Temporal not configured",
 		)
 	}
 
@@ -87,9 +88,9 @@ func (c *McpServerController) DiscoverCapabilities(
 		return nil, grpclib.NotFoundError("mcp_server", mcpServerID)
 	}
 
-	executionID := fmt.Sprintf("discovery-%s-%s", mcpServerID, uuid.New().String()[:8])
+	executionID := fmt.Sprintf("connect-%s-%s", mcpServerID, uuid.New().String()[:8])
 
-	ecResourceID, err := c.createDiscoveryExecutionContext(
+	ecResourceID, err := c.createConnectExecutionContext(
 		ctx, mcpServer, executionID, input.GetRuntimeEnv(),
 	)
 	if err != nil {
@@ -97,15 +98,15 @@ func (c *McpServerController) DiscoverCapabilities(
 	}
 
 	if ecResourceID != "" {
-		defer c.deleteDiscoveryExecutionContext(ctx, ecResourceID, executionID)
+		defer c.deleteConnectExecutionContext(ctx, ecResourceID, executionID)
 	}
 
-	wfInput := discoverWorkflowInput{
+	wfInput := connectWorkflowInput{
 		McpServerID:        mcpServerID,
 		ExecutionContextID: executionID,
 	}
 
-	result, err := c.executeDiscoverWorkflow(ctx, mcpServerID, wfInput)
+	result, err := c.executeConnectWorkflow(ctx, mcpServerID, wfInput)
 	if err != nil {
 		return nil, err
 	}
@@ -117,26 +118,26 @@ func (c *McpServerController) DiscoverCapabilities(
 	mcpServer.Status.DiscoveredCapabilities = capabilities
 
 	if err := c.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_mcp_server, mcpServerID, mcpServer); err != nil {
-		return nil, grpclib.InternalError(err, "failed to save mcp server after discovery")
+		return nil, grpclib.InternalError(err, "failed to save mcp server after connect")
 	}
 
 	log.Info().
 		Str("mcp_server_id", mcpServerID).
 		Int("tools", len(capabilities.GetTools())).
 		Int("resource_templates", len(capabilities.GetResourceTemplates())).
-		Msg("MCP server discovery completed and stored")
+		Msg("MCP server connect completed and stored")
 
 	return mcpServer, nil
 }
 
-// createDiscoveryExecutionContext builds and persists an ephemeral ExecutionContext
-// for the discovery activity.
+// createConnectExecutionContext builds and persists an ephemeral ExecutionContext
+// for the connect activity.
 //
 // When runtime_env is provided, the values are used directly (one-time use).
 // When runtime_env is empty, values are resolved from the user's personal environment.
 // Returns the ExecutionContext resource ID (for cleanup) and an error.
 // Returns ("", nil) when the MCP server has no env_spec and no runtime_env.
-func (c *McpServerController) createDiscoveryExecutionContext(
+func (c *McpServerController) createConnectExecutionContext(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
 	executionID string,
@@ -150,7 +151,7 @@ func (c *McpServerController) createDiscoveryExecutionContext(
 		log.Info().
 			Str("execution_id", executionID).
 			Int("runtime_env_count", len(runtimeEnv)).
-			Msg("Using runtime_env for discovery ExecutionContext (one-time use)")
+			Msg("Using runtime_env for connect ExecutionContext (one-time use)")
 	} else {
 		envSpec := mcpServer.GetSpec().GetEnvSpec()
 		if envSpec == nil || len(envSpec.GetData()) == 0 {
@@ -171,7 +172,7 @@ func (c *McpServerController) createDiscoveryExecutionContext(
 		log.Info().
 			Str("execution_id", executionID).
 			Int("resolved_count", len(resolved)).
-			Msg("Resolved env vars from personal environment for discovery ExecutionContext")
+			Msg("Resolved env vars from personal environment for connect ExecutionContext")
 	}
 
 	if len(ecData) == 0 {
@@ -193,7 +194,7 @@ func (c *McpServerController) createDiscoveryExecutionContext(
 
 	created, err := c.executionCtxClient.Create(ctx, ec)
 	if err != nil {
-		return "", grpclib.InternalError(err, "failed to create discovery ExecutionContext")
+		return "", grpclib.InternalError(err, "failed to create connect ExecutionContext")
 	}
 
 	resourceID := created.GetMetadata().GetId()
@@ -201,7 +202,7 @@ func (c *McpServerController) createDiscoveryExecutionContext(
 		Str("execution_context_id", resourceID).
 		Str("execution_id", executionID).
 		Int("data_entries", len(ecData)).
-		Msg("Created ephemeral ExecutionContext for MCP discovery")
+		Msg("Created ephemeral ExecutionContext for MCP connect")
 
 	return resourceID, nil
 }
@@ -279,10 +280,10 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 	return result, nil
 }
 
-// deleteDiscoveryExecutionContext removes the ephemeral ExecutionContext after
-// the discovery workflow completes. Failures are logged but not propagated,
-// since the discovery result is already stored.
-func (c *McpServerController) deleteDiscoveryExecutionContext(
+// deleteConnectExecutionContext removes the ephemeral ExecutionContext after
+// the connect workflow completes. Failures are logged but not propagated,
+// since the result is already stored.
+func (c *McpServerController) deleteConnectExecutionContext(
 	ctx context.Context,
 	resourceID string,
 	executionID string,
@@ -291,54 +292,54 @@ func (c *McpServerController) deleteDiscoveryExecutionContext(
 		log.Warn().Err(err).
 			Str("resource_id", resourceID).
 			Str("execution_id", executionID).
-			Msg("Failed to delete discovery ExecutionContext (non-fatal)")
+			Msg("Failed to delete connect ExecutionContext (non-fatal)")
 		return
 	}
 
 	log.Debug().
 		Str("resource_id", resourceID).
 		Str("execution_id", executionID).
-		Msg("Deleted ephemeral discovery ExecutionContext")
+		Msg("Deleted ephemeral connect ExecutionContext")
 }
 
-// executeDiscoverWorkflow starts the Python DiscoverMcpServerWorkflow on
+// executeConnectWorkflow starts the Python DiscoverMcpServerWorkflow on
 // the runner queue and blocks until it completes or times out.
-func (c *McpServerController) executeDiscoverWorkflow(
+func (c *McpServerController) executeConnectWorkflow(
 	ctx context.Context,
 	mcpServerID string,
-	input discoverWorkflowInput,
-) (*discoverWorkflowOutput, error) {
-	workflowID := fmt.Sprintf("%s/%s/%s", discoverWorkflowName, mcpServerID, uuid.New().String()[:8])
+	input connectWorkflowInput,
+) (*connectWorkflowOutput, error) {
+	workflowID := fmt.Sprintf("%s/%s/%s", connectWorkflowName, mcpServerID, uuid.New().String()[:8])
 
 	options := client.StartWorkflowOptions{
 		ID:                 workflowID,
 		TaskQueue:          c.runnerQueue,
-		WorkflowRunTimeout: discoverTimeout,
+		WorkflowRunTimeout: connectTimeout,
 	}
 
-	run, err := c.temporalClient.ExecuteWorkflow(ctx, options, discoverWorkflowName, input)
+	run, err := c.temporalClient.ExecuteWorkflow(ctx, options, connectWorkflowName, input)
 	if err != nil {
 		log.Error().Err(err).
 			Str("workflow_id", workflowID).
 			Str("mcp_server_id", mcpServerID).
-			Msg("Failed to start MCP discovery workflow")
-		return nil, grpclib.InternalError(err, "failed to start discovery workflow")
+			Msg("Failed to start MCP connect workflow")
+		return nil, grpclib.InternalError(err, "failed to start connect workflow")
 	}
 
 	log.Info().
 		Str("workflow_id", workflowID).
 		Str("mcp_server_id", mcpServerID).
 		Str("runner_queue", c.runnerQueue).
-		Msg("Started MCP discovery workflow")
+		Msg("Started MCP connect workflow")
 
-	var result discoverWorkflowOutput
+	var result connectWorkflowOutput
 	if err := run.Get(ctx, &result); err != nil {
 		log.Error().Err(err).
 			Str("workflow_id", workflowID).
 			Str("mcp_server_id", mcpServerID).
-			Msg("MCP discovery workflow failed")
+			Msg("MCP connect workflow failed")
 		return nil, status.Errorf(codes.DeadlineExceeded,
-			"discovery did not complete: %v", err,
+			"connect did not complete: %v", err,
 		)
 	}
 
@@ -347,10 +348,9 @@ func (c *McpServerController) executeDiscoverWorkflow(
 
 // convertToDiscoveredCapabilities converts the Temporal workflow output
 // to the proto DiscoveredCapabilities message.
-func convertToDiscoveredCapabilities(output *discoverWorkflowOutput) *mcpserverv1.DiscoveredCapabilities {
+func convertToDiscoveredCapabilities(output *connectWorkflowOutput) *mcpserverv1.DiscoveredCapabilities {
 	capabilities := &mcpserverv1.DiscoveredCapabilities{
 		LastDiscoveredAt: timestamppb.Now(),
-		DiscoveredBy:     mcpserverv1.DiscoverySource_api,
 	}
 
 	for _, t := range output.Tools {
@@ -378,18 +378,18 @@ func convertToDiscoveredCapabilities(output *discoverWorkflowOutput) *mcpserverv
 	return capabilities
 }
 
-// StartBestEffortDiscovery starts the discovery workflow asynchronously
-// without blocking. Used by the apply handler for auto-discovery.
+// StartBestEffortConnect starts the connect workflow asynchronously
+// without blocking. Used by the apply handler for auto-discovery on create.
 // Failures are logged but do not propagate.
 //
-// Skips auto-discovery when the MCP server defines an env_spec, because
-// creating an ExecutionContext requires the caller's gRPC context (for
-// personal environment resolution), which is unavailable in a fire-and-forget
-// goroutine. Users must trigger manual discovery for these servers.
+// Skips when the MCP server defines an env_spec, because creating an
+// ExecutionContext requires the caller's gRPC context (for personal
+// environment resolution), which is unavailable in a fire-and-forget
+// goroutine. Users must trigger manual connect for these servers.
 //
 // Uses context.Background() because this runs in a fire-and-forget goroutine
 // after the originating gRPC request has already returned.
-func (c *McpServerController) StartBestEffortDiscovery(
+func (c *McpServerController) StartBestEffortConnect(
 	mcpServer *mcpserverv1.McpServer,
 ) {
 	if c.temporalClient == nil {
@@ -401,34 +401,34 @@ func (c *McpServerController) StartBestEffortDiscovery(
 		log.Debug().
 			Str("mcp_server_id", mcpServer.GetMetadata().GetId()).
 			Int("env_spec_keys", len(envSpec.GetData())).
-			Msg("Skipping best-effort auto-discovery: MCP server has env_spec (requires manual discovery)")
+			Msg("Skipping best-effort auto-connect: MCP server has env_spec (requires manual connect)")
 		return
 	}
 
 	mcpServerID := mcpServer.GetMetadata().GetId()
 
-	wfInput := discoverWorkflowInput{
+	wfInput := connectWorkflowInput{
 		McpServerID: mcpServerID,
 	}
 
-	workflowID := fmt.Sprintf("%s/%s/%s", discoverWorkflowName, mcpServerID, uuid.New().String()[:8])
+	workflowID := fmt.Sprintf("%s/%s/%s", connectWorkflowName, mcpServerID, uuid.New().String()[:8])
 
 	options := client.StartWorkflowOptions{
 		ID:                 workflowID,
 		TaskQueue:          c.runnerQueue,
-		WorkflowRunTimeout: discoverTimeout,
+		WorkflowRunTimeout: connectTimeout,
 	}
 
-	_, err := c.temporalClient.ExecuteWorkflow(context.Background(), options, discoverWorkflowName, wfInput)
+	_, err := c.temporalClient.ExecuteWorkflow(context.Background(), options, connectWorkflowName, wfInput)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("mcp_server_id", mcpServerID).
-			Msg("Failed to start best-effort discovery workflow (non-fatal)")
+			Msg("Failed to start best-effort connect workflow (non-fatal)")
 		return
 	}
 
 	log.Info().
 		Str("workflow_id", workflowID).
 		Str("mcp_server_id", mcpServerID).
-		Msg("Started best-effort auto-discovery workflow (fire-and-forget)")
+		Msg("Started best-effort auto-connect workflow (fire-and-forget)")
 }

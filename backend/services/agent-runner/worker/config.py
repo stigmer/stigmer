@@ -540,13 +540,23 @@ class Config:
             }
         else:
             # Cloud mode - Daytona configuration
-            config = {"type": "daytona"}
-            
-            # Add optional snapshot ID if configured
+            config: dict[str, str] = {"type": "daytona"}
+
+            # Snapshot resolution priority:
+            # 1. DAYTONA_DEV_TOOLS_SNAPSHOT_ID env var (explicit override)
+            # 2. SnapshotResolver (discovers latest from Daytona API)
+            # 3. None (vanilla sandbox, no snapshot)
             snapshot_id = os.getenv("DAYTONA_DEV_TOOLS_SNAPSHOT_ID")
+            if not snapshot_id:
+                from worker.snapshot_resolver import get_snapshot_resolver
+
+                resolver = get_snapshot_resolver()
+                if resolver:
+                    snapshot_id = resolver.resolve()
+
             if snapshot_id:
                 config["snapshot_id"] = snapshot_id
-            
+
             return config
     
     def is_local_mode(self) -> bool:

@@ -6,13 +6,13 @@
 package ai.stigmer.agentic.mcpserver.v1;
 
 @com.google.protobuf.Generated
-public interface DiscoverCapabilitiesInputOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput)
+public interface ConnectInputOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.mcpserver.v1.ConnectInput)
     com.google.protobuf.MessageOrBuilder {
 
   /**
    * <pre>
-   * System-generated ID of the MCP server to discover.
+   * System-generated ID of the MCP server to connect to.
    * Obtained from McpServer.metadata.id (e.g., via getByReference).
    * </pre>
    *
@@ -22,7 +22,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
   java.lang.String getMcpServerId();
   /**
    * <pre>
-   * System-generated ID of the MCP server to discover.
+   * System-generated ID of the MCP server to connect to.
    * Obtained from McpServer.metadata.id (e.g., via getByReference).
    * </pre>
    *
@@ -34,7 +34,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
 
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -43,7 +43,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
   int getRuntimeEnvCount();
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -59,7 +59,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
   getRuntimeEnv();
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -69,7 +69,7 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
   getRuntimeEnvMap();
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -82,7 +82,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
 ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *

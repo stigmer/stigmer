@@ -7,14 +7,15 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 /**
  * <pre>
- * DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
+ * ConnectInput is the request for the connect RPC.
  *
  * &#64;internal
- * Triggers server-side MCP discovery: the backend creates an ephemeral
- * ExecutionContext with the resolved environment variables, starts a Temporal
- * workflow that connects to the MCP server (via the agent-runner), enumerates
- * tools and resource templates, and stores the result in
- * status.discovered_capabilities.
+ * Triggers server-side MCP discovery and tool approval classification:
+ * the backend creates an ephemeral ExecutionContext with the resolved
+ * environment variables, starts a Temporal workflow that connects to the
+ * MCP server (via the agent-runner), enumerates tools and resource
+ * templates, classifies tool approval policies, and stores the results
+ * in status.discovered_capabilities and status.tool_approvals.
  *
  * Environment variable resolution:
  * - When runtime_env is provided, the backend creates an ExecutionContext directly
@@ -22,19 +23,25 @@ package ai.stigmer.agentic.mcpserver.v1;
  * - When runtime_env is empty, the backend resolves values from the authenticated
  * user's personal environment.
  *
+ * Callers:
+ * - Web console: calls connect after saving credentials to personal environment.
+ * - CLI: calls connect with runtime_env populated from local env vars.
+ * - Graphton backfill: calls connect with runtime_env from execution context
+ * when status.discovered_capabilities is empty on first agent execution.
+ *
  * Prerequisites:
  * - The MCP server must exist and have a valid server_type (stdio or http)
  * - Either runtime_env must contain all required keys, or the keys must be
  * present in the user's personal environment
  * </pre>
  *
- * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput}
+ * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectInput}
  */
 @com.google.protobuf.Generated
-public final class DiscoverCapabilitiesInput extends
+public final class ConnectInput extends
     com.google.protobuf.GeneratedMessage implements
-    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput)
-    DiscoverCapabilitiesInputOrBuilder {
+    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.mcpserver.v1.ConnectInput)
+    ConnectInputOrBuilder {
 private static final long serialVersionUID = 0L;
   static {
     com.google.protobuf.RuntimeVersion.validateProtobufGencodeVersion(
@@ -43,24 +50,24 @@ private static final long serialVersionUID = 0L;
       /* minor= */ 34,
       /* patch= */ 0,
       /* suffix= */ "",
-      "DiscoverCapabilitiesInput");
+      "ConnectInput");
   }
-  // Use DiscoverCapabilitiesInput.newBuilder() to construct.
-  private DiscoverCapabilitiesInput(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+  // Use ConnectInput.newBuilder() to construct.
+  private ConnectInput(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
     super(builder);
   }
-  private DiscoverCapabilitiesInput() {
+  private ConnectInput() {
     mcpServerId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor;
+    return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor;
   }
 
   @java.lang.Override
   public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-    return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor;
+    return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor;
   }
 
   @SuppressWarnings({"rawtypes"})
@@ -78,9 +85,9 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_fieldAccessorTable
+    return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.class, ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.Builder.class);
+            ai.stigmer.agentic.mcpserver.v1.ConnectInput.class, ai.stigmer.agentic.mcpserver.v1.ConnectInput.Builder.class);
   }
 
   public static final int MCP_SERVER_ID_FIELD_NUMBER = 1;
@@ -88,7 +95,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object mcpServerId_ = "";
   /**
    * <pre>
-   * System-generated ID of the MCP server to discover.
+   * System-generated ID of the MCP server to connect to.
    * Obtained from McpServer.metadata.id (e.g., via getByReference).
    * </pre>
    *
@@ -110,7 +117,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-generated ID of the MCP server to discover.
+   * System-generated ID of the MCP server to connect to.
    * Obtained from McpServer.metadata.id (e.g., via getByReference).
    * </pre>
    *
@@ -138,7 +145,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> defaultEntry =
             com.google.protobuf.MapEntry
             .<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>newDefaultInstance(
-                ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_RuntimeEnvEntry_descriptor, 
+                ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor, 
                 com.google.protobuf.WireFormat.FieldType.STRING,
                 "",
                 com.google.protobuf.WireFormat.FieldType.MESSAGE,
@@ -160,7 +167,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -182,7 +189,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -194,7 +201,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -213,7 +220,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   }
   /**
    * <pre>
-   * Optional environment variable values for one-time discovery.
+   * Optional environment variable values for one-time use.
    * When empty, values are resolved from the user's personal environment.
    * </pre>
    *
@@ -286,10 +293,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput)) {
+    if (!(obj instanceof ai.stigmer.agentic.mcpserver.v1.ConnectInput)) {
       return super.equals(obj);
     }
-    ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput other = (ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput) obj;
+    ai.stigmer.agentic.mcpserver.v1.ConnectInput other = (ai.stigmer.agentic.mcpserver.v1.ConnectInput) obj;
 
     if (!getMcpServerId()
         .equals(other.getMcpServerId())) return false;
@@ -317,44 +324,44 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     return hash;
   }
 
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(byte[] data)
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -362,26 +369,26 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
 
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseDelimitedFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input);
   }
 
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseDelimitedFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput parseFrom(
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -394,7 +401,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput prototype) {
+  public static Builder newBuilder(ai.stigmer.agentic.mcpserver.v1.ConnectInput prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -411,14 +418,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   }
   /**
    * <pre>
-   * DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
+   * ConnectInput is the request for the connect RPC.
    *
    * &#64;internal
-   * Triggers server-side MCP discovery: the backend creates an ephemeral
-   * ExecutionContext with the resolved environment variables, starts a Temporal
-   * workflow that connects to the MCP server (via the agent-runner), enumerates
-   * tools and resource templates, and stores the result in
-   * status.discovered_capabilities.
+   * Triggers server-side MCP discovery and tool approval classification:
+   * the backend creates an ephemeral ExecutionContext with the resolved
+   * environment variables, starts a Temporal workflow that connects to the
+   * MCP server (via the agent-runner), enumerates tools and resource
+   * templates, classifies tool approval policies, and stores the results
+   * in status.discovered_capabilities and status.tool_approvals.
    *
    * Environment variable resolution:
    * - When runtime_env is provided, the backend creates an ExecutionContext directly
@@ -426,21 +434,27 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * - When runtime_env is empty, the backend resolves values from the authenticated
    * user's personal environment.
    *
+   * Callers:
+   * - Web console: calls connect after saving credentials to personal environment.
+   * - CLI: calls connect with runtime_env populated from local env vars.
+   * - Graphton backfill: calls connect with runtime_env from execution context
+   * when status.discovered_capabilities is empty on first agent execution.
+   *
    * Prerequisites:
    * - The MCP server must exist and have a valid server_type (stdio or http)
    * - Either runtime_env must contain all required keys, or the keys must be
    * present in the user's personal environment
    * </pre>
    *
-   * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput}
+   * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectInput}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput)
-      ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInputOrBuilder {
+      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.mcpserver.v1.ConnectInput)
+      ai.stigmer.agentic.mcpserver.v1.ConnectInputOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor;
+      return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor;
     }
 
     @SuppressWarnings({"rawtypes"})
@@ -468,12 +482,12 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_fieldAccessorTable
+      return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.class, ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.Builder.class);
+              ai.stigmer.agentic.mcpserver.v1.ConnectInput.class, ai.stigmer.agentic.mcpserver.v1.ConnectInput.Builder.class);
     }
 
-    // Construct using ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.newBuilder()
+    // Construct using ai.stigmer.agentic.mcpserver.v1.ConnectInput.newBuilder()
     private Builder() {
 
     }
@@ -495,17 +509,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor;
+      return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput getDefaultInstanceForType() {
-      return ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.getDefaultInstance();
+    public ai.stigmer.agentic.mcpserver.v1.ConnectInput getDefaultInstanceForType() {
+      return ai.stigmer.agentic.mcpserver.v1.ConnectInput.getDefaultInstance();
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput build() {
-      ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput result = buildPartial();
+    public ai.stigmer.agentic.mcpserver.v1.ConnectInput build() {
+      ai.stigmer.agentic.mcpserver.v1.ConnectInput result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -513,14 +527,14 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput buildPartial() {
-      ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput result = new ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput(this);
+    public ai.stigmer.agentic.mcpserver.v1.ConnectInput buildPartial() {
+      ai.stigmer.agentic.mcpserver.v1.ConnectInput result = new ai.stigmer.agentic.mcpserver.v1.ConnectInput(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput result) {
+    private void buildPartial0(ai.stigmer.agentic.mcpserver.v1.ConnectInput result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.mcpServerId_ = mcpServerId_;
@@ -532,16 +546,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput) {
-        return mergeFrom((ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput)other);
+      if (other instanceof ai.stigmer.agentic.mcpserver.v1.ConnectInput) {
+        return mergeFrom((ai.stigmer.agentic.mcpserver.v1.ConnectInput)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput other) {
-      if (other == ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.getDefaultInstance()) return this;
+    public Builder mergeFrom(ai.stigmer.agentic.mcpserver.v1.ConnectInput other) {
+      if (other == ai.stigmer.agentic.mcpserver.v1.ConnectInput.getDefaultInstance()) return this;
       if (!other.getMcpServerId().isEmpty()) {
         mcpServerId_ = other.mcpServerId_;
         bitField0_ |= 0x00000001;
@@ -610,7 +624,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.lang.Object mcpServerId_ = "";
     /**
      * <pre>
-     * System-generated ID of the MCP server to discover.
+     * System-generated ID of the MCP server to connect to.
      * Obtained from McpServer.metadata.id (e.g., via getByReference).
      * </pre>
      *
@@ -631,7 +645,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * System-generated ID of the MCP server to discover.
+     * System-generated ID of the MCP server to connect to.
      * Obtained from McpServer.metadata.id (e.g., via getByReference).
      * </pre>
      *
@@ -653,7 +667,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * System-generated ID of the MCP server to discover.
+     * System-generated ID of the MCP server to connect to.
      * Obtained from McpServer.metadata.id (e.g., via getByReference).
      * </pre>
      *
@@ -671,7 +685,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * System-generated ID of the MCP server to discover.
+     * System-generated ID of the MCP server to connect to.
      * Obtained from McpServer.metadata.id (e.g., via getByReference).
      * </pre>
      *
@@ -686,7 +700,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * System-generated ID of the MCP server to discover.
+     * System-generated ID of the MCP server to connect to.
      * Obtained from McpServer.metadata.id (e.g., via getByReference).
      * </pre>
      *
@@ -741,7 +755,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery.
+     * Optional environment variable values for one-time use.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -763,7 +777,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery.
+     * Optional environment variable values for one-time use.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -775,7 +789,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery.
+     * Optional environment variable values for one-time use.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -793,7 +807,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery.
+     * Optional environment variable values for one-time use.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -816,7 +830,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery.
+     * Optional environment variable values for one-time use.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -840,7 +854,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery.
+     * Optional environment variable values for one-time use.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -858,7 +872,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery.
+     * Optional environment variable values for one-time use.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -878,7 +892,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional environment variable values for one-time discovery.
+     * Optional environment variable values for one-time use.
      * When empty, values are resolved from the user's personal environment.
      * </pre>
      *
@@ -899,23 +913,23 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) entry;
     }
 
-    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput)
+    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.ConnectInput)
   }
 
-  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput)
-  private static final ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.mcpserver.v1.ConnectInput)
+  private static final ai.stigmer.agentic.mcpserver.v1.ConnectInput DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput();
+    DEFAULT_INSTANCE = new ai.stigmer.agentic.mcpserver.v1.ConnectInput();
   }
 
-  public static ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput getDefaultInstance() {
+  public static ai.stigmer.agentic.mcpserver.v1.ConnectInput getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<DiscoverCapabilitiesInput>
-      PARSER = new com.google.protobuf.AbstractParser<DiscoverCapabilitiesInput>() {
+  private static final com.google.protobuf.Parser<ConnectInput>
+      PARSER = new com.google.protobuf.AbstractParser<ConnectInput>() {
     @java.lang.Override
-    public DiscoverCapabilitiesInput parsePartialFrom(
+    public ConnectInput parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -934,17 +948,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
   };
 
-  public static com.google.protobuf.Parser<DiscoverCapabilitiesInput> parser() {
+  public static com.google.protobuf.Parser<ConnectInput> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<DiscoverCapabilitiesInput> getParserForType() {
+  public com.google.protobuf.Parser<ConnectInput> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput getDefaultInstanceForType() {
+  public ai.stigmer.agentic.mcpserver.v1.ConnectInput getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

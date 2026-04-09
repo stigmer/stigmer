@@ -43,6 +43,7 @@ go_library(
         "skills/skill-creator/scripts/package_skill.py",
         "skills/skill-creator/scripts/quick_validate.py",
         "stigmer.yaml",
+        "mcp-servers/CONTRIBUTING.md",
     ],
     importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],

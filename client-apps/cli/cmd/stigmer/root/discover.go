@@ -136,6 +136,7 @@ func executeDiscoverMcpServer(opts discoverMcpServerOptions) error {
 
 	result, err := mcpserver.Discover(context.Background(), &mcpserver.DiscoverOptions{
 		Conn:         conn,
+		Cfg:          cfg,
 		OrgID:        orgID,
 		Ref:          opts.Reference,
 		Timeout:      opts.Timeout,

@@ -263,7 +263,7 @@ export function useMcpServerSetup(
 
         const discoveredTools =
           mcpServer.status?.discoveredCapabilities?.tools ?? [];
-        const toolApprovals = mcpServer.spec?.defaultToolApprovals ?? [];
+        const toolApprovals = mcpServer.spec?.pinnedToolApprovals ?? [];
         const envSpecData = mcpServer.spec?.envSpec?.data;
 
         if (!envSpecData || Object.keys(envSpecData).length === 0) {

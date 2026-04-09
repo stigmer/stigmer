@@ -85,7 +85,7 @@ func DiscoverAll(ctx context.Context, opts *DiscoverAllOptions) *DiscoverAllResu
 
 		result.Attempted++
 
-		if err := DiscoverServer(ctx, opts.Conn, server, envResult.Overrides, opts.Timeout); err != nil {
+		if err := DiscoverServer(ctx, opts.Conn, server, opts.Cfg, opts.Timeout); err != nil {
 			log.Warn().
 				Err(err).
 				Str("mcp_server", server.Metadata.GetName()).
@@ -146,7 +146,7 @@ func DiscoverOne(ctx context.Context, opts *DiscoverOneOptions) (skipMessage str
 			Msg("Non-secret env vars unresolved, proceeding with server defaults")
 	}
 
-	if err := DiscoverServer(ctx, opts.Conn, server, envResult.Overrides, opts.Timeout); err != nil {
+	if err := DiscoverServer(ctx, opts.Conn, server, opts.Cfg, opts.Timeout); err != nil {
 		return "", err
 	}
 

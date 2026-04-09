@@ -37,9 +37,26 @@ public interface StdioServerConfigOrBuilder extends
   /**
    * <pre>
    * Arguments to pass to the command.
+   *
+   * Argument values can reference environment variables using ${VAR_NAME} syntax.
+   * These placeholders are resolved at runtime from the execution environment
+   * (same source as HTTP header/query param placeholders). This enables MCP
+   * servers that take core configuration as positional CLI arguments (e.g.
+   * database connection URLs, directory paths) to be parameterized per-user
+   * through env_spec.
+   *
+   * Resolution uses strict mode: missing variables produce a clear error
+   * rather than passing a literal "${VAR}" to the subprocess.
+   *
+   * Note: resolved values appear in the subprocess argv, which is visible
+   * via /proc/&lt;pid&gt;/cmdline within the container. In the containerized
+   * agent-runner environment this is not a practical concern, but callers
+   * should be aware when debugging.
+   *
    * Examples:
-   * - For npx: ["-y", "&#64;modelcontextprotocol/server-github"]
-   * - For python: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
+   * ["-y", "&#64;modelcontextprotocol/server-github"]
+   * ["-y", "&#64;modelcontextprotocol/server-postgres", "${POSTGRES_CONNECTION_URL}"]
+   * ["-m", "mcp_server_sqlite", "--db-path", "${DB_PATH}/data.sqlite"]
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -50,9 +67,26 @@ public interface StdioServerConfigOrBuilder extends
   /**
    * <pre>
    * Arguments to pass to the command.
+   *
+   * Argument values can reference environment variables using ${VAR_NAME} syntax.
+   * These placeholders are resolved at runtime from the execution environment
+   * (same source as HTTP header/query param placeholders). This enables MCP
+   * servers that take core configuration as positional CLI arguments (e.g.
+   * database connection URLs, directory paths) to be parameterized per-user
+   * through env_spec.
+   *
+   * Resolution uses strict mode: missing variables produce a clear error
+   * rather than passing a literal "${VAR}" to the subprocess.
+   *
+   * Note: resolved values appear in the subprocess argv, which is visible
+   * via /proc/&lt;pid&gt;/cmdline within the container. In the containerized
+   * agent-runner environment this is not a practical concern, but callers
+   * should be aware when debugging.
+   *
    * Examples:
-   * - For npx: ["-y", "&#64;modelcontextprotocol/server-github"]
-   * - For python: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
+   * ["-y", "&#64;modelcontextprotocol/server-github"]
+   * ["-y", "&#64;modelcontextprotocol/server-postgres", "${POSTGRES_CONNECTION_URL}"]
+   * ["-m", "mcp_server_sqlite", "--db-path", "${DB_PATH}/data.sqlite"]
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -62,9 +96,26 @@ public interface StdioServerConfigOrBuilder extends
   /**
    * <pre>
    * Arguments to pass to the command.
+   *
+   * Argument values can reference environment variables using ${VAR_NAME} syntax.
+   * These placeholders are resolved at runtime from the execution environment
+   * (same source as HTTP header/query param placeholders). This enables MCP
+   * servers that take core configuration as positional CLI arguments (e.g.
+   * database connection URLs, directory paths) to be parameterized per-user
+   * through env_spec.
+   *
+   * Resolution uses strict mode: missing variables produce a clear error
+   * rather than passing a literal "${VAR}" to the subprocess.
+   *
+   * Note: resolved values appear in the subprocess argv, which is visible
+   * via /proc/&lt;pid&gt;/cmdline within the container. In the containerized
+   * agent-runner environment this is not a practical concern, but callers
+   * should be aware when debugging.
+   *
    * Examples:
-   * - For npx: ["-y", "&#64;modelcontextprotocol/server-github"]
-   * - For python: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
+   * ["-y", "&#64;modelcontextprotocol/server-github"]
+   * ["-y", "&#64;modelcontextprotocol/server-postgres", "${POSTGRES_CONNECTION_URL}"]
+   * ["-m", "mcp_server_sqlite", "--db-path", "${DB_PATH}/data.sqlite"]
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>
@@ -75,9 +126,26 @@ public interface StdioServerConfigOrBuilder extends
   /**
    * <pre>
    * Arguments to pass to the command.
+   *
+   * Argument values can reference environment variables using ${VAR_NAME} syntax.
+   * These placeholders are resolved at runtime from the execution environment
+   * (same source as HTTP header/query param placeholders). This enables MCP
+   * servers that take core configuration as positional CLI arguments (e.g.
+   * database connection URLs, directory paths) to be parameterized per-user
+   * through env_spec.
+   *
+   * Resolution uses strict mode: missing variables produce a clear error
+   * rather than passing a literal "${VAR}" to the subprocess.
+   *
+   * Note: resolved values appear in the subprocess argv, which is visible
+   * via /proc/&lt;pid&gt;/cmdline within the container. In the containerized
+   * agent-runner environment this is not a practical concern, but callers
+   * should be aware when debugging.
+   *
    * Examples:
-   * - For npx: ["-y", "&#64;modelcontextprotocol/server-github"]
-   * - For python: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
+   * ["-y", "&#64;modelcontextprotocol/server-github"]
+   * ["-y", "&#64;modelcontextprotocol/server-postgres", "${POSTGRES_CONNECTION_URL}"]
+   * ["-m", "mcp_server_sqlite", "--db-path", "${DB_PATH}/data.sqlite"]
    * </pre>
    *
    * <code>repeated string args = 2 [json_name = "args"];</code>

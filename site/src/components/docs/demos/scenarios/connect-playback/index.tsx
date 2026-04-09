@@ -17,8 +17,8 @@ import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
 import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
-  type DiscoverStep,
-  discoverSteps,
+  type ConnectStep,
+  connectSteps,
   DEMO_ORG,
   DEMO_SLUG,
 } from "./steps";
@@ -46,10 +46,10 @@ function credentialPoolLookup(key: string): EnvVarInput | undefined {
   return CREDENTIAL_POOL[key];
 }
 
-function cursorTargetFor(step: DiscoverStep): string | undefined {
+function cursorTargetFor(step: ConnectStep): string | undefined {
   switch (step.view) {
-    case "click-discover":
-      return "discover-button";
+    case "click-connect":
+      return "connect-button";
     case "credential-form":
       return "credential-form";
     case "credential-filled":
@@ -59,36 +59,41 @@ function cursorTargetFor(step: DiscoverStep): string | undefined {
   }
 }
 
-function showCredentialFormFor(step: DiscoverStep): boolean {
+function showCredentialFormFor(step: ConnectStep): boolean {
   return step.view === "credential-form" || step.view === "credential-filled";
+}
+
+function defaultTabFor(step: ConnectStep): "tools" | "policies" {
+  return step.view === "connected-policies" ? "policies" : "tools";
 }
 
 /**
  * Compute a stable React key that only changes when the component
- * state needs to reinitialize (credential form, pool values, server).
+ * state needs to reinitialize (credential form, pool values, server, tab).
  * Steps that only differ in scroll position or cursor share the
  * same key so the component stays mounted and scroll persists.
  */
-function componentKeyFor(step: DiscoverStep): string {
+function componentKeyFor(step: ConnectStep): string {
   switch (step.view) {
     case "no-tools":
-    case "scroll-to-capabilities":
-    case "click-discover":
+    case "click-connect":
       return "base";
     case "credential-form":
       return "cred-form";
     case "credential-filled":
       return "cred-filled";
-    case "tools-discovered":
-      return "tools";
+    case "connected-tools":
+      return "connected-tools";
+    case "connected-policies":
+      return "connected-policies";
   }
 }
 
-export function DiscoverCapabilitiesPlayback() {
-  const narrationManifest = useNarrationManifest("discover-capabilities-playback");
+export function ConnectPlayback() {
+  const narrationManifest = useNarrationManifest("connect-playback");
   const clientMap = useMemo(() => {
     const map = new Map<McpServer, ReturnType<typeof buildClient>>();
-    for (const step of discoverSteps) {
+    for (const step of connectSteps) {
       if (!map.has(step.data.server)) {
         map.set(step.data.server, buildClient(step.data.server));
       }
@@ -99,28 +104,14 @@ export function DiscoverCapabilitiesPlayback() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
 
-  const handleStepChange = useCallback((step: DiscoverStep) => {
+  const handleStepChange = useCallback((step: ConnectStep) => {
     setCursorTarget(cursorTargetFor(step));
-
-    if (step.view === "scroll-to-capabilities") {
-      setTimeout(() => {
-        const scrollEl = containerRef.current?.querySelector(
-          "[data-scroll-container]",
-        );
-        if (scrollEl) {
-          scrollEl.scrollTo({
-            top: scrollEl.scrollHeight,
-            behavior: "smooth",
-          });
-        }
-      }, 50);
-    }
   }, []);
 
   return (
     <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
       <ScenarioPlayer
-        steps={discoverSteps}
+        steps={connectSteps}
         narrationManifest={narrationManifest}
         onStepChange={handleStepChange}
       >
@@ -140,6 +131,7 @@ export function DiscoverCapabilitiesPlayback() {
                     org={DEMO_ORG}
                     slug={DEMO_SLUG}
                     defaultShowCredentialForm={showCredentialFormFor(step)}
+                    defaultCapabilityTab={defaultTabFor(step)}
                     credentialPoolValues={
                       step.view === "credential-filled"
                         ? credentialPoolLookup

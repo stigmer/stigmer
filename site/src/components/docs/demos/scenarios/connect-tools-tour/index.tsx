@@ -26,8 +26,7 @@ import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   type ConnectToolsTourStep,
   connectToolsTourSteps,
-  toolsOnlyServer,
-  withPoliciesServer,
+  connectedServer,
   DEMO_ORG,
   DEMO_SLUG,
   MCP_REFS_CODE,
@@ -56,19 +55,8 @@ const FILE_TREE: FileTreeEntry[] = [
 // Tab selection for McpServerDetailView steps
 // ---------------------------------------------------------------------------
 
-function defaultTabFor(step: ConnectToolsTourStep): "tools" | "policies" {
-  return step.view === "policies-generated" ? "policies" : "tools";
-}
-
 function componentKeyFor(step: ConnectToolsTourStep): string {
-  switch (step.view) {
-    case "tools-discovered":
-      return "tools";
-    case "policies-generated":
-      return "policies";
-    default:
-      return "other";
-  }
+  return step.view === "connected" ? "connected" : "other";
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +82,7 @@ function renderMcpDetailStep(
             <McpServerDetailView
               org={DEMO_ORG}
               slug={DEMO_SLUG}
-              defaultCapabilityTab={defaultTabFor(step)}
+              defaultCapabilityTab="policies"
             />
             {/* Sentinel for scroll-to interactions — tools & policies are at the bottom */}
             <div data-scroll-target="capabilities-bottom" />
@@ -113,9 +101,6 @@ const INTERACTIONS: StepInteractions = {
   0: [
     { atPercent: 0.25, type: "scroll-to", target: "capabilities-bottom" },
   ],
-  1: [
-    { atPercent: 0.25, type: "scroll-to", target: "capabilities-bottom" },
-  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -125,15 +110,14 @@ const INTERACTIONS: StepInteractions = {
 /**
  * Connect Tools overview tour for the "What you'll build" section.
  *
- * Six-step multi-surface preview: discover tools on MCP server →
- * generate approval policies → add mcpServerRefs to code →
- * terminal with real order data → approval card → approved result.
+ * Five-step multi-surface preview: connect MCP server (tools + policies) →
+ * add mcpServerRefs to code → terminal with real order data →
+ * approval card → approved result.
  */
 export function ConnectToolsTour() {
   const clientMap = useMemo(() => {
     const map = new Map<McpServer, ReturnType<typeof buildClient>>();
-    map.set(toolsOnlyServer, buildClient(toolsOnlyServer));
-    map.set(withPoliciesServer, buildClient(withPoliciesServer));
+    map.set(connectedServer, buildClient(connectedServer));
     return map;
   }, []);
 
@@ -173,8 +157,7 @@ export function ConnectToolsTour() {
       >
         {(step) => {
           switch (step.view) {
-            case "tools-discovered":
-            case "policies-generated":
+            case "connected":
               return renderMcpDetailStep(step, clientMap);
 
             case "code-mcp-refs":

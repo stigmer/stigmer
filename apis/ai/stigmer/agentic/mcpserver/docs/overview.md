@@ -1,6 +1,8 @@
 An MCP Server defines a reusable tool provider that agents can connect to via the
 Model Context Protocol. It declares the server type (stdio or HTTP), connection
-details, required environment variables, and default tool approval policies.
+details, and required environment variables. Tool approval policies are
+auto-classified when you connect, and manual overrides go in
+`pinned_tool_approvals`.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -18,7 +20,7 @@ spec:
       GITHUB_TOKEN:
         is_secret: true
         description: "GitHub personal access token"
-  default_tool_approvals:
+  pinned_tool_approvals:
     - tool_name: delete_repository
       message: "Delete repository: {{args.repo}}"
 ```

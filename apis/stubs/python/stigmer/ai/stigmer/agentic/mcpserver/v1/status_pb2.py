@@ -22,12 +22,13 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.mcpserver.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_spec__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/agentic/mcpserver/v1/status.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd7\x02\n\x0fMcpServerStatus\x12[\n\x10validation_state\x18\x01 \x01(\x0e\x32\x30.ai.stigmer.agentic.mcpserver.v1.ValidationStateR\x0fvalidationState\x12-\n\x12validation_message\x18\x02 \x01(\tR\x11validationMessage\x12p\n\x17\x64iscovered_capabilities\x18\x03 \x01(\x0b\x32\x37.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesR\x16\x64iscoveredCapabilities\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\"\xec\x02\n\x16\x44iscoveredCapabilities\x12\x45\n\x05tools\x18\x01 \x03(\x0b\x32/.ai.stigmer.agentic.mcpserver.v1.DiscoveredToolR\x05tools\x12j\n\x12resource_templates\x18\x02 \x03(\x0b\x32;.ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplateR\x11resourceTemplates\x12H\n\x12last_discovered_at\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x10lastDiscoveredAt\x12U\n\rdiscovered_by\x18\x04 \x01(\x0e\x32\x30.ai.stigmer.agentic.mcpserver.v1.DiscoverySourceR\x0c\x64iscoveredBy\"\x82\x01\n\x0e\x44iscoveredTool\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12:\n\x0cinput_schema\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructR\x0binputSchema\"\x92\x01\n\x1a\x44iscoveredResourceTemplate\x12!\n\x0curi_template\x18\x01 \x01(\tR\x0buriTemplate\x12\x12\n\x04name\x18\x02 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x03 \x01(\tR\x0b\x64\x65scription\x12\x1b\n\tmime_type\x18\x04 \x01(\tR\x08mimeType*K\n\x0fValidationState\x12 \n\x1cvalidation_state_unspecified\x10\x00\x12\t\n\x05valid\x10\x01\x12\x0b\n\x07invalid\x10\x02*e\n\x0f\x44iscoverySource\x12 \n\x1c\x64iscovery_source_unspecified\x10\x00\x12\x0c\n\x08seedpack\x10\x01\x12\x07\n\x03\x63li\x10\x02\x12\x10\n\x0c\x61gent_runner\x10\x03\x12\x07\n\x03\x61pi\x10\x04\x42\xd3\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/agentic/mcpserver/v1/status.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a*ai/stigmer/agentic/mcpserver/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb3\x03\n\x0fMcpServerStatus\x12[\n\x10validation_state\x18\x01 \x01(\x0e\x32\x30.ai.stigmer.agentic.mcpserver.v1.ValidationStateR\x0fvalidationState\x12-\n\x12validation_message\x18\x02 \x01(\tR\x11validationMessage\x12p\n\x17\x64iscovered_capabilities\x18\x03 \x01(\x0b\x32\x37.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesR\x16\x64iscoveredCapabilities\x12Z\n\x0etool_approvals\x18\x04 \x03(\x0b\x32\x33.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\rtoolApprovals\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\"\x95\x02\n\x16\x44iscoveredCapabilities\x12\x45\n\x05tools\x18\x01 \x03(\x0b\x32/.ai.stigmer.agentic.mcpserver.v1.DiscoveredToolR\x05tools\x12j\n\x12resource_templates\x18\x02 \x03(\x0b\x32;.ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplateR\x11resourceTemplates\x12H\n\x12last_discovered_at\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x10lastDiscoveredAt\"\x82\x01\n\x0e\x44iscoveredTool\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12:\n\x0cinput_schema\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructR\x0binputSchema\"\x92\x01\n\x1a\x44iscoveredResourceTemplate\x12!\n\x0curi_template\x18\x01 \x01(\tR\x0buriTemplate\x12\x12\n\x04name\x18\x02 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x03 \x01(\tR\x0b\x64\x65scription\x12\x1b\n\tmime_type\x18\x04 \x01(\tR\x08mimeType*K\n\x0fValidationState\x12 \n\x1cvalidation_state_unspecified\x10\x00\x12\t\n\x05valid\x10\x01\x12\x0b\n\x07invalid\x10\x02\x42\xd3\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,16 +36,14 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.mcpserve
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n#com.ai.stigmer.agentic.mcpserver.v1B\013StatusProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcpserver::V1'
-  _globals['_VALIDATIONSTATE']._serialized_start=1184
-  _globals['_VALIDATIONSTATE']._serialized_end=1259
-  _globals['_DISCOVERYSOURCE']._serialized_start=1261
-  _globals['_DISCOVERYSOURCE']._serialized_end=1362
-  _globals['_MCPSERVERSTATUS']._serialized_start=190
-  _globals['_MCPSERVERSTATUS']._serialized_end=533
-  _globals['_DISCOVEREDCAPABILITIES']._serialized_start=536
-  _globals['_DISCOVEREDCAPABILITIES']._serialized_end=900
-  _globals['_DISCOVEREDTOOL']._serialized_start=903
-  _globals['_DISCOVEREDTOOL']._serialized_end=1033
-  _globals['_DISCOVEREDRESOURCETEMPLATE']._serialized_start=1036
-  _globals['_DISCOVEREDRESOURCETEMPLATE']._serialized_end=1182
+  _globals['_VALIDATIONSTATE']._serialized_start=1233
+  _globals['_VALIDATIONSTATE']._serialized_end=1308
+  _globals['_MCPSERVERSTATUS']._serialized_start=234
+  _globals['_MCPSERVERSTATUS']._serialized_end=669
+  _globals['_DISCOVEREDCAPABILITIES']._serialized_start=672
+  _globals['_DISCOVEREDCAPABILITIES']._serialized_end=949
+  _globals['_DISCOVEREDTOOL']._serialized_start=952
+  _globals['_DISCOVEREDTOOL']._serialized_end=1082
+  _globals['_DISCOVEREDRESOURCETEMPLATE']._serialized_start=1085
+  _globals['_DISCOVEREDRESOURCETEMPLATE']._serialized_end=1231
 # @@protoc_insertion_point(module_scope)

@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.mcpserver.v1;
 
 import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
-import "ai/stigmer/agentic/mcpserver/v1/status.proto";
 import "buf/validate/validate.proto";
 
 // McpServerId wraps an MCP server resource identifier.
@@ -16,33 +15,15 @@ message McpServerId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.
+// ConnectInput is the request for the connect RPC.
 //
 // @internal
-// Used by:
-// - CLI: after `stigmer discover mcp-server <name>` connects locally, queries tools/resources,
-//   and pushes the results to stigmer-server.
-// - Agent-runner: future runtime cache refresh.
-//
-// The caller must first resolve the MCP server's system ID (e.g., via getByReference)
-// before calling this RPC.
-message UpdateDiscoveredCapabilitiesInput {
-  // System-generated ID of the MCP server to update.
-  // Obtained from McpServer.metadata.id (e.g., via getByReference).
-  string mcp_server_id = 1 [(buf.validate.field).required = true];
-
-  // Discovered tools and resource templates to store.
-  DiscoveredCapabilities discovered_capabilities = 2 [(buf.validate.field).required = true];
-}
-
-// DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
-//
-// @internal
-// Triggers server-side MCP discovery: the backend creates an ephemeral
-// ExecutionContext with the resolved environment variables, starts a Temporal
-// workflow that connects to the MCP server (via the agent-runner), enumerates
-// tools and resource templates, and stores the result in
-// status.discovered_capabilities.
+// Triggers server-side MCP discovery and tool approval classification:
+// the backend creates an ephemeral ExecutionContext with the resolved
+// environment variables, starts a Temporal workflow that connects to the
+// MCP server (via the agent-runner), enumerates tools and resource
+// templates, classifies tool approval policies, and stores the results
+// in status.discovered_capabilities and status.tool_approvals.
 //
 // Environment variable resolution:
 // - When runtime_env is provided, the backend creates an ExecutionContext directly
@@ -50,16 +31,22 @@ message UpdateDiscoveredCapabilitiesInput {
 // - When runtime_env is empty, the backend resolves values from the authenticated
 //   user's personal environment.
 //
+// Callers:
+// - Web console: calls connect after saving credentials to personal environment.
+// - CLI: calls connect with runtime_env populated from local env vars.
+// - Graphton backfill: calls connect with runtime_env from execution context
+//   when status.discovered_capabilities is empty on first agent execution.
+//
 // Prerequisites:
 // - The MCP server must exist and have a valid server_type (stdio or http)
 // - Either runtime_env must contain all required keys, or the keys must be
 //   present in the user's personal environment
-message DiscoverCapabilitiesInput {
-  // System-generated ID of the MCP server to discover.
+message ConnectInput {
+  // System-generated ID of the MCP server to connect to.
   // Obtained from McpServer.metadata.id (e.g., via getByReference).
   string mcp_server_id = 1 [(buf.validate.field).required = true];
 
-  // Optional environment variable values for one-time discovery.
+  // Optional environment variable values for one-time use.
   // When empty, values are resolved from the user's personal environment.
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
 }

@@ -15,10 +15,14 @@ import pytest
 
 from worker.mcp.config_transformer import (
     McpConfigResult,
+    _resolve_stdio_args,
     transform_all_mcp_configs,
     transform_mcp_config,
 )
-from worker.mcp.placeholder_resolver import resolve_placeholders
+from worker.mcp.placeholder_resolver import (
+    PlaceholderResolutionError,
+    resolve_placeholders,
+)
 
 # =============================================================================
 # Fixtures
@@ -270,6 +274,113 @@ class TestTransformMcpConfigStdio:
 
         # Empty env should not be included (falsy check)
         assert "env" not in config or config["env"] == {}
+
+
+# =============================================================================
+# Tests for _resolve_stdio_args() — ${VAR} interpolation in stdio arguments
+# =============================================================================
+
+
+class TestResolveStdioArgs:
+    """Tests for ${VAR_NAME} placeholder resolution in stdio args."""
+
+    def test_no_placeholders_passthrough(self):
+        """Literal args without placeholders pass through unchanged."""
+        args = ["-y", "@modelcontextprotocol/server-github"]
+        result = _resolve_stdio_args(args, {"UNUSED": "val"})
+        assert result == ["-y", "@modelcontextprotocol/server-github"]
+
+    def test_single_placeholder_resolved(self):
+        """A single ${VAR} arg resolves to its env value."""
+        args = ["-y", "@modelcontextprotocol/server-postgres", "${POSTGRES_URL}"]
+        result = _resolve_stdio_args(
+            args, {"POSTGRES_URL": "postgres://user:pass@host:5432/db"}
+        )
+        assert result == [
+            "-y",
+            "@modelcontextprotocol/server-postgres",
+            "postgres://user:pass@host:5432/db",
+        ]
+
+    def test_mixed_literal_and_placeholder_args(self):
+        """Mix of literal args and placeholder args resolves correctly."""
+        args = ["-m", "mcp_server", "--host", "${HOST}", "--port", "5432"]
+        result = _resolve_stdio_args(args, {"HOST": "db.example.com"})
+        assert result == ["-m", "mcp_server", "--host", "db.example.com", "--port", "5432"]
+
+    def test_partial_interpolation_within_arg(self):
+        """${VAR} embedded within a larger string resolves correctly."""
+        args = ["--db-path=${DB_PATH}/data.sqlite"]
+        result = _resolve_stdio_args(args, {"DB_PATH": "/mnt/storage"})
+        assert result == ["--db-path=/mnt/storage/data.sqlite"]
+
+    def test_multiple_placeholders_in_one_arg(self):
+        """Multiple ${VAR} references within a single arg all resolve."""
+        args = ["${SCHEME}://${HOST}:${PORT}"]
+        result = _resolve_stdio_args(
+            args, {"SCHEME": "postgres", "HOST": "db.local", "PORT": "5432"}
+        )
+        assert result == ["postgres://db.local:5432"]
+
+    def test_missing_variable_raises_strict_error(self):
+        """Missing variable raises PlaceholderResolutionError (strict mode)."""
+        args = ["${MISSING_VAR}"]
+        with pytest.raises(PlaceholderResolutionError) as exc_info:
+            _resolve_stdio_args(args, {})
+        assert "MISSING_VAR" in str(exc_info.value)
+        assert "stdio arg" in str(exc_info.value)
+
+    def test_empty_args_returns_empty(self):
+        """Empty args list returns empty list."""
+        assert _resolve_stdio_args([], {"VAR": "val"}) == []
+
+    def test_original_args_not_mutated(self):
+        """Input args list is not modified."""
+        args = ["${VAR}"]
+        _ = _resolve_stdio_args(args, {"VAR": "resolved"})
+        assert args == ["${VAR}"]
+
+
+class TestStdioConfigWithPlaceholders:
+    """Integration tests: transform_mcp_config with placeholder args."""
+
+    def test_stdio_args_interpolated_in_full_transform(self):
+        """Placeholders in stdio args resolve through transform_mcp_config."""
+        spec = MagicMock()
+        spec.HasField.side_effect = lambda x: x == "stdio"
+        spec.stdio.command = "npx"
+        spec.stdio.args = ["-y", "@modelcontextprotocol/server-postgres", "${PG_URL}"]
+        spec.stdio.working_dir = ""
+        spec.default_enabled_tools = []
+
+        config, _ = transform_mcp_config(
+            server_slug="postgres",
+            spec=spec,
+            env_vars={"PG_URL": "postgres://localhost/mydb"},
+        )
+
+        assert config["args"] == [
+            "-y",
+            "@modelcontextprotocol/server-postgres",
+            "postgres://localhost/mydb",
+        ]
+        assert config["env"] == {"PG_URL": "postgres://localhost/mydb"}
+
+    def test_stdio_missing_placeholder_raises_through_transform(self):
+        """PlaceholderResolutionError propagates from transform_mcp_config."""
+        spec = MagicMock()
+        spec.HasField.side_effect = lambda x: x == "stdio"
+        spec.stdio.command = "npx"
+        spec.stdio.args = ["${REQUIRED_BUT_MISSING}"]
+        spec.stdio.working_dir = ""
+        spec.default_enabled_tools = []
+
+        with pytest.raises(PlaceholderResolutionError):
+            transform_mcp_config(
+                server_slug="broken",
+                spec=spec,
+                env_vars={},
+            )
 
 
 # =============================================================================

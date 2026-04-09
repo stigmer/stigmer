@@ -36,7 +36,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n\034ai/stigmer/iam/v1/enum.proto\022\021ai.stigm" +
-      "er.iam.v1*\216\004\n\rIamPermission\022\017\n\013unspecifi" +
+      "er.iam.v1*\237\004\n\rIamPermission\022\017\n\013unspecifi" +
       "ed\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_" +
       "delete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_vi" +
       "ew_access\020\005\022\024\n\020can_create_agent\020\006\022\027\n\023can" +
@@ -49,12 +49,13 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "\022\024\n\020can_read_secrets\020\020\022\025\n\021can_bootstrap_" +
       "iam\020\021\022 \n\034can_manage_identity_accounts\020\022\022" +
       "\037\n\033can_update_execution_status\020\023\022\030\n\024logi" +
-      "n_to_back_office\020\024*Q\n\007IamRole\022\030\n\024iam_rol" +
-      "e_unspecified\020\000\022\t\n\005owner\020\001\022\t\n\005admin\020\002\022\n\n" +
-      "\006member\020\003\022\n\n\006viewer\020\004BrB\tEnumProtoP\001\242\002\003A" +
-      "SI\252\002\021Ai.Stigmer.Iam.V1\312\002\021Ai\\Stigmer\\Iam\\" +
-      "V1\342\002\035Ai\\Stigmer\\Iam\\V1\\GPBMetadata\352\002\024Ai:" +
-      ":Stigmer::Iam::V1b\006proto3"
+      "n_to_back_office\020\024\022\017\n\013can_connect\020\026*Q\n\007I" +
+      "amRole\022\030\n\024iam_role_unspecified\020\000\022\t\n\005owne" +
+      "r\020\001\022\t\n\005admin\020\002\022\n\n\006member\020\003\022\n\n\006viewer\020\004Br" +
+      "B\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312" +
+      "\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\" +
+      "GPBMetadata\352\002\024Ai::Stigmer::Iam::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

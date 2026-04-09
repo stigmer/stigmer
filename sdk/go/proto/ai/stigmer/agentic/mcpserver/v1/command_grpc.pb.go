@@ -20,13 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	McpServerCommandController_Apply_FullMethodName                        = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/apply"
-	McpServerCommandController_Create_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
-	McpServerCommandController_Update_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
-	McpServerCommandController_Delete_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
-	McpServerCommandController_UpdateVisibility_FullMethodName             = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility"
-	McpServerCommandController_UpdateDiscoveredCapabilities_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateDiscoveredCapabilities"
-	McpServerCommandController_DiscoverCapabilities_FullMethodName         = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/discoverCapabilities"
+	McpServerCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/apply"
+	McpServerCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
+	McpServerCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
+	McpServerCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
+	McpServerCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility"
+	McpServerCommandController_Connect_FullMethodName          = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect"
 )
 
 // McpServerCommandControllerClient is the client API for McpServerCommandController service.
@@ -96,41 +95,30 @@ type McpServerCommandControllerClient interface {
 	// @internal
 	// Authorization: Requires can_edit permission on the mcp_server resource.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*McpServer, error)
-	// Update the discovered capabilities (tools and resource templates) for an MCP server.
-	//
-	// Only modifies status.discovered_capabilities, leaving spec, validation
-	// state, and other status fields untouched.
-	//
-	// @internal
-	// Typical flow:
-	// 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-	// 2. CLI connects to the MCP server locally and queries tools/resources
-	// 3. CLI calls this RPC with the ID and discovered capabilities
-	//
-	// Authorization: Requires can_edit permission on the mcp_server resource.
-	UpdateDiscoveredCapabilities(ctx context.Context, in *UpdateDiscoveredCapabilitiesInput, opts ...grpc.CallOption) (*McpServer, error)
-	// Discover the capabilities of an MCP server by connecting to it.
+	// Connect to an MCP server: discover its tools and classify approval policies.
 	//
 	// Connects to the MCP server, enumerates tools and resource templates,
-	// and stores the result. Blocks until discovery completes (up to ~30 seconds)
-	// and returns the updated McpServer with populated
-	// status.discovered_capabilities.
+	// classifies tool approval policies via a lightweight LLM, and stores the
+	// results in status.discovered_capabilities and status.tool_approvals.
+	// Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
 	//
 	// @internal
-	// Typical flow:
-	// 1. Web console ensures required credentials are saved in the user's personal environment
-	// 2. Web console calls discoverCapabilities with the MCP server ID
-	// 3. Backend resolves env vars from the user's personal environment
-	// 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-	// 5. Discovered tools and resource templates are stored and returned
+	// Typical flows:
+	//   - Web console: user clicks Connect, backend resolves env vars from the
+	//     user's personal environment, starts a Temporal workflow on the agent-runner.
+	//   - CLI: `stigmer discover mcp-server <name>` calls connect with runtime_env
+	//     populated from local env vars, delegating discovery to the backend.
+	//   - Graphton backfill: agent-runner calls connect on first execution when
+	//     status.discovered_capabilities is empty, passing runtime_env from the
+	//     execution context.
 	//
 	// Errors:
 	// - FAILED_PRECONDITION: Required credentials missing from personal environment
 	// - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
 	// - NOT_FOUND: MCP server does not exist
 	//
-	// Authorization: Requires can_edit permission on the mcp_server resource.
-	DiscoverCapabilities(ctx context.Context, in *DiscoverCapabilitiesInput, opts ...grpc.CallOption) (*McpServer, error)
+	// Authorization: Requires can_connect permission on the mcp_server resource.
+	Connect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error)
 }
 
 type mcpServerCommandControllerClient struct {
@@ -191,20 +179,10 @@ func (c *mcpServerCommandControllerClient) UpdateVisibility(ctx context.Context,
 	return out, nil
 }
 
-func (c *mcpServerCommandControllerClient) UpdateDiscoveredCapabilities(ctx context.Context, in *UpdateDiscoveredCapabilitiesInput, opts ...grpc.CallOption) (*McpServer, error) {
+func (c *mcpServerCommandControllerClient) Connect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(McpServer)
-	err := c.cc.Invoke(ctx, McpServerCommandController_UpdateDiscoveredCapabilities_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mcpServerCommandControllerClient) DiscoverCapabilities(ctx context.Context, in *DiscoverCapabilitiesInput, opts ...grpc.CallOption) (*McpServer, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(McpServer)
-	err := c.cc.Invoke(ctx, McpServerCommandController_DiscoverCapabilities_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, McpServerCommandController_Connect_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -278,41 +256,30 @@ type McpServerCommandControllerServer interface {
 	// @internal
 	// Authorization: Requires can_edit permission on the mcp_server resource.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*McpServer, error)
-	// Update the discovered capabilities (tools and resource templates) for an MCP server.
-	//
-	// Only modifies status.discovered_capabilities, leaving spec, validation
-	// state, and other status fields untouched.
-	//
-	// @internal
-	// Typical flow:
-	// 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-	// 2. CLI connects to the MCP server locally and queries tools/resources
-	// 3. CLI calls this RPC with the ID and discovered capabilities
-	//
-	// Authorization: Requires can_edit permission on the mcp_server resource.
-	UpdateDiscoveredCapabilities(context.Context, *UpdateDiscoveredCapabilitiesInput) (*McpServer, error)
-	// Discover the capabilities of an MCP server by connecting to it.
+	// Connect to an MCP server: discover its tools and classify approval policies.
 	//
 	// Connects to the MCP server, enumerates tools and resource templates,
-	// and stores the result. Blocks until discovery completes (up to ~30 seconds)
-	// and returns the updated McpServer with populated
-	// status.discovered_capabilities.
+	// classifies tool approval policies via a lightweight LLM, and stores the
+	// results in status.discovered_capabilities and status.tool_approvals.
+	// Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
 	//
 	// @internal
-	// Typical flow:
-	// 1. Web console ensures required credentials are saved in the user's personal environment
-	// 2. Web console calls discoverCapabilities with the MCP server ID
-	// 3. Backend resolves env vars from the user's personal environment
-	// 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-	// 5. Discovered tools and resource templates are stored and returned
+	// Typical flows:
+	//   - Web console: user clicks Connect, backend resolves env vars from the
+	//     user's personal environment, starts a Temporal workflow on the agent-runner.
+	//   - CLI: `stigmer discover mcp-server <name>` calls connect with runtime_env
+	//     populated from local env vars, delegating discovery to the backend.
+	//   - Graphton backfill: agent-runner calls connect on first execution when
+	//     status.discovered_capabilities is empty, passing runtime_env from the
+	//     execution context.
 	//
 	// Errors:
 	// - FAILED_PRECONDITION: Required credentials missing from personal environment
 	// - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
 	// - NOT_FOUND: MCP server does not exist
 	//
-	// Authorization: Requires can_edit permission on the mcp_server resource.
-	DiscoverCapabilities(context.Context, *DiscoverCapabilitiesInput) (*McpServer, error)
+	// Authorization: Requires can_connect permission on the mcp_server resource.
+	Connect(context.Context, *ConnectInput) (*McpServer, error)
 }
 
 // UnimplementedMcpServerCommandControllerServer should be embedded to have
@@ -337,11 +304,8 @@ func (UnimplementedMcpServerCommandControllerServer) Delete(context.Context, *ap
 func (UnimplementedMcpServerCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*McpServer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
 }
-func (UnimplementedMcpServerCommandControllerServer) UpdateDiscoveredCapabilities(context.Context, *UpdateDiscoveredCapabilitiesInput) (*McpServer, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateDiscoveredCapabilities not implemented")
-}
-func (UnimplementedMcpServerCommandControllerServer) DiscoverCapabilities(context.Context, *DiscoverCapabilitiesInput) (*McpServer, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DiscoverCapabilities not implemented")
+func (UnimplementedMcpServerCommandControllerServer) Connect(context.Context, *ConnectInput) (*McpServer, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
 }
 func (UnimplementedMcpServerCommandControllerServer) testEmbeddedByValue() {}
 
@@ -453,38 +417,20 @@ func _McpServerCommandController_UpdateVisibility_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _McpServerCommandController_UpdateDiscoveredCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateDiscoveredCapabilitiesInput)
+func _McpServerCommandController_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(McpServerCommandControllerServer).UpdateDiscoveredCapabilities(ctx, in)
+		return srv.(McpServerCommandControllerServer).Connect(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: McpServerCommandController_UpdateDiscoveredCapabilities_FullMethodName,
+		FullMethod: McpServerCommandController_Connect_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerCommandControllerServer).UpdateDiscoveredCapabilities(ctx, req.(*UpdateDiscoveredCapabilitiesInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _McpServerCommandController_DiscoverCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DiscoverCapabilitiesInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(McpServerCommandControllerServer).DiscoverCapabilities(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: McpServerCommandController_DiscoverCapabilities_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerCommandControllerServer).DiscoverCapabilities(ctx, req.(*DiscoverCapabilitiesInput))
+		return srv.(McpServerCommandControllerServer).Connect(ctx, req.(*ConnectInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -517,12 +463,8 @@ var McpServerCommandController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _McpServerCommandController_UpdateVisibility_Handler,
 		},
 		{
-			MethodName: "updateDiscoveredCapabilities",
-			Handler:    _McpServerCommandController_UpdateDiscoveredCapabilities_Handler,
-		},
-		{
-			MethodName: "discoverCapabilities",
-			Handler:    _McpServerCommandController_DiscoverCapabilities_Handler,
+			MethodName: "connect",
+			Handler:    _McpServerCommandController_Connect_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

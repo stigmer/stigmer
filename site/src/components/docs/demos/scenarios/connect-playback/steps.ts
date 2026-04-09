@@ -1,9 +1,9 @@
 /**
- * Discover capabilities playback for "Connect your tools".
+ * Connect playback for "Connect your tools".
  *
- * 7-step sequence: MCP server from the top → scroll down to show
- * Capabilities → cursor clicks Discover → credential form opens →
- * credentials filled + Save → tools discovered.
+ * 6-step sequence: MCP server detail → cursor clicks Connect →
+ * credential form opens → credentials filled + submit →
+ * tools discovered + policies classified → view policies tab.
  *
  * Each step carries the full McpServer fixture so the playback
  * component can swap the data fed to the real SDK McpServerDetailView.
@@ -13,13 +13,13 @@ import { create } from "@bufbuild/protobuf";
 import {
   McpServerSpecSchema,
   HttpServerConfigSchema,
+  ToolApprovalPolicySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import {
   McpServerStatusSchema,
   DiscoveredCapabilitiesSchema,
   DiscoveredToolSchema,
   ValidationState,
-  DiscoverySource,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import {
   EnvironmentSpecSchema,
@@ -52,8 +52,7 @@ function buildServerBase(): McpServer {
       data: {
         API_KEY: create(EnvironmentValueSchema, {
           isSecret: true,
-          description:
-            "API key for order management authentication.",
+          description: "API key for order management authentication.",
         }),
       },
     }),
@@ -62,13 +61,12 @@ function buildServerBase(): McpServer {
   return server;
 }
 
-function buildServerWithTools(): McpServer {
+function buildConnectedServer(): McpServer {
   const server = buildServerBase();
 
   server.status = create(McpServerStatusSchema, {
     validationState: ValidationState.valid,
     discoveredCapabilities: create(DiscoveredCapabilitiesSchema, {
-      discoveredBy: DiscoverySource.api,
       tools: [
         create(DiscoveredToolSchema, {
           name: "get_order",
@@ -87,54 +85,66 @@ function buildServerWithTools(): McpServer {
         }),
       ],
     }),
+    toolApprovals: [
+      create(ToolApprovalPolicySchema, {
+        toolName: "process_return",
+        message:
+          "Process return for order '{{args.order_id}}' — refund ${{args.refund_amount}} to {{args.refund_method}}",
+      }),
+    ],
   });
 
   return server;
 }
 
-export type DiscoverStep =
+export type ConnectStep =
   | { view: "no-tools"; server: McpServer }
-  | { view: "scroll-to-capabilities"; server: McpServer }
-  | { view: "click-discover"; server: McpServer }
+  | { view: "click-connect"; server: McpServer }
   | { view: "credential-form"; server: McpServer }
   | { view: "credential-filled"; server: McpServer }
-  | { view: "tools-discovered"; server: McpServer };
+  | { view: "connected-tools"; server: McpServer }
+  | { view: "connected-policies"; server: McpServer };
 
-const noToolsServer = buildServerBase();
-const withToolsServer = buildServerWithTools();
+const baseServer = buildServerBase();
+const connectedServer = buildConnectedServer();
 
-export const discoverSteps: ScenarioStep<DiscoverStep>[] = [
+export const connectSteps: ScenarioStep<ConnectStep>[] = [
   {
     delayMs: 0,
-    data: { view: "no-tools", server: noToolsServer },
+    data: { view: "no-tools", server: baseServer },
     caption: "MCP server added — no tools yet",
-    narration: "You've added the MCP server, but Stigmer doesn't know what tools it offers yet.",
+    narration:
+      "You've added the MCP server, but Stigmer doesn't know what tools it offers yet.",
   },
   {
     delayMs: 2500,
-    data: { view: "scroll-to-capabilities", server: noToolsServer },
-    caption: "Scroll to Capabilities",
-  },
-  {
-    delayMs: 2000,
-    data: { view: "click-discover", server: noToolsServer },
-    caption: 'Click "Discover"',
+    data: { view: "click-connect", server: baseServer },
+    caption: 'Click "Connect"',
   },
   {
     delayMs: 2500,
-    data: { view: "credential-form", server: noToolsServer },
+    data: { view: "credential-form", server: baseServer },
     caption: "Enter your API key",
-    narration: "Stigmer needs your API key to connect to the server.",
+    narration:
+      "Stigmer needs your API key to connect to the server.",
   },
   {
     delayMs: 3000,
-    data: { view: "credential-filled", server: noToolsServer },
-    caption: "Save and discover",
+    data: { view: "credential-filled", server: baseServer },
+    caption: "Save and connect",
   },
   {
     delayMs: 3000,
-    data: { view: "tools-discovered", server: withToolsServer },
-    caption: "3 tools discovered",
-    narration: "Stigmer connected to the server and found three tools — get_order, list_orders, and process_return.",
+    data: { view: "connected-tools", server: connectedServer },
+    caption: "3 tools discovered, policies classified",
+    narration:
+      "Stigmer connected to the server, found three tools, and classified each one. Read operations pass through automatically. process_return requires approval.",
+  },
+  {
+    delayMs: 3500,
+    data: { view: "connected-policies", server: connectedServer },
+    caption: "process_return requires approval",
+    narration:
+      "The Policies tab shows auto-classified rules. The agent will pause and ask a human before processing any refund.",
   },
 ];

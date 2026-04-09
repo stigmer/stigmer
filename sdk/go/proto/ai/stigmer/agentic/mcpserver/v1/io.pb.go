@@ -73,79 +73,15 @@ func (x *McpServerId) GetValue() string {
 	return ""
 }
 
-// UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.
+// ConnectInput is the request for the connect RPC.
 //
 // @internal
-// Used by:
-//   - CLI: after `stigmer discover mcp-server <name>` connects locally, queries tools/resources,
-//     and pushes the results to stigmer-server.
-//   - Agent-runner: future runtime cache refresh.
-//
-// The caller must first resolve the MCP server's system ID (e.g., via getByReference)
-// before calling this RPC.
-type UpdateDiscoveredCapabilitiesInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// System-generated ID of the MCP server to update.
-	// Obtained from McpServer.metadata.id (e.g., via getByReference).
-	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// Discovered tools and resource templates to store.
-	DiscoveredCapabilities *DiscoveredCapabilities `protobuf:"bytes,2,opt,name=discovered_capabilities,json=discoveredCapabilities,proto3" json:"discovered_capabilities,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *UpdateDiscoveredCapabilitiesInput) Reset() {
-	*x = UpdateDiscoveredCapabilitiesInput{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateDiscoveredCapabilitiesInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateDiscoveredCapabilitiesInput) ProtoMessage() {}
-
-func (x *UpdateDiscoveredCapabilitiesInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateDiscoveredCapabilitiesInput.ProtoReflect.Descriptor instead.
-func (*UpdateDiscoveredCapabilitiesInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *UpdateDiscoveredCapabilitiesInput) GetMcpServerId() string {
-	if x != nil {
-		return x.McpServerId
-	}
-	return ""
-}
-
-func (x *UpdateDiscoveredCapabilitiesInput) GetDiscoveredCapabilities() *DiscoveredCapabilities {
-	if x != nil {
-		return x.DiscoveredCapabilities
-	}
-	return nil
-}
-
-// DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
-//
-// @internal
-// Triggers server-side MCP discovery: the backend creates an ephemeral
-// ExecutionContext with the resolved environment variables, starts a Temporal
-// workflow that connects to the MCP server (via the agent-runner), enumerates
-// tools and resource templates, and stores the result in
-// status.discovered_capabilities.
+// Triggers server-side MCP discovery and tool approval classification:
+// the backend creates an ephemeral ExecutionContext with the resolved
+// environment variables, starts a Temporal workflow that connects to the
+// MCP server (via the agent-runner), enumerates tools and resource
+// templates, classifies tool approval policies, and stores the results
+// in status.discovered_capabilities and status.tool_approvals.
 //
 // Environment variable resolution:
 //   - When runtime_env is provided, the backend creates an ExecutionContext directly
@@ -153,37 +89,43 @@ func (x *UpdateDiscoveredCapabilitiesInput) GetDiscoveredCapabilities() *Discove
 //   - When runtime_env is empty, the backend resolves values from the authenticated
 //     user's personal environment.
 //
+// Callers:
+//   - Web console: calls connect after saving credentials to personal environment.
+//   - CLI: calls connect with runtime_env populated from local env vars.
+//   - Graphton backfill: calls connect with runtime_env from execution context
+//     when status.discovered_capabilities is empty on first agent execution.
+//
 // Prerequisites:
 //   - The MCP server must exist and have a valid server_type (stdio or http)
 //   - Either runtime_env must contain all required keys, or the keys must be
 //     present in the user's personal environment
-type DiscoverCapabilitiesInput struct {
+type ConnectInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// System-generated ID of the MCP server to discover.
+	// System-generated ID of the MCP server to connect to.
 	// Obtained from McpServer.metadata.id (e.g., via getByReference).
 	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// Optional environment variable values for one-time discovery.
+	// Optional environment variable values for one-time use.
 	// When empty, values are resolved from the user's personal environment.
 	RuntimeEnv    map[string]*v1.ExecutionValue `protobuf:"bytes,2,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DiscoverCapabilitiesInput) Reset() {
-	*x = DiscoverCapabilitiesInput{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[2]
+func (x *ConnectInput) Reset() {
+	*x = ConnectInput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DiscoverCapabilitiesInput) String() string {
+func (x *ConnectInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DiscoverCapabilitiesInput) ProtoMessage() {}
+func (*ConnectInput) ProtoMessage() {}
 
-func (x *DiscoverCapabilitiesInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[2]
+func (x *ConnectInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -194,19 +136,19 @@ func (x *DiscoverCapabilitiesInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DiscoverCapabilitiesInput.ProtoReflect.Descriptor instead.
-func (*DiscoverCapabilitiesInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use ConnectInput.ProtoReflect.Descriptor instead.
+func (*ConnectInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *DiscoverCapabilitiesInput) GetMcpServerId() string {
+func (x *ConnectInput) GetMcpServerId() string {
 	if x != nil {
 		return x.McpServerId
 	}
 	return ""
 }
 
-func (x *DiscoverCapabilitiesInput) GetRuntimeEnv() map[string]*v1.ExecutionValue {
+func (x *ConnectInput) GetRuntimeEnv() map[string]*v1.ExecutionValue {
 	if x != nil {
 		return x.RuntimeEnv
 	}
@@ -217,15 +159,12 @@ var File_ai_stigmer_agentic_mcpserver_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a,ai/stigmer/agentic/mcpserver/v1/status.proto\x1a\x1bbuf/validate/validate.proto\"+\n" +
+	"(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"+\n" +
 	"\vMcpServerId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xc9\x01\n" +
-	"!UpdateDiscoveredCapabilitiesInput\x12*\n" +
-	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x12x\n" +
-	"\x17discovered_capabilities\x18\x02 \x01(\v27.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesB\x06\xbaH\x03\xc8\x01\x01R\x16discoveredCapabilities\"\xab\x02\n" +
-	"\x19DiscoverCapabilitiesInput\x12*\n" +
-	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x12k\n" +
-	"\vruntime_env\x18\x02 \x03(\v2J.ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.RuntimeEnvEntryR\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x91\x02\n" +
+	"\fConnectInput\x12*\n" +
+	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x12^\n" +
+	"\vruntime_env\x18\x02 \x03(\v2=.ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntryR\n" +
 	"runtimeEnv\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
@@ -244,24 +183,21 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_goTypes = []any{
-	(*McpServerId)(nil),                       // 0: ai.stigmer.agentic.mcpserver.v1.McpServerId
-	(*UpdateDiscoveredCapabilitiesInput)(nil), // 1: ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput
-	(*DiscoverCapabilitiesInput)(nil),         // 2: ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput
-	nil,                                       // 3: ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.RuntimeEnvEntry
-	(*DiscoveredCapabilities)(nil),            // 4: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
-	(*v1.ExecutionValue)(nil),                 // 5: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*McpServerId)(nil),       // 0: ai.stigmer.agentic.mcpserver.v1.McpServerId
+	(*ConnectInput)(nil),      // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput
+	nil,                       // 2: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
+	(*v1.ExecutionValue)(nil), // 3: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput.discovered_capabilities:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
-	3, // 1: ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.RuntimeEnvEntry
-	5, // 2: ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.mcpserver.v1.ConnectInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
+	3, // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_io_proto_init() }
@@ -269,14 +205,13 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_init() {
 	if File_ai_stigmer_agentic_mcpserver_v1_io_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_mcpserver_v1_status_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"time"
 
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
@@ -11,6 +12,7 @@ import (
 	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // McpServerClient provides operations on mcpserver resources.
@@ -57,13 +59,8 @@ func (m *McpServerClient) UpdateVisibility(ctx context.Context, input *apiresour
 	return resp, wrapErr(err)
 }
 
-func (m *McpServerClient) UpdateDiscoveredCapabilities(ctx context.Context, input *mcpserverv1.UpdateDiscoveredCapabilitiesInput) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.UpdateDiscoveredCapabilities(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (m *McpServerClient) DiscoverCapabilities(ctx context.Context, input *mcpserverv1.DiscoverCapabilitiesInput) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.DiscoverCapabilities(ctx, input)
+func (m *McpServerClient) Connect(ctx context.Context, input *mcpserverv1.ConnectInput) (*mcpserverv1.McpServer, error) {
+	resp, err := m.command.Connect(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -102,17 +99,18 @@ func (m *McpServerClient) List(ctx context.Context, params *ListParams) (*ListRe
 
 // McpServerInput holds the fields for creating/updating a McpServer.
 type McpServerInput struct {
-	Name                 string
-	Slug                 string
-	Org                  string
-	Labels               map[string]string
-	Description          string
-	IconUrl              string
-	Stdio                *StdioServerConfigInput
-	Http                 *HttpServerConfigInput
-	DefaultEnabledTools  []string
-	EnvSpec              *EnvSpecInput
-	DefaultToolApprovals []*ToolApprovalPolicyInput
+	Name                string
+	Slug                string
+	Org                 string
+	Labels              map[string]string
+	Description         string
+	IconUrl             string
+	Stdio               *StdioServerConfigInput
+	Http                *HttpServerConfigInput
+	DefaultEnabledTools []string
+	EnvSpec             *EnvSpecInput
+	Source              *McpServerSourceInput
+	PinnedToolApprovals []*ToolApprovalPolicyInput
 }
 
 // StdioServerConfigInput is the SDK input type for StdioServerConfig.
@@ -128,6 +126,15 @@ type HttpServerConfigInput struct {
 	Headers        map[string]string
 	QueryParams    map[string]string
 	TimeoutSeconds int32
+}
+
+// McpServerSourceInput is the SDK input type for McpServerSource.
+type McpServerSourceInput struct {
+	Registry      string
+	RegistryName  string
+	Version       string
+	RepositoryUrl string
+	LastSyncedAt  string
 }
 
 // ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
@@ -173,10 +180,27 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 	if i.EnvSpec != nil {
 		resource.Spec.EnvSpec = i.EnvSpec.toProto()
 	}
-	for _, item := range i.DefaultToolApprovals {
-		resource.Spec.DefaultToolApprovals = append(resource.Spec.DefaultToolApprovals, item.toProto())
+	if i.Source != nil {
+		resource.Spec.Source = i.Source.toProto()
+	}
+	for _, item := range i.PinnedToolApprovals {
+		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, item.toProto())
 	}
 	return resource
+}
+
+func (i *McpServerSourceInput) toProto() *mcpserverv1.McpServerSource {
+	p := &mcpserverv1.McpServerSource{}
+	p.Registry = i.Registry
+	p.RegistryName = i.RegistryName
+	p.Version = i.Version
+	p.RepositoryUrl = i.RepositoryUrl
+	if i.LastSyncedAt != "" {
+		if t, err := time.Parse(time.RFC3339, i.LastSyncedAt); err == nil {
+			p.LastSyncedAt = timestamppb.New(t)
+		}
+	}
+	return p
 }
 
 func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {

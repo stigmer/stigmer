@@ -26,23 +26,21 @@ var File_ai_stigmer_agentic_mcpserver_v1_command_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_mcpserver_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/mcpserver/v1/command.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x94\t\n" +
+	"-ai/stigmer/agentic/mcpserver/v1/command.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x95\a\n" +
 	"\x1aMcpServerCommandController\x12_\n" +
 	"\x05apply\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\x12f\n" +
 	"\x06create\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"\x04и\x18\x01\x12\x9a\x01\n" +
 	"\x06update\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"8¸\x184\b\x02\x10,\"\vmetadata.id*!unauthorized to update mcp server\x12\xa6\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"8¸\x184\b\x03\x10,\"\vresource_id*!unauthorized to delete mcp server\x12\xba\x01\n" +
-	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"C¸\x18?\b\x02\x10,\"\vresource_id*,unauthorized to update mcp server visibility\x12\xd7\x01\n" +
-	"\x1cupdateDiscoveredCapabilities\x12B.ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"G¸\x18C\b\x02\x10,\"\rmcp_server_id*.unauthorized to update mcp server capabilities\x12\xc9\x01\n" +
-	"\x14discoverCapabilities\x12:.ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"I¸\x18E\b\x02\x10,\"\rmcp_server_id*0unauthorized to discover mcp server capabilities\x1a\x04\xa0\xff+,B\xaa\x02\n" +
+	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"C¸\x18?\b\x02\x10,\"\vresource_id*,unauthorized to update mcp server visibility\x12\xa4\x01\n" +
+	"\aconnect\x12-.ai.stigmer.agentic.mcpserver.v1.ConnectInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\">¸\x18:\b\x16\x10,\"\rmcp_server_id*%unauthorized to connect to mcp server\x1a\x04\xa0\xff+,B\xaa\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\fCommandProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_mcpserver_v1_command_proto_goTypes = []any{
 	(*McpServer)(nil),                          // 0: ai.stigmer.agentic.mcpserver.v1.McpServer
 	(*apiresource.ApiResourceDeleteInput)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 	(*apiresource.UpdateVisibilityInput)(nil),  // 2: ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	(*UpdateDiscoveredCapabilitiesInput)(nil),  // 3: ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput
-	(*DiscoverCapabilitiesInput)(nil),          // 4: ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput
+	(*ConnectInput)(nil),                       // 3: ai.stigmer.agentic.mcpserver.v1.ConnectInput
 }
 var file_ai_stigmer_agentic_mcpserver_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.apply:input_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
@@ -50,17 +48,15 @@ var file_ai_stigmer_agentic_mcpserver_v1_command_proto_depIdxs = []int32{
 	0, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.update:input_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
 	1, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 	2, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	3, // 5: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateDiscoveredCapabilities:input_type -> ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput
-	4, // 6: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.discoverCapabilities:input_type -> ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput
-	0, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.apply:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0, // 8: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.create:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0, // 9: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.update:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0, // 10: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.delete:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0, // 11: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateVisibility:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0, // 12: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateDiscoveredCapabilities:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	0, // 13: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.discoverCapabilities:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	7, // [7:14] is the sub-list for method output_type
-	0, // [0:7] is the sub-list for method input_type
+	3, // 5: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.connect:input_type -> ai.stigmer.agentic.mcpserver.v1.ConnectInput
+	0, // 6: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.apply:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.create:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0, // 8: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.update:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0, // 9: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.delete:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0, // 10: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateVisibility:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	0, // 11: ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.connect:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	6, // [6:12] is the sub-list for method output_type
+	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
