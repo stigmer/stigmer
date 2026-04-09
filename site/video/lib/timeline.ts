@@ -1,9 +1,6 @@
 import type { NarrationManifest } from "@/components/docs/demos/engine/narration";
+import { computeStepTimeline } from "@/components/docs/demos/engine/timeline";
 
-/**
- * Minimal step shape — only the timing field is needed for timeline
- * computation. Accepts any ScenarioStep<T> without caring about data.
- */
 interface StepTiming {
   delayMs: number;
 }
@@ -27,41 +24,21 @@ export interface Timeline {
   totalFrames: number;
 }
 
-/** Dwell time on the final step so viewers can absorb the result. */
-const FINAL_DWELL_MS = 3_000;
-
 function msToFrames(ms: number, fps: number): number {
   return Math.round((ms * fps) / 1000);
 }
 
 /**
- * Pre-compute a deterministic playback timeline from step definitions
- * and an optional narration manifest.
- *
- * The timing model matches ScenarioPlayer's unmuted auto-advance
- * logic: step N+1 appears after `max(steps[N+1].delayMs,
- * manifest.steps[N].durationMs)` — whichever is longer, the base
- * delay or the narration clip for the current step.
+ * Pre-compute a deterministic playback timeline with Remotion frame
+ * offsets. Delegates ms-level computation to the shared
+ * {@link computeStepTimeline} utility.
  */
 export function computeTimeline(
   steps: readonly StepTiming[],
   manifest: NarrationManifest | null,
   fps: number,
 ): Timeline {
-  const stepStartTimesMs: number[] = [0];
-
-  for (let i = 1; i < steps.length; i++) {
-    const prevStart = stepStartTimesMs[i - 1];
-    const baseDelay = steps[i].delayMs;
-    const narrationMs = manifest?.steps[i - 1]?.durationMs ?? 0;
-    stepStartTimesMs.push(prevStart + Math.max(baseDelay, narrationMs));
-  }
-
-  const lastStepStart = stepStartTimesMs[stepStartTimesMs.length - 1];
-  const lastNarrationMs =
-    manifest?.steps[steps.length - 1]?.durationMs ?? 0;
-  const totalDurationMs =
-    lastStepStart + Math.max(FINAL_DWELL_MS, lastNarrationMs);
+  const { stepStartTimesMs, totalDurationMs } = computeStepTimeline(steps, manifest);
 
   const stepStartFrames = stepStartTimesMs.map((ms) => msToFrames(ms, fps));
   const totalFrames = msToFrames(totalDurationMs, fps);

@@ -1,12 +1,13 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { NarrationManifest } from "./narration";
 import { useNarrationPlayback } from "./useNarrationPlayback";
 import { useTimeSource } from "./TimeSource";
 import { useVideoExport } from "./VideoExportContext";
+import { computeStepTimeline } from "./timeline";
 
 /**
  * A single step in a scenario timeline.
@@ -32,7 +33,7 @@ interface ScenarioPlayerProps<T> {
   steps: ScenarioStep<T>[];
   /** Render function — receives current step data and step index. */
   children: (data: T, stepIndex: number) => ReactNode;
-  /** Auto-play when visible in viewport (default: true). */
+  /** @deprecated Kept for API compatibility. Auto-play on scroll has been removed. */
   autoPlay?: boolean;
   /** Additional CSS class names for the outer container. */
   className?: string;
@@ -45,10 +46,11 @@ interface ScenarioPlayerProps<T> {
   narrationManifest?: NarrationManifest;
 }
 
+type PlaybackState = "idle" | "playing" | "paused";
+
 /**
  * Find the active step for a given playback time by scanning the
- * pre-computed step start times in reverse. Returns the index of
- * the latest step whose start time has been reached.
+ * pre-computed step start times in reverse.
  */
 function deriveStepFromTime(
   currentTimeMs: number,
@@ -61,20 +63,23 @@ function deriveStepFromTime(
   return 0;
 }
 
+/** Delay before auto-hiding the control bar during playback. */
+const CONTROLS_HIDE_DELAY_MS = 3_000;
+
 /**
- * Generic playback engine for timed scenario animations.
+ * Video-style playback engine for timed scenario animations.
  *
- * Manages step timing, viewport-triggered auto-play, progress indication,
- * and interactive playback controls (pause/play, step forward/backward,
- * clickable progress dots).
+ * Renders a poster overlay with a centered play button on initial load.
+ * The user must click to start playback — no auto-play on scroll.
+ * When playing, a YouTube-style progress bar glides smoothly at 60fps
+ * with subtle chapter markers at step boundaries and a circular
+ * playhead. Transport controls (play/pause, volume) auto-hide after
+ * 3 seconds and reappear on mouse movement.
  *
- * When the user interacts with controls, auto-play pauses and the user
- * has full manual control. Pressing play resumes auto-advance from the
- * current position.
+ * Audio plays unmuted by default when the user clicks play — the
+ * click gesture satisfies browser autoplay policy.
  *
- * Pauses when scrolled out of view and resumes from the same step on
- * re-entry — content is always rendered so the container height is
- * stable and never causes layout shifts.
+ * Clicking the content area toggles play/pause (standard video behavior).
  *
  * Renders content via a children render prop — the engine knows nothing
  * about what is being displayed.
@@ -84,20 +89,22 @@ function deriveStepFromTime(
 export function ScenarioPlayer<T>({
   steps,
   children,
-  autoPlay = true,
   className,
   onStepChange,
   narrationManifest,
 }: ScenarioPlayerProps<T>) {
   const prefersReducedMotion = useReducedMotion();
-  const { isVideoExport, hideControls, initialMuted } = useVideoExport();
+  const { isVideoExport, hideControls, initialMuted: videoExportMuted } = useVideoExport();
   const timeSource = useTimeSource();
   const lastIndex = steps.length - 1;
 
   const [timerStepIndex, setStepIndex] = useState(() =>
     prefersReducedMotion ? lastIndex : 0,
   );
-  const [playing, setPlaying] = useState(false);
+  const [playbackState, setPlaybackState] = useState<PlaybackState>(
+    isVideoExport ? "playing" : "idle",
+  );
+  const playing = playbackState === "playing";
   const containerRef = useRef<HTMLDivElement>(null);
 
   const stepIndex = timeSource
@@ -107,42 +114,42 @@ export function ScenarioPlayer<T>({
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
 
+  const playbackStateRef = useRef(playbackState);
+  playbackStateRef.current = playbackState;
+
   const pendingAdvanceRef = useRef<(() => void) | null>(null);
 
   const handleClipEnded = useCallback(() => {
     pendingAdvanceRef.current?.();
   }, []);
 
+  const effectiveInitialMuted = isVideoExport ? videoExportMuted : false;
+
   const { muted, toggleMute, audioRef } = useNarrationPlayback({
     manifest: timeSource ? undefined : narrationManifest,
     stepIndex,
     playing,
-    initialMuted,
+    initialMuted: effectiveInitialMuted,
     onClipEnded: handleClipEnded,
   });
 
-  useEffect(() => {
-    if (timeSource || isVideoExport || !autoPlay || prefersReducedMotion) return;
-    const el = containerRef.current;
-    if (!el) return;
+  // Timeline for progress bar — recomputes when mute state changes
+  // so the bar matches actual step durations.
+  const stepTimeline = useMemo(
+    () => computeStepTimeline(steps, muted ? null : narrationManifest),
+    [steps, muted, narrationManifest],
+  );
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && stepIndexRef.current >= lastIndex) {
-          setStepIndex(0);
-        }
-        setPlaying(entry.isIntersecting);
-      },
-      { threshold: 0.3 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [timeSource, isVideoExport, autoPlay, prefersReducedMotion, lastIndex]);
+  // Keep timeline in a ref so the RAF tick always reads the latest.
+  const stepTimelineRef = useRef(stepTimeline);
+  stepTimelineRef.current = stepTimeline;
 
+  // -----------------------------------------------------------------------
+  // Step advancement (unchanged timing logic, no IntersectionObserver)
+  // -----------------------------------------------------------------------
   useEffect(() => {
     if (timeSource || !playing || prefersReducedMotion) return;
 
-    // --- Final step: wait for narration to finish, then stop ---
     if (stepIndex >= lastIndex) {
       const finalNarrationMs =
         !muted && narrationManifest
@@ -150,10 +157,10 @@ export function ScenarioPlayer<T>({
           : 0;
 
       if (finalNarrationMs > 0) {
-        pendingAdvanceRef.current = () => setPlaying(false);
+        pendingAdvanceRef.current = () => setPlaybackState("paused");
         const safety = setTimeout(() => {
           pendingAdvanceRef.current = null;
-          setPlaying(false);
+          setPlaybackState("paused");
         }, finalNarrationMs + 2000);
         return () => {
           clearTimeout(safety);
@@ -161,11 +168,10 @@ export function ScenarioPlayer<T>({
         };
       }
 
-      setPlaying(false);
+      setPlaybackState("paused");
       return;
     }
 
-    // --- Non-final step ---
     const nextIndex = stepIndex + 1;
     const baseDelay = steps[nextIndex].delayMs;
     const narrationDuration =
@@ -174,8 +180,6 @@ export function ScenarioPlayer<T>({
         : 0;
 
     if (narrationDuration > 0) {
-      // Event-driven: advance when *both* the clip finishes and
-      // the minimum baseDelay has elapsed.
       let clipDone = false;
       let baseDelayDone = false;
       let fired = false;
@@ -213,7 +217,6 @@ export function ScenarioPlayer<T>({
       };
     }
 
-    // No narration — advance after base delay
     const timer = setTimeout(() => setStepIndex(nextIndex), baseDelay);
     return () => clearTimeout(timer);
   }, [timeSource, playing, stepIndex, steps, lastIndex, prefersReducedMotion, muted, narrationManifest]);
@@ -222,44 +225,220 @@ export function ScenarioPlayer<T>({
     onStepChange?.(steps[stepIndex].data, stepIndex);
   }, [stepIndex, steps, onStepChange]);
 
+  // -----------------------------------------------------------------------
+  // Controls auto-hide
+  // -----------------------------------------------------------------------
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const scheduleHide = useCallback(() => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(
+      () => setControlsVisible(false),
+      CONTROLS_HIDE_DELAY_MS,
+    );
+  }, []);
+
+  const revealControls = useCallback(() => {
+    setControlsVisible(true);
+    if (playbackState === "playing") scheduleHide();
+  }, [playbackState, scheduleHide]);
+
+  useEffect(() => {
+    if (playbackState !== "playing") {
+      setControlsVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    } else {
+      scheduleHide();
+    }
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [playbackState, scheduleHide]);
+
+  // -----------------------------------------------------------------------
+  // Navigation callbacks
+  // -----------------------------------------------------------------------
   const goTo = useCallback(
     (index: number) => {
-      setPlaying(false);
+      setPlaybackState("paused");
       setStepIndex(Math.max(0, Math.min(index, lastIndex)));
     },
     [lastIndex],
   );
 
-  const prev = useCallback(() => {
-    if (stepIndex > 0) goTo(stepIndex - 1);
-  }, [stepIndex, goTo]);
+  const handlePlay = useCallback(() => {
+    if (stepIndex >= lastIndex) setStepIndex(0);
+    setPlaybackState("playing");
+  }, [stepIndex, lastIndex]);
 
-  const next = useCallback(() => {
-    if (stepIndex < lastIndex) goTo(stepIndex + 1);
-  }, [stepIndex, lastIndex, goTo]);
+  const handlePause = useCallback(() => {
+    setPlaybackState("paused");
+  }, []);
 
   const togglePlay = useCallback(() => {
-    if (playing) {
-      setPlaying(false);
-    } else {
-      if (stepIndex >= lastIndex) setStepIndex(0);
-      setPlaying(true);
-    }
-  }, [playing, stepIndex, lastIndex]);
+    if (playing) handlePause();
+    else handlePlay();
+  }, [playing, handlePlay, handlePause]);
 
+  const handleContentClick = useCallback(() => {
+    if (playbackState === "idle") return;
+    togglePlay();
+  }, [playbackState, togglePlay]);
+
+  // -----------------------------------------------------------------------
+  // Smooth progress bar (RAF-driven, 60fps direct DOM updates)
+  // -----------------------------------------------------------------------
+  const progressTrackRef = useRef<HTMLDivElement>(null);
+  const playheadRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef(0);
+  const stepElapsedRef = useRef(0);
+  const lastTickRef = useRef(0);
+
+  const setProgressDOM = useCallback((fraction: number) => {
+    const pct = `${Math.max(0, Math.min(fraction, 1)) * 100}%`;
+    if (progressTrackRef.current) progressTrackRef.current.style.width = pct;
+    if (playheadRef.current) playheadRef.current.style.left = pct;
+  }, []);
+
+  // The tick function is stored in a ref so the recursive RAF chain
+  // always invokes the latest closure (captures fresh refs).
+  const tickFnRef = useRef<() => void>(undefined);
+  tickFnRef.current = () => {
+    const now = performance.now();
+    stepElapsedRef.current += now - lastTickRef.current;
+    lastTickRef.current = now;
+
+    const tl = stepTimelineRef.current;
+    const idx = stepIndexRef.current;
+    const stepStart = tl.stepStartTimesMs[idx];
+    const stepEnd = idx < lastIndex
+      ? tl.stepStartTimesMs[idx + 1]
+      : tl.totalDurationMs;
+    const stepDuration = Math.max(stepEnd - stepStart, 1);
+    const inStepFrac = Math.min(stepElapsedRef.current / stepDuration, 1);
+    const progress = (stepStart + inStepFrac * (stepEnd - stepStart)) / tl.totalDurationMs;
+
+    setProgressDOM(progress);
+    rafRef.current = requestAnimationFrame(() => tickFnRef.current?.());
+  };
+
+  // Start / stop the animation loop with playback state.
+  useEffect(() => {
+    if (playing) {
+      lastTickRef.current = performance.now();
+      rafRef.current = requestAnimationFrame(() => tickFnRef.current?.());
+    } else {
+      cancelAnimationFrame(rafRef.current);
+    }
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [playing]);
+
+  // Reset the within-step timer when the step changes.
+  useEffect(() => {
+    stepElapsedRef.current = 0;
+    lastTickRef.current = performance.now();
+  }, [stepIndex]);
+
+  // Update the progress bar for static states (idle, paused after seek).
+  useEffect(() => {
+    if (playbackState === "idle") {
+      setProgressDOM(0);
+      return;
+    }
+    if (playbackState === "paused") {
+      const tl = stepTimelineRef.current;
+      const idx = stepIndexRef.current;
+      const stepStart = tl.stepStartTimesMs[idx];
+      const stepEnd = idx < lastIndex
+        ? tl.stepStartTimesMs[idx + 1]
+        : tl.totalDurationMs;
+      const stepDuration = Math.max(stepEnd - stepStart, 1);
+      const inStepFrac = Math.min(stepElapsedRef.current / stepDuration, 1);
+      const progress = (stepStart + inStepFrac * (stepEnd - stepStart)) / tl.totalDurationMs;
+      setProgressDOM(progress);
+    }
+  }, [playbackState, stepIndex, lastIndex, setProgressDOM]);
+
+  // -----------------------------------------------------------------------
+  // Progress bar click-to-seek
+  // -----------------------------------------------------------------------
+  const handleProgressClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const clickTimeMs = fraction * stepTimelineRef.current.totalDurationMs;
+      let target = 0;
+      for (let i = stepTimelineRef.current.stepStartTimesMs.length - 1; i >= 0; i--) {
+        if (clickTimeMs >= stepTimelineRef.current.stepStartTimesMs[i]) {
+          target = i;
+          break;
+        }
+      }
+      goTo(target);
+    },
+    [goTo],
+  );
+
+  // Chapter markers (step boundaries) for the progress bar.
+  const stepTicks = useMemo(
+    () =>
+      stepTimeline.stepStartTimesMs
+        .slice(1)
+        .map((ms) => (ms / stepTimeline.totalDurationMs) * 100),
+    [stepTimeline],
+  );
+
+  // -----------------------------------------------------------------------
+  // Render
+  // -----------------------------------------------------------------------
   const caption = steps[stepIndex].caption;
+  const showPoster = playbackState === "idle" && !isVideoExport && !prefersReducedMotion;
+  const showControlBar = playbackState !== "idle" && !hideControls;
 
   return (
     <div
       ref={containerRef}
       className={className}
+      onMouseMove={showControlBar ? revealControls : undefined}
     >
-      {children(steps[stepIndex].data, stepIndex)}
+      {/* Content area — click toggles play/pause after poster is dismissed */}
+      <div
+        className="relative"
+        onClick={handleContentClick}
+        style={{ cursor: playbackState !== "idle" ? "pointer" : undefined }}
+      >
+        {children(steps[stepIndex].data, stepIndex)}
+
+        {/* Poster overlay */}
+        <AnimatePresence>
+          {showPoster && (
+            <motion.div
+              className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-lg bg-black/40 backdrop-blur-[2px]"
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePlay();
+              }}
+              role="button"
+              aria-label="Play demo"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-lg transition-transform hover:scale-110">
+                <Play size={28} className="ml-1 text-neutral-900" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {narrationManifest && (
         <audio ref={audioRef} preload="none" hidden />
       )}
 
-      {/* Step caption */}
+      {/* Caption */}
       <div className="mt-2 flex h-6 items-center justify-center">
         <AnimatePresence mode="wait">
           {caption && (
@@ -277,67 +456,81 @@ export function ScenarioPlayer<T>({
         </AnimatePresence>
       </div>
 
-      {!hideControls && (
-        <div className="mt-1 flex items-center justify-between px-1">
-          {/* Playback controls */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={prev}
-              disabled={stepIndex <= 0}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
-              aria-label="Previous step"
+      {/* Video-style control bar */}
+      {showControlBar && (
+        <AnimatePresence>
+          {controlsVisible && (
+            <motion.div
+              className="mt-1 px-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              <ChevronLeft size={14} />
-            </button>
-
-            <button
-              onClick={togglePlay}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-              aria-label={playing ? "Pause" : "Play"}
-            >
-              {playing ? <Pause size={12} /> : <Play size={12} />}
-            </button>
-
-            <button
-              onClick={next}
-              disabled={stepIndex >= lastIndex}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
-              aria-label="Next step"
-            >
-              <ChevronRight size={14} />
-            </button>
-
-            {narrationManifest && (
-              <button
-                onClick={toggleMute}
-                className="ml-1 flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-                aria-label={muted ? "Unmute narration" : "Mute narration"}
+              {/* Progress bar — YouTube-style with smooth playhead */}
+              <div
+                className="group relative mb-2 h-1 w-full cursor-pointer rounded-full bg-foreground/10 transition-[height] duration-150 hover:h-1.5"
+                onClick={handleProgressClick}
+                role="progressbar"
+                aria-label="Playback progress"
+                aria-valuenow={Math.round(
+                  ((stepIndex < lastIndex
+                    ? stepTimeline.stepStartTimesMs[stepIndex + 1]
+                    : stepTimeline.totalDurationMs) /
+                    stepTimeline.totalDurationMs) * 100,
+                )}
+                aria-valuemin={0}
+                aria-valuemax={100}
               >
-                {muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-              </button>
-            )}
-          </div>
+                {/* Filled track — width driven by RAF at 60fps */}
+                <div
+                  ref={progressTrackRef}
+                  className="absolute inset-y-0 left-0 rounded-full bg-foreground/50"
+                />
+                {/* Playhead circle — appears on hover, position driven by RAF */}
+                <div
+                  ref={playheadRef}
+                  className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/70 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+                />
+                {/* Chapter markers at step boundaries */}
+                {stepTicks.map((pct, i) => (
+                  <div
+                    key={i}
+                    className="absolute top-0 h-full w-0.5 rounded-full bg-background"
+                    style={{ left: `${pct}%` }}
+                  />
+                ))}
+              </div>
 
-          {/* Progress dots */}
-          <div
-            className="flex gap-1.5"
-            role="progressbar"
-            aria-valuenow={stepIndex + 1}
-            aria-valuemin={1}
-            aria-valuemax={steps.length}
-          >
-            {steps.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => goTo(i)}
-                className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${
-                  i <= stepIndex ? "bg-foreground/60" : "bg-foreground/15"
-                } hover:bg-foreground/40`}
-                aria-label={`Go to step ${i + 1}`}
-              />
-            ))}
-          </div>
-        </div>
+              {/* Transport controls */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay();
+                  }}
+                  className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={playing ? "Pause" : "Play"}
+                >
+                  {playing ? <Pause size={14} /> : <Play size={14} />}
+                </button>
+
+                {narrationManifest && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleMute();
+                    }}
+                    className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label={muted ? "Unmute narration" : "Mute narration"}
+                  >
+                    {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       )}
     </div>
   );
