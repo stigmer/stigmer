@@ -146,10 +146,7 @@ class AgentRunner:
         - cleanup_sandbox: Sandbox cleanup (legacy, may be removed)
         """
         # Import activities and workflows here to avoid circular imports
-        from worker.activities.build_mcp_snapshot import (
-            BuildMcpSnapshotWorkflow,
-            build_mcp_snapshot,
-        )
+        from worker.activities.build_mcp_snapshot import build_mcp_snapshot
         from worker.activities.classify_tool_approvals import classify_tool_approvals
         from worker.activities.cleanup_sandbox import cleanup_sandbox
         from worker.activities.discover_mcp_server import (
@@ -196,7 +193,6 @@ class AgentRunner:
             self.client,
             task_queue=self.config.task_queue,
             workflows=[
-                BuildMcpSnapshotWorkflow,
                 ConnectMcpServerWorkflow,
                 DiscoverMcpServerWorkflow,
             ],

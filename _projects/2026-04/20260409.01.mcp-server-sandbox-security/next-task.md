@@ -12,10 +12,10 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: agent-runner (worker/mcp/, worker/activities/, sandbox Dockerfiles, config.py, sandbox_manager.py), Graphton middleware (core/middleware.py, core/mcp_manager.py), agent-runner Dockerfile
 
 ## Current State
-- **Status**: COMPLETE — all tasks (T01-T04) done, security boundary closed
-- **Last Session**: 2026-04-09 (Session 4) — T04 implemented and tested
-- **Active Task**: T01 COMPLETE. T02 COMPLETE. T03 COMPLETE. T04 COMPLETE.
-- **Branch**: `feat/mcp-server-sandbox-security`
+- **Status**: COMPLETE — all tasks (T01-T04) done, security boundary closed. Polyglot snapshot workflow restructured (Session 5).
+- **Last Session**: 2026-04-09 (Session 5) — Polyglot MCP snapshot workflow + schedule bug fix
+- **Active Task**: T01 COMPLETE. T02 COMPLETE. T03 COMPLETE. T04 COMPLETE. Polyglot snapshot restructure COMPLETE.
+- **Branch**: `feat/mcp-server-sandbox-security` (Stigmer), `main` (Stigmer Cloud)
 
 ## Session Progress (2026-04-09, Session 4)
 
@@ -49,10 +49,28 @@ The security boundary is now fully closed. In cloud mode, untrusted MCP server c
 | Connect/Discover | HTTP | Remote endpoint (unchanged) |
 | Local/OSS mode | stdio | Host subprocess (unchanged) |
 
+## Session Progress (2026-04-09, Session 5)
+
+### Polyglot MCP Snapshot Workflow — COMPLETE
+
+- **Diagnosed "0 schedules" bug**: `McpRegistrySyncScheduleRegistrar.java` was missing `.setWorkflowId()` in `WorkflowOptions` — Temporal SDK requires it for `ScheduleActionStartWorkflow`. Fixed.
+- **Restructured snapshot workflow**: Moved from monolithic Python (workflow + activity in `build_mcp_snapshot.py`) to polyglot Java + Python:
+  - Java (Stigmer Service): Schedule registration, workflow orchestration, DB-driven package resolution (local activity)
+  - Python (Agent Runner): Daytona snapshot building activity (unchanged, now dispatched from Java)
+- **11 new Java files** in `mcpserver/temporal/`: config, workflow, activities, models, schedule registrar
+- **Python cleanup**: Removed `BuildMcpSnapshotWorkflow` from agent-runner (activity stays)
+
+### Changes Across Repos
+- **Stigmer Cloud**: 11 new files + 3 modified files (schedule bug fix, worker config, YAML config)
+- **Stigmer**: 2 modified files (removed Python workflow class and registration)
+
 ## Next Steps
-1. **PR**: Create pull request for `feat/mcp-server-sandbox-security` branch
-2. **E2E validation**: Validate in staging (agent execution + connect workflow + local mode)
-3. **Monitor**: Watch Daytona sandbox creation latency and cleanup success rate in production
+1. **Commit and push** changes in both repos
+2. **Deploy Agent Runner first** (removes Python workflow registration, keeps activity)
+3. **Deploy Stigmer Service second** (adds Java workflow + both schedule registrations)
+4. **Verify schedules** appear in Temporal UI at `stigmer-prod-temporal.planton.live`
+5. **Trigger manual workflow run** to validate the polyglot handoff
+6. **E2E validation**: Agent execution + connect workflow + local mode in staging
 
 ## Context for Resume
 - The `_maybe_create_discovery_sandbox()` helper mirrors `_maybe_create_daytona_mcp_client()` from setup.py — same three-way gating pattern
