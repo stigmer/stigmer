@@ -83,6 +83,7 @@ async def connect_mcp_client(
     servers: dict[str, dict[str, Any]],
     tool_filter: dict[str, list[str]],
     exit_stack: AsyncExitStack,
+    client: Any | None = None,
 ) -> Sequence[BaseTool]:
     """Open persistent per-server MCP sessions and return filtered tools.
 
@@ -101,6 +102,11 @@ async def connect_mcp_client(
         exit_stack: An ``AsyncExitStack`` whose lifetime spans the agent
             execution.  Per-server sessions are registered on this stack;
             when the stack is closed all sessions shut down gracefully.
+        client: Optional pre-built MCP client (duck-typed — must expose
+            a ``session(server_name)`` async context manager).  When
+            provided, used instead of creating a ``MultiServerMCPClient``.
+            This enables alternative transports (e.g. Daytona sandbox
+            relay) without coupling Graphton to specific backends.
 
     Returns:
         Filtered sequence of LangChain ``BaseTool`` instances backed by
@@ -118,7 +124,7 @@ async def connect_mcp_client(
     )
 
     try:
-        client = MultiServerMCPClient(servers)
+        client = client or MultiServerMCPClient(servers)
         all_tools: list[BaseTool] = []
 
         for server_name in servers:

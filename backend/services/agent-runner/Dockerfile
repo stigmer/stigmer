@@ -83,47 +83,29 @@ FROM public.ecr.aws/docker/library/python:3.11-slim
 
 WORKDIR /app
 
-# ---------- STDIO MCP Server Runtime Tools ----------
-# The agent-runner spawns MCP servers as STDIO subprocesses during agent execution.
-# These tools cover the most common MCP server distribution methods:
-#   npx    - npm packages      (e.g., npx @modelcontextprotocol/server-github)
-#   uvx    - Python packages   (e.g., uvx mcp-server-sqlite)
-#   go run - Go modules        (e.g., go run github.com/org/mcp-server@latest)
-
+# ---------- Minimal System Dependencies ----------
+# The agent-runner is a pure Python orchestrator. Stdio MCP servers run
+# inside the Daytona sandbox (cloud mode) or as host subprocesses (local
+# mode). No MCP runtimes (Node.js, Go, uvx) are needed in this image.
+#   git: Required for workspace operations and pip git-based installs
+#   ca-certificates: Required for HTTPS connections (gRPC, Daytona API)
+#   curl: Required for health checks
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git \
         ca-certificates \
-        curl \
-        gnupg && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y --no-install-recommends nodejs && \
+        curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-# Go toolchain (for 'go run' of Go-based MCP servers)
-COPY --from=public.ecr.aws/docker/library/golang:1.25 /usr/local/go /usr/local/go
-ENV PATH="/usr/local/go/bin:${PATH}"
-
-# uv / uvx (Python package runner — the PyPI equivalent of npx)
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
-
-# Verify all STDIO MCP runtime tools are available
-RUN node --version && npm --version && npx --version && \
-    go version && uv --version && uvx --version
 
 # Create non-root user for security
 # UID 1000 is standard for first non-privileged user on Linux
 RUN groupadd -g 1000 stigmer && \
     useradd -r -u 1000 -g stigmer -m stigmer
 
-# Create workspace and Go cache directories
+# Create workspace directory
 RUN mkdir -p /workspace && \
-    mkdir -p /home/stigmer/go && \
-    chown -R stigmer:stigmer /workspace /home/stigmer/go
-
-ENV GOPATH="/home/stigmer/go"
-ENV PATH="${GOPATH}/bin:${PATH}"
+    chown -R stigmer:stigmer /workspace
 
 # Copy application source
 COPY backend/services/agent-runner/ ./

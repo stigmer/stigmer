@@ -49,9 +49,11 @@ class McpToolsLoader(AgentMiddleware):
         self,
         servers: dict[str, dict[str, Any]],
         tool_filter: dict[str, list[str]],
+        client: Any | None = None,
     ) -> None:
         self.servers = servers
         self.tool_filter = tool_filter
+        self._client = client
 
         self._tools_loaded = False
         self._tools_cache: dict[str, Any] = {}
@@ -87,7 +89,10 @@ class McpToolsLoader(AgentMiddleware):
                 asyncio.set_event_loop(loop)
 
             tools = loop.run_until_complete(
-                connect_mcp_client(self.servers, self.tool_filter, self._exit_stack)
+                connect_mcp_client(
+                    self.servers, self.tool_filter, self._exit_stack,
+                    client=self._client,
+                )
             )
 
             if not tools:
@@ -125,6 +130,7 @@ class McpToolsLoader(AgentMiddleware):
 
             tools = await connect_mcp_client(
                 self.servers, self.tool_filter, self._exit_stack,
+                client=self._client,
             )
 
             if not tools:
