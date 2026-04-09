@@ -1,13 +1,11 @@
 name: release.sandbox
 
-# Triggers:
-# - Automatically on version tags (v*)
-# - Manual trigger for custom versions
-# Note: sandbox is OPTIONAL - most users don't need it (local mode is default)
+# Builds the basic (OSS) sandbox image used by the CLI in local sandbox mode.
+# Tagged with semver for CLI version pinning.
 on:
   push:
     tags:
-      - 'v*'  # Trigger on version tags (v1.0.0, v1.2.3, etc.)
+      - 'v*'
   workflow_dispatch:
     inputs:
       version_tag:
@@ -21,43 +19,37 @@ jobs:
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Determine version tag
         id: version
         run: |
           if [ "${{ github.ref_type }}" = "tag" ]; then
-            # Tag push: use tag name as version
             VERSION="${{ github.ref_name }}"
-            echo "Triggered by tag: $VERSION"
           elif [ -n "${{ github.event.inputs.version_tag }}" ]; then
             VERSION="${{ github.event.inputs.version_tag }}"
-            echo "Manual trigger with version: $VERSION"
           else
             VERSION="$(git rev-parse --short HEAD)"
-            echo "Using commit hash as version: $VERSION"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
-      
+
       - name: Build and push basic sandbox image
         run: |
           cd backend/services/agent-runner/sandbox
-          
-          # Build multi-arch image
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --file Dockerfile.sandbox.basic \
@@ -65,46 +57,17 @@ jobs:
             --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-basic:latest \
             --push \
             .
-          
-          echo "✓ Sandbox image published:"
-          echo "  - ghcr.io/${{ github.repository_owner }}/agent-sandbox-basic:${{ steps.version.outputs.version }}"
-          echo "  - ghcr.io/${{ github.repository_owner }}/agent-sandbox-basic:latest"
-      
-      - name: Build and push full sandbox image
-        run: |
-          cd backend/services/agent-runner/sandbox
-          
-          # Full image is linux/amd64 only (yq, kubectl, AWS CLI, Tekton CLI bundle x86_64 binaries)
-          docker buildx build \
-            --platform linux/amd64 \
-            --file Dockerfile.sandbox.full \
-            --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:${{ steps.version.outputs.version }} \
-            --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:latest \
-            --push \
-            .
-          
-          echo "✓ Full sandbox image published:"
-          echo "  - ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:${{ steps.version.outputs.version }}"
-          echo "  - ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:latest"
-      
+
       - name: Summary
         run: |
-          echo "## Sandbox Images Published" >> $GITHUB_STEP_SUMMARY
+          echo "## Basic Sandbox Image Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Basic (OSS / local sandbox)" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/agent-sandbox-basic\`" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** \`${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Architectures:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Full (Cloud / Daytona sandbox)" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/agent-sandbox-full\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** \`${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Architectures:** linux/amd64" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Usage" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
           echo "export STIGMER_EXECUTION_MODE=sandbox" >> $GITHUB_STEP_SUMMARY
           echo "stigmer server start" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The agent-runner will automatically pull the basic image when sandbox mode is used." >> $GITHUB_STEP_SUMMARY
