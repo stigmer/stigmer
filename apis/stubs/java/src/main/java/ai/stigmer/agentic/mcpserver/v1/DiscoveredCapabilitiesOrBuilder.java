@@ -124,23 +124,4 @@ public interface DiscoveredCapabilitiesOrBuilder extends
    * <code>.google.protobuf.Timestamp last_discovered_at = 3 [json_name = "lastDiscoveredAt"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getLastDiscoveredAtOrBuilder();
-
-  /**
-   * <pre>
-   * How this snapshot was produced.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-   * @return The enum numeric value on the wire for discoveredBy.
-   */
-  int getDiscoveredByValue();
-  /**
-   * <pre>
-   * How this snapshot was produced.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-   * @return The discoveredBy.
-   */
-  ai.stigmer.agentic.mcpserver.v1.DiscoverySource getDiscoveredBy();
 }

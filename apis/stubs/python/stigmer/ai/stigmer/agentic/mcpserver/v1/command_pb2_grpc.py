@@ -51,14 +51,9 @@ class McpServerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
                 _registered_method=True)
-        self.updateDiscoveredCapabilities = channel.unary_unary(
-                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateDiscoveredCapabilities',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.UpdateDiscoveredCapabilitiesInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
-                _registered_method=True)
-        self.discoverCapabilities = channel.unary_unary(
-                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/discoverCapabilities',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DiscoverCapabilitiesInput.SerializeToString,
+        self.connect = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
                 _registered_method=True)
 
@@ -153,46 +148,30 @@ class McpServerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def updateDiscoveredCapabilities(self, request, context):
-        """Update the discovered capabilities (tools and resource templates) for an MCP server.
-
-        Only modifies status.discovered_capabilities, leaving spec, validation
-        state, and other status fields untouched.
-
-        @internal
-        Typical flow:
-        1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-        2. CLI connects to the MCP server locally and queries tools/resources
-        3. CLI calls this RPC with the ID and discovered capabilities
-
-        Authorization: Requires can_edit permission on the mcp_server resource.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def discoverCapabilities(self, request, context):
-        """Discover the capabilities of an MCP server by connecting to it.
+    def connect(self, request, context):
+        """Connect to an MCP server: discover its tools and classify approval policies.
 
         Connects to the MCP server, enumerates tools and resource templates,
-        and stores the result. Blocks until discovery completes (up to ~30 seconds)
-        and returns the updated McpServer with populated
-        status.discovered_capabilities.
+        classifies tool approval policies via a lightweight LLM, and stores the
+        results in status.discovered_capabilities and status.tool_approvals.
+        Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
 
         @internal
-        Typical flow:
-        1. Web console ensures required credentials are saved in the user's personal environment
-        2. Web console calls discoverCapabilities with the MCP server ID
-        3. Backend resolves env vars from the user's personal environment
-        4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-        5. Discovered tools and resource templates are stored and returned
+        Typical flows:
+        - Web console: user clicks Connect, backend resolves env vars from the
+        user's personal environment, starts a Temporal workflow on the agent-runner.
+        - CLI: `stigmer discover mcp-server <name>` calls connect with runtime_env
+        populated from local env vars, delegating discovery to the backend.
+        - Graphton backfill: agent-runner calls connect on first execution when
+        status.discovered_capabilities is empty, passing runtime_env from the
+        execution context.
 
         Errors:
         - FAILED_PRECONDITION: Required credentials missing from personal environment
         - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
         - NOT_FOUND: MCP server does not exist
 
-        Authorization: Requires can_edit permission on the mcp_server resource.
+        Authorization: Requires can_connect permission on the mcp_server resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -226,14 +205,9 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
             ),
-            'updateDiscoveredCapabilities': grpc.unary_unary_rpc_method_handler(
-                    servicer.updateDiscoveredCapabilities,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.UpdateDiscoveredCapabilitiesInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
-            ),
-            'discoverCapabilities': grpc.unary_unary_rpc_method_handler(
-                    servicer.discoverCapabilities,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DiscoverCapabilitiesInput.FromString,
+            'connect': grpc.unary_unary_rpc_method_handler(
+                    servicer.connect,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
             ),
     }
@@ -393,7 +367,7 @@ class McpServerCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def updateDiscoveredCapabilities(request,
+    def connect(request,
             target,
             options=(),
             channel_credentials=None,
@@ -406,35 +380,8 @@ class McpServerCommandController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateDiscoveredCapabilities',
-            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.UpdateDiscoveredCapabilitiesInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def discoverCapabilities(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/discoverCapabilities',
-            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DiscoverCapabilitiesInput.SerializeToString,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
             options,
             channel_credentials,

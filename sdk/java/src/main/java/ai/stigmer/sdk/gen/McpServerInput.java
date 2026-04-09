@@ -23,8 +23,8 @@ public final class McpServerInput {
     private final HttpServerConfigInput http;
     private final java.util.List<String> defaultEnabledTools;
     private final EnvSpecInput envSpec;
-    private final java.util.List<ToolApprovalPolicyInput> defaultToolApprovals;
     private final McpServerSourceInput source;
+    private final java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
 
     private McpServerInput(Builder builder) {
         this.name = builder.name;
@@ -37,8 +37,8 @@ public final class McpServerInput {
         this.http = builder.http;
         this.defaultEnabledTools = builder.defaultEnabledTools;
         this.envSpec = builder.envSpec;
-        this.defaultToolApprovals = builder.defaultToolApprovals;
         this.source = builder.source;
+        this.pinnedToolApprovals = builder.pinnedToolApprovals;
     }
 
     McpServer toProto() {
@@ -61,13 +61,13 @@ public final class McpServerInput {
         if (this.envSpec != null) {
             spec.setEnvSpec(this.envSpec.toProto());
         }
-        if (this.defaultToolApprovals != null) {
-            for (ToolApprovalPolicyInput item : this.defaultToolApprovals) {
-                spec.addDefaultToolApprovals(item.toProto());
-            }
-        }
         if (this.source != null) {
             spec.setSource(this.source.toProto());
+        }
+        if (this.pinnedToolApprovals != null) {
+            for (ToolApprovalPolicyInput item : this.pinnedToolApprovals) {
+                spec.addPinnedToolApprovals(item.toProto());
+            }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -99,8 +99,8 @@ public final class McpServerInput {
         private HttpServerConfigInput http;
         private java.util.List<String> defaultEnabledTools;
         private EnvSpecInput envSpec;
-        private java.util.List<ToolApprovalPolicyInput> defaultToolApprovals;
         private McpServerSourceInput source;
+        private java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
 
         private Builder() {}
 
@@ -114,8 +114,8 @@ public final class McpServerInput {
         public Builder http(HttpServerConfigInput http) { this.http = http; return this; }
         public Builder defaultEnabledTools(java.util.List<String> defaultEnabledTools) { this.defaultEnabledTools = defaultEnabledTools; return this; }
         public Builder envSpec(EnvSpecInput envSpec) { this.envSpec = envSpec; return this; }
-        public Builder defaultToolApprovals(java.util.List<ToolApprovalPolicyInput> defaultToolApprovals) { this.defaultToolApprovals = defaultToolApprovals; return this; }
         public Builder source(McpServerSourceInput source) { this.source = source; return this; }
+        public Builder pinnedToolApprovals(java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals) { this.pinnedToolApprovals = pinnedToolApprovals; return this; }
 
         public McpServerInput build() { return new McpServerInput(this); }
     }
@@ -211,42 +211,6 @@ public final class McpServerInput {
         }
     }
 
-    /** SDK input type for ToolApprovalPolicy. */
-    public static final class ToolApprovalPolicyInput {
-        private final String toolName;
-        private final String message;
-
-        private ToolApprovalPolicyInput(Builder builder) {
-            this.toolName = builder.toolName;
-            this.message = builder.message;
-        }
-
-        ToolApprovalPolicy toProto() {
-            ToolApprovalPolicy.Builder builder = ToolApprovalPolicy.newBuilder();
-            if (this.toolName != null) {
-                builder.setToolName(this.toolName);
-            }
-            if (this.message != null) {
-                builder.setMessage(this.message);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String toolName;
-            private String message;
-
-            private Builder() {}
-
-            public Builder toolName(String toolName) { this.toolName = toolName; return this; }
-            public Builder message(String message) { this.message = message; return this; }
-
-            public ToolApprovalPolicyInput build() { return new ToolApprovalPolicyInput(this); }
-        }
-    }
-
     /** SDK input type for McpServerSource. */
     public static final class McpServerSourceInput {
         private final String registry;
@@ -305,6 +269,42 @@ public final class McpServerInput {
             public Builder lastSyncedAt(String lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; return this; }
 
             public McpServerSourceInput build() { return new McpServerSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for ToolApprovalPolicy. */
+    public static final class ToolApprovalPolicyInput {
+        private final String toolName;
+        private final String message;
+
+        private ToolApprovalPolicyInput(Builder builder) {
+            this.toolName = builder.toolName;
+            this.message = builder.message;
+        }
+
+        ToolApprovalPolicy toProto() {
+            ToolApprovalPolicy.Builder builder = ToolApprovalPolicy.newBuilder();
+            if (this.toolName != null) {
+                builder.setToolName(this.toolName);
+            }
+            if (this.message != null) {
+                builder.setMessage(this.message);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String toolName;
+            private String message;
+
+            private Builder() {}
+
+            public Builder toolName(String toolName) { this.toolName = toolName; return this; }
+            public Builder message(String message) { this.message = message; return this; }
+
+            public ToolApprovalPolicyInput build() { return new ToolApprovalPolicyInput(this); }
         }
     }
 }

@@ -64,6 +64,8 @@ const (
 	IamPermission_can_update_execution_status  IamPermission = 19
 	// Back-office access permission.
 	IamPermission_login_to_back_office IamPermission = 20
+	// MCP server connect permission.
+	IamPermission_can_connect IamPermission = 22
 )
 
 // Enum value maps for IamPermission.
@@ -91,6 +93,7 @@ var (
 		18: "can_manage_identity_accounts",
 		19: "can_update_execution_status",
 		20: "login_to_back_office",
+		22: "can_connect",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -115,6 +118,7 @@ var (
 		"can_manage_identity_accounts": 18,
 		"can_update_execution_status":  19,
 		"login_to_back_office":         20,
+		"can_connect":                  22,
 	}
 )
 
@@ -218,7 +222,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x8e\x04\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x9f\x04\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -243,7 +247,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x11can_bootstrap_iam\x10\x11\x12 \n" +
 	"\x1ccan_manage_identity_accounts\x10\x12\x12\x1f\n" +
 	"\x1bcan_update_execution_status\x10\x13\x12\x18\n" +
-	"\x14login_to_back_office\x10\x14*Q\n" +
+	"\x14login_to_back_office\x10\x14\x12\x0f\n" +
+	"\vcan_connect\x10\x16*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

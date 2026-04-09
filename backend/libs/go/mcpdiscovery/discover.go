@@ -25,7 +25,6 @@ func Discover(
 	ctx context.Context,
 	spec *mcpserverv1.McpServerSpec,
 	envOverrides []string,
-	source mcpserverv1.DiscoverySource,
 ) (*mcpserverv1.DiscoveredCapabilities, error) {
 	var stderrBuf bytes.Buffer
 	transport, err := CreateTransport(spec, envOverrides, &stderrBuf)
@@ -61,7 +60,6 @@ func Discover(
 		Tools:             ConvertTools(tools),
 		ResourceTemplates: ConvertResourceTemplates(templates),
 		LastDiscoveredAt:  timestamppb.Now(),
-		DiscoveredBy:      source,
 	}, nil
 }
 

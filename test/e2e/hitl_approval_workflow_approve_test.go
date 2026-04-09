@@ -25,7 +25,7 @@ import (
 // Prerequisites:
 // - All services running (stigmer-service, agent-runner, workflow-runner, Temporal)
 // - Ollama running with qwen2.5-coder:7b model
-// - MCP server configured with default_tool_approvals for write_file
+// - MCP server configured with pinned_tool_approvals for write_file
 func (s *E2ESuite) TestHitlApprovalWorkflowApprove() {
 	s.T().Logf("=== HITL Approval Flow Test: Approve via Workflow API ===")
 

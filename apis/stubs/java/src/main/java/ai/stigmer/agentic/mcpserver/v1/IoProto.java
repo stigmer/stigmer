@@ -32,20 +32,15 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerId_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_mcpserver_v1_UpdateDiscoveredCapabilitiesInput_descriptor;
+    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_mcpserver_v1_UpdateDiscoveredCapabilitiesInput_fieldAccessorTable;
+      internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor;
+    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_RuntimeEnvEntry_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_RuntimeEnvEntry_fieldAccessorTable;
+      internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -58,33 +53,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n(ai/stigmer/agentic/mcpserver/v1/io.pro" +
       "to\022\037ai.stigmer.agentic.mcpserver.v1\0321ai/" +
       "stigmer/agentic/executioncontext/v1/spec" +
-      ".proto\032,ai/stigmer/agentic/mcpserver/v1/" +
-      "status.proto\032\033buf/validate/validate.prot" +
-      "o\"+\n\013McpServerId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R" +
-      "\005value\"\311\001\n!UpdateDiscoveredCapabilitiesI" +
-      "nput\022*\n\rmcp_server_id\030\001 \001(\tB\006\272H\003\310\001\001R\013mcp" +
-      "ServerId\022x\n\027discovered_capabilities\030\002 \001(" +
-      "\01327.ai.stigmer.agentic.mcpserver.v1.Disc" +
-      "overedCapabilitiesB\006\272H\003\310\001\001R\026discoveredCa" +
-      "pabilities\"\253\002\n\031DiscoverCapabilitiesInput" +
-      "\022*\n\rmcp_server_id\030\001 \001(\tB\006\272H\003\310\001\001R\013mcpServ" +
-      "erId\022k\n\013runtime_env\030\002 \003(\0132J.ai.stigmer.a" +
-      "gentic.mcpserver.v1.DiscoverCapabilities" +
-      "Input.RuntimeEnvEntryR\nruntimeEnv\032u\n\017Run" +
-      "timeEnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005value\030" +
-      "\002 \001(\01326.ai.stigmer.agentic.executioncont" +
-      "ext.v1.ExecutionValueR\005value:\0028\001B\252\001B\007IoP" +
-      "rotoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpse" +
-      "rver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V" +
-      "1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBM" +
-      "etadata\352\002#Ai::Stigmer::Agentic::Mcpserve" +
-      "r::V1b\006proto3"
+      ".proto\032\033buf/validate/validate.proto\"+\n\013M" +
+      "cpServerId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value" +
+      "\"\221\002\n\014ConnectInput\022*\n\rmcp_server_id\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\013mcpServerId\022^\n\013runtime_env\030\002 \003" +
+      "(\0132=.ai.stigmer.agentic.mcpserver.v1.Con" +
+      "nectInput.RuntimeEnvEntryR\nruntimeEnv\032u\n" +
+      "\017RuntimeEnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005va" +
+      "lue\030\002 \001(\01326.ai.stigmer.agentic.execution" +
+      "context.v1.ExecutionValueR\005value:\0028\001B\252\001B" +
+      "\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.M" +
+      "cpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserv" +
+      "er\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\" +
+      "GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcps" +
+      "erver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor(),
-          ai.stigmer.agentic.mcpserver.v1.StatusProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerId_descriptor =
@@ -93,27 +80,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerId_descriptor,
         new java.lang.String[] { "Value", });
-    internal_static_ai_stigmer_agentic_mcpserver_v1_UpdateDiscoveredCapabilitiesInput_descriptor =
+    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor =
       getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_mcpserver_v1_UpdateDiscoveredCapabilitiesInput_fieldAccessorTable = new
+    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_mcpserver_v1_UpdateDiscoveredCapabilitiesInput_descriptor,
-        new java.lang.String[] { "McpServerId", "DiscoveredCapabilities", });
-    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor =
-      getDescriptor().getMessageType(2);
-    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor,
+        internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor,
         new java.lang.String[] { "McpServerId", "RuntimeEnv", });
-    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_RuntimeEnvEntry_descriptor =
-      internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor.getNestedType(0);
-    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_RuntimeEnvEntry_fieldAccessorTable = new
+    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor =
+      internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_RuntimeEnvEntry_descriptor,
+        internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor();
-    ai.stigmer.agentic.mcpserver.v1.StatusProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

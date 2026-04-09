@@ -18,9 +18,9 @@ func DisplayDiscoverResult(result *DiscoverResult) {
 	displayDiscoveredResourceTemplates(result.Capabilities.ResourceTemplates)
 
 	if result.Updated != nil {
-		climsg.Success("Capabilities pushed to stigmer-server")
+		climsg.Success("Connected — capabilities and tool approvals saved")
 	} else {
-		climsg.Warning("Dry run — results not pushed to backend")
+		climsg.Warning("Dry run — results not saved to backend")
 	}
 	fmt.Println()
 }

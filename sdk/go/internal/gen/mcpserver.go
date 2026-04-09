@@ -59,13 +59,8 @@ func (m *McpServerClient) UpdateVisibility(ctx context.Context, input *apiresour
 	return resp, wrapErr(err)
 }
 
-func (m *McpServerClient) UpdateDiscoveredCapabilities(ctx context.Context, input *mcpserverv1.UpdateDiscoveredCapabilitiesInput) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.UpdateDiscoveredCapabilities(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (m *McpServerClient) DiscoverCapabilities(ctx context.Context, input *mcpserverv1.DiscoverCapabilitiesInput) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.DiscoverCapabilities(ctx, input)
+func (m *McpServerClient) Connect(ctx context.Context, input *mcpserverv1.ConnectInput) (*mcpserverv1.McpServer, error) {
+	resp, err := m.command.Connect(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -104,18 +99,18 @@ func (m *McpServerClient) List(ctx context.Context, params *ListParams) (*ListRe
 
 // McpServerInput holds the fields for creating/updating a McpServer.
 type McpServerInput struct {
-	Name                 string
-	Slug                 string
-	Org                  string
-	Labels               map[string]string
-	Description          string
-	IconUrl              string
-	Stdio                *StdioServerConfigInput
-	Http                 *HttpServerConfigInput
-	DefaultEnabledTools  []string
-	EnvSpec              *EnvSpecInput
-	DefaultToolApprovals []*ToolApprovalPolicyInput
-	Source               *McpServerSourceInput
+	Name                string
+	Slug                string
+	Org                 string
+	Labels              map[string]string
+	Description         string
+	IconUrl             string
+	Stdio               *StdioServerConfigInput
+	Http                *HttpServerConfigInput
+	DefaultEnabledTools []string
+	EnvSpec             *EnvSpecInput
+	Source              *McpServerSourceInput
+	PinnedToolApprovals []*ToolApprovalPolicyInput
 }
 
 // StdioServerConfigInput is the SDK input type for StdioServerConfig.
@@ -133,12 +128,6 @@ type HttpServerConfigInput struct {
 	TimeoutSeconds int32
 }
 
-// ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
-type ToolApprovalPolicyInput struct {
-	ToolName string
-	Message  string
-}
-
 // McpServerSourceInput is the SDK input type for McpServerSource.
 type McpServerSourceInput struct {
 	Registry      string
@@ -146,6 +135,12 @@ type McpServerSourceInput struct {
 	Version       string
 	RepositoryUrl string
 	LastSyncedAt  string
+}
+
+// ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
+type ToolApprovalPolicyInput struct {
+	ToolName string
+	Message  string
 }
 
 func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
@@ -185,20 +180,13 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 	if i.EnvSpec != nil {
 		resource.Spec.EnvSpec = i.EnvSpec.toProto()
 	}
-	for _, item := range i.DefaultToolApprovals {
-		resource.Spec.DefaultToolApprovals = append(resource.Spec.DefaultToolApprovals, item.toProto())
-	}
 	if i.Source != nil {
 		resource.Spec.Source = i.Source.toProto()
 	}
-	return resource
-}
-
-func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
-	return &mcpserverv1.ToolApprovalPolicy{
-		ToolName: i.ToolName,
-		Message:  i.Message,
+	for _, item := range i.PinnedToolApprovals {
+		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, item.toProto())
 	}
+	return resource
 }
 
 func (i *McpServerSourceInput) toProto() *mcpserverv1.McpServerSource {
@@ -213,4 +201,11 @@ func (i *McpServerSourceInput) toProto() *mcpserverv1.McpServerSource {
 		}
 	}
 	return p
+}
+
+func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
+	return &mcpserverv1.ToolApprovalPolicy{
+		ToolName: i.ToolName,
+		Message:  i.Message,
+	}
 }

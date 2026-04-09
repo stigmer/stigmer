@@ -60,15 +60,9 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update_discovered_capabilities(self, input: io_pb2.UpdateDiscoveredCapabilitiesInput) -> api_pb2.McpServer:
+    def connect(self, input: io_pb2.ConnectInput) -> api_pb2.McpServer:
         try:
-            return self._command.updateDiscoveredCapabilities(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def discover_capabilities(self, input: io_pb2.DiscoverCapabilitiesInput) -> api_pb2.McpServer:
-        try:
-            return self._command.discoverCapabilities(input)
+            return self._command.connect(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -124,8 +118,8 @@ class McpServerInput:
     http: HttpServerConfigInput | None = None
     default_enabled_tools: list[str] = field(default_factory=list)
     env_spec: EnvSpecInput | None = None
-    default_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
     source: McpServerSourceInput | None = None
+    pinned_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.McpServer:
         spec = spec_pb2.McpServerSpec(
@@ -140,10 +134,10 @@ class McpServerInput:
             spec.default_enabled_tools.extend(self.default_enabled_tools)
         if self.env_spec is not None:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
-        for item in self.default_tool_approvals:
-            spec.default_tool_approvals.append(item._to_proto())
         if self.source is not None:
             spec.source.CopyFrom(self.source._to_proto())
+        for item in self.pinned_tool_approvals:
+            spec.pinned_tool_approvals.append(item._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -200,21 +194,6 @@ class HttpServerConfigInput:
 
 
 @dataclass
-class ToolApprovalPolicyInput:
-    """SDK input type for ToolApprovalPolicy."""
-
-    tool_name: str = ""
-    message: str = ""
-
-    def _to_proto(self) -> spec_pb2.ToolApprovalPolicy:
-        msg = spec_pb2.ToolApprovalPolicy(
-            tool_name=self.tool_name,
-            message=self.message,
-        )
-        return msg
-
-
-@dataclass
 class McpServerSourceInput:
     """SDK input type for McpServerSource."""
 
@@ -233,5 +212,20 @@ class McpServerSourceInput:
         )
         if self.last_synced_at:
             msg.last_synced_at.FromJsonString(self.last_synced_at)
+        return msg
+
+
+@dataclass
+class ToolApprovalPolicyInput:
+    """SDK input type for ToolApprovalPolicy."""
+
+    tool_name: str = ""
+    message: str = ""
+
+    def _to_proto(self) -> spec_pb2.ToolApprovalPolicy:
+        msg = spec_pb2.ToolApprovalPolicy(
+            tool_name=self.tool_name,
+            message=self.message,
+        )
         return msg
 

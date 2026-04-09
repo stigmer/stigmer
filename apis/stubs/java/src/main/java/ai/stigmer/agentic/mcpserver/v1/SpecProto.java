@@ -74,7 +74,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "roto\022\037ai.stigmer.agentic.mcpserver.v1\032,a" +
       "i/stigmer/agentic/environment/v1/spec.pr" +
       "oto\032\033buf/validate/validate.proto\032\037google" +
-      "/protobuf/timestamp.proto\"\303\004\n\rMcpServerS" +
+      "/protobuf/timestamp.proto\"\301\004\n\rMcpServerS" +
       "pec\022 \n\013description\030\001 \001(\tR\013description\022\031\n" +
       "\010icon_url\030\002 \001(\tR\007iconUrl\022\022\n\004tags\030\003 \003(\tR\004" +
       "tags\022J\n\005stdio\030\004 \001(\01322.ai.stigmer.agentic" +
@@ -84,37 +84,37 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ault_enabled_tools\030\007 \003(\tR\023defaultEnabled" +
       "Tools\022M\n\010env_spec\030\010 \001(\01322.ai.stigmer.age" +
       "ntic.environment.v1.EnvironmentSpecR\007env" +
-      "Spec\022i\n\026default_tool_approvals\030\t \003(\01323.a" +
-      "i.stigmer.agentic.mcpserver.v1.ToolAppro" +
-      "valPolicyR\024defaultToolApprovals\022H\n\006sourc" +
-      "e\030\n \001(\01320.ai.stigmer.agentic.mcpserver.v" +
-      "1.McpServerSourceR\006sourceB\024\n\013server_type" +
-      "\022\005\272H\002\010\001\"j\n\021StdioServerConfig\022 \n\007command\030" +
-      "\001 \001(\tB\006\272H\003\310\001\001R\007command\022\022\n\004args\030\002 \003(\tR\004ar" +
-      "gs\022\037\n\013working_dir\030\003 \001(\tR\nworkingDir\"\243\003\n\020" +
-      "HttpServerConfig\022\035\n\003url\030\001 \001(\tB\013\272H\010r\003\210\001\001\310" +
-      "\001\001R\003url\022X\n\007headers\030\002 \003(\0132>.ai.stigmer.ag" +
-      "entic.mcpserver.v1.HttpServerConfig.Head" +
-      "ersEntryR\007headers\022e\n\014query_params\030\003 \003(\0132" +
-      "B.ai.stigmer.agentic.mcpserver.v1.HttpSe" +
-      "rverConfig.QueryParamsEntryR\013queryParams" +
-      "\0223\n\017timeout_seconds\030\004 \001(\005B\n\272H\007\032\005\030\254\002(\000R\016t" +
-      "imeoutSeconds\032:\n\014HeadersEntry\022\020\n\003key\030\001 \001" +
-      "(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\032>\n\020Que" +
-      "ryParamsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value" +
-      "\030\002 \001(\tR\005value:\0028\001\"T\n\022ToolApprovalPolicy\022" +
-      "$\n\ttool_name\030\001 \001(\tB\007\272H\004r\002\020\001R\010toolName\022\030\n" +
-      "\007message\030\002 \001(\tR\007message\"\325\001\n\017McpServerSou" +
-      "rce\022\032\n\010registry\030\001 \001(\tR\010registry\022#\n\rregis" +
-      "try_name\030\002 \001(\tR\014registryName\022\030\n\007version\030" +
-      "\003 \001(\tR\007version\022%\n\016repository_url\030\004 \001(\tR\r" +
-      "repositoryUrl\022@\n\016last_synced_at\030\005 \001(\0132\032." +
-      "google.protobuf.TimestampR\014lastSyncedAtB" +
-      "\254\001B\tSpecProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agen" +
-      "tic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mc" +
-      "pserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserve" +
-      "r\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic:" +
-      ":Mcpserver::V1b\006proto3"
+      "Spec\022H\n\006source\030\n \001(\01320.ai.stigmer.agenti" +
+      "c.mcpserver.v1.McpServerSourceR\006source\022g" +
+      "\n\025pinned_tool_approvals\030\013 \003(\01323.ai.stigm" +
+      "er.agentic.mcpserver.v1.ToolApprovalPoli" +
+      "cyR\023pinnedToolApprovalsB\024\n\013server_type\022\005" +
+      "\272H\002\010\001\"j\n\021StdioServerConfig\022 \n\007command\030\001 " +
+      "\001(\tB\006\272H\003\310\001\001R\007command\022\022\n\004args\030\002 \003(\tR\004args" +
+      "\022\037\n\013working_dir\030\003 \001(\tR\nworkingDir\"\243\003\n\020Ht" +
+      "tpServerConfig\022\035\n\003url\030\001 \001(\tB\013\272H\010r\003\210\001\001\310\001\001" +
+      "R\003url\022X\n\007headers\030\002 \003(\0132>.ai.stigmer.agen" +
+      "tic.mcpserver.v1.HttpServerConfig.Header" +
+      "sEntryR\007headers\022e\n\014query_params\030\003 \003(\0132B." +
+      "ai.stigmer.agentic.mcpserver.v1.HttpServ" +
+      "erConfig.QueryParamsEntryR\013queryParams\0223" +
+      "\n\017timeout_seconds\030\004 \001(\005B\n\272H\007\032\005\030\254\002(\000R\016tim" +
+      "eoutSeconds\032:\n\014HeadersEntry\022\020\n\003key\030\001 \001(\t" +
+      "R\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\032>\n\020Query" +
+      "ParamsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
+      " \001(\tR\005value:\0028\001\"T\n\022ToolApprovalPolicy\022$\n" +
+      "\ttool_name\030\001 \001(\tB\007\272H\004r\002\020\001R\010toolName\022\030\n\007m" +
+      "essage\030\002 \001(\tR\007message\"\325\001\n\017McpServerSourc" +
+      "e\022\032\n\010registry\030\001 \001(\tR\010registry\022#\n\rregistr" +
+      "y_name\030\002 \001(\tR\014registryName\022\030\n\007version\030\003 " +
+      "\001(\tR\007version\022%\n\016repository_url\030\004 \001(\tR\rre" +
+      "positoryUrl\022@\n\016last_synced_at\030\005 \001(\0132\032.go" +
+      "ogle.protobuf.TimestampR\014lastSyncedAtB\254\001" +
+      "B\tSpecProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agenti" +
+      "c.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcps" +
+      "erver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\" +
+      "V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::M" +
+      "cpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -128,7 +128,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_descriptor,
-        new java.lang.String[] { "Description", "IconUrl", "Tags", "Stdio", "Http", "DefaultEnabledTools", "EnvSpec", "DefaultToolApprovals", "Source", "ServerType", });
+        new java.lang.String[] { "Description", "IconUrl", "Tags", "Stdio", "Http", "DefaultEnabledTools", "EnvSpec", "Source", "PinnedToolApprovals", "ServerType", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_StdioServerConfig_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_mcpserver_v1_StdioServerConfig_fieldAccessorTable = new

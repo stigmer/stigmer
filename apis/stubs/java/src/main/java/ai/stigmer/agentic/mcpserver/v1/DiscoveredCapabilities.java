@@ -22,8 +22,7 @@ package ai.stigmer.agentic.mcpserver.v1;
  *
  * Populated by:
  * - Seedpack bootstrap (built-in servers with known, stable tool sets)
- * - CLI discovery (`stigmer discover mcp-server &lt;name&gt;`)
- * - Agent-runner runtime cache (future)
+ * - The connect RPC (web console, CLI, or Graphton first-time-use backfill)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities}
@@ -50,7 +49,6 @@ private static final long serialVersionUID = 0L;
   private DiscoveredCapabilities() {
     tools_ = java.util.Collections.emptyList();
     resourceTemplates_ = java.util.Collections.emptyList();
-    discoveredBy_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -232,32 +230,6 @@ private static final long serialVersionUID = 0L;
     return lastDiscoveredAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : lastDiscoveredAt_;
   }
 
-  public static final int DISCOVERED_BY_FIELD_NUMBER = 4;
-  private int discoveredBy_ = 0;
-  /**
-   * <pre>
-   * How this snapshot was produced.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-   * @return The enum numeric value on the wire for discoveredBy.
-   */
-  @java.lang.Override public int getDiscoveredByValue() {
-    return discoveredBy_;
-  }
-  /**
-   * <pre>
-   * How this snapshot was produced.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-   * @return The discoveredBy.
-   */
-  @java.lang.Override public ai.stigmer.agentic.mcpserver.v1.DiscoverySource getDiscoveredBy() {
-    ai.stigmer.agentic.mcpserver.v1.DiscoverySource result = ai.stigmer.agentic.mcpserver.v1.DiscoverySource.forNumber(discoveredBy_);
-    return result == null ? ai.stigmer.agentic.mcpserver.v1.DiscoverySource.UNRECOGNIZED : result;
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -280,9 +252,6 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getLastDiscoveredAt());
-    }
-    if (discoveredBy_ != ai.stigmer.agentic.mcpserver.v1.DiscoverySource.discovery_source_unspecified.getNumber()) {
-      output.writeEnum(4, discoveredBy_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -315,10 +284,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getLastDiscoveredAt());
     }
-    if (discoveredBy_ != ai.stigmer.agentic.mcpserver.v1.DiscoverySource.discovery_source_unspecified.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(4, discoveredBy_);
-    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -343,7 +308,6 @@ private static final long serialVersionUID = 0L;
       if (!getLastDiscoveredAt()
           .equals(other.getLastDiscoveredAt())) return false;
     }
-    if (discoveredBy_ != other.discoveredBy_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -367,8 +331,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + LAST_DISCOVERED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getLastDiscoveredAt().hashCode();
     }
-    hash = (37 * hash) + DISCOVERED_BY_FIELD_NUMBER;
-    hash = (53 * hash) + discoveredBy_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -483,8 +445,7 @@ private static final long serialVersionUID = 0L;
    *
    * Populated by:
    * - Seedpack bootstrap (built-in servers with known, stable tool sets)
-   * - CLI discovery (`stigmer discover mcp-server &lt;name&gt;`)
-   * - Agent-runner runtime cache (future)
+   * - The connect RPC (web console, CLI, or Graphton first-time-use backfill)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities}
@@ -547,7 +508,6 @@ private static final long serialVersionUID = 0L;
         lastDiscoveredAtBuilder_.dispose();
         lastDiscoveredAtBuilder_ = null;
       }
-      discoveredBy_ = 0;
       return this;
     }
 
@@ -609,9 +569,6 @@ private static final long serialVersionUID = 0L;
             ? lastDiscoveredAt_
             : lastDiscoveredAtBuilder_.build();
         to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.discoveredBy_ = discoveredBy_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -683,9 +640,6 @@ private static final long serialVersionUID = 0L;
       if (other.hasLastDiscoveredAt()) {
         mergeLastDiscoveredAt(other.getLastDiscoveredAt());
       }
-      if (other.discoveredBy_ != 0) {
-        setDiscoveredByValue(other.getDiscoveredByValue());
-      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -745,11 +699,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 32: {
-              discoveredBy_ = input.readEnum();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1546,78 +1495,6 @@ private static final long serialVersionUID = 0L;
         lastDiscoveredAt_ = null;
       }
       return lastDiscoveredAtBuilder_;
-    }
-
-    private int discoveredBy_ = 0;
-    /**
-     * <pre>
-     * How this snapshot was produced.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-     * @return The enum numeric value on the wire for discoveredBy.
-     */
-    @java.lang.Override public int getDiscoveredByValue() {
-      return discoveredBy_;
-    }
-    /**
-     * <pre>
-     * How this snapshot was produced.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-     * @param value The enum numeric value on the wire for discoveredBy to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setDiscoveredByValue(int value) {
-      discoveredBy_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * How this snapshot was produced.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-     * @return The discoveredBy.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.DiscoverySource getDiscoveredBy() {
-      ai.stigmer.agentic.mcpserver.v1.DiscoverySource result = ai.stigmer.agentic.mcpserver.v1.DiscoverySource.forNumber(discoveredBy_);
-      return result == null ? ai.stigmer.agentic.mcpserver.v1.DiscoverySource.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * How this snapshot was produced.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-     * @param value The discoveredBy to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDiscoveredBy(ai.stigmer.agentic.mcpserver.v1.DiscoverySource value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000008;
-      discoveredBy_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * How this snapshot was produced.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.DiscoverySource discovered_by = 4 [json_name = "discoveredBy"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearDiscoveredBy() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      discoveredBy_ = 0;
-      onChanged();
-      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities)

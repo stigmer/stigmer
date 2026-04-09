@@ -220,7 +220,7 @@ export function McpServerDetailView({
   const status = mcpServer?.status;
   const specAudit = status?.audit?.specAudit;
   const capabilities = status?.discoveredCapabilities;
-  const toolApprovals = spec?.defaultToolApprovals ?? [];
+  const toolApprovals = spec?.pinnedToolApprovals ?? [];
   const tools = capabilities?.tools ?? [];
   const resourceTemplates = capabilities?.resourceTemplates ?? [];
   const hasDiscoveredTools = tools.length > 0;
