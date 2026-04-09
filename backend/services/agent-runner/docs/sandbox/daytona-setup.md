@@ -338,6 +338,21 @@ Keep track of snapshot versions:
 - Base image: stigmer-sandbox-full:v2
 ```
 
+## Automated Snapshot Management (Production)
+
+In production, snapshot creation and rotation is automated via a Temporal scheduled workflow. The workflow:
+
+1. Queries the database for the most-used MCP servers in a configurable time window
+2. Builds a Daytona `Image` declaratively with popular MCP server packages pre-installed (npm, pip, Go modules)
+3. Creates a new snapshot and stores the active snapshot name in MongoDB
+4. Cleans up old snapshots (retains the last 3 for in-flight sandbox creation safety)
+
+The active snapshot name is resolved at sandbox creation time:
+- **Primary**: DB-driven value updated by the Temporal snapshot builder
+- **Fallback**: `DAYTONA_DEV_TOOLS_SNAPSHOT_ID` environment variable (useful for local development and testing)
+
+This means production deployments do not require manual snapshot management. The manual steps above remain useful for local development, custom images, and initial bootstrapping.
+
 ## Best Practices
 
 1. **Version your snapshots** - Use semantic versioning (v1, v2, etc.)
@@ -346,7 +361,7 @@ Keep track of snapshot versions:
 4. **Pin versions** - Use specific tool versions in Dockerfile
 5. **Clean up old snapshots** - Delete unused snapshots to save costs
 6. **Share within team** - One snapshot per team, not per developer
-7. **Automate updates** - CI/CD pipeline to rebuild and publish snapshots
+7. **Automate updates** - In production, use the Temporal scheduled workflow; for custom images, set up a CI/CD pipeline
 
 ## Alternative: Local Testing Without Daytona
 

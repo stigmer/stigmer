@@ -468,6 +468,36 @@ SANDBOX_ROOT_DIR=./workspace  # Default: ./workspace
 
 ---
 
+## MCP Server Execution in Cloud Mode
+
+In cloud mode (`MODE=cloud`), stdio MCP servers are started inside the Daytona sandbox rather than the agent-runner pod. This is a security boundary: untrusted MCP server code (downloaded via `npx`, `uvx`, or `go run`) never executes in the agent-runner container.
+
+### How It Works
+
+| Transport | Where It Runs | Notes |
+|-----------|--------------|-------|
+| **stdio** (cloud mode) | Daytona sandbox | Process started via Daytona session API; stdio relayed over the network |
+| **stdio** (local mode) | Host subprocess | Standard subprocess, same as before |
+| **HTTP / streamable_http** | Remote endpoint | Unaffected by this change; connects to a URL |
+
+### Agent Execution Path
+
+During agent execution, the workspace sandbox is already warm (created during workspace initialization). Stdio MCP servers start inside this existing sandbox with zero additional cold start. The `DaytonaMCPClient` wrapper routes stdio servers through `daytona_stdio_client` and delegates HTTP servers to `MultiServerMCPClient`.
+
+### Connect/Discover Workflow
+
+When a user connects a new MCP server, the `DiscoverMcpServerCapabilities` activity creates an **ephemeral** Daytona sandbox to run the stdio MCP server for tool discovery. The sandbox is deleted immediately after discovery completes. This preserves the immediate-discovery UX (tools and approval policies are visible at connect time) while maintaining the security boundary.
+
+### Agent-Runner Dockerfile
+
+The agent-runner Docker image no longer contains MCP runtimes (Node.js, Go, uvx). These runtimes live in the sandbox image. This reduces the agent-runner image size and attack surface.
+
+### Local/OSS Mode
+
+Local mode is unaffected. Stdio MCP servers continue to run as local subprocesses using whatever runtimes are installed on the host machine.
+
+---
+
 ## Philosophy
 
 **Make the common case fast, the uncommon case possible.**

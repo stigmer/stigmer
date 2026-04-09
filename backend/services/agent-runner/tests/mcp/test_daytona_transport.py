@@ -20,7 +20,6 @@ import pytest
 
 from worker.mcp.daytona_transport import _build_shell_command
 
-
 # =============================================================================
 # _build_shell_command tests
 # =============================================================================
@@ -314,7 +313,6 @@ class TestDaytonaTransportLifecycle:
     async def test_write_stream_sends_to_stdin(self) -> None:
         """Messages written to write_stream reach send_session_command_input."""
         import anyio
-
         from mcp.shared.message import SessionMessage
         from mcp.types import JSONRPCMessage
 
@@ -341,9 +339,9 @@ class TestDaytonaTransportLifecycle:
 
 
 # Needed for anyio streams in the tests above
-import anyio  # noqa: E402
 from contextlib import AsyncExitStack, asynccontextmanager  # noqa: E402
 
+import anyio  # noqa: E402
 
 # =============================================================================
 # connect_mcp_client: injected client path
