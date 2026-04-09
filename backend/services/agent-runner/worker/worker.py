@@ -31,6 +31,7 @@ class AgentRunner:
         if not config.is_local_mode():
             self._initialize_redis()
             self._validate_mongodb_connectivity()
+            self._initialize_snapshot_resolver()
         else:
             self.logger.info(
                 "Local mode: Skipping Redis initialization"
@@ -109,6 +110,33 @@ class AgentRunner:
         finally:
             client.close()
     
+    def _initialize_snapshot_resolver(self):
+        """Initialize the MCP snapshot resolver for cloud mode.
+
+        The resolver discovers the latest active Daytona snapshot with
+        pre-installed MCP servers. Requires ``DAYTONA_API_KEY``.  If the
+        key is absent the resolver is not created and sandbox creation
+        falls back to ``DAYTONA_DEV_TOOLS_SNAPSHOT_ID`` or no snapshot.
+        """
+        import os
+
+        api_key = os.getenv("DAYTONA_API_KEY")
+        if not api_key:
+            self.logger.info(
+                "DAYTONA_API_KEY not set — snapshot resolver not initialized"
+            )
+            return
+
+        try:
+            from worker.snapshot_resolver import initialize_snapshot_resolver
+
+            initialize_snapshot_resolver(api_key)
+            self.logger.info("✅ Snapshot resolver initialized")
+        except Exception as e:
+            self.logger.warning(
+                "Snapshot resolver initialization failed (non-fatal): %s", e
+            )
+
     async def register_activities(self):
         """Connect to Temporal and register activities.
         
@@ -118,6 +146,10 @@ class AgentRunner:
         - cleanup_sandbox: Sandbox cleanup (legacy, may be removed)
         """
         # Import activities and workflows here to avoid circular imports
+        from worker.activities.build_mcp_snapshot import (
+            BuildMcpSnapshotWorkflow,
+            build_mcp_snapshot,
+        )
         from worker.activities.classify_tool_approvals import classify_tool_approvals
         from worker.activities.cleanup_sandbox import cleanup_sandbox
         from worker.activities.discover_mcp_server import (
@@ -164,10 +196,12 @@ class AgentRunner:
             self.client,
             task_queue=self.config.task_queue,
             workflows=[
+                BuildMcpSnapshotWorkflow,
                 ConnectMcpServerWorkflow,
                 DiscoverMcpServerWorkflow,
             ],
             activities=[
+                build_mcp_snapshot,
                 execute_graphton,
                 ensure_thread,
                 cleanup_sandbox,
@@ -184,8 +218,9 @@ class AgentRunner:
             f"✅ [POLYGLOT] Registered Python activities on task queue: '{self.config.task_queue}'"
         )
         self.logger.info(
-            "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox, "
-            "GenerateSessionSubject, DiscoverMcpServerCapabilities, ClassifyToolApprovals"
+            "✅ [POLYGLOT] Activities: BuildMcpSnapshot, ExecuteGraphton, EnsureThread, "
+            "CleanupSandbox, GenerateSessionSubject, DiscoverMcpServerCapabilities, "
+            "ClassifyToolApprovals"
         )
         self.logger.info(
             f"✅ [POLYGLOT] Max concurrency: {self.config.max_concurrency}"
