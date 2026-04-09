@@ -1229,29 +1229,9 @@ async def _perform_setup_core(
         logger=logger,
     )
 
-    # Create DaytonaMCPClient for sandboxed stdio MCP server isolation.
-    # In cloud mode (sandbox is not None), stdio MCP servers are started
-    # inside the Daytona sandbox instead of as local subprocesses.
-    mcp_client = None
-    if sandbox is not None and mcp_servers_config:
-        has_stdio = any(
-            v.get("transport") == "stdio"
-            for v in mcp_servers_config.values()
-        )
-        if has_stdio:
-            from worker.mcp.daytona_mcp_client import DaytonaMCPClient
-
-            mcp_client = DaytonaMCPClient(
-                servers=mcp_servers_config,
-                sandbox=sandbox,
-            )
-            logger.info(
-                "Created DaytonaMCPClient for %d sandboxed stdio server(s)",
-                sum(
-                    1 for v in mcp_servers_config.values()
-                    if v.get("transport") == "stdio"
-                ),
-            )
+    mcp_client = _maybe_create_daytona_mcp_client(
+        sandbox, mcp_servers_config, logger,
+    )
 
     # Build the agent graph
     agent_kwargs: dict[str, Any] = dict(
@@ -1557,3 +1537,48 @@ async def _backfill_undiscovered_servers(
             )
 
     return result
+
+
+def _maybe_create_daytona_mcp_client(
+    sandbox: Any | None,
+    mcp_servers_config: dict[str, dict[str, Any]],
+    logger: logging.Logger,
+) -> Any | None:
+    """Create a DaytonaMCPClient when sandbox and stdio servers are present.
+
+    In cloud mode (``sandbox is not None``), stdio MCP servers run inside
+    the Daytona sandbox instead of as local subprocesses.  This function
+    encapsulates the three-way gating decision:
+
+    1. No sandbox (local/OSS mode) → ``None`` (use default subprocess transport)
+    2. Sandbox present but all servers are HTTP → ``None`` (no stdio to route)
+    3. Sandbox present and at least one stdio server → ``DaytonaMCPClient``
+
+    Returns:
+        A ``DaytonaMCPClient`` instance, or ``None`` when sandbox routing
+        is not applicable.
+    """
+    if sandbox is None or not mcp_servers_config:
+        return None
+
+    has_stdio = any(
+        v.get("transport") == "stdio"
+        for v in mcp_servers_config.values()
+    )
+    if not has_stdio:
+        return None
+
+    from worker.mcp.daytona_mcp_client import DaytonaMCPClient
+
+    client = DaytonaMCPClient(servers=mcp_servers_config, sandbox=sandbox)
+
+    stdio_count = sum(
+        1 for v in mcp_servers_config.values()
+        if v.get("transport") == "stdio"
+    )
+    logger.info(
+        "Created DaytonaMCPClient for %d sandboxed stdio server(s)",
+        stdio_count,
+    )
+
+    return client
