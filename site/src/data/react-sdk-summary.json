@@ -95,8 +95,8 @@
       "slug": "mcp-server",
       "title": "MCP Server",
       "description": "Hooks and components for MCP server connections, setup, credentials, and tool management.",
-      "hooks": 8,
-      "components": 5
+      "hooks": 7,
+      "components": 4
     },
     {
       "slug": "models",

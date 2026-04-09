@@ -179,9 +179,10 @@ An external tool connection that lets an Agent interact with other systems.
   `stigmer mcp-server` (start the Stigmer MCP server),
   `stigmer apply -f mcpserver.yaml`, `stigmer get mcp-server <name>`.
 - **YAML fields**: `spec.stdio_server_config`, `spec.http_server_config`,
-  `spec.default_enabled_tools`, `spec.default_tool_approvals`. Agent references
-  via: `spec.mcp_server_usages` (repeated `McpServerUsage` entries with
-  `mcp_server_ref` and `enabled_tools`).
+  `spec.default_enabled_tools`, `spec.pinned_tool_approvals` (manual overrides),
+  `status.tool_approvals` (classified automatically by Connect). Agent
+  references via: `spec.mcp_server_usages` (repeated `McpServerUsage` entries
+  with `mcp_server_ref` and `enabled_tools`).
 - **Protocol**: MCP stands for Model Context Protocol, an open standard. Spell
   out on first use in any context. Link to `https://modelcontextprotocol.io` in
   docs.

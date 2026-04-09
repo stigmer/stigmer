@@ -1,6 +1,6 @@
 /**
  * Connect Tools overview tour — multi-surface preview showing:
- * discover tools → generate policies → code change → real data →
+ * connect (tools + policies) → code change → real data →
  * approval flow.
  *
  * Placed at the top of the "Connect your tools" page inside
@@ -25,7 +25,6 @@ import {
   DiscoveredCapabilitiesSchema,
   DiscoveredToolSchema,
   ValidationState,
-  DiscoverySource,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import {
   EnvironmentSpecSchema,
@@ -42,8 +41,7 @@ import { snapshot } from "../../engine/shared";
 // ---------------------------------------------------------------------------
 
 export type ConnectToolsTourStep =
-  | { view: "tools-discovered"; server: McpServer }
-  | { view: "policies-generated"; server: McpServer }
+  | { view: "connected"; server: McpServer }
   | { view: "code-mcp-refs" }
   | { view: "terminal-order" }
   | { view: "approval-card"; execution: AgentExecution }
@@ -76,7 +74,7 @@ function buildDiscoveredTools() {
   ];
 }
 
-function buildServerWithTools(): McpServer {
+function buildConnectedServer(): McpServer {
   const server = samples.mcpServer({
     name: "order-management-api",
     org: DEMO_ORG,
@@ -105,30 +103,21 @@ function buildServerWithTools(): McpServer {
   server.status = create(McpServerStatusSchema, {
     validationState: ValidationState.valid,
     discoveredCapabilities: create(DiscoveredCapabilitiesSchema, {
-      discoveredBy: DiscoverySource.api,
       tools: buildDiscoveredTools(),
     }),
+    toolApprovals: [
+      create(ToolApprovalPolicySchema, {
+        toolName: "process_return",
+        message:
+          "Process return for order '{{args.order_id}}' — refund ${{args.refund_amount}} to {{args.refund_method}}",
+      }),
+    ],
   });
 
   return server;
 }
 
-function buildServerWithPolicies(): McpServer {
-  const server = buildServerWithTools();
-
-  server.spec!.defaultToolApprovals = [
-    create(ToolApprovalPolicySchema, {
-      toolName: "process_return",
-      message:
-        "Process return for order '{{args.order_id}}' — refund ${{args.refund_amount}} to {{args.refund_method}}",
-    }),
-  ];
-
-  return server;
-}
-
-export const toolsOnlyServer = buildServerWithTools();
-export const withPoliciesServer = buildServerWithPolicies();
+export const connectedServer = buildConnectedServer();
 
 // ---------------------------------------------------------------------------
 // Code snippet
@@ -246,17 +235,10 @@ export const approvedExecution = snapshot(
 export const connectToolsTourSteps: ScenarioStep<ConnectToolsTourStep>[] = [
   {
     delayMs: 0,
-    data: { view: "tools-discovered", server: toolsOnlyServer },
-    caption: "Discover tools on your MCP server",
+    data: { view: "connected", server: connectedServer },
+    caption: "Connect — tools discovered, policies classified",
     narration:
-      "Connect an MCP server and discover its tools. Three tools found — two read-only, one that modifies data.",
-  },
-  {
-    delayMs: 3500,
-    data: { view: "policies-generated", server: withPoliciesServer },
-    caption: "Approval policies generated",
-    narration:
-      "Stigmer classifies each tool. Read operations run automatically. The process return tool requires human approval.",
+      "One click connects to the MCP server, discovers three tools, and classifies each one. Read operations pass through. The process return tool requires human approval.",
   },
   {
     delayMs: 3500,

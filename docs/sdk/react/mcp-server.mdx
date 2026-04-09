@@ -7,57 +7,6 @@ description: Hooks and components for MCP server connections, setup, credentials
 
 ## Hooks
 
-### useDiscoverCapabilities
-
-Action hook for triggering server-side MCP server capability discovery
-and tool approval classification.
-
-Calls the `connect` RPC which delegates to the agent-runner
-via a Temporal workflow. The RPC blocks until the connect flow completes
-(typically 5-15 seconds, ~30s timeout).
-
-Supports two modes:
-- **Save for future** (default): Credentials are saved to the personal
-  environment first, then `discover(id)` is called without `runtimeEnv`.
-- **One-time use**: `discover(id, runtimeEnv)` passes credentials
-  directly to the backend. They are used for this connect only and
-  not persisted to any environment.
-
-**Signature**
-
-```tsx
-function useDiscoverCapabilities(): UseDiscoverCapabilitiesReturn
-```
-
-**Returns** — `UseDiscoverCapabilitiesReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Clear the error state." },
-    discover: { type: "(mcpServerId: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Trigger server-side MCP discovery and tool approval classification for the given MCP server via the Connect RPC.  When `runtimeEnv` is provided, the values are passed directly to the backend as one-time credentials (not persisted to any environment). When omitted, the backend resolves credentials from the user's personal environment.  Blocks until the connect flow completes (~30s timeout)." },
-    error: { type: "Error | null", description: "Error from the most recent failed connect, or `null`." },
-    isDiscovering: { type: "boolean", description: "`true` while a connect RPC is in flight." },
-  }}
-/>
-
-```tsx
-const { discover, isDiscovering, error } = useDiscoverCapabilities();
-const { refetch } = useMcpServer(org, slug);
-
-// Save for future: credentials already in personal environment
-async function handleDiscoverSaved() {
-  await discover(mcpServer.metadata.id);
-  refetch();
-}
-
-// One-time use: pass credentials directly
-async function handleDiscoverTemporary(values: Record<string, EnvVarInput>) {
-  await discover(mcpServer.metadata.id, values);
-  refetch();
-}
-```
-
-
 ### useMcpServer
 
 Data hook that fetches a single MCP Server by organization and slug.
@@ -116,6 +65,58 @@ function McpServerDetail({ org, slug }: { org: string; slug: string }) {
 ```tsx
 // Skip fetching until slug is known
 const { mcpServer } = useMcpServer(org, slug ?? null);
+```
+
+
+### useMcpServerConnect
+
+Action hook for connecting to an MCP server.
+
+Triggers server-side capability discovery and tool approval
+classification in a single operation. The backend enumerates the
+server's tools and resource templates, then classifies each tool's
+approval policy via a structured-output LLM call.
+
+Supports two credential modes:
+- **Saved credentials** (default): Credentials are pre-saved to the
+  user's personal environment, then `connect(id)` is called without
+  `runtimeEnv`. The backend resolves them automatically.
+- **One-time use**: `connect(id, runtimeEnv)` passes credentials
+  directly to the backend. They are used for this connect only and
+  not persisted.
+
+**Signature**
+
+```tsx
+function useMcpServerConnect(): UseMcpServerConnectReturn
+```
+
+**Returns** — `UseMcpServerConnectReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Clear the error state." },
+    connect: { type: "(mcpServerId: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools, resource templates, and classify tool approval policies via a lightweight LLM call.  Calls the `connect` RPC which starts a Temporal workflow on the agent-runner. The RPC blocks until the workflow completes (typically 5-15 seconds, ~30s timeout).  When `runtimeEnv` is provided, the values are sent directly to the backend as one-time credentials (not persisted to any environment). When omitted, the backend resolves credentials from the authenticated user's personal environment." },
+    error: { type: "Error | null", description: "Error from the most recent failed connect, or `null`." },
+    isConnecting: { type: "boolean", description: "`true` while the connect RPC is in flight." },
+  }}
+/>
+
+```tsx
+const { connect, isConnecting, error } = useMcpServerConnect();
+const { refetch } = useMcpServer(org, slug);
+
+// Saved credentials: already in personal environment
+async function handleConnectSaved() {
+  await connect(mcpServer.metadata.id);
+  refetch();
+}
+
+// One-time use: pass credentials directly
+async function handleConnectTemporary(values: Record<string, EnvVarInput>) {
+  await connect(mcpServer.metadata.id, values);
+  refetch();
+}
 ```
 
 
@@ -392,86 +393,7 @@ const session = await createSession({ mcpServerUsages: usageInputs });
 ```
 
 
-### useTriggerApprovalPolicySession
-
-Orchestration hook that auto-creates a session with the `mcp-server-creator`
-agent and starts an execution with a pre-filled prompt and YAML attachment.
-
-The prompt instructs the agent to read the attached YAML, query the
-discovered tools for this MCP server, classify each tool's risk level,
-and generate `default_tool_approvals` entries with appropriate approval
-messages. The agent applies the result using the `apply_mcp_server` tool.
-
-The session is created with a **personal** agent instance whose
-`environment_refs` include the caller's personal environment. This
-ensures MCP server credentials (e.g. `STIGMER_API_KEY`) are available
-through the standard environment merge chain, consistent with how
-`SessionComposer` / `useAgentSetup` provisions sessions.
-
-**Signature**
-
-```tsx
-function useTriggerApprovalPolicySession(): UseTriggerApprovalPolicySessionReturn
-```
-
-**Returns** — `UseTriggerApprovalPolicySessionReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    error: { type: "Error | null", description: "Error from the last failed trigger, or `null` when healthy." },
-    isTriggering: { type: "boolean", description: "`true` while the session creation and execution trigger are in flight." },
-    result: { type: "TriggerApprovalPolicyResult | null", description: "Result from the last successful trigger, or `null`." },
-    trigger: { type: "(mcpServerYaml: string, org: string, mcpServerSlug: string) => Promise<TriggerApprovalPolicyResult>", description: "Create an agent session with the `mcp-server-creator` agent, attach the current MCP server YAML, and start an execution that generates approval policies for the discovered tools." },
-  }}
-/>
-
-```tsx
-const { trigger, isTriggering, result } = useTriggerApprovalPolicySession();
-
-async function handleGenerate() {
-  const yaml = serializeMcpServer(mcpServer);
-  await trigger(yaml, org, slug);
-  // result.sessionId and result.executionId are now available
-}
-```
-
-
 ## Components
-
-### ApprovalPolicyGeneratorPanel
-
-Inline panel that streams the approval policy generation execution.
-
-Composes [`useExecutionStream`](/docs/sdk/react/execution#useexecutionstream), [`MessageThread`](/docs/sdk/react/execution#messagethread), and
-[`ExecutionProgress`](/docs/sdk/react/execution#executionprogress) to show real-time agent progress: thinking,
-tool calls, generated YAML, and applied changes.
-
-When the execution reaches a terminal phase, the `onComplete`
-callback fires once so the parent can refetch the MCP server to
-display newly applied policies.
-
-**Props** — `ApprovalPolicyGeneratorPanelProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root container." },
-    executionId: { type: "string", description: "The execution ID to stream.", required: true },
-    onClose: { type: "() => void", description: "Called when the user clicks the close/dismiss button.", required: true },
-    onComplete: { type: "() => void", description: "Called once when the execution reaches a terminal phase." },
-  }}
-/>
-
-```tsx
-{result && (
-  <ApprovalPolicyGeneratorPanel
-    executionId={result.executionId}
-    onClose={() => setResult(null)}
-    onComplete={() => refetch()}
-  />
-)}
-```
-
 
 ### McpServerConfigPanel
 
@@ -511,7 +433,7 @@ All visual properties flow through `--stgm-*` design tokens.
     mcpServer: { type: "McpServer", description: "The MCP server resource — used for header display (name, icon, description).", required: true, typeDescriptionLink: "/docs/sdk/resources/mcp-server" },
     onBack: { type: "() => void", description: "Called when the user clicks \"Back\" to return to the picker list.", required: true },
     onEnabledToolsChange: { type: "(enabledTools: string[]) => void", description: "Called when tool selection changes.", required: true },
-    toolApprovals: { type: "ToolApprovalPolicy[]", description: "Approval policies from `spec.default_tool_approvals`.", required: true },
+    toolApprovals: { type: "ToolApprovalPolicy[]", description: "Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`.", required: true },
   }}
 />
 
@@ -544,19 +466,18 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### McpServerDetailView
 
-Read-only detail view for an MCP Server integration.
+Detail view for an MCP Server integration.
 
 Fetches the server via [`useMcpServer`](#usemcpserver) internally and renders
 its full configuration: validation banner (if invalid), header,
-a **tabbed capabilities panel** (Tools, Policies, and optionally
-Resources), server configuration, environment variables, and tags.
+a **Connect bar** with a single Connect/Reconnect action, and a
+**tabbed capabilities panel** (Tools, Policies, and optionally
+Resources) showing read-only discovered data.
 
-The capabilities panel groups the three core concerns of an MCP
-server into tabs, each co-locating its action with its output:
-
-- **Tools** — Discover button + discovered tool list
-- **Policies** — Existing approval policies + AI generate action
-- **Resources** — Discovered resource templates (tab hidden when empty)
+The Connect bar above the tabs is the single entry point for
+capability discovery and tool approval classification. It handles
+credential gating inline — when credentials are missing, the form
+slides in below the bar.
 
 Handles loading, error, and not-found states automatically.
 Zero Console dependencies — safe for platform builder embedding.
@@ -571,9 +492,8 @@ All visual properties flow through `--stgm-*` design tokens.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     credentialPoolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Pre-fill function for credential form inputs. When provided, the EnvVarForm receives these as `poolValues`, populating fields on mount. Useful for demo scenarios that simulate a user having already entered credentials." },
     defaultCapabilityTab: { type: "CapabilityTab", description: "Initial active capability tab. Defaults to `\"tools\"`. Useful for deep-linking or demo scenarios that need to start on a specific tab.", typeDescriptionLink: "#capabilitytab" },
-    defaultShowCredentialForm: { type: "boolean", description: "When `true`, the credential form inside the Tools tab opens immediately on mount (instead of waiting for a Discover click). Useful for guided tours and demo scenarios that need to show the credential entry step without user interaction." },
+    defaultShowCredentialForm: { type: "boolean", description: "When `true`, the credential form opens immediately on mount (instead of waiting for a Connect click). Useful for guided tours and demo scenarios that need to show the credential entry step without user interaction." },
     isVisibilityPending: { type: "boolean", description: "`true` while a visibility update RPC is in flight." },
-    onPolicySessionCreated: { type: "(info: { executionId: string; sessionId: string }) => void", description: "Called after the approval-policy generation session and execution have been created successfully.  When provided, the component delegates post-trigger behavior to the consumer (e.g. navigating to a session page) instead of rendering the inline ApprovalPolicyGeneratorPanel.  When omitted, the inline panel is shown as a fallback." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the MCP server resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useMcpServer.  Not called on error or not-found states." },
     onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user toggles visibility via the inline control. When provided, the header renders an interactive VisibilityToggle instead of a read-only badge. When omitted, visibility is displayed as a static \"Public\" pill." },
     org: { type: "string", description: "Organization slug that owns the MCP server.", required: true },
@@ -680,7 +600,7 @@ All visual properties flow through `--stgm-*` design tokens.
     disabled: { type: "boolean", description: "Disables all interaction." },
     enabledTools: { type: "string[]", description: "Currently enabled tool names (controlled).", required: true },
     onChange: { type: "(enabledTools: string[]) => void", description: "Called when the set of enabled tools changes.", required: true },
-    toolApprovals: { type: "ToolApprovalPolicy[]", description: "Approval policies from `spec.default_tool_approvals`.", required: true },
+    toolApprovals: { type: "ToolApprovalPolicy[]", description: "Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`.", required: true },
     tools: { type: "DiscoveredTool[]", description: "Discovered tools from `status.discovered_capabilities.tools`.", required: true },
   }}
 />
@@ -821,18 +741,6 @@ Format: `"org/slug"`. Used as the entry key in
 ```tsx
 function toServerKey(ref: ResourceRef): string
 ```
-
-
-### TriggerApprovalPolicyResult
-
-IDs of the session and execution created by [`useTriggerApprovalPolicySession`](#usetriggerapprovalpolicysession).
-
-<TypeTable
-  type={{
-    executionId: { type: "string", description: "ID of the first execution within the session.", required: true },
-    sessionId: { type: "string", description: "ID of the newly created agent session.", required: true },
-  }}
-/>
 
 
 ### UseMcpServerCountOptions

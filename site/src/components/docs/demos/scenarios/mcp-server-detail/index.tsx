@@ -18,7 +18,6 @@ import {
   McpServerStatusSchema,
   DiscoveredCapabilitiesSchema,
   DiscoveredToolSchema,
-  DiscoverySource,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
@@ -42,20 +41,19 @@ function buildDemoMcpServer() {
         url: "https://orders.internal.acme.com/mcp",
       }),
     },
-    defaultToolApprovals: [
+  });
+
+  server.metadata!.visibility = ApiResourceVisibility.visibility_private;
+
+  server.status = create(McpServerStatusSchema, {
+    toolApprovals: [
       create(ToolApprovalPolicySchema, {
         toolName: "process_return",
         message:
           "Process return for order '{{args.order_id}}' — refund ${{args.refund_amount}} to {{args.refund_method}}",
       }),
     ],
-  });
-
-  server.metadata!.visibility = ApiResourceVisibility.visibility_private;
-
-  server.status = create(McpServerStatusSchema, {
     discoveredCapabilities: create(DiscoveredCapabilitiesSchema, {
-      discoveredBy: DiscoverySource.api,
       tools: [
         create(DiscoveredToolSchema, {
           name: "get_order",
