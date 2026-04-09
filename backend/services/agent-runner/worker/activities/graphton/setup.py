@@ -1229,6 +1229,30 @@ async def _perform_setup_core(
         logger=logger,
     )
 
+    # Create DaytonaMCPClient for sandboxed stdio MCP server isolation.
+    # In cloud mode (sandbox is not None), stdio MCP servers are started
+    # inside the Daytona sandbox instead of as local subprocesses.
+    mcp_client = None
+    if sandbox is not None and mcp_servers_config:
+        has_stdio = any(
+            v.get("transport") == "stdio"
+            for v in mcp_servers_config.values()
+        )
+        if has_stdio:
+            from worker.mcp.daytona_mcp_client import DaytonaMCPClient
+
+            mcp_client = DaytonaMCPClient(
+                servers=mcp_servers_config,
+                sandbox=sandbox,
+            )
+            logger.info(
+                "Created DaytonaMCPClient for %d sandboxed stdio server(s)",
+                sum(
+                    1 for v in mcp_servers_config.values()
+                    if v.get("transport") == "stdio"
+                ),
+            )
+
     # Build the agent graph
     agent_kwargs: dict[str, Any] = dict(
         model=model_name,
@@ -1239,6 +1263,7 @@ async def _perform_setup_core(
         mcp_tools=(
             mcp_tools_config if mcp_tools_config else None
         ),
+        mcp_client=mcp_client,
         tools=None,
         subagents=transformed_subagents,
         sandbox_config=sandbox_config_for_agent,

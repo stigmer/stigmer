@@ -123,6 +123,9 @@ def create_deep_agent(
     # Cost cap (Phase 3B)
     max_cost_usd: float = 0.0,
     cost_pricing: "dict[str, float] | None" = None,
+    # Pre-built MCP client for alternative transports (e.g. Daytona sandbox).
+    # Duck-typed: must expose session(server_name) async context manager.
+    mcp_client: Any | None = None,
     **model_kwargs: Any,  # noqa: ANN401
 ) -> CompiledStateGraph:
     """Create a Deep Agent with minimal boilerplate.
@@ -789,8 +792,9 @@ def create_deep_agent(
         # The middleware will automatically detect static vs dynamic configs
         # and handle template substitution if needed
         mcp_middleware = McpToolsLoader(
-            servers=mcp_servers,  # Pass raw configs directly
+            servers=mcp_servers,
             tool_filter=mcp_tools,
+            client=mcp_client,
         )
         mcp_middleware_ref = mcp_middleware
         
