@@ -13,11 +13,8 @@ import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useMcpServer } from "./useMcpServer";
-import { useDiscoverCapabilities } from "./useDiscoverCapabilities";
+import { useMcpServerConnect } from "./useMcpServerConnect";
 import { useMcpServerCredentials } from "./useMcpServerCredentials";
-import { useTriggerApprovalPolicySession } from "./useTriggerApprovalPolicySession";
-import { ApprovalPolicyGeneratorPanel } from "./ApprovalPolicyGeneratorPanel";
-import { serializeMcpServerYaml } from "../library/serialize-resource-yaml";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
@@ -52,30 +49,16 @@ export interface McpServerDetailViewProps {
   /** `true` while a visibility update RPC is in flight. */
   readonly isVisibilityPending?: boolean;
   /**
-   * Called after the approval-policy generation session and execution
-   * have been created successfully.
-   *
-   * When provided, the component delegates post-trigger behavior to the
-   * consumer (e.g. navigating to a session page) instead of rendering
-   * the inline {@link ApprovalPolicyGeneratorPanel}.
-   *
-   * When omitted, the inline panel is shown as a fallback.
-   */
-  readonly onPolicySessionCreated?: (info: {
-    sessionId: string;
-    executionId: string;
-  }) => void;
-  /**
    * Initial active capability tab. Defaults to `"tools"`.
    * Useful for deep-linking or demo scenarios that need to start on
    * a specific tab.
    */
   readonly defaultCapabilityTab?: CapabilityTab;
   /**
-   * When `true`, the credential form inside the Tools tab opens
-   * immediately on mount (instead of waiting for a Discover click).
-   * Useful for guided tours and demo scenarios that need to show the
-   * credential entry step without user interaction.
+   * When `true`, the credential form opens immediately on mount
+   * (instead of waiting for a Connect click). Useful for guided tours
+   * and demo scenarios that need to show the credential entry step
+   * without user interaction.
    * @default false
    */
   readonly defaultShowCredentialForm?: boolean;
@@ -93,19 +76,18 @@ export interface McpServerDetailViewProps {
 }
 
 /**
- * Read-only detail view for an MCP Server integration.
+ * Detail view for an MCP Server integration.
  *
  * Fetches the server via {@link useMcpServer} internally and renders
  * its full configuration: validation banner (if invalid), header,
- * a **tabbed capabilities panel** (Tools, Policies, and optionally
- * Resources), server configuration, environment variables, and tags.
+ * a **Connect bar** with a single Connect/Reconnect action, and a
+ * **tabbed capabilities panel** (Tools, Policies, and optionally
+ * Resources) showing read-only discovered data.
  *
- * The capabilities panel groups the three core concerns of an MCP
- * server into tabs, each co-locating its action with its output:
- *
- * - **Tools** — Discover button + discovered tool list
- * - **Policies** — Existing approval policies + AI generate action
- * - **Resources** — Discovered resource templates (tab hidden when empty)
+ * The Connect bar above the tabs is the single entry point for
+ * capability discovery and tool approval classification. It handles
+ * credential gating inline — when credentials are missing, the form
+ * slides in below the bar.
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -123,7 +105,6 @@ export function McpServerDetailView({
   onResourceLoad,
   onVisibilityChange,
   isVisibilityPending,
-  onPolicySessionCreated,
   defaultCapabilityTab = "tools",
   defaultShowCredentialForm = false,
   credentialPoolValues,
@@ -131,13 +112,9 @@ export function McpServerDetailView({
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
   const credentials = useMcpServerCredentials(org, mcpServer ?? null);
-  const discovery = useDiscoverCapabilities();
-  const policySession = useTriggerApprovalPolicySession();
+  const connection = useMcpServerConnect();
 
   const [showCredentialForm, setShowCredentialForm] = useState(defaultShowCredentialForm);
-  const [policyPanelExecutionId, setPolicyPanelExecutionId] = useState<
-    string | null
-  >(null);
   const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>(defaultCapabilityTab);
 
   const onResourceLoadRef = useRef(onResourceLoad);
@@ -149,7 +126,7 @@ export function McpServerDetailView({
     }
   }, [mcpServer]);
 
-  const handleDiscoverClick = useCallback(async () => {
+  const handleConnectClick = useCallback(async () => {
     if (!mcpServer?.metadata?.id) return;
 
     if (!credentials.isReady) {
@@ -158,12 +135,12 @@ export function McpServerDetailView({
     }
 
     try {
-      await discovery.discover(mcpServer.metadata.id);
+      await connection.connect(mcpServer.metadata.id);
       refetch();
     } catch {
       // error state is managed by the hook
     }
-  }, [mcpServer, credentials.isReady, discovery, refetch]);
+  }, [mcpServer, credentials.isReady, connection, refetch]);
 
   const handleCredentialSubmit = useCallback(
     async (
@@ -180,9 +157,9 @@ export function McpServerDetailView({
 
         if (mcpServer?.metadata?.id) {
           if (options.saveForFuture) {
-            await discovery.discover(mcpServer.metadata.id);
+            await connection.connect(mcpServer.metadata.id);
           } else {
-            await discovery.discover(mcpServer.metadata.id, values);
+            await connection.connect(mcpServer.metadata.id, values);
           }
           refetch();
         }
@@ -190,37 +167,16 @@ export function McpServerDetailView({
         // error state is managed by the hooks
       }
     },
-    [credentials, mcpServer, discovery, refetch],
+    [credentials, mcpServer, connection, refetch],
   );
-
-  const handleGenerateApprovalPolicies = useCallback(async () => {
-    if (!mcpServer) return;
-
-    try {
-      const yaml = serializeMcpServerYaml(mcpServer);
-      const result = await policySession.trigger(yaml, org, slug);
-      if (onPolicySessionCreated) {
-        onPolicySessionCreated({
-          sessionId: result.sessionId,
-          executionId: result.executionId,
-        });
-      } else {
-        setPolicyPanelExecutionId(result.executionId);
-      }
-    } catch {
-      // error state is managed by the hook
-    }
-  }, [mcpServer, org, slug, policySession, onPolicySessionCreated]);
-
-  const handlePolicyPanelComplete = useCallback(() => {
-    refetch();
-  }, [refetch]);
 
   const spec = mcpServer?.spec;
   const status = mcpServer?.status;
   const specAudit = status?.audit?.specAudit;
   const capabilities = status?.discoveredCapabilities;
-  const toolApprovals = spec?.pinnedToolApprovals ?? [];
+  const pinnedPolicies = spec?.pinnedToolApprovals ?? [];
+  const classifiedPolicies = status?.toolApprovals ?? [];
+  const totalPolicyCount = pinnedPolicies.length + classifiedPolicies.length;
   const tools = capabilities?.tools ?? [];
   const resourceTemplates = capabilities?.resourceTemplates ?? [];
   const hasDiscoveredTools = tools.length > 0;
@@ -228,7 +184,7 @@ export function McpServerDetailView({
   const capabilityTabs: TabItem[] = useMemo(() => {
     const items: TabItem[] = [
       { id: "tools", label: "Tools", badge: tools.length },
-      { id: "policies", label: "Policies", badge: toolApprovals.length },
+      { id: "policies", label: "Policies", badge: totalPolicyCount },
     ];
     if (resourceTemplates.length > 0) {
       items.push({
@@ -238,7 +194,7 @@ export function McpServerDetailView({
       });
     }
     return items;
-  }, [tools.length, toolApprovals.length, resourceTemplates.length]);
+  }, [tools.length, totalPolicyCount, resourceTemplates.length]);
 
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
@@ -282,6 +238,35 @@ export function McpServerDetailView({
           Capabilities
         </h3>
         <div className="overflow-hidden rounded-lg border border-border">
+          <ConnectBar
+            isConnecting={connection.isConnecting}
+            connectionError={connection.error}
+            onConnect={handleConnectClick}
+            onClearConnectionError={connection.clearError}
+            hasDiscoveredTools={hasDiscoveredTools}
+            toolCount={tools.length}
+            policyCount={totalPolicyCount}
+            credentialsLoading={credentials.isLoading}
+          />
+
+          {showCredentialForm && credentials.missingVariables.length > 0 && (
+            <div
+              className="border-b border-border p-4"
+              data-cursor-target="credential-form"
+            >
+              <EnvVarForm
+                title="Credentials Required"
+                description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off for one-time use."
+                variables={credentials.missingVariables}
+                onSubmit={(values, options) => handleCredentialSubmit(values, options)}
+                onCancel={() => setShowCredentialForm(false)}
+                isSubmitting={credentials.isSaving}
+                poolValues={credentialPoolValues}
+                className="w-full max-w-md"
+              />
+            </div>
+          )}
+
           <Tabs
             tabs={capabilityTabs}
             activeTab={capabilityTab}
@@ -289,34 +274,14 @@ export function McpServerDetailView({
             aria-label="MCP server capabilities"
           >
             {capabilityTab === "tools" && (
-              <ToolsTabContent
-                tools={tools}
-                isDiscovering={discovery.isDiscovering}
-                discoveryError={discovery.error}
-                onDiscover={handleDiscoverClick}
-                onClearDiscoveryError={discovery.clearError}
-                hasDiscoveredTools={hasDiscoveredTools}
-                showCredentialForm={showCredentialForm}
-                credentialVariables={credentials.missingVariables}
-                isSavingCredentials={credentials.isSaving}
-                onCredentialSubmit={handleCredentialSubmit}
-                onCredentialCancel={() => setShowCredentialForm(false)}
-                credentialsLoading={credentials.isLoading}
-                credentialPoolValues={credentialPoolValues}
-              />
+              <ToolsTabContent tools={tools} />
             )}
 
             {capabilityTab === "policies" && (
               <PoliciesTabContent
-                policies={toolApprovals}
+                pinnedPolicies={pinnedPolicies}
+                classifiedPolicies={classifiedPolicies}
                 hasDiscoveredTools={hasDiscoveredTools}
-                isTriggering={policySession.isTriggering}
-                triggerError={policySession.error}
-                onGenerate={handleGenerateApprovalPolicies}
-                onClearTriggerError={policySession.clearError}
-                policyPanelExecutionId={policyPanelExecutionId}
-                onPolicyPanelClose={() => setPolicyPanelExecutionId(null)}
-                onPolicyPanelComplete={handlePolicyPanelComplete}
               />
             )}
 
@@ -330,6 +295,95 @@ export function McpServerDetailView({
       {spec && spec.tags.length > 0 && <TagsSection tags={spec.tags} />}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// ConnectBar — single entry point for capability discovery
+// ---------------------------------------------------------------------------
+
+function ConnectBar({
+  isConnecting,
+  connectionError,
+  onConnect,
+  onClearConnectionError,
+  hasDiscoveredTools,
+  toolCount,
+  policyCount,
+  credentialsLoading,
+}: {
+  readonly isConnecting: boolean;
+  readonly connectionError: Error | null;
+  readonly onConnect: () => void;
+  readonly onClearConnectionError: () => void;
+  readonly hasDiscoveredTools: boolean;
+  readonly toolCount: number;
+  readonly policyCount: number;
+  readonly credentialsLoading: boolean;
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <span className="text-xs text-muted-foreground">
+          {hasDiscoveredTools
+            ? formatConnectionSummary(toolCount, policyCount)
+            : "Not connected yet"}
+        </span>
+        <button
+          type="button"
+          onClick={onConnect}
+          disabled={isConnecting || credentialsLoading}
+          data-cursor-target="connect-button"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
+            "border border-border bg-background text-foreground",
+            "hover:bg-accent hover:text-accent-foreground",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          {isConnecting ? (
+            <>
+              <Spinner />
+              Connecting...
+            </>
+          ) : hasDiscoveredTools ? (
+            <>
+              <RefreshIcon className="size-3.5" />
+              Reconnect
+            </>
+          ) : (
+            <>
+              <ConnectIcon className="size-3.5" />
+              Connect
+            </>
+          )}
+        </button>
+      </div>
+
+      {connectionError && (
+        <div className="flex items-start gap-2 border-b border-destructive/20 bg-destructive/5 px-3 py-2">
+          <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+          <p className="flex-1 text-xs text-destructive">
+            {connectionError.message}
+          </p>
+          <button
+            type="button"
+            onClick={onClearConnectionError}
+            className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
+            aria-label="Dismiss error"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatConnectionSummary(toolCount: number, policyCount: number): string {
+  const toolLabel = `${toolCount} tool${toolCount !== 1 ? "s" : ""}`;
+  if (policyCount === 0) return toolLabel;
+  const policyLabel = `${policyCount} ${policyCount !== 1 ? "policies" : "policy"}`;
+  return `${toolLabel}, ${policyLabel}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -618,263 +672,126 @@ function TagsSection({ tags }: { readonly tags: readonly string[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Capability tab contents
+// Capability tab contents (read-only)
 // ---------------------------------------------------------------------------
 
 function ToolsTabContent({
   tools,
-  isDiscovering,
-  discoveryError,
-  onDiscover,
-  onClearDiscoveryError,
-  hasDiscoveredTools,
-  showCredentialForm,
-  credentialVariables,
-  isSavingCredentials,
-  onCredentialSubmit,
-  onCredentialCancel,
-  credentialsLoading,
-  credentialPoolValues,
 }: {
   readonly tools: readonly DiscoveredTool[];
-  readonly isDiscovering: boolean;
-  readonly discoveryError: Error | null;
-  readonly onDiscover: () => void;
-  readonly onClearDiscoveryError: () => void;
-  readonly hasDiscoveredTools: boolean;
-  readonly showCredentialForm: boolean;
-  readonly credentialVariables: EnvVarFormVariable[];
-  readonly isSavingCredentials: boolean;
-  readonly onCredentialSubmit: (
-    values: Record<string, import("@stigmer/sdk").EnvVarInput>,
-    options: { saveForFuture: boolean },
-  ) => void;
-  readonly onCredentialCancel: () => void;
-  readonly credentialsLoading: boolean;
-  readonly credentialPoolValues?: (
-    key: string,
-  ) => import("@stigmer/sdk").EnvVarInput | undefined;
 }) {
-  return (
-    <div className="flex flex-col">
-      {/* Discovery action bar */}
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <span className="text-xs text-muted-foreground">
-          {hasDiscoveredTools
-            ? `${tools.length} tool${tools.length !== 1 ? "s" : ""} discovered`
-            : "No tools discovered yet"}
-        </span>
-        <button
-          type="button"
-          onClick={onDiscover}
-          disabled={isDiscovering || credentialsLoading}
-          data-cursor-target="discover-button"
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-            "border border-border bg-background text-foreground",
-            "hover:bg-accent hover:text-accent-foreground",
-            "disabled:pointer-events-none disabled:opacity-50",
-          )}
-        >
-          {isDiscovering ? (
-            <>
-              <DiscoverSpinner />
-              Discovering...
-            </>
-          ) : hasDiscoveredTools ? (
-            <>
-              <RefreshIcon className="size-3.5" />
-              Re-discover
-            </>
-          ) : (
-            <>
-              <DiscoverIcon className="size-3.5" />
-              Discover
-            </>
-          )}
-        </button>
+  if (tools.length === 0) {
+    return (
+      <div className="px-3 py-8 text-center">
+        <ConnectIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
+        <p className="text-xs text-muted-foreground">
+          Connect to this MCP server to discover its available tools.
+        </p>
       </div>
+    );
+  }
 
-      {discoveryError && (
-        <div className="flex items-start gap-2 border-b border-destructive/20 bg-destructive/5 px-3 py-2">
-          <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-          <p className="flex-1 text-xs text-destructive">
-            {discoveryError.message}
-          </p>
-          <button
-            type="button"
-            onClick={onClearDiscoveryError}
-            className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
-            aria-label="Dismiss error"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {showCredentialForm && credentialVariables.length > 0 && (
-        <div
-          className="border-b border-border p-4"
-          data-cursor-target="credential-form"
-        >
-          <EnvVarForm
-            title="Credentials Required"
-            description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off to use them for this discovery only."
-            variables={credentialVariables}
-            onSubmit={(values, options) => onCredentialSubmit(values, options)}
-            onCancel={onCredentialCancel}
-            isSubmitting={isSavingCredentials}
-            poolValues={credentialPoolValues}
-            className="w-full max-w-md"
-          />
-        </div>
-      )}
-
-      {hasDiscoveredTools ? (
-        <div className="flex flex-col divide-y divide-border">
-          {tools.map((tool) => (
-            <div key={tool.name} className="px-3 py-2.5">
-              <code className="font-mono text-sm font-medium text-foreground">
-                {tool.name}
-              </code>
-              {tool.description && (
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {tool.description}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        !isDiscovering && (
-          <div className="px-3 py-8 text-center">
-            <DiscoverIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
-            <p className="text-xs text-muted-foreground">
-              Click &quot;Discover&quot; to connect to this MCP server and
-              list its available tools and resources.
+  return (
+    <div className="flex flex-col divide-y divide-border">
+      {tools.map((tool) => (
+        <div key={tool.name} className="px-3 py-2.5">
+          <code className="font-mono text-sm font-medium text-foreground">
+            {tool.name}
+          </code>
+          {tool.description && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {tool.description}
             </p>
-          </div>
-        )
-      )}
+          )}
+        </div>
+      ))}
     </div>
   );
 }
 
 function PoliciesTabContent({
-  policies,
+  pinnedPolicies,
+  classifiedPolicies,
   hasDiscoveredTools,
-  isTriggering,
-  triggerError,
-  onGenerate,
-  onClearTriggerError,
-  policyPanelExecutionId,
-  onPolicyPanelClose,
-  onPolicyPanelComplete,
 }: {
-  readonly policies: readonly ToolApprovalPolicy[];
+  readonly pinnedPolicies: readonly ToolApprovalPolicy[];
+  readonly classifiedPolicies: readonly ToolApprovalPolicy[];
   readonly hasDiscoveredTools: boolean;
-  readonly isTriggering: boolean;
-  readonly triggerError: Error | null;
-  readonly onGenerate: () => void;
-  readonly onClearTriggerError: () => void;
-  readonly policyPanelExecutionId: string | null;
-  readonly onPolicyPanelClose: () => void;
-  readonly onPolicyPanelComplete: () => void;
 }) {
-  const hasPolicies = policies.length > 0;
+  const hasPinnedPolicies = pinnedPolicies.length > 0;
+  const hasClassifiedPolicies = classifiedPolicies.length > 0;
+  const hasAnyPolicies = hasPinnedPolicies || hasClassifiedPolicies;
+
+  if (!hasAnyPolicies) {
+    return (
+      <div className="px-3 py-8 text-center">
+        <ShieldIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
+        <p className="text-xs text-muted-foreground">
+          {hasDiscoveredTools
+            ? "No approval policies yet. Reconnect to reclassify tools."
+            : "Connect to discover tools and auto-classify approval policies."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">
-      {/* Generate action bar */}
-      {hasDiscoveredTools && (
-        <div className="flex items-center justify-between border-b border-border px-3 py-2">
-          <span className="text-xs text-muted-foreground">
-            {hasPolicies
-              ? "Regenerate to reclassify each tool\u2019s risk level with AI."
-              : "Generate approval policies for discovered tools using AI."}
-          </span>
-          <button
-            type="button"
-            onClick={onGenerate}
-            disabled={isTriggering}
-            data-cursor-target="generate-policies-button"
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-              "bg-primary text-primary-foreground",
-              "hover:bg-primary/90",
-              "disabled:pointer-events-none disabled:opacity-50",
-            )}
-          >
-            {isTriggering ? (
-              <>
-                <DiscoverSpinner />
-                Starting...
-              </>
-            ) : (
-              <>
-                <SparklesIcon className="size-3.5" />
-                {hasPolicies ? "Regenerate" : "Generate"}
-              </>
-            )}
-          </button>
-        </div>
+      {hasPinnedPolicies && (
+        <PolicyGroup
+          icon={<PinIcon className="size-3.5" />}
+          label="Pinned"
+          policies={pinnedPolicies}
+        />
       )}
-
-      {triggerError && (
-        <div className="flex items-start gap-2 border-b border-destructive/20 bg-destructive/5 px-3 py-2">
-          <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-          <p className="flex-1 text-xs text-destructive">
-            {triggerError.message}
-          </p>
-          <button
-            type="button"
-            onClick={onClearTriggerError}
-            className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
-            aria-label="Dismiss error"
-          >
-            Dismiss
-          </button>
-        </div>
+      {hasClassifiedPolicies && (
+        <PolicyGroup
+          icon={<SparklesIcon className="size-3.5" />}
+          label="Auto-classified"
+          policies={classifiedPolicies}
+        />
       )}
+    </div>
+  );
+}
 
-      {hasPolicies ? (
-        <div className="flex flex-col divide-y divide-border">
-          {policies.map((policy) => (
-            <div key={policy.toolName} className="px-3 py-2.5">
-              <div className="flex items-baseline gap-2">
-                <code className="font-mono text-sm font-medium text-foreground">
-                  {policy.toolName}
-                </code>
-                <ShieldIcon className="size-3 text-amber-500 dark:text-amber-400" />
-              </div>
-              {policy.message && (
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {policy.message}
-                </p>
-              )}
+function PolicyGroup({
+  icon,
+  label,
+  policies,
+}: {
+  readonly icon: React.ReactNode;
+  readonly label: string;
+  readonly policies: readonly ToolApprovalPolicy[];
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center gap-1.5 border-b border-border bg-muted/30 px-3 py-1.5">
+        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          ({policies.length})
+        </span>
+      </div>
+      <div className="flex flex-col divide-y divide-border">
+        {policies.map((policy) => (
+          <div key={policy.toolName} className="px-3 py-2.5">
+            <div className="flex items-baseline gap-2">
+              <code className="font-mono text-sm font-medium text-foreground">
+                {policy.toolName}
+              </code>
+              <ShieldIcon className="size-3 text-amber-500 dark:text-amber-400" />
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="px-3 py-8 text-center">
-          <ShieldIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
-          <p className="text-xs text-muted-foreground">
-            {hasDiscoveredTools
-              ? "No approval policies yet. Generate them to add human oversight for sensitive tools."
-              : "Discover tools first, then generate approval policies."}
-          </p>
-        </div>
-      )}
-
-      {policyPanelExecutionId && (
-        <div className="border-t border-border">
-          <ApprovalPolicyGeneratorPanel
-            executionId={policyPanelExecutionId}
-            onClose={onPolicyPanelClose}
-            onComplete={onPolicyPanelComplete}
-          />
-        </div>
-      )}
+            {policy.message && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {policy.message}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1034,7 +951,7 @@ function WarningIcon({ className }: { readonly className?: string }) {
   );
 }
 
-function DiscoverIcon({ className }: { readonly className?: string }) {
+function ConnectIcon({ className }: { readonly className?: string }) {
   return (
     <svg
       className={className}
@@ -1046,8 +963,12 @@ function DiscoverIcon({ className }: { readonly className?: string }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <circle cx="7" cy="7" r="4.5" />
-      <path d="m10.5 10.5 3 3" />
+      <path d="M6.5 6.5 4.25 4.25" />
+      <path d="m9.5 9.5 2.25 2.25" />
+      <rect x="1.5" y="1.5" width="5" height="5" rx="1" />
+      <rect x="9.5" y="9.5" width="5" height="5" rx="1" />
+      <path d="m6.5 9.5-3 3" />
+      <path d="m9.5 6.5 3-3" />
     </svg>
   );
 }
@@ -1089,6 +1010,25 @@ function ShieldIcon({ className }: { readonly className?: string }) {
   );
 }
 
+function PinIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9.5 2.5 13.5 6.5" />
+      <path d="M5 7 3 14l7-2" />
+      <path d="m5 7 2-2 4.5-1 1.5 1.5-1 4.5-2 2z" />
+    </svg>
+  );
+}
+
 function SparklesIcon({ className }: { readonly className?: string }) {
   return (
     <svg
@@ -1106,7 +1046,7 @@ function SparklesIcon({ className }: { readonly className?: string }) {
   );
 }
 
-function DiscoverSpinner() {
+function Spinner() {
   return (
     <svg
       width="14"

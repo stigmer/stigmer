@@ -8,29 +8,32 @@ import type { EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
-/** Return value of {@link useDiscoverCapabilities}. */
-export interface UseDiscoverCapabilitiesReturn {
+/** Return value of {@link useMcpServerConnect}. */
+export interface UseMcpServerConnectReturn {
   /**
-   * Trigger server-side MCP discovery and tool approval classification
-   * for the given MCP server via the Connect RPC.
+   * Connect to an MCP server: discover its tools, resource templates,
+   * and classify tool approval policies via a lightweight LLM call.
    *
-   * When `runtimeEnv` is provided, the values are passed directly to
+   * Calls the `connect` RPC which starts a Temporal workflow on the
+   * agent-runner. The RPC blocks until the workflow completes
+   * (typically 5-15 seconds, ~30s timeout).
+   *
+   * When `runtimeEnv` is provided, the values are sent directly to
    * the backend as one-time credentials (not persisted to any
    * environment). When omitted, the backend resolves credentials from
-   * the user's personal environment.
-   *
-   * Blocks until the connect flow completes (~30s timeout).
+   * the authenticated user's personal environment.
    *
    * @param mcpServerId - System-generated ID of the MCP server (metadata.id).
-   * @param runtimeEnv - Optional one-time environment variables for discovery.
-   * @returns The updated McpServer with populated discovered_capabilities and tool_approvals.
+   * @param runtimeEnv - Optional one-time environment variables.
+   * @returns The updated McpServer with populated status.discovered_capabilities
+   *          and status.tool_approvals.
    */
-  readonly discover: (
+  readonly connect: (
     mcpServerId: string,
     runtimeEnv?: Record<string, EnvVarInput>,
   ) => Promise<McpServer>;
-  /** `true` while a connect RPC is in flight. */
-  readonly isDiscovering: boolean;
+  /** `true` while the connect RPC is in flight. */
+  readonly isConnecting: boolean;
   /** Error from the most recent failed connect, or `null`. */
   readonly error: Error | null;
   /** Clear the error state. */
@@ -38,51 +41,52 @@ export interface UseDiscoverCapabilitiesReturn {
 }
 
 /**
- * Action hook for triggering server-side MCP server capability discovery
- * and tool approval classification.
+ * Action hook for connecting to an MCP server.
  *
- * Calls the `connect` RPC which delegates to the agent-runner
- * via a Temporal workflow. The RPC blocks until the connect flow completes
- * (typically 5-15 seconds, ~30s timeout).
+ * Triggers server-side capability discovery and tool approval
+ * classification in a single operation. The backend enumerates the
+ * server's tools and resource templates, then classifies each tool's
+ * approval policy via a structured-output LLM call.
  *
- * Supports two modes:
- * - **Save for future** (default): Credentials are saved to the personal
- *   environment first, then `discover(id)` is called without `runtimeEnv`.
- * - **One-time use**: `discover(id, runtimeEnv)` passes credentials
+ * Supports two credential modes:
+ * - **Saved credentials** (default): Credentials are pre-saved to the
+ *   user's personal environment, then `connect(id)` is called without
+ *   `runtimeEnv`. The backend resolves them automatically.
+ * - **One-time use**: `connect(id, runtimeEnv)` passes credentials
  *   directly to the backend. They are used for this connect only and
- *   not persisted to any environment.
+ *   not persisted.
  *
  * @example
  * ```tsx
- * const { discover, isDiscovering, error } = useDiscoverCapabilities();
+ * const { connect, isConnecting, error } = useMcpServerConnect();
  * const { refetch } = useMcpServer(org, slug);
  *
- * // Save for future: credentials already in personal environment
- * async function handleDiscoverSaved() {
- *   await discover(mcpServer.metadata.id);
+ * // Saved credentials: already in personal environment
+ * async function handleConnectSaved() {
+ *   await connect(mcpServer.metadata.id);
  *   refetch();
  * }
  *
  * // One-time use: pass credentials directly
- * async function handleDiscoverTemporary(values: Record<string, EnvVarInput>) {
- *   await discover(mcpServer.metadata.id, values);
+ * async function handleConnectTemporary(values: Record<string, EnvVarInput>) {
+ *   await connect(mcpServer.metadata.id, values);
  *   refetch();
  * }
  * ```
  */
-export function useDiscoverCapabilities(): UseDiscoverCapabilitiesReturn {
+export function useMcpServerConnect(): UseMcpServerConnectReturn {
   const stigmer = useStigmer();
-  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
-  const discover = useCallback(
+  const connect = useCallback(
     async (
       mcpServerId: string,
       runtimeEnv?: Record<string, EnvVarInput>,
     ): Promise<McpServer> => {
-      setIsDiscovering(true);
+      setIsConnecting(true);
       setError(null);
 
       try {
@@ -103,18 +107,17 @@ export function useDiscoverCapabilities(): UseDiscoverCapabilitiesReturn {
           }),
         });
 
-        const result = await stigmer.mcpServer.connect(input);
-        return result;
+        return await stigmer.mcpServer.connect(input);
       } catch (err) {
         const wrapped = toError(err);
         setError(wrapped);
         throw wrapped;
       } finally {
-        setIsDiscovering(false);
+        setIsConnecting(false);
       }
     },
     [stigmer],
   );
 
-  return { discover, isDiscovering, error, clearError };
+  return { connect, isConnecting, error, clearError };
 }
