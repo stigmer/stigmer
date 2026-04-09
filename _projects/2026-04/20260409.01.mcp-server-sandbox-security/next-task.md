@@ -12,44 +12,54 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: agent-runner (worker/mcp/, worker/activities/, sandbox Dockerfiles, config.py, sandbox_manager.py), Graphton middleware (core/middleware.py, core/mcp_manager.py), agent-runner Dockerfile
 
 ## Current State
-- **Status**: in-progress
-- **Last Session**: 2026-04-09 (Session 3) — T03 validated and closed
-- **Active Task**: T01 COMPLETE. T02 COMPLETE. T03 COMPLETE. T04 is next.
+- **Status**: COMPLETE — all tasks (T01-T04) done, security boundary closed
+- **Last Session**: 2026-04-09 (Session 4) — T04 implemented and tested
+- **Active Task**: T01 COMPLETE. T02 COMPLETE. T03 COMPLETE. T04 COMPLETE.
 - **Branch**: `feat/mcp-server-sandbox-security`
 
-## Session Progress (2026-04-09, Session 3)
+## Session Progress (2026-04-09, Session 4)
 
-### T03: Wire Sandbox MCP Execution into the Agent Pipeline — COMPLETE
+### T04: Connect/Discover Sandboxing + Agent-Runner Dockerfile Cleanup — COMPLETE
 
-**Key finding: T02 already implemented T03's scope.** T02's Approach A (DaytonaMCPClient wrapper) naturally solved the pipeline integration. All 6 success criteria were already met.
+Four sub-scopes executed:
 
-- Validated all success criteria against the code (cloud stdio routing, local fallback, HTTP unchanged, teardown, sandbox recovery)
-- Extracted `_maybe_create_daytona_mcp_client()` helper from `setup.py` — testable, explicit gating
-- Added 10 new unit tests: `TestConnectMcpClientWithInjectedClient` (2), `TestConnectMcpClientDefaultFallback` (1), `TestSetupDaytonaMcpClientGating` (5), `TestMcpCleanupChain` (2)
-- Full test suite: **1486 passed**, 21 skipped, 0 failures
+1. **Sandbox-aware discovery** — Modified `discover_mcp_server.py` to create ephemeral Daytona sandboxes for stdio MCP servers in cloud mode. Added `_maybe_create_discovery_sandbox()` (three-way gating: local→None, cloud+HTTP→None, cloud+stdio→sandbox) and `_cleanup_discovery_sandbox()` (immediate deletion in `finally` block). Updated `_connect_and_discover()` to accept optional `sandbox` parameter, routing stdio through `DaytonaMCPClient` when present.
 
-### Why T03 Was Subsumed by T02
+2. **Dockerfile cleanup** — Removed Node.js/npm/npx, Go toolchain, uv/uvx, gnupg, MCP runtime verification step, and Go cache directories from the agent-runner Dockerfile. Replaced with minimal system deps (git, ca-certificates, curl). Image is now a pure Python orchestrator.
 
-The T03 plan was written before T02 chose Approach A. It assumed T02 would build a raw transport layer and T03 would wire it into setup.py / Graphton / teardown. Instead, T02's DaytonaMCPClient wrapper pattern solved integration naturally:
+3. **Documentation** — Added "MCP Server Execution in Cloud Mode" section to `execution-modes.md` covering agent execution path, connect/discover workflow, Dockerfile changes, and local mode. Added "Automated Snapshot Management (Production)" section to `daytona-setup.md`.
 
-- Config transformer does NOT need a sandbox parameter — `DaytonaMCPClient` handles routing
-- Graphton already accepts a duck-typed `client` parameter (T02 added it)
-- `setup.py` already creates `DaytonaMCPClient` when sandbox + stdio servers present (T02 added it)
-- Teardown already cascades through `exit_stack.aclose()` → `daytona_stdio_client` → `delete_session()` (T02 established this)
-- Sandbox recovery for MCP is handled by architecture: `perform_setup` runs fresh on every activity invocation
+4. **Tests** — Added 13 new tests in `test_discover_mcp_sandbox.py`: gating logic (5), client routing (4), cleanup (2), timeout budget (2). Full suite: **1499 passed**, 21 skipped, 0 failures.
+
+### Design Decision: Ephemeral Sandbox for Discovery
+Chose Option A (ephemeral sandbox per discovery) over Option B (deferred backfill). Rationale: preserves immediate UX (tools visible at connect time), enables classify_tool_approvals at connect time, mirrors Cursor's immediate-discovery pattern. Cold start acceptable (10-30s from snapshot) for a one-time connect operation.
+
+### Timeout Budget Adjustment
+Increased `start_to_close_timeout` from 300s to 600s and added `heartbeat_timeout=60s` for both `ConnectMcpServerWorkflow` and `DiscoverMcpServerWorkflow` to accommodate sandbox creation (up to 180s) + MCP init (270s).
+
+## Project Completion Summary
+
+The security boundary is now fully closed. In cloud mode, untrusted MCP server code never executes inside the agent-runner pod:
+
+| Path | Transport | Where It Runs |
+|------|-----------|---------------|
+| Agent execution | stdio | Daytona sandbox (T02) |
+| Agent execution | HTTP | Remote endpoint (unchanged) |
+| Connect/Discover | stdio | Ephemeral Daytona sandbox (T04) |
+| Connect/Discover | HTTP | Remote endpoint (unchanged) |
+| Local/OSS mode | stdio | Host subprocess (unchanged) |
 
 ## Next Steps
-1. **T04**: Connect/Discover workflow sandboxing + agent-runner Dockerfile cleanup
+1. **PR**: Create pull request for `feat/mcp-server-sandbox-security` branch
+2. **E2E validation**: Validate in staging (agent execution + connect workflow + local mode)
+3. **Monitor**: Watch Daytona sandbox creation latency and cleanup success rate in production
 
 ## Context for Resume
-- The `_maybe_create_daytona_mcp_client()` helper (extracted from `setup.py`) encapsulates the gating decision: sandbox + stdio → DaytonaMCPClient, otherwise None
-- The `DaytonaMCPClient` is created in `setup.py` only when `sandbox is not None` AND at least one stdio server is configured — local/OSS mode is unchanged
-- Graphton's `connect_mcp_client` accepts optional `client` parameter via duck typing (no protocol class, no Daytona import)
-- Session naming convention: `mcp-{server_slug}-{short_uuid}` (distinct from workspace sessions `ws-provision-{uuid}`)
-- Startup timeout defaults to 60 seconds — logs a warning if MCP server produces no output within that window
-- Process crash is detected via EOF on stdout stream — no automatic restart in v1
-- The `requirements.txt` daytona version (0.151.0) now matches `poetry.lock`
-- **Sandbox recovery for MCP**: Handled naturally — `perform_setup` runs from scratch on every activity invocation (including HITL resumes), so sandbox manager revives the sandbox before MCP servers are started fresh
+- The `_maybe_create_discovery_sandbox()` helper mirrors `_maybe_create_daytona_mcp_client()` from setup.py — same three-way gating pattern
+- Ephemeral sandboxes are created via `SandboxManager.get_or_create_daytona_sandbox(session_id=None, session_client=None)` — the manager already logs "creating ephemeral Daytona sandbox" for this case
+- Sandbox is explicitly deleted in the `finally` block via `cleanup_daytona_sandbox()`; the `auto_stop_interval=5` (set by SandboxManager) acts as a safety net if deletion fails
+- `_connect_and_discover()` is transport-agnostic: both `DaytonaMCPClient` and `MultiServerMCPClient` expose the same `session()` context manager
+- Agent-runner Dockerfile no longer contains Node.js, Go, or uvx — these live in the sandbox image only
 
 ## Essential Files to Review
 
@@ -97,7 +107,7 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T04
+6. [ ] All tasks complete — proceed with PR and E2E validation
 
 ## Quick Resume
 To continue this project, drag this file into chat:

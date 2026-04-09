@@ -14,7 +14,6 @@ from __future__ import annotations
 import logging
 import os
 import time
-import uuid
 from typing import Any
 
 import pytest
@@ -135,9 +134,6 @@ class TestDaytonaStdioTransport:
         Uses ``@modelcontextprotocol/server-everything`` which is a
         test MCP server that exposes a known set of tools.
         """
-        from langchain_mcp_adapters.tools import (
-            load_mcp_tools as _lc_load_mcp_tools,
-        )
         from mcp.client.session import ClientSession
 
         config = {
@@ -205,10 +201,9 @@ class TestDaytonaMCPClient:
             "echo1": {"transport": "stdio", "command": "cat"},
             "echo2": {"transport": "stdio", "command": "cat"},
         }
-        client = DaytonaMCPClient(servers=servers, sandbox=sandbox)
+        _client = DaytonaMCPClient(servers=servers, sandbox=sandbox)  # noqa: F841
 
         import anyio
-        from mcp.client.session import ClientSession
         from mcp.shared.message import SessionMessage
         from mcp.types import JSONRPCMessage
 

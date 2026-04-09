@@ -30,9 +30,8 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import anyio
-from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
-
 import mcp.types as types
+from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from mcp.shared.message import SessionMessage
 
 if TYPE_CHECKING:
