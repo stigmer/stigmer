@@ -128,4 +128,15 @@ public interface McpServerSourceOrBuilder extends
    * <code>.google.protobuf.Timestamp last_synced_at = 5 [json_name = "lastSyncedAt"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getLastSyncedAtOrBuilder();
+
+  /**
+   * <pre>
+   * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
+   * Used for quality filtering during sync and popularity sorting in the UI.
+   * </pre>
+   *
+   * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
+   * @return The githubStars.
+   */
+  int getGithubStars();
 }

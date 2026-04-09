@@ -244,4 +244,8 @@ message McpServerSource {
 
   // Timestamp of last successful sync from the source.
   google.protobuf.Timestamp last_synced_at = 5;
+
+  // GitHub star count at the time of last sync (0 if unknown or non-GitHub).
+  // Used for quality filtering during sync and popularity sorting in the UI.
+  int32 github_stars = 6;
 }
