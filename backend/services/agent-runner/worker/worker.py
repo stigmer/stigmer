@@ -118,8 +118,10 @@ class AgentRunner:
         - cleanup_sandbox: Sandbox cleanup (legacy, may be removed)
         """
         # Import activities and workflows here to avoid circular imports
+        from worker.activities.classify_tool_approvals import classify_tool_approvals
         from worker.activities.cleanup_sandbox import cleanup_sandbox
         from worker.activities.discover_mcp_server import (
+            ConnectMcpServerWorkflow,
             DiscoverMcpServerWorkflow,
             discover_mcp_server,
         )
@@ -156,12 +158,13 @@ class AgentRunner:
             raise
         
         # Register worker with both activities and workflows.
-        # The DiscoverMcpServerWorkflow is defined in Python so Go/Java backends
-        # can start it by name on this queue without implementing it themselves.
+        # ConnectMcpServerWorkflow is the primary connect flow (discover + classify).
+        # DiscoverMcpServerWorkflow is retained for in-flight backward compat.
         self.worker = Worker(
             self.client,
             task_queue=self.config.task_queue,
             workflows=[
+                ConnectMcpServerWorkflow,
                 DiscoverMcpServerWorkflow,
             ],
             activities=[
@@ -170,6 +173,7 @@ class AgentRunner:
                 cleanup_sandbox,
                 generate_session_subject,
                 discover_mcp_server,
+                classify_tool_approvals,
             ],
             max_concurrent_activities=self.config.max_concurrency,
             max_heartbeat_throttle_interval=timedelta(seconds=10),
@@ -181,7 +185,7 @@ class AgentRunner:
         )
         self.logger.info(
             "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox, "
-            "GenerateSessionSubject, DiscoverMcpServerCapabilities"
+            "GenerateSessionSubject, DiscoverMcpServerCapabilities, ClassifyToolApprovals"
         )
         self.logger.info(
             f"✅ [POLYGLOT] Max concurrency: {self.config.max_concurrency}"

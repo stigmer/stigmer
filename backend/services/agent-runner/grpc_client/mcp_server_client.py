@@ -1,19 +1,21 @@
 """gRPC client for MCP Server API.
 
-This client fetches MCP server configurations from the Stigmer backend.
-MCP servers define how AI agents connect to external tools and services
-via the Model Context Protocol.
+Provides both query (read) and command (write) access to MCP server
+resources.  The query stub is used during normal agent execution to
+fetch server configs.  The command stub is used by the Graphton backfill
+to trigger the ``connect`` RPC on first-time-use.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Any
 
 import grpc
-from ai.stigmer.agentic.mcpserver.v1 import query_pb2_grpc
+from ai.stigmer.agentic.mcpserver.v1 import command_pb2_grpc, query_pb2_grpc
 from ai.stigmer.agentic.mcpserver.v1.api_pb2 import McpServer
-from ai.stigmer.agentic.mcpserver.v1.io_pb2 import McpServerId
+from ai.stigmer.agentic.mcpserver.v1.io_pb2 import ConnectInput, McpServerId
 from ai.stigmer.commons.apiresource.io_pb2 import ApiResourceReference
 
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
@@ -67,6 +69,7 @@ class McpServerClient:
             self._owns_channel = True
         
         self.stub = query_pb2_grpc.McpServerQueryControllerStub(self.channel)
+        self.command_stub = command_pb2_grpc.McpServerCommandControllerStub(self.channel)
         self._timeout = timeout
     
     async def get(self, mcp_server_id: str) -> McpServer:
@@ -202,6 +205,52 @@ class McpServerClient:
             logger.error(f"Failed to fetch MCP servers: {e}")
             raise
     
+    async def connect(
+        self,
+        mcp_server_id: str,
+        runtime_env: dict[str, Any] | None = None,
+        *,
+        timeout: float = 60.0,
+    ) -> McpServer:
+        """Trigger the connect RPC: discover tools and classify approvals.
+
+        The backend starts a Temporal workflow that connects to the MCP
+        server, enumerates tools and resource templates, classifies
+        approval policies via LLM, and stores the results on the server's
+        status.  This call blocks until the workflow completes.
+
+        Args:
+            mcp_server_id: ID of the MCP server to connect to.
+            runtime_env: Optional env vars for one-time use.  When empty,
+                the backend resolves from the user's personal environment.
+            timeout: gRPC deadline in seconds.  Must exceed the backend's
+                workflow run timeout (45s Go / 330s Java).
+
+        Returns:
+            Updated McpServer with populated status.
+
+        Raises:
+            grpc.RpcError: On timeout, auth failure, or missing env vars.
+        """
+        request = ConnectInput(mcp_server_id=mcp_server_id)
+
+        if runtime_env:
+            from ai.stigmer.agentic.executioncontext.v1.spec_pb2 import ExecutionValue
+            for key, value in runtime_env.items():
+                if isinstance(value, str):
+                    request.runtime_env[key].CopyFrom(
+                        ExecutionValue(value=value)
+                    )
+
+        try:
+            return await self.command_stub.connect(request, timeout=timeout)
+        except grpc.RpcError as e:
+            logger.error(
+                "Connect RPC failed for MCP server %s: %s",
+                mcp_server_id, e,
+            )
+            raise
+
     async def close(self) -> None:
         """Close the gRPC channel (only if this client owns it)."""
         if self._owns_channel:

@@ -1,10 +1,16 @@
-"""Temporal activity for MCP server capability discovery.
+"""Temporal workflows and activity for MCP server connect flow.
 
-Connects to an MCP server (stdio or HTTP), enumerates its tools and
-resource templates, and returns the result as a serializable dict. This
-activity is the Python-side counterpart of the ``discoverCapabilities``
-gRPC RPC — the Java/Go backend starts a Temporal workflow that schedules
-this activity, and the agent-runner executes it.
+The connect flow has two stages:
+
+1. **Discover** — connect to an MCP server (stdio or HTTP), enumerate its
+   tools and resource templates, and return the result as a serializable dict.
+2. **Classify** — pass the discovered tools through a lightweight LLM to
+   determine which tools require human approval before execution.
+
+The ``ConnectMcpServerWorkflow`` chains both stages and returns a combined
+output (capabilities + tool approval policies).  The legacy
+``DiscoverMcpServerWorkflow`` is retained for backward compatibility during
+deployment transitions.
 
 The agent-runner container has all the runtimes needed for stdio MCP
 servers (Node.js/npx, Go, Docker CLI, uv/uvx), so discovery works for
@@ -38,7 +44,8 @@ from worker.token_manager import get_api_key
 logger = logging.getLogger(__name__)
 
 ACTIVITY_NAME = "DiscoverMcpServerCapabilities"
-WORKFLOW_NAME = "stigmer/mcp-server/discover"
+DISCOVER_WORKFLOW_NAME = "stigmer/mcp-server/discover"
+CONNECT_WORKFLOW_NAME = "stigmer/mcp-server/connect"
 
 
 @dataclass
@@ -299,14 +306,81 @@ async def _connect_and_discover(
     return tools, resource_templates
 
 
-@workflow.defn(name=WORKFLOW_NAME)
-class DiscoverMcpServerWorkflow:
-    """Thin Temporal workflow that orchestrates MCP server discovery.
+@dataclass
+class ConnectMcpServerOutput:
+    """Combined output of the connect workflow (discover + classify).
 
-    This workflow is defined in Python so that both the Go (OSS) and Java (Cloud)
-    backends can start it by name on the runner queue without needing to implement
-    the workflow in their respective languages. The workflow simply schedules the
-    ``DiscoverMcpServerCapabilities`` activity and returns the result.
+    Extends discovery output with tool approval policies produced by the
+    LLM classifier.  The Go/Java backend persists ``tools`` and
+    ``resource_templates`` to ``status.discovered_capabilities`` and
+    ``tool_approvals`` to ``status.tool_approvals``.
+    """
+
+    tools: list[DiscoveredToolResult]
+    resource_templates: list[DiscoveredResourceTemplateResult]
+    tool_approvals: list[dict[str, Any]]
+
+
+@workflow.defn(name=CONNECT_WORKFLOW_NAME)
+class ConnectMcpServerWorkflow:
+    """Temporal workflow that discovers MCP capabilities and classifies approvals.
+
+    Two-stage pipeline:
+    1. ``DiscoverMcpServerCapabilities`` — connect, list tools and resources.
+    2. ``ClassifyToolApprovals`` — pass discovered tools through an LLM
+       classifier to determine which require human approval.
+
+    Both the Go (OSS) and Java (Cloud) backends start this workflow by name
+    on the runner queue.  The workflow returns a combined output that the
+    backend stores on the ``McpServer`` status.
+    """
+
+    @workflow.run
+    async def run(self, input: DiscoverMcpServerInput) -> ConnectMcpServerOutput:
+        from worker.activities.classify_tool_approvals import (
+            ClassifyToolApprovalsInput,
+            classify_tool_approvals,
+        )
+
+        discovery = await workflow.execute_activity(
+            discover_mcp_server,
+            input,
+            start_to_close_timeout=timedelta(seconds=300),
+        )
+
+        classify_input = ClassifyToolApprovalsInput(
+            tools=[
+                {
+                    "name": t.name,
+                    "description": t.description,
+                    "input_schema": t.input_schema,
+                }
+                for t in discovery.tools
+            ],
+            server_name=input.mcp_server_id,
+            server_description="",
+        )
+
+        tool_approvals = await workflow.execute_activity(
+            classify_tool_approvals,
+            classify_input,
+            start_to_close_timeout=timedelta(seconds=60),
+        )
+
+        return ConnectMcpServerOutput(
+            tools=discovery.tools,
+            resource_templates=discovery.resource_templates,
+            tool_approvals=tool_approvals,
+        )
+
+
+@workflow.defn(name=DISCOVER_WORKFLOW_NAME)
+class DiscoverMcpServerWorkflow:
+    """Legacy workflow for backward compatibility during deploy transitions.
+
+    Retained so that in-flight workflows started with the old name
+    ``stigmer/mcp-server/discover`` complete successfully.  New callers
+    should use ``ConnectMcpServerWorkflow`` instead.
     """
 
     @workflow.run

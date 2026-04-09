@@ -301,14 +301,16 @@ def check_approval_requirement(
         )
 
     mcp_server_name = sb._approval_config.get_mcp_server_for_tool(tool_name)
-    default_policies = sb._approval_config.get_default_policies_for_tool(tool_name)
+    pinned_policies = sb._approval_config.get_pinned_policies_for_tool(tool_name)
+    status_policies = sb._approval_config.get_status_policies_for_tool(tool_name)
 
     return resolve_tool_approval(
         tool_name=tool_name,
         mcp_server_name=mcp_server_name,
         auto_approve_all=sb._approval_config.auto_approve_all,
         tool_approval_overrides=sb._approval_config.tool_approval_overrides,
-        default_tool_approvals=default_policies,
+        pinned_tool_approvals=pinned_policies,
+        status_tool_approvals=status_policies,
     )
 
 
