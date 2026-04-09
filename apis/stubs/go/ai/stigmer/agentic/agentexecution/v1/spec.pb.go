@@ -129,7 +129,7 @@ type AgentExecutionSpec struct {
 	// approved without user intervention. This is the highest-priority override
 	// in the approval policy chain:
 	//
-	//	McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+	//	McpServerStatus.tool_approvals → McpServerSpec.pinned_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
 	//
 	// Use cases:
 	// - Automated CI/CD pipelines where human approval isn't practical

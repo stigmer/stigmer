@@ -6,7 +6,7 @@
 import { McpServer } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
-import { DiscoverCapabilitiesInput, UpdateDiscoveredCapabilitiesInput } from "./io_pb.js";
+import { ConnectInput } from "./io_pb.js";
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -123,55 +123,35 @@ export const McpServerCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update the discovered capabilities (tools and resource templates) for an MCP server.
-     *
-     * Only modifies status.discovered_capabilities, leaving spec, validation
-     * state, and other status fields untouched.
-     *
-     * @internal
-     * Typical flow:
-     * 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-     * 2. CLI connects to the MCP server locally and queries tools/resources
-     * 3. CLI calls this RPC with the ID and discovered capabilities
-     *
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateDiscoveredCapabilities
-     */
-    updateDiscoveredCapabilities: {
-      name: "updateDiscoveredCapabilities",
-      I: UpdateDiscoveredCapabilitiesInput,
-      O: McpServer,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Discover the capabilities of an MCP server by connecting to it.
+     * Connect to an MCP server: discover its tools and classify approval policies.
      *
      * Connects to the MCP server, enumerates tools and resource templates,
-     * and stores the result. Blocks until discovery completes (up to ~30 seconds)
-     * and returns the updated McpServer with populated
-     * status.discovered_capabilities.
+     * classifies tool approval policies via a lightweight LLM, and stores the
+     * results in status.discovered_capabilities and status.tool_approvals.
+     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
      *
      * @internal
-     * Typical flow:
-     * 1. Web console ensures required credentials are saved in the user's personal environment
-     * 2. Web console calls discoverCapabilities with the MCP server ID
-     * 3. Backend resolves env vars from the user's personal environment
-     * 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-     * 5. Discovered tools and resource templates are stored and returned
+     * Typical flows:
+     * - Web console: user clicks Connect, backend resolves env vars from the
+     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     * - CLI: `stigmer discover mcp-server <name>` calls connect with runtime_env
+     *   populated from local env vars, delegating discovery to the backend.
+     * - Graphton backfill: agent-runner calls connect on first execution when
+     *   status.discovered_capabilities is empty, passing runtime_env from the
+     *   execution context.
      *
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
      * - NOT_FOUND: MCP server does not exist
      *
-     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
      *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.discoverCapabilities
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.connect
      */
-    discoverCapabilities: {
-      name: "discoverCapabilities",
-      I: DiscoverCapabilitiesInput,
+    connect: {
+      name: "connect",
+      I: ConnectInput,
       O: McpServer,
       kind: MethodKind.Unary,
     },

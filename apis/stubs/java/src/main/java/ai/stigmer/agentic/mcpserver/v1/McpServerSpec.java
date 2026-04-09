@@ -42,7 +42,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     defaultEnabledTools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-    defaultToolApprovals_ = java.util.Collections.emptyList();
+    pinnedToolApprovals_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -484,130 +484,184 @@ private static final long serialVersionUID = 0L;
     return envSpec_ == null ? ai.stigmer.agentic.environment.v1.EnvironmentSpec.getDefaultInstance() : envSpec_;
   }
 
-  public static final int DEFAULT_TOOL_APPROVALS_FIELD_NUMBER = 9;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> defaultToolApprovals_;
+  public static final int SOURCE_FIELD_NUMBER = 10;
+  private ai.stigmer.agentic.mcpserver.v1.McpServerSource source_;
   /**
    * <pre>
-   * Default tool approval policies for this MCP server.
-   *
-   * &#64;internal
-   * Tools listed here require user approval before execution by default.
-   * This is the first layer in the approval policy chain:
-   * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
-   *
-   * Use cases:
-   * - Mark destructive operations as requiring approval by default
-   * - Protect sensitive data access across all agents using this server
-   * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Tools not listed here do not require approval by default.
-   * Agents can still add approval requirements via tool_approval_overrides.
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   * @return Whether the source field is set.
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> getDefaultToolApprovalsList() {
-    return defaultToolApprovals_;
+  public boolean hasSource() {
+    return ((bitField0_ & 0x00000002) != 0);
   }
   /**
    * <pre>
-   * Default tool approval policies for this MCP server.
-   *
-   * &#64;internal
-   * Tools listed here require user approval before execution by default.
-   * This is the first layer in the approval policy chain:
-   * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
-   *
-   * Use cases:
-   * - Mark destructive operations as requiring approval by default
-   * - Protect sensitive data access across all agents using this server
-   * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Tools not listed here do not require approval by default.
-   * Agents can still add approval requirements via tool_approval_overrides.
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   * @return The source.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.mcpserver.v1.McpServerSource getSource() {
+    return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
+  }
+  /**
+   * <pre>
+   * Source/provenance of this MCP server definition.
+   * Populated by automated sync workflows (e.g. MCP Registry sync).
+   * Empty for hand-authored definitions like the system mcp-server-stigmer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder getSourceOrBuilder() {
+    return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
+  }
+
+  public static final int PINNED_TOOL_APPROVALS_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> pinnedToolApprovals_;
+  /**
+   * <pre>
+   * Manual tool approval overrides set by the MCP server owner.
+   *
+   * &#64;internal
+   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+   * Never auto-modified — only changed by explicit user action (apply/update).
+   *
+   * Use cases:
+   * - Force approval for a tool the classifier marked as auto-approve
+   * - Exempt a safe tool the classifier flagged as needing approval
+   * - Establish organization-wide safety policies for dangerous tools
+   *
+   * Policy chain (lowest to highest priority):
+   * 1. McpServerStatus.tool_approvals - System-generated defaults
+   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+   * 4. AgentExecution.auto_approve_all - Runtime bypass
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> getPinnedToolApprovalsList() {
+    return pinnedToolApprovals_;
+  }
+  /**
+   * <pre>
+   * Manual tool approval overrides set by the MCP server owner.
+   *
+   * &#64;internal
+   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+   * Never auto-modified — only changed by explicit user action (apply/update).
+   *
+   * Use cases:
+   * - Force approval for a tool the classifier marked as auto-approve
+   * - Exempt a safe tool the classifier flagged as needing approval
+   * - Establish organization-wide safety policies for dangerous tools
+   *
+   * Policy chain (lowest to highest priority):
+   * 1. McpServerStatus.tool_approvals - System-generated defaults
+   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+   * 4. AgentExecution.auto_approve_all - Runtime bypass
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-      getDefaultToolApprovalsOrBuilderList() {
-    return defaultToolApprovals_;
+      getPinnedToolApprovalsOrBuilderList() {
+    return pinnedToolApprovals_;
   }
   /**
    * <pre>
-   * Default tool approval policies for this MCP server.
+   * Manual tool approval overrides set by the MCP server owner.
    *
    * &#64;internal
-   * Tools listed here require user approval before execution by default.
-   * This is the first layer in the approval policy chain:
-   * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+   * Never auto-modified — only changed by explicit user action (apply/update).
    *
    * Use cases:
-   * - Mark destructive operations as requiring approval by default
-   * - Protect sensitive data access across all agents using this server
+   * - Force approval for a tool the classifier marked as auto-approve
+   * - Exempt a safe tool the classifier flagged as needing approval
    * - Establish organization-wide safety policies for dangerous tools
    *
-   * Tools not listed here do not require approval by default.
-   * Agents can still add approval requirements via tool_approval_overrides.
+   * Policy chain (lowest to highest priority):
+   * 1. McpServerStatus.tool_approvals - System-generated defaults
+   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
    */
   @java.lang.Override
-  public int getDefaultToolApprovalsCount() {
-    return defaultToolApprovals_.size();
+  public int getPinnedToolApprovalsCount() {
+    return pinnedToolApprovals_.size();
   }
   /**
    * <pre>
-   * Default tool approval policies for this MCP server.
+   * Manual tool approval overrides set by the MCP server owner.
    *
    * &#64;internal
-   * Tools listed here require user approval before execution by default.
-   * This is the first layer in the approval policy chain:
-   * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+   * Never auto-modified — only changed by explicit user action (apply/update).
    *
    * Use cases:
-   * - Mark destructive operations as requiring approval by default
-   * - Protect sensitive data access across all agents using this server
+   * - Force approval for a tool the classifier marked as auto-approve
+   * - Exempt a safe tool the classifier flagged as needing approval
    * - Establish organization-wide safety policies for dangerous tools
    *
-   * Tools not listed here do not require approval by default.
-   * Agents can still add approval requirements via tool_approval_overrides.
+   * Policy chain (lowest to highest priority):
+   * 1. McpServerStatus.tool_approvals - System-generated defaults
+   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getDefaultToolApprovals(int index) {
-    return defaultToolApprovals_.get(index);
+  public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getPinnedToolApprovals(int index) {
+    return pinnedToolApprovals_.get(index);
   }
   /**
    * <pre>
-   * Default tool approval policies for this MCP server.
+   * Manual tool approval overrides set by the MCP server owner.
    *
    * &#64;internal
-   * Tools listed here require user approval before execution by default.
-   * This is the first layer in the approval policy chain:
-   * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+   * Never auto-modified — only changed by explicit user action (apply/update).
    *
    * Use cases:
-   * - Mark destructive operations as requiring approval by default
-   * - Protect sensitive data access across all agents using this server
+   * - Force approval for a tool the classifier marked as auto-approve
+   * - Exempt a safe tool the classifier flagged as needing approval
    * - Establish organization-wide safety policies for dangerous tools
    *
-   * Tools not listed here do not require approval by default.
-   * Agents can still add approval requirements via tool_approval_overrides.
+   * Policy chain (lowest to highest priority):
+   * 1. McpServerStatus.tool_approvals - System-generated defaults
+   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getDefaultToolApprovalsOrBuilder(
+  public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getPinnedToolApprovalsOrBuilder(
       int index) {
-    return defaultToolApprovals_.get(index);
+    return pinnedToolApprovals_.get(index);
   }
 
   private byte memoizedIsInitialized = -1;
@@ -645,8 +699,11 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(8, getEnvSpec());
     }
-    for (int i = 0; i < defaultToolApprovals_.size(); i++) {
-      output.writeMessage(9, defaultToolApprovals_.get(i));
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(10, getSource());
+    }
+    for (int i = 0; i < pinnedToolApprovals_.size(); i++) {
+      output.writeMessage(11, pinnedToolApprovals_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -691,12 +748,16 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(8, getEnvSpec());
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(10, getSource());
+    }
 
         {
-          final int count = defaultToolApprovals_.size();
+          final int count = pinnedToolApprovals_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(defaultToolApprovals_.get(i));
+              .computeMessageSizeNoTag(pinnedToolApprovals_.get(i));
           }
           size += 1 * count;
         }
@@ -728,8 +789,13 @@ private static final long serialVersionUID = 0L;
       if (!getEnvSpec()
           .equals(other.getEnvSpec())) return false;
     }
-    if (!getDefaultToolApprovalsList()
-        .equals(other.getDefaultToolApprovalsList())) return false;
+    if (hasSource() != other.hasSource()) return false;
+    if (hasSource()) {
+      if (!getSource()
+          .equals(other.getSource())) return false;
+    }
+    if (!getPinnedToolApprovalsList()
+        .equals(other.getPinnedToolApprovalsList())) return false;
     if (!getServerTypeCase().equals(other.getServerTypeCase())) return false;
     switch (serverTypeCase_) {
       case 4:
@@ -770,9 +836,13 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ENV_SPEC_FIELD_NUMBER;
       hash = (53 * hash) + getEnvSpec().hashCode();
     }
-    if (getDefaultToolApprovalsCount() > 0) {
-      hash = (37 * hash) + DEFAULT_TOOL_APPROVALS_FIELD_NUMBER;
-      hash = (53 * hash) + getDefaultToolApprovalsList().hashCode();
+    if (hasSource()) {
+      hash = (37 * hash) + SOURCE_FIELD_NUMBER;
+      hash = (53 * hash) + getSource().hashCode();
+    }
+    if (getPinnedToolApprovalsCount() > 0) {
+      hash = (37 * hash) + PINNED_TOOL_APPROVALS_FIELD_NUMBER;
+      hash = (53 * hash) + getPinnedToolApprovalsList().hashCode();
     }
     switch (serverTypeCase_) {
       case 4:
@@ -925,7 +995,8 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetEnvSpecFieldBuilder();
-        internalGetDefaultToolApprovalsFieldBuilder();
+        internalGetSourceFieldBuilder();
+        internalGetPinnedToolApprovalsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -949,13 +1020,18 @@ private static final long serialVersionUID = 0L;
         envSpecBuilder_.dispose();
         envSpecBuilder_ = null;
       }
-      if (defaultToolApprovalsBuilder_ == null) {
-        defaultToolApprovals_ = java.util.Collections.emptyList();
-      } else {
-        defaultToolApprovals_ = null;
-        defaultToolApprovalsBuilder_.clear();
+      source_ = null;
+      if (sourceBuilder_ != null) {
+        sourceBuilder_.dispose();
+        sourceBuilder_ = null;
       }
-      bitField0_ = (bitField0_ & ~0x00000080);
+      if (pinnedToolApprovalsBuilder_ == null) {
+        pinnedToolApprovals_ = java.util.Collections.emptyList();
+      } else {
+        pinnedToolApprovals_ = null;
+        pinnedToolApprovalsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000100);
       serverTypeCase_ = 0;
       serverType_ = null;
       return this;
@@ -992,14 +1068,14 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.mcpserver.v1.McpServerSpec result) {
-      if (defaultToolApprovalsBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0)) {
-          defaultToolApprovals_ = java.util.Collections.unmodifiableList(defaultToolApprovals_);
-          bitField0_ = (bitField0_ & ~0x00000080);
+      if (pinnedToolApprovalsBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0)) {
+          pinnedToolApprovals_ = java.util.Collections.unmodifiableList(pinnedToolApprovals_);
+          bitField0_ = (bitField0_ & ~0x00000100);
         }
-        result.defaultToolApprovals_ = defaultToolApprovals_;
+        result.pinnedToolApprovals_ = pinnedToolApprovals_;
       } else {
-        result.defaultToolApprovals_ = defaultToolApprovalsBuilder_.build();
+        result.pinnedToolApprovals_ = pinnedToolApprovalsBuilder_.build();
       }
     }
 
@@ -1025,6 +1101,12 @@ private static final long serialVersionUID = 0L;
             ? envSpec_
             : envSpecBuilder_.build();
         to_bitField0_ |= 0x00000001;
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.source_ = sourceBuilder_ == null
+            ? source_
+            : sourceBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1087,29 +1169,32 @@ private static final long serialVersionUID = 0L;
       if (other.hasEnvSpec()) {
         mergeEnvSpec(other.getEnvSpec());
       }
-      if (defaultToolApprovalsBuilder_ == null) {
-        if (!other.defaultToolApprovals_.isEmpty()) {
-          if (defaultToolApprovals_.isEmpty()) {
-            defaultToolApprovals_ = other.defaultToolApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+      if (other.hasSource()) {
+        mergeSource(other.getSource());
+      }
+      if (pinnedToolApprovalsBuilder_ == null) {
+        if (!other.pinnedToolApprovals_.isEmpty()) {
+          if (pinnedToolApprovals_.isEmpty()) {
+            pinnedToolApprovals_ = other.pinnedToolApprovals_;
+            bitField0_ = (bitField0_ & ~0x00000100);
           } else {
-            ensureDefaultToolApprovalsIsMutable();
-            defaultToolApprovals_.addAll(other.defaultToolApprovals_);
+            ensurePinnedToolApprovalsIsMutable();
+            pinnedToolApprovals_.addAll(other.pinnedToolApprovals_);
           }
           onChanged();
         }
       } else {
-        if (!other.defaultToolApprovals_.isEmpty()) {
-          if (defaultToolApprovalsBuilder_.isEmpty()) {
-            defaultToolApprovalsBuilder_.dispose();
-            defaultToolApprovalsBuilder_ = null;
-            defaultToolApprovals_ = other.defaultToolApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000080);
-            defaultToolApprovalsBuilder_ = 
+        if (!other.pinnedToolApprovals_.isEmpty()) {
+          if (pinnedToolApprovalsBuilder_.isEmpty()) {
+            pinnedToolApprovalsBuilder_.dispose();
+            pinnedToolApprovalsBuilder_ = null;
+            pinnedToolApprovals_ = other.pinnedToolApprovals_;
+            bitField0_ = (bitField0_ & ~0x00000100);
+            pinnedToolApprovalsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetDefaultToolApprovalsFieldBuilder() : null;
+                 internalGetPinnedToolApprovalsFieldBuilder() : null;
           } else {
-            defaultToolApprovalsBuilder_.addAllMessages(other.defaultToolApprovals_);
+            pinnedToolApprovalsBuilder_.addAllMessages(other.pinnedToolApprovals_);
           }
         }
       }
@@ -1193,19 +1278,26 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 66
-            case 74: {
+            case 82: {
+              input.readMessage(
+                  internalGetSourceFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 82
+            case 90: {
               ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy m =
                   input.readMessage(
                       ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.parser(),
                       extensionRegistry);
-              if (defaultToolApprovalsBuilder_ == null) {
-                ensureDefaultToolApprovalsIsMutable();
-                defaultToolApprovals_.add(m);
+              if (pinnedToolApprovalsBuilder_ == null) {
+                ensurePinnedToolApprovalsIsMutable();
+                pinnedToolApprovals_.add(m);
               } else {
-                defaultToolApprovalsBuilder_.addMessage(m);
+                pinnedToolApprovalsBuilder_.addMessage(m);
               }
               break;
-            } // case 74
+            } // case 90
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2357,550 +2449,761 @@ private static final long serialVersionUID = 0L;
       return envSpecBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> defaultToolApprovals_ =
-      java.util.Collections.emptyList();
-    private void ensureDefaultToolApprovalsIsMutable() {
-      if (!((bitField0_ & 0x00000080) != 0)) {
-        defaultToolApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy>(defaultToolApprovals_);
+    private ai.stigmer.agentic.mcpserver.v1.McpServerSource source_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder> sourceBuilder_;
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     * @return Whether the source field is set.
+     */
+    public boolean hasSource() {
+      return ((bitField0_ & 0x00000080) != 0);
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     * @return The source.
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerSource getSource() {
+      if (sourceBuilder_ == null) {
+        return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
+      } else {
+        return sourceBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public Builder setSource(ai.stigmer.agentic.mcpserver.v1.McpServerSource value) {
+      if (sourceBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        source_ = value;
+      } else {
+        sourceBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public Builder setSource(
+        ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder builderForValue) {
+      if (sourceBuilder_ == null) {
+        source_ = builderForValue.build();
+      } else {
+        sourceBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public Builder mergeSource(ai.stigmer.agentic.mcpserver.v1.McpServerSource value) {
+      if (sourceBuilder_ == null) {
+        if (((bitField0_ & 0x00000080) != 0) &&
+          source_ != null &&
+          source_ != ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance()) {
+          getSourceBuilder().mergeFrom(value);
+        } else {
+          source_ = value;
+        }
+      } else {
+        sourceBuilder_.mergeFrom(value);
+      }
+      if (source_ != null) {
         bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public Builder clearSource() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      source_ = null;
+      if (sourceBuilder_ != null) {
+        sourceBuilder_.dispose();
+        sourceBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder getSourceBuilder() {
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return internalGetSourceFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder getSourceOrBuilder() {
+      if (sourceBuilder_ != null) {
+        return sourceBuilder_.getMessageOrBuilder();
+      } else {
+        return source_ == null ?
+            ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
+      }
+    }
+    /**
+     * <pre>
+     * Source/provenance of this MCP server definition.
+     * Populated by automated sync workflows (e.g. MCP Registry sync).
+     * Empty for hand-authored definitions like the system mcp-server-stigmer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder> 
+        internalGetSourceFieldBuilder() {
+      if (sourceBuilder_ == null) {
+        sourceBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder>(
+                getSource(),
+                getParentForChildren(),
+                isClean());
+        source_ = null;
+      }
+      return sourceBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> pinnedToolApprovals_ =
+      java.util.Collections.emptyList();
+    private void ensurePinnedToolApprovalsIsMutable() {
+      if (!((bitField0_ & 0x00000100) != 0)) {
+        pinnedToolApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy>(pinnedToolApprovals_);
+        bitField0_ |= 0x00000100;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> defaultToolApprovalsBuilder_;
+        ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> pinnedToolApprovalsBuilder_;
 
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> getDefaultToolApprovalsList() {
-      if (defaultToolApprovalsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(defaultToolApprovals_);
+    public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> getPinnedToolApprovalsList() {
+      if (pinnedToolApprovalsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(pinnedToolApprovals_);
       } else {
-        return defaultToolApprovalsBuilder_.getMessageList();
+        return pinnedToolApprovalsBuilder_.getMessageList();
       }
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public int getDefaultToolApprovalsCount() {
-      if (defaultToolApprovalsBuilder_ == null) {
-        return defaultToolApprovals_.size();
+    public int getPinnedToolApprovalsCount() {
+      if (pinnedToolApprovalsBuilder_ == null) {
+        return pinnedToolApprovals_.size();
       } else {
-        return defaultToolApprovalsBuilder_.getCount();
+        return pinnedToolApprovalsBuilder_.getCount();
       }
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getDefaultToolApprovals(int index) {
-      if (defaultToolApprovalsBuilder_ == null) {
-        return defaultToolApprovals_.get(index);
+    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getPinnedToolApprovals(int index) {
+      if (pinnedToolApprovalsBuilder_ == null) {
+        return pinnedToolApprovals_.get(index);
       } else {
-        return defaultToolApprovalsBuilder_.getMessage(index);
+        return pinnedToolApprovalsBuilder_.getMessage(index);
       }
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder setDefaultToolApprovals(
+    public Builder setPinnedToolApprovals(
         int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (defaultToolApprovalsBuilder_ == null) {
+      if (pinnedToolApprovalsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureDefaultToolApprovalsIsMutable();
-        defaultToolApprovals_.set(index, value);
+        ensurePinnedToolApprovalsIsMutable();
+        pinnedToolApprovals_.set(index, value);
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.setMessage(index, value);
+        pinnedToolApprovalsBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder setDefaultToolApprovals(
+    public Builder setPinnedToolApprovals(
         int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (defaultToolApprovalsBuilder_ == null) {
-        ensureDefaultToolApprovalsIsMutable();
-        defaultToolApprovals_.set(index, builderForValue.build());
+      if (pinnedToolApprovalsBuilder_ == null) {
+        ensurePinnedToolApprovalsIsMutable();
+        pinnedToolApprovals_.set(index, builderForValue.build());
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.setMessage(index, builderForValue.build());
+        pinnedToolApprovalsBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder addDefaultToolApprovals(ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (defaultToolApprovalsBuilder_ == null) {
+    public Builder addPinnedToolApprovals(ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
+      if (pinnedToolApprovalsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureDefaultToolApprovalsIsMutable();
-        defaultToolApprovals_.add(value);
+        ensurePinnedToolApprovalsIsMutable();
+        pinnedToolApprovals_.add(value);
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.addMessage(value);
+        pinnedToolApprovalsBuilder_.addMessage(value);
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder addDefaultToolApprovals(
+    public Builder addPinnedToolApprovals(
         int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (defaultToolApprovalsBuilder_ == null) {
+      if (pinnedToolApprovalsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureDefaultToolApprovalsIsMutable();
-        defaultToolApprovals_.add(index, value);
+        ensurePinnedToolApprovalsIsMutable();
+        pinnedToolApprovals_.add(index, value);
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.addMessage(index, value);
+        pinnedToolApprovalsBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder addDefaultToolApprovals(
+    public Builder addPinnedToolApprovals(
         ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (defaultToolApprovalsBuilder_ == null) {
-        ensureDefaultToolApprovalsIsMutable();
-        defaultToolApprovals_.add(builderForValue.build());
+      if (pinnedToolApprovalsBuilder_ == null) {
+        ensurePinnedToolApprovalsIsMutable();
+        pinnedToolApprovals_.add(builderForValue.build());
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.addMessage(builderForValue.build());
+        pinnedToolApprovalsBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder addDefaultToolApprovals(
+    public Builder addPinnedToolApprovals(
         int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (defaultToolApprovalsBuilder_ == null) {
-        ensureDefaultToolApprovalsIsMutable();
-        defaultToolApprovals_.add(index, builderForValue.build());
+      if (pinnedToolApprovalsBuilder_ == null) {
+        ensurePinnedToolApprovalsIsMutable();
+        pinnedToolApprovals_.add(index, builderForValue.build());
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.addMessage(index, builderForValue.build());
+        pinnedToolApprovalsBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder addAllDefaultToolApprovals(
+    public Builder addAllPinnedToolApprovals(
         java.lang.Iterable<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> values) {
-      if (defaultToolApprovalsBuilder_ == null) {
-        ensureDefaultToolApprovalsIsMutable();
+      if (pinnedToolApprovalsBuilder_ == null) {
+        ensurePinnedToolApprovalsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, defaultToolApprovals_);
+            values, pinnedToolApprovals_);
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.addAllMessages(values);
+        pinnedToolApprovalsBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder clearDefaultToolApprovals() {
-      if (defaultToolApprovalsBuilder_ == null) {
-        defaultToolApprovals_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000080);
+    public Builder clearPinnedToolApprovals() {
+      if (pinnedToolApprovalsBuilder_ == null) {
+        pinnedToolApprovals_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000100);
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.clear();
+        pinnedToolApprovalsBuilder_.clear();
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public Builder removeDefaultToolApprovals(int index) {
-      if (defaultToolApprovalsBuilder_ == null) {
-        ensureDefaultToolApprovalsIsMutable();
-        defaultToolApprovals_.remove(index);
+    public Builder removePinnedToolApprovals(int index) {
+      if (pinnedToolApprovalsBuilder_ == null) {
+        ensurePinnedToolApprovalsIsMutable();
+        pinnedToolApprovals_.remove(index);
         onChanged();
       } else {
-        defaultToolApprovalsBuilder_.remove(index);
+        pinnedToolApprovalsBuilder_.remove(index);
       }
       return this;
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder getDefaultToolApprovalsBuilder(
+    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder getPinnedToolApprovalsBuilder(
         int index) {
-      return internalGetDefaultToolApprovalsFieldBuilder().getBuilder(index);
+      return internalGetPinnedToolApprovalsFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getDefaultToolApprovalsOrBuilder(
+    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getPinnedToolApprovalsOrBuilder(
         int index) {
-      if (defaultToolApprovalsBuilder_ == null) {
-        return defaultToolApprovals_.get(index);  } else {
-        return defaultToolApprovalsBuilder_.getMessageOrBuilder(index);
+      if (pinnedToolApprovalsBuilder_ == null) {
+        return pinnedToolApprovals_.get(index);  } else {
+        return pinnedToolApprovalsBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
     public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-         getDefaultToolApprovalsOrBuilderList() {
-      if (defaultToolApprovalsBuilder_ != null) {
-        return defaultToolApprovalsBuilder_.getMessageOrBuilderList();
+         getPinnedToolApprovalsOrBuilderList() {
+      if (pinnedToolApprovalsBuilder_ != null) {
+        return pinnedToolApprovalsBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(defaultToolApprovals_);
+        return java.util.Collections.unmodifiableList(pinnedToolApprovals_);
       }
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder addDefaultToolApprovalsBuilder() {
-      return internalGetDefaultToolApprovalsFieldBuilder().addBuilder(
+    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder addPinnedToolApprovalsBuilder() {
+      return internalGetPinnedToolApprovalsFieldBuilder().addBuilder(
           ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.getDefaultInstance());
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder addDefaultToolApprovalsBuilder(
+    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder addPinnedToolApprovalsBuilder(
         int index) {
-      return internalGetDefaultToolApprovalsFieldBuilder().addBuilder(
+      return internalGetPinnedToolApprovalsFieldBuilder().addBuilder(
           index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.getDefaultInstance());
     }
     /**
      * <pre>
-     * Default tool approval policies for this MCP server.
+     * Manual tool approval overrides set by the MCP server owner.
      *
      * &#64;internal
-     * Tools listed here require user approval before execution by default.
-     * This is the first layer in the approval policy chain:
-     * McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * These take precedence over system-generated `McpServerStatus.tool_approvals`.
+     * Never auto-modified — only changed by explicit user action (apply/update).
      *
      * Use cases:
-     * - Mark destructive operations as requiring approval by default
-     * - Protect sensitive data access across all agents using this server
+     * - Force approval for a tool the classifier marked as auto-approve
+     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
-     * Tools not listed here do not require approval by default.
-     * Agents can still add approval requirements via tool_approval_overrides.
+     * Policy chain (lowest to highest priority):
+     * 1. McpServerStatus.tool_approvals - System-generated defaults
+     * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+     * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+     * 4. AgentExecution.auto_approve_all - Runtime bypass
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy default_tool_approvals = 9 [json_name = "defaultToolApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
      */
     public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder> 
-         getDefaultToolApprovalsBuilderList() {
-      return internalGetDefaultToolApprovalsFieldBuilder().getBuilderList();
+         getPinnedToolApprovalsBuilderList() {
+      return internalGetPinnedToolApprovalsFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-        internalGetDefaultToolApprovalsFieldBuilder() {
-      if (defaultToolApprovalsBuilder_ == null) {
-        defaultToolApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetPinnedToolApprovalsFieldBuilder() {
+      if (pinnedToolApprovalsBuilder_ == null) {
+        pinnedToolApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder>(
-                defaultToolApprovals_,
-                ((bitField0_ & 0x00000080) != 0),
+                pinnedToolApprovals_,
+                ((bitField0_ & 0x00000100) != 0),
                 getParentForChildren(),
                 isClean());
-        defaultToolApprovals_ = null;
+        pinnedToolApprovals_ = null;
       }
-      return defaultToolApprovalsBuilder_;
+      return pinnedToolApprovalsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.McpServerSpec)

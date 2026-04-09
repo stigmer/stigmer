@@ -23,11 +23,10 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_spec__pb2
-from ai.stigmer.agentic.mcpserver.v1 import status_pb2 as ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_status__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a,ai/stigmer/agentic/mcpserver/v1/status.proto\x1a\x1b\x62uf/validate/validate.proto\"+\n\x0bMcpServerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xc9\x01\n!UpdateDiscoveredCapabilitiesInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12x\n\x17\x64iscovered_capabilities\x18\x02 \x01(\x0b\x32\x37.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesB\x06\xbaH\x03\xc8\x01\x01R\x16\x64iscoveredCapabilities\"\xab\x02\n\x19\x44iscoverCapabilitiesInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12k\n\x0bruntime_env\x18\x02 \x03(\x0b\x32J.ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.RuntimeEnvEntryR\nruntimeEnv\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\x42\xcf\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"+\n\x0bMcpServerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x91\x02\n\x0c\x43onnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12^\n\x0bruntime_env\x18\x02 \x03(\x0b\x32=.ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntryR\nruntimeEnv\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\x42\xcf\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,20 +36,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n#com.ai.stigmer.agentic.mcpserver.v1B\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcpserver::V1'
   _globals['_MCPSERVERID'].fields_by_name['value']._loaded_options = None
   _globals['_MCPSERVERID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT'].fields_by_name['mcp_server_id']._loaded_options = None
-  _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT'].fields_by_name['mcp_server_id']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT'].fields_by_name['discovered_capabilities']._loaded_options = None
-  _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT'].fields_by_name['discovered_capabilities']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_DISCOVERCAPABILITIESINPUT_RUNTIMEENVENTRY']._loaded_options = None
-  _globals['_DISCOVERCAPABILITIESINPUT_RUNTIMEENVENTRY']._serialized_options = b'8\001'
-  _globals['_DISCOVERCAPABILITIESINPUT'].fields_by_name['mcp_server_id']._loaded_options = None
-  _globals['_DISCOVERCAPABILITIESINPUT'].fields_by_name['mcp_server_id']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_MCPSERVERID']._serialized_start=203
-  _globals['_MCPSERVERID']._serialized_end=246
-  _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT']._serialized_start=249
-  _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT']._serialized_end=450
-  _globals['_DISCOVERCAPABILITIESINPUT']._serialized_start=453
-  _globals['_DISCOVERCAPABILITIESINPUT']._serialized_end=752
-  _globals['_DISCOVERCAPABILITIESINPUT_RUNTIMEENVENTRY']._serialized_start=635
-  _globals['_DISCOVERCAPABILITIESINPUT_RUNTIMEENVENTRY']._serialized_end=752
+  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._loaded_options = None
+  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_options = b'8\001'
+  _globals['_CONNECTINPUT'].fields_by_name['mcp_server_id']._loaded_options = None
+  _globals['_CONNECTINPUT'].fields_by_name['mcp_server_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_MCPSERVERID']._serialized_start=157
+  _globals['_MCPSERVERID']._serialized_end=200
+  _globals['_CONNECTINPUT']._serialized_start=203
+  _globals['_CONNECTINPUT']._serialized_end=476
+  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_start=359
+  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_end=476
 # @@protoc_insertion_point(module_scope)

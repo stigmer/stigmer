@@ -154,34 +154,6 @@ func (c *Client) Delete(ctx context.Context, resourceID string) (*mcpserverv1.Mc
 	return deleted, nil
 }
 
-// UpdateDiscoveredCapabilities updates the discovered tools and resource
-// templates for an MCP server.
-//
-// This makes an in-process gRPC call to
-// McpServerCommandController.UpdateDiscoveredCapabilities() ensuring all
-// gRPC interceptors run before reaching the handler.
-func (c *Client) UpdateDiscoveredCapabilities(ctx context.Context, input *mcpserverv1.UpdateDiscoveredCapabilitiesInput) (*mcpserverv1.McpServer, error) {
-	log.Debug().
-		Str("mcp_server_id", input.GetMcpServerId()).
-		Msg("Updating MCP server discovered capabilities via in-process gRPC")
-
-	updated, err := c.cmdClient.UpdateDiscoveredCapabilities(ctx, input)
-	if err != nil {
-		log.Error().
-			Err(err).
-			Str("mcp_server_id", input.GetMcpServerId()).
-			Msg("Failed to update MCP server discovered capabilities")
-		return nil, err
-	}
-
-	log.Debug().
-		Str("id", updated.GetMetadata().GetId()).
-		Str("name", updated.GetMetadata().GetName()).
-		Msg("Successfully updated MCP server discovered capabilities")
-
-	return updated, nil
-}
-
 // Close closes the underlying gRPC connection.
 func (c *Client) Close() error {
 	if c.conn != nil {

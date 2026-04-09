@@ -73,7 +73,7 @@ export interface McpServerConfigPanelProps {
   readonly credentials?: McpServerCredentialsProps;
   /** Discovered tools from `status.discovered_capabilities.tools`. */
   readonly discoveredTools: DiscoveredTool[];
-  /** Approval policies from `spec.default_tool_approvals`. */
+  /** Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`. */
   readonly toolApprovals: ToolApprovalPolicy[];
   /** Currently enabled tool names (controlled). */
   readonly enabledTools: string[];

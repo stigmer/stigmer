@@ -1,21 +1,18 @@
-# Full Development Tools Sandbox (~1-2GB)
-# Reference Dockerfile - Users build themselves
+# Full Cloud Sandbox (~1-2GB)
+# Cloud sandbox for Daytona-based agent execution. Published to GHCR.
 #
-# Includes ALL cloud CLIs and development tools:
-# - Python, Node, Go, Rust
+# All MCP server runtimes (npx, uvx, go run) plus cloud CLIs:
+# - Python, Node, Go, uv/uvx
 # - AWS CLI, gcloud, az
-# - kubectl, helm, k9s
-# - terraform, pulumi
-# - Docker CLI, and more
+# - kubectl, helm, terraform, pulumi
+# - Docker CLI, GitHub CLI, and more
 #
 # Use this for:
-# - Daytona workspaces
-# - Enterprise teams
-# - Complete tool isolation
-# - Custom team requirements
+# - Daytona sandbox snapshots (base image for MCP snapshot builder)
+# - Cloud-mode agent execution
+# - Enterprise teams needing cloud CLI access from agent workspaces
 #
-# NOT published to GHCR - build yourself:
-#   docker build -f Dockerfile.sandbox.full -t my-custom-sandbox:latest .
+# Platform: linux/amd64 only (several tools bundle x86_64 binaries)
 
 FROM debian:bookworm-slim
 
@@ -30,6 +27,7 @@ RUN apt-get update && apt-get install -y \
     apt-transport-https \
     software-properties-common \
     jq \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python3, pip, and Node.js
@@ -40,10 +38,20 @@ RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
     yamllint \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PyYAML globally
 RUN pip3 install --no-cache-dir pyyaml --break-system-packages
+
+# Go toolchain (for 'go run' of Go-based MCP servers)
+COPY --from=public.ecr.aws/docker/library/golang:1.25 /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/root/go"
+ENV PATH="${GOPATH}/bin:${PATH}"
+
+# uv / uvx (Python package runner — the PyPI equivalent of npx)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Install yq (YAML processor)
 RUN YQ_VERSION=v4.40.5 && \
@@ -131,9 +139,13 @@ RUN gh --version && \
     jq --version && \
     git --version && \
     python3 --version && \
+    python --version && \
     pip3 --version && \
     node --version && \
     npm --version && \
+    go version && \
+    uv --version && \
+    uvx --version && \
     yq --version && \
     yamllint --version
 

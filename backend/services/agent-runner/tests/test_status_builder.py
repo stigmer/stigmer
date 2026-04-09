@@ -3355,11 +3355,13 @@ class TestResolvedExecutionContext:
 
 class TestApprovalPolicyResolution:
     """Tests for approval policy resolution logic.
-    
-    Tests cover the policy chain evaluation:
+
+    Tests cover the five-level policy chain:
     1. auto_approve_all (highest priority)
     2. tool_approval_overrides (per-agent)
-    3. default_tool_approvals (MCP server defaults)
+    3. pinned_tool_approvals (manual MCP owner overrides)
+    4. status_tool_approvals (LLM classifier)
+    5. PLATFORM_TOOL_DEFAULTS (sandbox tools)
     """
     
     def test_auto_approve_all_bypasses_all_policies(self):
@@ -3376,7 +3378,8 @@ class TestApprovalPolicyResolution:
             mcp_server_name="github",
             auto_approve_all=True,  # Highest priority bypass
             tool_approval_overrides=[],
-            default_tool_approvals=default_policies,
+            pinned_tool_approvals=default_policies,
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is False
@@ -3401,7 +3404,8 @@ class TestApprovalPolicyResolution:
             mcp_server_name="github",
             auto_approve_all=False,
             tool_approval_overrides=overrides,
-            default_tool_approvals=default_policies,
+            pinned_tool_approvals=default_policies,
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is False
@@ -3428,32 +3432,99 @@ class TestApprovalPolicyResolution:
             mcp_server_name="email-server",
             auto_approve_all=False,
             tool_approval_overrides=overrides,
-            default_tool_approvals=default_policies,
+            pinned_tool_approvals=default_policies,
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is True
         assert result.source == "agent_override"
         assert "{{args.recipient}}" in result.message
     
-    def test_mcp_default_applied_when_no_override(self):
-        """Test that MCP default is applied when no agent override exists."""
+    def test_pinned_policy_applied_when_no_override(self):
+        """Test that pinned policy is applied when no agent override exists."""
         from worker.activities.graphton.approval_policy import resolve_tool_approval
-        
-        default_policies = [
+
+        pinned = [
             {"tool_name": "delete_repository", "message": "Delete repo: {{args.repo}}"}
         ]
-        
+
         result = resolve_tool_approval(
             tool_name="delete_repository",
             mcp_server_name="github",
             auto_approve_all=False,
-            tool_approval_overrides=[],  # No override
-            default_tool_approvals=default_policies,
+            tool_approval_overrides=[],
+            pinned_tool_approvals=pinned,
+            status_tool_approvals=[],
         )
-        
+
         assert result.requires_approval is True
-        assert result.source == "mcp_default"
+        assert result.source == "pinned"
         assert "{{args.repo}}" in result.message
+
+    def test_status_classifier_applied_when_no_pinned(self):
+        """Test that status classifier policy is applied when no pinned policy exists."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+
+        status = [
+            {"tool_name": "execute_sql", "message": "Execute SQL: {{args.query}}"}
+        ]
+
+        result = resolve_tool_approval(
+            tool_name="execute_sql",
+            mcp_server_name="postgres",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=status,
+        )
+
+        assert result.requires_approval is True
+        assert result.source == "status_classifier"
+        assert "{{args.query}}" in result.message
+
+    def test_pinned_takes_precedence_over_status(self):
+        """Test that pinned policy overrides status classifier for the same tool."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+
+        pinned = [
+            {"tool_name": "deploy", "message": "Pinned: deploy to {{args.env}}"}
+        ]
+        status = [
+            {"tool_name": "deploy", "message": "Classifier: deploying"}
+        ]
+
+        result = resolve_tool_approval(
+            tool_name="deploy",
+            mcp_server_name="cicd",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            pinned_tool_approvals=pinned,
+            status_tool_approvals=status,
+        )
+
+        assert result.requires_approval is True
+        assert result.source == "pinned"
+        assert "Pinned" in result.message
+
+    def test_agent_override_exempts_from_pinned_and_status(self):
+        """Test that agent override with requires_approval=False exempts from both."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+
+        overrides = [{"tool_name": "deploy", "requires_approval": False}]
+        pinned = [{"tool_name": "deploy", "message": "Pinned deploy"}]
+        status = [{"tool_name": "deploy", "message": "Classifier deploy"}]
+
+        result = resolve_tool_approval(
+            tool_name="deploy",
+            mcp_server_name="cicd",
+            auto_approve_all=False,
+            tool_approval_overrides=overrides,
+            pinned_tool_approvals=pinned,
+            status_tool_approvals=status,
+        )
+
+        assert result.requires_approval is False
+        assert result.source == "agent_override"
     
     def test_no_approval_required_when_no_policy_matches(self):
         """Test that tools without policies don't require approval."""
@@ -3464,7 +3535,8 @@ class TestApprovalPolicyResolution:
             mcp_server_name="github",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is False
@@ -3563,7 +3635,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is False
@@ -3582,7 +3655,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is True
@@ -3602,7 +3676,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is True
@@ -3619,7 +3694,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is True
@@ -3637,7 +3713,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is True
@@ -3654,7 +3731,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is True
@@ -3669,7 +3747,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is False
@@ -3684,7 +3763,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is False
@@ -3699,7 +3779,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is False
@@ -3714,7 +3795,8 @@ class TestPlatformToolApprovalDefaults:
             mcp_server_name="",
             auto_approve_all=True,  # Bypass
             tool_approval_overrides=[],
-            default_tool_approvals=[],
+            pinned_tool_approvals=[],
+            status_tool_approvals=[],
         )
         
         assert result.requires_approval is False
@@ -3777,32 +3859,47 @@ class TestApprovalConfig:
         
         assert config.get_mcp_server_for_tool("unknown_tool") == ""
     
-    def test_get_default_policies_for_tool(self):
-        """Test getting default policies for a tool's MCP server."""
+    def test_get_status_policies_for_tool(self):
+        """Test getting status (classifier) policies for a tool's MCP server."""
         from worker.activities.graphton.approval_policy import ApprovalConfig
-        
+
         policies = [{"tool_name": "delete_repository", "message": "Delete repo"}]
-        
+
         config = ApprovalConfig(
             auto_approve_all=False,
             tool_to_mcp_server={"delete_repository": "github"},
-            default_tool_approvals={"github": policies}
+            status_tool_approvals={"github": policies}
         )
-        
-        result = config.get_default_policies_for_tool("delete_repository")
+
+        result = config.get_status_policies_for_tool("delete_repository")
         assert result == policies
-    
-    def test_get_default_policies_for_unknown_server(self):
+
+    def test_get_pinned_policies_for_tool(self):
+        """Test getting pinned (manual override) policies for a tool's MCP server."""
+        from worker.activities.graphton.approval_policy import ApprovalConfig
+
+        policies = [{"tool_name": "deploy", "message": "Deploy to {{args.env}}"}]
+
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_to_mcp_server={"deploy": "cicd"},
+            pinned_tool_approvals={"cicd": policies}
+        )
+
+        result = config.get_pinned_policies_for_tool("deploy")
+        assert result == policies
+
+    def test_get_status_policies_for_unknown_server(self):
         """Test that unknown server returns empty policies list."""
         from worker.activities.graphton.approval_policy import ApprovalConfig
-        
+
         config = ApprovalConfig(
             auto_approve_all=False,
             tool_to_mcp_server={"unknown_tool": "unknown_server"},
-            default_tool_approvals={"github": []}
+            status_tool_approvals={"github": []}
         )
-        
-        result = config.get_default_policies_for_tool("unknown_tool")
+
+        result = config.get_status_policies_for_tool("unknown_tool")
         assert result == []
 
 
@@ -4214,7 +4311,7 @@ class TestToolStartApprovalIntegration:
         approval_config = ApprovalConfig(
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals={
+            status_tool_approvals={
                 "github": [
                     {"tool_name": "delete_repository", "message": "Delete {{args.repo}}"}
                 ]
@@ -4292,7 +4389,7 @@ class TestToolStartApprovalIntegration:
         approval_config = ApprovalConfig(
             auto_approve_all=True,  # Bypass all approval
             tool_approval_overrides=[],
-            default_tool_approvals={
+            status_tool_approvals={
                 "github": [
                     {"tool_name": "delete_repository", "message": "Delete repo"}
                 ]
@@ -4377,13 +4474,13 @@ class TestToolStartApprovalIntegration:
 
 
 class TestBuildApprovalConfig:
-    """
-    Tests for the build_approval_config() function in execute_graphton.py.
-    
-    This function assembles ApprovalConfig from execution context:
+    """Tests for build_approval_config().
+
+    Assembles the five-level policy chain from:
     - execution.spec.auto_approve_all
     - mcp_server_usages[].tool_approval_overrides
-    - mcp_servers[].spec.default_tool_approvals
+    - mcp_servers[].spec.pinned_tool_approvals
+    - mcp_servers[].status.tool_approvals
     - mcp_tools_config (inverted to tool_to_mcp_server)
     """
     
@@ -4404,7 +4501,7 @@ class TestBuildApprovalConfig:
         
         assert config.auto_approve_all is False
         assert config.tool_approval_overrides == []
-        assert config.default_tool_approvals == {}
+        assert config.pinned_tool_approvals == {}
         assert config.tool_to_mcp_server == {}
     
     def test_auto_approve_all_extracted_from_execution_spec(self):
@@ -4504,8 +4601,8 @@ class TestBuildApprovalConfig:
         
         assert config.tool_approval_overrides == []
     
-    def test_default_tool_approvals_keyed_by_server_slug(self):
-        """Test that default_tool_approvals are correctly keyed by server slug."""
+    def test_pinned_tool_approvals_keyed_by_server_slug(self):
+        """Test that pinned_tool_approvals are correctly keyed by server slug."""
         from worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
@@ -4522,11 +4619,11 @@ class TestBuildApprovalConfig:
         
         server1 = MagicMock()
         server1.metadata.slug = "github"
-        server1.spec.default_tool_approvals = [policy1]
+        server1.spec.pinned_tool_approvals = [policy1]
         
         server2 = MagicMock()
         server2.metadata.slug = "postgres"
-        server2.spec.default_tool_approvals = [policy2]
+        server2.spec.pinned_tool_approvals = [policy2]
         
         config = build_approval_config(
             execution=execution,
@@ -4535,13 +4632,13 @@ class TestBuildApprovalConfig:
             mcp_tools_config={},
         )
         
-        assert len(config.default_tool_approvals) == 2
-        assert "github" in config.default_tool_approvals
-        assert "postgres" in config.default_tool_approvals
-        assert config.default_tool_approvals["github"] == [policy1]
-        assert config.default_tool_approvals["postgres"] == [policy2]
+        assert len(config.pinned_tool_approvals) == 2
+        assert "github" in config.pinned_tool_approvals
+        assert "postgres" in config.pinned_tool_approvals
+        assert config.pinned_tool_approvals["github"] == [policy1]
+        assert config.pinned_tool_approvals["postgres"] == [policy2]
     
-    def test_default_tool_approvals_falls_back_to_name_when_slug_missing(self):
+    def test_pinned_tool_approvals_falls_back_to_name_when_slug_missing(self):
         """Test that server name is used as fallback when slug is missing."""
         from worker.activities.graphton.approval_policy import build_approval_config
         
@@ -4554,7 +4651,7 @@ class TestBuildApprovalConfig:
         server = MagicMock()
         server.metadata.name = "my-github-server"
         del server.metadata.slug  # No slug
-        server.spec.default_tool_approvals = [policy]
+        server.spec.pinned_tool_approvals = [policy]
         
         config = build_approval_config(
             execution=execution,
@@ -4564,10 +4661,10 @@ class TestBuildApprovalConfig:
         )
         
         # Should use name as key
-        assert "my-github-server" in config.default_tool_approvals
+        assert "my-github-server" in config.pinned_tool_approvals
     
-    def test_default_tool_approvals_handles_empty_policies(self):
-        """Test that servers with empty default_tool_approvals are skipped."""
+    def test_pinned_tool_approvals_handles_empty_policies(self):
+        """Test that servers with empty pinned_tool_approvals are skipped."""
         from worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
@@ -4576,7 +4673,7 @@ class TestBuildApprovalConfig:
         # Server with empty policies
         server = MagicMock()
         server.metadata.slug = "github"
-        server.spec.default_tool_approvals = []
+        server.spec.pinned_tool_approvals = []
         
         config = build_approval_config(
             execution=execution,
@@ -4586,8 +4683,65 @@ class TestBuildApprovalConfig:
         )
         
         # Should not include servers with empty policies
-        assert "github" not in config.default_tool_approvals
-    
+        assert "github" not in config.pinned_tool_approvals
+
+    def test_status_tool_approvals_extracted_from_server_status(self):
+        """Test that status.tool_approvals are read and keyed by slug."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+
+        status_policy = MagicMock()
+        status_policy.tool_name = "execute_sql"
+        status_policy.message = "Execute SQL: {{args.query}}"
+
+        server = MagicMock()
+        server.metadata.slug = "postgres"
+        server.spec.pinned_tool_approvals = []
+        server.status.tool_approvals = [status_policy]
+
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[server],
+            mcp_tools_config={},
+        )
+
+        assert "postgres" in config.status_tool_approvals
+        assert config.status_tool_approvals["postgres"] == [status_policy]
+        assert config.pinned_tool_approvals == {}
+
+    def test_both_pinned_and_status_extracted(self):
+        """Test that both pinned and status approvals are extracted independently."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+
+        pinned_policy = MagicMock()
+        pinned_policy.tool_name = "delete_repo"
+        pinned_policy.message = "Manual: delete repo"
+
+        status_policy = MagicMock()
+        status_policy.tool_name = "create_issue"
+        status_policy.message = "Classifier: create issue"
+
+        server = MagicMock()
+        server.metadata.slug = "github"
+        server.spec.pinned_tool_approvals = [pinned_policy]
+        server.status.tool_approvals = [status_policy]
+
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[server],
+            mcp_tools_config={},
+        )
+
+        assert config.pinned_tool_approvals == {"github": [pinned_policy]}
+        assert config.status_tool_approvals == {"github": [status_policy]}
+
     def test_tool_to_mcp_server_mapping_inverted_correctly(self):
         """Test that mcp_tools_config is correctly inverted to tool_to_mcp_server."""
         from worker.activities.graphton.approval_policy import build_approval_config
@@ -4665,7 +4819,7 @@ class TestBuildApprovalConfig:
         
         server = MagicMock()
         server.metadata.slug = "github"
-        server.spec.default_tool_approvals = [default_policy]
+        server.spec.pinned_tool_approvals = [default_policy]
         
         # Setup tool config
         mcp_tools_config = {
@@ -4683,8 +4837,8 @@ class TestBuildApprovalConfig:
         assert config.auto_approve_all is False
         assert len(config.tool_approval_overrides) == 1
         assert config.tool_approval_overrides[0] == override
-        assert "github" in config.default_tool_approvals
-        assert config.default_tool_approvals["github"] == [default_policy]
+        assert "github" in config.pinned_tool_approvals
+        assert config.pinned_tool_approvals["github"] == [default_policy]
         assert len(config.tool_to_mcp_server) == 3
         assert config.get_mcp_server_for_tool("delete_repository") == "github"
     
@@ -4707,7 +4861,7 @@ class TestBuildApprovalConfig:
             mcp_tools_config={},
         )
         
-        assert config.default_tool_approvals == {}
+        assert config.pinned_tool_approvals == {}
     
     def test_malformed_usage_handled_gracefully(self):
         """Test that malformed MCP server usage objects don't crash the function."""
@@ -4781,7 +4935,7 @@ class TestCreateApprovalChecker:
         config = ApprovalConfig(
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals={},
+            status_tool_approvals={},
             tool_to_mcp_server={"some_tool": "some-server"},
         )
         checker = create_approval_checker(config)
@@ -4806,7 +4960,7 @@ class TestCreateApprovalChecker:
         config = ApprovalConfig(
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals={"test-server": [policy]},
+            status_tool_approvals={"test-server": [policy]},
             tool_to_mcp_server={"delete_resource": "test-server"},
         )
         checker = create_approval_checker(config)
@@ -4814,7 +4968,7 @@ class TestCreateApprovalChecker:
         result = checker("delete_resource", {})
         
         assert result.requires_approval is True
-        assert result.source == "mcp_default"
+        assert result.source == "status_classifier"
         assert "delete" in result.message.lower()
     
     def test_checker_returns_approval_required_from_agent_override(self):
@@ -4833,7 +4987,7 @@ class TestCreateApprovalChecker:
         config = ApprovalConfig(
             auto_approve_all=False,
             tool_approval_overrides=[override],
-            default_tool_approvals={},
+            status_tool_approvals={},
             tool_to_mcp_server={"send_email": "email-server"},
         )
         checker = create_approval_checker(config)
@@ -4859,7 +5013,7 @@ class TestCreateApprovalChecker:
         config = ApprovalConfig(
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals={"fs-server": [policy]},
+            status_tool_approvals={"fs-server": [policy]},
             tool_to_mcp_server={"delete_file": "fs-server"},
         )
         checker = create_approval_checker(config)
@@ -4879,7 +5033,7 @@ class TestCreateApprovalChecker:
         config = ApprovalConfig(
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals={},
+            status_tool_approvals={},
             tool_to_mcp_server={"test_tool": "my-mcp-server"},
         )
         checker = create_approval_checker(config)
@@ -4898,7 +5052,7 @@ class TestCreateApprovalChecker:
         config = ApprovalConfig(
             auto_approve_all=False,
             tool_approval_overrides=[],
-            default_tool_approvals={},
+            status_tool_approvals={},
             tool_to_mcp_server={},  # Empty - no tools mapped
         )
         checker = create_approval_checker(config)

@@ -932,15 +932,15 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 		}
 	}
 
-	hasStructField := false
+	needsImperative := false
 	for _, field := range ts.Fields {
-		if field.Type.Kind == "struct" {
-			hasStructField = true
+		if field.Type.Kind == "struct" || field.Type.Kind == "timestamp" {
+			needsImperative = true
 			break
 		}
 	}
 
-	if hasStructField {
+	if needsImperative {
 		fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, protoAlias, msgName)
 		fmt.Fprintf(buf, "\tp := &%s.%s{}\n", protoAlias, msgName)
 		for _, field := range ts.Fields {
@@ -949,6 +949,11 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 				fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
 				fmt.Fprintf(buf, "\t\tp.%s, _ = structpb.NewStruct(i.%s)\n", pf, field.Name)
 				buf.WriteString("\t}\n")
+			} else if field.Type.Kind == "timestamp" {
+				fmt.Fprintf(buf, "\tif i.%s != \"\" {\n", field.Name)
+				fmt.Fprintf(buf, "\t\tif t, err := time.Parse(time.RFC3339, i.%s); err == nil {\n", field.Name)
+				fmt.Fprintf(buf, "\t\t\tp.%s = timestamppb.New(t)\n", pf)
+				buf.WriteString("\t\t}\n\t}\n")
 			} else if field.Type.Kind == "message" {
 				if field.Type.MessageType == "ApiResourceReference" {
 					fmt.Fprintf(buf, "\tp.%s = i.%s.toProto()\n", pf, field.Name)

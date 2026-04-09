@@ -8,16 +8,15 @@ description:
 import {
   DemoConnectToolsTour,
   DemoMcpServerCreationTour,
-  DemoDiscoverCapabilities,
-  DemoGeneratePolicies,
+  DemoConnectPlayback,
 } from "@/components/docs";
 
 ## What you'll build
 
 An Agent that can **look up real data**, **take actions on your behalf**, and
 **ask for human approval** before doing anything risky. You will connect an MCP
-server, discover its tools, generate approval policies, and see everything
-working end-to-end from your code.
+server, see its tools and approval policies appear automatically, and wire
+everything into your code.
 
 **Time**: ~15 minutes **Prerequisites**: Completed
 [Your first Skill](/docs/getting-started/first-skill)
@@ -67,49 +66,32 @@ Here is what that conversation looks like:
 </Step>
 <Step>
 
-## Discover capabilities
+## Connect
 
 Your MCP server is registered, but Stigmer doesn't know what tools it provides
-yet. Discovery connects to the server and catalogs every tool.
+yet. Connecting reaches out to the live server, catalogs every tool, and
+classifies each one for approval — all in a single step.
 
 1. Open the MCP server detail page.
-2. If the server requires credentials (API keys, tokens), enter them in the
-   Environment variables section.
-3. Click **Discover**.
+2. If the server requires credentials (API keys, tokens), enter them when
+   prompted.
+3. Click **Connect**.
 
-Stigmer connects to the live server, queries its capabilities, and lists every
-tool with its name and description:
+Stigmer connects to the live server, discovers every tool, and classifies each
+one automatically. Read-only tools pass through. Tools that modify data, move
+money, or have side effects get flagged for human approval:
 
-<DemoDiscoverCapabilities />
+<DemoConnectPlayback />
 
-In this example, three tools were discovered: `get_order` (read), `list_orders`
-(read), and `process_return` (write). Two are safe read operations. One modifies
-data — that's where approval policies come in.
-
-</Step>
-<Step>
-
-## Generate approval policies
-
-Some tools are safe to call any time — looking up an order is a read operation.
-Others, like processing a return and issuing a refund, need a human in the loop.
-
-1. On the same MCP server detail page, click **Generate Policies**.
-2. Stigmer's AI reviews each discovered tool. Read-only tools pass through.
-   Tools that modify data, move money, or have side effects get flagged for
-   approval.
-3. Review the generated policies and confirm.
-
-<DemoGeneratePolicies />
-
-In this example, `get_order` and `list_orders` run automatically.
+In this example, three tools were found: `get_order` (read), `list_orders`
+(read), and `process_return` (write). The first two run automatically.
 `process_return` requires human approval — the Agent will pause and present the
 action details before executing.
 
 <Callout type="info">
   Approval policies are stored on the MCP server resource. Every Agent that uses
-  this server inherits the same policies. You can edit or override them at any
-  time.
+  this server inherits the same policies. You can pin manual overrides or let
+  Stigmer re-classify on each reconnect.
 </Callout>
 
 </Step>
@@ -434,10 +416,10 @@ The return has been processed.
 
 ## What just happened
 
-You connected tools to your Agent through an MCP server, discovered its
-capabilities, and generated approval policies — all through the Stigmer web app.
-In your code, two changes made the difference: `mcpServerRefs` to give the Agent
-access to tools, and `submitApproval` to handle the human-in-the-loop flow.
+You connected tools to your Agent through an MCP server. One click discovered
+the tools and classified approval policies automatically. In your code, two
+changes made the difference: `mcpServerRefs` to give the Agent access to tools,
+and `submitApproval` to handle the human-in-the-loop flow.
 
 Your Agent now knows your domain (Skills), uses your tools (MCP servers), and
 follows your rules (approval policies). But look at your Session creation code —

@@ -257,7 +257,8 @@ type McpServerUsage struct {
 	// Including a resource template name here causes a fatal runtime error.
 	EnabledTools []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
 	// Override approval requirements for specific tools.
-	// Takes precedence over McpServer.default_tool_approvals.
+	// Takes precedence over McpServerSpec.pinned_tool_approvals and
+	// McpServerStatus.tool_approvals.
 	ToolApprovalOverrides []*ToolApprovalOverride `protobuf:"bytes,3,rep,name=tool_approval_overrides,json=toolApprovalOverrides,proto3" json:"tool_approval_overrides,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -382,14 +383,15 @@ func (x *McpAccess) GetEnabledTools() []string {
 // Set requires_approval to true to require approval even when the McpServer
 // has no default, or to false to skip approval even when the McpServer
 // requires it. These overrides take precedence over
-// McpServer.default_tool_approvals but can be bypassed at execution time
-// by AgentExecution.auto_approve_all.
+// McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals,
+// but can be bypassed at execution time by AgentExecution.auto_approve_all.
 //
 // @internal
 // Policy chain (lowest to highest priority):
-// 1. McpServer.default_tool_approvals — platform/org defaults
-// 2. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
-// 3. AgentExecution.auto_approve_all — runtime bypass
+// 1. McpServerStatus.tool_approvals — system-generated defaults
+// 2. McpServerSpec.pinned_tool_approvals — manual overrides
+// 3. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
+// 4. AgentExecution.auto_approve_all — runtime bypass
 //
 // Invalid tool names are silently ignored (no approval applied).
 // This allows forward-compatibility when MCP servers add/remove tools.

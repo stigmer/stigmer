@@ -2,8 +2,7 @@ export { AgentCreationTour as DemoAgentCreationTour } from "./demos/scenarios/ag
 export { AgentDetail as DemoAgentDetail } from "./demos/scenarios/agent-detail";
 export { McpServerDetail as DemoMcpServerDetail } from "./demos/scenarios/mcp-server-detail";
 export { McpServerCreationTour as DemoMcpServerCreationTour } from "./demos/scenarios/mcp-server-creation-tour";
-export { DiscoverCapabilitiesPlayback as DemoDiscoverCapabilities } from "./demos/scenarios/discover-capabilities-playback";
-export { GeneratePoliciesPlayback as DemoGeneratePolicies } from "./demos/scenarios/generate-policies-playback";
+export { ConnectPlayback as DemoConnectPlayback } from "./demos/scenarios/connect-playback";
 export { ApiKeySetup as DemoApiKeySetup } from "./demos/scenarios/api-key-setup";
 export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenarios/approval-flow-playback";
 export { SessionMemoryPlayback as DemoSessionMemoryPlayback } from "./demos/scenarios/session-memory-playback";

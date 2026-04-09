@@ -5,16 +5,16 @@ metadata:
   visibility: visibility_public
   labels:
     stigmer.ai/system: "true"
-spec:
-  description: "Built-in MCP server that exposes Stigmer resources (agents, skills, workflows, MCP servers) to MCP clients via the Model Context Protocol."
   tags:
     - system
     - built-in
+spec:
+  description: "Built-in MCP server that exposes Stigmer resources (agents, skills, workflows, MCP servers) to MCP clients via the Model Context Protocol."
   stdio:
     command: "go"
     args:
       - "run"
-      - "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.52"
+      - "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest"
   env_spec:
     data:
       STIGMER_SERVER_ADDRESS:
@@ -23,25 +23,3 @@ spec:
       STIGMER_API_KEY:
         is_secret: true
         description: "API key for authenticating with stigmer-server (optional for local unauthenticated backends)"
-  default_tool_approvals:
-    # ── Agent Lifecycle ────────────────────────────────────────────────────────
-    - tool_name: apply_agent
-      message: "Create or update agent '{{args.slug}}' in org '{{args.org}}'"
-
-    - tool_name: delete_agent
-      message: "Permanently delete agent '{{args.slug}}' from org '{{args.org}}'"
-
-    # ── Skill Management ───────────────────────────────────────────────────────
-    - tool_name: delete_skill
-      message: "Permanently delete skill '{{args.slug}}' and all its versions from org '{{args.org}}'"
-
-    # ── Workflow Management ────────────────────────────────────────────────────
-    - tool_name: delete_workflow
-      message: "Permanently delete workflow '{{args.slug}}' from org '{{args.org}}'"
-
-    # ── MCP Server Configuration ───────────────────────────────────────────────
-    - tool_name: apply_mcp_server
-      message: "Create or update MCP server '{{args.slug}}' in org '{{args.org}}'"
-
-    - tool_name: delete_mcp_server
-      message: "Permanently delete MCP server '{{args.slug}}' from org '{{args.org}}'"

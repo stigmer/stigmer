@@ -329,8 +329,8 @@ function buildMcpServerInput(
     ...optionalStringArrayFromSnake(spec, "default_enabled_tools", "defaultEnabledTools"),
     ...optionalMappedArray(
       spec,
-      "default_tool_approvals",
-      "defaultToolApprovals",
+      "pinned_tool_approvals",
+      "pinnedToolApprovals",
       extractToolApprovalPolicy,
     ),
     ...optionalField("envSpec", extractEnvSpec(spec)),

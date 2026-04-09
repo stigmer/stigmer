@@ -46,6 +46,7 @@ type InvitationInput = gen.InvitationInput
 type McpServerInput = gen.McpServerInput
 type StdioServerConfigInput = gen.StdioServerConfigInput
 type HttpServerConfigInput = gen.HttpServerConfigInput
+type McpServerSourceInput = gen.McpServerSourceInput
 type ToolApprovalPolicyInput = gen.ToolApprovalPolicyInput
 type OrganizationInput = gen.OrganizationInput
 type ProjectInput = gen.ProjectInput

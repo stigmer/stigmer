@@ -447,14 +447,14 @@ func Run() error {
 	workflowExecutionController.SetAgentExecutionClient(agentExecutionController)
 
 	// Inject discovery dependencies into McpServerController.
-	// Uses the agent-runner queue for the Temporal workflow since discovery
+	// Uses the agent-runner queue for the Temporal workflow since connect
 	// activities (and the wrapper workflow) run on the Python worker.
 	// The Go handler creates an ephemeral ExecutionContext with resolved env
 	// vars and passes its ID to the Temporal workflow. The Python activity
 	// reads from the scoped ExecutionContext (least-privilege).
 	if temporalClient != nil {
 		agentExecutionTemporalCfg := agentexecutiontemporal.NewConfig()
-		mcpServerController.SetDiscoveryDependencies(
+		mcpServerController.SetConnectDependencies(
 			temporalClient,
 			agentExecutionTemporalCfg.RunnerQueue,
 			environmentClient,
@@ -462,7 +462,7 @@ func Run() error {
 		)
 		log.Info().
 			Str("runner_queue", agentExecutionTemporalCfg.RunnerQueue).
-			Msg("Injected MCP discovery dependencies into McpServerController")
+			Msg("Injected MCP connect dependencies into McpServerController")
 	}
 
 	log.Info().Msg("Injected dependencies into controllers")

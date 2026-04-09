@@ -1,5 +1,6 @@
 import datetime
 
+from ai.stigmer.agentic.mcpserver.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
@@ -17,46 +18,33 @@ class ValidationState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     validation_state_unspecified: _ClassVar[ValidationState]
     valid: _ClassVar[ValidationState]
     invalid: _ClassVar[ValidationState]
-
-class DiscoverySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    discovery_source_unspecified: _ClassVar[DiscoverySource]
-    seedpack: _ClassVar[DiscoverySource]
-    cli: _ClassVar[DiscoverySource]
-    agent_runner: _ClassVar[DiscoverySource]
-    api: _ClassVar[DiscoverySource]
 validation_state_unspecified: ValidationState
 valid: ValidationState
 invalid: ValidationState
-discovery_source_unspecified: DiscoverySource
-seedpack: DiscoverySource
-cli: DiscoverySource
-agent_runner: DiscoverySource
-api: DiscoverySource
 
 class McpServerStatus(_message.Message):
-    __slots__ = ("validation_state", "validation_message", "discovered_capabilities", "audit")
+    __slots__ = ("validation_state", "validation_message", "discovered_capabilities", "tool_approvals", "audit")
     VALIDATION_STATE_FIELD_NUMBER: _ClassVar[int]
     VALIDATION_MESSAGE_FIELD_NUMBER: _ClassVar[int]
     DISCOVERED_CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    TOOL_APPROVALS_FIELD_NUMBER: _ClassVar[int]
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     validation_state: ValidationState
     validation_message: str
     discovered_capabilities: DiscoveredCapabilities
+    tool_approvals: _containers.RepeatedCompositeFieldContainer[_spec_pb2.ToolApprovalPolicy]
     audit: _status_pb2.ApiResourceAudit
-    def __init__(self, validation_state: _Optional[_Union[ValidationState, str]] = ..., validation_message: _Optional[str] = ..., discovered_capabilities: _Optional[_Union[DiscoveredCapabilities, _Mapping]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
+    def __init__(self, validation_state: _Optional[_Union[ValidationState, str]] = ..., validation_message: _Optional[str] = ..., discovered_capabilities: _Optional[_Union[DiscoveredCapabilities, _Mapping]] = ..., tool_approvals: _Optional[_Iterable[_Union[_spec_pb2.ToolApprovalPolicy, _Mapping]]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
 
 class DiscoveredCapabilities(_message.Message):
-    __slots__ = ("tools", "resource_templates", "last_discovered_at", "discovered_by")
+    __slots__ = ("tools", "resource_templates", "last_discovered_at")
     TOOLS_FIELD_NUMBER: _ClassVar[int]
     RESOURCE_TEMPLATES_FIELD_NUMBER: _ClassVar[int]
     LAST_DISCOVERED_AT_FIELD_NUMBER: _ClassVar[int]
-    DISCOVERED_BY_FIELD_NUMBER: _ClassVar[int]
     tools: _containers.RepeatedCompositeFieldContainer[DiscoveredTool]
     resource_templates: _containers.RepeatedCompositeFieldContainer[DiscoveredResourceTemplate]
     last_discovered_at: _timestamp_pb2.Timestamp
-    discovered_by: DiscoverySource
-    def __init__(self, tools: _Optional[_Iterable[_Union[DiscoveredTool, _Mapping]]] = ..., resource_templates: _Optional[_Iterable[_Union[DiscoveredResourceTemplate, _Mapping]]] = ..., last_discovered_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., discovered_by: _Optional[_Union[DiscoverySource, str]] = ...) -> None: ...
+    def __init__(self, tools: _Optional[_Iterable[_Union[DiscoveredTool, _Mapping]]] = ..., resource_templates: _Optional[_Iterable[_Union[DiscoveredResourceTemplate, _Mapping]]] = ..., last_discovered_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class DiscoveredTool(_message.Message):
     __slots__ = ("name", "description", "input_schema")

@@ -51,6 +51,9 @@ enum IamPermission {
 
   // Back-office access permission.
   login_to_back_office = 20;
+
+  // MCP server connect permission.
+  can_connect = 22;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources
