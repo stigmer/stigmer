@@ -527,7 +527,10 @@ type McpServerSource struct {
 	// Example: "https://github.com/exa-labs/exa-mcp-server"
 	RepositoryUrl string `protobuf:"bytes,4,opt,name=repository_url,json=repositoryUrl,proto3" json:"repository_url,omitempty"`
 	// Timestamp of last successful sync from the source.
-	LastSyncedAt  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
+	LastSyncedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
+	// GitHub star count at the time of last sync (0 if unknown or non-GitHub).
+	// Used for quality filtering during sync and popularity sorting in the UI.
+	GithubStars   int32 `protobuf:"varint,6,opt,name=github_stars,json=githubStars,proto3" json:"github_stars,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -597,6 +600,13 @@ func (x *McpServerSource) GetLastSyncedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *McpServerSource) GetGithubStars() int32 {
+	if x != nil {
+		return x.GithubStars
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
@@ -633,13 +643,14 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xd5\x01\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xf8\x01\n" +
 	"\x0fMcpServerSource\x12\x1a\n" +
 	"\bregistry\x18\x01 \x01(\tR\bregistry\x12#\n" +
 	"\rregistry_name\x18\x02 \x01(\tR\fregistryName\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12%\n" +
 	"\x0erepository_url\x18\x04 \x01(\tR\rrepositoryUrl\x12@\n" +
-	"\x0elast_synced_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\flastSyncedAtB\xa7\x02\n" +
+	"\x0elast_synced_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\flastSyncedAt\x12!\n" +
+	"\fgithub_stars\x18\x06 \x01(\x05R\vgithubStarsB\xa7\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (

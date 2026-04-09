@@ -218,6 +218,7 @@ public final class McpServerInput {
         private final String version;
         private final String repositoryUrl;
         private final String lastSyncedAt;
+        private final int githubStars;
 
         private McpServerSourceInput(Builder builder) {
             this.registry = builder.registry;
@@ -225,6 +226,7 @@ public final class McpServerInput {
             this.version = builder.version;
             this.repositoryUrl = builder.repositoryUrl;
             this.lastSyncedAt = builder.lastSyncedAt;
+            this.githubStars = builder.githubStars;
         }
 
         McpServerSource toProto() {
@@ -248,6 +250,7 @@ public final class McpServerInput {
                     .setNanos(instant.getNano())
                     .build());
             }
+            builder.setGithubStars(this.githubStars);
             return builder.build();
         }
 
@@ -259,6 +262,7 @@ public final class McpServerInput {
             private String version;
             private String repositoryUrl;
             private String lastSyncedAt;
+            private int githubStars;
 
             private Builder() {}
 
@@ -267,6 +271,7 @@ public final class McpServerInput {
             public Builder version(String version) { this.version = version; return this; }
             public Builder repositoryUrl(String repositoryUrl) { this.repositoryUrl = repositoryUrl; return this; }
             public Builder lastSyncedAt(String lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; return this; }
+            public Builder githubStars(int githubStars) { this.githubStars = githubStars; return this; }
 
             public McpServerSourceInput build() { return new McpServerSourceInput(this); }
         }

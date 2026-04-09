@@ -303,6 +303,22 @@ private static final long serialVersionUID = 0L;
     return lastSyncedAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : lastSyncedAt_;
   }
 
+  public static final int GITHUB_STARS_FIELD_NUMBER = 6;
+  private int githubStars_ = 0;
+  /**
+   * <pre>
+   * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
+   * Used for quality filtering during sync and popularity sorting in the UI.
+   * </pre>
+   *
+   * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
+   * @return The githubStars.
+   */
+  @java.lang.Override
+  public int getGithubStars() {
+    return githubStars_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -332,6 +348,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(5, getLastSyncedAt());
     }
+    if (githubStars_ != 0) {
+      output.writeInt32(6, githubStars_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -356,6 +375,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getLastSyncedAt());
+    }
+    if (githubStars_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(6, githubStars_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -385,6 +408,8 @@ private static final long serialVersionUID = 0L;
       if (!getLastSyncedAt()
           .equals(other.getLastSyncedAt())) return false;
     }
+    if (getGithubStars()
+        != other.getGithubStars()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -408,6 +433,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + LAST_SYNCED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getLastSyncedAt().hashCode();
     }
+    hash = (37 * hash) + GITHUB_STARS_FIELD_NUMBER;
+    hash = (53 * hash) + getGithubStars();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -566,6 +593,7 @@ private static final long serialVersionUID = 0L;
         lastSyncedAtBuilder_.dispose();
         lastSyncedAtBuilder_ = null;
       }
+      githubStars_ = 0;
       return this;
     }
 
@@ -618,6 +646,9 @@ private static final long serialVersionUID = 0L;
             : lastSyncedAtBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.githubStars_ = githubStars_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -655,6 +686,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasLastSyncedAt()) {
         mergeLastSyncedAt(other.getLastSyncedAt());
+      }
+      if (other.getGithubStars() != 0) {
+        setGithubStars(other.getGithubStars());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -709,6 +743,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 48: {
+              githubStars_ = input.readInt32();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1279,6 +1318,53 @@ private static final long serialVersionUID = 0L;
         lastSyncedAt_ = null;
       }
       return lastSyncedAtBuilder_;
+    }
+
+    private int githubStars_ ;
+    /**
+     * <pre>
+     * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
+     * Used for quality filtering during sync and popularity sorting in the UI.
+     * </pre>
+     *
+     * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
+     * @return The githubStars.
+     */
+    @java.lang.Override
+    public int getGithubStars() {
+      return githubStars_;
+    }
+    /**
+     * <pre>
+     * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
+     * Used for quality filtering during sync and popularity sorting in the UI.
+     * </pre>
+     *
+     * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
+     * @param value The githubStars to set.
+     * @return This builder for chaining.
+     */
+    public Builder setGithubStars(int value) {
+
+      githubStars_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
+     * Used for quality filtering during sync and popularity sorting in the UI.
+     * </pre>
+     *
+     * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearGithubStars() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      githubStars_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.McpServerSource)

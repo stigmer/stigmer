@@ -135,6 +135,7 @@ type McpServerSourceInput struct {
 	Version       string
 	RepositoryUrl string
 	LastSyncedAt  string
+	GithubStars   int32
 }
 
 // ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
@@ -200,6 +201,7 @@ func (i *McpServerSourceInput) toProto() *mcpserverv1.McpServerSource {
 			p.LastSyncedAt = timestamppb.New(t)
 		}
 	}
+	p.GithubStars = i.GithubStars
 	return p
 }
 

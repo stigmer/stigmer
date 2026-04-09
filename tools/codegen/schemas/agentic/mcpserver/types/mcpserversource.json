@@ -53,6 +53,16 @@
       },
       "description": "Timestamp of last successful sync from the source.",
       "required": false
+    },
+    {
+      "name": "GithubStars",
+      "jsonName": "githubStars",
+      "protoField": "github_stars",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "GitHub star count at the time of last sync (0 if unknown or non-GitHub).\n Used for quality filtering during sync and popularity sorting in the UI.",
+      "required": false
     }
   ]
 }

@@ -101,6 +101,8 @@ type McpServerSourceInput struct {
 	RepositoryUrl string `json:"repository_url,omitempty" jsonschema:"Repository URL for the MCP server source code. Lets users inspect the upstream implementation for trust and transparency. Example: 'https://github.com/exa-labs/exa-mcp-server'"`
 	// Timestamp of last successful sync from the source.
 	LastSyncedAt string `json:"last_synced_at,omitempty" jsonschema:"Timestamp of last successful sync from the source."`
+	// GitHub star count at the time of last sync (0 if unknown or non-GitHub). Used for quality filtering during sync and popularity sorting in the UI.
+	GithubStars int32 `json:"github_stars,omitempty" jsonschema:"GitHub star count at the time of last sync (0 if unknown or non-GitHub). Used for quality filtering during sync and popularity sorting in the UI."`
 }
 
 // ToolApprovalPolicy defines approval requirements for a specific tool. @internal The message field supports {{args.field}} placeholders that are resolved at runtime using the actual tool arguments. This enables contextual approval messages that help users make informed decisions. Placeholder syntax: {{args.field_name}} - Replaced with the tool argument value {{tool_name}} - Replaced with the tool name (always available) If a placeholder references a missing argument, it's replaced with "<unknown>". Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass
@@ -241,6 +243,7 @@ func (input *McpServerSourceInput) toProto() (*mcpserverv1.McpServerSource, erro
 		}
 		result.LastSyncedAt = timestamppb.New(t)
 	}
+	result.GithubStars = input.GithubStars
 	return result, nil
 }
 
