@@ -18,13 +18,14 @@ import logging
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
-from langchain_mcp_adapters.client import MultiServerMCPClient  # type: ignore[import-untyped]
 from mcp.client.session import ClientSession
 
 from worker.mcp.daytona_transport import daytona_stdio_client
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
+
+    from langchain_mcp_adapters.client import MultiServerMCPClient  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +61,11 @@ class DaytonaMCPClient:
             else:
                 self._http_servers[name] = config
 
-        self._http_client: MultiServerMCPClient | None = (
-            MultiServerMCPClient(self._http_servers)  # type: ignore[arg-type]
-            if self._http_servers
-            else None
-        )
+        self._http_client: MultiServerMCPClient | None = None
+        if self._http_servers:
+            from langchain_mcp_adapters.client import MultiServerMCPClient as _MCPClient  # type: ignore[import-untyped]
+
+            self._http_client = _MCPClient(self._http_servers)  # type: ignore[arg-type]
 
         logger.info(
             "DaytonaMCPClient: %d stdio server(s) via sandbox, "
