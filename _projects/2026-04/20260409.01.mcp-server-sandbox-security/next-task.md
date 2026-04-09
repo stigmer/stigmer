@@ -12,43 +12,54 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: agent-runner (worker/mcp/, worker/activities/, sandbox Dockerfiles, config.py, sandbox_manager.py), Graphton middleware (core/middleware.py, core/mcp_manager.py), agent-runner Dockerfile
 
 ## Current State
-- **Status**: in-progress
-- **Last Session**: 2026-04-09 — T01 implemented + sandbox full CI pipeline + integration tests
-- **Active Task**: T01 COMPLETE. T02 is next.
-- **Branch**: `feat/mcp-marketplace-catalog`
+- **Status**: COMPLETE — all tasks (T01-T04) done, security boundary closed
+- **Last Session**: 2026-04-09 (Session 4) — T04 implemented and tested
+- **Active Task**: T01 COMPLETE. T02 COMPLETE. T03 COMPLETE. T04 COMPLETE.
+- **Branch**: `feat/mcp-server-sandbox-security`
 
-## Session Progress (2026-04-09)
+## Session Progress (2026-04-09, Session 4)
 
-### T01: Sandbox Image Enhancement and Automated Snapshot Pipeline — COMPLETE
-- Enhanced `Dockerfile.sandbox.basic` with Go toolchain and uv/uvx runtimes
-- Enhanced `Dockerfile.sandbox.full` with Go toolchain, uv/uvx, python symlink, unzip
-- Created `worker/snapshot_resolver.py` — Daytona-native snapshot discovery (no MongoDB)
-- Created `worker/activities/build_mcp_snapshot.py` — Temporal workflow + activity for automated snapshot building and rotation
-- Updated `worker/config.py` — snapshot resolution priority: env var > SnapshotResolver > no snapshot
-- Updated `worker/worker.py` — registers BuildMcpSnapshot activity/workflow, initializes SnapshotResolver at startup
+### T04: Connect/Discover Sandboxing + Agent-Runner Dockerfile Cleanup — COMPLETE
 
-### Sandbox Full CI Pipeline and Integration Tests — COMPLETE
-- Fixed `Dockerfile.sandbox.full`: updated header, added `python` symlink (needed by Daytona `Image.pip_install()`), added `unzip`
-- Updated `release.sandbox.yaml` to build and push both basic (multi-arch) and full (amd64-only) images
-- Updated `build_mcp_snapshot.py` to use `STIGMER_MCP_SNAPSHOT_BASE_IMAGE` defaulting to `agent-sandbox-full`
-- Created integration tests (`test_snapshot_lifecycle.py`) validating resolver, snapshot creation, and rotation against live Daytona API
-- **Test results**: 5 passed, 1 skipped (full-image pip_install test skips because `agent-sandbox-full` not yet published to GHCR)
+Four sub-scopes executed:
 
-### Key Design Decision
-- **Daytona-native snapshot resolution** (no MongoDB): SnapshotResolver queries Daytona's snapshot.list() API directly, filters by `stigmer-mcp-` prefix, caches in-memory with 5-minute TTL. Single source of truth, no DB state to sync.
+1. **Sandbox-aware discovery** — Modified `discover_mcp_server.py` to create ephemeral Daytona sandboxes for stdio MCP servers in cloud mode. Added `_maybe_create_discovery_sandbox()` (three-way gating: local→None, cloud+HTTP→None, cloud+stdio→sandbox) and `_cleanup_discovery_sandbox()` (immediate deletion in `finally` block). Updated `_connect_and_discover()` to accept optional `sandbox` parameter, routing stdio through `DaytonaMCPClient` when present.
+
+2. **Dockerfile cleanup** — Removed Node.js/npm/npx, Go toolchain, uv/uvx, gnupg, MCP runtime verification step, and Go cache directories from the agent-runner Dockerfile. Replaced with minimal system deps (git, ca-certificates, curl). Image is now a pure Python orchestrator.
+
+3. **Documentation** — Added "MCP Server Execution in Cloud Mode" section to `execution-modes.md` covering agent execution path, connect/discover workflow, Dockerfile changes, and local mode. Added "Automated Snapshot Management (Production)" section to `daytona-setup.md`.
+
+4. **Tests** — Added 13 new tests in `test_discover_mcp_sandbox.py`: gating logic (5), client routing (4), cleanup (2), timeout budget (2). Full suite: **1499 passed**, 21 skipped, 0 failures.
+
+### Design Decision: Ephemeral Sandbox for Discovery
+Chose Option A (ephemeral sandbox per discovery) over Option B (deferred backfill). Rationale: preserves immediate UX (tools visible at connect time), enables classify_tool_approvals at connect time, mirrors Cursor's immediate-discovery pattern. Cold start acceptable (10-30s from snapshot) for a one-time connect operation.
+
+### Timeout Budget Adjustment
+Increased `start_to_close_timeout` from 300s to 600s and added `heartbeat_timeout=60s` for both `ConnectMcpServerWorkflow` and `DiscoverMcpServerWorkflow` to accommodate sandbox creation (up to 180s) + MCP init (270s).
+
+## Project Completion Summary
+
+The security boundary is now fully closed. In cloud mode, untrusted MCP server code never executes inside the agent-runner pod:
+
+| Path | Transport | Where It Runs |
+|------|-----------|---------------|
+| Agent execution | stdio | Daytona sandbox (T02) |
+| Agent execution | HTTP | Remote endpoint (unchanged) |
+| Connect/Discover | stdio | Ephemeral Daytona sandbox (T04) |
+| Connect/Discover | HTTP | Remote endpoint (unchanged) |
+| Local/OSS mode | stdio | Host subprocess (unchanged) |
 
 ## Next Steps
-1. **Publish full image**: Trigger `release.sandbox.yaml` CI pipeline (tag push or manual dispatch) to push `agent-sandbox-full` to GHCR
-2. **Validate pip_install test**: Re-run `test_pip_install_on_full_image` after the image is published to confirm the `python` symlink works
-3. **T02**: Move stdio MCP server execution from agent-runner pod into Daytona sandbox
-4. **T03**: Integrate MCP server process management with Graphton middleware
-5. **T04**: Clean up agent-runner Dockerfile — remove bundled MCP runtimes
+1. **PR**: Create pull request for `feat/mcp-server-sandbox-security` branch
+2. **E2E validation**: Validate in staging (agent execution + connect workflow + local mode)
+3. **Monitor**: Watch Daytona sandbox creation latency and cleanup success rate in production
 
 ## Context for Resume
-- The `agent-sandbox-full` image has never been published to GHCR — the CI was just added this session
-- `STIGMER_MCP_SNAPSHOT_BASE_IMAGE` is the new env var for snapshot builder base image (separate from `STIGMER_SANDBOX_IMAGE` used by OSS)
-- The `SnapshotResolver` is a module-level singleton initialized in `AgentRunner.__init__` (cloud mode only)
-- Integration tests use the dev Daytona API key from `stigmer-cloud/_ops/planton/service-hub/secrets-group/daytona.yaml`
+- The `_maybe_create_discovery_sandbox()` helper mirrors `_maybe_create_daytona_mcp_client()` from setup.py — same three-way gating pattern
+- Ephemeral sandboxes are created via `SandboxManager.get_or_create_daytona_sandbox(session_id=None, session_client=None)` — the manager already logs "creating ephemeral Daytona sandbox" for this case
+- Sandbox is explicitly deleted in the `finally` block via `cleanup_daytona_sandbox()`; the `auto_stop_interval=5` (set by SandboxManager) acts as a safety net if deletion fails
+- `_connect_and_discover()` is transport-agnostic: both `DaytonaMCPClient` and `MultiServerMCPClient` expose the same `session()` context manager
+- Agent-runner Dockerfile no longer contains Node.js, Go, or uvx — these live in the sandbox image only
 
 ## Essential Files to Review
 
@@ -96,7 +107,7 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T02
+6. [ ] All tasks complete — proceed with PR and E2E validation
 
 ## Quick Resume
 To continue this project, drag this file into chat:
