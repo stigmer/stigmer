@@ -11,7 +11,7 @@ from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput
 from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._invitation import InvitationClient, InvitationInput
-from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, ToolApprovalPolicyInput, McpServerSourceInput
+from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, McpServerSourceInput, ToolApprovalPolicyInput
 from ._organization import OrganizationClient, OrganizationInput
 from ._project import ProjectClient, ProjectInput
 from ._session import SessionClient, SessionInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput
@@ -72,8 +72,8 @@ __all__ = [
     "McpServerInput",
     "StdioServerConfigInput",
     "HttpServerConfigInput",
-    "ToolApprovalPolicyInput",
     "McpServerSourceInput",
+    "ToolApprovalPolicyInput",
     "OrganizationClient",
     "OrganizationInput",
     "ProjectClient",

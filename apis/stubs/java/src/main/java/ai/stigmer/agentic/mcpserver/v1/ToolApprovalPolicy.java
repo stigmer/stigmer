@@ -21,9 +21,10 @@ package ai.stigmer.agentic.mcpserver.v1;
  * If a placeholder references a missing argument, it's replaced with "&lt;unknown&gt;".
  *
  * Policy chain (lowest to highest priority):
- * 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
- * 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
- * 3. AgentExecution.auto_approve_all - Runtime bypass
+ * 1. McpServerStatus.tool_approvals - System-generated defaults
+ * 2. McpServerSpec.pinned_tool_approvals - Manual overrides
+ * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+ * 4. AgentExecution.auto_approve_all - Runtime bypass
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy}
@@ -368,9 +369,10 @@ private static final long serialVersionUID = 0L;
    * If a placeholder references a missing argument, it's replaced with "&lt;unknown&gt;".
    *
    * Policy chain (lowest to highest priority):
-   * 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
-   * 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 3. AgentExecution.auto_approve_all - Runtime bypass
+   * 1. McpServerStatus.tool_approvals - System-generated defaults
+   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides
+   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+   * 4. AgentExecution.auto_approve_all - Runtime bypass
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy}

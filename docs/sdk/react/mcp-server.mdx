@@ -9,17 +9,18 @@ description: Hooks and components for MCP server connections, setup, credentials
 
 ### useDiscoverCapabilities
 
-Action hook for triggering server-side MCP server capability discovery.
+Action hook for triggering server-side MCP server capability discovery
+and tool approval classification.
 
-Calls the `discoverCapabilities` RPC which delegates to the agent-runner
-via a Temporal workflow. The RPC blocks until discovery completes
+Calls the `connect` RPC which delegates to the agent-runner
+via a Temporal workflow. The RPC blocks until the connect flow completes
 (typically 5-15 seconds, ~30s timeout).
 
 Supports two modes:
 - **Save for future** (default): Credentials are saved to the personal
   environment first, then `discover(id)` is called without `runtimeEnv`.
 - **One-time use**: `discover(id, runtimeEnv)` passes credentials
-  directly to the backend. They are used for this discovery only and
+  directly to the backend. They are used for this connect only and
   not persisted to any environment.
 
 **Signature**
@@ -33,9 +34,9 @@ function useDiscoverCapabilities(): UseDiscoverCapabilitiesReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Clear the error state." },
-    discover: { type: "(mcpServerId: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Trigger server-side MCP discovery for the given MCP server.  When `runtimeEnv` is provided, the values are passed directly to the backend as one-time credentials (not persisted to any environment). When omitted, the backend resolves credentials from the user's personal environment.  Blocks until discovery completes (~30s timeout)." },
-    error: { type: "Error | null", description: "Error from the most recent failed discovery, or `null`." },
-    isDiscovering: { type: "boolean", description: "`true` while a discovery RPC is in flight." },
+    discover: { type: "(mcpServerId: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Trigger server-side MCP discovery and tool approval classification for the given MCP server via the Connect RPC.  When `runtimeEnv` is provided, the values are passed directly to the backend as one-time credentials (not persisted to any environment). When omitted, the backend resolves credentials from the user's personal environment.  Blocks until the connect flow completes (~30s timeout)." },
+    error: { type: "Error | null", description: "Error from the most recent failed connect, or `null`." },
+    isDiscovering: { type: "boolean", description: "`true` while a connect RPC is in flight." },
   }}
 />
 

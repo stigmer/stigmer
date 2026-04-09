@@ -2,11 +2,10 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput;
+import ai.stigmer.agentic.mcpserver.v1.ConnectInput;
 import ai.stigmer.agentic.mcpserver.v1.McpServer;
 import ai.stigmer.agentic.mcpserver.v1.McpServerCommandControllerGrpc;
 import ai.stigmer.agentic.mcpserver.v1.McpServerQueryControllerGrpc;
-import ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
@@ -66,15 +65,9 @@ public final class McpServerClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public McpServer updateDiscoveredCapabilities(UpdateDiscoveredCapabilitiesInput input) {
+    public McpServer connect(ConnectInput input) {
         try {
-            return command.updateDiscoveredCapabilities(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public McpServer discoverCapabilities(DiscoverCapabilitiesInput input) {
-        try {
-            return command.discoverCapabilities(input);
+            return command.connect(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

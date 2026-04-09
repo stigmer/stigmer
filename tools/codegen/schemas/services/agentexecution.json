@@ -2883,7 +2883,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "True if this tool requires approval before execution.\n Determined at runtime by merging:\n   1. McpServer.default_tool_approvals (platform/org defaults)\n   2. McpServerUsage.tool_approval_overrides (agent-specific)\n   3. AgentExecutionSpec.auto_approve_all (runtime bypass)\n\n When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused\n awaiting user decision via SubmitApproval RPC.",
+          "description": "True if this tool requires approval before execution.\n Determined at runtime by merging:\n   1. McpServerStatus.tool_approvals (system-generated defaults)\n   2. McpServerSpec.pinned_tool_approvals (manual overrides)\n   3. McpServerUsage.tool_approval_overrides (agent-specific)\n   4. AgentExecutionSpec.auto_approve_all (runtime bypass)\n\n When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused\n awaiting user decision via SubmitApproval RPC.",
           "required": false
         },
         {

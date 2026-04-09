@@ -32,6 +32,6 @@ type McpServerArgs struct {
 	DefaultEnabledTools []string `json:"defaultEnabledTools,omitempty"`
 	// Environment variables required by the MCP server.
 	EnvSpec *environmentv1.EnvironmentSpec `json:"envSpec,omitempty"`
-	// Default tool approval policies for this MCP server.   @internal  Tools listed here require user approval before execution by default.  This is the first layer in the approval policy chain:    McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all   Use cases:  - Mark destructive operations as requiring approval by default  - Protect sensitive data access across all agents using this server  - Establish organization-wide safety policies for dangerous tools   Tools not listed here do not require approval by default.  Agents can still add approval requirements via tool_approval_overrides.
-	DefaultToolApprovals []*mcpserverv1.ToolApprovalPolicy `json:"defaultToolApprovals,omitempty"`
+	// Manual tool approval overrides set by the MCP server owner.  @internal  These take precedence over system-generated McpServerStatus.tool_approvals.  Never auto-modified — only changed by explicit user action (apply/update).  Policy chain (lowest to highest priority):  1. McpServerStatus.tool_approvals - System-generated defaults  2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)  3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization  4. AgentExecution.auto_approve_all - Runtime bypass
+	PinnedToolApprovals []*mcpserverv1.ToolApprovalPolicy `json:"pinnedToolApprovals,omitempty"`
 }

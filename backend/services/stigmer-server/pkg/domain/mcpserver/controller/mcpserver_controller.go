@@ -47,13 +47,13 @@ import (
 //   - Update: Updates an existing MCP server
 //   - Delete: Deletes an MCP server
 //   - Apply: Idempotent create-or-update (Kubernetes-style)
-//   - DiscoverCapabilities: Trigger server-side MCP discovery via Temporal
+//   - Connect: Trigger server-side MCP discovery and tool approval classification via Temporal
 type McpServerController struct {
 	mcpserverv1.UnimplementedMcpServerCommandControllerServer
 	mcpserverv1.UnimplementedMcpServerQueryControllerServer
 	store store.Store
 
-	// Optional dependencies for discovery. Nil when Temporal is unavailable.
+	// Optional dependencies for connect. Nil when Temporal is unavailable.
 	temporalClient     client.Client
 	runnerQueue        string
 	environmentClient  *environment.Client
@@ -70,17 +70,17 @@ func NewMcpServerController(store store.Store) *McpServerController {
 	}
 }
 
-// SetDiscoveryDependencies injects the dependencies needed for server-side
-// MCP discovery. This is called after the Temporal connection and in-process
-// gRPC clients are established.
+// SetConnectDependencies injects the dependencies needed for the connect RPC
+// (server-side MCP discovery + tool approval classification). Called after the
+// Temporal connection and in-process gRPC clients are established.
 //
 // The Go handler creates an ephemeral ExecutionContext with the resolved
 // environment variables and passes its ID to the Temporal workflow. The
 // Python activity reads from the scoped ExecutionContext (least-privilege).
 //
-// When these dependencies are not set, DiscoverCapabilities returns
-// FAILED_PRECONDITION indicating that server-side discovery is unavailable.
-func (c *McpServerController) SetDiscoveryDependencies(
+// When these dependencies are not set, Connect returns FAILED_PRECONDITION
+// indicating that the connect flow is unavailable.
+func (c *McpServerController) SetConnectDependencies(
 	temporalClient client.Client,
 	runnerQueue string,
 	environmentClient *environment.Client,

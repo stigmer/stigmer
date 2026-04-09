@@ -55,26 +55,28 @@ message McpServerSpec {
   // Environment variables required by the MCP server.
   ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8;
 
-  // Default tool approval policies for this MCP server.
-  //
-  // @internal
-  // Tools listed here require user approval before execution by default.
-  // This is the first layer in the approval policy chain:
-  //   McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
-  //
-  // Use cases:
-  // - Mark destructive operations as requiring approval by default
-  // - Protect sensitive data access across all agents using this server
-  // - Establish organization-wide safety policies for dangerous tools
-  //
-  // Tools not listed here do not require approval by default.
-  // Agents can still add approval requirements via tool_approval_overrides.
-  repeated ToolApprovalPolicy default_tool_approvals = 9;
-
   // Source/provenance of this MCP server definition.
   // Populated by automated sync workflows (e.g. MCP Registry sync).
   // Empty for hand-authored definitions like the system mcp-server-stigmer.
   McpServerSource source = 10;
+
+  // Manual tool approval overrides set by the MCP server owner.
+  //
+  // @internal
+  // These take precedence over system-generated `McpServerStatus.tool_approvals`.
+  // Never auto-modified — only changed by explicit user action (apply/update).
+  //
+  // Use cases:
+  // - Force approval for a tool the classifier marked as auto-approve
+  // - Exempt a safe tool the classifier flagged as needing approval
+  // - Establish organization-wide safety policies for dangerous tools
+  //
+  // Policy chain (lowest to highest priority):
+  // 1. McpServerStatus.tool_approvals - System-generated defaults
+  // 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+  // 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+  // 4. AgentExecution.auto_approve_all - Runtime bypass
+  repeated ToolApprovalPolicy pinned_tool_approvals = 11;
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess.
@@ -189,9 +191,10 @@ message HttpServerConfig {
 // If a placeholder references a missing argument, it's replaced with "<unknown>".
 //
 // Policy chain (lowest to highest priority):
-// 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
-// 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-// 3. AgentExecution.auto_approve_all - Runtime bypass
+// 1. McpServerStatus.tool_approvals - System-generated defaults
+// 2. McpServerSpec.pinned_tool_approvals - Manual overrides
+// 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+// 4. AgentExecution.auto_approve_all - Runtime bypass
 message ToolApprovalPolicy {
   // Name of the tool (must match tools/list from MCP server exactly).
   // Case-sensitive matching against tool names reported by the MCP server.

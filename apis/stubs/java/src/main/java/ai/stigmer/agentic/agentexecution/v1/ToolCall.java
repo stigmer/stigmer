@@ -420,9 +420,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * True if this tool requires approval before execution.
    * Determined at runtime by merging:
-   * 1. McpServer.default_tool_approvals (platform/org defaults)
-   * 2. McpServerUsage.tool_approval_overrides (agent-specific)
-   * 3. AgentExecutionSpec.auto_approve_all (runtime bypass)
+   * 1. McpServerStatus.tool_approvals (system-generated defaults)
+   * 2. McpServerSpec.pinned_tool_approvals (manual overrides)
+   * 3. McpServerUsage.tool_approval_overrides (agent-specific)
+   * 4. AgentExecutionSpec.auto_approve_all (runtime bypass)
    *
    * When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
    * awaiting user decision via SubmitApproval RPC.
@@ -2387,9 +2388,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * True if this tool requires approval before execution.
      * Determined at runtime by merging:
-     * 1. McpServer.default_tool_approvals (platform/org defaults)
-     * 2. McpServerUsage.tool_approval_overrides (agent-specific)
-     * 3. AgentExecutionSpec.auto_approve_all (runtime bypass)
+     * 1. McpServerStatus.tool_approvals (system-generated defaults)
+     * 2. McpServerSpec.pinned_tool_approvals (manual overrides)
+     * 3. McpServerUsage.tool_approval_overrides (agent-specific)
+     * 4. AgentExecutionSpec.auto_approve_all (runtime bypass)
      *
      * When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
      * awaiting user decision via SubmitApproval RPC.
@@ -2406,9 +2408,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * True if this tool requires approval before execution.
      * Determined at runtime by merging:
-     * 1. McpServer.default_tool_approvals (platform/org defaults)
-     * 2. McpServerUsage.tool_approval_overrides (agent-specific)
-     * 3. AgentExecutionSpec.auto_approve_all (runtime bypass)
+     * 1. McpServerStatus.tool_approvals (system-generated defaults)
+     * 2. McpServerSpec.pinned_tool_approvals (manual overrides)
+     * 3. McpServerUsage.tool_approval_overrides (agent-specific)
+     * 4. AgentExecutionSpec.auto_approve_all (runtime bypass)
      *
      * When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
      * awaiting user decision via SubmitApproval RPC.
@@ -2429,9 +2432,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * True if this tool requires approval before execution.
      * Determined at runtime by merging:
-     * 1. McpServer.default_tool_approvals (platform/org defaults)
-     * 2. McpServerUsage.tool_approval_overrides (agent-specific)
-     * 3. AgentExecutionSpec.auto_approve_all (runtime bypass)
+     * 1. McpServerStatus.tool_approvals (system-generated defaults)
+     * 2. McpServerSpec.pinned_tool_approvals (manual overrides)
+     * 3. McpServerUsage.tool_approval_overrides (agent-specific)
+     * 4. AgentExecutionSpec.auto_approve_all (runtime bypass)
      *
      * When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
      * awaiting user decision via SubmitApproval RPC.

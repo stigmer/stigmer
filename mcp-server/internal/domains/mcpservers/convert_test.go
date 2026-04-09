@@ -172,9 +172,9 @@ func TestToProto_defaultEnabledTools(t *testing.T) {
 	}
 }
 
-func TestToProto_defaultToolApprovals(t *testing.T) {
+func TestToProto_pinnedToolApprovals(t *testing.T) {
 	input := &geninput.McpServerInput{
-		DefaultToolApprovals: []geninput.ToolApprovalPolicyInput{
+		PinnedToolApprovals: []geninput.ToolApprovalPolicyInput{
 			{ToolName: "delete_repository", Message: "Delete repo: {{args.repo}}"},
 			{ToolName: "force_push", Message: "Force push to {{args.branch}}"},
 		},
@@ -183,9 +183,9 @@ func TestToProto_defaultToolApprovals(t *testing.T) {
 	input.Org = "acme"
 
 	mcp := mustToProto(t, input)
-	approvals := mcp.GetSpec().GetDefaultToolApprovals()
+	approvals := mcp.GetSpec().GetPinnedToolApprovals()
 	if len(approvals) != 2 {
-		t.Fatalf("DefaultToolApprovals length = %d, want 2", len(approvals))
+		t.Fatalf("PinnedToolApprovals length = %d, want 2", len(approvals))
 	}
 	if approvals[0].GetToolName() != "delete_repository" {
 		t.Errorf("ToolName[0] = %q, want %q", approvals[0].GetToolName(), "delete_repository")
@@ -276,7 +276,7 @@ func TestToProto_fullInput(t *testing.T) {
 				"GITHUB_TOKEN": {IsSecret: true, Description: "PAT with repo scope"},
 			},
 		},
-		DefaultToolApprovals: []geninput.ToolApprovalPolicyInput{
+		PinnedToolApprovals: []geninput.ToolApprovalPolicyInput{
 			{ToolName: "delete_repository", Message: "Delete {{args.repo}}"},
 		},
 	}
@@ -318,7 +318,7 @@ func TestToProto_fullInput(t *testing.T) {
 	if spec.GetEnvSpec() == nil {
 		t.Error("EnvSpec is nil")
 	}
-	if len(spec.GetDefaultToolApprovals()) != 1 {
-		t.Errorf("DefaultToolApprovals length = %d", len(spec.GetDefaultToolApprovals()))
+	if len(spec.GetPinnedToolApprovals()) != 1 {
+		t.Errorf("PinnedToolApprovals length = %d", len(spec.GetPinnedToolApprovals()))
 	}
 }

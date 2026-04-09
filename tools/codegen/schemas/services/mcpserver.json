@@ -48,20 +48,12 @@
           "description": "Update the visibility of an existing MCP server.\n\n Only modifies metadata.visibility, leaving spec, status, and other\n metadata fields untouched.\n\n @internal\n Authorization: Requires can_edit permission on the mcp_server resource."
         },
         {
-          "name": "UpdateDiscoveredCapabilities",
-          "inputType": "UpdateDiscoveredCapabilitiesInput",
-          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput",
+          "name": "Connect",
+          "inputType": "ConnectInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Update the discovered capabilities (tools and resource templates) for an MCP server.\n\n Only modifies status.discovered_capabilities, leaving spec, validation\n state, and other status fields untouched.\n\n @internal\n Typical flow:\n 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID\n 2. CLI connects to the MCP server locally and queries tools/resources\n 3. CLI calls this RPC with the ID and discovered capabilities\n\n Authorization: Requires can_edit permission on the mcp_server resource."
-        },
-        {
-          "name": "DiscoverCapabilities",
-          "inputType": "DiscoverCapabilitiesInput",
-          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput",
-          "outputType": "McpServer",
-          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Discover the capabilities of an MCP server by connecting to it.\n\n Connects to the MCP server, enumerates tools and resource templates,\n and stores the result. Blocks until discovery completes (up to ~30 seconds)\n and returns the updated McpServer with populated\n status.discovered_capabilities.\n\n @internal\n Typical flow:\n 1. Web console ensures required credentials are saved in the user's personal environment\n 2. Web console calls discoverCapabilities with the MCP server ID\n 3. Backend resolves env vars from the user's personal environment\n 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server\n 5. Discovered tools and resource templates are stored and returned\n\n Errors:\n - FAILED_PRECONDITION: Required credentials missing from personal environment\n - DEADLINE_EXCEEDED: Discovery did not complete within the timeout\n - NOT_FOUND: MCP server does not exist\n\n Authorization: Requires can_edit permission on the mcp_server resource."
+          "description": "Connect to an MCP server: discover its tools and classify approval policies.\n\n Connects to the MCP server, enumerates tools and resource templates,\n classifies tool approval policies via a lightweight LLM, and stores the\n results in status.discovered_capabilities and status.tool_approvals.\n Blocks until completion (up to ~30 seconds) and returns the updated McpServer.\n\n @internal\n Typical flows:\n - Web console: user clicks Connect, backend resolves env vars from the\n   user's personal environment, starts a Temporal workflow on the agent-runner.\n - CLI: `stigmer discover mcp-server \u003cname\u003e` calls connect with runtime_env\n   populated from local env vars, delegating discovery to the backend.\n - Graphton backfill: agent-runner calls connect on first execution when\n   status.discovered_capabilities is empty, passing runtime_env from the\n   execution context.\n\n Errors:\n - FAILED_PRECONDITION: Required credentials missing from personal environment\n - DEADLINE_EXCEEDED: Discovery did not complete within the timeout\n - NOT_FOUND: MCP server does not exist\n\n Authorization: Requires can_connect permission on the mcp_server resource."
         }
       ]
     },
@@ -127,9 +119,9 @@
       ]
     },
     {
-      "name": "UpdateDiscoveredCapabilitiesInput",
-      "description": "UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.\n\n @internal\n Used by:\n - CLI: after `stigmer discover mcp-server \u003cname\u003e` connects locally, queries tools/resources,\n   and pushes the results to stigmer-server.\n - Agent-runner: future runtime cache refresh.\n\n The caller must first resolve the MCP server's system ID (e.g., via getByReference)\n before calling this RPC.",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput",
+      "name": "ConnectInput",
+      "description": "ConnectInput is the request for the connect RPC.\n\n @internal\n Triggers server-side MCP discovery and tool approval classification:\n the backend creates an ephemeral ExecutionContext with the resolved\n environment variables, starts a Temporal workflow that connects to the\n MCP server (via the agent-runner), enumerates tools and resource\n templates, classifies tool approval policies, and stores the results\n in status.discovered_capabilities and status.tool_approvals.\n\n Environment variable resolution:\n - When runtime_env is provided, the backend creates an ExecutionContext directly\n   from these values (one-time use, values are not persisted to any environment).\n - When runtime_env is empty, the backend resolves values from the authenticated\n   user's personal environment.\n\n Callers:\n - Web console: calls connect after saving credentials to personal environment.\n - CLI: calls connect with runtime_env populated from local env vars.\n - Graphton backfill: calls connect with runtime_env from execution context\n   when status.discovered_capabilities is empty on first agent execution.\n\n Prerequisites:\n - The MCP server must exist and have a valid server_type (stdio or http)\n - Either runtime_env must contain all required keys, or the keys must be\n   present in the user's personal environment",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
       "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
       "fields": [
         {
@@ -139,42 +131,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "System-generated ID of the MCP server to update.\n Obtained from McpServer.metadata.id (e.g., via getByReference).",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "DiscoveredCapabilities",
-          "jsonName": "discoveredCapabilities",
-          "protoField": "discovered_capabilities",
-          "type": {
-            "kind": "message",
-            "messageType": "DiscoveredCapabilities"
-          },
-          "description": "Discovered tools and resource templates to store.",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        }
-      ]
-    },
-    {
-      "name": "DiscoverCapabilitiesInput",
-      "description": "DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.\n\n @internal\n Triggers server-side MCP discovery: the backend creates an ephemeral\n ExecutionContext with the resolved environment variables, starts a Temporal\n workflow that connects to the MCP server (via the agent-runner), enumerates\n tools and resource templates, and stores the result in\n status.discovered_capabilities.\n\n Environment variable resolution:\n - When runtime_env is provided, the backend creates an ExecutionContext directly\n   from these values (one-time use, values are not persisted to any environment).\n - When runtime_env is empty, the backend resolves values from the authenticated\n   user's personal environment.\n\n Prerequisites:\n - The MCP server must exist and have a valid server_type (stdio or http)\n - Either runtime_env must contain all required keys, or the keys must be\n   present in the user's personal environment",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput",
-      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
-      "fields": [
-        {
-          "name": "McpServerId",
-          "jsonName": "mcpServerId",
-          "protoField": "mcp_server_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "System-generated ID of the MCP server to discover.\n Obtained from McpServer.metadata.id (e.g., via getByReference).",
+          "description": "System-generated ID of the MCP server to connect to.\n Obtained from McpServer.metadata.id (e.g., via getByReference).",
           "required": true,
           "validation": {
             "required": true
@@ -194,7 +151,7 @@
               "messageType": "ExecutionValue"
             }
           },
-          "description": "Optional environment variable values for one-time discovery.\n When empty, values are resolved from the user's personal environment.",
+          "description": "Optional environment variable values for one-time use.\n When empty, values are resolved from the user's personal environment.",
           "required": false
         }
       ]
@@ -425,39 +382,12 @@
           "description": "The MCP server definition is invalid.\n Check validation_message for details on what's wrong.\n The definition should be corrected before use."
         }
       ]
-    },
-    {
-      "name": "DiscoverySource",
-      "description": "DiscoverySource identifies how discovered capabilities were obtained.",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
-      "values": [
-        {
-          "name": "seedpack",
-          "number": 1,
-          "description": "Statically defined in the seedpack (built-in servers with known tool sets)."
-        },
-        {
-          "name": "cli",
-          "number": 2,
-          "description": "Discovered by the CLI via `stigmer discover mcp-server \u003cname\u003e`.\n The CLI connects to the MCP server locally and pushes results to the server."
-        },
-        {
-          "name": "agent_runner",
-          "number": 3,
-          "description": "Discovered by the agent-runner at runtime (future)."
-        },
-        {
-          "name": "api",
-          "number": 4,
-          "description": "Discovered via the discoverCapabilities RPC (web console or API).\n The backend delegates to the agent-runner via a Temporal workflow."
-        }
-      ]
     }
   ],
   "resourceDescription": "McpServer represents a reusable MCP (Model Context Protocol) server configuration.\n\n @internal\n Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:\n - Can be referenced by multiple agents (reusability)\n - Has proper access control via FGA (authorization)\n - Can be discovered in the marketplace (discoverability)\n - Belongs to an organization with PUBLIC/PRIVATE visibility\n\n Lifecycle:\n 1. Create McpServer definition (this resource) with server type and env requirements\n 2. Reference in Agent via mcp_server_usages\n 3. Create AgentInstance with environment_ref providing actual secrets\n 4. Agent runner resolves McpServer, gets secrets from Environment, starts server",
   "statusType": {
     "name": "McpServerStatus",
-    "description": "McpServerStatus represents the system-managed state of an MCP server definition.\n\n @internal\n Tracks two concerns:\n 1. Structural validation — whether the definition is valid and can be used by agents.\n 2. Discovered capabilities — the tools and resource templates the MCP server\n    actually provides. Populated by one of three mechanisms:\n      a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)\n      b. CLI discovery: `stigmer discover mcp-server \u003cname\u003e` connects locally,\n         queries the running server, and pushes results via updateDiscoveredCapabilities\n      c. Agent-runner runtime cache (future)\n\n    CLI discovery runs on the developer's machine, so credentials (e.g., GITHUB_TOKEN)\n    never leave the local environment. The server only receives tool/resource metadata.",
+    "description": "McpServerStatus represents the system-managed state of an MCP server definition.\n\n @internal\n Tracks three concerns:\n 1. Structural validation — whether the definition is valid and can be used by agents.\n 2. Discovered capabilities — the tools and resource templates the MCP server\n    actually provides. Populated by:\n      a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)\n      b. The connect RPC — the backend delegates to the agent-runner via a Temporal\n         workflow, which connects to the MCP server and enumerates tools/resources.\n 3. Tool approval policies — system-generated by a lightweight LLM classifier during\n    the connect flow. Manual overrides live in McpServerSpec.pinned_tool_approvals.",
     "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerStatus",
     "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
     "fields": [
@@ -494,7 +424,21 @@
           "kind": "message",
           "messageType": "DiscoveredCapabilities"
         },
-        "description": "Tools and resource templates discovered from the MCP server.\n Optional — absent until discovery has been performed (or seeded from seedpack).",
+        "description": "Tools and resource templates discovered from the MCP server.\n Optional — absent until the connect RPC has been called (or seeded from seedpack).",
+        "required": false
+      },
+      {
+        "name": "ToolApprovals",
+        "jsonName": "toolApprovals",
+        "protoField": "tool_approvals",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "ToolApprovalPolicy"
+          }
+        },
+        "description": "System-generated tool approval policies.\n\n @internal\n Produced by a lightweight LLM classifier during the connect flow.\n Overwritten on each reconnect. Never manually edited — use\n McpServerSpec.pinned_tool_approvals for manual overrides.\n\n Policy chain (lowest to highest priority):\n 1. McpServerStatus.tool_approvals (this field) - System-generated defaults\n 2. McpServerSpec.pinned_tool_approvals - Manual overrides\n 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization\n 4. AgentExecution.auto_approve_all - Runtime bypass",
         "required": false
       },
       {
@@ -631,7 +575,7 @@
     },
     {
       "name": "DiscoveredCapabilities",
-      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.\n\n @internal\n This is a point-in-time snapshot — the server's actual capabilities may change\n if tools are added or removed.\n\n Tools vs Resource Templates:\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.\n   - resource_templates: Read-only data endpoints accessed by URI template.\n     Resource template names must NEVER appear in enabled_tools — doing so causes\n     a fatal runtime error.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
+      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.\n\n @internal\n This is a point-in-time snapshot — the server's actual capabilities may change\n if tools are added or removed.\n\n Tools vs Resource Templates:\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.\n   - resource_templates: Read-only data endpoints accessed by URI template.\n     Resource template names must NEVER appear in enabled_tools — doing so causes\n     a fatal runtime error.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - The connect RPC (web console, CLI, or Graphton first-time-use backfill)",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
       "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
       "fields": [
@@ -671,23 +615,6 @@
             "kind": "timestamp"
           },
           "description": "When this snapshot was captured.",
-          "required": false
-        },
-        {
-          "name": "DiscoveredBy",
-          "jsonName": "discoveredBy",
-          "protoField": "discovered_by",
-          "type": {
-            "kind": "string",
-            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
-            "enumValues": [
-              "seedpack",
-              "cli",
-              "agent_runner",
-              "api"
-            ]
-          },
-          "description": "How this snapshot was produced.",
           "required": false
         }
       ]
@@ -774,6 +701,37 @@
             "kind": "struct"
           },
           "description": "JSON Schema describing the tool's input parameters.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ToolApprovalPolicy",
+      "description": "ToolApprovalPolicy defines approval requirements for a specific tool.\n\n @internal\n The message field supports {{args.field}} placeholders that are resolved\n at runtime using the actual tool arguments. This enables contextual\n approval messages that help users make informed decisions.\n\n Placeholder syntax:\n   {{args.field_name}} - Replaced with the tool argument value\n   {{tool_name}} - Replaced with the tool name (always available)\n\n If a placeholder references a missing argument, it's replaced with \"\u003cunknown\u003e\".\n\n Policy chain (lowest to highest priority):\n 1. McpServerStatus.tool_approvals - System-generated defaults\n 2. McpServerSpec.pinned_tool_approvals - Manual overrides\n 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization\n 4. AgentExecution.auto_approve_all - Runtime bypass",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
+      "fields": [
+        {
+          "name": "ToolName",
+          "jsonName": "toolName",
+          "protoField": "tool_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the tool (must match tools/list from MCP server exactly).\n Case-sensitive matching against tool names reported by the MCP server.\n Example: \"delete_repository\", \"send_email\", \"execute_sql\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable message shown to user when approval is requested.\n Supports {{args.field}} placeholders for dynamic content.\n\n If empty, a default message is generated: \"Execute tool: {tool_name}\"\n\n Guidelines for effective messages:\n   - Be specific about what will happen\n   - Include the most important argument values using placeholders\n   - Keep under 100 characters for UI display\n   - Use action verbs: \"Delete\", \"Send\", \"Execute\", \"Create\"",
           "required": false
         }
       ]

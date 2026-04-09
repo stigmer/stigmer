@@ -63,28 +63,29 @@ type McpServerSpec struct {
 	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
 	// Environment variables required by the MCP server.
 	EnvSpec *v1.EnvironmentSpec `protobuf:"bytes,8,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
-	// Default tool approval policies for this MCP server.
-	//
-	// @internal
-	// Tools listed here require user approval before execution by default.
-	// This is the first layer in the approval policy chain:
-	//
-	//	McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
-	//
-	// Use cases:
-	// - Mark destructive operations as requiring approval by default
-	// - Protect sensitive data access across all agents using this server
-	// - Establish organization-wide safety policies for dangerous tools
-	//
-	// Tools not listed here do not require approval by default.
-	// Agents can still add approval requirements via tool_approval_overrides.
-	DefaultToolApprovals []*ToolApprovalPolicy `protobuf:"bytes,9,rep,name=default_tool_approvals,json=defaultToolApprovals,proto3" json:"default_tool_approvals,omitempty"`
 	// Source/provenance of this MCP server definition.
 	// Populated by automated sync workflows (e.g. MCP Registry sync).
 	// Empty for hand-authored definitions like the system mcp-server-stigmer.
-	Source        *McpServerSource `protobuf:"bytes,10,opt,name=source,proto3" json:"source,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Source *McpServerSource `protobuf:"bytes,10,opt,name=source,proto3" json:"source,omitempty"`
+	// Manual tool approval overrides set by the MCP server owner.
+	//
+	// @internal
+	// These take precedence over system-generated `McpServerStatus.tool_approvals`.
+	// Never auto-modified — only changed by explicit user action (apply/update).
+	//
+	// Use cases:
+	// - Force approval for a tool the classifier marked as auto-approve
+	// - Exempt a safe tool the classifier flagged as needing approval
+	// - Establish organization-wide safety policies for dangerous tools
+	//
+	// Policy chain (lowest to highest priority):
+	// 1. McpServerStatus.tool_approvals - System-generated defaults
+	// 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
+	// 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+	// 4. AgentExecution.auto_approve_all - Runtime bypass
+	PinnedToolApprovals []*ToolApprovalPolicy `protobuf:"bytes,11,rep,name=pinned_tool_approvals,json=pinnedToolApprovals,proto3" json:"pinned_tool_approvals,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *McpServerSpec) Reset() {
@@ -177,16 +178,16 @@ func (x *McpServerSpec) GetEnvSpec() *v1.EnvironmentSpec {
 	return nil
 }
 
-func (x *McpServerSpec) GetDefaultToolApprovals() []*ToolApprovalPolicy {
+func (x *McpServerSpec) GetSource() *McpServerSource {
 	if x != nil {
-		return x.DefaultToolApprovals
+		return x.Source
 	}
 	return nil
 }
 
-func (x *McpServerSpec) GetSource() *McpServerSource {
+func (x *McpServerSpec) GetPinnedToolApprovals() []*ToolApprovalPolicy {
 	if x != nil {
-		return x.Source
+		return x.PinnedToolApprovals
 	}
 	return nil
 }
@@ -431,9 +432,10 @@ func (x *HttpServerConfig) GetTimeoutSeconds() int32 {
 // If a placeholder references a missing argument, it's replaced with "<unknown>".
 //
 // Policy chain (lowest to highest priority):
-// 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
-// 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-// 3. AgentExecution.auto_approve_all - Runtime bypass
+// 1. McpServerStatus.tool_approvals - System-generated defaults
+// 2. McpServerSpec.pinned_tool_approvals - Manual overrides
+// 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+// 4. AgentExecution.auto_approve_all - Runtime bypass
 type ToolApprovalPolicy struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Name of the tool (must match tools/list from MCP server exactly).
@@ -599,7 +601,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc3\x04\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc1\x04\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -607,10 +609,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05stdio\x18\x04 \x01(\v22.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n" +
 	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x122\n" +
 	"\x15default_enabled_tools\x18\a \x03(\tR\x13defaultEnabledTools\x12M\n" +
-	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\x12i\n" +
-	"\x16default_tool_approvals\x18\t \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x14defaultToolApprovals\x12H\n" +
+	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\x12H\n" +
 	"\x06source\x18\n" +
-	" \x01(\v20.ai.stigmer.agentic.mcpserver.v1.McpServerSourceR\x06sourceB\x14\n" +
+	" \x01(\v20.ai.stigmer.agentic.mcpserver.v1.McpServerSourceR\x06source\x12g\n" +
+	"\x15pinned_tool_approvals\x18\v \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x13pinnedToolApprovalsB\x14\n" +
 	"\vserver_type\x12\x05\xbaH\x02\b\x01\"j\n" +
 	"\x11StdioServerConfig\x12 \n" +
 	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
@@ -668,8 +670,8 @@ var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
 	7, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.default_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	4, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.source:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSource
+	4, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.source:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSource
+	3, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
 	5, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
 	6, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
 	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerSource.last_synced_at:type_name -> google.protobuf.Timestamp

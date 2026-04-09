@@ -43,10 +43,10 @@ type McpServerInput struct {
 	DefaultEnabledTools []string `json:"default_enabled_tools,omitempty" jsonschema:"Default tools to enable from this MCP server. Empty list means all tools are enabled by default. @internal Tool names must match exactly what the MCP server reports via tools/list. Only names from discovered_capabilities.tools are valid here. Do NOT include names from discovered_capabilities.resource_templates — resource templates are read-only data endpoints, not callable tools. Including a resource template name here causes a fatal runtime error."`
 	// Environment variables required by the MCP server.
 	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the MCP server."`
-	// Default tool approval policies for this MCP server. @internal Tools listed here require user approval before execution by default. This is the first layer in the approval policy chain: McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all Use cases: - Mark destructive operations as requiring approval by default - Protect sensitive data access across all agents using this server - Establish organization-wide safety policies for dangerous tools Tools not listed here do not require approval by default. Agents can still add approval requirements via tool_approval_overrides.
-	DefaultToolApprovals []ToolApprovalPolicyInput `json:"default_tool_approvals,omitempty" jsonschema:"Default tool approval policies for this MCP server. @internal Tools listed here require user approval before execution by default. This is the first layer in the approval policy chain: McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all Use cases: - Mark destructive operations as requiring approval by default - Protect sensitive data access across all agents using this server - Establish organization-wide safety policies for dangerous tools Tools not listed here do not require approval by default. Agents can still add approval requirements via tool_approval_overrides."`
 	// Source/provenance of this MCP server definition. Populated by automated sync workflows (e.g. MCP Registry sync). Empty for hand-authored definitions like the system mcp-server-stigmer.
 	Source *McpServerSourceInput `json:"source,omitempty" jsonschema:"Source/provenance of this MCP server definition. Populated by automated sync workflows (e.g. MCP Registry sync). Empty for hand-authored definitions like the system mcp-server-stigmer."`
+	// Manual tool approval overrides set by the MCP server owner. @internal These take precedence over system-generated `McpServerStatus.tool_approvals`. Never auto-modified — only changed by explicit user action (apply/update). Use cases: - Force approval for a tool the classifier marked as auto-approve - Exempt a safe tool the classifier flagged as needing approval - Establish organization-wide safety policies for dangerous tools Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field) 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass
+	PinnedToolApprovals []ToolApprovalPolicyInput `json:"pinned_tool_approvals,omitempty" jsonschema:"Manual tool approval overrides set by the MCP server owner. @internal These take precedence over system-generated 'McpServerStatus.tool_approvals'. Never auto-modified — only changed by explicit user action (apply/update). Use cases: - Force approval for a tool the classifier marked as auto-approve - Exempt a safe tool the classifier flagged as needing approval - Establish organization-wide safety policies for dangerous tools Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field) 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass"`
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess. @internal Communication happens via stdin/stdout using JSON-RPC messages. The agent runner starts this process and communicates via stdio. Common examples: - Node.js servers: npx @modelcontextprotocol/server-github - Python servers: python -m mcp_server_sqlite - Go servers: ./mcp-server-binary
@@ -89,14 +89,6 @@ type EnvironmentInput struct {
 	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret."`
 }
 
-// ToolApprovalPolicy defines approval requirements for a specific tool. @internal The message field supports {{args.field}} placeholders that are resolved at runtime using the actual tool arguments. This enables contextual approval messages that help users make informed decisions. Placeholder syntax: {{args.field_name}} - Replaced with the tool argument value {{tool_name}} - Replaced with the tool name (always available) If a placeholder references a missing argument, it's replaced with "<unknown>". Policy chain (lowest to highest priority): 1. McpServer.default_tool_approvals (this message) - Platform/org defaults 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 3. AgentExecution.auto_approve_all - Runtime bypass
-type ToolApprovalPolicyInput struct {
-	// Name of the tool (must match tools/list from MCP server exactly). Case-sensitive matching against tool names reported by the MCP server. Example: "delete_repository", "send_email", "execute_sql"
-	ToolName string `json:"tool_name,omitempty" jsonschema:"Name of the tool (must match tools/list from MCP server exactly). Case-sensitive matching against tool names reported by the MCP server. Example: 'delete_repository', 'send_email', 'execute_sql'"`
-	// Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: "Execute tool: {tool_name}" Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: "Delete", "Send", "Execute", "Create"
-	Message string `json:"message,omitempty" jsonschema:"Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: 'Execute tool: {tool_name}' Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: 'Delete', 'Send', 'Execute', 'Create'"`
-}
-
 // McpServerSource tracks provenance for MCP server definitions that were imported from an external registry or catalog via automated sync. This enables: - Traceability: users can inspect the upstream source of any marketplace entry. - Freshness tracking: the platform knows when a definition was last synced. - Deprecation detection: if a server disappears from the source registry, the sync workflow can flag it as deprecated. - Deduplication: source.registry_name is the natural key for upsert logic.
 type McpServerSourceInput struct {
 	// Registry or catalog this definition was sourced from. Example: "registry.modelcontextprotocol.io"
@@ -109,6 +101,14 @@ type McpServerSourceInput struct {
 	RepositoryUrl string `json:"repository_url,omitempty" jsonschema:"Repository URL for the MCP server source code. Lets users inspect the upstream implementation for trust and transparency. Example: 'https://github.com/exa-labs/exa-mcp-server'"`
 	// Timestamp of last successful sync from the source.
 	LastSyncedAt string `json:"last_synced_at,omitempty" jsonschema:"Timestamp of last successful sync from the source."`
+}
+
+// ToolApprovalPolicy defines approval requirements for a specific tool. @internal The message field supports {{args.field}} placeholders that are resolved at runtime using the actual tool arguments. This enables contextual approval messages that help users make informed decisions. Placeholder syntax: {{args.field_name}} - Replaced with the tool argument value {{tool_name}} - Replaced with the tool name (always available) If a placeholder references a missing argument, it's replaced with "<unknown>". Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass
+type ToolApprovalPolicyInput struct {
+	// Name of the tool (must match tools/list from MCP server exactly). Case-sensitive matching against tool names reported by the MCP server. Example: "delete_repository", "send_email", "execute_sql"
+	ToolName string `json:"tool_name,omitempty" jsonschema:"Name of the tool (must match tools/list from MCP server exactly). Case-sensitive matching against tool names reported by the MCP server. Example: 'delete_repository', 'send_email', 'execute_sql'"`
+	// Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: "Execute tool: {tool_name}" Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: "Delete", "Send", "Execute", "Create"
+	Message string `json:"message,omitempty" jsonschema:"Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: 'Execute tool: {tool_name}' Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: 'Delete', 'Send', 'Execute', 'Create'"`
 }
 
 // ToProto converts the flat MCP input into a fully-formed McpServer proto message.
@@ -165,19 +165,19 @@ func (input *McpServerInput) specToProto() (*mcpserverv1.McpServerSpec, error) {
 		}
 		spec.EnvSpec = v
 	}
-	for _, item := range input.DefaultToolApprovals {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, err
-		}
-		spec.DefaultToolApprovals = append(spec.DefaultToolApprovals, v)
-	}
 	if input.Source != nil {
 		v, err := input.Source.toProto()
 		if err != nil {
 			return nil, err
 		}
 		spec.Source = v
+	}
+	for _, item := range input.PinnedToolApprovals {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, err
+		}
+		spec.PinnedToolApprovals = append(spec.PinnedToolApprovals, v)
 	}
 	return spec, nil
 }
@@ -227,14 +227,6 @@ func (input *EnvironmentInput) toProto() (*environmentv1.EnvironmentSpec, error)
 	return result, nil
 }
 
-func (input *ToolApprovalPolicyInput) toProto() (*mcpserverv1.ToolApprovalPolicy, error) {
-	result := &mcpserverv1.ToolApprovalPolicy{}
-
-	result.ToolName = input.ToolName
-	result.Message = input.Message
-	return result, nil
-}
-
 func (input *McpServerSourceInput) toProto() (*mcpserverv1.McpServerSource, error) {
 	result := &mcpserverv1.McpServerSource{}
 
@@ -249,5 +241,13 @@ func (input *McpServerSourceInput) toProto() (*mcpserverv1.McpServerSource, erro
 		}
 		result.LastSyncedAt = timestamppb.New(t)
 	}
+	return result, nil
+}
+
+func (input *ToolApprovalPolicyInput) toProto() (*mcpserverv1.ToolApprovalPolicy, error) {
+	result := &mcpserverv1.ToolApprovalPolicy{}
+
+	result.ToolName = input.ToolName
+	result.Message = input.Message
 	return result, nil
 }

@@ -144,6 +144,14 @@ public enum IamPermission
    * <code>login_to_back_office = 20;</code>
    */
   login_to_back_office(20),
+  /**
+   * <pre>
+   * MCP server connect permission.
+   * </pre>
+   *
+   * <code>can_connect = 22;</code>
+   */
+  can_connect(22),
   UNRECOGNIZED(-1),
   ;
 
@@ -276,6 +284,14 @@ public enum IamPermission
    * <code>login_to_back_office = 20;</code>
    */
   public static final int login_to_back_office_VALUE = 20;
+  /**
+   * <pre>
+   * MCP server connect permission.
+   * </pre>
+   *
+   * <code>can_connect = 22;</code>
+   */
+  public static final int can_connect_VALUE = 22;
 
 
   public final int getNumber() {
@@ -324,6 +340,7 @@ public enum IamPermission
       case 18: return can_manage_identity_accounts;
       case 19: return can_update_execution_status;
       case 20: return login_to_back_office;
+      case 22: return can_connect;
       default: return null;
     }
   }

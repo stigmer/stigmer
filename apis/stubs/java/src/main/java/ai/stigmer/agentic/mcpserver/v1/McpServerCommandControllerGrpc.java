@@ -177,66 +177,35 @@ public final class McpServerCommandControllerGrpc {
     return getUpdateVisibilityMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput,
-      ai.stigmer.agentic.mcpserver.v1.McpServer> getUpdateDiscoveredCapabilitiesMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.ConnectInput,
+      ai.stigmer.agentic.mcpserver.v1.McpServer> getConnectMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "updateDiscoveredCapabilities",
-      requestType = ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "connect",
+      requestType = ai.stigmer.agentic.mcpserver.v1.ConnectInput.class,
       responseType = ai.stigmer.agentic.mcpserver.v1.McpServer.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput,
-      ai.stigmer.agentic.mcpserver.v1.McpServer> getUpdateDiscoveredCapabilitiesMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput, ai.stigmer.agentic.mcpserver.v1.McpServer> getUpdateDiscoveredCapabilitiesMethod;
-    if ((getUpdateDiscoveredCapabilitiesMethod = McpServerCommandControllerGrpc.getUpdateDiscoveredCapabilitiesMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.ConnectInput,
+      ai.stigmer.agentic.mcpserver.v1.McpServer> getConnectMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.ConnectInput, ai.stigmer.agentic.mcpserver.v1.McpServer> getConnectMethod;
+    if ((getConnectMethod = McpServerCommandControllerGrpc.getConnectMethod) == null) {
       synchronized (McpServerCommandControllerGrpc.class) {
-        if ((getUpdateDiscoveredCapabilitiesMethod = McpServerCommandControllerGrpc.getUpdateDiscoveredCapabilitiesMethod) == null) {
-          McpServerCommandControllerGrpc.getUpdateDiscoveredCapabilitiesMethod = getUpdateDiscoveredCapabilitiesMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput, ai.stigmer.agentic.mcpserver.v1.McpServer>newBuilder()
+        if ((getConnectMethod = McpServerCommandControllerGrpc.getConnectMethod) == null) {
+          McpServerCommandControllerGrpc.getConnectMethod = getConnectMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.ConnectInput, ai.stigmer.agentic.mcpserver.v1.McpServer>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateDiscoveredCapabilities"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "connect"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput.getDefaultInstance()))
+                  ai.stigmer.agentic.mcpserver.v1.ConnectInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.mcpserver.v1.McpServer.getDefaultInstance()))
-              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("updateDiscoveredCapabilities"))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("connect"))
               .build();
         }
       }
     }
-    return getUpdateDiscoveredCapabilitiesMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput,
-      ai.stigmer.agentic.mcpserver.v1.McpServer> getDiscoverCapabilitiesMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "discoverCapabilities",
-      requestType = ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.class,
-      responseType = ai.stigmer.agentic.mcpserver.v1.McpServer.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput,
-      ai.stigmer.agentic.mcpserver.v1.McpServer> getDiscoverCapabilitiesMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput, ai.stigmer.agentic.mcpserver.v1.McpServer> getDiscoverCapabilitiesMethod;
-    if ((getDiscoverCapabilitiesMethod = McpServerCommandControllerGrpc.getDiscoverCapabilitiesMethod) == null) {
-      synchronized (McpServerCommandControllerGrpc.class) {
-        if ((getDiscoverCapabilitiesMethod = McpServerCommandControllerGrpc.getDiscoverCapabilitiesMethod) == null) {
-          McpServerCommandControllerGrpc.getDiscoverCapabilitiesMethod = getDiscoverCapabilitiesMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput, ai.stigmer.agentic.mcpserver.v1.McpServer>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "discoverCapabilities"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.McpServer.getDefaultInstance()))
-              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("discoverCapabilities"))
-              .build();
-        }
-      }
-    }
-    return getDiscoverCapabilitiesMethod;
+    return getConnectMethod;
   }
 
   /**
@@ -397,46 +366,30 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the discovered capabilities (tools and resource templates) for an MCP server.
-     * Only modifies status.discovered_capabilities, leaving spec, validation
-     * state, and other status fields untouched.
-     * &#64;internal
-     * Typical flow:
-     * 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-     * 2. CLI connects to the MCP server locally and queries tools/resources
-     * 3. CLI calls this RPC with the ID and discovered capabilities
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * </pre>
-     */
-    default void updateDiscoveredCapabilities(ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateDiscoveredCapabilitiesMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Discover the capabilities of an MCP server by connecting to it.
+     * Connect to an MCP server: discover its tools and classify approval policies.
      * Connects to the MCP server, enumerates tools and resource templates,
-     * and stores the result. Blocks until discovery completes (up to ~30 seconds)
-     * and returns the updated McpServer with populated
-     * status.discovered_capabilities.
+     * classifies tool approval policies via a lightweight LLM, and stores the
+     * results in status.discovered_capabilities and status.tool_approvals.
+     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
      * &#64;internal
-     * Typical flow:
-     * 1. Web console ensures required credentials are saved in the user's personal environment
-     * 2. Web console calls discoverCapabilities with the MCP server ID
-     * 3. Backend resolves env vars from the user's personal environment
-     * 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-     * 5. Discovered tools and resource templates are stored and returned
+     * Typical flows:
+     * - Web console: user clicks Connect, backend resolves env vars from the
+     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
+     *   populated from local env vars, delegating discovery to the backend.
+     * - Graphton backfill: agent-runner calls connect on first execution when
+     *   status.discovered_capabilities is empty, passing runtime_env from the
+     *   execution context.
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
      * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
-    default void discoverCapabilities(ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput request,
+    default void connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDiscoverCapabilitiesMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getConnectMethod(), responseObserver);
     }
   }
 
@@ -577,48 +530,31 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the discovered capabilities (tools and resource templates) for an MCP server.
-     * Only modifies status.discovered_capabilities, leaving spec, validation
-     * state, and other status fields untouched.
-     * &#64;internal
-     * Typical flow:
-     * 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-     * 2. CLI connects to the MCP server locally and queries tools/resources
-     * 3. CLI calls this RPC with the ID and discovered capabilities
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * </pre>
-     */
-    public void updateDiscoveredCapabilities(ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getUpdateDiscoveredCapabilitiesMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Discover the capabilities of an MCP server by connecting to it.
+     * Connect to an MCP server: discover its tools and classify approval policies.
      * Connects to the MCP server, enumerates tools and resource templates,
-     * and stores the result. Blocks until discovery completes (up to ~30 seconds)
-     * and returns the updated McpServer with populated
-     * status.discovered_capabilities.
+     * classifies tool approval policies via a lightweight LLM, and stores the
+     * results in status.discovered_capabilities and status.tool_approvals.
+     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
      * &#64;internal
-     * Typical flow:
-     * 1. Web console ensures required credentials are saved in the user's personal environment
-     * 2. Web console calls discoverCapabilities with the MCP server ID
-     * 3. Backend resolves env vars from the user's personal environment
-     * 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-     * 5. Discovered tools and resource templates are stored and returned
+     * Typical flows:
+     * - Web console: user clicks Connect, backend resolves env vars from the
+     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
+     *   populated from local env vars, delegating discovery to the backend.
+     * - Graphton backfill: agent-runner calls connect on first execution when
+     *   status.discovered_capabilities is empty, passing runtime_env from the
+     *   execution context.
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
      * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
-    public void discoverCapabilities(ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput request,
+    public void connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getDiscoverCapabilitiesMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getConnectMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -733,46 +669,30 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the discovered capabilities (tools and resource templates) for an MCP server.
-     * Only modifies status.discovered_capabilities, leaving spec, validation
-     * state, and other status fields untouched.
-     * &#64;internal
-     * Typical flow:
-     * 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-     * 2. CLI connects to the MCP server locally and queries tools/resources
-     * 3. CLI calls this RPC with the ID and discovered capabilities
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * </pre>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServer updateDiscoveredCapabilities(ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getUpdateDiscoveredCapabilitiesMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Discover the capabilities of an MCP server by connecting to it.
+     * Connect to an MCP server: discover its tools and classify approval policies.
      * Connects to the MCP server, enumerates tools and resource templates,
-     * and stores the result. Blocks until discovery completes (up to ~30 seconds)
-     * and returns the updated McpServer with populated
-     * status.discovered_capabilities.
+     * classifies tool approval policies via a lightweight LLM, and stores the
+     * results in status.discovered_capabilities and status.tool_approvals.
+     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
      * &#64;internal
-     * Typical flow:
-     * 1. Web console ensures required credentials are saved in the user's personal environment
-     * 2. Web console calls discoverCapabilities with the MCP server ID
-     * 3. Backend resolves env vars from the user's personal environment
-     * 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-     * 5. Discovered tools and resource templates are stored and returned
+     * Typical flows:
+     * - Web console: user clicks Connect, backend resolves env vars from the
+     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
+     *   populated from local env vars, delegating discovery to the backend.
+     * - Graphton backfill: agent-runner calls connect on first execution when
+     *   status.discovered_capabilities is empty, passing runtime_env from the
+     *   execution context.
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
      * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
-    public ai.stigmer.agentic.mcpserver.v1.McpServer discoverCapabilities(ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.mcpserver.v1.McpServer connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getDiscoverCapabilitiesMethod(), getCallOptions(), request);
+          getChannel(), getConnectMethod(), getCallOptions(), request);
     }
   }
 
@@ -887,46 +807,30 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the discovered capabilities (tools and resource templates) for an MCP server.
-     * Only modifies status.discovered_capabilities, leaving spec, validation
-     * state, and other status fields untouched.
-     * &#64;internal
-     * Typical flow:
-     * 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-     * 2. CLI connects to the MCP server locally and queries tools/resources
-     * 3. CLI calls this RPC with the ID and discovered capabilities
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * </pre>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServer updateDiscoveredCapabilities(ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getUpdateDiscoveredCapabilitiesMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Discover the capabilities of an MCP server by connecting to it.
+     * Connect to an MCP server: discover its tools and classify approval policies.
      * Connects to the MCP server, enumerates tools and resource templates,
-     * and stores the result. Blocks until discovery completes (up to ~30 seconds)
-     * and returns the updated McpServer with populated
-     * status.discovered_capabilities.
+     * classifies tool approval policies via a lightweight LLM, and stores the
+     * results in status.discovered_capabilities and status.tool_approvals.
+     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
      * &#64;internal
-     * Typical flow:
-     * 1. Web console ensures required credentials are saved in the user's personal environment
-     * 2. Web console calls discoverCapabilities with the MCP server ID
-     * 3. Backend resolves env vars from the user's personal environment
-     * 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-     * 5. Discovered tools and resource templates are stored and returned
+     * Typical flows:
+     * - Web console: user clicks Connect, backend resolves env vars from the
+     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
+     *   populated from local env vars, delegating discovery to the backend.
+     * - Graphton backfill: agent-runner calls connect on first execution when
+     *   status.discovered_capabilities is empty, passing runtime_env from the
+     *   execution context.
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
      * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
-    public ai.stigmer.agentic.mcpserver.v1.McpServer discoverCapabilities(ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput request) {
+    public ai.stigmer.agentic.mcpserver.v1.McpServer connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getDiscoverCapabilitiesMethod(), getCallOptions(), request);
+          getChannel(), getConnectMethod(), getCallOptions(), request);
     }
   }
 
@@ -1046,48 +950,31 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the discovered capabilities (tools and resource templates) for an MCP server.
-     * Only modifies status.discovered_capabilities, leaving spec, validation
-     * state, and other status fields untouched.
-     * &#64;internal
-     * Typical flow:
-     * 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
-     * 2. CLI connects to the MCP server locally and queries tools/resources
-     * 3. CLI calls this RPC with the ID and discovered capabilities
-     * Authorization: Requires can_edit permission on the mcp_server resource.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> updateDiscoveredCapabilities(
-        ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getUpdateDiscoveredCapabilitiesMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Discover the capabilities of an MCP server by connecting to it.
+     * Connect to an MCP server: discover its tools and classify approval policies.
      * Connects to the MCP server, enumerates tools and resource templates,
-     * and stores the result. Blocks until discovery completes (up to ~30 seconds)
-     * and returns the updated McpServer with populated
-     * status.discovered_capabilities.
+     * classifies tool approval policies via a lightweight LLM, and stores the
+     * results in status.discovered_capabilities and status.tool_approvals.
+     * Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
      * &#64;internal
-     * Typical flow:
-     * 1. Web console ensures required credentials are saved in the user's personal environment
-     * 2. Web console calls discoverCapabilities with the MCP server ID
-     * 3. Backend resolves env vars from the user's personal environment
-     * 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
-     * 5. Discovered tools and resource templates are stored and returned
+     * Typical flows:
+     * - Web console: user clicks Connect, backend resolves env vars from the
+     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
+     *   populated from local env vars, delegating discovery to the backend.
+     * - Graphton backfill: agent-runner calls connect on first execution when
+     *   status.discovered_capabilities is empty, passing runtime_env from the
+     *   execution context.
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
      * - NOT_FOUND: MCP server does not exist
-     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> discoverCapabilities(
-        ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> connect(
+        ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getDiscoverCapabilitiesMethod(), getCallOptions()), request);
+          getChannel().newCall(getConnectMethod(), getCallOptions()), request);
     }
   }
 
@@ -1096,8 +983,7 @@ public final class McpServerCommandControllerGrpc {
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_UPDATE_VISIBILITY = 4;
-  private static final int METHODID_UPDATE_DISCOVERED_CAPABILITIES = 5;
-  private static final int METHODID_DISCOVER_CAPABILITIES = 6;
+  private static final int METHODID_CONNECT = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1136,12 +1022,8 @@ public final class McpServerCommandControllerGrpc {
           serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer>) responseObserver);
           break;
-        case METHODID_UPDATE_DISCOVERED_CAPABILITIES:
-          serviceImpl.updateDiscoveredCapabilities((ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer>) responseObserver);
-          break;
-        case METHODID_DISCOVER_CAPABILITIES:
-          serviceImpl.discoverCapabilities((ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput) request,
+        case METHODID_CONNECT:
+          serviceImpl.connect((ai.stigmer.agentic.mcpserver.v1.ConnectInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer>) responseObserver);
           break;
         default:
@@ -1198,19 +1080,12 @@ public final class McpServerCommandControllerGrpc {
               ai.stigmer.agentic.mcpserver.v1.McpServer>(
                 service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
-          getUpdateDiscoveredCapabilitiesMethod(),
+          getConnectMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput,
+              ai.stigmer.agentic.mcpserver.v1.ConnectInput,
               ai.stigmer.agentic.mcpserver.v1.McpServer>(
-                service, METHODID_UPDATE_DISCOVERED_CAPABILITIES)))
-        .addMethod(
-          getDiscoverCapabilitiesMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput,
-              ai.stigmer.agentic.mcpserver.v1.McpServer>(
-                service, METHODID_DISCOVER_CAPABILITIES)))
+                service, METHODID_CONNECT)))
         .build();
   }
 
@@ -1264,8 +1139,7 @@ public final class McpServerCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getUpdateVisibilityMethod())
-              .addMethod(getUpdateDiscoveredCapabilitiesMethod())
-              .addMethod(getDiscoverCapabilitiesMethod())
+              .addMethod(getConnectMethod())
               .build();
         }
       }

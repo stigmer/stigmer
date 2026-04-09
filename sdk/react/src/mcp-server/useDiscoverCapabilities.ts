@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { DiscoverCapabilitiesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
@@ -11,43 +11,45 @@ import { toError } from "../internal/toError";
 /** Return value of {@link useDiscoverCapabilities}. */
 export interface UseDiscoverCapabilitiesReturn {
   /**
-   * Trigger server-side MCP discovery for the given MCP server.
+   * Trigger server-side MCP discovery and tool approval classification
+   * for the given MCP server via the Connect RPC.
    *
    * When `runtimeEnv` is provided, the values are passed directly to
    * the backend as one-time credentials (not persisted to any
    * environment). When omitted, the backend resolves credentials from
    * the user's personal environment.
    *
-   * Blocks until discovery completes (~30s timeout).
+   * Blocks until the connect flow completes (~30s timeout).
    *
    * @param mcpServerId - System-generated ID of the MCP server (metadata.id).
    * @param runtimeEnv - Optional one-time environment variables for discovery.
-   * @returns The updated McpServer with populated discovered_capabilities.
+   * @returns The updated McpServer with populated discovered_capabilities and tool_approvals.
    */
   readonly discover: (
     mcpServerId: string,
     runtimeEnv?: Record<string, EnvVarInput>,
   ) => Promise<McpServer>;
-  /** `true` while a discovery RPC is in flight. */
+  /** `true` while a connect RPC is in flight. */
   readonly isDiscovering: boolean;
-  /** Error from the most recent failed discovery, or `null`. */
+  /** Error from the most recent failed connect, or `null`. */
   readonly error: Error | null;
   /** Clear the error state. */
   readonly clearError: () => void;
 }
 
 /**
- * Action hook for triggering server-side MCP server capability discovery.
+ * Action hook for triggering server-side MCP server capability discovery
+ * and tool approval classification.
  *
- * Calls the `discoverCapabilities` RPC which delegates to the agent-runner
- * via a Temporal workflow. The RPC blocks until discovery completes
+ * Calls the `connect` RPC which delegates to the agent-runner
+ * via a Temporal workflow. The RPC blocks until the connect flow completes
  * (typically 5-15 seconds, ~30s timeout).
  *
  * Supports two modes:
  * - **Save for future** (default): Credentials are saved to the personal
  *   environment first, then `discover(id)` is called without `runtimeEnv`.
  * - **One-time use**: `discover(id, runtimeEnv)` passes credentials
- *   directly to the backend. They are used for this discovery only and
+ *   directly to the backend. They are used for this connect only and
  *   not persisted to any environment.
  *
  * @example
@@ -94,14 +96,14 @@ export function useDiscoverCapabilities(): UseDiscoverCapabilitiesReturn {
           }
         }
 
-        const input = create(DiscoverCapabilitiesInputSchema, {
+        const input = create(ConnectInputSchema, {
           mcpServerId,
           ...(Object.keys(runtimeEnvMap).length > 0 && {
             runtimeEnv: runtimeEnvMap,
           }),
         });
 
-        const result = await stigmer.mcpServer.discoverCapabilities(input);
+        const result = await stigmer.mcpServer.connect(input);
         return result;
       } catch (err) {
         const wrapped = toError(err);
