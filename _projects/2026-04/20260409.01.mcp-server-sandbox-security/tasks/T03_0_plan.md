@@ -1,7 +1,7 @@
 # Task T03: Wire Sandbox MCP Execution into the Agent Pipeline
 
 **Created**: 2026-04-09
-**Status**: PENDING
+**Status**: COMPLETE
 **Estimated Effort**: 1 session
 **Depends On**: T02 (Daytona stdio relay must be built)
 

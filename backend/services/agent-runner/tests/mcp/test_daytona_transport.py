@@ -342,3 +342,277 @@ class TestDaytonaTransportLifecycle:
 
 # Needed for anyio streams in the tests above
 import anyio  # noqa: E402
+from contextlib import AsyncExitStack, asynccontextmanager  # noqa: E402
+
+
+# =============================================================================
+# connect_mcp_client: injected client path
+# =============================================================================
+
+
+class TestConnectMcpClientWithInjectedClient:
+    """Verify connect_mcp_client uses a provided client instead of MultiServerMCPClient.
+
+    When a custom ``client`` is passed (e.g. ``DaytonaMCPClient`` for
+    sandbox isolation), ``connect_mcp_client`` must use its
+    ``session()`` method and never instantiate ``MultiServerMCPClient``.
+    """
+
+    @pytest.mark.asyncio
+    async def test_injected_client_sessions_called(self) -> None:
+        """Injected client's session() is used for each server."""
+        from graphton.core.mcp_manager import connect_mcp_client
+
+        mock_session = MagicMock()
+
+        @asynccontextmanager
+        async def _fake_session(name: str):  # type: ignore[override]
+            yield mock_session
+
+        mock_client = MagicMock()
+        mock_client.session = MagicMock(side_effect=_fake_session)
+
+        mock_tool = MagicMock()
+        mock_tool.name = "search"
+
+        servers = {
+            "github": {"transport": "stdio", "command": "npx"},
+        }
+        tool_filter = {"github": ["search"]}
+
+        exit_stack = AsyncExitStack()
+
+        with patch(
+            "graphton.core.mcp_manager._lc_load_mcp_tools",
+            new_callable=AsyncMock,
+            return_value=[mock_tool],
+        ), patch(
+            "graphton.core.mcp_manager.MultiServerMCPClient",
+        ) as mock_msmc:
+            tools = await connect_mcp_client(
+                servers, tool_filter, exit_stack, client=mock_client,
+            )
+            mock_client.session.assert_called_once_with("github")
+            mock_msmc.assert_not_called()
+            assert len(tools) == 1
+            assert tools[0].name == "search"
+
+        await exit_stack.aclose()
+
+    @pytest.mark.asyncio
+    async def test_injected_client_multiple_servers(self) -> None:
+        """Injected client's session() is called once per server."""
+        from graphton.core.mcp_manager import connect_mcp_client
+
+        @asynccontextmanager
+        async def _fake_session(name: str):  # type: ignore[override]
+            yield MagicMock()
+
+        mock_client = MagicMock()
+        mock_client.session = MagicMock(side_effect=_fake_session)
+
+        tool_a = MagicMock()
+        tool_a.name = "tool_a"
+        tool_b = MagicMock()
+        tool_b.name = "tool_b"
+
+        call_count = 0
+
+        async def _load_tools_side_effect(session: Any) -> list[Any]:
+            nonlocal call_count
+            call_count += 1
+            return [tool_a] if call_count == 1 else [tool_b]
+
+        servers = {
+            "server1": {"transport": "stdio", "command": "cmd1"},
+            "server2": {"transport": "stdio", "command": "cmd2"},
+        }
+        tool_filter = {
+            "server1": ["tool_a"],
+            "server2": ["tool_b"],
+        }
+
+        exit_stack = AsyncExitStack()
+
+        with patch(
+            "graphton.core.mcp_manager._lc_load_mcp_tools",
+            side_effect=_load_tools_side_effect,
+        ):
+            tools = await connect_mcp_client(
+                servers, tool_filter, exit_stack, client=mock_client,
+            )
+            assert mock_client.session.call_count == 2
+            assert len(tools) == 2
+
+        await exit_stack.aclose()
+
+
+# =============================================================================
+# connect_mcp_client: default fallback path
+# =============================================================================
+
+
+class TestConnectMcpClientDefaultFallback:
+    """Verify connect_mcp_client creates MultiServerMCPClient when no client provided."""
+
+    @pytest.mark.asyncio
+    async def test_multi_server_client_created(self) -> None:
+        """Without an injected client, MultiServerMCPClient is instantiated."""
+        from graphton.core.mcp_manager import connect_mcp_client
+
+        mock_session = MagicMock()
+
+        @asynccontextmanager
+        async def _fake_session(name: str):  # type: ignore[override]
+            yield mock_session
+
+        mock_msmc_instance = MagicMock()
+        mock_msmc_instance.session = MagicMock(side_effect=_fake_session)
+
+        mock_tool = MagicMock()
+        mock_tool.name = "list_files"
+
+        servers = {
+            "planton": {"transport": "streamable_http", "url": "https://mcp.planton.ai"},
+        }
+        tool_filter = {"planton": ["list_files"]}
+
+        exit_stack = AsyncExitStack()
+
+        with patch(
+            "graphton.core.mcp_manager.MultiServerMCPClient",
+            return_value=mock_msmc_instance,
+        ) as mock_msmc_cls, patch(
+            "graphton.core.mcp_manager._lc_load_mcp_tools",
+            new_callable=AsyncMock,
+            return_value=[mock_tool],
+        ):
+            tools = await connect_mcp_client(
+                servers, tool_filter, exit_stack,
+            )
+            mock_msmc_cls.assert_called_once_with(servers)
+            assert len(tools) == 1
+            assert tools[0].name == "list_files"
+
+        await exit_stack.aclose()
+
+
+# =============================================================================
+# setup.py: DaytonaMCPClient gating logic
+# =============================================================================
+
+
+class TestSetupDaytonaMcpClientGating:
+    """Verify the three-way gating decision for DaytonaMCPClient creation.
+
+    The helper ``_maybe_create_daytona_mcp_client`` returns a client only
+    when ALL of these hold:  sandbox is present, configs are non-empty,
+    and at least one server uses stdio transport.
+    """
+
+    def test_sandbox_with_stdio_creates_client(self) -> None:
+        from worker.activities.graphton.setup import _maybe_create_daytona_mcp_client
+
+        sandbox = MagicMock()
+        configs = {
+            "github": {"transport": "stdio", "command": "npx", "args": ["-y", "@mcp/github"]},
+        }
+        result = _maybe_create_daytona_mcp_client(sandbox, configs, logging.getLogger())
+        assert result is not None
+
+    def test_sandbox_with_http_only_returns_none(self) -> None:
+        from worker.activities.graphton.setup import _maybe_create_daytona_mcp_client
+
+        sandbox = MagicMock()
+        configs = {
+            "planton": {"transport": "streamable_http", "url": "https://mcp.planton.ai"},
+        }
+        result = _maybe_create_daytona_mcp_client(sandbox, configs, logging.getLogger())
+        assert result is None
+
+    def test_no_sandbox_returns_none(self) -> None:
+        from worker.activities.graphton.setup import _maybe_create_daytona_mcp_client
+
+        configs = {
+            "github": {"transport": "stdio", "command": "npx"},
+        }
+        result = _maybe_create_daytona_mcp_client(None, configs, logging.getLogger())
+        assert result is None
+
+    def test_empty_configs_returns_none(self) -> None:
+        from worker.activities.graphton.setup import _maybe_create_daytona_mcp_client
+
+        sandbox = MagicMock()
+        result = _maybe_create_daytona_mcp_client(sandbox, {}, logging.getLogger())
+        assert result is None
+
+    def test_mixed_transports_creates_client(self) -> None:
+        """When both stdio and HTTP servers exist, client is created for the stdio ones."""
+        from worker.activities.graphton.setup import _maybe_create_daytona_mcp_client
+
+        sandbox = MagicMock()
+        configs = {
+            "github": {"transport": "stdio", "command": "npx", "args": ["-y", "@mcp/github"]},
+            "planton": {"transport": "streamable_http", "url": "https://mcp.planton.ai"},
+        }
+        result = _maybe_create_daytona_mcp_client(sandbox, configs, logging.getLogger())
+        assert result is not None
+
+
+# =============================================================================
+# Cleanup chain: exit_stack cascades to Daytona session deletion
+# =============================================================================
+
+
+class TestMcpCleanupChain:
+    """Verify that closing the AsyncExitStack cascades through all MCP sessions."""
+
+    @pytest.mark.asyncio
+    async def test_exit_stack_closes_all_sessions(self) -> None:
+        """Each registered session's context manager __aexit__ fires on stack close."""
+        session_exits: list[str] = []
+
+        @asynccontextmanager
+        async def _tracked_session(name: str):  # type: ignore[override]
+            yield MagicMock()
+            session_exits.append(name)
+
+        mock_client = MagicMock()
+        mock_client.session = MagicMock(side_effect=_tracked_session)
+
+        exit_stack = AsyncExitStack()
+
+        for name in ["server-a", "server-b", "server-c"]:
+            await exit_stack.enter_async_context(mock_client.session(name))
+
+        assert session_exits == []
+
+        await exit_stack.aclose()
+
+        assert set(session_exits) == {"server-a", "server-b", "server-c"}
+
+    @pytest.mark.asyncio
+    async def test_daytona_transport_session_deleted_on_stack_close(self) -> None:
+        """daytona_stdio_client deletes the Daytona session when the exit stack closes."""
+        from worker.mcp.daytona_transport import daytona_stdio_client
+
+        config = {"command": "echo", "args": ["hello"]}
+        sandbox = _make_mock_sandbox(stdout_chunks=[])
+
+        exit_stack = AsyncExitStack()
+        await exit_stack.enter_async_context(
+            daytona_stdio_client(
+                sandbox, config, server_slug="cleanup-test", startup_timeout=0.1,
+            )
+        )
+
+        sandbox.process.create_session.assert_called_once()
+        sandbox.process.delete_session.assert_not_called()
+
+        await exit_stack.aclose()
+
+        sandbox.process.delete_session.assert_called_once()
+
+
+# Required for gating tests that use the logging module
+import logging  # noqa: E402
