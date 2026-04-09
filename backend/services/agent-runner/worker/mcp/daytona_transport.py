@@ -201,7 +201,7 @@ async def daytona_stdio_client(
                             by_alias=True, exclude_none=True,
                         )
                         await anyio.to_thread.run_sync(
-                            lambda data=json_str: (
+                            lambda data=json_str: (  # type: ignore[misc]
                                 sandbox.process.send_session_command_input(
                                     session_id, cmd_id, data + "\n",
                                 )

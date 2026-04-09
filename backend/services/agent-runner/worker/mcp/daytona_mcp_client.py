@@ -61,7 +61,7 @@ class DaytonaMCPClient:
                 self._http_servers[name] = config
 
         self._http_client: MultiServerMCPClient | None = (
-            MultiServerMCPClient(self._http_servers)
+            MultiServerMCPClient(self._http_servers)  # type: ignore[arg-type]
             if self._http_servers
             else None
         )
