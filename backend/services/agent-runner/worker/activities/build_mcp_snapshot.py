@@ -1,22 +1,29 @@
-"""Temporal workflow and activity for building Daytona MCP snapshots.
+"""Temporal activity for building Daytona MCP snapshots.
 
 Programmatically creates Daytona snapshots that have popular MCP server
 packages pre-installed, eliminating cold-start latency for sandbox-based
 MCP server execution. The activity also rotates old snapshots, keeping
 the most recent N.
 
-The MCP server package list is static and configurable via the
-``STIGMER_MCP_SNAPSHOT_PACKAGES`` environment variable (JSON format).
-A curated default list is provided for out-of-the-box use.
+The workflow that orchestrates this activity is a polyglot Java workflow
+in stigmer-service (``BuildMcpSnapshotWorkflow``). It runs a local Java
+activity to resolve the package list from registry-synced MCP servers,
+then dispatches this Python activity on the ``agent_execution_runner``
+queue to perform the actual Daytona image build and snapshot creation.
+
+The package list can also be overridden via the
+``STIGMER_MCP_SNAPSHOT_PACKAGES`` environment variable (JSON format),
+with a curated default list as a final fallback.
 
 Naming convention: ``stigmer-mcp-YYYYMMDD-HHMMSS``
 
 See ``worker.snapshot_resolver`` for how the latest snapshot is discovered
 at sandbox creation time.
 
-Architecture:
-    ``BuildMcpSnapshotWorkflow`` (Temporal scheduled workflow)
-      -> ``BuildMcpSnapshot`` (Temporal activity)
+Architecture (polyglot):
+    Java: ``BuildMcpSnapshotWorkflow`` (Temporal scheduled workflow, mcp_server_sync queue)
+      -> Java: ``ResolveSnapshotPackages`` (local activity, queries MongoDB)
+      -> Python: ``BuildMcpSnapshot`` (this activity, agent_execution_runner queue)
            -> Daytona Image API (build)
            -> Daytona Snapshot API (create, list, delete)
            -> SnapshotResolver cache invalidation
@@ -28,9 +35,8 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import timedelta
 
-from temporalio import activity, workflow
+from temporalio import activity
 
 from worker.snapshot_resolver import (
     SNAPSHOT_NAME_PREFIX,
@@ -311,40 +317,3 @@ async def build_mcp_snapshot(
         logger.info("Snapshot resolver cache invalidated")
 
     return output
-
-
-# ---------------------------------------------------------------------------
-# Temporal workflow
-# ---------------------------------------------------------------------------
-
-WORKFLOW_NAME = "stigmer/mcp-snapshot/build"
-
-
-@workflow.defn(name=WORKFLOW_NAME)
-class BuildMcpSnapshotWorkflow:
-    """Temporal workflow that builds a Daytona MCP snapshot.
-
-    Designed to run on a Temporal schedule (e.g. every 6 hours). The
-    workflow delegates all work to the ``BuildMcpSnapshot`` activity
-    with a generous timeout to accommodate image builds that can take
-    several minutes.
-
-    Schedule registration (Temporal CLI example)::
-
-        temporal schedule create \\
-            --schedule-id stigmer-mcp-snapshot-builder \\
-            --workflow-id stigmer-mcp-snapshot-build \\
-            --task-queue agent_execution_runner \\
-            --workflow-type "stigmer/mcp-snapshot/build" \\
-            --input '{}' \\
-            --interval 6h
-    """
-
-    @workflow.run
-    async def run(self, input: BuildMcpSnapshotInput) -> BuildMcpSnapshotOutput:
-        return await workflow.execute_activity(
-            build_mcp_snapshot,
-            input,
-            start_to_close_timeout=timedelta(minutes=30),
-            heartbeat_timeout=timedelta(minutes=5),
-        )
