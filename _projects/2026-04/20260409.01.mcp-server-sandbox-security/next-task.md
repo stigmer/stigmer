@@ -13,42 +13,50 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: 2026-04-09 — T01 implemented + sandbox full CI pipeline + integration tests
-- **Active Task**: T01 COMPLETE. T02 is next.
-- **Branch**: `feat/mcp-marketplace-catalog`
+- **Last Session**: 2026-04-09 — T02 implemented + integration tests passing against live Daytona
+- **Active Task**: T01 COMPLETE. T02 COMPLETE. T03 is next.
+- **Branch**: `feat/mcp-server-sandbox-security`
 
-## Session Progress (2026-04-09)
+## Session Progress (2026-04-09, Session 2)
 
-### T01: Sandbox Image Enhancement and Automated Snapshot Pipeline — COMPLETE
-- Enhanced `Dockerfile.sandbox.basic` with Go toolchain and uv/uvx runtimes
-- Enhanced `Dockerfile.sandbox.full` with Go toolchain, uv/uvx, python symlink, unzip
-- Created `worker/snapshot_resolver.py` — Daytona-native snapshot discovery (no MongoDB)
-- Created `worker/activities/build_mcp_snapshot.py` — Temporal workflow + activity for automated snapshot building and rotation
-- Updated `worker/config.py` — snapshot resolution priority: env var > SnapshotResolver > no snapshot
-- Updated `worker/worker.py` — registers BuildMcpSnapshot activity/workflow, initializes SnapshotResolver at startup
+### T02: Daytona stdio Transport for MCP Server Isolation — COMPLETE
+- Created `worker/mcp/daytona_transport.py` — custom MCP transport that mirrors `mcp.client.stdio.stdio_client` but uses Daytona session API (create_session, execute_session_command with run_async=True, get_session_command_logs_async, send_session_command_input)
+- Created `worker/mcp/daytona_mcp_client.py` — `DaytonaMCPClient` that routes stdio servers through Daytona sandbox, delegates HTTP servers to standard `MultiServerMCPClient`
+- Modified 3 Graphton files to accept optional `client` parameter (mcp_manager.py, middleware.py, agent.py) — Graphton stays Daytona-agnostic
+- Wired up `DaytonaMCPClient` creation in `setup.py` for cloud mode when stdio servers are present
+- Updated `requirements.txt` to align daytona SDK at 0.151.0 (was 0.129.0, poetry.lock was already 0.151.0)
+- Updated `worker/mcp/__init__.py` with new exports
 
-### Sandbox Full CI Pipeline and Integration Tests — COMPLETE
-- Fixed `Dockerfile.sandbox.full`: updated header, added `python` symlink (needed by Daytona `Image.pip_install()`), added `unzip`
-- Updated `release.sandbox.yaml` to build and push both basic (multi-arch) and full (amd64-only) images
-- Updated `build_mcp_snapshot.py` to use `STIGMER_MCP_SNAPSHOT_BASE_IMAGE` defaulting to `agent-sandbox-full`
-- Created integration tests (`test_snapshot_lifecycle.py`) validating resolver, snapshot creation, and rotation against live Daytona API
-- **Test results**: 5 passed, 1 skipped (full-image pip_install test skips because `agent-sandbox-full` not yet published to GHCR)
+### Architecture Decision: Approach A (Custom MCP Transport)
+- Chose Approach A (custom transport) over Approach B (in-sandbox HTTP bridge) because agent-runner communicates with Daytona sandboxes exclusively through the Daytona API — no direct network path to sandbox ports
+- Transport mirrors `mcp.client.stdio.stdio_client` exactly: yields `(read_stream, write_stream)` anyio memory streams backed by Daytona session API
+- Reuses the entire MCP protocol stack (`ClientSession`) — only the transport layer is replaced
 
-### Key Design Decision
-- **Daytona-native snapshot resolution** (no MongoDB): SnapshotResolver queries Daytona's snapshot.list() API directly, filters by `stigmer-mcp-` prefix, caches in-memory with 5-minute TTL. Single source of truth, no DB state to sync.
+### Test Results
+- **23 unit tests** pass: NDJSON framing, shell command building, client routing, mock-based lifecycle
+- **5 integration tests** pass against live Daytona: echo roundtrip, real MCP server tool discovery (`@modelcontextprotocol/server-everything`), concurrent sessions, session cleanup
+- **1476 existing tests** pass — zero regressions
+- `agent-sandbox-full` published to GHCR as `v0.0.74`
+
+### Key Technical Findings
+- `mcp==1.25.0` uses `SessionMessage` (wraps `JSONRPCMessage`) — not `JSONRPCMessage` directly
+- Serialization: `session_message.message.model_dump_json(by_alias=True, exclude_none=True)` + `"\n"`
+- Parsing: `JSONRPCMessage.model_validate_json(line)` → `SessionMessage(message)`
+- Daytona sync `Process` class has `get_session_command_logs_async` as an async method (can be awaited)
+- `send_session_command_input` is sync — wrapped in `anyio.to_thread.run_sync` for use from async context
+- `langchain_mcp_adapters.MultiServerMCPClient` has no transport factory hook for stdio — necessitated the `DaytonaMCPClient` wrapper approach
 
 ## Next Steps
-1. **Publish full image**: Trigger `release.sandbox.yaml` CI pipeline (tag push or manual dispatch) to push `agent-sandbox-full` to GHCR
-2. **Validate pip_install test**: Re-run `test_pip_install_on_full_image` after the image is published to confirm the `python` symlink works
-3. **T02**: Move stdio MCP server execution from agent-runner pod into Daytona sandbox
-4. **T03**: Integrate MCP server process management with Graphton middleware
-5. **T04**: Clean up agent-runner Dockerfile — remove bundled MCP runtimes
+1. **T03**: Integrate MCP server process management with Graphton middleware
+2. **T04**: Clean up agent-runner Dockerfile — remove bundled MCP runtimes
 
 ## Context for Resume
-- The `agent-sandbox-full` image has never been published to GHCR — the CI was just added this session
-- `STIGMER_MCP_SNAPSHOT_BASE_IMAGE` is the new env var for snapshot builder base image (separate from `STIGMER_SANDBOX_IMAGE` used by OSS)
-- The `SnapshotResolver` is a module-level singleton initialized in `AgentRunner.__init__` (cloud mode only)
-- Integration tests use the dev Daytona API key from `stigmer-cloud/_ops/planton/service-hub/secrets-group/daytona.yaml`
+- The `DaytonaMCPClient` is created in `setup.py` only when `sandbox is not None` AND at least one stdio server is configured — local/OSS mode is unchanged
+- Graphton's `connect_mcp_client` accepts optional `client` parameter via duck typing (no protocol class, no Daytona import)
+- Session naming convention: `mcp-{server_slug}-{short_uuid}` (distinct from workspace sessions `ws-provision-{uuid}`)
+- Startup timeout defaults to 60 seconds — logs a warning if MCP server produces no output within that window
+- Process crash is detected via EOF on stdout stream — no automatic restart in v1
+- The `requirements.txt` daytona version (0.151.0) now matches `poetry.lock`
 
 ## Essential Files to Review
 
@@ -96,7 +104,7 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T02
+6. [ ] Continue with T03
 
 ## Quick Resume
 To continue this project, drag this file into chat:

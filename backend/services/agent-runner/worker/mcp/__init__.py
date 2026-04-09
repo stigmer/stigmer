@@ -1,7 +1,13 @@
-"""MCP server configuration module.
+"""MCP server configuration and transport module.
 
-This module provides utilities for transforming Stigmer MCP server
-configurations into LangGraph's MultiServerMCPClient format.
+This module provides:
+
+-  **Config transformation** — converts Stigmer MCP server specs into
+   LangGraph's ``MultiServerMCPClient`` format.
+-  **Placeholder resolution** — ``${VAR}`` substitution in server args
+   and HTTP headers.
+-  **Daytona transport** — runs stdio MCP servers inside a Daytona
+   sandbox for security isolation (cloud mode only).
 """
 
 from worker.mcp.config_transformer import (
@@ -9,6 +15,8 @@ from worker.mcp.config_transformer import (
     transform_all_mcp_configs,
     transform_mcp_config,
 )
+from worker.mcp.daytona_mcp_client import DaytonaMCPClient
+from worker.mcp.daytona_transport import daytona_stdio_client
 from worker.mcp.placeholder_resolver import (
     PlaceholderResolutionError,
     PlaceholderResolver,
@@ -24,4 +32,7 @@ __all__ = [
     "PlaceholderResolver",
     "PlaceholderResolutionError",
     "resolve_placeholders",
+    # Daytona transport (cloud mode)
+    "DaytonaMCPClient",
+    "daytona_stdio_client",
 ]
