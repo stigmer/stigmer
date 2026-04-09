@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { McpServerDetailView, useUpdateVisibility } from "@stigmer/react";
 import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
-import { useSessionNavigation } from "@/contexts/session-navigation";
 
 interface McpServerDetailPageInnerProps {
   readonly org: string;
@@ -17,7 +16,6 @@ export function McpServerDetailPageInner({
 }: McpServerDetailPageInnerProps) {
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
-  const { navigateToSession } = useSessionNavigation();
 
   const { updateVisibility, isPending } = useUpdateVisibility(
     "mcpServer",
@@ -34,13 +32,6 @@ export function McpServerDetailPageInner({
     [setLabel],
   );
 
-  const handlePolicySessionCreated = useCallback(
-    ({ sessionId }: { sessionId: string }) => {
-      navigateToSession(sessionId);
-    },
-    [navigateToSession],
-  );
-
   return (
     <McpServerDetailView
       org={org}
@@ -48,7 +39,6 @@ export function McpServerDetailPageInner({
       onResourceLoad={handleResourceLoad}
       onVisibilityChange={updateVisibility}
       isVisibilityPending={isPending}
-      onPolicySessionCreated={handlePolicySessionCreated}
     />
   );
 }

@@ -49,17 +49,8 @@ export type {
   CapabilityTab,
 } from "./McpServerDetailView";
 
-export { useDiscoverCapabilities } from "./useDiscoverCapabilities";
-export type { UseDiscoverCapabilitiesReturn } from "./useDiscoverCapabilities";
+export { useMcpServerConnect } from "./useMcpServerConnect";
+export type { UseMcpServerConnectReturn } from "./useMcpServerConnect";
 
 export { useMcpServerCredentials } from "./useMcpServerCredentials";
 export type { UseMcpServerCredentialsReturn } from "./useMcpServerCredentials";
-
-export { useTriggerApprovalPolicySession } from "./useTriggerApprovalPolicySession";
-export type {
-  UseTriggerApprovalPolicySessionReturn,
-  TriggerApprovalPolicyResult,
-} from "./useTriggerApprovalPolicySession";
-
-export { ApprovalPolicyGeneratorPanel } from "./ApprovalPolicyGeneratorPanel";
-export type { ApprovalPolicyGeneratorPanelProps } from "./ApprovalPolicyGeneratorPanel";

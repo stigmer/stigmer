@@ -111,7 +111,7 @@ export const fixtures = {
     list: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(SessionQueryController, "list", handler),
 
-    /** Hooks: `useCreateSession`, `useTriggerApprovalPolicySession` */
+    /** Hooks: `useCreateSession` */
     create: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(SessionCommandController, "create", handler),
 
@@ -123,7 +123,7 @@ export const fixtures = {
   // ---- Agent Execution ----
 
   agentExecution: {
-    /** Hooks: `useCreateAgentExecution`, `useTriggerApprovalPolicySession` */
+    /** Hooks: `useCreateAgentExecution` */
     create: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(AgentExecutionCommandController, "create", handler),
 
@@ -148,7 +148,7 @@ export const fixtures = {
     getArtifactContent: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(AgentExecutionQueryController, "getArtifactContent", handler),
 
-    /** Hooks: `useAttachments`, `useTriggerApprovalPolicySession` */
+    /** Hooks: `useAttachments` */
     uploadAttachment: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(AgentExecutionCommandController, "uploadAttachment", handler),
   },
@@ -160,7 +160,7 @@ export const fixtures = {
     get: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(AgentQueryController, "get", handler),
 
-    /** Hooks: `useAgent`, `useCreateSession`, `useAgentSetup`, `useTriggerApprovalPolicySession` */
+    /** Hooks: `useAgent`, `useCreateSession`, `useAgentSetup` */
     getByReference: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(AgentQueryController, "getByReference", handler),
 
@@ -227,9 +227,9 @@ export const fixtures = {
     list: (handler: UnaryFixtureHandler): FixtureSpec =>
       searchListSpec(ApiResourceKind.mcp_server, handler),
 
-    /** Hooks: `useDiscoverCapabilities` */
-    discoverCapabilities: (handler: UnaryFixtureHandler): FixtureSpec =>
-      unarySpec(McpServerCommandController, "discoverCapabilities", handler),
+    /** Hooks: `useMcpServerConnect` */
+    connect: (handler: UnaryFixtureHandler): FixtureSpec =>
+      unarySpec(McpServerCommandController, "connect", handler),
 
     /** Hooks: `useApplyResource` (when kind is McpServer) */
     apply: (handler: UnaryFixtureHandler): FixtureSpec =>
@@ -251,7 +251,7 @@ export const fixtures = {
     getByReference: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(EnvironmentQueryController, "getByReference", handler),
 
-    /** Hooks: `useEnvironmentList`, `usePersonalEnvironment`, `useTriggerApprovalPolicySession` */
+    /** Hooks: `useEnvironmentList`, `usePersonalEnvironment` */
     list: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(EnvironmentQueryController, "list", handler),
 
@@ -287,11 +287,11 @@ export const fixtures = {
     getByReference: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(AgentInstanceQueryController, "getByReference", handler),
 
-    /** Hooks: `useAgentInstanceList`, `useAgentSetup`, `useTriggerApprovalPolicySession` */
+    /** Hooks: `useAgentInstanceList`, `useAgentSetup` */
     list: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(AgentInstanceQueryController, "list", handler),
 
-    /** Hooks: `useCreateAgentInstance`, `usePersonalAgentInstance`, `useAgentSetup`, `useTriggerApprovalPolicySession` */
+    /** Hooks: `useCreateAgentInstance`, `usePersonalAgentInstance`, `useAgentSetup` */
     create: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(AgentInstanceCommandController, "create", handler),
   },
