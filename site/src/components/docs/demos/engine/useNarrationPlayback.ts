@@ -84,10 +84,10 @@ function prefetchManifestClips(manifest: NarrationManifest): void {
  * via ref — the consumer renders `<audio ref={audioRef} />` and this
  * hook drives it.
  *
- * Defaults to muted. The unmute toggle click (a user gesture) is the
- * first moment `audio.play()` is called, satisfying browser autoplay
- * policies. Subsequent programmatic `play()` calls work because the
- * element was activated by a prior user gesture.
+ * In video-style mode, audio starts unmuted. The poster overlay's play
+ * button is the user gesture that satisfies browser autoplay policy.
+ * Audio only plays when the `playing` flag is true, so it stays silent
+ * during the idle/poster state even when unmuted.
  *
  * When no manifest is provided, the hook is inert — all returned values
  * are stable no-ops so the component tree doesn't re-render.
@@ -103,9 +103,11 @@ export function useNarrationPlayback({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const prefetchedRef = useRef(false);
 
-  // Keep muted state accessible in effects without re-triggering them.
+  // Keep muted/playing state accessible in effects without re-triggering them.
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
 
   // Stable ref for the callback so the ended listener never goes stale.
   const onClipEndedRef = useRef(onClipEnded);
@@ -116,7 +118,7 @@ export function useNarrationPlayback({
   const entrySrc = entry?.src ?? null;
 
   // -----------------------------------------------------------------------
-  // Pre-fetch all clips when starting unmuted (video export mode).
+  // Pre-fetch all clips when starting unmuted.
   // Interactive unmute is handled inside toggleMute.
   // -----------------------------------------------------------------------
   useEffect(() => {
@@ -126,24 +128,32 @@ export function useNarrationPlayback({
   }, [manifest, initialMuted]);
 
   // -----------------------------------------------------------------------
-  // Step change → play the new step's clip (if unmuted and available)
+  // Persistent ended handler — always attached while a manifest exists.
+  // Separated from play/stop effects so the handler survives across
+  // idle→playing transitions without re-attachment gaps.
   // -----------------------------------------------------------------------
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !manifest) return;
 
-    if (mutedRef.current || !entrySrc) {
+    const handleEnded = () => onClipEndedRef.current?.();
+    audio.addEventListener("ended", handleEnded);
+    return () => audio.removeEventListener("ended", handleEnded);
+  }, [manifest]);
+
+  // -----------------------------------------------------------------------
+  // Step change → play the new step's clip (if unmuted, playing, and available)
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !manifest) return;
+
+    if (mutedRef.current || !entrySrc || !playingRef.current) {
       stopAudio(audio);
       return;
     }
 
-    const handleEnded = () => onClipEndedRef.current?.();
-    audio.addEventListener("ended", handleEnded);
     playClip(audio, entrySrc);
-
-    return () => {
-      audio.removeEventListener("ended", handleEnded);
-    };
   }, [stepIndex, entrySrc, manifest]);
 
   // -----------------------------------------------------------------------
@@ -155,8 +165,15 @@ export function useNarrationPlayback({
 
     if (!playing) {
       audio.pause();
-    } else if (entrySrc && audio.src && audio.paused) {
-      safePlay(audio);
+    } else if (entrySrc) {
+      // If the audio element still has a loaded source (paused mid-clip),
+      // resume from the current position. If stopAudio cleared it (e.g.
+      // transitioning out of idle), load the clip from scratch.
+      if (audio.src) {
+        safePlay(audio);
+      } else {
+        playClip(audio, entrySrc);
+      }
     }
   }, [playing, entrySrc, manifest]);
 
