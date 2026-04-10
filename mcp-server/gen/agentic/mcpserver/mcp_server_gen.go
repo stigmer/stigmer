@@ -101,14 +101,12 @@ type McpServerSourceInput struct {
 	RepositoryUrl string `json:"repository_url,omitempty" jsonschema:"Repository URL for the MCP server source code. Lets users inspect the upstream implementation for trust and transparency. Example: 'https://github.com/exa-labs/exa-mcp-server'"`
 	// Timestamp of last successful sync from the source.
 	LastSyncedAt string `json:"last_synced_at,omitempty" jsonschema:"Timestamp of last successful sync from the source."`
-	// GitHub star count at the time of last sync (0 if unknown or non-GitHub). Populated from the MCP Quality Index (no separate GitHub API call).
-	GithubStars int32 `json:"github_stars,omitempty" jsonschema:"GitHub star count at the time of last sync (0 if unknown or non-GitHub). Populated from the MCP Quality Index (no separate GitHub API call)."`
-	// MCP Quality Index composite score (0-100). Derived from four equally-weighted dimensions: maintenance (0-25), adoption (0-25), maturity (0-25), community (0-25). Source: https://github.com/grahamrowe82/mcp-quality-index
-	QualityScore int32 `json:"quality_score,omitempty" jsonschema:"MCP Quality Index composite score (0-100). Derived from four equally-weighted dimensions: maintenance (0-25), adoption (0-25), maturity (0-25), community (0-25). Source: https://github.com/grahamrowe82/mcp-quality-index"`
-	// Quality tier classification from the MCP Quality Index. Values: "verified" (70+), "established" (50-69), "emerging" (30-49), "experimental" (below 30). Only "verified" and "established" servers are synced into the marketplace.
-	QualityTier string `json:"quality_tier,omitempty" jsonschema:"Quality tier classification from the MCP Quality Index. Values: 'verified' (70+), 'established' (50-69), 'emerging' (30-49), 'experimental' (below 30). Only 'verified' and 'established' servers are synced into the marketplace."`
-	// Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers", "data-warehouse-mcp", "mongodb-mcp-servers").
-	Subcategory string `json:"subcategory,omitempty" jsonschema:"Subcategory from the MCP Quality Index (e.g., 'dotnet-mcp-servers', 'data-warehouse-mcp', 'mongodb-mcp-servers')."`
+	// GitHub star count fetched directly from the GitHub REST API. 0 if unknown or non-GitHub repository.
+	GithubStars int32 `json:"github_stars,omitempty" jsonschema:"GitHub star count fetched directly from the GitHub REST API. 0 if unknown or non-GitHub repository."`
+	// Composite quality score (0-100) computed from GitHub signals: stars (0-40), recency (0-30), license (0-15), community (0-15).
+	QualityScore int32 `json:"quality_score,omitempty" jsonschema:"Composite quality score (0-100) computed from GitHub signals: stars (0-40), recency (0-30), license (0-15), community (0-15)."`
+	// Quality tier derived from GitHub signals. Values: "verified" (A) or "established" (B). Only these two tiers are synced into the marketplace.
+	QualityTier string `json:"quality_tier,omitempty" jsonschema:"Quality tier derived from GitHub signals. Values: 'verified' (A) or 'established' (B). Only these two tiers are synced into the marketplace."`
 }
 
 // ToolApprovalPolicy defines approval requirements for a specific tool. @internal The message field supports {{args.field}} placeholders that are resolved at runtime using the actual tool arguments. This enables contextual approval messages that help users make informed decisions. Placeholder syntax: {{args.field_name}} - Replaced with the tool argument value {{tool_name}} - Replaced with the tool name (always available) If a placeholder references a missing argument, it's replaced with "<unknown>". Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass
@@ -252,7 +250,6 @@ func (input *McpServerSourceInput) toProto() (*mcpserverv1.McpServerSource, erro
 	result.GithubStars = input.GithubStars
 	result.QualityScore = input.QualityScore
 	result.QualityTier = input.QualityTier
-	result.Subcategory = input.Subcategory
 	return result, nil
 }
 

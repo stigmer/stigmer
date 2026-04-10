@@ -138,7 +138,6 @@ type McpServerSourceInput struct {
 	GithubStars   int32
 	QualityScore  int32
 	QualityTier   string
-	Subcategory   string
 }
 
 // ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
@@ -207,7 +206,6 @@ func (i *McpServerSourceInput) toProto() *mcpserverv1.McpServerSource {
 	p.GithubStars = i.GithubStars
 	p.QualityScore = i.QualityScore
 	p.QualityTier = i.QualityTier
-	p.Subcategory = i.Subcategory
 	return p
 }
 
