@@ -432,10 +432,11 @@ class ConnectMcpServerWorkflow:
 
     @workflow.run
     async def run(self, input: DiscoverMcpServerInput) -> ConnectMcpServerOutput:
-        from worker.activities.classify_tool_approvals import (
-            ClassifyToolApprovalsInput,
-            classify_tool_approvals,
-        )
+        with workflow.unsafe.imports_passed_through():
+            from worker.activities.classify_tool_approvals import (
+                ClassifyToolApprovalsInput,
+                classify_tool_approvals,
+            )
 
         discovery = await workflow.execute_activity(
             discover_mcp_server,
