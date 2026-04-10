@@ -201,11 +201,13 @@ class TestSnapshotCreation:
         logger.info("Snapshot '%s' reached ACTIVE state", snapshot_name)
 
     def test_pip_install_on_full_image(self):
-        """Validate that Image.base(full-image).pip_install() works.
+        """Validate that pip install with --break-system-packages works.
 
-        This catches the ``python`` vs ``python3`` issue: Daytona's
-        ``Image.pip_install()`` generates ``RUN python -m pip install ...``
-        which requires a ``python`` symlink on debian-based images.
+        PEP 668 (Python 3.12+) marks system Python as externally managed,
+        causing bare ``pip install`` to fail.  The production snapshot
+        builder uses ``run_commands()`` with ``--break-system-packages``
+        instead of the SDK's ``pip_install()``.  This test mirrors that
+        approach.
 
         Skips if the full image hasn't been published to GHCR yet (the
         CI pipeline must run at least once after the Dockerfile was added).
@@ -215,10 +217,12 @@ class TestSnapshotCreation:
         self._snapshots_to_cleanup.append(snapshot_name)
 
         full_image = "ghcr.io/stigmer/agent-sandbox-full:latest"
-        image = Image.base(full_image).pip_install("requests")
+        image = Image.base(full_image).run_commands(
+            "python -m pip install --break-system-packages requests"
+        )
 
         logger.info(
-            "Creating snapshot with pip_install on full image: %s",
+            "Creating snapshot with pip install on full image: %s",
             snapshot_name,
         )
         try:
@@ -236,7 +240,7 @@ class TestSnapshotCreation:
 
         _wait_for_snapshot_active(self.daytona, snapshot_name)
         logger.info(
-            "Snapshot '%s' reached ACTIVE — pip_install on full image works",
+            "Snapshot '%s' reached ACTIVE — pip install on full image works",
             snapshot_name,
         )
 

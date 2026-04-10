@@ -172,7 +172,8 @@ def _build_image(
         image = image.run_commands(cmd)
 
     if packages["pip"]:
-        image = image.pip_install(*packages["pip"])
+        cmd = "python -m pip install --break-system-packages " + " ".join(packages["pip"])
+        image = image.run_commands(cmd)
 
     if packages["go"]:
         cmds = [f"go install {pkg}" for pkg in packages["go"]]
