@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/anthropics/skills",
+    "ref": "main",
+    "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39",
+    "subdir": "skills/frontend-design"
+  },
+  "vendored_at": "2026-04-10T10:39:43Z",
+  "vendored_by": "vendor_skill.sh",
+  "content_digest": "sha256:a1ebb8143a8de639c7b98b4b3e4b5073b1bb4115db7940be047e070f9a586e12",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "digest": "sha256:0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+    },
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:b81e2ff87ed8fa4d6c377ccb127a7254c9e6a77e3ae94f21e6b514f7bb2945a0"
+    }
+  ]
+}
