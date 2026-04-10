@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-08 08:56
-**Current Task**: Automated MCP Registry sync pipeline — implementation complete, pending commit + PR
-**Status**: In progress — code complete, needs commit/PR/test
+**Current Task**: MCP Registry sync — ContinueAsNew fix for history size termination
+**Status**: In progress — Session 6 fix committed in stigmer-cloud, needs PR + deploy verification
 
 ## Session Progress (2026-04-08, Session 1)
 
@@ -187,29 +187,38 @@ When starting a new session:
   - `McpRegistrySyncScheduleRegistrar.java`: added missing `io.temporal.api.enums.v1.ScheduleOverlapPolicy` import
 - Both repos pass `make check` (Stigmer OSS: all lints + 1447 tests; Stigmer Cloud: Bazel build + 15 tests)
 
+## Session Progress (2026-04-10, Session 6)
+
+- **Root cause identified**: Workflow history exceeded Temporal's ~50MB size limit (52MB at event 4345, terminated by history-service at event 4352). Caused by raw JSON responses (~1MB/page) stored in event history with no ContinueAsNew to reset.
+- **ContinueAsNew with minimal input**: Added `Workflow.getInfo().isContinueAsNewSuggested()` check per page. Input carries only 4 fields (cursor, syncStartTime, seenSlugs, stats). Config stays in memo, lastSyncedAt reloaded from DB.
+- **Payload reduction**: Moved JSON deserialization into `FetchRegistryPageActivity` — returns structured `RegistryPageResult` instead of raw JSON string.
+- **3 new files**: `McpRegistrySyncInput.java`, `McpRegistrySyncStats.java`, `RegistryPageResult.java`
+- **4 modified files**: Workflow interface/impl, activity interface/impl
+- **Build verified**: `bazel build` passes (403 source files, 0 errors)
+
 ## Next Steps
 
-1. **Commit changes** in both repos (stigmer OSS codegen fix committed; stigmer-cloud needs commit + PR)
-2. **Create PRs** for both repos
-3. **Test sync workflow** locally or in staging — verify end-to-end flow
-4. **Post-launch**: Add manual curation layer for `default_tool_approvals` and category labels
-5. **Future**: Consider additional sources (Smithery, if they add a public API)
+1. **Create PR** for stigmer-cloud (Session 6 ContinueAsNew fix is committed)
+2. **Deploy and verify** first full sync completes end-to-end with ContinueAsNew resets in Temporal UI
+3. **Post-launch curation**: Add `default_tool_approvals` and category labels for synced servers
+4. **Future**: Consider additional sources (Smithery, if they add a public API)
+5. **Future**: Replace `seenSlugs` in ContinueAsNew input with `lastSyncRunTimestamp` on McpServer documents
 
 ## Context for Resume
 
 - **stigmer OSS**: Session 4 proto/seedpack changes + Session 5 codegen fix — needs commit and PR
-- **stigmer-cloud**: Session 4 temporal workflow + Session 5 compilation fixes — needs commit and PR
+- **stigmer-cloud**: Session 6 fixed the workflow termination issue — ContinueAsNew + payload reduction committed
 - The `identityprovider` stubs in stigmer-cloud were regenerated alongside mcpserver stubs — may be from a concurrent change; verify before committing
-- Previous chats: [MCP Marketplace Catalog](8873560d-13ec-473d-ad14-440423338b58)
+- Previous chats: [MCP Marketplace Catalog](8873560d-13ec-473d-ad14-440423338b58), [Fix Registry Sync Termination](current session)
 
 ## Blockers
 
-None — all code compiles and tests pass.
+None — all code compiles and builds pass.
 
 ## Quick Commands
 
 After loading context:
-- "Commit and PR" - Commit changes in both repos and create PRs
+- "Create PR" - Create PR for stigmer-cloud changes
 - "Test sync workflow" - Verify the Temporal workflow end-to-end
 - "Show project status" - Get overview of progress
 
