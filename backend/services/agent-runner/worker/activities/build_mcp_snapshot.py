@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 
 from temporalio import activity
 
+from worker.activities.graphton.temporal_helpers import run_sync_with_heartbeat
 from worker.snapshot_resolver import (
     SNAPSHOT_NAME_PREFIX,
     generate_snapshot_name,
@@ -292,23 +293,40 @@ async def build_mcp_snapshot(
 
     def _on_logs(line: str) -> None:
         logger.info("[snapshot-build] %s", line)
-        activity.heartbeat(f"snapshot_build:{snapshot_name}")
 
     try:
-        daytona.snapshot.create(
+        await run_sync_with_heartbeat(
+            daytona.snapshot.create,
             CreateSnapshotParams(name=snapshot_name, image=image),
+            phase_name=f"snapshot_create:{snapshot_name}",
+            log=logger,
             on_logs=_on_logs,
         )
         output.snapshot_name = snapshot_name
         logger.info("Snapshot created successfully: %s", snapshot_name)
     except Exception as e:
-        msg = f"Snapshot creation failed: {e}"
+        error_str = str(e)
+        msg = f"Snapshot creation failed: {error_str}"
         logger.error(msg)
+        if "unauthorized" in error_str.lower():
+            logger.error(
+                "Base image '%s' could not be pulled. Verify that the GHCR "
+                "package is set to public visibility, or configure registry "
+                "credentials in the Daytona dashboard (Registries).",
+                base_image,
+            )
         output.errors.append(msg)
         return output
 
     # 3. Rotate old snapshots
-    _rotate_snapshots(daytona, keep=input.snapshots_to_keep, output=output)
+    await run_sync_with_heartbeat(
+        _rotate_snapshots,
+        daytona,
+        input.snapshots_to_keep,
+        output,
+        phase_name="snapshot_rotate",
+        log=logger,
+    )
 
     # 4. Invalidate the resolver cache so the next sandbox uses the new snapshot
     resolver = get_snapshot_resolver()
