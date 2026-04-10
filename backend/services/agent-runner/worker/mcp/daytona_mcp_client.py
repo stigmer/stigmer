@@ -63,7 +63,9 @@ class DaytonaMCPClient:
 
         self._http_client: MultiServerMCPClient | None = None
         if self._http_servers:
-            from langchain_mcp_adapters.client import MultiServerMCPClient as _MCPClient  # type: ignore[import-untyped]
+            from langchain_mcp_adapters.client import (
+                MultiServerMCPClient as _MCPClient,  # type: ignore[import-untyped]
+            )
 
             self._http_client = _MCPClient(self._http_servers)  # type: ignore[arg-type]
 
