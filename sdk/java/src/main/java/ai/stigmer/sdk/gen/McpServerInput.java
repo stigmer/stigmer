@@ -4,12 +4,10 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.mcpserver.v1.HttpServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.McpServer;
-import ai.stigmer.agentic.mcpserver.v1.McpServerSource;
 import ai.stigmer.agentic.mcpserver.v1.McpServerSpec;
 import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
-import com.google.protobuf.Timestamp;
 
 /** Input for creating/updating a McpServer. */
 public final class McpServerInput {
@@ -23,8 +21,9 @@ public final class McpServerInput {
     private final HttpServerConfigInput http;
     private final java.util.List<String> defaultEnabledTools;
     private final EnvSpecInput envSpec;
-    private final McpServerSourceInput source;
     private final java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
+    private final String repositoryUrl;
+    private final int githubStars;
 
     private McpServerInput(Builder builder) {
         this.name = builder.name;
@@ -37,8 +36,9 @@ public final class McpServerInput {
         this.http = builder.http;
         this.defaultEnabledTools = builder.defaultEnabledTools;
         this.envSpec = builder.envSpec;
-        this.source = builder.source;
         this.pinnedToolApprovals = builder.pinnedToolApprovals;
+        this.repositoryUrl = builder.repositoryUrl;
+        this.githubStars = builder.githubStars;
     }
 
     McpServer toProto() {
@@ -61,14 +61,15 @@ public final class McpServerInput {
         if (this.envSpec != null) {
             spec.setEnvSpec(this.envSpec.toProto());
         }
-        if (this.source != null) {
-            spec.setSource(this.source.toProto());
-        }
         if (this.pinnedToolApprovals != null) {
             for (ToolApprovalPolicyInput item : this.pinnedToolApprovals) {
                 spec.addPinnedToolApprovals(item.toProto());
             }
         }
+        if (this.repositoryUrl != null) {
+            spec.setRepositoryUrl(this.repositoryUrl);
+        }
+        spec.setGithubStars(this.githubStars);
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -99,8 +100,9 @@ public final class McpServerInput {
         private HttpServerConfigInput http;
         private java.util.List<String> defaultEnabledTools;
         private EnvSpecInput envSpec;
-        private McpServerSourceInput source;
         private java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
+        private String repositoryUrl;
+        private int githubStars;
 
         private Builder() {}
 
@@ -114,8 +116,9 @@ public final class McpServerInput {
         public Builder http(HttpServerConfigInput http) { this.http = http; return this; }
         public Builder defaultEnabledTools(java.util.List<String> defaultEnabledTools) { this.defaultEnabledTools = defaultEnabledTools; return this; }
         public Builder envSpec(EnvSpecInput envSpec) { this.envSpec = envSpec; return this; }
-        public Builder source(McpServerSourceInput source) { this.source = source; return this; }
         public Builder pinnedToolApprovals(java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals) { this.pinnedToolApprovals = pinnedToolApprovals; return this; }
+        public Builder repositoryUrl(String repositoryUrl) { this.repositoryUrl = repositoryUrl; return this; }
+        public Builder githubStars(int githubStars) { this.githubStars = githubStars; return this; }
 
         public McpServerInput build() { return new McpServerInput(this); }
     }
@@ -208,84 +211,6 @@ public final class McpServerInput {
             public Builder timeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; return this; }
 
             public HttpServerConfigInput build() { return new HttpServerConfigInput(this); }
-        }
-    }
-
-    /** SDK input type for McpServerSource. */
-    public static final class McpServerSourceInput {
-        private final String registry;
-        private final String registryName;
-        private final String version;
-        private final String repositoryUrl;
-        private final String lastSyncedAt;
-        private final int githubStars;
-        private final int qualityScore;
-        private final String qualityTier;
-
-        private McpServerSourceInput(Builder builder) {
-            this.registry = builder.registry;
-            this.registryName = builder.registryName;
-            this.version = builder.version;
-            this.repositoryUrl = builder.repositoryUrl;
-            this.lastSyncedAt = builder.lastSyncedAt;
-            this.githubStars = builder.githubStars;
-            this.qualityScore = builder.qualityScore;
-            this.qualityTier = builder.qualityTier;
-        }
-
-        McpServerSource toProto() {
-            McpServerSource.Builder builder = McpServerSource.newBuilder();
-            if (this.registry != null) {
-                builder.setRegistry(this.registry);
-            }
-            if (this.registryName != null) {
-                builder.setRegistryName(this.registryName);
-            }
-            if (this.version != null) {
-                builder.setVersion(this.version);
-            }
-            if (this.repositoryUrl != null) {
-                builder.setRepositoryUrl(this.repositoryUrl);
-            }
-            if (this.lastSyncedAt != null && !this.lastSyncedAt.isEmpty()) {
-                java.time.Instant instant = java.time.Instant.parse(this.lastSyncedAt);
-                builder.setLastSyncedAt(com.google.protobuf.Timestamp.newBuilder()
-                    .setSeconds(instant.getEpochSecond())
-                    .setNanos(instant.getNano())
-                    .build());
-            }
-            builder.setGithubStars(this.githubStars);
-            builder.setQualityScore(this.qualityScore);
-            if (this.qualityTier != null) {
-                builder.setQualityTier(this.qualityTier);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String registry;
-            private String registryName;
-            private String version;
-            private String repositoryUrl;
-            private String lastSyncedAt;
-            private int githubStars;
-            private int qualityScore;
-            private String qualityTier;
-
-            private Builder() {}
-
-            public Builder registry(String registry) { this.registry = registry; return this; }
-            public Builder registryName(String registryName) { this.registryName = registryName; return this; }
-            public Builder version(String version) { this.version = version; return this; }
-            public Builder repositoryUrl(String repositoryUrl) { this.repositoryUrl = repositoryUrl; return this; }
-            public Builder lastSyncedAt(String lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; return this; }
-            public Builder githubStars(int githubStars) { this.githubStars = githubStars; return this; }
-            public Builder qualityScore(int qualityScore) { this.qualityScore = qualityScore; return this; }
-            public Builder qualityTier(String qualityTier) { this.qualityTier = qualityTier; return this; }
-
-            public McpServerSourceInput build() { return new McpServerSourceInput(this); }
         }
     }
 

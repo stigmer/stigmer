@@ -68,25 +68,33 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: In Progress -- Task 1 complete, ready for Task 2
-**Last Session**: 2026-04-10 -- Completed Task 1 (cleanup)
-**Active Task**: Task 2 (Proto Cleanup + Seedpack Preparation)
+**Status**: In Progress -- Tasks 1 and 2 complete, ready for Task 3
+**Last Session**: 2026-04-10 -- Completed Task 2 (proto cleanup + seedpack preparation)
+**Active Task**: Task 3 (Create Curated MCP Server YAML Files)
 
 ## Session Progress (2026-04-10)
 
 ### Task 1: COMPLETE
 - Deleted 12 synced MCP servers from DB via CLI (preserved system `mcp-server-stigmer`)
 - Removed 23 sync-specific Java files from stigmer-cloud (workflows, activities, models, transform)
-- Refactored shared Temporal worker/config infrastructure:
-  - Renamed `McpServerSyncTemporalConfig` -> `McpServerTemporalConfig` (prefix: `temporal.mcp-server`)
-  - Renamed `McpServerSyncTemporalWorkerConfig` -> `McpServerTemporalWorkerConfig`
-  - Renamed task queue `mcp_server_sync` -> `mcp_server`
-  - Removed `isRegistrySynced()` filter from `ResolveSnapshotPackagesActivityImpl`
-  - Removed `TEMPORAL_MCP_SERVER_SYNC_GITHUB_TOKEN` from kustomize
+- Refactored shared Temporal worker/config infrastructure
 - PR: https://github.com/stigmer/stigmer-cloud/pull/114
 - **Manual ops still needed**:
   - Cancel Temporal schedule `mcp-registry-sync-daily` via Temporal UI
   - Delete MongoDB document `mcp-registry-sync-state:stigmer`
+
+### Task 2: COMPLETE
+- Deleted entire `McpServerSource` message from `spec.proto` (8 fields removed, no reserved)
+- Promoted `repository_url` (field 12) and `github_stars` (field 13) directly onto `McpServerSpec`
+- Removed `source` field (field 10) from `McpServerSpec`
+- Removed unused `google/protobuf/timestamp.proto` import
+- Regenerated all stubs across both repos:
+  - stigmer: `make codegen` (Go, Java, Python, TS stubs + JSON schemas + SDK codegen + SDK docs + narration)
+  - stigmer-cloud: `make protos` (Java, Go, Python, TS, Dart stubs)
+- Rewrote `seedpack/mcp-servers/CONTRIBUTING.md` for curated marketplace model (naming conventions, YAML template, quality bar, 14 categories)
+- Verified: `buf lint` clean, zero stale references to `McpServerSource` or removed fields
+- Net: 25 files changed, -3,346 lines deleted, +731 lines added (stigmer), 13 files changed in stigmer-cloud
+- **Design decision**: Flattened rather than keeping 2-field wrapper -- simpler YAML for curated entries, safe because all synced data was already deleted in Task 1
 
 ### Key Architectural Findings (from Task 1)
 - Sync and snapshot workflows were deeply coupled through shared worker config and config properties -- required careful refactoring, not just deletion
@@ -94,26 +102,25 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Start Task 2**: Proto Cleanup + Seedpack Preparation (stigmer repo)
-   - Slim down `McpServerSource` proto (remove 6 sync-only fields)
-   - Update `seedpack/mcp-servers/CONTRIBUTING.md` for curated model
-   - Verify proto builds
+1. **Start Task 3**: Create ~40 Curated MCP Server YAML Files (stigmer repo)
+   - Verify GitHub repo URLs for all servers
+   - Create YAML files in `seedpack/mcp-servers/` (14 categories, ~40 servers)
+   - Test `stigmer seedpack apply`
    - PR to stigmer
-2. **After Task 2 merges**: Start Task 3 (create ~40 curated YAML files)
+2. **After Task 3**: Test end-to-end marketplace experience
 
 ## Task Breakdown (3 tasks, each = 1 conversation)
 
 ### Task 1: Cleanup -- Delete Synced Data + Remove Temporal Sync Workflow -- COMPLETE
 **PR**: https://github.com/stigmer/stigmer-cloud/pull/114
 
-### Task 2: Proto Cleanup + Seedpack Preparation -- NEXT
-**Repo**: stigmer
-- Slim down McpServerSource proto (remove 6 sync-only fields, keep repository_url + github_stars)
-- Update CONTRIBUTING.md for curated contribution model
-- Verify proto builds
-- PR to stigmer
+### Task 2: Proto Cleanup + Seedpack Preparation -- COMPLETE
+**Repo**: stigmer + stigmer-cloud (stubs only)
+- Deleted `McpServerSource` message entirely, flattened `repository_url` + `github_stars` onto `McpServerSpec`
+- Rewrote CONTRIBUTING.md for curated contribution model
+- Regenerated all stubs in both repos
 
-### Task 3: Create ~40 Curated MCP Server YAML Files
+### Task 3: Create ~40 Curated MCP Server YAML Files -- NEXT
 **Repo**: stigmer
 - Verify GitHub repo URLs for all servers
 - Create YAML files in seedpack/mcp-servers/ (14 categories, ~40 servers)
@@ -124,17 +131,16 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start Task 2" -- begin proto cleanup
 - "Start Task 3" -- begin curated YAML creation
 - "Show project status" -- overview of progress
 
 ## Key References
 
 - **Detailed plan**: `_projects/2026-04/20260410.01.curated-mcp-marketplace/tasks/T01_0_plan.md`
-- **Task 1 execution plan**: Cursor plan `mcp_sync_workflow_cleanup_1ed74fe3.plan.md`
 - **Task 1 PR**: https://github.com/stigmer/stigmer-cloud/pull/114
 - **Existing MCP server YAML template**: `seedpack/mcp-servers/mcp-server-stigmer.yaml`
 - **Proto file**: `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto`
+- **CONTRIBUTING guide**: `seedpack/mcp-servers/CONTRIBUTING.md`
 - **Temporal workflow dir (post-cleanup)**: `stigmer-cloud/backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/temporal/` (13 files remaining)
 
 ---

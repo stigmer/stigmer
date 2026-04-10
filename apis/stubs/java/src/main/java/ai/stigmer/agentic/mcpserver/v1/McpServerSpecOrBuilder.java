@@ -269,39 +269,6 @@ public interface McpServerSpecOrBuilder extends
 
   /**
    * <pre>
-   * Source/provenance of this MCP server definition.
-   * Populated by automated sync workflows (e.g. MCP Registry sync).
-   * Empty for hand-authored definitions like the system mcp-server-stigmer.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-   * @return Whether the source field is set.
-   */
-  boolean hasSource();
-  /**
-   * <pre>
-   * Source/provenance of this MCP server definition.
-   * Populated by automated sync workflows (e.g. MCP Registry sync).
-   * Empty for hand-authored definitions like the system mcp-server-stigmer.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-   * @return The source.
-   */
-  ai.stigmer.agentic.mcpserver.v1.McpServerSource getSource();
-  /**
-   * <pre>
-   * Source/provenance of this MCP server definition.
-   * Populated by automated sync workflows (e.g. MCP Registry sync).
-   * Empty for hand-authored definitions like the system mcp-server-stigmer.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder getSourceOrBuilder();
-
-  /**
-   * <pre>
    * Manual tool approval overrides set by the MCP server owner.
    *
    * &#64;internal
@@ -418,6 +385,44 @@ public interface McpServerSpecOrBuilder extends
    */
   ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getPinnedToolApprovalsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * URL of the upstream source repository for this MCP server.
+   * Shown in the marketplace so users can inspect the implementation
+   * for trust and transparency.
+   * Example: "https://github.com/modelcontextprotocol/servers"
+   * </pre>
+   *
+   * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+   * @return The repositoryUrl.
+   */
+  java.lang.String getRepositoryUrl();
+  /**
+   * <pre>
+   * URL of the upstream source repository for this MCP server.
+   * Shown in the marketplace so users can inspect the implementation
+   * for trust and transparency.
+   * Example: "https://github.com/modelcontextprotocol/servers"
+   * </pre>
+   *
+   * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+   * @return The bytes for repositoryUrl.
+   */
+  com.google.protobuf.ByteString
+      getRepositoryUrlBytes();
+
+  /**
+   * <pre>
+   * GitHub star count at the time of curation.
+   * Used as a popularity signal in marketplace display.
+   * 0 if unknown or non-GitHub repository.
+   * </pre>
+   *
+   * <code>int32 github_stars = 13 [json_name = "githubStars"];</code>
+   * @return The githubStars.
+   */
+  int getGithubStars();
 
   ai.stigmer.agentic.mcpserver.v1.McpServerSpec.ServerTypeCase getServerTypeCase();
 }

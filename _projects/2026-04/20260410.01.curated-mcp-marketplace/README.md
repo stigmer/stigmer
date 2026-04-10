@@ -63,7 +63,7 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 - [x] Project initialized
 - [x] Initial analysis complete
 - [x] Task 1: Cleanup -- sync workflow removed, PR #114
-- [ ] Task 2: Proto cleanup + seedpack preparation
+- [x] Task 2: Proto cleanup + seedpack preparation
 - [ ] Task 3: Curated YAML creation
 - [ ] Testing and validation
 - [ ] Project completed

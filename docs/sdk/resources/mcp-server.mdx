@@ -177,8 +177,9 @@ const mcpServer = await stigmer.mcpServer.apply({
   http: {},
   defaultEnabledTools: [],
   envSpec: {},
-  source: {},
   pinnedToolApprovals: [],
+  repositoryUrl: "...",
+  githubStars: 0,
 });
 ```
 </Tab>
@@ -195,8 +196,9 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
   EnvSpec:             &stigmer.EnvSpecInput{},
-  Source:              &stigmer.McpServerSourceInput{},
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  RepositoryUrl:       "...",
+  GithubStars:         0,
 })
 ```
 </Tab>
@@ -213,8 +215,9 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     http=None,
     default_enabled_tools=[],
     env_spec=None,
-    source=None,
     pinned_tool_approvals=[],
+    repository_url="...",
+    github_stars=0,
 ))
 ```
 </Tab>
@@ -231,8 +234,9 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .http(null)
     .defaultEnabledTools(List.of())
     .envSpec(null)
-    .source(null)
     .pinnedToolApprovals(List.of())
+    .repositoryUrl("...")
+    .githubStars(0)
     .build());
 ```
 </Tab>
@@ -262,8 +266,9 @@ const mcpServer = await stigmer.mcpServer.create({
   http: {},
   defaultEnabledTools: [],
   envSpec: {},
-  source: {},
   pinnedToolApprovals: [],
+  repositoryUrl: "...",
+  githubStars: 0,
 });
 ```
 </Tab>
@@ -280,8 +285,9 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
   EnvSpec:             &stigmer.EnvSpecInput{},
-  Source:              &stigmer.McpServerSourceInput{},
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  RepositoryUrl:       "...",
+  GithubStars:         0,
 })
 ```
 </Tab>
@@ -298,8 +304,9 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     http=None,
     default_enabled_tools=[],
     env_spec=None,
-    source=None,
     pinned_tool_approvals=[],
+    repository_url="...",
+    github_stars=0,
 ))
 ```
 </Tab>
@@ -316,8 +323,9 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .http(null)
     .defaultEnabledTools(List.of())
     .envSpec(null)
-    .source(null)
     .pinnedToolApprovals(List.of())
+    .repositoryUrl("...")
+    .githubStars(0)
     .build());
 ```
 </Tab>
@@ -345,8 +353,9 @@ const mcpServer = await stigmer.mcpServer.update({
   http: {},
   defaultEnabledTools: [],
   envSpec: {},
-  source: {},
   pinnedToolApprovals: [],
+  repositoryUrl: "...",
+  githubStars: 0,
 });
 ```
 </Tab>
@@ -363,8 +372,9 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
   EnvSpec:             &stigmer.EnvSpecInput{},
-  Source:              &stigmer.McpServerSourceInput{},
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
+  RepositoryUrl:       "...",
+  GithubStars:         0,
 })
 ```
 </Tab>
@@ -381,8 +391,9 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     http=None,
     default_enabled_tools=[],
     env_spec=None,
-    source=None,
     pinned_tool_approvals=[],
+    repository_url="...",
+    github_stars=0,
 ))
 ```
 </Tab>
@@ -399,8 +410,9 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .http(null)
     .defaultEnabledTools(List.of())
     .envSpec(null)
-    .source(null)
     .pinnedToolApprovals(List.of())
+    .repositoryUrl("...")
+    .githubStars(0)
     .build());
 ```
 </Tab>
@@ -561,8 +573,9 @@ Input for creating or updating a MCP Server.
     http: { type: "HttpServerConfigInput", description: "HTTP-based server (HTTP + Server-Sent Events communication).", typeDescriptionLink: "#httpserverconfiginput" },
     defaultEnabledTools: { type: "string[]", description: "Default tools to enable from this MCP server." },
     envSpec: { type: "EnvSpecInput", description: "Environment variables required by the MCP server.", typeDescriptionLink: "#envspecinput" },
-    source: { type: "McpServerSourceInput", description: "Source/provenance of this MCP server definition.", typeDescriptionLink: "#mcpserversourceinput" },
     pinnedToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Manual tool approval overrides set by the MCP server owner.", typeDescriptionLink: "#toolapprovalpolicyinput" },
+    repositoryUrl: { type: "string", description: "URL of the upstream source repository for this MCP server." },
+    githubStars: { type: "number", description: "GitHub star count at the time of curation." },
   }}
 />
 
@@ -611,23 +624,6 @@ EnvironmentValue represents a single configuration or secret entry.
     value: { type: "string", description: "The configuration or secret string." },
     isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
     description: { type: "string", description: "Human-readable description of what this value is used for." },
-  }}
-/>
-
-### McpServerSourceInput
-
-McpServerSource tracks provenance for MCP server definitions that were imported from an external registry or catalog via automated sync.
-
-<TypeTable
-  type={{
-    registry: { type: "string", description: "Registry or catalog this definition was sourced from." },
-    registryName: { type: "string", description: "Name/identifier in the source registry (exact, unmodified)." },
-    version: { type: "string", description: "Version from the source registry at the time of last sync." },
-    repositoryUrl: { type: "string", description: "Repository URL for the MCP server source code." },
-    lastSyncedAt: { type: "string", description: "Timestamp of last successful sync from the source." },
-    githubStars: { type: "number", description: "GitHub star count fetched directly from the GitHub REST API." },
-    qualityScore: { type: "number", description: "Composite quality score (0-100) computed from GitHub signals: stars (0-40), recency (0-30), license (0-15), community (0-15)." },
-    qualityTier: { type: "string", description: "Quality tier derived from GitHub signals." },
   }}
 />
 

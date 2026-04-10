@@ -43,6 +43,7 @@ private static final long serialVersionUID = 0L;
     defaultEnabledTools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     pinnedToolApprovals_ = java.util.Collections.emptyList();
+    repositoryUrl_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -484,50 +485,6 @@ private static final long serialVersionUID = 0L;
     return envSpec_ == null ? ai.stigmer.agentic.environment.v1.EnvironmentSpec.getDefaultInstance() : envSpec_;
   }
 
-  public static final int SOURCE_FIELD_NUMBER = 10;
-  private ai.stigmer.agentic.mcpserver.v1.McpServerSource source_;
-  /**
-   * <pre>
-   * Source/provenance of this MCP server definition.
-   * Populated by automated sync workflows (e.g. MCP Registry sync).
-   * Empty for hand-authored definitions like the system mcp-server-stigmer.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-   * @return Whether the source field is set.
-   */
-  @java.lang.Override
-  public boolean hasSource() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <pre>
-   * Source/provenance of this MCP server definition.
-   * Populated by automated sync workflows (e.g. MCP Registry sync).
-   * Empty for hand-authored definitions like the system mcp-server-stigmer.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-   * @return The source.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpServerSource getSource() {
-    return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
-  }
-  /**
-   * <pre>
-   * Source/provenance of this MCP server definition.
-   * Populated by automated sync workflows (e.g. MCP Registry sync).
-   * Empty for hand-authored definitions like the system mcp-server-stigmer.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder getSourceOrBuilder() {
-    return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
-  }
-
   public static final int PINNED_TOOL_APPROVALS_FIELD_NUMBER = 11;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> pinnedToolApprovals_;
@@ -664,6 +621,76 @@ private static final long serialVersionUID = 0L;
     return pinnedToolApprovals_.get(index);
   }
 
+  public static final int REPOSITORY_URL_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object repositoryUrl_ = "";
+  /**
+   * <pre>
+   * URL of the upstream source repository for this MCP server.
+   * Shown in the marketplace so users can inspect the implementation
+   * for trust and transparency.
+   * Example: "https://github.com/modelcontextprotocol/servers"
+   * </pre>
+   *
+   * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+   * @return The repositoryUrl.
+   */
+  @java.lang.Override
+  public java.lang.String getRepositoryUrl() {
+    java.lang.Object ref = repositoryUrl_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      repositoryUrl_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * URL of the upstream source repository for this MCP server.
+   * Shown in the marketplace so users can inspect the implementation
+   * for trust and transparency.
+   * Example: "https://github.com/modelcontextprotocol/servers"
+   * </pre>
+   *
+   * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+   * @return The bytes for repositoryUrl.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getRepositoryUrlBytes() {
+    java.lang.Object ref = repositoryUrl_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      repositoryUrl_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int GITHUB_STARS_FIELD_NUMBER = 13;
+  private int githubStars_ = 0;
+  /**
+   * <pre>
+   * GitHub star count at the time of curation.
+   * Used as a popularity signal in marketplace display.
+   * 0 if unknown or non-GitHub repository.
+   * </pre>
+   *
+   * <code>int32 github_stars = 13 [json_name = "githubStars"];</code>
+   * @return The githubStars.
+   */
+  @java.lang.Override
+  public int getGithubStars() {
+    return githubStars_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -699,11 +726,14 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(8, getEnvSpec());
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(10, getSource());
-    }
     for (int i = 0; i < pinnedToolApprovals_.size(); i++) {
       output.writeMessage(11, pinnedToolApprovals_.get(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(repositoryUrl_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 12, repositoryUrl_);
+    }
+    if (githubStars_ != 0) {
+      output.writeInt32(13, githubStars_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -748,10 +778,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(8, getEnvSpec());
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(10, getSource());
-    }
 
         {
           final int count = pinnedToolApprovals_.size();
@@ -761,6 +787,13 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(repositoryUrl_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(12, repositoryUrl_);
+    }
+    if (githubStars_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(13, githubStars_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -789,13 +822,12 @@ private static final long serialVersionUID = 0L;
       if (!getEnvSpec()
           .equals(other.getEnvSpec())) return false;
     }
-    if (hasSource() != other.hasSource()) return false;
-    if (hasSource()) {
-      if (!getSource()
-          .equals(other.getSource())) return false;
-    }
     if (!getPinnedToolApprovalsList()
         .equals(other.getPinnedToolApprovalsList())) return false;
+    if (!getRepositoryUrl()
+        .equals(other.getRepositoryUrl())) return false;
+    if (getGithubStars()
+        != other.getGithubStars()) return false;
     if (!getServerTypeCase().equals(other.getServerTypeCase())) return false;
     switch (serverTypeCase_) {
       case 4:
@@ -836,14 +868,14 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ENV_SPEC_FIELD_NUMBER;
       hash = (53 * hash) + getEnvSpec().hashCode();
     }
-    if (hasSource()) {
-      hash = (37 * hash) + SOURCE_FIELD_NUMBER;
-      hash = (53 * hash) + getSource().hashCode();
-    }
     if (getPinnedToolApprovalsCount() > 0) {
       hash = (37 * hash) + PINNED_TOOL_APPROVALS_FIELD_NUMBER;
       hash = (53 * hash) + getPinnedToolApprovalsList().hashCode();
     }
+    hash = (37 * hash) + REPOSITORY_URL_FIELD_NUMBER;
+    hash = (53 * hash) + getRepositoryUrl().hashCode();
+    hash = (37 * hash) + GITHUB_STARS_FIELD_NUMBER;
+    hash = (53 * hash) + getGithubStars();
     switch (serverTypeCase_) {
       case 4:
         hash = (37 * hash) + STDIO_FIELD_NUMBER;
@@ -995,7 +1027,6 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetEnvSpecFieldBuilder();
-        internalGetSourceFieldBuilder();
         internalGetPinnedToolApprovalsFieldBuilder();
       }
     }
@@ -1020,18 +1051,15 @@ private static final long serialVersionUID = 0L;
         envSpecBuilder_.dispose();
         envSpecBuilder_ = null;
       }
-      source_ = null;
-      if (sourceBuilder_ != null) {
-        sourceBuilder_.dispose();
-        sourceBuilder_ = null;
-      }
       if (pinnedToolApprovalsBuilder_ == null) {
         pinnedToolApprovals_ = java.util.Collections.emptyList();
       } else {
         pinnedToolApprovals_ = null;
         pinnedToolApprovalsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
+      repositoryUrl_ = "";
+      githubStars_ = 0;
       serverTypeCase_ = 0;
       serverType_ = null;
       return this;
@@ -1069,9 +1097,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.mcpserver.v1.McpServerSpec result) {
       if (pinnedToolApprovalsBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
+        if (((bitField0_ & 0x00000080) != 0)) {
           pinnedToolApprovals_ = java.util.Collections.unmodifiableList(pinnedToolApprovals_);
-          bitField0_ = (bitField0_ & ~0x00000100);
+          bitField0_ = (bitField0_ & ~0x00000080);
         }
         result.pinnedToolApprovals_ = pinnedToolApprovals_;
       } else {
@@ -1102,11 +1130,11 @@ private static final long serialVersionUID = 0L;
             : envSpecBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.source_ = sourceBuilder_ == null
-            ? source_
-            : sourceBuilder_.build();
-        to_bitField0_ |= 0x00000002;
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.repositoryUrl_ = repositoryUrl_;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.githubStars_ = githubStars_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1169,14 +1197,11 @@ private static final long serialVersionUID = 0L;
       if (other.hasEnvSpec()) {
         mergeEnvSpec(other.getEnvSpec());
       }
-      if (other.hasSource()) {
-        mergeSource(other.getSource());
-      }
       if (pinnedToolApprovalsBuilder_ == null) {
         if (!other.pinnedToolApprovals_.isEmpty()) {
           if (pinnedToolApprovals_.isEmpty()) {
             pinnedToolApprovals_ = other.pinnedToolApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000080);
           } else {
             ensurePinnedToolApprovalsIsMutable();
             pinnedToolApprovals_.addAll(other.pinnedToolApprovals_);
@@ -1189,7 +1214,7 @@ private static final long serialVersionUID = 0L;
             pinnedToolApprovalsBuilder_.dispose();
             pinnedToolApprovalsBuilder_ = null;
             pinnedToolApprovals_ = other.pinnedToolApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000080);
             pinnedToolApprovalsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetPinnedToolApprovalsFieldBuilder() : null;
@@ -1197,6 +1222,14 @@ private static final long serialVersionUID = 0L;
             pinnedToolApprovalsBuilder_.addAllMessages(other.pinnedToolApprovals_);
           }
         }
+      }
+      if (!other.getRepositoryUrl().isEmpty()) {
+        repositoryUrl_ = other.repositoryUrl_;
+        bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (other.getGithubStars() != 0) {
+        setGithubStars(other.getGithubStars());
       }
       switch (other.getServerTypeCase()) {
         case STDIO: {
@@ -1278,13 +1311,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 66
-            case 82: {
-              input.readMessage(
-                  internalGetSourceFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 82
             case 90: {
               ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy m =
                   input.readMessage(
@@ -1298,6 +1324,16 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 90
+            case 98: {
+              repositoryUrl_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 98
+            case 104: {
+              githubStars_ = input.readInt32();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 104
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2449,187 +2485,12 @@ private static final long serialVersionUID = 0L;
       return envSpecBuilder_;
     }
 
-    private ai.stigmer.agentic.mcpserver.v1.McpServerSource source_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder> sourceBuilder_;
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     * @return Whether the source field is set.
-     */
-    public boolean hasSource() {
-      return ((bitField0_ & 0x00000080) != 0);
-    }
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     * @return The source.
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerSource getSource() {
-      if (sourceBuilder_ == null) {
-        return source_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
-      } else {
-        return sourceBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     */
-    public Builder setSource(ai.stigmer.agentic.mcpserver.v1.McpServerSource value) {
-      if (sourceBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        source_ = value;
-      } else {
-        sourceBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     */
-    public Builder setSource(
-        ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder builderForValue) {
-      if (sourceBuilder_ == null) {
-        source_ = builderForValue.build();
-      } else {
-        sourceBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     */
-    public Builder mergeSource(ai.stigmer.agentic.mcpserver.v1.McpServerSource value) {
-      if (sourceBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0) &&
-          source_ != null &&
-          source_ != ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance()) {
-          getSourceBuilder().mergeFrom(value);
-        } else {
-          source_ = value;
-        }
-      } else {
-        sourceBuilder_.mergeFrom(value);
-      }
-      if (source_ != null) {
-        bitField0_ |= 0x00000080;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     */
-    public Builder clearSource() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      source_ = null;
-      if (sourceBuilder_ != null) {
-        sourceBuilder_.dispose();
-        sourceBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder getSourceBuilder() {
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return internalGetSourceFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder getSourceOrBuilder() {
-      if (sourceBuilder_ != null) {
-        return sourceBuilder_.getMessageOrBuilder();
-      } else {
-        return source_ == null ?
-            ai.stigmer.agentic.mcpserver.v1.McpServerSource.getDefaultInstance() : source_;
-      }
-    }
-    /**
-     * <pre>
-     * Source/provenance of this MCP server definition.
-     * Populated by automated sync workflows (e.g. MCP Registry sync).
-     * Empty for hand-authored definitions like the system mcp-server-stigmer.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSource source = 10 [json_name = "source"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder> 
-        internalGetSourceFieldBuilder() {
-      if (sourceBuilder_ == null) {
-        sourceBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.mcpserver.v1.McpServerSource, ai.stigmer.agentic.mcpserver.v1.McpServerSource.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerSourceOrBuilder>(
-                getSource(),
-                getParentForChildren(),
-                isClean());
-        source_ = null;
-      }
-      return sourceBuilder_;
-    }
-
     private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> pinnedToolApprovals_ =
       java.util.Collections.emptyList();
     private void ensurePinnedToolApprovalsIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
+      if (!((bitField0_ & 0x00000080) != 0)) {
         pinnedToolApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy>(pinnedToolApprovals_);
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
        }
     }
 
@@ -2988,7 +2849,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearPinnedToolApprovals() {
       if (pinnedToolApprovalsBuilder_ == null) {
         pinnedToolApprovals_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
+        bitField0_ = (bitField0_ & ~0x00000080);
         onChanged();
       } else {
         pinnedToolApprovalsBuilder_.clear();
@@ -3198,12 +3059,169 @@ private static final long serialVersionUID = 0L;
         pinnedToolApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder>(
                 pinnedToolApprovals_,
-                ((bitField0_ & 0x00000100) != 0),
+                ((bitField0_ & 0x00000080) != 0),
                 getParentForChildren(),
                 isClean());
         pinnedToolApprovals_ = null;
       }
       return pinnedToolApprovalsBuilder_;
+    }
+
+    private java.lang.Object repositoryUrl_ = "";
+    /**
+     * <pre>
+     * URL of the upstream source repository for this MCP server.
+     * Shown in the marketplace so users can inspect the implementation
+     * for trust and transparency.
+     * Example: "https://github.com/modelcontextprotocol/servers"
+     * </pre>
+     *
+     * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+     * @return The repositoryUrl.
+     */
+    public java.lang.String getRepositoryUrl() {
+      java.lang.Object ref = repositoryUrl_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        repositoryUrl_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * URL of the upstream source repository for this MCP server.
+     * Shown in the marketplace so users can inspect the implementation
+     * for trust and transparency.
+     * Example: "https://github.com/modelcontextprotocol/servers"
+     * </pre>
+     *
+     * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+     * @return The bytes for repositoryUrl.
+     */
+    public com.google.protobuf.ByteString
+        getRepositoryUrlBytes() {
+      java.lang.Object ref = repositoryUrl_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        repositoryUrl_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * URL of the upstream source repository for this MCP server.
+     * Shown in the marketplace so users can inspect the implementation
+     * for trust and transparency.
+     * Example: "https://github.com/modelcontextprotocol/servers"
+     * </pre>
+     *
+     * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+     * @param value The repositoryUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRepositoryUrl(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      repositoryUrl_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * URL of the upstream source repository for this MCP server.
+     * Shown in the marketplace so users can inspect the implementation
+     * for trust and transparency.
+     * Example: "https://github.com/modelcontextprotocol/servers"
+     * </pre>
+     *
+     * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRepositoryUrl() {
+      repositoryUrl_ = getDefaultInstance().getRepositoryUrl();
+      bitField0_ = (bitField0_ & ~0x00000100);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * URL of the upstream source repository for this MCP server.
+     * Shown in the marketplace so users can inspect the implementation
+     * for trust and transparency.
+     * Example: "https://github.com/modelcontextprotocol/servers"
+     * </pre>
+     *
+     * <code>string repository_url = 12 [json_name = "repositoryUrl"];</code>
+     * @param value The bytes for repositoryUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRepositoryUrlBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      repositoryUrl_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private int githubStars_ ;
+    /**
+     * <pre>
+     * GitHub star count at the time of curation.
+     * Used as a popularity signal in marketplace display.
+     * 0 if unknown or non-GitHub repository.
+     * </pre>
+     *
+     * <code>int32 github_stars = 13 [json_name = "githubStars"];</code>
+     * @return The githubStars.
+     */
+    @java.lang.Override
+    public int getGithubStars() {
+      return githubStars_;
+    }
+    /**
+     * <pre>
+     * GitHub star count at the time of curation.
+     * Used as a popularity signal in marketplace display.
+     * 0 if unknown or non-GitHub repository.
+     * </pre>
+     *
+     * <code>int32 github_stars = 13 [json_name = "githubStars"];</code>
+     * @param value The githubStars to set.
+     * @return This builder for chaining.
+     */
+    public Builder setGithubStars(int value) {
+
+      githubStars_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * GitHub star count at the time of curation.
+     * Used as a popularity signal in marketplace display.
+     * 0 if unknown or non-GitHub repository.
+     * </pre>
+     *
+     * <code>int32 github_stars = 13 [json_name = "githubStars"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearGithubStars() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      githubStars_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.McpServerSpec)
