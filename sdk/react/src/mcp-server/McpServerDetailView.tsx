@@ -632,6 +632,33 @@ function SourceSection({
             </span>
           </div>
         )}
+        {source.qualityTier && (
+          <div className="flex items-baseline gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              Quality
+            </span>
+            <span className="inline-flex items-baseline gap-1.5 text-xs">
+              <span className="rounded bg-muted px-1.5 py-0.5 font-medium capitalize text-foreground">
+                {source.qualityTier}
+              </span>
+              {source.qualityScore > 0 && (
+                <span className="text-muted-foreground">
+                  {source.qualityScore} / 100
+                </span>
+              )}
+            </span>
+          </div>
+        )}
+        {source.subcategory && (
+          <div className="flex items-baseline gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              Category
+            </span>
+            <span className="text-xs text-foreground">
+              {source.subcategory}
+            </span>
+          </div>
+        )}
         {source.repositoryUrl && (
           <div className="flex items-baseline gap-2">
             <span className="shrink-0 text-xs font-medium text-muted-foreground">
