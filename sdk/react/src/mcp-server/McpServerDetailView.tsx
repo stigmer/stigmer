@@ -8,7 +8,7 @@ import type {
   DiscoveredTool,
   DiscoveredResourceTemplate,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { ToolApprovalPolicy, McpServerSource } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import type { ToolApprovalPolicy, McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -172,8 +172,7 @@ export function McpServerDetailView({
 
   const spec = mcpServer?.spec;
   const status = mcpServer?.status;
-  const source = spec?.source;
-  const hasSource = source && (source.registry || source.repositoryUrl);
+  const hasSource = spec && (spec.repositoryUrl || spec.githubStars > 0);
   const specAudit = status?.audit?.specAudit;
   const capabilities = status?.discoveredCapabilities;
   const pinnedPolicies = spec?.pinnedToolApprovals ?? [];
@@ -227,7 +226,7 @@ export function McpServerDetailView({
         isVisibilityPending={isVisibilityPending}
       />
 
-      {hasSource && <SourceSection source={source} />}
+      {hasSource && <SourceSection spec={spec} />}
 
       {spec?.serverType.case && (
         <ServerConfigSection serverType={spec.serverType} />
@@ -602,91 +601,36 @@ function ServerConfigSection({
 }
 
 function SourceSection({
-  source,
+  spec,
 }: {
-  readonly source: McpServerSource;
+  readonly spec: McpServerSpec;
 }) {
   return (
     <Section title="Source">
       <div className="flex flex-col gap-2 p-3">
-        {source.registry && (
-          <div className="flex items-baseline gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted-foreground">
-              Registry
-            </span>
-            <span className="text-xs text-foreground">{source.registry}</span>
-          </div>
-        )}
-        {source.registryName && (
-          <div className="flex items-baseline gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted-foreground">
-              Name
-            </span>
-            <span className="font-mono text-xs text-foreground">
-              {source.registryName}
-            </span>
-          </div>
-        )}
-        {source.version && (
-          <div className="flex items-baseline gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted-foreground">
-              Version
-            </span>
-            <span className="font-mono text-xs text-foreground">
-              {source.version}
-            </span>
-          </div>
-        )}
-        {source.qualityTier && (
-          <div className="flex items-baseline gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted-foreground">
-              Quality
-            </span>
-            <span className="inline-flex items-baseline gap-1.5 text-xs">
-              <span className="rounded bg-muted px-1.5 py-0.5 font-medium capitalize text-foreground">
-                {source.qualityTier}
-              </span>
-              {source.qualityScore > 0 && (
-                <span className="text-muted-foreground">
-                  {source.qualityScore} / 100
-                </span>
-              )}
-            </span>
-          </div>
-        )}
-        {source.repositoryUrl && (
+        {spec.repositoryUrl && (
           <div className="flex items-baseline gap-2">
             <span className="shrink-0 text-xs font-medium text-muted-foreground">
               Repository
             </span>
             <a
-              href={source.repositoryUrl}
+              href={spec.repositoryUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 break-all font-mono text-xs text-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:decoration-foreground"
             >
-              {source.repositoryUrl}
+              {spec.repositoryUrl}
               <ExternalLinkIcon className="size-3 shrink-0" />
             </a>
           </div>
         )}
-        {source.githubStars > 0 && (
+        {spec.githubStars > 0 && (
           <div className="flex items-baseline gap-2">
             <span className="shrink-0 text-xs font-medium text-muted-foreground">
               Stars
             </span>
             <span className="text-xs text-foreground">
-              {source.githubStars.toLocaleString()}
-            </span>
-          </div>
-        )}
-        {source.lastSyncedAt && (
-          <div className="flex items-baseline gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted-foreground">
-              Last Synced
-            </span>
-            <span className="text-xs text-foreground">
-              {formatDate(timestampDate(source.lastSyncedAt))}
+              {spec.githubStars.toLocaleString()}
             </span>
           </div>
         )}
