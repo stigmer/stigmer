@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/anthropics/skills",
+    "ref": "main",
+    "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39",
+    "subdir": "skills/webapp-testing"
+  },
+  "vendored_at": "2026-04-10T10:39:58Z",
+  "vendored_by": "vendor_skill.sh",
+  "content_digest": "sha256:e67769be40593c2be24ad88b44f44f9adc19bf493eca470da3304202711a37a2",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "digest": "sha256:58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2"
+    },
+    {
+      "path": "examples/console_logging.py",
+      "digest": "sha256:ea46877289acb82da7e7ce59d0bc37c8977cd57e2a006d0c88d7a1c625bf95da"
+    },
+    {
+      "path": "examples/element_discovery.py",
+      "digest": "sha256:d63c89604a22f8845d724e95dda45db49b1bf57c25ce0a83afbb7b8da3d402f0"
+    },
+    {
+      "path": "examples/static_html_automation.py",
+      "digest": "sha256:9d533aafb875ee3ab8b8ebf8f5b9003ac8d999da3d09b285cce252e623140064"
+    },
+    {
+      "path": "scripts/with_server.py",
+      "digest": "sha256:b0dcf4918935b795f4eda9821579b9902119235ff4447f687a30286e7d0925fd"
+    }
+  ]
+}

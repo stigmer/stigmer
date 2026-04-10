@@ -4,40 +4,84 @@
     "type": "git",
     "url": "https://github.com/anthropics/skills",
     "ref": "main",
-    "commit_sha": "1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563",
+    "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39",
     "subdir": "skills/skill-creator"
   },
-  "vendored_at": "2026-03-08T04:52:15Z",
+  "vendored_at": "2026-04-10T10:39:22Z",
   "vendored_by": "vendor_skill.sh",
-  "content_digest": "sha256:891eb907f2adf5c11dbe6cb58e3990e8b263cebbd05ddc19accd544c5437d9cb",
+  "content_digest": "sha256:be5e162915d9c183a6bfb8cb61666d9aea4fdf31ac74048eb675acbd440b2a71",
   "files": [
     {
       "path": "LICENSE.txt",
       "digest": "sha256:58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
     },
     {
-      "path": "references/output-patterns.md",
-      "digest": "sha256:d6027800b9d8c26589edba85b42901a41ac36d753b4e9cebc7f4cbb03cdcf0a4"
+      "path": "SKILL.md",
+      "digest": "sha256:dcd4803e61e913e6fc27294184cd3a71f09f5e924ff20c8a9a20173e7b3c2bcf"
     },
     {
-      "path": "references/workflows.md",
-      "digest": "sha256:ef4846877d5dab47511a01a6cf31476ad64f5bc5945635459295794575338980"
+      "path": "agents/analyzer.md",
+      "digest": "sha256:bf68f4cac5a56c673a928c2e6d619586c5b93ea364026ab37547772cb45a663a"
     },
     {
-      "path": "scripts/init_skill.py",
-      "digest": "sha256:cf12790f1d4958799281920d599f56aea38fb5c26e2812a61dd740bf3d4b6b99"
+      "path": "agents/comparator.md",
+      "digest": "sha256:fe1fc9787c495d864c5d6eada47396478572325fde1b33a96d78bf4b849b7a3e"
+    },
+    {
+      "path": "agents/grader.md",
+      "digest": "sha256:57134da0c1a4eea33fbd74a1c9c44aa814f07d6bc64de303edb586f941e5d21a"
+    },
+    {
+      "path": "assets/eval_review.html",
+      "digest": "sha256:ce477dcc74dc1c0d1d3352646a79167b5a63634e936b1019160025065974e452"
+    },
+    {
+      "path": "eval-viewer/generate_review.py",
+      "digest": "sha256:fc9d1b9243fe5ab6012ebd579bd76d0035de1b79fd3b969de114defab26478fb"
+    },
+    {
+      "path": "eval-viewer/viewer.html",
+      "digest": "sha256:a53213426ee1100441d701a3a0d49cda7a842f992d2c36463f4d3cc0258575fa"
+    },
+    {
+      "path": "references/schemas.md",
+      "digest": "sha256:8e8876180a8989b406a4d3edddf875b04cdfd5805cc8616686d552b11ce4455f"
+    },
+    {
+      "path": "scripts/__init__.py",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "scripts/aggregate_benchmark.py",
+      "digest": "sha256:123ef128ea5ccc01a4b1ac212ef5567f21e9c13d3d240609780beeb3200c49aa"
+    },
+    {
+      "path": "scripts/generate_report.py",
+      "digest": "sha256:13df7118a3c50c83c4c3250a606d5f2b20b25a3d44cbc392b3d669ec75281453"
+    },
+    {
+      "path": "scripts/improve_description.py",
+      "digest": "sha256:87d864570220b699fac52da309d2d6efdb060647bfebc74f768128e646accf80"
     },
     {
       "path": "scripts/package_skill.py",
-      "digest": "sha256:b31fbcb3e362d5c5308e99255ff8e83cde3a513e0636953964a648494ca10931"
+      "digest": "sha256:1a33059b0db1ef73375d46d513e5ea81369d2e8838c970597b0d52ddef8d1c0f"
     },
     {
       "path": "scripts/quick_validate.py",
       "digest": "sha256:67cf5703402013936c8fb75ad6a1afecd8841d45cc5e606b634eb05825fde365"
     },
     {
-      "path": "SKILL.md",
-      "digest": "sha256:d57b6e3a44535b9c0ef454dad5c86f5df78185fc80a65c7092885b4b5e10f81b"
+      "path": "scripts/run_eval.py",
+      "digest": "sha256:43e3b8f80dbf69c343967ba77e268fae991d9fa3ed68b32a0ff02532cd48657f"
+    },
+    {
+      "path": "scripts/run_loop.py",
+      "digest": "sha256:7bd6f674203168520517eec94c55f493c0d154339b061b4d7c0f0dad187d0f21"
+    },
+    {
+      "path": "scripts/utils.py",
+      "digest": "sha256:3af8ae62c40c73ab712207436a0d9a981e845f25c5a7040229eb189cc8e45bb1"
     }
   ]
 }
