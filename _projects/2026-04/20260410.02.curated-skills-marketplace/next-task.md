@@ -68,8 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: In Progress -- Tasks 1-2 complete, Task 3 next
-**Last Session**: 2026-04-10 -- Completed Task 2 (self-composed domain skills)
+**Status**: ALL 3 TASKS COMPLETE -- Ready for end-to-end testing
+**Last Session**: 2026-04-10 -- Completed Task 3 (composite domain agents)
+**Active Task**: None -- all implementation complete, pending live validation
 
 ## Session Progress (2026-04-10, Session 1)
 
@@ -95,21 +96,36 @@ When starting a new session:
 - All skills passed quality bar: specificity test, actionability test, progressive disclosure test, trigger clarity test, anti-platitude test
 - Skills are tool-agnostic by design -- methodology works standalone, tool integration happens at agent layer (Task 3)
 
+## Session Progress (2026-04-10, Session 3)
+
+- Confirmed companion MCP marketplace project (`20260410.01`) has all 3 tasks complete -- 36 curated MCP server YAML files are in place, unblocking Task 3
+- Investigated Agent Runner code to understand runtime skill/tool injection -- discovered that `SkillWriter` automatically generates "Available Skills" prompt section and MCP tools are injected as LangGraph tool wrappers, eliminating need for skill activation or tool wiring in agent instructions
+- Created 5 composite domain agents pairing skills with MCP servers:
+  - **code-review-agent** (code-reviewer skill + GitHub) -- depth over breadth, never approve without explicit request
+  - **data-analyst-agent** (data-analyst skill + Postgres) -- inspect schema first, read-only by default
+  - **docs-agent** (technical-writer skill + GitHub + Filesystem) -- verify against source code, don't mix document types
+  - **support-agent** (customer-support skill + Slack + Linear) -- every conversation gets closure, create tickets for follow-ups
+  - **research-agent** (research-analyst skill + Brave Search + Exa + Fetch) -- cross-reference sources, cite specifically, surface contradictions
+- Design decisions: lean instructions (~15 lines each) since runtime handles skill activation and tool injection; no `enabled_tools` (use MCP server defaults); no `env_spec` on agents (MCP servers declare their own)
+- Cross-agent consistency review passed: all 8 cross-references verified (MCP server slugs + skill slugs), consistent YAML structure, description pattern, instruction tone
+
 ## Next Steps
 
-1. **Start Task 3**: Create composite agents pairing skills with MCP servers (depends on MCP marketplace project landing)
-2. Check if companion MCP marketplace project (`20260410.01`) has landed the curated MCP server definitions needed for agent YAML `mcp_server_usages` references
+1. **Test end-to-end**: Run `stigmer seedpack apply` to verify all 5 new agents bootstrap correctly alongside existing agents
+2. **Merge**: Merge the `feat/curated-mcp-marketplace` branch (contains all 3 tasks: vendored skills, self-composed skills, composite agents, plus 36 curated MCP servers)
+3. **Verify marketplace UX**: Check that agents appear in the marketplace with correct descriptions and skill/MCP server references
 
 ## Context for Resume
 
-- Task 2 skills are committed on `feat/curated-mcp-marketplace` branch
+- All work is on `feat/curated-mcp-marketplace` branch
 - `canvas-design` has ~80 .ttf font files (5.5 MB) embedded via the vendor -- future optimization candidate (on-demand download vs embedding)
 - `doc-coauthoring` follow-up: revisit if/when Anthropic adds a LICENSE.txt to that skill directory
-- The 5 new domain skills follow a different pattern from existing Stigmer-original skills (agent-creator, mcp-server-creator) which are platform-authoring tools -- the domain skills are general-purpose expertise that teach agents how to think about a domain
+- Agent instructions are intentionally lean (~15 lines) because the Agent Runner handles skill activation (SkillWriter generates "Available Skills" section) and tool injection (MCP tools registered as LangGraph tool wrappers) automatically
+- The 5 domain agents are the first non-meta agents in the seedpack -- they establish the pattern for skill + MCP server composition
 
 ## Blockers
 
-- Task 3 depends on curated MCP marketplace project (`20260410.01`) landing first for agent YAML `mcp_server_usages` references
+- None -- all implementation complete
 
 ## Task Breakdown (3 tasks, each = 1 conversation)
 
@@ -129,26 +145,31 @@ When starting a new session:
 - Scoping decisions: research-analyst focused on methodology not summarization; data-analyst focused on analytical thinking not computation
 - Quality bar met: anti-platitude, specificity, actionability, progressive disclosure, trigger clarity
 
-### Task 3: Create Composite Agents + Test
+### Task 3: Create Composite Agents -- COMPLETE
 **Repo**: stigmer
-- Create 4 agent YAML files pairing skills with MCP servers: support-agent, code-review-agent, docs-agent, research-agent
-- Test seedpack apply
-- **BLOCKED**: Depends on curated MCP marketplace project (`20260410.01`) landing first
+- Created 5 agent YAML files (expanded from planned 4) pairing domain skills with curated MCP servers
+- Lean instruction pattern (~15 lines each) -- runtime handles skill activation and tool injection
+- All cross-references verified: 8 MCP server slugs + 5 skill slugs match existing definitions
+- Agents: code-review-agent, data-analyst-agent, docs-agent, support-agent, research-agent
 
 ## Quick Commands
 
 After loading context:
-- "Start Task 3" -- begin creating composite agents (check if MCP marketplace has landed first)
 - "Show project status" -- overview of progress
+- "Test seedpack apply" -- verify all resources bootstrap correctly
+- "Create PR" -- open pull request for the full feature branch
 
 ## Key References
 
 - **Detailed plan**: `_projects/2026-04/20260410.02.curated-skills-marketplace/tasks/T01_0_plan.md`
+- **Task 3 plan**: `_cursor/plans/composite_domain_agents_6dcab0a8.plan.md`
 - **Task 2 plan**: `_cursor/plans/self-compose_domain_skills_6a70194b.plan.md`
 - **Brainstorm plan**: `_cursor/plans/curated_skills_marketplace_59b7afd1.plan.md`
 - **Session 1 checkpoint**: `_projects/2026-04/20260410.02.curated-skills-marketplace/checkpoints/2026-04-10-session-1.md`
 - **Session 2 checkpoint**: `_projects/2026-04/20260410.02.curated-skills-marketplace/checkpoints/2026-04-10-session-2.md`
+- **Session 3 checkpoint**: `_projects/2026-04/20260410.02.curated-skills-marketplace/checkpoints/2026-04-10-session-3.md`
 - **Existing skills**: `seedpack/skills/` (15 skills total: 2 platform-authoring + 8 vendored + 5 self-composed)
+- **Existing agents**: `seedpack/agents/` (9 agents total: 1 general-purpose + 3 meta-authoring + 5 domain)
 - **Vendor script**: `seedpack/tools/01_vendor_skill.sh`
 - **Vendor sources**: `seedpack/tools/vendor-sources.json`
 - **Anthropic skills repo**: `https://github.com/anthropics/skills`
