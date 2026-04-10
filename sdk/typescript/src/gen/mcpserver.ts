@@ -142,7 +142,6 @@ export interface McpServerSourceInput {
   githubStars?: number;
   qualityScore?: number;
   qualityTier?: string;
-  subcategory?: string;
 }
 
 /** SDK input type for ToolApprovalPolicy. */
@@ -178,7 +177,6 @@ function buildMcpServerSourceProto(input: McpServerSourceInput) {
     githubStars: input.githubStars,
     qualityScore: input.qualityScore,
     qualityTier: input.qualityTier,
-    subcategory: input.subcategory,
   }));
 }
 

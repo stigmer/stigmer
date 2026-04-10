@@ -625,10 +625,9 @@ McpServerSource tracks provenance for MCP server definitions that were imported 
     version: { type: "string", description: "Version from the source registry at the time of last sync." },
     repositoryUrl: { type: "string", description: "Repository URL for the MCP server source code." },
     lastSyncedAt: { type: "string", description: "Timestamp of last successful sync from the source." },
-    githubStars: { type: "number", description: "GitHub star count at the time of last sync (0 if unknown or non-GitHub)." },
-    qualityScore: { type: "number", description: "MCP Quality Index composite score (0-100)." },
-    qualityTier: { type: "string", description: "Quality tier classification from the MCP Quality Index." },
-    subcategory: { type: "string", description: "Subcategory from the MCP Quality Index (e.g., \"dotnet-mcp-servers\", \"data-warehouse-mcp\", \"mongodb-mcp-servers\")." },
+    githubStars: { type: "number", description: "GitHub star count fetched directly from the GitHub REST API." },
+    qualityScore: { type: "number", description: "Composite quality score (0-100) computed from GitHub signals: stars (0-40), recency (0-30), license (0-15), community (0-15)." },
+    qualityTier: { type: "string", description: "Quality tier derived from GitHub signals." },
   }}
 />
 
