@@ -649,16 +649,6 @@ function SourceSection({
             </span>
           </div>
         )}
-        {source.subcategory && (
-          <div className="flex items-baseline gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted-foreground">
-              Category
-            </span>
-            <span className="text-xs text-foreground">
-              {source.subcategory}
-            </span>
-          </div>
-        )}
         {source.repositoryUrl && (
           <div className="flex items-baseline gap-2">
             <span className="shrink-0 text-xs font-medium text-muted-foreground">
