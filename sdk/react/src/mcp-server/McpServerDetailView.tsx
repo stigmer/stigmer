@@ -463,6 +463,11 @@ function Header({
             )
           )}
         </div>
+        {meta?.slug && (
+          <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">
+            {meta.org ? `${meta.org}/${meta.slug}` : meta.slug}
+          </span>
+        )}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
           {meta?.org && <span>{meta.org}</span>}
           {status && (
