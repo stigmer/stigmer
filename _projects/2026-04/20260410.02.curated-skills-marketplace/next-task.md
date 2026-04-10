@@ -68,10 +68,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: In Progress -- Task 1 complete, Task 2 next
-**Last Session**: 2026-04-10 -- Completed Task 1 (vendoring skills)
+**Status**: In Progress -- Tasks 1-2 complete, Task 3 next
+**Last Session**: 2026-04-10 -- Completed Task 2 (self-composed domain skills)
 
-## Session Progress (2026-04-10)
+## Session Progress (2026-04-10, Session 1)
 
 - Completed full license audit of all 17 skills in `anthropics/skills`
 - Confirmed document skills (docx, pdf, pptx, xlsx) are source-available -- NOT redistributable
@@ -82,21 +82,33 @@ When starting a new session:
 - All 8 skills verified: SKILL.md, LICENSE.txt, provenance.json present and correct
 - Note: `canvas-design` includes 5.5 MB of font files -- accepted for now, optimize later
 
+## Session Progress (2026-04-10, Session 2)
+
+- Established structural pattern for self-composed domain skills: SKILL.md + references/ directory, consistent anatomy (frontmatter, workflow steps, key principles, reference file table)
+- Made two scoping decisions before writing: (1) research-analyst focused on systematic methodology and source evaluation, not general summarization; (2) data-analyst focused on analytical thinking and insight communication, not computation
+- Self-composed 5 domain skills with 15 files total:
+  - **customer-support** (SKILL.md + escalation-framework.md + conversation-patterns.md) -- 4-step methodology: assess, gather, resolve, close
+  - **code-reviewer** (SKILL.md + review-checklist.md + feedback-patterns.md) -- 5-step methodology: understand, verify correctness, assess quality, evaluate risk, deliver feedback
+  - **technical-writer** (SKILL.md + document-types.md + clarity-checklist.md) -- 5-step methodology: classify, gather substance, structure, write, self-review
+  - **data-analyst** (SKILL.md + analytical-methods.md + visualization-guide.md) -- 5-step methodology: frame question, assess data, analyze, synthesize, communicate
+  - **research-analyst** (SKILL.md + source-evaluation.md + report-structure.md) -- 5-step methodology: define question, plan strategy, gather/evaluate, synthesize, present
+- All skills passed quality bar: specificity test, actionability test, progressive disclosure test, trigger clarity test, anti-platitude test
+- Skills are tool-agnostic by design -- methodology works standalone, tool integration happens at agent layer (Task 3)
+
 ## Next Steps
 
-1. **Start Task 2**: Self-compose 5 domain skills (customer-support, code-reviewer, technical-writer, data-analyst, research-analyst)
-2. **Start Task 3**: Create composite agents pairing skills with MCP servers (depends on Tasks 1-2 + MCP marketplace project)
+1. **Start Task 3**: Create composite agents pairing skills with MCP servers (depends on MCP marketplace project landing)
+2. Check if companion MCP marketplace project (`20260410.01`) has landed the curated MCP server definitions needed for agent YAML `mcp_server_usages` references
 
 ## Context for Resume
 
-- Changes from Task 1 are uncommitted in working tree on `main` -- user is managing commit timing alongside other work
-- The vendor script bug fix (`git -C` instead of `cd`) should be included in whatever commit covers seedpack changes
+- Task 2 skills are committed on `feat/curated-mcp-marketplace` branch
 - `canvas-design` has ~80 .ttf font files (5.5 MB) embedded via the vendor -- future optimization candidate (on-demand download vs embedding)
 - `doc-coauthoring` follow-up: revisit if/when Anthropic adds a LICENSE.txt to that skill directory
+- The 5 new domain skills follow a different pattern from existing Stigmer-original skills (agent-creator, mcp-server-creator) which are platform-authoring tools -- the domain skills are general-purpose expertise that teach agents how to think about a domain
 
 ## Blockers
 
-- None for Task 2 (self-composed skills are independent)
 - Task 3 depends on curated MCP marketplace project (`20260410.01`) landing first for agent YAML `mcp_server_usages` references
 
 ## Task Breakdown (3 tasks, each = 1 conversation)
@@ -108,32 +120,35 @@ When starting a new session:
 - Re-vendored skill-creator at latest commit
 - Fixed multi-skill vendoring bug in `01_vendor_skill.sh`
 - All pinned to commit `12ab35c2eb5668c95810e6a6066f40f4218adc39`
-- Changes uncommitted -- user managing commit timing
 
-### Task 2: Self-Compose 5 Domain Skills
+### Task 2: Self-Compose 5 Domain Skills -- COMPLETE
 **Repo**: stigmer
-- Write 5 original SKILL.md skills: customer-support, code-reviewer, technical-writer, data-analyst, research-analyst
-- Each with SKILL.md + references/ directory
-- Match quality bar of Anthropic vendored skills
+- Wrote 5 original domain-expertise skills: customer-support, code-reviewer, technical-writer, data-analyst, research-analyst
+- Each with SKILL.md (workflow + key principles) + references/ directory (2 reference files each)
+- 15 files total, consistent structural pattern across all 5 skills
+- Scoping decisions: research-analyst focused on methodology not summarization; data-analyst focused on analytical thinking not computation
+- Quality bar met: anti-platitude, specificity, actionability, progressive disclosure, trigger clarity
 
 ### Task 3: Create Composite Agents + Test
 **Repo**: stigmer
 - Create 4 agent YAML files pairing skills with MCP servers: support-agent, code-review-agent, docs-agent, research-agent
 - Test seedpack apply
+- **BLOCKED**: Depends on curated MCP marketplace project (`20260410.01`) landing first
 
 ## Quick Commands
 
 After loading context:
-- "Start Task 2" -- begin self-composing domain skills
-- "Start Task 3" -- begin creating composite agents
+- "Start Task 3" -- begin creating composite agents (check if MCP marketplace has landed first)
 - "Show project status" -- overview of progress
 
 ## Key References
 
 - **Detailed plan**: `_projects/2026-04/20260410.02.curated-skills-marketplace/tasks/T01_0_plan.md`
+- **Task 2 plan**: `_cursor/plans/self-compose_domain_skills_6a70194b.plan.md`
 - **Brainstorm plan**: `_cursor/plans/curated_skills_marketplace_59b7afd1.plan.md`
-- **Session checkpoint**: `_projects/2026-04/20260410.02.curated-skills-marketplace/checkpoints/2026-04-10-session-1.md`
-- **Existing skills**: `seedpack/skills/` (10 skills total: 3 original + 7 vendored)
+- **Session 1 checkpoint**: `_projects/2026-04/20260410.02.curated-skills-marketplace/checkpoints/2026-04-10-session-1.md`
+- **Session 2 checkpoint**: `_projects/2026-04/20260410.02.curated-skills-marketplace/checkpoints/2026-04-10-session-2.md`
+- **Existing skills**: `seedpack/skills/` (15 skills total: 2 platform-authoring + 8 vendored + 5 self-composed)
 - **Vendor script**: `seedpack/tools/01_vendor_skill.sh`
 - **Vendor sources**: `seedpack/tools/vendor-sources.json`
 - **Anthropic skills repo**: `https://github.com/anthropics/skills`
