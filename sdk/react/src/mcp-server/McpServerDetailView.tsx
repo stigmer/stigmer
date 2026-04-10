@@ -8,7 +8,7 @@ import type {
   DiscoveredTool,
   DiscoveredResourceTemplate,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import type { ToolApprovalPolicy, McpServerSource } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -172,6 +172,8 @@ export function McpServerDetailView({
 
   const spec = mcpServer?.spec;
   const status = mcpServer?.status;
+  const source = spec?.source;
+  const hasSource = source && (source.registry || source.repositoryUrl);
   const specAudit = status?.audit?.specAudit;
   const capabilities = status?.discoveredCapabilities;
   const pinnedPolicies = spec?.pinnedToolApprovals ?? [];
@@ -224,6 +226,8 @@ export function McpServerDetailView({
         onVisibilityChange={onVisibilityChange}
         isVisibilityPending={isVisibilityPending}
       />
+
+      {hasSource && <SourceSection source={source} />}
 
       {spec?.serverType.case && (
         <ServerConfigSection serverType={spec.serverType} />
@@ -586,6 +590,83 @@ function ServerConfigSection({
               </div>
             )}
           </>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function SourceSection({
+  source,
+}: {
+  readonly source: McpServerSource;
+}) {
+  return (
+    <Section title="Source">
+      <div className="flex flex-col gap-2 p-3">
+        {source.registry && (
+          <div className="flex items-baseline gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              Registry
+            </span>
+            <span className="text-xs text-foreground">{source.registry}</span>
+          </div>
+        )}
+        {source.registryName && (
+          <div className="flex items-baseline gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              Name
+            </span>
+            <span className="font-mono text-xs text-foreground">
+              {source.registryName}
+            </span>
+          </div>
+        )}
+        {source.version && (
+          <div className="flex items-baseline gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              Version
+            </span>
+            <span className="font-mono text-xs text-foreground">
+              {source.version}
+            </span>
+          </div>
+        )}
+        {source.repositoryUrl && (
+          <div className="flex items-baseline gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              Repository
+            </span>
+            <a
+              href={source.repositoryUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 break-all font-mono text-xs text-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:decoration-foreground"
+            >
+              {source.repositoryUrl}
+              <ExternalLinkIcon className="size-3 shrink-0" />
+            </a>
+          </div>
+        )}
+        {source.githubStars > 0 && (
+          <div className="flex items-baseline gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              Stars
+            </span>
+            <span className="text-xs text-foreground">
+              {source.githubStars.toLocaleString()}
+            </span>
+          </div>
+        )}
+        {source.lastSyncedAt && (
+          <div className="flex items-baseline gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              Last Synced
+            </span>
+            <span className="text-xs text-foreground">
+              {formatDate(timestampDate(source.lastSyncedAt))}
+            </span>
+          </div>
         )}
       </div>
     </Section>
@@ -1042,6 +1123,25 @@ function SparklesIcon({ className }: { readonly className?: string }) {
       aria-hidden="true"
     >
       <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 8.667v4A1.333 1.333 0 0 1 10.667 14H3.333A1.333 1.333 0 0 1 2 12.667V5.333A1.333 1.333 0 0 1 3.333 4h4" />
+      <path d="M10 2h4v4" />
+      <path d="M6.667 9.333 14 2" />
     </svg>
   );
 }
