@@ -529,8 +529,21 @@ type McpServerSource struct {
 	// Timestamp of last successful sync from the source.
 	LastSyncedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
 	// GitHub star count at the time of last sync (0 if unknown or non-GitHub).
-	// Used for quality filtering during sync and popularity sorting in the UI.
-	GithubStars   int32 `protobuf:"varint,6,opt,name=github_stars,json=githubStars,proto3" json:"github_stars,omitempty"`
+	// Populated from the MCP Quality Index (no separate GitHub API call).
+	GithubStars int32 `protobuf:"varint,6,opt,name=github_stars,json=githubStars,proto3" json:"github_stars,omitempty"`
+	// MCP Quality Index composite score (0-100).
+	// Derived from four equally-weighted dimensions: maintenance (0-25),
+	// adoption (0-25), maturity (0-25), community (0-25).
+	// Source: https://github.com/grahamrowe82/mcp-quality-index
+	QualityScore int32 `protobuf:"varint,7,opt,name=quality_score,json=qualityScore,proto3" json:"quality_score,omitempty"`
+	// Quality tier classification from the MCP Quality Index.
+	// Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+	// "experimental" (below 30).
+	// Only "verified" and "established" servers are synced into the marketplace.
+	QualityTier string `protobuf:"bytes,8,opt,name=quality_tier,json=qualityTier,proto3" json:"quality_tier,omitempty"`
+	// Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+	// "data-warehouse-mcp", "mongodb-mcp-servers").
+	Subcategory   string `protobuf:"bytes,9,opt,name=subcategory,proto3" json:"subcategory,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -607,6 +620,27 @@ func (x *McpServerSource) GetGithubStars() int32 {
 	return 0
 }
 
+func (x *McpServerSource) GetQualityScore() int32 {
+	if x != nil {
+		return x.QualityScore
+	}
+	return 0
+}
+
+func (x *McpServerSource) GetQualityTier() string {
+	if x != nil {
+		return x.QualityTier
+	}
+	return ""
+}
+
+func (x *McpServerSource) GetSubcategory() string {
+	if x != nil {
+		return x.Subcategory
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
@@ -643,14 +677,17 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xf8\x01\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xe2\x02\n" +
 	"\x0fMcpServerSource\x12\x1a\n" +
 	"\bregistry\x18\x01 \x01(\tR\bregistry\x12#\n" +
 	"\rregistry_name\x18\x02 \x01(\tR\fregistryName\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12%\n" +
 	"\x0erepository_url\x18\x04 \x01(\tR\rrepositoryUrl\x12@\n" +
 	"\x0elast_synced_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\flastSyncedAt\x12!\n" +
-	"\fgithub_stars\x18\x06 \x01(\x05R\vgithubStarsB\xa7\x02\n" +
+	"\fgithub_stars\x18\x06 \x01(\x05R\vgithubStars\x12#\n" +
+	"\rquality_score\x18\a \x01(\x05R\fqualityScore\x12!\n" +
+	"\fquality_tier\x18\b \x01(\tR\vqualityTier\x12 \n" +
+	"\vsubcategory\x18\t \x01(\tR\vsubcategoryB\xa7\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (

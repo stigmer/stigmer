@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEi3QMKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKCGVudl9zcGVjGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U3BlYxJACgZzb3VyY2UYCiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlclNvdXJjZRJSChVwaW5uZWRfdG9vbF9hcHByb3ZhbHMYCyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeUIUCgtzZXJ2ZXJfdHlwZRIFukgCCAEiTwoRU3RkaW9TZXJ2ZXJDb25maWcSFwoHY29tbWFuZBgBIAEoCUIGukgDyAEBEgwKBGFyZ3MYAiADKAkSEwoLd29ya2luZ19kaXIYAyABKAki4AIKEEh0dHBTZXJ2ZXJDb25maWcSGAoDdXJsGAEgASgJQgu6SAjIAQFyA4gBARJPCgdoZWFkZXJzGAIgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnLkhlYWRlcnNFbnRyeRJYCgxxdWVyeV9wYXJhbXMYAyADKAsyQi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuUXVlcnlQYXJhbXNFbnRyeRIjCg90aW1lb3V0X3NlY29uZHMYBCABKAVCCrpIBxoFGKwCKAAaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaMgoQUXVlcnlQYXJhbXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkEKElRvb2xBcHByb3ZhbFBvbGljeRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESDwoHbWVzc2FnZRgCIAEoCSKtAQoPTWNwU2VydmVyU291cmNlEhAKCHJlZ2lzdHJ5GAEgASgJEhUKDXJlZ2lzdHJ5X25hbWUYAiABKAkSDwoHdmVyc2lvbhgDIAEoCRIWCg5yZXBvc2l0b3J5X3VybBgEIAEoCRIyCg5sYXN0X3N5bmNlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFAoMZ2l0aHViX3N0YXJzGAYgASgFYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_spec, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEi3QMKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKCGVudl9zcGVjGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U3BlYxJACgZzb3VyY2UYCiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlclNvdXJjZRJSChVwaW5uZWRfdG9vbF9hcHByb3ZhbHMYCyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeUIUCgtzZXJ2ZXJfdHlwZRIFukgCCAEiTwoRU3RkaW9TZXJ2ZXJDb25maWcSFwoHY29tbWFuZBgBIAEoCUIGukgDyAEBEgwKBGFyZ3MYAiADKAkSEwoLd29ya2luZ19kaXIYAyABKAki4AIKEEh0dHBTZXJ2ZXJDb25maWcSGAoDdXJsGAEgASgJQgu6SAjIAQFyA4gBARJPCgdoZWFkZXJzGAIgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnLkhlYWRlcnNFbnRyeRJYCgxxdWVyeV9wYXJhbXMYAyADKAsyQi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuUXVlcnlQYXJhbXNFbnRyeRIjCg90aW1lb3V0X3NlY29uZHMYBCABKAVCCrpIBxoFGKwCKAAaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaMgoQUXVlcnlQYXJhbXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkEKElRvb2xBcHByb3ZhbFBvbGljeRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESDwoHbWVzc2FnZRgCIAEoCSLvAQoPTWNwU2VydmVyU291cmNlEhAKCHJlZ2lzdHJ5GAEgASgJEhUKDXJlZ2lzdHJ5X25hbWUYAiABKAkSDwoHdmVyc2lvbhgDIAEoCRIWCg5yZXBvc2l0b3J5X3VybBgEIAEoCRIyCg5sYXN0X3N5bmNlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFAoMZ2l0aHViX3N0YXJzGAYgASgFEhUKDXF1YWxpdHlfc2NvcmUYByABKAUSFAoMcXVhbGl0eV90aWVyGAggASgJEhMKC3N1YmNhdGVnb3J5GAkgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_spec, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * McpServerSpec defines the configurable properties of an MCP server.
@@ -396,11 +396,39 @@ export type McpServerSource = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer
 
   /**
    * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
-   * Used for quality filtering during sync and popularity sorting in the UI.
+   * Populated from the MCP Quality Index (no separate GitHub API call).
    *
    * @generated from field: int32 github_stars = 6;
    */
   githubStars: number;
+
+  /**
+   * MCP Quality Index composite score (0-100).
+   * Derived from four equally-weighted dimensions: maintenance (0-25),
+   * adoption (0-25), maturity (0-25), community (0-25).
+   * Source: https://github.com/grahamrowe82/mcp-quality-index
+   *
+   * @generated from field: int32 quality_score = 7;
+   */
+  qualityScore: number;
+
+  /**
+   * Quality tier classification from the MCP Quality Index.
+   * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+   * "experimental" (below 30).
+   * Only "verified" and "established" servers are synced into the marketplace.
+   *
+   * @generated from field: string quality_tier = 8;
+   */
+  qualityTier: string;
+
+  /**
+   * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+   * "data-warehouse-mcp", "mongodb-mcp-servers").
+   *
+   * @generated from field: string subcategory = 9;
+   */
+  subcategory: string;
 };
 
 /**

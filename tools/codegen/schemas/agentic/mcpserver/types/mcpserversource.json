@@ -61,7 +61,37 @@
       "type": {
         "kind": "int32"
       },
-      "description": "GitHub star count at the time of last sync (0 if unknown or non-GitHub).\n Used for quality filtering during sync and popularity sorting in the UI.",
+      "description": "GitHub star count at the time of last sync (0 if unknown or non-GitHub).\n Populated from the MCP Quality Index (no separate GitHub API call).",
+      "required": false
+    },
+    {
+      "name": "QualityScore",
+      "jsonName": "qualityScore",
+      "protoField": "quality_score",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "MCP Quality Index composite score (0-100).\n Derived from four equally-weighted dimensions: maintenance (0-25),\n adoption (0-25), maturity (0-25), community (0-25).\n Source: https://github.com/grahamrowe82/mcp-quality-index",
+      "required": false
+    },
+    {
+      "name": "QualityTier",
+      "jsonName": "qualityTier",
+      "protoField": "quality_tier",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Quality tier classification from the MCP Quality Index.\n Values: \"verified\" (70+), \"established\" (50-69), \"emerging\" (30-49),\n \"experimental\" (below 30).\n Only \"verified\" and \"established\" servers are synced into the marketplace.",
+      "required": false
+    },
+    {
+      "name": "Subcategory",
+      "jsonName": "subcategory",
+      "protoField": "subcategory",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Subcategory from the MCP Quality Index (e.g., \"dotnet-mcp-servers\",\n \"data-warehouse-mcp\", \"mongodb-mcp-servers\").",
       "required": false
     }
   ]

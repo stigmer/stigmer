@@ -44,6 +44,8 @@ private static final long serialVersionUID = 0L;
     registryName_ = "";
     version_ = "";
     repositoryUrl_ = "";
+    qualityTier_ = "";
+    subcategory_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -308,7 +310,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
-   * Used for quality filtering during sync and popularity sorting in the UI.
+   * Populated from the MCP Quality Index (no separate GitHub API call).
    * </pre>
    *
    * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
@@ -317,6 +319,126 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public int getGithubStars() {
     return githubStars_;
+  }
+
+  public static final int QUALITY_SCORE_FIELD_NUMBER = 7;
+  private int qualityScore_ = 0;
+  /**
+   * <pre>
+   * MCP Quality Index composite score (0-100).
+   * Derived from four equally-weighted dimensions: maintenance (0-25),
+   * adoption (0-25), maturity (0-25), community (0-25).
+   * Source: https://github.com/grahamrowe82/mcp-quality-index
+   * </pre>
+   *
+   * <code>int32 quality_score = 7 [json_name = "qualityScore"];</code>
+   * @return The qualityScore.
+   */
+  @java.lang.Override
+  public int getQualityScore() {
+    return qualityScore_;
+  }
+
+  public static final int QUALITY_TIER_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object qualityTier_ = "";
+  /**
+   * <pre>
+   * Quality tier classification from the MCP Quality Index.
+   * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+   * "experimental" (below 30).
+   * Only "verified" and "established" servers are synced into the marketplace.
+   * </pre>
+   *
+   * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+   * @return The qualityTier.
+   */
+  @java.lang.Override
+  public java.lang.String getQualityTier() {
+    java.lang.Object ref = qualityTier_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      qualityTier_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Quality tier classification from the MCP Quality Index.
+   * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+   * "experimental" (below 30).
+   * Only "verified" and "established" servers are synced into the marketplace.
+   * </pre>
+   *
+   * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+   * @return The bytes for qualityTier.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getQualityTierBytes() {
+    java.lang.Object ref = qualityTier_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      qualityTier_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int SUBCATEGORY_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object subcategory_ = "";
+  /**
+   * <pre>
+   * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+   * "data-warehouse-mcp", "mongodb-mcp-servers").
+   * </pre>
+   *
+   * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+   * @return The subcategory.
+   */
+  @java.lang.Override
+  public java.lang.String getSubcategory() {
+    java.lang.Object ref = subcategory_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      subcategory_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+   * "data-warehouse-mcp", "mongodb-mcp-servers").
+   * </pre>
+   *
+   * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+   * @return The bytes for subcategory.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getSubcategoryBytes() {
+    java.lang.Object ref = subcategory_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      subcategory_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -351,6 +473,15 @@ private static final long serialVersionUID = 0L;
     if (githubStars_ != 0) {
       output.writeInt32(6, githubStars_);
     }
+    if (qualityScore_ != 0) {
+      output.writeInt32(7, qualityScore_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(qualityTier_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, qualityTier_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subcategory_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 9, subcategory_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -379,6 +510,16 @@ private static final long serialVersionUID = 0L;
     if (githubStars_ != 0) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(6, githubStars_);
+    }
+    if (qualityScore_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(7, qualityScore_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(qualityTier_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, qualityTier_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subcategory_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, subcategory_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -410,6 +551,12 @@ private static final long serialVersionUID = 0L;
     }
     if (getGithubStars()
         != other.getGithubStars()) return false;
+    if (getQualityScore()
+        != other.getQualityScore()) return false;
+    if (!getQualityTier()
+        .equals(other.getQualityTier())) return false;
+    if (!getSubcategory()
+        .equals(other.getSubcategory())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -435,6 +582,12 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + GITHUB_STARS_FIELD_NUMBER;
     hash = (53 * hash) + getGithubStars();
+    hash = (37 * hash) + QUALITY_SCORE_FIELD_NUMBER;
+    hash = (53 * hash) + getQualityScore();
+    hash = (37 * hash) + QUALITY_TIER_FIELD_NUMBER;
+    hash = (53 * hash) + getQualityTier().hashCode();
+    hash = (37 * hash) + SUBCATEGORY_FIELD_NUMBER;
+    hash = (53 * hash) + getSubcategory().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -594,6 +747,9 @@ private static final long serialVersionUID = 0L;
         lastSyncedAtBuilder_ = null;
       }
       githubStars_ = 0;
+      qualityScore_ = 0;
+      qualityTier_ = "";
+      subcategory_ = "";
       return this;
     }
 
@@ -649,6 +805,15 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.githubStars_ = githubStars_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.qualityScore_ = qualityScore_;
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.qualityTier_ = qualityTier_;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.subcategory_ = subcategory_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -689,6 +854,19 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getGithubStars() != 0) {
         setGithubStars(other.getGithubStars());
+      }
+      if (other.getQualityScore() != 0) {
+        setQualityScore(other.getQualityScore());
+      }
+      if (!other.getQualityTier().isEmpty()) {
+        qualityTier_ = other.qualityTier_;
+        bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      if (!other.getSubcategory().isEmpty()) {
+        subcategory_ = other.subcategory_;
+        bitField0_ |= 0x00000100;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -748,6 +926,21 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
+            case 56: {
+              qualityScore_ = input.readInt32();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
+            case 66: {
+              qualityTier_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
+            case 74: {
+              subcategory_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1324,7 +1517,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
-     * Used for quality filtering during sync and popularity sorting in the UI.
+     * Populated from the MCP Quality Index (no separate GitHub API call).
      * </pre>
      *
      * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
@@ -1337,7 +1530,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
-     * Used for quality filtering during sync and popularity sorting in the UI.
+     * Populated from the MCP Quality Index (no separate GitHub API call).
      * </pre>
      *
      * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
@@ -1354,7 +1547,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
-     * Used for quality filtering during sync and popularity sorting in the UI.
+     * Populated from the MCP Quality Index (no separate GitHub API call).
      * </pre>
      *
      * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
@@ -1363,6 +1556,263 @@ private static final long serialVersionUID = 0L;
     public Builder clearGithubStars() {
       bitField0_ = (bitField0_ & ~0x00000020);
       githubStars_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int qualityScore_ ;
+    /**
+     * <pre>
+     * MCP Quality Index composite score (0-100).
+     * Derived from four equally-weighted dimensions: maintenance (0-25),
+     * adoption (0-25), maturity (0-25), community (0-25).
+     * Source: https://github.com/grahamrowe82/mcp-quality-index
+     * </pre>
+     *
+     * <code>int32 quality_score = 7 [json_name = "qualityScore"];</code>
+     * @return The qualityScore.
+     */
+    @java.lang.Override
+    public int getQualityScore() {
+      return qualityScore_;
+    }
+    /**
+     * <pre>
+     * MCP Quality Index composite score (0-100).
+     * Derived from four equally-weighted dimensions: maintenance (0-25),
+     * adoption (0-25), maturity (0-25), community (0-25).
+     * Source: https://github.com/grahamrowe82/mcp-quality-index
+     * </pre>
+     *
+     * <code>int32 quality_score = 7 [json_name = "qualityScore"];</code>
+     * @param value The qualityScore to set.
+     * @return This builder for chaining.
+     */
+    public Builder setQualityScore(int value) {
+
+      qualityScore_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP Quality Index composite score (0-100).
+     * Derived from four equally-weighted dimensions: maintenance (0-25),
+     * adoption (0-25), maturity (0-25), community (0-25).
+     * Source: https://github.com/grahamrowe82/mcp-quality-index
+     * </pre>
+     *
+     * <code>int32 quality_score = 7 [json_name = "qualityScore"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearQualityScore() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      qualityScore_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object qualityTier_ = "";
+    /**
+     * <pre>
+     * Quality tier classification from the MCP Quality Index.
+     * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+     * "experimental" (below 30).
+     * Only "verified" and "established" servers are synced into the marketplace.
+     * </pre>
+     *
+     * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+     * @return The qualityTier.
+     */
+    public java.lang.String getQualityTier() {
+      java.lang.Object ref = qualityTier_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        qualityTier_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Quality tier classification from the MCP Quality Index.
+     * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+     * "experimental" (below 30).
+     * Only "verified" and "established" servers are synced into the marketplace.
+     * </pre>
+     *
+     * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+     * @return The bytes for qualityTier.
+     */
+    public com.google.protobuf.ByteString
+        getQualityTierBytes() {
+      java.lang.Object ref = qualityTier_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        qualityTier_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Quality tier classification from the MCP Quality Index.
+     * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+     * "experimental" (below 30).
+     * Only "verified" and "established" servers are synced into the marketplace.
+     * </pre>
+     *
+     * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+     * @param value The qualityTier to set.
+     * @return This builder for chaining.
+     */
+    public Builder setQualityTier(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      qualityTier_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Quality tier classification from the MCP Quality Index.
+     * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+     * "experimental" (below 30).
+     * Only "verified" and "established" servers are synced into the marketplace.
+     * </pre>
+     *
+     * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearQualityTier() {
+      qualityTier_ = getDefaultInstance().getQualityTier();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Quality tier classification from the MCP Quality Index.
+     * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+     * "experimental" (below 30).
+     * Only "verified" and "established" servers are synced into the marketplace.
+     * </pre>
+     *
+     * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+     * @param value The bytes for qualityTier to set.
+     * @return This builder for chaining.
+     */
+    public Builder setQualityTierBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      qualityTier_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object subcategory_ = "";
+    /**
+     * <pre>
+     * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+     * "data-warehouse-mcp", "mongodb-mcp-servers").
+     * </pre>
+     *
+     * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+     * @return The subcategory.
+     */
+    public java.lang.String getSubcategory() {
+      java.lang.Object ref = subcategory_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        subcategory_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+     * "data-warehouse-mcp", "mongodb-mcp-servers").
+     * </pre>
+     *
+     * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+     * @return The bytes for subcategory.
+     */
+    public com.google.protobuf.ByteString
+        getSubcategoryBytes() {
+      java.lang.Object ref = subcategory_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        subcategory_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+     * "data-warehouse-mcp", "mongodb-mcp-servers").
+     * </pre>
+     *
+     * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+     * @param value The subcategory to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSubcategory(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      subcategory_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+     * "data-warehouse-mcp", "mongodb-mcp-servers").
+     * </pre>
+     *
+     * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSubcategory() {
+      subcategory_ = getDefaultInstance().getSubcategory();
+      bitField0_ = (bitField0_ & ~0x00000100);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+     * "data-warehouse-mcp", "mongodb-mcp-servers").
+     * </pre>
+     *
+     * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+     * @param value The bytes for subcategory to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSubcategoryBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      subcategory_ = value;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }

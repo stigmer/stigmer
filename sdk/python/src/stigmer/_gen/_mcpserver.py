@@ -203,6 +203,9 @@ class McpServerSourceInput:
     repository_url: str = ""
     last_synced_at: str = ""
     github_stars: int = 0
+    quality_score: int = 0
+    quality_tier: str = ""
+    subcategory: str = ""
 
     def _to_proto(self) -> spec_pb2.McpServerSource:
         msg = spec_pb2.McpServerSource(
@@ -211,6 +214,9 @@ class McpServerSourceInput:
             version=self.version,
             repository_url=self.repository_url,
             github_stars=self.github_stars,
+            quality_score=self.quality_score,
+            quality_tier=self.quality_tier,
+            subcategory=self.subcategory,
         )
         if self.last_synced_at:
             msg.last_synced_at.FromJsonString(self.last_synced_at)

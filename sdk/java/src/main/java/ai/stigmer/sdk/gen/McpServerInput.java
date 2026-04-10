@@ -219,6 +219,9 @@ public final class McpServerInput {
         private final String repositoryUrl;
         private final String lastSyncedAt;
         private final int githubStars;
+        private final int qualityScore;
+        private final String qualityTier;
+        private final String subcategory;
 
         private McpServerSourceInput(Builder builder) {
             this.registry = builder.registry;
@@ -227,6 +230,9 @@ public final class McpServerInput {
             this.repositoryUrl = builder.repositoryUrl;
             this.lastSyncedAt = builder.lastSyncedAt;
             this.githubStars = builder.githubStars;
+            this.qualityScore = builder.qualityScore;
+            this.qualityTier = builder.qualityTier;
+            this.subcategory = builder.subcategory;
         }
 
         McpServerSource toProto() {
@@ -251,6 +257,13 @@ public final class McpServerInput {
                     .build());
             }
             builder.setGithubStars(this.githubStars);
+            builder.setQualityScore(this.qualityScore);
+            if (this.qualityTier != null) {
+                builder.setQualityTier(this.qualityTier);
+            }
+            if (this.subcategory != null) {
+                builder.setSubcategory(this.subcategory);
+            }
             return builder.build();
         }
 
@@ -263,6 +276,9 @@ public final class McpServerInput {
             private String repositoryUrl;
             private String lastSyncedAt;
             private int githubStars;
+            private int qualityScore;
+            private String qualityTier;
+            private String subcategory;
 
             private Builder() {}
 
@@ -272,6 +288,9 @@ public final class McpServerInput {
             public Builder repositoryUrl(String repositoryUrl) { this.repositoryUrl = repositoryUrl; return this; }
             public Builder lastSyncedAt(String lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; return this; }
             public Builder githubStars(int githubStars) { this.githubStars = githubStars; return this; }
+            public Builder qualityScore(int qualityScore) { this.qualityScore = qualityScore; return this; }
+            public Builder qualityTier(String qualityTier) { this.qualityTier = qualityTier; return this; }
+            public Builder subcategory(String subcategory) { this.subcategory = subcategory; return this; }
 
             public McpServerSourceInput build() { return new McpServerSourceInput(this); }
         }

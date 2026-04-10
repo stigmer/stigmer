@@ -78,17 +78,23 @@ class ToolApprovalPolicy(_message.Message):
     def __init__(self, tool_name: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
 
 class McpServerSource(_message.Message):
-    __slots__ = ("registry", "registry_name", "version", "repository_url", "last_synced_at", "github_stars")
+    __slots__ = ("registry", "registry_name", "version", "repository_url", "last_synced_at", "github_stars", "quality_score", "quality_tier", "subcategory")
     REGISTRY_FIELD_NUMBER: _ClassVar[int]
     REGISTRY_NAME_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
     REPOSITORY_URL_FIELD_NUMBER: _ClassVar[int]
     LAST_SYNCED_AT_FIELD_NUMBER: _ClassVar[int]
     GITHUB_STARS_FIELD_NUMBER: _ClassVar[int]
+    QUALITY_SCORE_FIELD_NUMBER: _ClassVar[int]
+    QUALITY_TIER_FIELD_NUMBER: _ClassVar[int]
+    SUBCATEGORY_FIELD_NUMBER: _ClassVar[int]
     registry: str
     registry_name: str
     version: str
     repository_url: str
     last_synced_at: _timestamp_pb2.Timestamp
     github_stars: int
-    def __init__(self, registry: _Optional[str] = ..., registry_name: _Optional[str] = ..., version: _Optional[str] = ..., repository_url: _Optional[str] = ..., last_synced_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., github_stars: _Optional[int] = ...) -> None: ...
+    quality_score: int
+    quality_tier: str
+    subcategory: str
+    def __init__(self, registry: _Optional[str] = ..., registry_name: _Optional[str] = ..., version: _Optional[str] = ..., repository_url: _Optional[str] = ..., last_synced_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., github_stars: _Optional[int] = ..., quality_score: _Optional[int] = ..., quality_tier: _Optional[str] = ..., subcategory: _Optional[str] = ...) -> None: ...

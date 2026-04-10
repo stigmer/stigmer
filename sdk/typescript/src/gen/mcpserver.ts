@@ -140,6 +140,9 @@ export interface McpServerSourceInput {
   repositoryUrl?: string;
   lastSyncedAt?: Date | string;
   githubStars?: number;
+  qualityScore?: number;
+  qualityTier?: string;
+  subcategory?: string;
 }
 
 /** SDK input type for ToolApprovalPolicy. */
@@ -173,6 +176,9 @@ function buildMcpServerSourceProto(input: McpServerSourceInput) {
     repositoryUrl: input.repositoryUrl,
     lastSyncedAt: input.lastSyncedAt,
     githubStars: input.githubStars,
+    qualityScore: input.qualityScore,
+    qualityTier: input.qualityTier,
+    subcategory: input.subcategory,
   }));
 }
 
