@@ -104,18 +104,21 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ParamsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
       " \001(\tR\005value:\0028\001\"T\n\022ToolApprovalPolicy\022$\n" +
       "\ttool_name\030\001 \001(\tB\007\272H\004r\002\020\001R\010toolName\022\030\n\007m" +
-      "essage\030\002 \001(\tR\007message\"\370\001\n\017McpServerSourc" +
+      "essage\030\002 \001(\tR\007message\"\342\002\n\017McpServerSourc" +
       "e\022\032\n\010registry\030\001 \001(\tR\010registry\022#\n\rregistr" +
       "y_name\030\002 \001(\tR\014registryName\022\030\n\007version\030\003 " +
       "\001(\tR\007version\022%\n\016repository_url\030\004 \001(\tR\rre" +
       "positoryUrl\022@\n\016last_synced_at\030\005 \001(\0132\032.go" +
       "ogle.protobuf.TimestampR\014lastSyncedAt\022!\n" +
-      "\014github_stars\030\006 \001(\005R\013githubStarsB\254\001B\tSpe" +
-      "cProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcp" +
-      "server.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver" +
-      "\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GP" +
-      "BMetadata\352\002#Ai::Stigmer::Agentic::Mcpser" +
-      "ver::V1b\006proto3"
+      "\014github_stars\030\006 \001(\005R\013githubStars\022#\n\rqual" +
+      "ity_score\030\007 \001(\005R\014qualityScore\022!\n\014quality" +
+      "_tier\030\010 \001(\tR\013qualityTier\022 \n\013subcategory\030" +
+      "\t \001(\tR\013subcategoryB\254\001B\tSpecProtoP\001\242\002\004ASA" +
+      "M\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai" +
+      "\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigm" +
+      "er\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai" +
+      "::Stigmer::Agentic::Mcpserver::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -165,7 +168,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSource_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSource_descriptor,
-        new java.lang.String[] { "Registry", "RegistryName", "Version", "RepositoryUrl", "LastSyncedAt", "GithubStars", });
+        new java.lang.String[] { "Registry", "RegistryName", "Version", "RepositoryUrl", "LastSyncedAt", "GithubStars", "QualityScore", "QualityTier", "Subcategory", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

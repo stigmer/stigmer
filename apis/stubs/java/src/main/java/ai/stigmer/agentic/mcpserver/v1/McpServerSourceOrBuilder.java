@@ -132,11 +132,72 @@ public interface McpServerSourceOrBuilder extends
   /**
    * <pre>
    * GitHub star count at the time of last sync (0 if unknown or non-GitHub).
-   * Used for quality filtering during sync and popularity sorting in the UI.
+   * Populated from the MCP Quality Index (no separate GitHub API call).
    * </pre>
    *
    * <code>int32 github_stars = 6 [json_name = "githubStars"];</code>
    * @return The githubStars.
    */
   int getGithubStars();
+
+  /**
+   * <pre>
+   * MCP Quality Index composite score (0-100).
+   * Derived from four equally-weighted dimensions: maintenance (0-25),
+   * adoption (0-25), maturity (0-25), community (0-25).
+   * Source: https://github.com/grahamrowe82/mcp-quality-index
+   * </pre>
+   *
+   * <code>int32 quality_score = 7 [json_name = "qualityScore"];</code>
+   * @return The qualityScore.
+   */
+  int getQualityScore();
+
+  /**
+   * <pre>
+   * Quality tier classification from the MCP Quality Index.
+   * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+   * "experimental" (below 30).
+   * Only "verified" and "established" servers are synced into the marketplace.
+   * </pre>
+   *
+   * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+   * @return The qualityTier.
+   */
+  java.lang.String getQualityTier();
+  /**
+   * <pre>
+   * Quality tier classification from the MCP Quality Index.
+   * Values: "verified" (70+), "established" (50-69), "emerging" (30-49),
+   * "experimental" (below 30).
+   * Only "verified" and "established" servers are synced into the marketplace.
+   * </pre>
+   *
+   * <code>string quality_tier = 8 [json_name = "qualityTier"];</code>
+   * @return The bytes for qualityTier.
+   */
+  com.google.protobuf.ByteString
+      getQualityTierBytes();
+
+  /**
+   * <pre>
+   * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+   * "data-warehouse-mcp", "mongodb-mcp-servers").
+   * </pre>
+   *
+   * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+   * @return The subcategory.
+   */
+  java.lang.String getSubcategory();
+  /**
+   * <pre>
+   * Subcategory from the MCP Quality Index (e.g., "dotnet-mcp-servers",
+   * "data-warehouse-mcp", "mongodb-mcp-servers").
+   * </pre>
+   *
+   * <code>string subcategory = 9 [json_name = "subcategory"];</code>
+   * @return The bytes for subcategory.
+   */
+  com.google.protobuf.ByteString
+      getSubcategoryBytes();
 }
