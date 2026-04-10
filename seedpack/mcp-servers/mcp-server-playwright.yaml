@@ -1,0 +1,21 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-playwright
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "web-automation"
+spec:
+  description: "Playwright MCP server for browser automation, web testing, page navigation, element interaction, and screenshot capture."
+  repository_url: "https://github.com/microsoft/playwright-mcp"
+  github_stars: 30578
+  tags:
+    - playwright
+    - browser
+    - web-automation
+    - testing
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@playwright/mcp@latest"

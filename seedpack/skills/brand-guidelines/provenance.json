@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/anthropics/skills",
+    "ref": "main",
+    "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39",
+    "subdir": "skills/brand-guidelines"
+  },
+  "vendored_at": "2026-04-10T10:39:27Z",
+  "vendored_by": "vendor_skill.sh",
+  "content_digest": "sha256:550ce6936ffacb5eff196c3f3947b36d41acf44a2a2614e8282212c04e6100ca",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "digest": "sha256:58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:1120b3769e2985cefb3d25be981b1f914abeba57ae079b83c20c666c164fa9fe"
+    }
+  ]
+}

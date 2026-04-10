@@ -4,7 +4,6 @@ package gen
 
 import (
 	"context"
-	"time"
 
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
@@ -12,7 +11,6 @@ import (
 	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // McpServerClient provides operations on mcpserver resources.
@@ -109,8 +107,9 @@ type McpServerInput struct {
 	Http                *HttpServerConfigInput
 	DefaultEnabledTools []string
 	EnvSpec             *EnvSpecInput
-	Source              *McpServerSourceInput
 	PinnedToolApprovals []*ToolApprovalPolicyInput
+	RepositoryUrl       string
+	GithubStars         int32
 }
 
 // StdioServerConfigInput is the SDK input type for StdioServerConfig.
@@ -126,18 +125,6 @@ type HttpServerConfigInput struct {
 	Headers        map[string]string
 	QueryParams    map[string]string
 	TimeoutSeconds int32
-}
-
-// McpServerSourceInput is the SDK input type for McpServerSource.
-type McpServerSourceInput struct {
-	Registry      string
-	RegistryName  string
-	Version       string
-	RepositoryUrl string
-	LastSyncedAt  string
-	GithubStars   int32
-	QualityScore  int32
-	QualityTier   string
 }
 
 // ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
@@ -183,30 +170,12 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 	if i.EnvSpec != nil {
 		resource.Spec.EnvSpec = i.EnvSpec.toProto()
 	}
-	if i.Source != nil {
-		resource.Spec.Source = i.Source.toProto()
-	}
 	for _, item := range i.PinnedToolApprovals {
 		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, item.toProto())
 	}
+	resource.Spec.RepositoryUrl = i.RepositoryUrl
+	resource.Spec.GithubStars = i.GithubStars
 	return resource
-}
-
-func (i *McpServerSourceInput) toProto() *mcpserverv1.McpServerSource {
-	p := &mcpserverv1.McpServerSource{}
-	p.Registry = i.Registry
-	p.RegistryName = i.RegistryName
-	p.Version = i.Version
-	p.RepositoryUrl = i.RepositoryUrl
-	if i.LastSyncedAt != "" {
-		if t, err := time.Parse(time.RFC3339, i.LastSyncedAt); err == nil {
-			p.LastSyncedAt = timestamppb.New(t)
-		}
-	}
-	p.GithubStars = i.GithubStars
-	p.QualityScore = i.QualityScore
-	p.QualityTier = i.QualityTier
-	return p
 }
 
 func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {

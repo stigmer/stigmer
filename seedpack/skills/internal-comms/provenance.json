@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/anthropics/skills",
+    "ref": "main",
+    "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39",
+    "subdir": "skills/internal-comms"
+  },
+  "vendored_at": "2026-04-10T10:39:48Z",
+  "vendored_by": "vendor_skill.sh",
+  "content_digest": "sha256:3e16051803ab1c6bcb73671fe98c72a3e926df4ec97bc1de2403dab7613c97e5",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "digest": "sha256:58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:067b7587a344a928fc6534ef66b1bcd591fc7c26d207ea7ca3334aeb678d6475"
+    },
+    {
+      "path": "examples/3p-updates.md",
+      "digest": "sha256:087e4363c0f3513728a7e695eeb9ead5c3ecd12a4681b59340691180e65b68fc"
+    },
+    {
+      "path": "examples/company-newsletter.md",
+      "digest": "sha256:30f81cfbdb03858a006169c72169024089c7c5d3d32611d337782da4f38c86b5"
+    },
+    {
+      "path": "examples/faq-answers.md",
+      "digest": "sha256:5ecd3356cd6666937f2ebefa753253edfdbdca15e368d07baf398bfcced72484"
+    },
+    {
+      "path": "examples/general-comms.md",
+      "digest": "sha256:4d3a4bb198a77626bcf018e96b2b45a2dbabed172d4ade0fcd70d23ae8a47a47"
+    }
+  ]
+}

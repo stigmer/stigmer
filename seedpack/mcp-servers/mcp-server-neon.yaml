@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-neon
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "databases"
+spec:
+  description: "Neon MCP server for serverless PostgreSQL management including branch creation, database provisioning, and SQL execution."
+  repository_url: "https://github.com/neondatabase/mcp-server-neon"
+  github_stars: 575
+  tags:
+    - neon
+    - postgresql
+    - serverless
+    - database
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@neondatabase/mcp-server-neon"
+      - "start"
+      - "${NEON_API_KEY}"
+  env_spec:
+    data:
+      NEON_API_KEY:
+        is_secret: true
+        description: "Neon API key (generate at console.neon.tech/app/settings/api-keys)"

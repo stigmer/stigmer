@@ -1,0 +1,33 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-twilio
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "notifications"
+spec:
+  description: "Twilio MCP server for SMS, voice, WhatsApp messaging, and communication API operations."
+  repository_url: "https://github.com/twilio-labs/mcp"
+  github_stars: 100
+  tags:
+    - twilio
+    - sms
+    - voice
+    - notifications
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@twilio-alpha/mcp"
+      - "${TWILIO_ACCOUNT_SID}/${TWILIO_API_KEY}:${TWILIO_API_SECRET}"
+  env_spec:
+    data:
+      TWILIO_ACCOUNT_SID:
+        is_secret: false
+        description: "Twilio Account SID"
+      TWILIO_API_KEY:
+        is_secret: true
+        description: "Twilio API key"
+      TWILIO_API_SECRET:
+        is_secret: true
+        description: "Twilio API secret"

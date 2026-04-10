@@ -1,0 +1,26 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-stripe
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "payments"
+spec:
+  description: "Stripe MCP server for payment processing, customer management, subscription operations, and financial data access."
+  repository_url: "https://github.com/stripe/ai"
+  github_stars: 1449
+  tags:
+    - stripe
+    - payments
+    - e-commerce
+    - billing
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@stripe/mcp@latest"
+  env_spec:
+    data:
+      STRIPE_SECRET_KEY:
+        is_secret: true
+        description: "Stripe secret API key (find at dashboard.stripe.com/apikeys)"

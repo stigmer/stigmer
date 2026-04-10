@@ -141,15 +141,13 @@ vendor_skill() {
     log_info "Cloning repository to temporary directory..."
     if [[ -n "$requested_commit" ]]; then
         git clone --quiet "$repo_url" "$TEMP_DIR/repo"
-        cd "$TEMP_DIR/repo"
-        git checkout --quiet "$requested_commit"
+        git -C "$TEMP_DIR/repo" checkout --quiet "$requested_commit"
     else
         git clone --quiet --depth 1 --branch "$upstream_ref" "$repo_url" "$TEMP_DIR/repo"
-        cd "$TEMP_DIR/repo"
     fi
     
     local commit_sha
-    commit_sha=$(git rev-parse HEAD)
+    commit_sha=$(git -C "$TEMP_DIR/repo" rev-parse HEAD)
     log_info "Commit SHA: ${commit_sha}"
     
     local upstream_skill_dir="$TEMP_DIR/repo/skills/${skill_name}"
