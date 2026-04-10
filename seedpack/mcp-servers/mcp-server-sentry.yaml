@@ -1,0 +1,26 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-sentry
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "monitoring"
+spec:
+  description: "Sentry MCP server for accessing error reports, performance data, project configuration, and AI-powered issue analysis."
+  repository_url: "https://github.com/getsentry/sentry-mcp"
+  github_stars: 623
+  tags:
+    - sentry
+    - monitoring
+    - error-tracking
+    - observability
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@sentry/mcp-server@latest"
+  env_spec:
+    data:
+      SENTRY_ACCESS_TOKEN:
+        is_secret: true
+        description: "Sentry auth token with org:read, project:read, event:write scopes"

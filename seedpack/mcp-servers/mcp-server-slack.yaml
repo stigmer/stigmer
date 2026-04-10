@@ -1,0 +1,25 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-slack
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "communication"
+spec:
+  description: "Slack MCP server for searching channels, sending messages, managing canvases, and interacting with workspace data."
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - slack
+    - messaging
+    - communication
+    - collaboration
+  http:
+    url: "https://mcp.slack.com/mcp"
+    headers:
+      Authorization: "Bearer ${SLACK_ACCESS_TOKEN}"
+  env_spec:
+    data:
+      SLACK_ACCESS_TOKEN:
+        is_secret: true
+        description: "Slack user OAuth token (requires a registered Slack app with appropriate scopes)"

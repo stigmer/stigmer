@@ -1,0 +1,21 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-salesforce
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "crm-support"
+spec:
+  description: "Salesforce MCP server for CRM operations including SOQL queries, record management, metadata inspection, and org administration."
+  repository_url: "https://github.com/salesforcecli/mcp"
+  github_stars: 349
+  tags:
+    - salesforce
+    - crm
+    - sales
+    - customer-management
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@salesforce/mcp@latest"

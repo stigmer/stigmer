@@ -1,0 +1,37 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-mysql
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "databases"
+spec:
+  description: "MySQL MCP server for database queries, schema inspection, and table management operations."
+  repository_url: "https://github.com/benborla/mcp-server-mysql"
+  github_stars: 1507
+  tags:
+    - mysql
+    - database
+    - sql
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@benborla29/mcp-server-mysql"
+  env_spec:
+    data:
+      MYSQL_HOST:
+        is_secret: false
+        description: "MySQL server hostname (e.g., localhost)"
+      MYSQL_PORT:
+        is_secret: false
+        description: "MySQL server port (default: 3306)"
+      MYSQL_USER:
+        is_secret: false
+        description: "MySQL username"
+      MYSQL_PASS:
+        is_secret: true
+        description: "MySQL password"
+      MYSQL_DB:
+        is_secret: false
+        description: "MySQL database name (omit for multi-database access)"

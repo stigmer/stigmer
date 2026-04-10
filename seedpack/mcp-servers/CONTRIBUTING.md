@@ -23,7 +23,12 @@ into the platform via `stigmer seedpack apply`.
 Files must be named `mcp-server-{name}.yaml` where `{name}` is a
 lowercase, hyphenated identifier matching `metadata.name`.
 
-### YAML Template
+### YAML Templates
+
+Four transport patterns are supported. Use exactly one of `spec.stdio` or
+`spec.http` per server.
+
+**stdio via npx (Node.js packages)**
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -33,14 +38,13 @@ metadata:
   visibility: visibility_public
   labels:
     stigmer.ai/category: "{category}"
+spec:
+  description: "{One-line description of what this MCP server does.}"
+  repository_url: "{GitHub repository URL}"
+  github_stars: {star count at time of curation}
   tags:
     - {tag1}
     - {tag2}
-spec:
-  description: "{One-line description of what this MCP server does.}"
-  icon_url: "{URL to an SVG, PNG, or JPEG icon}"
-  repository_url: "{GitHub repository URL}"
-  github_stars: {star count at time of curation}
   stdio:
     command: "npx"
     args:
@@ -53,6 +57,40 @@ spec:
         description: "{What this key is for}"
 ```
 
+**stdio via uvx (Python packages)**
+
+```yaml
+spec:
+  stdio:
+    command: "uvx"
+    args:
+      - "{pypi-package-name}@latest"
+      - "--url"
+      - "${CONNECTION_URL}"
+```
+
+**stdio via go run (Go packages)**
+
+```yaml
+spec:
+  stdio:
+    command: "go"
+    args:
+      - "run"
+      - "{go-module-path}@latest"
+      - "stdio"
+```
+
+**HTTP (hosted/remote servers)**
+
+```yaml
+spec:
+  http:
+    url: "https://{mcp-endpoint-url}"
+    headers:
+      Authorization: "Bearer ${ACCESS_TOKEN}"
+```
+
 ### Required Fields
 
 | Field | Description |
@@ -60,9 +98,9 @@ spec:
 | `metadata.name` | `mcp-server-{name}`, unique across the seedpack |
 | `metadata.visibility` | Always `visibility_public` for marketplace entries |
 | `metadata.labels.stigmer.ai/category` | One of the categories listed below |
-| `metadata.tags` | Lowercase, hyphenated tags for search and filtering |
 | `spec.description` | Clear, concise explanation of capabilities |
-| `spec.repository_url` | GitHub/GitLab URL to the source repository |
+| `spec.tags` | Lowercase, hyphenated tags for marketplace search and filtering |
+| `spec.repository_url` | GitHub/GitLab URL to the source repository (empty string for hosted-only servers) |
 | `spec.stdio` or `spec.http` | Transport configuration (exactly one) |
 
 ### Optional Fields
@@ -91,19 +129,19 @@ Use one of these values for `metadata.labels.stigmer.ai/category`:
 | Category | Description |
 |----------|-------------|
 | `developer-tools` | Git, GitHub, GitLab, filesystem, code analysis |
-| `databases` | PostgreSQL, MongoDB, Redis, MySQL, SQLite, hosted DBs |
+| `databases` | PostgreSQL, MongoDB, Redis, MySQL, SQLite, Neon, Supabase |
 | `search` | Web search, research APIs, content fetching |
-| `cloud-infrastructure` | AWS, GCP, Cloudflare, Docker, Kubernetes, Terraform |
-| `communication` | Slack, email, messaging platforms |
-| `productivity` | Google Drive, Notion, calendar, note-taking |
-| `web-automation` | Puppeteer, Playwright, browser control |
+| `cloud-infrastructure` | AWS, Cloudflare, Kubernetes, Terraform |
+| `communication` | Slack, Linear, messaging platforms |
+| `productivity` | Notion, Google Maps, note-taking, workspace tools |
+| `web-automation` | Playwright, browser control and testing |
 | `monitoring` | Sentry, logging, observability |
-| `payments` | Stripe, Shopify, e-commerce |
+| `payments` | Stripe, e-commerce |
 | `design` | Figma, design tools |
 | `ai-reasoning` | Sequential thinking, memory, AI-augmented tools |
-| `notifications` | SMS, email delivery, push notifications |
-| `scheduling` | Calendar, appointment, time management |
-| `crm-support` | Salesforce, Jira, Zendesk, customer platforms |
+| `notifications` | Twilio, Resend, SMS, email delivery |
+| `scheduling` | Google Calendar, time management |
+| `crm-support` | Salesforce, Atlassian (Jira/Confluence), customer platforms |
 
 ## Proto Schema Reference
 
