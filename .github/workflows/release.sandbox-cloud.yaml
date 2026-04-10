@@ -49,6 +49,15 @@ jobs:
             --push \
             .
 
+      - name: Ensure GHCR package is public
+        run: |
+          gh api \
+            -X PUT \
+            /orgs/${{ github.repository_owner }}/packages/container/agent-sandbox-full/visibility \
+            -f visibility=public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Summary
         run: |
           echo "## Cloud Sandbox Image Published" >> $GITHUB_STEP_SUMMARY
