@@ -87,17 +87,6 @@
       "required": false
     },
     {
-      "name": "Source",
-      "jsonName": "source",
-      "protoField": "source",
-      "type": {
-        "kind": "message",
-        "messageType": "McpServerSource"
-      },
-      "description": "Source/provenance of this MCP server definition.\n Populated by automated sync workflows (e.g. MCP Registry sync).\n Empty for hand-authored definitions like the system mcp-server-stigmer.",
-      "required": false
-    },
-    {
       "name": "PinnedToolApprovals",
       "jsonName": "pinnedToolApprovals",
       "protoField": "pinned_tool_approvals",
@@ -109,6 +98,26 @@
         }
       },
       "description": "Manual tool approval overrides set by the MCP server owner.\n\n @internal\n These take precedence over system-generated `McpServerStatus.tool_approvals`.\n Never auto-modified — only changed by explicit user action (apply/update).\n\n Use cases:\n - Force approval for a tool the classifier marked as auto-approve\n - Exempt a safe tool the classifier flagged as needing approval\n - Establish organization-wide safety policies for dangerous tools\n\n Policy chain (lowest to highest priority):\n 1. McpServerStatus.tool_approvals - System-generated defaults\n 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)\n 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization\n 4. AgentExecution.auto_approve_all - Runtime bypass",
+      "required": false
+    },
+    {
+      "name": "RepositoryUrl",
+      "jsonName": "repositoryUrl",
+      "protoField": "repository_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "URL of the upstream source repository for this MCP server.\n Shown in the marketplace so users can inspect the implementation\n for trust and transparency.\n Example: \"https://github.com/modelcontextprotocol/servers\"",
+      "required": false
+    },
+    {
+      "name": "GithubStars",
+      "jsonName": "githubStars",
+      "protoField": "github_stars",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "GitHub star count at the time of curation.\n Used as a popularity signal in marketplace display.\n 0 if unknown or non-GitHub repository.",
       "required": false
     }
   ]

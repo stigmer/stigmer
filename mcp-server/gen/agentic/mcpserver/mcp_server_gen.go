@@ -3,13 +3,10 @@
 package mcpserver
 
 import (
-	"fmt"
 	"github.com/stigmer/stigmer/mcp-server/internal/convert"
 	environmentv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 // McpServerSpec defines the configurable properties of an MCP server.
@@ -43,10 +40,12 @@ type McpServerInput struct {
 	DefaultEnabledTools []string `json:"default_enabled_tools,omitempty" jsonschema:"Default tools to enable from this MCP server. Empty list means all tools are enabled by default. @internal Tool names must match exactly what the MCP server reports via tools/list. Only names from discovered_capabilities.tools are valid here. Do NOT include names from discovered_capabilities.resource_templates — resource templates are read-only data endpoints, not callable tools. Including a resource template name here causes a fatal runtime error."`
 	// Environment variables required by the MCP server.
 	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the MCP server."`
-	// Source/provenance of this MCP server definition. Populated by automated sync workflows (e.g. MCP Registry sync). Empty for hand-authored definitions like the system mcp-server-stigmer.
-	Source *McpServerSourceInput `json:"source,omitempty" jsonschema:"Source/provenance of this MCP server definition. Populated by automated sync workflows (e.g. MCP Registry sync). Empty for hand-authored definitions like the system mcp-server-stigmer."`
 	// Manual tool approval overrides set by the MCP server owner. @internal These take precedence over system-generated `McpServerStatus.tool_approvals`. Never auto-modified — only changed by explicit user action (apply/update). Use cases: - Force approval for a tool the classifier marked as auto-approve - Exempt a safe tool the classifier flagged as needing approval - Establish organization-wide safety policies for dangerous tools Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field) 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass
 	PinnedToolApprovals []ToolApprovalPolicyInput `json:"pinned_tool_approvals,omitempty" jsonschema:"Manual tool approval overrides set by the MCP server owner. @internal These take precedence over system-generated 'McpServerStatus.tool_approvals'. Never auto-modified — only changed by explicit user action (apply/update). Use cases: - Force approval for a tool the classifier marked as auto-approve - Exempt a safe tool the classifier flagged as needing approval - Establish organization-wide safety policies for dangerous tools Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field) 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass"`
+	// URL of the upstream source repository for this MCP server. Shown in the marketplace so users can inspect the implementation for trust and transparency. Example: "https://github.com/modelcontextprotocol/servers"
+	RepositoryUrl string `json:"repository_url,omitempty" jsonschema:"URL of the upstream source repository for this MCP server. Shown in the marketplace so users can inspect the implementation for trust and transparency. Example: 'https://github.com/modelcontextprotocol/servers'"`
+	// GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository.
+	GithubStars int32 `json:"github_stars,omitempty" jsonschema:"GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository."`
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess. @internal Communication happens via stdin/stdout using JSON-RPC messages. The agent runner starts this process and communicates via stdio. Common examples: - Node.js servers: npx @modelcontextprotocol/server-github - Python servers: python -m mcp_server_sqlite - Go servers: ./mcp-server-binary
@@ -87,26 +86,6 @@ type EnvironmentInput struct {
 	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and listing display."`
 	// Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret.
 	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret."`
-}
-
-// McpServerSource tracks provenance for MCP server definitions that were imported from an external registry or catalog via automated sync. This enables: - Traceability: users can inspect the upstream source of any marketplace entry. - Freshness tracking: the platform knows when a definition was last synced. - Deprecation detection: if a server disappears from the source registry, the sync workflow can flag it as deprecated. - Deduplication: source.registry_name is the natural key for upsert logic.
-type McpServerSourceInput struct {
-	// Registry or catalog this definition was sourced from. Example: "registry.modelcontextprotocol.io"
-	Registry string `json:"registry,omitempty" jsonschema:"Registry or catalog this definition was sourced from. Example: 'registry.modelcontextprotocol.io'"`
-	// Name/identifier in the source registry (exact, unmodified). This is the canonical key used for dedup and update matching. Example: "ai.exa/exa"
-	RegistryName string `json:"registry_name,omitempty" jsonschema:"Name/identifier in the source registry (exact, unmodified). This is the canonical key used for dedup and update matching. Example: 'ai.exa/exa'"`
-	// Version from the source registry at the time of last sync. Example: "3.1.3"
-	Version string `json:"version,omitempty" jsonschema:"Version from the source registry at the time of last sync. Example: '3.1.3'"`
-	// Repository URL for the MCP server source code. Lets users inspect the upstream implementation for trust and transparency. Example: "https://github.com/exa-labs/exa-mcp-server"
-	RepositoryUrl string `json:"repository_url,omitempty" jsonschema:"Repository URL for the MCP server source code. Lets users inspect the upstream implementation for trust and transparency. Example: 'https://github.com/exa-labs/exa-mcp-server'"`
-	// Timestamp of last successful sync from the source.
-	LastSyncedAt string `json:"last_synced_at,omitempty" jsonschema:"Timestamp of last successful sync from the source."`
-	// GitHub star count fetched directly from the GitHub REST API. 0 if unknown or non-GitHub repository.
-	GithubStars int32 `json:"github_stars,omitempty" jsonschema:"GitHub star count fetched directly from the GitHub REST API. 0 if unknown or non-GitHub repository."`
-	// Composite quality score (0-100) computed from GitHub signals: stars (0-40), recency (0-30), license (0-15), community (0-15).
-	QualityScore int32 `json:"quality_score,omitempty" jsonschema:"Composite quality score (0-100) computed from GitHub signals: stars (0-40), recency (0-30), license (0-15), community (0-15)."`
-	// Quality tier derived from GitHub signals. Values: "verified" (A) or "established" (B). Only these two tiers are synced into the marketplace.
-	QualityTier string `json:"quality_tier,omitempty" jsonschema:"Quality tier derived from GitHub signals. Values: 'verified' (A) or 'established' (B). Only these two tiers are synced into the marketplace."`
 }
 
 // ToolApprovalPolicy defines approval requirements for a specific tool. @internal The message field supports {{args.field}} placeholders that are resolved at runtime using the actual tool arguments. This enables contextual approval messages that help users make informed decisions. Placeholder syntax: {{args.field_name}} - Replaced with the tool argument value {{tool_name}} - Replaced with the tool name (always available) If a placeholder references a missing argument, it's replaced with "<unknown>". Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass
@@ -171,13 +150,6 @@ func (input *McpServerInput) specToProto() (*mcpserverv1.McpServerSpec, error) {
 		}
 		spec.EnvSpec = v
 	}
-	if input.Source != nil {
-		v, err := input.Source.toProto()
-		if err != nil {
-			return nil, err
-		}
-		spec.Source = v
-	}
 	for _, item := range input.PinnedToolApprovals {
 		v, err := item.toProto()
 		if err != nil {
@@ -185,6 +157,8 @@ func (input *McpServerInput) specToProto() (*mcpserverv1.McpServerSpec, error) {
 		}
 		spec.PinnedToolApprovals = append(spec.PinnedToolApprovals, v)
 	}
+	spec.RepositoryUrl = input.RepositoryUrl
+	spec.GithubStars = input.GithubStars
 	return spec, nil
 }
 
@@ -230,26 +204,6 @@ func (input *EnvironmentInput) toProto() (*environmentv1.EnvironmentSpec, error)
 			result.Data[k] = pv
 		}
 	}
-	return result, nil
-}
-
-func (input *McpServerSourceInput) toProto() (*mcpserverv1.McpServerSource, error) {
-	result := &mcpserverv1.McpServerSource{}
-
-	result.Registry = input.Registry
-	result.RegistryName = input.RegistryName
-	result.Version = input.Version
-	result.RepositoryUrl = input.RepositoryUrl
-	if input.LastSyncedAt != "" {
-		t, err := time.Parse(time.RFC3339, input.LastSyncedAt)
-		if err != nil {
-			return nil, fmt.Errorf("parse last_synced_at: %w", err)
-		}
-		result.LastSyncedAt = timestamppb.New(t)
-	}
-	result.GithubStars = input.GithubStars
-	result.QualityScore = input.QualityScore
-	result.QualityTier = input.QualityTier
 	return result, nil
 }
 

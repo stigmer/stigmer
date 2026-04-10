@@ -11,7 +11,6 @@ import (
 	v1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/environment/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -63,10 +62,6 @@ type McpServerSpec struct {
 	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
 	// Environment variables required by the MCP server.
 	EnvSpec *v1.EnvironmentSpec `protobuf:"bytes,8,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
-	// Source/provenance of this MCP server definition.
-	// Populated by automated sync workflows (e.g. MCP Registry sync).
-	// Empty for hand-authored definitions like the system mcp-server-stigmer.
-	Source *McpServerSource `protobuf:"bytes,10,opt,name=source,proto3" json:"source,omitempty"`
 	// Manual tool approval overrides set by the MCP server owner.
 	//
 	// @internal
@@ -84,8 +79,17 @@ type McpServerSpec struct {
 	// 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
 	// 4. AgentExecution.auto_approve_all - Runtime bypass
 	PinnedToolApprovals []*ToolApprovalPolicy `protobuf:"bytes,11,rep,name=pinned_tool_approvals,json=pinnedToolApprovals,proto3" json:"pinned_tool_approvals,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// URL of the upstream source repository for this MCP server.
+	// Shown in the marketplace so users can inspect the implementation
+	// for trust and transparency.
+	// Example: "https://github.com/modelcontextprotocol/servers"
+	RepositoryUrl string `protobuf:"bytes,12,opt,name=repository_url,json=repositoryUrl,proto3" json:"repository_url,omitempty"`
+	// GitHub star count at the time of curation.
+	// Used as a popularity signal in marketplace display.
+	// 0 if unknown or non-GitHub repository.
+	GithubStars   int32 `protobuf:"varint,13,opt,name=github_stars,json=githubStars,proto3" json:"github_stars,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *McpServerSpec) Reset() {
@@ -178,18 +182,25 @@ func (x *McpServerSpec) GetEnvSpec() *v1.EnvironmentSpec {
 	return nil
 }
 
-func (x *McpServerSpec) GetSource() *McpServerSource {
-	if x != nil {
-		return x.Source
-	}
-	return nil
-}
-
 func (x *McpServerSpec) GetPinnedToolApprovals() []*ToolApprovalPolicy {
 	if x != nil {
 		return x.PinnedToolApprovals
 	}
 	return nil
+}
+
+func (x *McpServerSpec) GetRepositoryUrl() string {
+	if x != nil {
+		return x.RepositoryUrl
+	}
+	return ""
+}
+
+func (x *McpServerSpec) GetGithubStars() int32 {
+	if x != nil {
+		return x.GithubStars
+	}
+	return 0
 }
 
 type isMcpServerSpec_ServerType interface {
@@ -501,138 +512,11 @@ func (x *ToolApprovalPolicy) GetMessage() string {
 	return ""
 }
 
-// McpServerSource tracks provenance for MCP server definitions that were
-// imported from an external registry or catalog via automated sync.
-//
-// This enables:
-//   - Traceability: users can inspect the upstream source of any marketplace entry.
-//   - Freshness tracking: the platform knows when a definition was last synced.
-//   - Deprecation detection: if a server disappears from the source registry,
-//     the sync workflow can flag it as deprecated.
-//   - Deduplication: source.registry_name is the natural key for upsert logic.
-type McpServerSource struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Registry or catalog this definition was sourced from.
-	// Example: "registry.modelcontextprotocol.io"
-	Registry string `protobuf:"bytes,1,opt,name=registry,proto3" json:"registry,omitempty"`
-	// Name/identifier in the source registry (exact, unmodified).
-	// This is the canonical key used for dedup and update matching.
-	// Example: "ai.exa/exa"
-	RegistryName string `protobuf:"bytes,2,opt,name=registry_name,json=registryName,proto3" json:"registry_name,omitempty"`
-	// Version from the source registry at the time of last sync.
-	// Example: "3.1.3"
-	Version string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	// Repository URL for the MCP server source code.
-	// Lets users inspect the upstream implementation for trust and transparency.
-	// Example: "https://github.com/exa-labs/exa-mcp-server"
-	RepositoryUrl string `protobuf:"bytes,4,opt,name=repository_url,json=repositoryUrl,proto3" json:"repository_url,omitempty"`
-	// Timestamp of last successful sync from the source.
-	LastSyncedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
-	// GitHub star count fetched directly from the GitHub REST API.
-	// 0 if unknown or non-GitHub repository.
-	GithubStars int32 `protobuf:"varint,6,opt,name=github_stars,json=githubStars,proto3" json:"github_stars,omitempty"`
-	// Composite quality score (0-100) computed from GitHub signals:
-	// stars (0-40), recency (0-30), license (0-15), community (0-15).
-	QualityScore int32 `protobuf:"varint,7,opt,name=quality_score,json=qualityScore,proto3" json:"quality_score,omitempty"`
-	// Quality tier derived from GitHub signals.
-	// Values: "verified" (A) or "established" (B).
-	// Only these two tiers are synced into the marketplace.
-	QualityTier   string `protobuf:"bytes,8,opt,name=quality_tier,json=qualityTier,proto3" json:"quality_tier,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *McpServerSource) Reset() {
-	*x = McpServerSource{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *McpServerSource) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*McpServerSource) ProtoMessage() {}
-
-func (x *McpServerSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use McpServerSource.ProtoReflect.Descriptor instead.
-func (*McpServerSource) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *McpServerSource) GetRegistry() string {
-	if x != nil {
-		return x.Registry
-	}
-	return ""
-}
-
-func (x *McpServerSource) GetRegistryName() string {
-	if x != nil {
-		return x.RegistryName
-	}
-	return ""
-}
-
-func (x *McpServerSource) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
-func (x *McpServerSource) GetRepositoryUrl() string {
-	if x != nil {
-		return x.RepositoryUrl
-	}
-	return ""
-}
-
-func (x *McpServerSource) GetLastSyncedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastSyncedAt
-	}
-	return nil
-}
-
-func (x *McpServerSource) GetGithubStars() int32 {
-	if x != nil {
-		return x.GithubStars
-	}
-	return 0
-}
-
-func (x *McpServerSource) GetQualityScore() int32 {
-	if x != nil {
-		return x.QualityScore
-	}
-	return 0
-}
-
-func (x *McpServerSource) GetQualityTier() string {
-	if x != nil {
-		return x.QualityTier
-	}
-	return ""
-}
-
 var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc1\x04\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xc1\x04\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -640,10 +524,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05stdio\x18\x04 \x01(\v22.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n" +
 	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x122\n" +
 	"\x15default_enabled_tools\x18\a \x03(\tR\x13defaultEnabledTools\x12M\n" +
-	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\x12H\n" +
-	"\x06source\x18\n" +
-	" \x01(\v20.ai.stigmer.agentic.mcpserver.v1.McpServerSourceR\x06source\x12g\n" +
-	"\x15pinned_tool_approvals\x18\v \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x13pinnedToolApprovalsB\x14\n" +
+	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\x12g\n" +
+	"\x15pinned_tool_approvals\x18\v \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x13pinnedToolApprovals\x12%\n" +
+	"\x0erepository_url\x18\f \x01(\tR\rrepositoryUrl\x12!\n" +
+	"\fgithub_stars\x18\r \x01(\x05R\vgithubStarsB\x14\n" +
 	"\vserver_type\x12\x05\xbaH\x02\b\x01\"j\n" +
 	"\x11StdioServerConfig\x12 \n" +
 	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
@@ -664,17 +548,7 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xd3\x02\n" +
-	"\x0fMcpServerSource\x12\x1a\n" +
-	"\bregistry\x18\x01 \x01(\tR\bregistry\x12#\n" +
-	"\rregistry_name\x18\x02 \x01(\tR\fregistryName\x12\x18\n" +
-	"\aversion\x18\x03 \x01(\tR\aversion\x12%\n" +
-	"\x0erepository_url\x18\x04 \x01(\tR\rrepositoryUrl\x12@\n" +
-	"\x0elast_synced_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\flastSyncedAt\x12!\n" +
-	"\fgithub_stars\x18\x06 \x01(\x05R\vgithubStars\x12#\n" +
-	"\rquality_score\x18\a \x01(\x05R\fqualityScore\x12!\n" +
-	"\fquality_tier\x18\b \x01(\tR\vqualityTierJ\x04\b\t\x10\n" +
-	"R\vsubcategoryB\xaa\x02\n" +
+	"\amessage\x18\x02 \x01(\tR\amessageB\xaa\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZWgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -689,32 +563,28 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
-	(*McpServerSpec)(nil),         // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
-	(*StdioServerConfig)(nil),     // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
-	(*HttpServerConfig)(nil),      // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	(*ToolApprovalPolicy)(nil),    // 3: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	(*McpServerSource)(nil),       // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSource
-	nil,                           // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	nil,                           // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*v1.EnvironmentSpec)(nil),    // 7: ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(*McpServerSpec)(nil),      // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
+	(*StdioServerConfig)(nil),  // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
+	(*HttpServerConfig)(nil),   // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
+	(*ToolApprovalPolicy)(nil), // 3: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	nil,                        // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	nil,                        // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	(*v1.EnvironmentSpec)(nil), // 6: ai.stigmer.agentic.environment.v1.EnvironmentSpec
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	7, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	4, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.source:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSource
-	3, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	5, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	6, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerSource.last_synced_at:type_name -> google.protobuf.Timestamp
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	6, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	4, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	5, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }
@@ -732,7 +602,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -10,7 +10,7 @@ import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agen
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ConnectInputSchema, type ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, McpServerSourceSchema, ToolApprovalPolicySchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -113,8 +113,9 @@ export interface McpServerInput {
   http?: HttpServerConfigInput;
   defaultEnabledTools?: string[];
   envSpec?: EnvSpecInput;
-  source?: McpServerSourceInput;
   pinnedToolApprovals?: ToolApprovalPolicyInput[];
+  repositoryUrl?: string;
+  githubStars?: number;
 }
 
 /** SDK input type for StdioServerConfig. */
@@ -130,18 +131,6 @@ export interface HttpServerConfigInput {
   headers?: Record<string, string>;
   queryParams?: Record<string, string>;
   timeoutSeconds?: number;
-}
-
-/** SDK input type for McpServerSource. */
-export interface McpServerSourceInput {
-  registry?: string;
-  registryName?: string;
-  version?: string;
-  repositoryUrl?: string;
-  lastSyncedAt?: Date | string;
-  githubStars?: number;
-  qualityScore?: number;
-  qualityTier?: string;
 }
 
 /** SDK input type for ToolApprovalPolicy. */
@@ -167,19 +156,6 @@ function buildHttpServerConfigProto(input: HttpServerConfigInput) {
   }));
 }
 
-function buildMcpServerSourceProto(input: McpServerSourceInput) {
-  return Object.assign(create(McpServerSourceSchema), stripUndefined({
-    registry: input.registry,
-    registryName: input.registryName,
-    version: input.version,
-    repositoryUrl: input.repositoryUrl,
-    lastSyncedAt: input.lastSyncedAt,
-    githubStars: input.githubStars,
-    qualityScore: input.qualityScore,
-    qualityTier: input.qualityTier,
-  }));
-}
-
 function buildToolApprovalPolicyProto(input: ToolApprovalPolicyInput) {
   return Object.assign(create(ToolApprovalPolicySchema), stripUndefined({
     toolName: input.toolName,
@@ -196,15 +172,15 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
     }
     envSpec = es;
   }
-  const source = input.source ? buildMcpServerSourceProto(input.source) : undefined;
   const pinnedToolApprovals = input.pinnedToolApprovals?.map(buildToolApprovalPolicyProto);
   const spec = Object.assign(create(McpServerSpecSchema), stripUndefined({
     description: input.description,
     iconUrl: input.iconUrl,
     defaultEnabledTools: input.defaultEnabledTools,
     envSpec,
-    source,
     pinnedToolApprovals,
+    repositoryUrl: input.repositoryUrl,
+    githubStars: input.githubStars,
   }));
   if (input.stdio) {
     spec.serverType = { case: "stdio", value: buildStdioServerConfigProto(input.stdio) };
