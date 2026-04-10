@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-aws-lambda
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "cloud-infrastructure"
+spec:
+  description: "AWS Lambda MCP server for invoking Lambda functions, listing deployments, and managing serverless workloads."
+  repository_url: "https://github.com/awslabs/mcp"
+  github_stars: 8732
+  tags:
+    - aws
+    - lambda
+    - serverless
+    - cloud
+  stdio:
+    command: "uvx"
+    args:
+      - "awslabs.lambda-tool-mcp-server@latest"
+  env_spec:
+    data:
+      AWS_REGION:
+        is_secret: false
+        description: "AWS region for Lambda operations (e.g., us-east-1)"
+      AWS_PROFILE:
+        is_secret: false
+        description: "AWS CLI profile name (default: default)"

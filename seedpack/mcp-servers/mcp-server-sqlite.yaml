@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-sqlite
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "databases"
+spec:
+  description: "SQLite MCP server for database queries, schema inspection, and CRUD operations on local SQLite files."
+  repository_url: "https://github.com/jparkerweb/mcp-sqlite"
+  github_stars: 93
+  tags:
+    - sqlite
+    - database
+    - sql
+    - local
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "mcp-sqlite"
+      - "${SQLITE_DB_PATH}"
+  env_spec:
+    data:
+      SQLITE_DB_PATH:
+        is_secret: false
+        description: "Path to the SQLite database file (e.g., /data/my-database.db)"
