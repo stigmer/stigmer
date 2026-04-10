@@ -4,7 +4,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 import "ai/stigmer/agentic/environment/v1/spec.proto";
 import "buf/validate/validate.proto";
-import "google/protobuf/timestamp.proto";
 
 // McpServerSpec defines the configurable properties of an MCP server.
 //
@@ -55,11 +54,6 @@ message McpServerSpec {
   // Environment variables required by the MCP server.
   ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8;
 
-  // Source/provenance of this MCP server definition.
-  // Populated by automated sync workflows (e.g. MCP Registry sync).
-  // Empty for hand-authored definitions like the system mcp-server-stigmer.
-  McpServerSource source = 10;
-
   // Manual tool approval overrides set by the MCP server owner.
   //
   // @internal
@@ -77,6 +71,17 @@ message McpServerSpec {
   // 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
   // 4. AgentExecution.auto_approve_all - Runtime bypass
   repeated ToolApprovalPolicy pinned_tool_approvals = 11;
+
+  // URL of the upstream source repository for this MCP server.
+  // Shown in the marketplace so users can inspect the implementation
+  // for trust and transparency.
+  // Example: "https://github.com/modelcontextprotocol/servers"
+  string repository_url = 12;
+
+  // GitHub star count at the time of curation.
+  // Used as a popularity signal in marketplace display.
+  // 0 if unknown or non-GitHub repository.
+  int32 github_stars = 13;
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess.
@@ -212,53 +217,4 @@ message ToolApprovalPolicy {
   //   - Keep under 100 characters for UI display
   //   - Use action verbs: "Delete", "Send", "Execute", "Create"
   string message = 2;
-}
-
-// McpServerSource tracks provenance for MCP server definitions that were
-// imported from an external registry or catalog via automated sync.
-//
-// This enables:
-// - Traceability: users can inspect the upstream source of any marketplace entry.
-// - Freshness tracking: the platform knows when a definition was last synced.
-// - Deprecation detection: if a server disappears from the source registry,
-//   the sync workflow can flag it as deprecated.
-// - Deduplication: source.registry_name is the natural key for upsert logic.
-message McpServerSource {
-  // Registry or catalog this definition was sourced from.
-  // Example: "registry.modelcontextprotocol.io"
-  string registry = 1;
-
-  // Name/identifier in the source registry (exact, unmodified).
-  // This is the canonical key used for dedup and update matching.
-  // Example: "ai.exa/exa"
-  string registry_name = 2;
-
-  // Version from the source registry at the time of last sync.
-  // Example: "3.1.3"
-  string version = 3;
-
-  // Repository URL for the MCP server source code.
-  // Lets users inspect the upstream implementation for trust and transparency.
-  // Example: "https://github.com/exa-labs/exa-mcp-server"
-  string repository_url = 4;
-
-  // Timestamp of last successful sync from the source.
-  google.protobuf.Timestamp last_synced_at = 5;
-
-  // GitHub star count fetched directly from the GitHub REST API.
-  // 0 if unknown or non-GitHub repository.
-  int32 github_stars = 6;
-
-  // Composite quality score (0-100) computed from GitHub signals:
-  // stars (0-40), recency (0-30), license (0-15), community (0-15).
-  int32 quality_score = 7;
-
-  // Quality tier derived from GitHub signals.
-  // Values: "verified" (A) or "established" (B).
-  // Only these two tiers are synced into the marketplace.
-  string quality_tier = 8;
-
-  // Field 9 reserved (previously subcategory, removed).
-  reserved 9;
-  reserved "subcategory";
 }

@@ -118,13 +118,16 @@ class McpServerInput:
     http: HttpServerConfigInput | None = None
     default_enabled_tools: list[str] = field(default_factory=list)
     env_spec: EnvSpecInput | None = None
-    source: McpServerSourceInput | None = None
     pinned_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
+    repository_url: str = ""
+    github_stars: int = 0
 
     def _to_proto(self) -> api_pb2.McpServer:
         spec = spec_pb2.McpServerSpec(
             description=self.description,
             icon_url=self.icon_url,
+            repository_url=self.repository_url,
+            github_stars=self.github_stars,
         )
         if self.stdio is not None:
             spec.stdio.CopyFrom(self.stdio._to_proto())
@@ -134,8 +137,6 @@ class McpServerInput:
             spec.default_enabled_tools.extend(self.default_enabled_tools)
         if self.env_spec is not None:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
-        if self.source is not None:
-            spec.source.CopyFrom(self.source._to_proto())
         for item in self.pinned_tool_approvals:
             spec.pinned_tool_approvals.append(item._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
@@ -190,34 +191,6 @@ class HttpServerConfigInput:
             msg.headers.update(self.headers)
         if self.query_params:
             msg.query_params.update(self.query_params)
-        return msg
-
-
-@dataclass
-class McpServerSourceInput:
-    """SDK input type for McpServerSource."""
-
-    registry: str = ""
-    registry_name: str = ""
-    version: str = ""
-    repository_url: str = ""
-    last_synced_at: str = ""
-    github_stars: int = 0
-    quality_score: int = 0
-    quality_tier: str = ""
-
-    def _to_proto(self) -> spec_pb2.McpServerSource:
-        msg = spec_pb2.McpServerSource(
-            registry=self.registry,
-            registry_name=self.registry_name,
-            version=self.version,
-            repository_url=self.repository_url,
-            github_stars=self.github_stars,
-            quality_score=self.quality_score,
-            quality_tier=self.quality_tier,
-        )
-        if self.last_synced_at:
-            msg.last_synced_at.FromJsonString(self.last_synced_at)
         return msg
 
 

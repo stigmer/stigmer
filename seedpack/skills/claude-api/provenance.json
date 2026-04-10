@@ -1,0 +1,171 @@
+{
+  "schema_version": "1",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/anthropics/skills",
+    "ref": "main",
+    "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39",
+    "subdir": "skills/claude-api"
+  },
+  "vendored_at": "2026-04-10T10:39:38Z",
+  "vendored_by": "vendor_skill.sh",
+  "content_digest": "sha256:f9a0b8dcf7c626cb9e6d7c933266ee7b1106f7e9bc0e918812cccc166b15b133",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "digest": "sha256:58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:c031e57396ee62ee1b70e946666539ee76457ec84512401d103ab4a9c3770f3f"
+    },
+    {
+      "path": "csharp/claude-api.md",
+      "digest": "sha256:c17ddeb20330f54d8fbf9af3e1225ab0370396b86d211cf71b1f8a5008c39e5f"
+    },
+    {
+      "path": "curl/examples.md",
+      "digest": "sha256:4a587cbc1bc26e97d14c5f2abeb98a11cd7ffd10eabcdb32512b22dd55dde508"
+    },
+    {
+      "path": "curl/managed-agents.md",
+      "digest": "sha256:cf2c7be607510f1fc1bfd83566aefa41414ab3ee7b911c6bcca5e94a11322382"
+    },
+    {
+      "path": "go/claude-api.md",
+      "digest": "sha256:79730feb26fde385d351e269ff5dec022e9d2f88f1b94230c48b18db1b3e1a9b"
+    },
+    {
+      "path": "go/managed-agents/README.md",
+      "digest": "sha256:6ab6197bc8ee39ba290f7e85d6f9e2e178bb985959ed9de103440aca2ab40adb"
+    },
+    {
+      "path": "java/claude-api.md",
+      "digest": "sha256:dba7d2e9539ba370b66c8163a8186d3fcd49cbcd4a2b943e8643ff4f0b232e39"
+    },
+    {
+      "path": "java/managed-agents/README.md",
+      "digest": "sha256:e85517bbce01b2f4b7b642e703b321285953417376f3528139d4c7e4613e4cab"
+    },
+    {
+      "path": "php/claude-api.md",
+      "digest": "sha256:059a14b04a7c73d88b7072c24322b4503b716e5722b378084ef6644826c7f165"
+    },
+    {
+      "path": "php/managed-agents/README.md",
+      "digest": "sha256:cb64f9323fff9b58895e628e1fab98c758305a1f8ae75f8850f85942da57433d"
+    },
+    {
+      "path": "python/claude-api/README.md",
+      "digest": "sha256:78c6ea2ef13d2880f50527bea1f88042ac18944d03bb18f292866cc25fdcbe42"
+    },
+    {
+      "path": "python/claude-api/batches.md",
+      "digest": "sha256:576101d29343fe3e687a646bda8991663e45305f03c4a3053ddd38c60657c0d7"
+    },
+    {
+      "path": "python/claude-api/files-api.md",
+      "digest": "sha256:796918347e487d7aca473a9cc58a51c9858ace3fa848141caeca3bc4d91655ad"
+    },
+    {
+      "path": "python/claude-api/streaming.md",
+      "digest": "sha256:8b508b756f5340ff9c3e79f7ace600348ff298915f55d6f76d8a07bf5b3080d1"
+    },
+    {
+      "path": "python/claude-api/tool-use.md",
+      "digest": "sha256:35b2b5bdd79fc2d880b28bd98abe0d169c0031d6883c9ea991689744778be54c"
+    },
+    {
+      "path": "python/managed-agents/README.md",
+      "digest": "sha256:a3c57bcd466041d7a8d3f9f1bd9c2e9ffd69d70def4bbb62a390ecf21f1c44bb"
+    },
+    {
+      "path": "ruby/claude-api.md",
+      "digest": "sha256:51a56bba19696d7f35c35305c1b3e0ff80485fc441ec49cb9224a753bcaac292"
+    },
+    {
+      "path": "ruby/managed-agents/README.md",
+      "digest": "sha256:9f5677f408423e8760ba3d7586a87ad3e0615af7527590c8ef9587e453dd4814"
+    },
+    {
+      "path": "shared/agent-design.md",
+      "digest": "sha256:4801b81580e1251c0df809da9647b05b6e30513014f439f814caccfb7750e8a4"
+    },
+    {
+      "path": "shared/error-codes.md",
+      "digest": "sha256:590f6539f223a46e9ddff391a09cf2646b05c59bb679955d060f26a898c5091b"
+    },
+    {
+      "path": "shared/live-sources.md",
+      "digest": "sha256:e97a9fd3f0f4b96d8bee66f92a713d110b747fdf5751521d42e9b6f5b5a7ab17"
+    },
+    {
+      "path": "shared/managed-agents-api-reference.md",
+      "digest": "sha256:bcdbe2e597f10c89bec32b2afd3f1572266bcb98d150cf9af233b9124f4dd0a8"
+    },
+    {
+      "path": "shared/managed-agents-client-patterns.md",
+      "digest": "sha256:eccef6280099b5e185057d12bdedee910412236f6b9e36a2b6463d97da4aba81"
+    },
+    {
+      "path": "shared/managed-agents-core.md",
+      "digest": "sha256:44797fa2d19e7d46781ca9736944b3be81a51f1912ad61e1d3cdd9a68a7ceddf"
+    },
+    {
+      "path": "shared/managed-agents-environments.md",
+      "digest": "sha256:88ca8f03b5ef1a56df68d6f1981e5b58ef6af54b24d0558536ef79c7eb846e54"
+    },
+    {
+      "path": "shared/managed-agents-events.md",
+      "digest": "sha256:e126189a6461744ebb2c328d74218daee558ae7df64c5f9c0bb4fe7999df6875"
+    },
+    {
+      "path": "shared/managed-agents-onboarding.md",
+      "digest": "sha256:93a89100087065a4beeb37db716e4a34e65c8fb5fa21435ded28d247a4f723f5"
+    },
+    {
+      "path": "shared/managed-agents-overview.md",
+      "digest": "sha256:c07aa7a25aa8561bfd9a48bb48b8186c05384751c99eea51ade86b24f21f6a13"
+    },
+    {
+      "path": "shared/managed-agents-tools.md",
+      "digest": "sha256:b89690e769b553d862c72505470ed4075f29d87f19681cf80c1901c26c61eaca"
+    },
+    {
+      "path": "shared/models.md",
+      "digest": "sha256:2a18cf78b18d7e62e6e64810f4d3f28225e024fd1cfa4928dcb5d23dcc50d4d9"
+    },
+    {
+      "path": "shared/prompt-caching.md",
+      "digest": "sha256:e71e24994f603385f307e10f7dd6e83897419f00b25b7cfb3dc94ec764c7ca67"
+    },
+    {
+      "path": "shared/tool-use-concepts.md",
+      "digest": "sha256:864d87fc5611ce73f1072b6c1074dfacabe33479ecfc170506b1df92b57ab1ac"
+    },
+    {
+      "path": "typescript/claude-api/README.md",
+      "digest": "sha256:bc48c999d4b6117945f7abc0c2031f0902c59d61911697fd6a628bbbea077a78"
+    },
+    {
+      "path": "typescript/claude-api/batches.md",
+      "digest": "sha256:8a9b31d7008e63f717d9647ec2b5c3a499c7af9e64793a799c53ae4569747f39"
+    },
+    {
+      "path": "typescript/claude-api/files-api.md",
+      "digest": "sha256:b876ca554b262f5b02d7afb844e61daa2bb51b1c953a5c1e3546a4bc52232798"
+    },
+    {
+      "path": "typescript/claude-api/streaming.md",
+      "digest": "sha256:886ae9a8daaecb042411c7544100d91265c0a9edd2b24b118783762ee7dfcb95"
+    },
+    {
+      "path": "typescript/claude-api/tool-use.md",
+      "digest": "sha256:a8d49b7b2a6d9b87d0baf007006682ade8ead22ee864a90473b8ac0dac9fa474"
+    },
+    {
+      "path": "typescript/managed-agents/README.md",
+      "digest": "sha256:9123317dbec87820f2e4ec8820debb0147b8135ce5d5846d1d6408a64d71227c"
+    }
+  ]
+}

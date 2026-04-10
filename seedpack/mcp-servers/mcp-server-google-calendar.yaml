@@ -1,0 +1,26 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-google-calendar
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "scheduling"
+spec:
+  description: "Google Calendar MCP server for creating, reading, updating, and managing calendar events and schedules."
+  repository_url: "https://github.com/nspady/google-calendar-mcp"
+  github_stars: 1083
+  tags:
+    - google-calendar
+    - scheduling
+    - calendar
+    - productivity
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "@cocal/google-calendar-mcp"
+  env_spec:
+    data:
+      GOOGLE_OAUTH_CREDENTIALS:
+        is_secret: true
+        description: "Path to Google Cloud OAuth credentials JSON file (create at console.cloud.google.com, enable Calendar API)"

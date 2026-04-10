@@ -1,0 +1,26 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-tavily
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "search"
+spec:
+  description: "Tavily MCP server for AI-optimized web search, content extraction, and research with structured results."
+  repository_url: "https://github.com/tavily-ai/tavily-mcp"
+  github_stars: 1692
+  tags:
+    - tavily
+    - search
+    - web-search
+    - research
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "tavily-mcp@latest"
+  env_spec:
+    data:
+      TAVILY_API_KEY:
+        is_secret: true
+        description: "Tavily API key (get at tavily.com)"

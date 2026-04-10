@@ -5,7 +5,63 @@
       "source": {
         "type": "git",
         "url": "https://github.com/anthropics/skills",
-        "commit_sha": "1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563"
+        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
+      }
+    },
+    {
+      "name": "brand-guidelines",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/anthropics/skills",
+        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
+      }
+    },
+    {
+      "name": "canvas-design",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/anthropics/skills",
+        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
+      }
+    },
+    {
+      "name": "claude-api",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/anthropics/skills",
+        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
+      }
+    },
+    {
+      "name": "frontend-design",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/anthropics/skills",
+        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
+      }
+    },
+    {
+      "name": "internal-comms",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/anthropics/skills",
+        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
+      }
+    },
+    {
+      "name": "web-artifacts-builder",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/anthropics/skills",
+        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
+      }
+    },
+    {
+      "name": "webapp-testing",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/anthropics/skills",
+        "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39"
       }
     }
   ]

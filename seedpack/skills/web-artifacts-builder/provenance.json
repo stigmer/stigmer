@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/anthropics/skills",
+    "ref": "main",
+    "commit_sha": "12ab35c2eb5668c95810e6a6066f40f4218adc39",
+    "subdir": "skills/web-artifacts-builder"
+  },
+  "vendored_at": "2026-04-10T10:39:53Z",
+  "vendored_by": "vendor_skill.sh",
+  "content_digest": "sha256:8e0543302b9e843e5ba38aeb30485fe6febffa6b73ffe0a183e2e4c845dcdc89",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "digest": "sha256:58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:81c5002c6643b0de7b8710b00e7a9038daa6fb9b68d59870ee6adb12da8d10f8"
+    },
+    {
+      "path": "scripts/bundle-artifact.sh",
+      "digest": "sha256:abf0e480bf6585b56fab8526a407dfb7dc740812bddd70c636e1e8f3df5f9618"
+    },
+    {
+      "path": "scripts/init-artifact.sh",
+      "digest": "sha256:355e5dd4382aaaee91f01f1627eaeab30b2676ffa8d9b3ec328a1ae450ebccaa"
+    },
+    {
+      "path": "scripts/shadcn-components.tar.gz",
+      "digest": "sha256:1296f069e825de7933de7e8ac63672495cacce3f88f2dc45554dbcddbcbca60f"
+    }
+  ]
+}

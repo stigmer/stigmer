@@ -2,41 +2,150 @@
 
 ## How the Marketplace is Populated
 
-Marketplace MCP server definitions are **automatically synced** from the
-[Official MCP Registry](https://registry.modelcontextprotocol.io) via a
-scheduled Temporal workflow in stigmer-cloud. The workflow:
+The Stigmer MCP marketplace is **curated by hand**. Each MCP server in
+this directory is a vetted, high-quality definition that has been reviewed
+for reliability, documentation quality, and active maintenance.
 
-1. Paginates the registry API (`GET /v0/servers`)
-2. Filters to latest versions only (`isLatest: true`)
-3. Transforms each entry to a Stigmer `McpServer` proto
-4. Upserts directly into the database
+New servers are added as YAML files in this directory and bootstrapped
+into the platform via `stigmer seedpack apply`.
 
-Each synced entry carries a `spec.source` field tracking provenance
-(registry name, version, repository URL, last sync timestamp).
+## What Lives Here
 
-**Do not manually add marketplace server YAMLs here.** They will be
-overwritten or duplicated by the sync workflow.
+- **`mcp-server-stigmer.yaml`** — The built-in Stigmer platform server,
+  labeled `stigmer.ai/system: "true"`. Always present.
+- **`mcp-server-{name}.yaml`** — One file per curated marketplace entry
+  (e.g., `mcp-server-github.yaml`, `mcp-server-postgres.yaml`).
 
-## What Lives in Seedpack
+## Adding a New MCP Server
 
-This directory contains **only** the system MCP server:
+### Naming Convention
 
-- `mcp-server-stigmer.yaml` — The built-in Stigmer platform server,
-  labeled `stigmer.ai/system: "true"`. This is bootstrapped via
-  `stigmer apply` and is not synced from any external registry.
+Files must be named `mcp-server-{name}.yaml` where `{name}` is a
+lowercase, hyphenated identifier matching `metadata.name`.
+
+### YAML Templates
+
+Four transport patterns are supported. Use exactly one of `spec.stdio` or
+`spec.http` per server.
+
+**stdio via npx (Node.js packages)**
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-{name}
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "{category}"
+spec:
+  description: "{One-line description of what this MCP server does.}"
+  repository_url: "{GitHub repository URL}"
+  github_stars: {star count at time of curation}
+  tags:
+    - {tag1}
+    - {tag2}
+  stdio:
+    command: "npx"
+    args:
+      - "-y"
+      - "{npm-package-name}"
+  env_spec:
+    data:
+      EXAMPLE_API_KEY:
+        is_secret: true
+        description: "{What this key is for}"
+```
+
+**stdio via uvx (Python packages)**
+
+```yaml
+spec:
+  stdio:
+    command: "uvx"
+    args:
+      - "{pypi-package-name}@latest"
+      - "--url"
+      - "${CONNECTION_URL}"
+```
+
+**stdio via go run (Go packages)**
+
+```yaml
+spec:
+  stdio:
+    command: "go"
+    args:
+      - "run"
+      - "{go-module-path}@latest"
+      - "stdio"
+```
+
+**HTTP (hosted/remote servers)**
+
+```yaml
+spec:
+  http:
+    url: "https://{mcp-endpoint-url}"
+    headers:
+      Authorization: "Bearer ${ACCESS_TOKEN}"
+```
+
+### Required Fields
+
+| Field | Description |
+|-------|-------------|
+| `metadata.name` | `mcp-server-{name}`, unique across the seedpack |
+| `metadata.visibility` | Always `visibility_public` for marketplace entries |
+| `metadata.labels.stigmer.ai/category` | One of the categories listed below |
+| `spec.description` | Clear, concise explanation of capabilities |
+| `spec.tags` | Lowercase, hyphenated tags for marketplace search and filtering |
+| `spec.repository_url` | GitHub/GitLab URL to the source repository (empty string for hosted-only servers) |
+| `spec.stdio` or `spec.http` | Transport configuration (exactly one) |
+
+### Optional Fields
+
+| Field | Description |
+|-------|-------------|
+| `spec.icon_url` | Public URL to a server icon |
+| `spec.github_stars` | Star count at time of curation (0 if unknown) |
+| `spec.env_spec` | Environment variables the server requires |
+| `spec.default_enabled_tools` | Subset of tools to enable by default |
+| `spec.pinned_tool_approvals` | Manual approval policies for dangerous tools |
+
+### Quality Bar
+
+Before adding a server, verify:
+
+1. The GitHub repository is **active** (commits within the last 6 months)
+2. The server has **clear documentation** (README with setup instructions)
+3. The server has a **stable transport** (stdio or HTTP, not experimental)
+4. The npm/pip/binary package **installs and runs** without errors
+
+### Categories
+
+Use one of these values for `metadata.labels.stigmer.ai/category`:
+
+| Category | Description |
+|----------|-------------|
+| `developer-tools` | Git, GitHub, GitLab, filesystem, code analysis |
+| `databases` | PostgreSQL, MongoDB, Redis, MySQL, SQLite, Neon, Supabase |
+| `search` | Web search, research APIs, content fetching |
+| `cloud-infrastructure` | AWS, Cloudflare, Kubernetes, Terraform |
+| `communication` | Slack, Linear, messaging platforms |
+| `productivity` | Notion, Google Maps, note-taking, workspace tools |
+| `web-automation` | Playwright, browser control and testing |
+| `monitoring` | Sentry, logging, observability |
+| `payments` | Stripe, e-commerce |
+| `design` | Figma, design tools |
+| `ai-reasoning` | Sequential thinking, memory, AI-augmented tools |
+| `notifications` | Twilio, Resend, SMS, email delivery |
+| `scheduling` | Google Calendar, time management |
+| `crm-support` | Salesforce, Atlassian (Jira/Confluence), customer platforms |
 
 ## Proto Schema Reference
 
 - [McpServer spec](../../apis/ai/stigmer/agentic/mcpserver/v1/spec.proto) —
-  includes `McpServerSource` for provenance tracking
+  `McpServerSpec` with `repository_url` and `github_stars` for upstream provenance
 - [Environment spec](../../apis/ai/stigmer/agentic/environment/v1/spec.proto) —
   `env_spec` declaration for server configuration
-
-## MCP Registry API
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /v0/servers?limit=100` | List servers (cursor-paginated) |
-| `GET /v0/servers?limit=100&cursor=<cursor>` | Next page |
-
-Each entry follows the [server.json schema](https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json).
