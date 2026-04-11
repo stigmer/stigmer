@@ -78,6 +78,12 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_o_auth_grant_status(self, input: io_pb2.GetOAuthGrantStatusInput) -> io_pb2.GetOAuthGrantStatusOutput:
+        try:
+            return self._command.getOAuthGrantStatus(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.McpServer:
         try:
             return self._query.get(apiresource_io_pb2.ApiResourceId(value=id))

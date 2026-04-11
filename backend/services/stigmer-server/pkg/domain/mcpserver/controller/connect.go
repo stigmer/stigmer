@@ -407,8 +407,10 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 
 	mcpServerID := mcpServer.GetMetadata().GetId()
 
-	// OSS mode: single user, empty identity_account_id
-	grant, err := c.oauthGrantStore.GetByUserAndServer(ctx, "", mcpServerID)
+	// OSS mode: single user, empty identity_account_id.
+	// Org comes from the MCP server's metadata.
+	org := mcpServer.GetMetadata().GetOrg()
+	grant, err := c.oauthGrantStore.Find(ctx, "", mcpServerID, org)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("mcp_server_id", mcpServerID).
@@ -420,7 +422,6 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	}
 
 	// Read the refresh token from the personal environment
-	org := mcpServer.GetMetadata().GetOrg()
 	personalEnvID, err := c.resolveOrCreatePersonalEnvironmentID(ctx, org)
 	if err != nil {
 		return nil

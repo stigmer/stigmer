@@ -51,14 +51,15 @@ func RefreshTokenIfExpired(
 
 	if currentRefreshToken == "" {
 		return nil, fmt.Errorf(
-			"access token for MCP server '%s' has expired and no refresh token is available. "+
+			"access token for resource '%s' has expired and no refresh token is available. "+
 				"Please re-authenticate via OAuth Connect",
-			grant.McpServerID,
+			grant.ResourceID,
 		)
 	}
 
 	log.Info().
-		Str("mcp_server_id", grant.McpServerID).
+		Str("resource_id", grant.ResourceID).
+		Str("resource_kind", grant.ResourceKind).
 		Int64("expired_at", grant.AccessTokenExpiresAt).
 		Str("token_endpoint", grant.TokenEndpoint).
 		Msg("Access token expired, refreshing via refresh_token grant")
@@ -72,9 +73,9 @@ func RefreshTokenIfExpired(
 	)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"token refresh failed for MCP server '%s': %w. "+
+			"token refresh failed for resource '%s': %w. "+
 				"Please re-authenticate via OAuth Connect",
-			grant.McpServerID, err,
+			grant.ResourceID, err,
 		)
 	}
 
@@ -89,7 +90,8 @@ func RefreshTokenIfExpired(
 	}
 
 	log.Info().
-		Str("mcp_server_id", grant.McpServerID).
+		Str("resource_id", grant.ResourceID).
+		Str("resource_kind", grant.ResourceKind).
 		Int64("new_expires_at", newExpiresAt).
 		Bool("refresh_token_rotated", tokenResp.RefreshToken != "").
 		Msg("Token refresh successful")

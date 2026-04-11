@@ -66,6 +66,11 @@ class McpServerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectOutput.FromString,
                 _registered_method=True)
+        self.getOAuthGrantStatus = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/getOAuthGrantStatus',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.FromString,
+                _registered_method=True)
 
 
 class McpServerCommandControllerServicer(object):
@@ -239,6 +244,23 @@ class McpServerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getOAuthGrantStatus(self, request, context):
+        """Check whether the authenticated user has an active OAuth grant for
+        an MCP server in the specified org.
+
+        Returns grant metadata (connected status, token expiry, auth method)
+        without exposing any secret token values. The frontend uses this to
+        render the correct OAuth state in the MCP server detail page and
+        session composer.
+
+        @internal
+        Authorization: Requires can_view permission on the mcp_server resource.
+        The resource_id field contains the MCP server's system-generated ID.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_McpServerCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -281,6 +303,11 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
                     servicer.completeOAuthConnect,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectOutput.SerializeToString,
+            ),
+            'getOAuthGrantStatus': grpc.unary_unary_rpc_method_handler(
+                    servicer.getOAuthGrantStatus,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -509,6 +536,33 @@ class McpServerCommandController(object):
             '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/completeOAuthConnect',
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getOAuthGrantStatus(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/getOAuthGrantStatus',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.FromString,
             options,
             channel_credentials,
             insecure,

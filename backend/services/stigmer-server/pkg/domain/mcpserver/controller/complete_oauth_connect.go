@@ -124,7 +124,9 @@ func (c *McpServerController) CompleteOAuthConnect(
 	// Create OAuthGrant record
 	grant := &oauth.OAuthGrant{
 		IdentityAccountID:    pendingState.IdentityAccountID,
-		McpServerID:          mcpServerID,
+		ResourceID:           mcpServerID,
+		ResourceKind:         "mcp_server",
+		OrgID:                org,
 		AccessTokenExpiresAt: expiresAt,
 		ClientID:             pendingState.ClientID,
 		AuthMethod:           pendingState.AuthMethod,

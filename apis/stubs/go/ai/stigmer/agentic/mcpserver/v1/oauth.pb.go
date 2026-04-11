@@ -21,19 +21,25 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// OAuthGrant tracks OAuth metadata for a user's MCP server connection.
+// OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
+// API resource.
 //
 // @internal
 // Infrastructure-only. Not a public API resource — no kind, no apiVersion,
 // no CRUD RPCs. Stored in the backend's database, keyed by the composite
-// of (identity_account_id, mcp_server_id).
+// of (identity_account_id, resource_id, org_id).
 //
-// Actual tokens (access + refresh) live in the user's personal environment
-// as secret env vars. OAuthGrant only holds non-secret metadata needed
-// by the refresh mechanism and pre-flight expiry checks.
+// The grant is resource-agnostic: currently used for MCP servers, but the
+// data model supports any API resource kind that needs OAuth credentials
+// (e.g., workflows in the future).
+//
+// Actual tokens (access + refresh) live in a managed environment
+// (stigmer.ai/managed=true label) as encrypted secret env vars.
+// OAuthGrant only holds non-secret metadata needed by the refresh
+// mechanism and pre-flight expiry checks.
 //
 // Storage split rationale:
-//   - Personal environment: access token (target_env_var), refresh token
+//   - Managed environment: access token (target_env_var), refresh token
 //     ({target_env_var}_REFRESH_TOKEN). These are secrets, encrypted at rest,
 //     subject to Environment access control.
 //   - OAuthGrant: expiry timestamp, client_id, token_endpoint, env var names.
@@ -43,8 +49,10 @@ type OAuthGrant struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Which user owns this grant.
 	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
-	// Which MCP server this grant is for.
-	McpServerId string `protobuf:"bytes,2,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
+	// System-generated ID (metadata.id) of the API resource this grant
+	// provides OAuth tokens for. Part of the composite key:
+	// (identity_account_id, resource_id, org_id).
+	ResourceId string `protobuf:"bytes,2,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// When the current access token expires (Unix timestamp seconds).
 	// 0 means the token does not expire (e.g., long-lived tokens from
 	// Notion or Slack user tokens).
@@ -61,17 +69,23 @@ type OAuthGrant struct {
 	// For mcp_oauth: discovered via .well-known/oauth-authorization-server.
 	// For vendor_oauth: copied from OAuthApp.spec.token_url.
 	TokenEndpoint string `protobuf:"bytes,6,opt,name=token_endpoint,json=tokenEndpoint,proto3" json:"token_endpoint,omitempty"`
-	// Env var name where the access token is stored in the personal environment.
-	// Matches McpServerAuth.target_env_var on the McpServer spec.
+	// Env var name where the access token is stored in the managed environment.
 	AccessTokenEnvVar string `protobuf:"bytes,7,opt,name=access_token_env_var,json=accessTokenEnvVar,proto3" json:"access_token_env_var,omitempty"`
-	// Env var name where the refresh token is stored in the personal environment.
+	// Env var name where the refresh token is stored in the managed environment.
 	// Convention: {target_env_var}_REFRESH_TOKEN.
 	RefreshTokenEnvVar string `protobuf:"bytes,8,opt,name=refresh_token_env_var,json=refreshTokenEnvVar,proto3" json:"refresh_token_env_var,omitempty"`
-	// Which Environment resource holds the tokens.
+	// ID of the managed Environment resource that holds the tokens.
 	// The refresh mechanism reads/writes tokens in this environment.
-	// Default: the user's personal environment (stigmer.ai/personal=true label).
-	// Stored explicitly to allow future flexibility for team or project environments.
+	// Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+	// 1:1 with this grant — revoking the grant deletes this environment.
 	EnvironmentId string `protobuf:"bytes,9,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	// Kind of the API resource identified by resource_id (e.g., "mcp_server",
+	// "workflow"). Used for query filtering and handler routing.
+	ResourceKind string `protobuf:"bytes,10,opt,name=resource_kind,json=resourceKind,proto3" json:"resource_kind,omitempty"`
+	// Organization context for this grant. Part of the composite key:
+	// (identity_account_id, resource_id, org_id). Enables the same user to
+	// maintain separate OAuth connections for a shared resource across orgs.
+	OrgId         string `protobuf:"bytes,11,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -113,9 +127,9 @@ func (x *OAuthGrant) GetIdentityAccountId() string {
 	return ""
 }
 
-func (x *OAuthGrant) GetMcpServerId() string {
+func (x *OAuthGrant) GetResourceId() string {
 	if x != nil {
-		return x.McpServerId
+		return x.ResourceId
 	}
 	return ""
 }
@@ -169,15 +183,30 @@ func (x *OAuthGrant) GetEnvironmentId() string {
 	return ""
 }
 
+func (x *OAuthGrant) GetResourceKind() string {
+	if x != nil {
+		return x.ResourceKind
+	}
+	return ""
+}
+
+func (x *OAuthGrant) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_oauth_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\"\x87\x03\n" +
+	"+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\"\xc0\x03\n" +
 	"\n" +
 	"OAuthGrant\x12.\n" +
-	"\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\"\n" +
-	"\rmcp_server_id\x18\x02 \x01(\tR\vmcpServerId\x125\n" +
+	"\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x1f\n" +
+	"\vresource_id\x18\x02 \x01(\tR\n" +
+	"resourceId\x125\n" +
 	"\x17access_token_expires_at\x18\x03 \x01(\x03R\x14accessTokenExpiresAt\x12\x1b\n" +
 	"\tclient_id\x18\x04 \x01(\tR\bclientId\x12\x1f\n" +
 	"\vauth_method\x18\x05 \x01(\tR\n" +
@@ -185,7 +214,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\x0etoken_endpoint\x18\x06 \x01(\tR\rtokenEndpoint\x12/\n" +
 	"\x14access_token_env_var\x18\a \x01(\tR\x11accessTokenEnvVar\x121\n" +
 	"\x15refresh_token_env_var\x18\b \x01(\tR\x12refreshTokenEnvVar\x12%\n" +
-	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentIdB\xa8\x02\n" +
+	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentId\x12#\n" +
+	"\rresource_kind\x18\n" +
+	" \x01(\tR\fresourceKind\x12\x15\n" +
+	"\x06org_id\x18\v \x01(\tR\x05orgIdB\xa8\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\n" +
 	"OauthProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
