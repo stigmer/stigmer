@@ -13,9 +13,19 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: T05 COMPLETE -- Vendor OAuth Bootstrap Migration
+**Status**: T05 COMPLETE + Cross-Domain Repo Remediation
 **Active Task**: Manual end-to-end testing (user-driven)
 **Last Session**: 2026-04-11
+
+## Session Progress (2026-04-11, Session 2 -- Cross-Domain Repo Audit)
+
+### Cross-Domain Repository Remediation (stigmer-cloud)
+- **Audit**: Identified 4 `EnvironmentRepo` violations (2 reads + 2 writes across `OAuthTokenRefreshService` and `McpServerCompleteOAuthConnectHandler`) and 2 `OAuthAppRepo` violations (reads in `OAuthTokenRefreshService` and `McpServerInitiateOAuthConnectHandler`)
+- **Created** `EnvironmentCommandGrpcRepo` interface + impl in `downstream/agentic/environment/` -- wraps `updateVariables` RPC with OBO channel
+- **Refactored** `OAuthTokenRefreshService` -- replaced `EnvironmentRepo` with `EnvironmentQueryGrpcRepo` (list) + `EnvironmentCommandGrpcRepo` (updateVariables), replaced `EnvironmentSecretService` with gRPC getSecretValue (returns decrypted), removed all pre-encryption
+- **Refactored** `McpServerCompleteOAuthConnectHandler` -- same pattern: downstream gRPC for env reads/writes, plaintext tokens with `isSecret=true`
+- **Documented** `OAuthAppRepo` boundary exception -- gRPC `getByReference` redacts client_secret, but OAuth flows need unredacted secrets for external provider calls. Kept direct repo access with class-level and field-level documentation.
+- **Key benefit**: Environment mutations now go through FGA authorization, handler-level encryption, and audit trail (`updatedBy` is set correctly)
 
 ## Session Progress (2026-04-11)
 
@@ -208,11 +218,12 @@ Drop this file into your conversation to quickly resume work on this project.
 - T05: Seedpack YAML vendor OAuth `auth` blocks (Slack, Figma, Salesforce)
 - Changelogs for all tasks
 
-### stigmer-cloud repo (T01-T05, all sessions combined)
+### stigmer-cloud repo (T01-T05 + repo remediation, all sessions combined)
 - T01: Proto stubs across Go, Java, Python, TypeScript (regenerated)
 - T02: Encryption library, OAuthApp handlers, FGA model, test updates
 - T03: Java OAuth infrastructure, handlers, repos, pre-flight refresh step
 - T05: Vendor OAuth bootstrap migration, planton groups, Kustomize, Spring config
+- Cross-domain fix: `EnvironmentCommandGrpcRepo` (new), refactored OAuth handlers to use downstream gRPC repos
 
 ## Key Design Decisions
 
