@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
       int number) {
     switch (number) {
-      case 5:
+      case 4:
         return internalGetEnv();
       default:
         throw new RuntimeException(
@@ -225,7 +225,7 @@ private static final long serialVersionUID = 0L;
     return tasks_.get(index);
   }
 
-  public static final int ENV_FIELD_NUMBER = 5;
+  public static final int ENV_FIELD_NUMBER = 4;
   private static final class EnvDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
         java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> defaultEntry =
@@ -255,12 +255,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Environment variable declarations for this workflow.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
    */
   @java.lang.Override
   public boolean containsEnv(
@@ -280,12 +277,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Environment variable declarations for this workflow.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
    */
   @java.lang.Override
   public java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> getEnvMap() {
@@ -295,12 +289,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Environment variable declarations for this workflow.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
    */
   @java.lang.Override
   public /* nullable */
@@ -317,12 +308,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * <pre>
    * Environment variable declarations for this workflow.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
    */
   @java.lang.Override
   public ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
@@ -334,48 +322,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       throw new java.lang.IllegalArgumentException();
     }
     return map.get(key);
-  }
-
-  public static final int ENV_SPEC_FIELD_NUMBER = 4;
-  private ai.stigmer.agentic.environment.v1.EnvironmentSpec envSpec_;
-  /**
-   * <pre>
-   * Deprecated: use env instead. Retained for wire compatibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.workflow.v1.WorkflowSpec.env_spec is deprecated.
-   *     See ai/stigmer/agentic/workflow/v1/spec.proto;l=37
-   * @return Whether the envSpec field is set.
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public boolean hasEnvSpec() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <pre>
-   * Deprecated: use env instead. Retained for wire compatibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.workflow.v1.WorkflowSpec.env_spec is deprecated.
-   *     See ai/stigmer/agentic/workflow/v1/spec.proto;l=37
-   * @return The envSpec.
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public ai.stigmer.agentic.environment.v1.EnvironmentSpec getEnvSpec() {
-    return envSpec_ == null ? ai.stigmer.agentic.environment.v1.EnvironmentSpec.getDefaultInstance() : envSpec_;
-  }
-  /**
-   * <pre>
-   * Deprecated: use env instead. Retained for wire compatibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder getEnvSpecOrBuilder() {
-    return envSpec_ == null ? ai.stigmer.agentic.environment.v1.EnvironmentSpec.getDefaultInstance() : envSpec_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -401,15 +347,12 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     for (int i = 0; i < tasks_.size(); i++) {
       output.writeMessage(3, tasks_.get(i));
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(4, getEnvSpec());
-    }
     com.google.protobuf.GeneratedMessage
       .serializeStringMapTo(
         output,
         internalGetEnv(),
         EnvDefaultEntryHolder.defaultEntry,
-        5);
+        4);
     getUnknownFields().writeTo(output);
   }
 
@@ -435,10 +378,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
           }
           size += 1 * count;
         }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(4, getEnvSpec());
-    }
     for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> entry
          : internalGetEnv().getMap().entrySet()) {
       com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
@@ -447,7 +386,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
           .setValue(entry.getValue())
           .buildPartial();
       size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(5, env__);
+          .computeMessageSize(4, env__);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -475,11 +414,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getTasksList())) return false;
     if (!internalGetEnv().equals(
         other.internalGetEnv())) return false;
-    if (hasEnvSpec() != other.hasEnvSpec()) return false;
-    if (hasEnvSpec()) {
-      if (!getEnvSpec()
-          .equals(other.getEnvSpec())) return false;
-    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -504,10 +438,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (!internalGetEnv().getMap().isEmpty()) {
       hash = (37 * hash) + ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetEnv().hashCode();
-    }
-    if (hasEnvSpec()) {
-      hash = (37 * hash) + ENV_SPEC_FIELD_NUMBER;
-      hash = (53 * hash) + getEnvSpec().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -633,7 +563,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
         int number) {
       switch (number) {
-        case 5:
+        case 4:
           return internalGetEnv();
         default:
           throw new RuntimeException(
@@ -644,7 +574,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
         int number) {
       switch (number) {
-        case 5:
+        case 4:
           return internalGetMutableEnv();
         default:
           throw new RuntimeException(
@@ -674,7 +604,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               .alwaysUseFieldBuilders) {
         internalGetDocumentFieldBuilder();
         internalGetTasksFieldBuilder();
-        internalGetEnvSpecFieldBuilder();
       }
     }
     @java.lang.Override
@@ -695,11 +624,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000004);
       internalGetMutableEnv().clear();
-      envSpec_ = null;
-      if (envSpecBuilder_ != null) {
-        envSpecBuilder_.dispose();
-        envSpecBuilder_ = null;
-      }
       return this;
     }
 
@@ -759,12 +683,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.envSpec_ = envSpecBuilder_ == null
-            ? envSpec_
-            : envSpecBuilder_.build();
-        to_bitField0_ |= 0x00000002;
-      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -817,9 +735,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
       bitField0_ |= 0x00000008;
-      if (other.hasEnvSpec()) {
-        mergeEnvSpec(other.getEnvSpec());
-      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -872,13 +787,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               break;
             } // case 26
             case 34: {
-              input.readMessage(
-                  internalGetEnvSpecFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 34
-            case 42: {
               com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
               env__ = input.readMessage(
                   EnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
@@ -886,7 +794,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
                   env__.getKey(), env__.getValue());
               bitField0_ |= 0x00000008;
               break;
-            } // case 42
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1522,12 +1430,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this workflow.
      * Keys are variable names; values describe their metadata and optionality.
-     * Replaces env_spec (which required an extra nesting level through
-     * EnvironmentSpec.data). Consumers read env first, falling back to
-     * env_spec.data during the migration period.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
      */
     @java.lang.Override
     public boolean containsEnv(
@@ -1547,12 +1452,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this workflow.
      * Keys are variable names; values describe their metadata and optionality.
-     * Replaces env_spec (which required an extra nesting level through
-     * EnvironmentSpec.data). Consumers read env first, falling back to
-     * env_spec.data during the migration period.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
      */
     @java.lang.Override
     public java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> getEnvMap() {
@@ -1562,12 +1464,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this workflow.
      * Keys are variable names; values describe their metadata and optionality.
-     * Replaces env_spec (which required an extra nesting level through
-     * EnvironmentSpec.data). Consumers read env first, falling back to
-     * env_spec.data during the migration period.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
      */
     @java.lang.Override
     public /* nullable */
@@ -1583,12 +1482,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this workflow.
      * Keys are variable names; values describe their metadata and optionality.
-     * Replaces env_spec (which required an extra nesting level through
-     * EnvironmentSpec.data). Consumers read env first, falling back to
-     * env_spec.data during the migration period.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
      */
     @java.lang.Override
     public ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
@@ -1609,12 +1505,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this workflow.
      * Keys are variable names; values describe their metadata and optionality.
-     * Replaces env_spec (which required an extra nesting level through
-     * EnvironmentSpec.data). Consumers read env first, falling back to
-     * env_spec.data during the migration period.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
      */
     public Builder removeEnv(
         java.lang.String key) {
@@ -1636,12 +1529,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this workflow.
      * Keys are variable names; values describe their metadata and optionality.
-     * Replaces env_spec (which required an extra nesting level through
-     * EnvironmentSpec.data). Consumers read env first, falling back to
-     * env_spec.data during the migration period.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
      */
     public Builder putEnv(
         java.lang.String key,
@@ -1657,12 +1547,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this workflow.
      * Keys are variable names; values describe their metadata and optionality.
-     * Replaces env_spec (which required an extra nesting level through
-     * EnvironmentSpec.data). Consumers read env first, falling back to
-     * env_spec.data during the migration period.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
      */
     public Builder putAllEnv(
         java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> values) {
@@ -1680,12 +1567,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this workflow.
      * Keys are variable names; values describe their metadata and optionality.
-     * Replaces env_spec (which required an extra nesting level through
-     * EnvironmentSpec.data). Consumers read env first, falling back to
-     * env_spec.data during the migration period.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 5 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
      */
     public ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder putEnvBuilderIfAbsent(
         java.lang.String key) {
@@ -1700,167 +1584,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder) entry;
-    }
-
-    private ai.stigmer.agentic.environment.v1.EnvironmentSpec envSpec_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.environment.v1.EnvironmentSpec, ai.stigmer.agentic.environment.v1.EnvironmentSpec.Builder, ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder> envSpecBuilder_;
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.workflow.v1.WorkflowSpec.env_spec is deprecated.
-     *     See ai/stigmer/agentic/workflow/v1/spec.proto;l=37
-     * @return Whether the envSpec field is set.
-     */
-    @java.lang.Deprecated public boolean hasEnvSpec() {
-      return ((bitField0_ & 0x00000010) != 0);
-    }
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.workflow.v1.WorkflowSpec.env_spec is deprecated.
-     *     See ai/stigmer/agentic/workflow/v1/spec.proto;l=37
-     * @return The envSpec.
-     */
-    @java.lang.Deprecated public ai.stigmer.agentic.environment.v1.EnvironmentSpec getEnvSpec() {
-      if (envSpecBuilder_ == null) {
-        return envSpec_ == null ? ai.stigmer.agentic.environment.v1.EnvironmentSpec.getDefaultInstance() : envSpec_;
-      } else {
-        return envSpecBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder setEnvSpec(ai.stigmer.agentic.environment.v1.EnvironmentSpec value) {
-      if (envSpecBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        envSpec_ = value;
-      } else {
-        envSpecBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder setEnvSpec(
-        ai.stigmer.agentic.environment.v1.EnvironmentSpec.Builder builderForValue) {
-      if (envSpecBuilder_ == null) {
-        envSpec_ = builderForValue.build();
-      } else {
-        envSpecBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder mergeEnvSpec(ai.stigmer.agentic.environment.v1.EnvironmentSpec value) {
-      if (envSpecBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
-          envSpec_ != null &&
-          envSpec_ != ai.stigmer.agentic.environment.v1.EnvironmentSpec.getDefaultInstance()) {
-          getEnvSpecBuilder().mergeFrom(value);
-        } else {
-          envSpec_ = value;
-        }
-      } else {
-        envSpecBuilder_.mergeFrom(value);
-      }
-      if (envSpec_ != null) {
-        bitField0_ |= 0x00000010;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder clearEnvSpec() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      envSpec_ = null;
-      if (envSpecBuilder_ != null) {
-        envSpecBuilder_.dispose();
-        envSpecBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public ai.stigmer.agentic.environment.v1.EnvironmentSpec.Builder getEnvSpecBuilder() {
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return internalGetEnvSpecFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder getEnvSpecOrBuilder() {
-      if (envSpecBuilder_ != null) {
-        return envSpecBuilder_.getMessageOrBuilder();
-      } else {
-        return envSpec_ == null ?
-            ai.stigmer.agentic.environment.v1.EnvironmentSpec.getDefaultInstance() : envSpec_;
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: use env instead. Retained for wire compatibility.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec", deprecated = true];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.environment.v1.EnvironmentSpec, ai.stigmer.agentic.environment.v1.EnvironmentSpec.Builder, ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder> 
-        internalGetEnvSpecFieldBuilder() {
-      if (envSpecBuilder_ == null) {
-        envSpecBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.environment.v1.EnvironmentSpec, ai.stigmer.agentic.environment.v1.EnvironmentSpec.Builder, ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder>(
-                getEnvSpec(),
-                getParentForChildren(),
-                isClean());
-        envSpec_ = null;
-      }
-      return envSpecBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.WorkflowSpec)

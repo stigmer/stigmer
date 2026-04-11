@@ -84,7 +84,7 @@ def _inject_platform_env(
     """Return env_vars with platform infrastructure env vars injected.
 
     For each entry in ``_PLATFORM_INJECTABLE_MAP`` whose target key is
-    declared in the server's ``env_spec`` and whose source var is set in
+    declared in the server's ``env`` and whose source var is set in
     the agent-runner's own environment, inject (or override) the value.
 
     Platform infrastructure vars are **authoritative** -- they override
@@ -94,10 +94,10 @@ def _inject_platform_env(
 
     Returns a new dict; the input is not mutated.
     """
-    if not spec.env_spec or not spec.env_spec.data:
+    if not spec.env:
         return env_vars
 
-    declared_keys = set(spec.env_spec.data)
+    declared_keys = set(spec.env)
     injectable_targets = declared_keys & _PLATFORM_INJECTABLE_MAP.keys()
 
     if not injectable_targets:
@@ -125,7 +125,7 @@ def _filter_env_to_declared_keys(
     env_vars: dict[str, str],
     server_slug: str,
 ) -> dict[str, str]:
-    """Restrict env_vars to only the keys declared in the server's env_spec.
+    """Restrict env_vars to only the keys declared in the server's env.
 
     Prevents secret over-sharing: an MCP server subprocess receives only
     the environment variables it explicitly declares, not the entire
@@ -133,24 +133,24 @@ def _filter_env_to_declared_keys(
     belong to other servers or the platform).
 
     Args:
-        spec: The MCP server's spec containing env_spec declarations.
+        spec: The MCP server's spec containing env declarations.
         env_vars: The full (possibly platform-augmented) env dict.
         server_slug: Used for log messages only.
 
     Returns:
         A new dict containing only the intersection of env_vars keys
-        with spec.env_spec.data keys. Empty dict when no env_spec is
-        declared (the server needs no environment variables).
+        with spec.env keys. Empty dict when no env is declared (the
+        server needs no environment variables).
     """
-    if not spec.env_spec or not spec.env_spec.data:
+    if not spec.env:
         if env_vars:
             logger.debug(
-                "MCP server '%s' has no env_spec — dropping %d env var(s)",
+                "MCP server '%s' has no env declarations — dropping %d env var(s)",
                 server_slug, len(env_vars),
             )
         return {}
 
-    declared_keys = set(spec.env_spec.data)
+    declared_keys = set(spec.env)
     filtered = {k: v for k, v in env_vars.items() if k in declared_keys}
 
     dropped = len(env_vars) - len(filtered)
@@ -164,7 +164,7 @@ def _filter_env_to_declared_keys(
     missing = declared_keys - set(filtered)
     if missing:
         logger.warning(
-            "MCP server '%s': env_spec declares %s but they are not "
+            "MCP server '%s': env declares %s but they are not "
             "present in the resolved environment",
             server_slug, sorted(missing),
         )
@@ -300,8 +300,8 @@ def _transform_stdio_config(
     env_vars before being placed in the config. This enables MCP servers
     that take core configuration as positional CLI arguments (e.g.
     database connection URLs, directory paths) to be parameterized
-    per-user through env_spec — the same mechanism used for servers
-    that read from process environment variables.
+    per-user through env declarations — the same mechanism used for
+    servers that read from process environment variables.
 
     Args:
         stdio: StdioServerConfig proto message.

@@ -2,10 +2,10 @@
 
 import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
-import { type DeleteResourceInput, type ListParams, type ListResult, type EnvSpecInput, type ResourceRef } from "./types";
+import { type DeleteResourceInput, type ListParams, type ListResult, type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { EnvVarDeclarationSchema, EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
@@ -131,7 +131,6 @@ export interface McpServerInput {
   http?: HttpServerConfigInput;
   defaultEnabledTools?: string[];
   env?: Record<string, EnvVarDeclarationInput>;
-  envSpec?: EnvSpecInput;
   pinnedToolApprovals?: ToolApprovalPolicyInput[];
   repositoryUrl?: string;
   githubStars?: number;
@@ -220,14 +219,6 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
-  let envSpec;
-  if (input.envSpec) {
-    const es = create(EnvironmentSpecSchema);
-    for (const [k, v] of Object.entries(input.envSpec.variables)) {
-      es.data[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });
-    }
-    envSpec = es;
-  }
   const pinnedToolApprovals = input.pinnedToolApprovals?.map(buildToolApprovalPolicyProto);
   const auth = input.auth ? buildMcpServerAuthProto(input.auth) : undefined;
   const spec = Object.assign(create(McpServerSpecSchema), stripUndefined({
@@ -235,7 +226,6 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
     iconUrl: input.iconUrl,
     defaultEnabledTools: input.defaultEnabledTools,
     env,
-    envSpec,
     pinnedToolApprovals,
     repositoryUrl: input.repositoryUrl,
     githubStars: input.githubStars,

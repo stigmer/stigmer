@@ -12,7 +12,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentSpecSchema, McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
 const DEMO_ORG = "acme";
@@ -58,18 +58,16 @@ function buildDemoAgent() {
         slug: "return-policy",
       }),
     ],
-    envSpec: create(EnvironmentSpecSchema, {
-      data: {
-        ORDER_API_URL: create(EnvironmentValueSchema, {
-          isSecret: false,
-          description: "Base URL of the order management API",
-        }),
-        ORDER_API_KEY: create(EnvironmentValueSchema, {
-          isSecret: true,
-          description: "API key for authenticating with the order management service",
-        }),
-      },
-    }),
+    env: {
+      ORDER_API_URL: create(EnvVarDeclarationSchema, {
+        isSecret: false,
+        description: "Base URL of the order management API",
+      }),
+      ORDER_API_KEY: create(EnvVarDeclarationSchema, {
+        isSecret: true,
+        description: "API key for authenticating with the order management service",
+      }),
+    },
   });
 
   return agent;

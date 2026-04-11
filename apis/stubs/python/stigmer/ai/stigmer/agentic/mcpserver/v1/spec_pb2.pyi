@@ -10,7 +10,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class McpServerSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "tags", "stdio", "http", "default_enabled_tools", "env", "env_spec", "pinned_tool_approvals", "repository_url", "github_stars", "auth")
+    __slots__ = ("description", "icon_url", "tags", "stdio", "http", "default_enabled_tools", "env", "pinned_tool_approvals", "repository_url", "github_stars", "auth")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -25,7 +25,6 @@ class McpServerSpec(_message.Message):
     HTTP_FIELD_NUMBER: _ClassVar[int]
     DEFAULT_ENABLED_TOOLS_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
-    ENV_SPEC_FIELD_NUMBER: _ClassVar[int]
     PINNED_TOOL_APPROVALS_FIELD_NUMBER: _ClassVar[int]
     REPOSITORY_URL_FIELD_NUMBER: _ClassVar[int]
     GITHUB_STARS_FIELD_NUMBER: _ClassVar[int]
@@ -37,12 +36,11 @@ class McpServerSpec(_message.Message):
     http: HttpServerConfig
     default_enabled_tools: _containers.RepeatedScalarFieldContainer[str]
     env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
-    env_spec: _spec_pb2.EnvironmentSpec
     pinned_tool_approvals: _containers.RepeatedCompositeFieldContainer[ToolApprovalPolicy]
     repository_url: str
     github_stars: int
     auth: McpServerAuth
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., stdio: _Optional[_Union[StdioServerConfig, _Mapping]] = ..., http: _Optional[_Union[HttpServerConfig, _Mapping]] = ..., default_enabled_tools: _Optional[_Iterable[str]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., env_spec: _Optional[_Union[_spec_pb2.EnvironmentSpec, _Mapping]] = ..., pinned_tool_approvals: _Optional[_Iterable[_Union[ToolApprovalPolicy, _Mapping]]] = ..., repository_url: _Optional[str] = ..., github_stars: _Optional[int] = ..., auth: _Optional[_Union[McpServerAuth, _Mapping]] = ...) -> None: ...
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., stdio: _Optional[_Union[StdioServerConfig, _Mapping]] = ..., http: _Optional[_Union[HttpServerConfig, _Mapping]] = ..., default_enabled_tools: _Optional[_Iterable[str]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., pinned_tool_approvals: _Optional[_Iterable[_Union[ToolApprovalPolicy, _Mapping]]] = ..., repository_url: _Optional[str] = ..., github_stars: _Optional[int] = ..., auth: _Optional[_Union[McpServerAuth, _Mapping]] = ...) -> None: ...
 
 class StdioServerConfig(_message.Message):
     __slots__ = ("command", "args", "working_dir")

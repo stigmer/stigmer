@@ -2,7 +2,7 @@
 
 import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
-import { type ListParams, type ListResult, type EnvSpecInput, type ResourceRef } from "./types";
+import { type ListParams, type ListResult, type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -10,7 +10,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentIdSchema, GetDefaultAgentRequestSchema, type GetDefaultAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { EnvVarDeclarationSchema, EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -110,7 +110,6 @@ export interface AgentInput {
   skillRefs?: ResourceRef[];
   subAgents?: SubAgentInput[];
   env?: Record<string, EnvVarDeclarationInput>;
-  envSpec?: EnvSpecInput;
 }
 
 /** SDK input type for McpServerUsage. */
@@ -200,14 +199,6 @@ function buildAgentProto(input: AgentInput): Agent {
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
-  let envSpec;
-  if (input.envSpec) {
-    const es = create(EnvironmentSpecSchema);
-    for (const [k, v] of Object.entries(input.envSpec.variables)) {
-      es.data[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });
-    }
-    envSpec = es;
-  }
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -225,7 +216,6 @@ function buildAgentProto(input: AgentInput): Agent {
       skillRefs,
       subAgents,
       env,
-      envSpec,
     })),
   }) as Agent;
 }

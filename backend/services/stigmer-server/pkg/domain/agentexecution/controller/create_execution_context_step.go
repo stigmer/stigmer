@@ -28,9 +28,8 @@ import (
 //   - Path B (session_id provided): sessionClient.Get -> Session.agent_instance_id -> agentInstanceClient.Get -> agentClient.Get
 //
 // Merge priority (lowest to highest):
-//  1. Agent.spec.env_spec.data (template defaults)
-//  2. AgentInstance.environment_refs resolved via environmentClient (in order)
-//  3. AgentExecution.spec.runtime_env (execution-time overrides)
+//  1. AgentInstance.environment_refs resolved via environmentClient (in order)
+//  2. AgentExecution.spec.runtime_env (execution-time overrides)
 type createExecutionContextStep struct {
 	agentClient         *agent.Client
 	agentInstanceClient *agentinstance.Client
@@ -81,7 +80,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 
 	agentID := instance.GetSpec().GetAgentId()
 
-	// 3. Load Agent to get env_spec
+	// 3. Load Agent to get env declarations
 	agentResource, err := s.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
 	if err != nil {
 		return fmt.Errorf("load agent %s: %w", agentID, err)
@@ -95,21 +94,20 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 
 	// 5. Merge all layers
 	merged := envmerge.MergeEnvironmentLayers(
-		agentResource.GetSpec().GetEnvSpec().GetData(),
 		environments,
 		execution.GetSpec().GetRuntimeEnv(),
 	)
 
-	// 6. Filter merged env vars by agent env_spec (least-privilege whitelist).
-	// Agents only receive variables they explicitly declared. If env_spec is
+	// 6. Filter merged env vars by agent env declarations (least-privilege whitelist).
+	// Agents only receive variables they explicitly declared. If env is
 	// nil or empty, all vars pass through for backward compatibility.
-	filtered, excludedKeys := envmerge.FilterByEnvSpec(merged, agentResource.GetSpec().GetEnvSpec().GetData())
+	filtered, excludedKeys := envmerge.FilterByDeclaredKeys(merged, agentResource.GetSpec().GetEnv())
 	if len(excludedKeys) > 0 {
 		log.Warn().
 			Str("execution_id", executionID).
 			Str("agent_id", agentID).
 			Strs("excluded_keys", excludedKeys).
-			Msg("Filtered env vars not declared in agent env_spec")
+			Msg("Filtered env vars not declared in agent env")
 	}
 
 	// 6.5 Re-inject workspace-provisioning keys that were excluded by env_spec

@@ -9,7 +9,7 @@ import type {
   SubAgent,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useAgent } from "./useAgent";
 import { ErrorMessage } from "../error/ErrorMessage";
@@ -155,8 +155,8 @@ export function AgentDetailView({
         <SubAgentsSection subAgents={spec.subAgents} />
       )}
 
-      {spec?.envSpec && Object.keys(spec.envSpec.data).length > 0 && (
-        <EnvSpecSection data={spec.envSpec.data} />
+      {spec?.env && Object.keys(spec.env).length > 0 && (
+        <EnvSection data={spec.env} />
       )}
     </div>
   );
@@ -534,10 +534,10 @@ function SubAgentDetails({
   );
 }
 
-function EnvSpecSection({
+function EnvSection({
   data,
 }: {
-  readonly data: { [key: string]: EnvironmentValue };
+  readonly data: { [key: string]: EnvVarDeclaration };
 }) {
   const entries = Object.entries(data).sort(([a], [b]) =>
     a.localeCompare(b),

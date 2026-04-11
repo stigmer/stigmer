@@ -24,7 +24,6 @@ public final class AgentInput {
     private final java.util.List<ResourceRef> skillRefs;
     private final java.util.List<SubAgentInput> subAgents;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
-    private final EnvSpecInput envSpec;
 
     private AgentInput(Builder builder) {
         this.name = builder.name;
@@ -38,7 +37,6 @@ public final class AgentInput {
         this.skillRefs = builder.skillRefs;
         this.subAgents = builder.subAgents;
         this.env = builder.env;
-        this.envSpec = builder.envSpec;
     }
 
     Agent toProto() {
@@ -72,9 +70,6 @@ public final class AgentInput {
                 spec.putEnv(entry.getKey(), entry.getValue().toProto());
             }
         }
-        if (this.envSpec != null) {
-            spec.setEnvSpec(this.envSpec.toProto());
-        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -106,7 +101,6 @@ public final class AgentInput {
         private java.util.List<ResourceRef> skillRefs;
         private java.util.List<SubAgentInput> subAgents;
         private java.util.Map<String, EnvVarDeclarationInput> env;
-        private EnvSpecInput envSpec;
 
         private Builder() {}
 
@@ -121,7 +115,6 @@ public final class AgentInput {
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder subAgents(java.util.List<SubAgentInput> subAgents) { this.subAgents = subAgents; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
-        public Builder envSpec(EnvSpecInput envSpec) { this.envSpec = envSpec; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }

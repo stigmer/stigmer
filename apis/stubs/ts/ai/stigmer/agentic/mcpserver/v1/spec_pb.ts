@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { EnvironmentSpec, EnvVarDeclaration } from "../../environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "../../environment/v1/spec_pb";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEiswUKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKA2VudhgPIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyU3BlYy5FbnZFbnRyeRJICghlbnZfc3BlYxgIIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudFNwZWNCAhgBElIKFXBpbm5lZF90b29sX2FwcHJvdmFscxgLIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuVG9vbEFwcHJvdmFsUG9saWN5EhYKDnJlcG9zaXRvcnlfdXJsGAwgASgJEhQKDGdpdGh1Yl9zdGFycxgNIAEoBRI8CgRhdXRoGA4gASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJBdXRoGmAKCEVudkVudHJ5EgsKA2tleRgBIAEoCRJDCgV2YWx1ZRgCIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFCFAoLc2VydmVyX3R5cGUSBbpIAggBIk8KEVN0ZGlvU2VydmVyQ29uZmlnEhcKB2NvbW1hbmQYASABKAlCBrpIA8gBARIMCgRhcmdzGAIgAygJEhMKC3dvcmtpbmdfZGlyGAMgASgJIuACChBIdHRwU2VydmVyQ29uZmlnEhgKA3VybBgBIAEoCUILukgIyAEBcgOIAQESTwoHaGVhZGVycxgCIAMoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5IZWFkZXJzRW50cnkSWAoMcXVlcnlfcGFyYW1zGAMgAygLMkIuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnLlF1ZXJ5UGFyYW1zRW50cnkSIwoPdGltZW91dF9zZWNvbmRzGAQgASgFQgq6SAcaBRisAigAGi4KDEhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGjIKEFF1ZXJ5UGFyYW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJBChJUb29sQXBwcm92YWxQb2xpY3kSGgoJdG9vbF9uYW1lGAEgASgJQge6SARyAhABEg8KB21lc3NhZ2UYAiABKAkirwEKDU1jcFNlcnZlckF1dGgSSwoNb2F1dGhfYXBwX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRIfCg50YXJnZXRfZW52X3ZhchgCIAEoCUIHukgEcgIQARIbChN0b2tlbl9saWZldGltZV9oaW50GAMgASgJEhMKC3Njb3BlX2hpbnRzGAQgAygJYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEi6QQKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKA2VudhgIIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyU3BlYy5FbnZFbnRyeRJSChVwaW5uZWRfdG9vbF9hcHByb3ZhbHMYCyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRIWCg5yZXBvc2l0b3J5X3VybBgMIAEoCRIUCgxnaXRodWJfc3RhcnMYDSABKAUSPAoEYXV0aBgOIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyQXV0aBpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBQhQKC3NlcnZlcl90eXBlEgW6SAIIASJPChFTdGRpb1NlcnZlckNvbmZpZxIXCgdjb21tYW5kGAEgASgJQga6SAPIAQESDAoEYXJncxgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCSLgAgoQSHR0cFNlcnZlckNvbmZpZxIYCgN1cmwYASABKAlCC7pICMgBAXIDiAEBEk8KB2hlYWRlcnMYAiADKAsyPi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuSGVhZGVyc0VudHJ5ElgKDHF1ZXJ5X3BhcmFtcxgDIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5RdWVyeVBhcmFtc0VudHJ5EiMKD3RpbWVvdXRfc2Vjb25kcxgEIAEoBUIKukgHGgUYrAIoABouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBRdWVyeVBhcmFtc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQQoSVG9vbEFwcHJvdmFsUG9saWN5EhoKCXRvb2xfbmFtZRgBIAEoCUIHukgEcgIQARIPCgdtZXNzYWdlGAIgASgJIq8BCg1NY3BTZXJ2ZXJBdXRoEksKDW9hdXRoX2FwcF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2USHwoOdGFyZ2V0X2Vudl92YXIYAiABKAlCB7pIBHICEAESGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCRITCgtzY29wZV9oaW50cxgEIAMoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * McpServerSpec defines the configurable properties of an MCP server.
@@ -98,21 +98,10 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
   /**
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    *
-   * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 15;
+   * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 8;
    */
   env: { [key: string]: EnvVarDeclaration };
-
-  /**
-   * Deprecated: use env instead. Retained for wire compatibility.
-   *
-   * @generated from field: ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [deprecated = true];
-   * @deprecated
-   */
-  envSpec?: EnvironmentSpec;
 
   /**
    * Manual tool approval overrides set by the MCP server owner.
@@ -162,7 +151,7 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
    *
    * The acquired access token is stored in the user's personal environment
    * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env (or legacy env_spec.data) so the execution pipeline knows about it.
+   * declared in env so the execution pipeline knows about it.
    *
    * @generated from field: ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14;
    */
@@ -208,7 +197,7 @@ export type StdioServerConfig = Message<"ai.stigmer.agentic.mcpserver.v1.StdioSe
    * (same source as HTTP header/query param placeholders). This enables MCP
    * servers that take core configuration as positional CLI arguments (e.g.
    * database connection URLs, directory paths) to be parameterized per-user
-   * through env_spec.
+   * through env declarations.
    *
    * Resolution uses strict mode: missing variables produce a clear error
    * rather than passing a literal "${VAR}" to the subprocess.
@@ -423,8 +412,8 @@ export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAu
 
   /**
    * The env var where the acquired access token is stored.
-   * Must correspond to an entry in env (or legacy env_spec.data) so the
-   * execution pipeline resolves it. The refresh token is stored as
+   * Must correspond to an entry in env so the execution pipeline
+   * resolves it. The refresh token is stored as
    * {target_env_var}_REFRESH_TOKEN
    * by convention. Both are written to the user's personal environment.
    *

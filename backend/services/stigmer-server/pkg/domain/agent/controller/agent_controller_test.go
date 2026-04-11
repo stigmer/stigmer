@@ -246,7 +246,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 
 	controller := NewAgentController(store, nil)
 
-	t.Run("merges env_spec from referenced MCP server", func(t *testing.T) {
+	t.Run("merges env from referenced MCP server", func(t *testing.T) {
 		mcpServer := &mcpserverv1.McpServer{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
@@ -258,16 +258,14 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "An MCP server for testing",
-				EnvSpec: &environmentv1.EnvironmentSpec{
-					Data: map[string]*environmentv1.EnvironmentValue{
-						"API_KEY": {
-							Description: "API key for the MCP server",
-							IsSecret:    true,
-						},
-						"API_URL": {
-							Description: "Base URL for the API",
-							IsSecret:    false,
-						},
+				Env: map[string]*environmentv1.EnvVarDeclaration{
+					"API_KEY": {
+						Description: "API key for the MCP server",
+						IsSecret:    true,
+					},
+					"API_URL": {
+						Description: "Base URL for the API",
+						IsSecret:    false,
 					},
 				},
 			},
@@ -303,25 +301,22 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		envData := created.GetSpec().GetEnvSpec().GetData()
-		if envData == nil {
-			t.Fatal("Expected env_spec.data to be populated, got nil")
+		envDecls := created.GetSpec().GetEnv()
+		if envDecls == nil {
+			t.Fatal("Expected env to be populated, got nil")
 		}
-		if len(envData) != 2 {
-			t.Fatalf("Expected 2 env vars, got %d", len(envData))
+		if len(envDecls) != 2 {
+			t.Fatalf("Expected 2 env vars, got %d", len(envDecls))
 		}
-		if apiKey, ok := envData["API_KEY"]; !ok {
-			t.Error("Expected API_KEY in env_spec.data")
+		if apiKey, ok := envDecls["API_KEY"]; !ok {
+			t.Error("Expected API_KEY in env")
 		} else {
 			if !apiKey.IsSecret {
 				t.Error("Expected API_KEY.is_secret to be true")
 			}
-			if apiKey.Value != "" {
-				t.Error("Expected API_KEY.value to be empty (schema only)")
-			}
 		}
-		if apiUrl, ok := envData["API_URL"]; !ok {
-			t.Error("Expected API_URL in env_spec.data")
+		if apiUrl, ok := envDecls["API_URL"]; !ok {
+			t.Error("Expected API_URL in env")
 		} else {
 			if apiUrl.IsSecret {
 				t.Error("Expected API_URL.is_secret to be false")
@@ -341,16 +336,14 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "MCP server for precedence testing",
-				EnvSpec: &environmentv1.EnvironmentSpec{
-					Data: map[string]*environmentv1.EnvironmentValue{
-						"SHARED_VAR": {
-							Description: "MCP description",
-							IsSecret:    false,
-						},
-						"MCP_ONLY_VAR": {
-							Description: "Only from MCP",
-							IsSecret:    true,
-						},
+				Env: map[string]*environmentv1.EnvVarDeclaration{
+					"SHARED_VAR": {
+						Description: "MCP description",
+						IsSecret:    false,
+					},
+					"MCP_ONLY_VAR": {
+						Description: "Only from MCP",
+						IsSecret:    true,
 					},
 				},
 			},
@@ -378,12 +371,10 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 						},
 					},
 				},
-				EnvSpec: &environmentv1.EnvironmentSpec{
-					Data: map[string]*environmentv1.EnvironmentValue{
-						"SHARED_VAR": {
-							Description: "Agent description wins",
-							IsSecret:    true,
-						},
+				Env: map[string]*environmentv1.EnvVarDeclaration{
+					"SHARED_VAR": {
+						Description: "Agent description wins",
+						IsSecret:    true,
 					},
 				},
 			},
@@ -394,12 +385,12 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		envData := created.GetSpec().GetEnvSpec().GetData()
-		if len(envData) != 2 {
-			t.Fatalf("Expected 2 env vars, got %d", len(envData))
+		envDecls := created.GetSpec().GetEnv()
+		if len(envDecls) != 2 {
+			t.Fatalf("Expected 2 env vars, got %d", len(envDecls))
 		}
 
-		sharedVar := envData["SHARED_VAR"]
+		sharedVar := envDecls["SHARED_VAR"]
 		if sharedVar.Description != "Agent description wins" {
 			t.Errorf("Expected agent description to win, got %q", sharedVar.Description)
 		}
@@ -407,7 +398,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			t.Error("Expected agent's is_secret=true to be preserved")
 		}
 
-		if _, ok := envData["MCP_ONLY_VAR"]; !ok {
+		if _, ok := envDecls["MCP_ONLY_VAR"]; !ok {
 			t.Error("Expected MCP_ONLY_VAR to be merged from MCP server")
 		}
 	})
@@ -431,9 +422,9 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		envData := created.GetSpec().GetEnvSpec().GetData()
-		if len(envData) != 0 {
-			t.Errorf("Expected empty env_spec.data, got %d entries", len(envData))
+		envDecls := created.GetSpec().GetEnv()
+		if len(envDecls) != 0 {
+			t.Errorf("Expected empty env, got %d entries", len(envDecls))
 		}
 	})
 
@@ -465,9 +456,9 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			t.Fatalf("Create should succeed even with missing MCP server, got: %v", err)
 		}
 
-		envData := created.GetSpec().GetEnvSpec().GetData()
-		if len(envData) != 0 {
-			t.Errorf("Expected empty env_spec.data, got %d entries", len(envData))
+		envDecls := created.GetSpec().GetEnv()
+		if len(envDecls) != 0 {
+			t.Errorf("Expected empty env, got %d entries", len(envDecls))
 		}
 	})
 
@@ -483,16 +474,14 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "First MCP server",
-				EnvSpec: &environmentv1.EnvironmentSpec{
-					Data: map[string]*environmentv1.EnvironmentValue{
-						"COMMON_KEY": {
-							Description: "From server A",
-							IsSecret:    true,
-						},
-						"A_ONLY": {
-							Description: "Only in A",
-							IsSecret:    false,
-						},
+				Env: map[string]*environmentv1.EnvVarDeclaration{
+					"COMMON_KEY": {
+						Description: "From server A",
+						IsSecret:    true,
+					},
+					"A_ONLY": {
+						Description: "Only in A",
+						IsSecret:    false,
 					},
 				},
 			},
@@ -508,16 +497,14 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Second MCP server",
-				EnvSpec: &environmentv1.EnvironmentSpec{
-					Data: map[string]*environmentv1.EnvironmentValue{
-						"COMMON_KEY": {
-							Description: "From server B",
-							IsSecret:    false,
-						},
-						"B_ONLY": {
-							Description: "Only in B",
-							IsSecret:    true,
-						},
+				Env: map[string]*environmentv1.EnvVarDeclaration{
+					"COMMON_KEY": {
+						Description: "From server B",
+						IsSecret:    false,
+					},
+					"B_ONLY": {
+						Description: "Only in B",
+						IsSecret:    true,
 					},
 				},
 			},
@@ -564,23 +551,23 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		envData := created.GetSpec().GetEnvSpec().GetData()
-		if len(envData) != 3 {
-			t.Fatalf("Expected 3 env vars (COMMON_KEY, A_ONLY, B_ONLY), got %d", len(envData))
+		envDecls := created.GetSpec().GetEnv()
+		if len(envDecls) != 3 {
+			t.Fatalf("Expected 3 env vars (COMMON_KEY, A_ONLY, B_ONLY), got %d", len(envDecls))
 		}
 
-		if _, ok := envData["A_ONLY"]; !ok {
+		if _, ok := envDecls["A_ONLY"]; !ok {
 			t.Error("Expected A_ONLY from MCP server A")
 		}
-		if _, ok := envData["B_ONLY"]; !ok {
+		if _, ok := envDecls["B_ONLY"]; !ok {
 			t.Error("Expected B_ONLY from MCP server B")
 		}
-		if _, ok := envData["COMMON_KEY"]; !ok {
+		if _, ok := envDecls["COMMON_KEY"]; !ok {
 			t.Error("Expected COMMON_KEY (first-encountered wins)")
 		}
 	})
 
-	t.Run("merges env_spec when mcp_server_ref omits org", func(t *testing.T) {
+	t.Run("merges env when mcp_server_ref omits org", func(t *testing.T) {
 		mcpServer := &mcpserverv1.McpServer{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
@@ -592,12 +579,10 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "MCP server for org fallback testing",
-				EnvSpec: &environmentv1.EnvironmentSpec{
-					Data: map[string]*environmentv1.EnvironmentValue{
-						"FALLBACK_KEY": {
-							Description: "Resolved via agent org fallback",
-							IsSecret:    true,
-						},
+				Env: map[string]*environmentv1.EnvVarDeclaration{
+					"FALLBACK_KEY": {
+						Description: "Resolved via agent org fallback",
+						IsSecret:    true,
 					},
 				},
 			},
@@ -632,15 +617,15 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		envData := created.GetSpec().GetEnvSpec().GetData()
-		if envData == nil {
-			t.Fatal("Expected env_spec.data to be populated via org fallback, got nil")
+		envDecls := created.GetSpec().GetEnv()
+		if envDecls == nil {
+			t.Fatal("Expected env to be populated via org fallback, got nil")
 		}
-		if len(envData) != 1 {
-			t.Fatalf("Expected 1 env var, got %d", len(envData))
+		if len(envDecls) != 1 {
+			t.Fatalf("Expected 1 env var, got %d", len(envDecls))
 		}
-		if fallbackKey, ok := envData["FALLBACK_KEY"]; !ok {
-			t.Error("Expected FALLBACK_KEY in env_spec.data")
+		if fallbackKey, ok := envDecls["FALLBACK_KEY"]; !ok {
+			t.Error("Expected FALLBACK_KEY in env")
 		} else {
 			if !fallbackKey.IsSecret {
 				t.Error("Expected FALLBACK_KEY.is_secret to be true")
@@ -648,7 +633,7 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 		}
 	})
 
-	t.Run("update also merges MCP env specs", func(t *testing.T) {
+	t.Run("update also merges MCP env declarations", func(t *testing.T) {
 		mcpServer := &mcpserverv1.McpServer{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
@@ -660,12 +645,10 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "MCP server for update testing",
-				EnvSpec: &environmentv1.EnvironmentSpec{
-					Data: map[string]*environmentv1.EnvironmentValue{
-						"UPDATE_KEY": {
-							Description: "Key added during update",
-							IsSecret:    true,
-						},
+				Env: map[string]*environmentv1.EnvVarDeclaration{
+					"UPDATE_KEY": {
+						Description: "Key added during update",
+						IsSecret:    true,
 					},
 				},
 			},
@@ -707,11 +690,11 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 			t.Fatalf("Update failed: %v", err)
 		}
 
-		envData := updated.GetSpec().GetEnvSpec().GetData()
-		if envData == nil {
-			t.Fatal("Expected env_spec.data to be populated after update, got nil")
+		envDecls := updated.GetSpec().GetEnv()
+		if envDecls == nil {
+			t.Fatal("Expected env to be populated after update, got nil")
 		}
-		if _, ok := envData["UPDATE_KEY"]; !ok {
+		if _, ok := envDecls["UPDATE_KEY"]; !ok {
 			t.Error("Expected UPDATE_KEY to be merged from MCP server during update")
 		}
 	})

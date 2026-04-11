@@ -23,7 +23,6 @@ public final class WorkflowInput {
     private final WorkflowDocumentInput document;
     private final java.util.List<WorkflowTaskInput> tasks;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
-    private final EnvSpecInput envSpec;
 
     private WorkflowInput(Builder builder) {
         this.name = builder.name;
@@ -34,7 +33,6 @@ public final class WorkflowInput {
         this.document = builder.document;
         this.tasks = builder.tasks;
         this.env = builder.env;
-        this.envSpec = builder.envSpec;
     }
 
     Workflow toProto() {
@@ -54,9 +52,6 @@ public final class WorkflowInput {
             for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
                 spec.putEnv(entry.getKey(), entry.getValue().toProto());
             }
-        }
-        if (this.envSpec != null) {
-            spec.setEnvSpec(this.envSpec.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -86,7 +81,6 @@ public final class WorkflowInput {
         private WorkflowDocumentInput document;
         private java.util.List<WorkflowTaskInput> tasks;
         private java.util.Map<String, EnvVarDeclarationInput> env;
-        private EnvSpecInput envSpec;
 
         private Builder() {}
 
@@ -98,7 +92,6 @@ public final class WorkflowInput {
         public Builder document(WorkflowDocumentInput document) { this.document = document; return this; }
         public Builder tasks(java.util.List<WorkflowTaskInput> tasks) { this.tasks = tasks; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
-        public Builder envSpec(EnvSpecInput envSpec) { this.envSpec = envSpec; return this; }
 
         public WorkflowInput build() { return new WorkflowInput(this); }
     }

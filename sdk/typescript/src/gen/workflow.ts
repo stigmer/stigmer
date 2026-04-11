@@ -2,10 +2,10 @@
 
 import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
-import { type EnvSpecInput, type ResourceRef } from "./types";
+import { type ResourceRef } from "./types";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { EnvVarDeclarationSchema, EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
@@ -73,7 +73,6 @@ export interface WorkflowInput {
   document: WorkflowDocumentInput;
   tasks?: WorkflowTaskInput[];
   env?: Record<string, EnvVarDeclarationInput>;
-  envSpec?: EnvSpecInput;
 }
 
 /** SDK input type for WorkflowDocument. */
@@ -158,14 +157,6 @@ function buildWorkflowProto(input: WorkflowInput): Workflow {
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
-  let envSpec;
-  if (input.envSpec) {
-    const es = create(EnvironmentSpecSchema);
-    for (const [k, v] of Object.entries(input.envSpec.variables)) {
-      es.data[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });
-    }
-    envSpec = es;
-  }
   return Object.assign(create(WorkflowSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Workflow",
@@ -180,7 +171,6 @@ function buildWorkflowProto(input: WorkflowInput): Workflow {
       document,
       tasks,
       env,
-      envSpec,
     })),
   }) as Workflow;
 }

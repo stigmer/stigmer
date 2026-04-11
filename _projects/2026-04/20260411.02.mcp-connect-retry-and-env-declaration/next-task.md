@@ -1,6 +1,6 @@
 # Next Task: 20260411.02.mcp-connect-retry-and-env-declaration
 
-## 🎯 Quick Resume Instructions
+## Quick Resume Instructions
 
 **Simply drop this file into your conversation to quickly resume work on this project.**
 
@@ -17,7 +17,7 @@ All the context you need is right here with absolute paths to project files.
 **Components**: agent-runner (Python), environment proto, mcpserver/agent/workflow protos, seedpack YAML, Go/Java/Python/TypeScript consumers
 
 **Created**: 2026-04-11  
-**Type**: ⚡ Quick Project (1-2 sessions)
+**Type**: Quick Project (1-2 sessions)
 
 ---
 
@@ -32,136 +32,63 @@ All the context you need is right here with absolute paths to project files.
 
 ## Essential Files
 
-### 📋 Tasks (Check current progress here)
+### Tasks (Check current progress here)
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260411.02.mcp-connect-retry-and-env-declaration/tasks.md
 ```
-All tasks are tracked in this single file. Check status and continue where you left off.
 
-### 📖 Project README
+### Project README
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260411.02.mcp-connect-retry-and-env-declaration/README.md
 ```
-Project overview, goals, and success criteria.
 
-### 📝 Quick Notes
+### Quick Notes
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260411.02.mcp-connect-retry-and-env-declaration/notes.md
 ```
-Important decisions, learnings, and gotchas captured during development.
-
----
-
-## Root Cause Analysis (from investigation)
-
-### The Error
-
-`DiscoverMcpServerCapabilities` activity retries 5+ times with `401 Unauthorized` from `https://mcp.slack.com/mcp`. Logs show:
-
-```
-Resolved 2 env var(s) from ExecutionContext 'connect-mcp_01knvntehb9prm2bb2gx9q3q6h-e43ce4f2'
-Unresolved placeholder ${SLACK_ACCESS_TOKEN} - ensure this variable is provided in the environment (header 'Authorization')
-```
-
-### Why SLACK_ACCESS_TOKEN is missing
-
-1. SDK sends `runtime_env` with system vars (e.g., `STIGMER_SERVER_ADDRESS`) alongside the connect request
-2. Java handler `McpServerConnectHandler.resolveFromPersonalEnvironment()` runs with `tolerateMissing=true` (because `hasRuntimeEnv=true`)
-3. `SLACK_ACCESS_TOKEN` is missing from personal env (OAuth flow not completed for this user)
-4. Missing key is **silently skipped** (debug log only)
-5. `PlaceholderResolver` in **lenient mode** (`strict=False`) converts `Bearer ${SLACK_ACCESS_TOKEN}` into the literal string `Bearer ${SLACK_ACCESS_TOKEN}`
-6. Literal is sent as the Authorization header -> 401 Unauthorized
-
-### Why it retries 5+ times
-
-`workflow.execute_activity()` calls in `ConnectMcpServerWorkflow` have **no `retry_policy`**, so Temporal uses its default: unlimited retries with exponential backoff (1s, 2s, 4s, 8s...).
-
----
-
-## Design Decisions
-
-### Phase 1: No-retry policy
-
-Set `RetryPolicy(maximum_attempts=1)` on all activity calls. Connect is user-triggered and synchronous. 401 is deterministic.
-
-### Phase 2: EnvVarDeclaration proto
-
-**Decision:** Option B2 -- shared `EnvVarDeclaration` in environment package. All blueprint resources (McpServer, Agent, Workflow) benefit.
-
-**Why not just add `optional` to `EnvironmentValue`?** `EnvironmentValue` is shared between storage (Environment resource) and declaration (blueprint env_spec). The `optional` concept only applies to declarations. A dedicated declaration message provides clean DDD separation.
-
-### Proto changes
-
-New message in `environment/v1/spec.proto`:
-```proto
-message EnvVarDeclaration {
-  bool is_secret = 1;
-  string description = 2;
-  bool optional = 3;  // false (default) = required
-}
-```
-
-New `env` field (deprecating `env_spec`) on each blueprint spec:
-- `McpServerSpec`: `map<string, EnvVarDeclaration> env = 15`
-- `AgentSpec`: `map<string, EnvVarDeclaration> env = 8`
-- `WorkflowSpec`: `map<string, EnvVarDeclaration> env = 5`
-
-YAML improves from `spec.env_spec.data.KEY` to `spec.env.KEY` (one nesting level removed).
-
-All consumers use fallback: read `env` first, fall back to `env_spec.data` during transition.
-
----
-
-## Key Files
-
-### Phase 1 (retry fix)
-- `stigmer/backend/services/agent-runner/worker/activities/discover_mcp_server.py` -- workflow + activity definitions
-
-### Phase 2 (proto + migration)
-- `stigmer/apis/ai/stigmer/agentic/environment/v1/spec.proto` -- add EnvVarDeclaration
-- `stigmer/apis/ai/stigmer/agentic/mcpserver/v1/spec.proto` -- new env field
-- `stigmer/apis/ai/stigmer/agentic/agent/v1/spec.proto` -- new env field
-- `stigmer/apis/ai/stigmer/agentic/workflow/v1/spec.proto` -- new env field
-- `stigmer/seedpack/mcp-servers/*.yaml` -- ~20 files to migrate
-- Go consumers: `connect.go`, `merge_mcp_env_specs.go`, `create_execution_context_step.go`
-- Java consumers: `McpServerConnectHandler.java`, `McpEnvironmentValidator.java`, `EnvironmentMergeService.java`, `MergeMcpServerEnvSpecsStep.java`
-- Python consumers: `config_transformer.py`, `graphton/setup.py`
-- TypeScript consumers: `useMcpServerCredentials.ts`, `useMcpServerSetup.ts`, `EnvVarForm.tsx`, `diffEnvSpec.ts`
 
 ---
 
 ## Current State
 
-- **Status**: in-progress
-- **Last Session**: 2026-04-11 — T01, T02, T03, T04 completed
-- **Active Task**: T05 (next to start)
+- **Status**: in-progress (T01-T05 done, T06 remaining)
+- **Last Session**: 2026-04-11 — T05 completed (clean removal of env_spec, full consumer migration)
+- **Active Task**: T06 (next to start)
 
-## Session Progress (2026-04-11)
+## Session Progress (2026-04-11, Session 3 — T05)
 
-- T01: Added `RetryPolicy(maximum_attempts=1)` to all 3 `workflow.execute_activity` calls in `discover_mcp_server.py`
-- T02: Added `EnvVarDeclaration` proto to `environment/v1/spec.proto`; added `map<string, EnvVarDeclaration> env` field on McpServerSpec (15), AgentSpec (8), WorkflowSpec (5); deprecated `env_spec` on all three
-- T03: Ran `make codegen` (stigmer) and `make protos` (stigmer-cloud) — all stubs regenerated
-- Architectural review: confirmed `McpServerAuth` should remain on McpServerSpec (not merged into `EnvVarDeclaration`) — aggregate boundary, separation of declaration vs acquisition
-- T04: Migrated all 32 seedpack MCP server YAMLs from `env_spec.data` to `env`; classified 4 vars as `optional: true`; updated CONTRIBUTING.md, mcp-server-creator agent instructions, mcp-server-creator skill (SKILL.md + 3 reference files), agent-creator skill (SKILL.md + 2 reference files); zero `env_spec` references remain in seedpack YAML/MD
+- **Design change**: Replaced the original "env-first, fallback-to-env_spec" plan with a clean break — env_spec removed entirely from protos, no backward compat, no deprecated flags
+- **Proto cleanup**: Removed env_spec from McpServerSpec, AgentSpec, WorkflowSpec. Renumbered env to take env_spec's field numbers (McpServerSpec=8, AgentSpec=7, WorkflowSpec=4)
+- **Codegen**: Regenerated all stubs across both repos (stigmer: 101 files, stigmer-cloud: 45 files)
+- **Go envmerge library**: Removed templateData param from `MergeEnvironmentLayers` (merge is now 2-layer: environments + runtime). Renamed `FilterByEnvSpec` → `FilterByDeclaredKeys` with `map[string]*EnvVarDeclaration` param
+- **Go consumers**: Updated connect.go, merge_mcp_env_specs.go, both create_execution_context_step.go, CLI discover.go, env_resolver.go, run_agent_exec.go
+- **Go tests**: Updated envmerge tests, agent_controller_test.go, 3 mcp-server convert tests, workflow loader test
+- **Java consumers**: Updated EnvironmentMergeService (removed template param, renamed filter), McpServerConnectHandler, McpEnvironmentValidator (uses `!optional` for required check), MergeMcpServerEnvSpecsStep, both CreateExecutionContextStep
+- **Java tests**: Updated MergeMcpServerEnvSpecsStepTest, McpEnvironmentValidatorTest
+- **Python consumers**: Updated config_transformer.py (spec.env), fixed pre-existing bug in setup.py (_extract_runtime_env_for_server referenced nonexistent env_spec.variables)
+- **TypeScript consumers**: Renamed diffEnvSpec→diffEnv, updated hooks (credentials/setup/agentSetup), detail views (McpServerDetailView, AgentDetailView), YAML parse/serialize, site fixtures
 
 ## Next Steps
 
-1. T05: Update consumer code (Go, Java, Python, TypeScript) with env-first fallback-to-env_spec pattern
-2. T06: Enforce required/optional semantics in Java and Go connect/execution handlers
+1. T06: Enforce required/optional semantics in Java and Go connect/execution handlers
+   - Go connect.go: skip optional vars in `resolveFromPersonalEnvironment` when missing
+   - Java McpServerConnectHandler: same
+   - Java McpEnvironmentValidator: already uses `!declaration.getOptional()` (done in T05)
+   - Go/Java execution context steps: validate required vars are present before creating ExecutionContext
 
 ## Context for Resume
 
-- The new `env` field exists in proto, all stubs, and all seedpack YAML files
-- All seedpack docs and skills reference `env` (not `env_spec`)
-- No consumer code reads `env` yet — all runtime paths still use `env_spec.data`
-- Consumer files needing updates are listed in the Key Files section above
-- The `env_spec` field is deprecated but still works for user-created resources during transition
+- **env_spec is completely gone** from all protos, consumer code, tests, seedpack, and docs
+- All consumers read `env` (type `map<string, EnvVarDeclaration>`) directly — no fallback logic
+- `EnvironmentSpec` and `EnvironmentValue` still exist for the `Environment` resource (stored values), which is correct
+- `MergeEnvironmentLayers` is now 2-layer (environments + runtime); template defaults removed since `EnvVarDeclaration` has no `value` field (by design: blueprints declare needs, not values)
+- `McpEnvironmentValidator.extractRequiredVariables()` already uses `!declaration.getOptional()` from T05
+- YAML parser (`parse-resource-yaml.ts`) retains backward compat for reading old `env_spec.data` YAML
 
 ## Resume Checklist
 
 When starting a new session, quickly review:
 
 1. [ ] Open `tasks.md` and check current task status
-2. [ ] Review the design decisions above
-3. [ ] Continue with T05 (consumer code updates)
-
+2. [ ] T06 is the only remaining task
+3. [ ] Focus: enforce `optional` flag semantics in connect and execution handlers

@@ -19,7 +19,7 @@ from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
 
 from ._errors import wrap_error
-from ._types import DeleteResourceInput, EnvSpecInput, ListParams, ListResult, ResourceRef
+from ._types import DeleteResourceInput, ListParams, ListResult, ResourceRef
 from ._agent import EnvVarDeclarationInput
 
 
@@ -137,7 +137,6 @@ class McpServerInput:
     http: HttpServerConfigInput | None = None
     default_enabled_tools: list[str] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
-    env_spec: EnvSpecInput | None = None
     pinned_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
     repository_url: str = ""
     github_stars: int = 0
@@ -158,8 +157,6 @@ class McpServerInput:
             spec.default_enabled_tools.extend(self.default_enabled_tools)
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
-        if self.env_spec is not None:
-            spec.env_spec.CopyFrom(self.env_spec._to_proto())
         for item in self.pinned_tool_approvals:
             spec.pinned_tool_approvals.append(item._to_proto())
         if self.auth is not None:

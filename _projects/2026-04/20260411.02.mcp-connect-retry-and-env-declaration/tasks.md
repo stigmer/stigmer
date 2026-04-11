@@ -81,16 +81,35 @@ Add timestamps and notes to track your progress.
 - Tool scripts (`03_draft-mcp-server-creator-skill.sh`, `04_generate-approval-policy.sh`) excluded — `env_spec` only in comments, one-off generators
 - Optionality classification: 4 vars marked `optional: true` (have defaults or are non-critical), ~36 vars remain required by default (safe default — execution fails if missing)
 
-## Task 5: T05: Update consumer code (Go Java Python TypeScript) with env-first fallback-to-env_spec pattern
+## Task 5: T05: Clean removal of env_spec — consumer migration to env (Go Java Python TypeScript)
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-11 17:40
+**Completed**: 2026-04-11
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Remove `env_spec` from McpServerSpec (field 8→env), AgentSpec (field 7→env), WorkflowSpec (field 4→env) protos
+- [x] Clean up McpServerAuth and StdioServerConfig comments referencing env_spec
+- [x] Run `make codegen` (stigmer) + `make protos` (stigmer-cloud) to regenerate all stubs
+- [x] Refactor `envmerge.MergeEnvironmentLayers`: remove templateData param (layer 1 was always no-op)
+- [x] Rename `FilterByEnvSpec` → `FilterByDeclaredKeys` with `map[string]*EnvVarDeclaration` param
+- [x] Update Go consumers: connect.go, merge_mcp_env_specs.go, both create_execution_context_step.go
+- [x] Update CLI: discover.go, env_resolver.go, run_agent_exec.go
+- [x] Update Go tests: envmerge tests, agent_controller_test.go, mcp-server convert tests, workflow loader test
+- [x] Refactor Java `EnvironmentMergeService`: remove templateEnvSpec param, rename filterByEnvSpec → filterByDeclaredKeys
+- [x] Update Java consumers: McpServerConnectHandler, McpEnvironmentValidator, MergeMcpServerEnvSpecsStep, both CreateExecutionContextStep
+- [x] Update Java tests: MergeMcpServerEnvSpecsStepTest, McpEnvironmentValidatorTest
+- [x] Update Python: config_transformer.py (spec.env), setup.py (fix pre-existing bug: env_spec.variables → spec.env)
+- [x] Update TypeScript: rename diffEnvSpec→diffEnv, update hooks (credentials/setup/agentSetup), detail views, YAML parse/serialize
+- [x] Update site fixtures: preview-configs, tour steps, demo scenarios
 
 ### Notes
-- [Add notes about this task here]
+- **Design decision**: Clean break — no backward compat, no deprecated flags, no dual-write
+- **Proto field numbers**: env takes env_spec's former field number (AgentSpec=7, WorkflowSpec=4, McpServerSpec=8)
+- **Template defaults eliminated**: `EnvVarDeclaration` has no `value` field by design (blueprints declare needs, not values). `MergeEnvironmentLayers` becomes 2-layer: environments + runtime. Layer 1 (template defaults) was always a no-op in practice.
+- **Pre-existing bug fixed**: Python `_extract_runtime_env_for_server` referenced `env_spec.variables` which does not exist on proto (field is `data`). Was silently failing via AttributeError catch. Now correctly reads `spec.env`.
+- **McpEnvironmentValidator**: required check changed from "empty value" heuristic to `!declaration.getOptional()` — uses proper proto semantics
+- **YAML parser**: retains backward compat for reading old `env_spec.data` YAML (parse-resource-yaml.ts)
 
 ## Task 6: T06: Enforce required/optional semantics in Java and Go connect and execution handlers
 

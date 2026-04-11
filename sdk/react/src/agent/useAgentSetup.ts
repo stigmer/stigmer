@@ -10,7 +10,7 @@ import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { buildPersonalInstanceInput } from "../agent-instance/buildPersonalInstanceInput";
-import { diffEnvSpec } from "../environment/diffEnvSpec";
+import { diffEnv } from "../environment/diffEnv";
 import {
   agentSetupReducer,
   INITIAL_STATE,
@@ -106,8 +106,8 @@ export interface UseAgentSetupReturn {
   /**
    * Evaluate whether an agent is ready to use or needs env var collection.
    *
-   * Fetches the full agent to read its `env_spec`, checks for an existing
-   * personal instance, and diffs env_spec keys against the personal
+   * Fetches the full agent to read its `env` declarations, checks for an
+   * existing personal instance, and diffs env keys against the personal
    * environment. Returns `"ready"` when the agent can be used immediately,
    * or `"needsEnvVars"` when the caller should present {@link AgentEnvForm}.
    */
@@ -143,7 +143,7 @@ export interface UseAgentSetupReturn {
  *
  * When a user picks an agent in the {@link AgentPicker}, this hook
  * determines whether the agent requires credentials (via its
- * `env_spec`), checks what the user has already provided in their
+ * `env` declarations), checks what the user has already provided in their
  * personal environment, and either reports the agent as ready or
  * identifies the missing variables so the caller can render
  * {@link AgentEnvForm}.
@@ -173,7 +173,7 @@ export interface UseAgentSetupReturn {
  * @param org - Organization slug. Pass `null` to disable.
  * @param poolKeys - Optional set of env-var keys already available
  *   from the session env pool (manual secrets, one-time env vars from
- *   other components). When provided, agents whose `env_spec` keys
+ *   other components). When provided, agents whose `env` keys
  *   are fully covered by `poolKeys` + personal env auto-resolve to
  *   `ready` without prompting. Reactive — when `poolKeys` changes,
  *   `needsEnvVars` is re-evaluated.
@@ -221,10 +221,10 @@ export function useAgentSetup(
       try {
         const agent = await stigmer.agent.getByReference(ref);
         const agentName = agent.metadata?.name ?? ref.slug;
-        const envSpecData = agent.spec?.envSpec?.data;
+        const envDeclarations = agent.spec?.env;
 
-        // No env_spec — agent is immediately ready (direct mode).
-        if (!envSpecData || Object.keys(envSpecData).length === 0) {
+        // No env declarations — agent is immediately ready (direct mode).
+        if (!envDeclarations || Object.keys(envDeclarations).length === 0) {
           const resolution: AgentResolution = { mode: "direct" };
           dispatch({
             type: "RESOLVE_READY",
@@ -235,7 +235,7 @@ export function useAgentSetup(
           return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
-        // Agent has env_spec — check for existing personal instance.
+        // Agent has env declarations — check for existing personal instance.
         const agentLabel = `${ref.org}/${ref.slug}`;
         const instanceList = await stigmer.agentInstance.list(
           create(ListAgentInstancesRequestSchema, {
@@ -265,8 +265,8 @@ export function useAgentSetup(
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
-        const personalOnlyMissing = diffEnvSpec(envSpecData, existingKeys);
-        const missingVariables = diffEnvSpec(envSpecData, existingKeys, poolKeys);
+        const personalOnlyMissing = diffEnv(envDeclarations, existingKeys);
+        const missingVariables = diffEnv(envDeclarations, existingKeys, poolKeys);
 
         if (personalOnlyMissing.length === 0) {
           // Personal env covers all keys — create personal instance.

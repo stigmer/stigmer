@@ -32,9 +32,8 @@ class ExecutionContextClient:
     """Client for fetching ExecutionContext from Stigmer backend.
     
     The ExecutionContext contains environment variables that were merged from:
-    1. Agent template env_spec (defaults)
-    2. AgentInstance environment_refs (layered environment configs)
-    3. AgentExecution runtime_env (runtime overrides)
+    1. AgentInstance environment_refs (layered environment configs)
+    2. AgentExecution runtime_env (runtime overrides)
     
     This client queries the ExecutionContext by execution ID to retrieve
     the decrypted environment variables for use during agent execution.

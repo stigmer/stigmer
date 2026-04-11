@@ -22,7 +22,7 @@ export interface SessionVariablesInputProps {
    * between the variable and the agent/MCP server that needs it.
    *
    * Built by `SessionComposer` from the selected agent's and MCP
-   * servers' `env_spec` declarations.
+   * servers' `env` declarations.
    *
    * @example
    * ```ts

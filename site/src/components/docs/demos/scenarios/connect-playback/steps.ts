@@ -22,8 +22,7 @@ import {
   ValidationState,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import {
-  EnvironmentSpecSchema,
-  EnvironmentValueSchema,
+  EnvVarDeclarationSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { samples } from "@stigmer/react/demo";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -48,14 +47,12 @@ function buildServerBase(): McpServer {
         url: "https://orders.internal.acme.com/mcp",
       }),
     },
-    envSpec: create(EnvironmentSpecSchema, {
-      data: {
-        API_KEY: create(EnvironmentValueSchema, {
-          isSecret: true,
-          description: "API key for order management authentication.",
-        }),
-      },
-    }),
+    env: {
+      API_KEY: create(EnvVarDeclarationSchema, {
+        isSecret: true,
+        description: "API key for order management authentication.",
+      }),
+    },
   });
 
   return server;

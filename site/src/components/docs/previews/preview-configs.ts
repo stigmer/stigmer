@@ -59,7 +59,7 @@ import type { UseWorkspaceEntriesReturn, UseSessionVariablesReturn } from "@stig
 import { create } from "@bufbuild/protobuf";
 
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
-import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvironmentSpecSchema, EnvironmentValueSchema, EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { AgentSpecSchema, McpServerUsageSchema, SubAgentSchema, McpAccessSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
@@ -190,22 +190,20 @@ function buildRichAgent() {
         ],
       }),
     ],
-    envSpec: create(EnvironmentSpecSchema, {
-      data: {
-        ORDER_API_URL: create(EnvironmentValueSchema, {
-          isSecret: false,
-          description: "Base URL of the order management API",
-        }),
-        ORDER_API_KEY: create(EnvironmentValueSchema, {
-          isSecret: true,
-          description: "API key for authenticating with the order management service",
-        }),
-        NOTIFICATION_WEBHOOK: create(EnvironmentValueSchema, {
-          isSecret: false,
-          description: "Webhook URL for sending customer notifications",
-        }),
-      },
-    }),
+    env: {
+      ORDER_API_URL: create(EnvVarDeclarationSchema, {
+        isSecret: false,
+        description: "Base URL of the order management API",
+      }),
+      ORDER_API_KEY: create(EnvVarDeclarationSchema, {
+        isSecret: true,
+        description: "API key for authenticating with the order management service",
+      }),
+      NOTIFICATION_WEBHOOK: create(EnvVarDeclarationSchema, {
+        isSecret: false,
+        description: "Webhook URL for sending customer notifications",
+      }),
+    },
   });
 
   agent.metadata!.visibility = ApiResourceVisibility.visibility_public;

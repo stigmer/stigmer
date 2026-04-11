@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import type { EnvVarInput } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
-import { diffEnvSpec } from "../environment/diffEnvSpec";
+import { diffEnv } from "../environment/diffEnv";
 import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 
@@ -46,7 +46,7 @@ export interface UseMcpServerCredentialsReturn {
   /**
    * Variables required by the MCP server that are missing from the
    * user's personal environment. Empty when all variables are present
-   * or the server has no `env_spec`.
+   * or the server has no `env` declarations.
    *
    * When `authMode` is `"oauth"`, the OAuth-managed `target_env_var`
    * is excluded from this list — it is acquired via the OAuth flow,
@@ -81,7 +81,7 @@ export interface UseMcpServerCredentialsReturn {
 
 /**
  * Checks the user's personal environment against an MCP server's
- * `env_spec` and provides a mechanism to save missing credentials.
+ * `env` declarations and provides a mechanism to save missing credentials.
  *
  * Designed for the discovery flow on the MCP server detail page:
  * before triggering discovery, the UI needs to ensure all required
@@ -145,10 +145,10 @@ export function useMcpServerCredentials(
 
   const allMissingVariables = useMemo(() => {
     if (!mcpServer) return [];
-    const envSpecData = mcpServer.spec?.envSpec?.data;
-    if (!envSpecData || Object.keys(envSpecData).length === 0) return [];
+    const envDeclarations = mcpServer.spec?.env;
+    if (!envDeclarations || Object.keys(envDeclarations).length === 0) return [];
 
-    return diffEnvSpec(envSpecData, existingKeys).filter(
+    return diffEnv(envDeclarations, existingKeys).filter(
       (v) => !SYSTEM_ENV_VAR_KEYS.has(v.key),
     );
   }, [mcpServer, existingKeys]);

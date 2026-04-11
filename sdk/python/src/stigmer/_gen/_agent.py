@@ -20,7 +20,7 @@ from ai.stigmer.commons.rpc import pagination_pb2
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
 
 from ._errors import wrap_error
-from ._types import EnvSpecInput, ListParams, ListResult, ResourceRef
+from ._types import ListParams, ListResult, ResourceRef
 
 
 class AgentClient:
@@ -120,7 +120,6 @@ class AgentInput:
     skill_refs: list[ResourceRef] = field(default_factory=list)
     sub_agents: list[SubAgentInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
-    env_spec: EnvSpecInput | None = None
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -136,8 +135,6 @@ class AgentInput:
             spec.sub_agents.append(item._to_proto())
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
-        if self.env_spec is not None:
-            spec.env_spec.CopyFrom(self.env_spec._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
