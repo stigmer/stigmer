@@ -38,6 +38,7 @@ from typing import Any
 
 import grpc
 from temporalio import activity, workflow
+from temporalio.common import RetryPolicy
 
 from grpc_client.channel import ChannelProvider
 from grpc_client.execution_context_client import ExecutionContextClient
@@ -443,6 +444,7 @@ class ConnectMcpServerWorkflow:
             input,
             start_to_close_timeout=timedelta(seconds=600),
             heartbeat_timeout=timedelta(seconds=60),
+            retry_policy=RetryPolicy(maximum_attempts=1),
         )
 
         classify_input = ClassifyToolApprovalsInput(
@@ -462,6 +464,7 @@ class ConnectMcpServerWorkflow:
             classify_tool_approvals,
             classify_input,
             start_to_close_timeout=timedelta(seconds=60),
+            retry_policy=RetryPolicy(maximum_attempts=1),
         )
 
         return ConnectMcpServerOutput(
@@ -487,4 +490,5 @@ class DiscoverMcpServerWorkflow:
             input,
             start_to_close_timeout=timedelta(seconds=600),
             heartbeat_timeout=timedelta(seconds=60),
+            retry_policy=RetryPolicy(maximum_attempts=1),
         )

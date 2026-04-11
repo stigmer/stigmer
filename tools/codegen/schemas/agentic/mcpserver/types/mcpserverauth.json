@@ -22,7 +22,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The env var in env_spec.data where the acquired access token is stored.\n Must correspond to an entry in env_spec.data so the execution pipeline\n resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN\n by convention. Both are written to the user's personal environment.",
+      "description": "The env var where the acquired access token is stored.\n Must correspond to an entry in env (or legacy env_spec.data) so the\n execution pipeline resolves it. The refresh token is stored as\n {target_env_var}_REFRESH_TOKEN\n by convention. Both are written to the user's personal environment.",
       "required": false,
       "validation": {
         "minLength": 1

@@ -212,6 +212,7 @@ const agent = await stigmer.agent.apply({
   mcpServerUsages: [],
   skillRefs: [],
   subAgents: [],
+  env: {},
   envSpec: {},
 });
 ```
@@ -229,6 +230,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   McpServerUsages: []stigmer.McpServerUsageInput{},
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
+  Env:             map[string]string{},
   EnvSpec:         &stigmer.EnvSpecInput{},
 })
 ```
@@ -246,6 +248,7 @@ agent = client.agents.apply(AgentInput(
     mcp_server_usages=[],
     skill_refs=[],
     sub_agents=[],
+    env={},
     env_spec=None,
 ))
 ```
@@ -263,6 +266,7 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .subAgents(List.of())
+    .env(Map.of())
     .envSpec(null)
     .build());
 ```
@@ -291,6 +295,7 @@ const agent = await stigmer.agent.create({
   mcpServerUsages: [],
   skillRefs: [],
   subAgents: [],
+  env: {},
   envSpec: {},
 });
 ```
@@ -308,6 +313,7 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   McpServerUsages: []stigmer.McpServerUsageInput{},
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
+  Env:             map[string]string{},
   EnvSpec:         &stigmer.EnvSpecInput{},
 })
 ```
@@ -325,6 +331,7 @@ agent = client.agents.create(AgentInput(
     mcp_server_usages=[],
     skill_refs=[],
     sub_agents=[],
+    env={},
     env_spec=None,
 ))
 ```
@@ -342,6 +349,7 @@ Agent agent = client.agents().create(AgentInput.builder()
     .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .subAgents(List.of())
+    .env(Map.of())
     .envSpec(null)
     .build());
 ```
@@ -370,6 +378,7 @@ const agent = await stigmer.agent.update({
   mcpServerUsages: [],
   skillRefs: [],
   subAgents: [],
+  env: {},
   envSpec: {},
 });
 ```
@@ -387,6 +396,7 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   McpServerUsages: []stigmer.McpServerUsageInput{},
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
+  Env:             map[string]string{},
   EnvSpec:         &stigmer.EnvSpecInput{},
 })
 ```
@@ -404,6 +414,7 @@ agent = client.agents.update(AgentInput(
     mcp_server_usages=[],
     skill_refs=[],
     sub_agents=[],
+    env={},
     env_spec=None,
 ))
 ```
@@ -421,6 +432,7 @@ Agent agent = client.agents().update(AgentInput.builder()
     .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .subAgents(List.of())
+    .env(Map.of())
     .envSpec(null)
     .build());
 ```
@@ -529,7 +541,8 @@ Input for creating or updating an Agent.
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers this agent can use.", typeDescriptionLink: "#mcpserverusageinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent.", typeDescriptionLink: "#resourceref" },
     subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to.", typeDescriptionLink: "#subagentinput" },
-    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the agent.", typeDescriptionLink: "#envspecinput" },
+    env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this agent.", typeDescriptionLink: "#envvardeclarationinput" },
+    envSpec: { type: "EnvSpecInput", description: "Deprecated: use env instead.", typeDescriptionLink: "#envspecinput" },
   }}
 />
 
@@ -593,6 +606,18 @@ McpAccess grants a sub-agent access to one of the parent's MCP servers.
   type={{
     mcpServer: { type: "string", description: "Slug of the McpServer to grant access to.", required: true },
     enabledTools: { type: "string[]", description: "Tools this sub-agent can use from this MCP server." },
+  }}
+/>
+
+### EnvVarDeclarationInput
+
+EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent, Workflow).
+
+<TypeTable
+  type={{
+    isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
+    description: { type: "string", description: "Human-readable description shown in the UI credential form." },
+    optional: { type: "boolean", description: "Whether this variable is optional." },
   }}
 />
 

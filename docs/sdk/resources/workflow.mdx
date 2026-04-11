@@ -174,6 +174,7 @@ const workflow = await stigmer.workflow.apply({
   description: "...",
   document: {},
   tasks: [],
+  env: {},
   envSpec: {},
 });
 ```
@@ -188,6 +189,7 @@ workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
   Description: "...",
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
+  Env:         map[string]string{},
   EnvSpec:     &stigmer.EnvSpecInput{},
 })
 ```
@@ -202,6 +204,7 @@ workflow = client.workflows.apply(WorkflowInput(
     description="...",
     document=None,
     tasks=[],
+    env={},
     env_spec=None,
 ))
 ```
@@ -216,6 +219,7 @@ Workflow workflow = client.workflows().apply(WorkflowInput.builder()
     .description("...")
     .document(null)
     .tasks(List.of())
+    .env(Map.of())
     .envSpec(null)
     .build());
 ```
@@ -241,6 +245,7 @@ const workflow = await stigmer.workflow.create({
   description: "...",
   document: {},
   tasks: [],
+  env: {},
   envSpec: {},
 });
 ```
@@ -255,6 +260,7 @@ workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
   Description: "...",
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
+  Env:         map[string]string{},
   EnvSpec:     &stigmer.EnvSpecInput{},
 })
 ```
@@ -269,6 +275,7 @@ workflow = client.workflows.create(WorkflowInput(
     description="...",
     document=None,
     tasks=[],
+    env={},
     env_spec=None,
 ))
 ```
@@ -283,6 +290,7 @@ Workflow workflow = client.workflows().create(WorkflowInput.builder()
     .description("...")
     .document(null)
     .tasks(List.of())
+    .env(Map.of())
     .envSpec(null)
     .build());
 ```
@@ -308,6 +316,7 @@ const workflow = await stigmer.workflow.update({
   description: "...",
   document: {},
   tasks: [],
+  env: {},
   envSpec: {},
 });
 ```
@@ -322,6 +331,7 @@ workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
   Description: "...",
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
+  Env:         map[string]string{},
   EnvSpec:     &stigmer.EnvSpecInput{},
 })
 ```
@@ -336,6 +346,7 @@ workflow = client.workflows.update(WorkflowInput(
     description="...",
     document=None,
     tasks=[],
+    env={},
     env_spec=None,
 ))
 ```
@@ -350,6 +361,7 @@ Workflow workflow = client.workflows().update(WorkflowInput.builder()
     .description("...")
     .document(null)
     .tasks(List.of())
+    .env(Map.of())
     .envSpec(null)
     .build());
 ```
@@ -410,7 +422,8 @@ Input for creating or updating a Workflow.
     description: { type: "string", description: "Human-readable description for UI and marketplace display." },
     document: { type: "WorkflowDocumentInput", description: "Workflow document metadata including DSL version, namespace, name, and version.", typeDescriptionLink: "#workflowdocumentinput", required: true },
     tasks: { type: "WorkflowTaskInput[]", description: "Ordered list of tasks that make up this workflow.", typeDescriptionLink: "#workflowtaskinput" },
-    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the workflow.", typeDescriptionLink: "#envspecinput" },
+    env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this workflow.", typeDescriptionLink: "#envvardeclarationinput" },
+    envSpec: { type: "EnvSpecInput", description: "Deprecated: use env instead.", typeDescriptionLink: "#envspecinput" },
   }}
 />
 
@@ -459,6 +472,18 @@ FlowControl defines which task executes next after the current task completes.
 <TypeTable
   type={{
     then: { type: "string", description: "Target task name or \"end\" to terminate workflow." },
+  }}
+/>
+
+### EnvVarDeclarationInput
+
+EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent, Workflow).
+
+<TypeTable
+  type={{
+    isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
+    description: { type: "string", description: "Human-readable description shown in the UI credential form." },
+    optional: { type: "boolean", description: "Whether this variable is optional." },
   }}
 />
 

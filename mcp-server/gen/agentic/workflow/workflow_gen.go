@@ -46,8 +46,10 @@ type WorkflowInput struct {
 	Document *WorkflowDocumentInput `json:"document" jsonschema:"Workflow document metadata including DSL version, namespace, name, and version."`
 	// Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used.
 	Tasks []WorkflowTaskInput `json:"tasks,omitempty" jsonschema:"Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used."`
-	// Environment variables required by the workflow.
-	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the workflow."`
+	// Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality. Replaces env_spec (which required an extra nesting level through EnvironmentSpec.data). Consumers read env first, falling back to env_spec.data during the migration period.
+	Env map[string]*EnvVarDeclarationInput `json:"env,omitempty" jsonschema:"Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality. Replaces env_spec (which required an extra nesting level through EnvironmentSpec.data). Consumers read env first, falling back to env_spec.data during the migration period."`
+	// Deprecated: use env instead. Retained for wire compatibility.
+	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Deprecated: use env instead. Retained for wire compatibility."`
 }
 
 // WorkflowDocument contains workflow-level metadata for versioning and identification. @internal Maps to the `document:` block in Zigflow DSL YAML.
@@ -312,6 +314,16 @@ type WorkflowTaskInput struct {
 	Flow *FlowControlInput `json:"flow,omitempty" jsonschema:"Flow control (which task executes next). Optional - if not set, continues to next task in sequence."`
 }
 
+// EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent, Workflow). Unlike EnvironmentValue (which stores actual values), this message describes what a blueprint *needs* — its schema, not its data. This separation keeps the blueprint layer free of runtime values and enables the platform to validate completeness before execution.
+type EnvVarDeclarationInput struct {
+	// Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs.
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs."`
+	// Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it."`
+	// Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it).
+	Optional bool `json:"optional,omitempty" jsonschema:"Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it)."`
+}
+
 // EnvironmentValue represents a single configuration or secret entry.
 type EnvironmentValue struct {
 	// The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime.
@@ -386,6 +398,16 @@ func (input *WorkflowInput) specToProto() (*workflowv1.WorkflowSpec, error) {
 			return nil, err
 		}
 		spec.Tasks = append(spec.Tasks, v)
+	}
+	if len(input.Env) > 0 {
+		spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(input.Env))
+		for k, v := range input.Env {
+			pv, err := v.toProto()
+			if err != nil {
+				return nil, err
+			}
+			spec.Env[k] = pv
+		}
 	}
 	if input.EnvSpec != nil {
 		v, err := input.EnvSpec.toProto()
@@ -911,6 +933,15 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 			return nil, fmt.Errorf("unknown task kind: %q", input.Kind)
 		}
 	}
+	return result, nil
+}
+
+func (input *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, error) {
+	result := &environmentv1.EnvVarDeclaration{}
+
+	result.IsSecret = input.IsSecret
+	result.Description = input.Description
+	result.Optional = input.Optional
 	return result, nil
 }
 

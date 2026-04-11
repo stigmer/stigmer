@@ -39,16 +39,18 @@ type McpServerInput struct {
 	Http *HttpServerConfigInput `json:"http,omitempty" jsonschema:"HTTP-based server (HTTP + Server-Sent Events communication). Used for remote/managed MCP services accessible over the network."`
 	// Default tools to enable from this MCP server. Empty list means all tools are enabled by default. @internal Tool names must match exactly what the MCP server reports via tools/list. Only names from discovered_capabilities.tools are valid here. Do NOT include names from discovered_capabilities.resource_templates — resource templates are read-only data endpoints, not callable tools. Including a resource template name here causes a fatal runtime error.
 	DefaultEnabledTools []string `json:"default_enabled_tools,omitempty" jsonschema:"Default tools to enable from this MCP server. Empty list means all tools are enabled by default. @internal Tool names must match exactly what the MCP server reports via tools/list. Only names from discovered_capabilities.tools are valid here. Do NOT include names from discovered_capabilities.resource_templates — resource templates are read-only data endpoints, not callable tools. Including a resource template name here causes a fatal runtime error."`
-	// Environment variables required by the MCP server.
-	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the MCP server."`
+	// Environment variable declarations for this MCP server. Keys are variable names; values describe their metadata and optionality. Replaces env_spec (which required an extra nesting level through EnvironmentSpec.data). Consumers read env first, falling back to env_spec.data during the migration period.
+	Env map[string]*EnvVarDeclarationInput `json:"env,omitempty" jsonschema:"Environment variable declarations for this MCP server. Keys are variable names; values describe their metadata and optionality. Replaces env_spec (which required an extra nesting level through EnvironmentSpec.data). Consumers read env first, falling back to env_spec.data during the migration period."`
+	// Deprecated: use env instead. Retained for wire compatibility.
+	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Deprecated: use env instead. Retained for wire compatibility."`
 	// Manual tool approval overrides set by the MCP server owner. @internal These take precedence over system-generated `McpServerStatus.tool_approvals`. Never auto-modified — only changed by explicit user action (apply/update). Use cases: - Force approval for a tool the classifier marked as auto-approve - Exempt a safe tool the classifier flagged as needing approval - Establish organization-wide safety policies for dangerous tools Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field) 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass
 	PinnedToolApprovals []ToolApprovalPolicyInput `json:"pinned_tool_approvals,omitempty" jsonschema:"Manual tool approval overrides set by the MCP server owner. @internal These take precedence over system-generated 'McpServerStatus.tool_approvals'. Never auto-modified — only changed by explicit user action (apply/update). Use cases: - Force approval for a tool the classifier marked as auto-approve - Exempt a safe tool the classifier flagged as needing approval - Establish organization-wide safety policies for dangerous tools Policy chain (lowest to highest priority): 1. McpServerStatus.tool_approvals - System-generated defaults 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field) 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization 4. AgentExecution.auto_approve_all - Runtime bypass"`
 	// URL of the upstream source repository for this MCP server. Shown in the marketplace so users can inspect the implementation for trust and transparency. Example: "https://github.com/modelcontextprotocol/servers"
 	RepositoryUrl string `json:"repository_url,omitempty" jsonschema:"URL of the upstream source repository for this MCP server. Shown in the marketplace so users can inspect the implementation for trust and transparency. Example: 'https://github.com/modelcontextprotocol/servers'"`
 	// GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository.
 	GithubStars int32 `json:"github_stars,omitempty" jsonschema:"GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository."`
-	// OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in the user's personal environment as the env var named by auth.target_env_var. That env var must also be declared in env_spec.data so the execution pipeline knows about it.
-	Auth *McpServerAuthInput `json:"auth,omitempty" jsonschema:"OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in the user's personal environment as the env var named by auth.target_env_var. That env var must also be declared in env_spec.data so the execution pipeline knows about it."`
+	// OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in the user's personal environment as the env var named by auth.target_env_var. That env var must also be declared in env (or legacy env_spec.data) so the execution pipeline knows about it.
+	Auth *McpServerAuthInput `json:"auth,omitempty" jsonschema:"OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in the user's personal environment as the env var named by auth.target_env_var. That env var must also be declared in env (or legacy env_spec.data) so the execution pipeline knows about it."`
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess. @internal Communication happens via stdin/stdout using JSON-RPC messages. The agent runner starts this process and communicates via stdio. Common examples: - Node.js servers: npx @modelcontextprotocol/server-github - Python servers: python -m mcp_server_sqlite - Go servers: ./mcp-server-binary
@@ -71,6 +73,16 @@ type HttpServerConfigInput struct {
 	QueryParams map[string]string `json:"query_params,omitempty" jsonschema:"Query parameters to append to the URL. Values can reference environment variables using ${VAR_NAME} syntax. Examples: 'region': '${AWS_REGION}' 'version': 'v1'"`
 	// Timeout for HTTP requests in seconds. Applies to both the initial connection and response streaming. Default: 30 seconds if not specified. Set higher values for MCP servers that perform long-running operations.
 	TimeoutSeconds int32 `json:"timeout_seconds,omitempty" jsonschema:"Timeout for HTTP requests in seconds. Applies to both the initial connection and response streaming. Default: 30 seconds if not specified. Set higher values for MCP servers that perform long-running operations."`
+}
+
+// EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent, Workflow). Unlike EnvironmentValue (which stores actual values), this message describes what a blueprint *needs* — its schema, not its data. This separation keeps the blueprint layer free of runtime values and enables the platform to validate completeness before execution.
+type EnvVarDeclarationInput struct {
+	// Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs.
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs."`
+	// Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it."`
+	// Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it).
+	Optional bool `json:"optional,omitempty" jsonschema:"Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it)."`
 }
 
 // EnvironmentValue represents a single configuration or secret entry.
@@ -115,8 +127,8 @@ type ApiResourceReferenceInput struct {
 type McpServerAuthInput struct {
 	// Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference).
 	OauthAppRef *ApiResourceReferenceInput `json:"oauth_app_ref,omitempty" jsonschema:"Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference)."`
-	// The env var in env_spec.data where the acquired access token is stored. Must correspond to an entry in env_spec.data so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the user's personal environment.
-	TargetEnvVar string `json:"target_env_var,omitempty" jsonschema:"The env var in env_spec.data where the acquired access token is stored. Must correspond to an entry in env_spec.data so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the user's personal environment."`
+	// The env var where the acquired access token is stored. Must correspond to an entry in env (or legacy env_spec.data) so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the user's personal environment.
+	TargetEnvVar string `json:"target_env_var,omitempty" jsonschema:"The env var where the acquired access token is stored. Must correspond to an entry in env (or legacy env_spec.data) so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the user's personal environment."`
 	// Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: "1h", "2h", "90d", "never".
 	TokenLifetimeHint string `json:"token_lifetime_hint,omitempty" jsonschema:"Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: '1h', '2h', '90d', 'never'."`
 	// Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp).
@@ -170,6 +182,16 @@ func (input *McpServerInput) specToProto() (*mcpserverv1.McpServerSpec, error) {
 		spec.ServerType = &mcpserverv1.McpServerSpec_Http{Http: v}
 	}
 	spec.DefaultEnabledTools = input.DefaultEnabledTools
+	if len(input.Env) > 0 {
+		spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(input.Env))
+		for k, v := range input.Env {
+			pv, err := v.toProto()
+			if err != nil {
+				return nil, err
+			}
+			spec.Env[k] = pv
+		}
+	}
 	if input.EnvSpec != nil {
 		v, err := input.EnvSpec.toProto()
 		if err != nil {
@@ -212,6 +234,15 @@ func (input *HttpServerConfigInput) toProto() (*mcpserverv1.HttpServerConfig, er
 	result.Headers = input.Headers
 	result.QueryParams = input.QueryParams
 	result.TimeoutSeconds = input.TimeoutSeconds
+	return result, nil
+}
+
+func (input *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, error) {
+	result := &environmentv1.EnvVarDeclaration{}
+
+	result.IsSecret = input.IsSecret
+	result.Description = input.Description
+	result.Optional = input.Optional
 	return result, nil
 }
 

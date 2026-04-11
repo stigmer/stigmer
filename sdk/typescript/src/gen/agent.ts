@@ -10,7 +10,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentIdSchema, GetDefaultAgentRequestSchema, type GetDefaultAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema, EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -109,6 +109,7 @@ export interface AgentInput {
   mcpServerUsages?: McpServerUsageInput[];
   skillRefs?: ResourceRef[];
   subAgents?: SubAgentInput[];
+  env?: Record<string, EnvVarDeclarationInput>;
   envSpec?: EnvSpecInput;
 }
 
@@ -140,6 +141,13 @@ export interface SubAgentInput {
 export interface McpAccessInput {
   mcpServer: string;
   enabledTools?: string[];
+}
+
+/** SDK input type for EnvVarDeclaration. */
+export interface EnvVarDeclarationInput {
+  isSecret?: boolean;
+  description?: string;
+  optional?: boolean;
 }
 
 function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
@@ -176,10 +184,22 @@ function buildSubAgentProto(input: SubAgentInput) {
   return msg;
 }
 
+function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
+  return Object.assign(create(EnvVarDeclarationSchema), stripUndefined({
+    isSecret: input.isSecret,
+    description: input.description,
+    optional: input.optional,
+  }));
+}
+
 function buildAgentProto(input: AgentInput): Agent {
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, r));
   const subAgents = input.subAgents?.map(buildSubAgentProto);
+  let env;
+  if (input.env) {
+    env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
+  }
   let envSpec;
   if (input.envSpec) {
     const es = create(EnvironmentSpecSchema);
@@ -204,6 +224,7 @@ function buildAgentProto(input: AgentInput): Agent {
       mcpServerUsages,
       skillRefs,
       subAgents,
+      env,
       envSpec,
     })),
   }) as Agent;

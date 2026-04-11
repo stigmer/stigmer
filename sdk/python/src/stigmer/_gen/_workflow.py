@@ -18,6 +18,7 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 
 from ._errors import wrap_error
 from ._types import EnvSpecInput, ResourceRef
+from ._agent import EnvVarDeclarationInput
 
 
 class WorkflowClient:
@@ -77,6 +78,7 @@ class WorkflowInput:
     labels: dict[str, str] | None = None
     description: str = ""
     tasks: list[WorkflowTaskInput] = field(default_factory=list)
+    env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
     env_spec: EnvSpecInput | None = None
 
     def _to_proto(self) -> api_pb2.Workflow:
@@ -87,6 +89,8 @@ class WorkflowInput:
             spec.document.CopyFrom(self.document._to_proto())
         for item in self.tasks:
             spec.tasks.append(item._to_proto())
+        for k, v in self.env.items():
+            spec.env[k].CopyFrom(v._to_proto())
         if self.env_spec is not None:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(

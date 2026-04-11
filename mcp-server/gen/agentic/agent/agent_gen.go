@@ -41,8 +41,10 @@ type AgentInput struct {
 	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skill resources providing additional knowledge to the agent."`
 	// Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools.
 	SubAgents []SubAgentInput `json:"sub_agents,omitempty" jsonschema:"Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools."`
-	// Environment variables required by the agent.
-	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the agent."`
+	// Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality. Replaces env_spec (which required an extra nesting level through EnvironmentSpec.data). Consumers read env first, falling back to env_spec.data during the migration period.
+	Env map[string]*EnvVarDeclarationInput `json:"env,omitempty" jsonschema:"Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality. Replaces env_spec (which required an extra nesting level through EnvironmentSpec.data). Consumers read env first, falling back to env_spec.data during the migration period."`
+	// Deprecated: use env instead. Retained for wire compatibility.
+	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Deprecated: use env instead. Retained for wire compatibility."`
 }
 
 // Identifies a resource by org, slug, and optional version. Kind is auto-populated.
@@ -105,6 +107,16 @@ type SubAgentInput struct {
 	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skill resources for this sub-agent."`
 	// Model override for this sub-agent. When set, uses this model instead of the parent's model. When empty, inherits the parent agent's model.
 	ModelOverride string `json:"model_override,omitempty" jsonschema:"Model override for this sub-agent. When set, uses this model instead of the parent's model. When empty, inherits the parent agent's model."`
+}
+
+// EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent, Workflow). Unlike EnvironmentValue (which stores actual values), this message describes what a blueprint *needs* — its schema, not its data. This separation keeps the blueprint layer free of runtime values and enables the platform to validate completeness before execution.
+type EnvVarDeclarationInput struct {
+	// Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs.
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs."`
+	// Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it."`
+	// Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it).
+	Optional bool `json:"optional,omitempty" jsonschema:"Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it)."`
 }
 
 // EnvironmentValue represents a single configuration or secret entry.
@@ -178,6 +190,16 @@ func (input *AgentInput) specToProto() (*agentv1.AgentSpec, error) {
 			return nil, err
 		}
 		spec.SubAgents = append(spec.SubAgents, v)
+	}
+	if len(input.Env) > 0 {
+		spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(input.Env))
+		for k, v := range input.Env {
+			pv, err := v.toProto()
+			if err != nil {
+				return nil, err
+			}
+			spec.Env[k] = pv
+		}
 	}
 	if input.EnvSpec != nil {
 		v, err := input.EnvSpec.toProto()
@@ -265,6 +287,15 @@ func (input *SubAgentInput) toProto() (*agentv1.SubAgent, error) {
 		result.SkillRefs = append(result.SkillRefs, v)
 	}
 	result.ModelOverride = input.ModelOverride
+	return result, nil
+}
+
+func (input *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, error) {
+	result := &environmentv1.EnvVarDeclaration{}
+
+	result.IsSecret = input.IsSecret
+	result.Description = input.Description
+	result.Optional = input.Optional
 	return result, nil
 }
 
