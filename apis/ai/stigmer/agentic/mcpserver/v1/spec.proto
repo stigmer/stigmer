@@ -232,16 +232,18 @@ message ToolApprovalPolicy {
 // McpServerAuth configures automated credential acquisition via OAuth.
 //
 // @internal
-// Two authentication methods are supported:
+// Two authentication modes are determined by the presence of oauth_app_ref:
 //
-// - mcp_oauth: The MCP server implements the MCP Authorization specification
-//   (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with
-//   PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp
-//   resource is needed — credentials are obtained automatically via DCR.
+// - When oauth_app_ref is empty: the MCP server implements the MCP
+//   Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
+//   Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
+//   from the server URL. No OAuthApp resource is needed — credentials are
+//   obtained automatically via DCR.
 //
-// - vendor_oauth: The MCP server requires pre-registered OAuth app credentials
-//   from a specific vendor (Slack, Salesforce, Figma, etc.). References an
-//   OAuthApp resource created by the org admin.
+// - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
+//   app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
+//   The referenced OAuthApp holds the client_id, client_secret, and endpoint
+//   URLs needed for the authorization code flow.
 //
 // In both cases, the acquired access token is stored in the user's personal
 // environment as target_env_var. A refresh token (if issued by the vendor) is
@@ -253,60 +255,33 @@ message ToolApprovalPolicy {
 // - If the refresh token is also expired: execution fails with a clear
 //   error, and the user re-authenticates from the MCP server Connect page.
 message McpServerAuth {
-  // Authentication method. Exactly one must be specified.
-  oneof method {
-    option (buf.validate.oneof).required = true;
-
-    // MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
-    McpOAuth mcp_oauth = 1;
-
-    // Vendor-specific OAuth: references an OAuthApp with client credentials.
-    McpServerVendorOAuth vendor_oauth = 2;
-  }
+  // Reference to an OAuthApp for vendor-specific OAuth.
+  //
+  // When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+  // Stigmer discovers the authorization server metadata, registers a client
+  // via DCR, and performs the authorization code flow with PKCE — all
+  // automatically at connect time.
+  //
+  // When set: Stigmer uses the referenced OAuthApp's client credentials to
+  // perform the OAuth authorization code flow with the vendor on behalf of
+  // the user. The OAuthApp must belong to the same organization as the
+  // McpServer (or be accessible via cross-org reference).
+  ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1;
 
   // The env var in env_spec.data where the acquired access token is stored.
   // Must correspond to an entry in env_spec.data so the execution pipeline
   // resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
   // by convention. Both are written to the user's personal environment.
-  string target_env_var = 3 [(buf.validate.field).string.min_len = 1];
+  string target_env_var = 2 [(buf.validate.field).string.min_len = 1];
 
   // Informational hint about expected token lifetime for UI display.
   // Helps users understand when re-authentication may be needed.
   // Empty means unknown. Examples: "1h", "2h", "90d", "never".
-  string token_lifetime_hint = 4;
-}
+  string token_lifetime_hint = 3;
 
-// McpOAuth configures MCP Authorization spec authentication (DCR + PKCE).
-//
-// @internal
-// The MCP server implements the MCP Authorization specification:
-// - RFC 8414: OAuth 2.0 Authorization Server Metadata (.well-known discovery)
-// - RFC 7591: Dynamic Client Registration
-// - OAuth 2.1 with PKCE (S256)
-//
-// Stigmer discovers the authorization server metadata, registers a client
-// via DCR, and performs the authorization code flow with PKCE — all
-// automatically at connect time. No OAuthApp resource is needed.
-message McpOAuth {
   // Optional scope hints for UI display before the OAuth flow starts.
-  // These are informational — the actual scopes are negotiated during DCR
-  // and the authorization request based on what the server supports.
-  repeated string scope_hints = 1;
-}
-
-// McpServerVendorOAuth configures vendor-specific OAuth authentication.
-//
-// @internal
-// References an OAuthApp resource that holds the vendor's client credentials
-// (client_id, client_secret, endpoint URLs, scopes). The OAuthApp is created
-// by the org admin or platform operator who registered an OAuth app with
-// the vendor (e.g., Slack, Salesforce, Figma).
-//
-// At connect time, Stigmer uses the OAuthApp's credentials to perform
-// the OAuth authorization code flow with the vendor on behalf of the user.
-message McpServerVendorOAuth {
-  // Reference to the OAuthApp resource providing client credentials.
-  // The referenced OAuthApp must belong to the same organization as
-  // the McpServer (or be accessible via cross-org reference).
-  ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [(buf.validate.field).required = true];
+  // For DCR servers: shown to the user since actual scopes are discovered
+  // at connect time during authorization server metadata retrieval.
+  // For vendor OAuth: informational (scopes are defined on the OAuthApp).
+  repeated string scope_hints = 4;
 }

@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEihwQKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKCGVudl9zcGVjGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U3BlYxJSChVwaW5uZWRfdG9vbF9hcHByb3ZhbHMYCyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRIWCg5yZXBvc2l0b3J5X3VybBgMIAEoCRIUCgxnaXRodWJfc3RhcnMYDSABKAUSPAoEYXV0aBgOIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyQXV0aEIUCgtzZXJ2ZXJfdHlwZRIFukgCCAEiTwoRU3RkaW9TZXJ2ZXJDb25maWcSFwoHY29tbWFuZBgBIAEoCUIGukgDyAEBEgwKBGFyZ3MYAiADKAkSEwoLd29ya2luZ19kaXIYAyABKAki4AIKEEh0dHBTZXJ2ZXJDb25maWcSGAoDdXJsGAEgASgJQgu6SAjIAQFyA4gBARJPCgdoZWFkZXJzGAIgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnLkhlYWRlcnNFbnRyeRJYCgxxdWVyeV9wYXJhbXMYAyADKAsyQi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuUXVlcnlQYXJhbXNFbnRyeRIjCg90aW1lb3V0X3NlY29uZHMYBCABKAVCCrpIBxoFGKwCKAAaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaMgoQUXVlcnlQYXJhbXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkEKElRvb2xBcHByb3ZhbFBvbGljeRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESDwoHbWVzc2FnZRgCIAEoCSLtAQoNTWNwU2VydmVyQXV0aBI+CgltY3Bfb2F1dGgYASABKAsyKS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcE9BdXRoSAASTQoMdmVuZG9yX29hdXRoGAIgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJWZW5kb3JPQXV0aEgAEh8KDnRhcmdldF9lbnZfdmFyGAMgASgJQge6SARyAhABEhsKE3Rva2VuX2xpZmV0aW1lX2hpbnQYBCABKAlCDwoGbWV0aG9kEgW6SAIIASIfCghNY3BPQXV0aBITCgtzY29wZV9oaW50cxgBIAMoCSJrChRNY3BTZXJ2ZXJWZW5kb3JPQXV0aBJTCg1vYXV0aF9hcHBfcmVmGAEgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQga6SAPIAQFiBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEihwQKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKCGVudl9zcGVjGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U3BlYxJSChVwaW5uZWRfdG9vbF9hcHByb3ZhbHMYCyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRIWCg5yZXBvc2l0b3J5X3VybBgMIAEoCRIUCgxnaXRodWJfc3RhcnMYDSABKAUSPAoEYXV0aBgOIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyQXV0aEIUCgtzZXJ2ZXJfdHlwZRIFukgCCAEiTwoRU3RkaW9TZXJ2ZXJDb25maWcSFwoHY29tbWFuZBgBIAEoCUIGukgDyAEBEgwKBGFyZ3MYAiADKAkSEwoLd29ya2luZ19kaXIYAyABKAki4AIKEEh0dHBTZXJ2ZXJDb25maWcSGAoDdXJsGAEgASgJQgu6SAjIAQFyA4gBARJPCgdoZWFkZXJzGAIgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnLkhlYWRlcnNFbnRyeRJYCgxxdWVyeV9wYXJhbXMYAyADKAsyQi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuUXVlcnlQYXJhbXNFbnRyeRIjCg90aW1lb3V0X3NlY29uZHMYBCABKAVCCrpIBxoFGKwCKAAaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaMgoQUXVlcnlQYXJhbXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkEKElRvb2xBcHByb3ZhbFBvbGljeRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESDwoHbWVzc2FnZRgCIAEoCSKvAQoNTWNwU2VydmVyQXV0aBJLCg1vYXV0aF9hcHBfcmVmGAEgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlEh8KDnRhcmdldF9lbnZfdmFyGAIgASgJQge6SARyAhABEhsKE3Rva2VuX2xpZmV0aW1lX2hpbnQYAyABKAkSEwoLc2NvcGVfaGludHMYBCADKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * McpServerSpec defines the configurable properties of an MCP server.
@@ -366,16 +366,18 @@ export const ToolApprovalPolicySchema: GenMessage<ToolApprovalPolicy> = /*@__PUR
  * McpServerAuth configures automated credential acquisition via OAuth.
  *
  * @internal
- * Two authentication methods are supported:
+ * Two authentication modes are determined by the presence of oauth_app_ref:
  *
- * - mcp_oauth: The MCP server implements the MCP Authorization specification
- *   (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with
- *   PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp
- *   resource is needed — credentials are obtained automatically via DCR.
+ * - When oauth_app_ref is empty: the MCP server implements the MCP
+ *   Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
+ *   Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
+ *   from the server URL. No OAuthApp resource is needed — credentials are
+ *   obtained automatically via DCR.
  *
- * - vendor_oauth: The MCP server requires pre-registered OAuth app credentials
- *   from a specific vendor (Slack, Salesforce, Figma, etc.). References an
- *   OAuthApp resource created by the org admin.
+ * - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
+ *   app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
+ *   The referenced OAuthApp holds the client_id, client_secret, and endpoint
+ *   URLs needed for the authorization code flow.
  *
  * In both cases, the acquired access token is stored in the user's personal
  * environment as target_env_var. A refresh token (if issued by the vendor) is
@@ -391,27 +393,21 @@ export const ToolApprovalPolicySchema: GenMessage<ToolApprovalPolicy> = /*@__PUR
  */
 export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAuth"> & {
   /**
-   * Authentication method. Exactly one must be specified.
+   * Reference to an OAuthApp for vendor-specific OAuth.
    *
-   * @generated from oneof ai.stigmer.agentic.mcpserver.v1.McpServerAuth.method
+   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+   * Stigmer discovers the authorization server metadata, registers a client
+   * via DCR, and performs the authorization code flow with PKCE — all
+   * automatically at connect time.
+   *
+   * When set: Stigmer uses the referenced OAuthApp's client credentials to
+   * perform the OAuth authorization code flow with the vendor on behalf of
+   * the user. The OAuthApp must belong to the same organization as the
+   * McpServer (or be accessible via cross-org reference).
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1;
    */
-  method: {
-    /**
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
-     *
-     * @generated from field: ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1;
-     */
-    value: McpOAuth;
-    case: "mcpOauth";
-  } | {
-    /**
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     *
-     * @generated from field: ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2;
-     */
-    value: McpServerVendorOAuth;
-    case: "vendorOauth";
-  } | { case: undefined; value?: undefined };
+  oauthAppRef?: ApiResourceReference;
 
   /**
    * The env var in env_spec.data where the acquired access token is stored.
@@ -419,7 +415,7 @@ export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAu
    * resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
    * by convention. Both are written to the user's personal environment.
    *
-   * @generated from field: string target_env_var = 3;
+   * @generated from field: string target_env_var = 2;
    */
   targetEnvVar: string;
 
@@ -428,9 +424,19 @@ export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAu
    * Helps users understand when re-authentication may be needed.
    * Empty means unknown. Examples: "1h", "2h", "90d", "never".
    *
-   * @generated from field: string token_lifetime_hint = 4;
+   * @generated from field: string token_lifetime_hint = 3;
    */
   tokenLifetimeHint: string;
+
+  /**
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   *
+   * @generated from field: repeated string scope_hints = 4;
+   */
+  scopeHints: string[];
 };
 
 /**
@@ -439,69 +445,4 @@ export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAu
  */
 export const McpServerAuthSchema: GenMessage<McpServerAuth> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 4);
-
-/**
- * McpOAuth configures MCP Authorization spec authentication (DCR + PKCE).
- *
- * @internal
- * The MCP server implements the MCP Authorization specification:
- * - RFC 8414: OAuth 2.0 Authorization Server Metadata (.well-known discovery)
- * - RFC 7591: Dynamic Client Registration
- * - OAuth 2.1 with PKCE (S256)
- *
- * Stigmer discovers the authorization server metadata, registers a client
- * via DCR, and performs the authorization code flow with PKCE — all
- * automatically at connect time. No OAuthApp resource is needed.
- *
- * @generated from message ai.stigmer.agentic.mcpserver.v1.McpOAuth
- */
-export type McpOAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpOAuth"> & {
-  /**
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * These are informational — the actual scopes are negotiated during DCR
-   * and the authorization request based on what the server supports.
-   *
-   * @generated from field: repeated string scope_hints = 1;
-   */
-  scopeHints: string[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.mcpserver.v1.McpOAuth.
- * Use `create(McpOAuthSchema)` to create a new message.
- */
-export const McpOAuthSchema: GenMessage<McpOAuth> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 5);
-
-/**
- * McpServerVendorOAuth configures vendor-specific OAuth authentication.
- *
- * @internal
- * References an OAuthApp resource that holds the vendor's client credentials
- * (client_id, client_secret, endpoint URLs, scopes). The OAuthApp is created
- * by the org admin or platform operator who registered an OAuth app with
- * the vendor (e.g., Slack, Salesforce, Figma).
- *
- * At connect time, Stigmer uses the OAuthApp's credentials to perform
- * the OAuth authorization code flow with the vendor on behalf of the user.
- *
- * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth
- */
-export type McpServerVendorOAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth"> & {
-  /**
-   * Reference to the OAuthApp resource providing client credentials.
-   * The referenced OAuthApp must belong to the same organization as
-   * the McpServer (or be accessible via cross-org reference).
-   *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1;
-   */
-  oauthAppRef?: ApiResourceReference;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.
- * Use `create(McpServerVendorOAuthSchema)` to create a new message.
- */
-export const McpServerVendorOAuthSchema: GenMessage<McpServerVendorOAuth> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 6);
 
