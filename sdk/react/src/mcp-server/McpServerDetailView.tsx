@@ -73,6 +73,13 @@ export interface McpServerDetailViewProps {
   readonly credentialPoolValues?: (
     key: string,
   ) => import("@stigmer/sdk").EnvVarInput | undefined;
+  /**
+   * The authenticated user's active organization slug.
+   * Used for OAuth token storage — tokens are stored in the user's personal
+   * environment within this org, not the MCP server's org.
+   * When omitted, falls back to the `org` prop (MCP server's org).
+   */
+  readonly activeOrg?: string;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -110,6 +117,7 @@ export function McpServerDetailView({
   defaultCapabilityTab = "tools",
   defaultShowCredentialForm = false,
   credentialPoolValues,
+  activeOrg,
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
@@ -133,7 +141,7 @@ export function McpServerDetailView({
     if (!mcpServer?.metadata?.id) return;
 
     try {
-      await oauth.startOAuth(mcpServer.metadata.id, org);
+      await oauth.startOAuth(mcpServer.metadata.id, activeOrg ?? org);
       credentials.refetch();
       refetch();
     } catch {

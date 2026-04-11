@@ -155,6 +155,13 @@ export interface McpServerPickerProps {
    * pre-populated.
    */
   readonly poolValues?: (key: string) => EnvVarInput | undefined;
+  /**
+   * The authenticated user's active organization slug.
+   * Used for OAuth token storage — tokens are stored in the user's personal
+   * environment within this org, not the MCP server's org.
+   * When omitted, falls back to the `org` prop.
+   */
+  readonly activeOrg?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -250,6 +257,7 @@ export function McpServerPicker({
   setup,
   initialServerKey,
   poolValues,
+  activeOrg,
 }: McpServerPickerProps) {
   const instanceId = useId();
   const listId = `${instanceId}-list`;
@@ -408,7 +416,7 @@ export function McpServerPicker({
           onSignIn: async () => {
             if (!entry.mcpServer.metadata?.id) return;
             try {
-              await oauth.startOAuth(entry.mcpServer.metadata.id, org);
+              await oauth.startOAuth(entry.mcpServer.metadata.id, activeOrg ?? org);
               setup.onServerAdded(ref);
             } catch {
               // error state managed by oauth hook

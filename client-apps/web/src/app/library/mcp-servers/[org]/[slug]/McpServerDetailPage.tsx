@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { McpServerDetailView, useUpdateVisibility } from "@stigmer/react";
 import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
+import { useActiveOrgSlug } from "@/contexts/org-context";
 
 interface McpServerDetailPageInnerProps {
   readonly org: string;
@@ -15,6 +16,7 @@ export function McpServerDetailPageInner({
   slug,
 }: McpServerDetailPageInnerProps) {
   const { setLabel } = useBreadcrumbOverride();
+  const activeOrgSlug = useActiveOrgSlug();
   const [resourceId, setResourceId] = useState<string | null>(null);
 
   const { updateVisibility, isPending } = useUpdateVisibility(
@@ -36,6 +38,7 @@ export function McpServerDetailPageInner({
     <McpServerDetailView
       org={org}
       slug={slug}
+      activeOrg={activeOrgSlug}
       onResourceLoad={handleResourceLoad}
       onVisibilityChange={updateVisibility}
       isVisibilityPending={isPending}
