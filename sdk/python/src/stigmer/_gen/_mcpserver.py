@@ -121,6 +121,7 @@ class McpServerInput:
     pinned_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
     repository_url: str = ""
     github_stars: int = 0
+    auth: McpServerAuthInput | None = None
 
     def _to_proto(self) -> api_pb2.McpServer:
         spec = spec_pb2.McpServerSpec(
@@ -139,6 +140,8 @@ class McpServerInput:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
         for item in self.pinned_tool_approvals:
             spec.pinned_tool_approvals.append(item._to_proto())
+        if self.auth is not None:
+            spec.auth.CopyFrom(self.auth._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -206,5 +209,52 @@ class ToolApprovalPolicyInput:
             tool_name=self.tool_name,
             message=self.message,
         )
+        return msg
+
+
+@dataclass
+class McpServerAuthInput:
+    """SDK input type for McpServerAuth."""
+
+    mcp_oauth: McpOAuthInput | None = None
+    vendor_oauth: McpServerVendorOAuthInput | None = None
+    target_env_var: str = ""
+    token_lifetime_hint: str = ""
+
+    def _to_proto(self) -> spec_pb2.McpServerAuth:
+        msg = spec_pb2.McpServerAuth(
+            target_env_var=self.target_env_var,
+            token_lifetime_hint=self.token_lifetime_hint,
+        )
+        if self.mcp_oauth is not None:
+            msg.mcp_oauth.CopyFrom(self.mcp_oauth._to_proto())
+        if self.vendor_oauth is not None:
+            msg.vendor_oauth.CopyFrom(self.vendor_oauth._to_proto())
+        return msg
+
+
+@dataclass
+class McpOAuthInput:
+    """SDK input type for McpOAuth."""
+
+    scope_hints: list[str] = field(default_factory=list)
+
+    def _to_proto(self) -> spec_pb2.McpOAuth:
+        msg = spec_pb2.McpOAuth()
+        if self.scope_hints:
+            msg.scope_hints.extend(self.scope_hints)
+        return msg
+
+
+@dataclass
+class McpServerVendorOAuthInput:
+    """SDK input type for McpServerVendorOAuth."""
+
+    oauth_app_ref: ResourceRef | None
+
+    def _to_proto(self) -> spec_pb2.McpServerVendorOAuth:
+        msg = spec_pb2.McpServerVendorOAuth()
+        if self.oauth_app_ref is not None:
+            msg.oauth_app_ref.CopyFrom(self.oauth_app_ref._to_proto())
         return msg
 

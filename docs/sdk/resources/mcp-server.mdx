@@ -180,6 +180,7 @@ const mcpServer = await stigmer.mcpServer.apply({
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
+  auth: {},
 });
 ```
 </Tab>
@@ -199,6 +200,7 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
+  Auth:                &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -218,6 +220,7 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
+    auth=None,
 ))
 ```
 </Tab>
@@ -237,6 +240,7 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
+    .auth(null)
     .build());
 ```
 </Tab>
@@ -269,6 +273,7 @@ const mcpServer = await stigmer.mcpServer.create({
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
+  auth: {},
 });
 ```
 </Tab>
@@ -288,6 +293,7 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
+  Auth:                &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -307,6 +313,7 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
+    auth=None,
 ))
 ```
 </Tab>
@@ -326,6 +333,7 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
+    .auth(null)
     .build());
 ```
 </Tab>
@@ -356,6 +364,7 @@ const mcpServer = await stigmer.mcpServer.update({
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
+  auth: {},
 });
 ```
 </Tab>
@@ -375,6 +384,7 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
+  Auth:                &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -394,6 +404,7 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
+    auth=None,
 ))
 ```
 </Tab>
@@ -413,6 +424,7 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
+    .auth(null)
     .build());
 ```
 </Tab>
@@ -576,6 +588,7 @@ Input for creating or updating a MCP Server.
     pinnedToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Manual tool approval overrides set by the MCP server owner.", typeDescriptionLink: "#toolapprovalpolicyinput" },
     repositoryUrl: { type: "string", description: "URL of the upstream source repository for this MCP server." },
     githubStars: { type: "number", description: "GitHub star count at the time of curation." },
+    auth: { type: "McpServerAuthInput", description: "OAuth authentication configuration for automated credential acquisition.", typeDescriptionLink: "#mcpserverauthinput" },
   }}
 />
 
@@ -638,6 +651,52 @@ ToolApprovalPolicy defines approval requirements for a specific tool.
   }}
 />
 
+### McpServerAuthInput
+
+McpServerAuth configures automated credential acquisition via OAuth.
+
+<TypeTable
+  type={{
+    mcpOauth: { type: "McpOAuthInput", description: "MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.", typeDescriptionLink: "#mcpoauthinput" },
+    vendorOauth: { type: "McpServerVendorOAuthInput", description: "Vendor-specific OAuth: references an OAuthApp with client credentials.", typeDescriptionLink: "#mcpservervendoroauthinput" },
+    targetEnvVar: { type: "string", description: "The env var in env_spec.data where the acquired access token is stored." },
+    tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
+  }}
+/>
+
+### McpOAuthInput
+
+McpOAuth configures MCP Authorization spec authentication (DCR + PKCE).
+
+<TypeTable
+  type={{
+    scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
+  }}
+/>
+
+### McpServerVendorOAuthInput
+
+McpServerVendorOAuth configures vendor-specific OAuth authentication.
+
+<TypeTable
+  type={{
+    oauthAppRef: { type: "ResourceRef", description: "Reference to the OAuthApp resource providing client credentials.", typeDescriptionLink: "#resourceref", required: true },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
 ### UpdateVisibilityInput
 
 Input for updating the visibility of any API resource.
@@ -657,19 +716,6 @@ ConnectInput is the request for the connect RPC.
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to connect to.", required: true },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use.", typeDescriptionLink: "#envvarinput" },
-  }}
-/>
-
-### ResourceRef
-
-Generic reference to any API resource by org and slug.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
-    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
-    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 

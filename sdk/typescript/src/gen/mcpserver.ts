@@ -10,7 +10,7 @@ import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agen
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ConnectInputSchema, type ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpOAuthSchema, McpServerVendorOAuthSchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -116,6 +116,7 @@ export interface McpServerInput {
   pinnedToolApprovals?: ToolApprovalPolicyInput[];
   repositoryUrl?: string;
   githubStars?: number;
+  auth?: McpServerAuthInput;
 }
 
 /** SDK input type for StdioServerConfig. */
@@ -137,6 +138,24 @@ export interface HttpServerConfigInput {
 export interface ToolApprovalPolicyInput {
   toolName?: string;
   message?: string;
+}
+
+/** SDK input type for McpServerAuth. */
+export interface McpServerAuthInput {
+  mcpOauth?: McpOAuthInput;
+  vendorOauth?: McpServerVendorOAuthInput;
+  targetEnvVar?: string;
+  tokenLifetimeHint?: string;
+}
+
+/** SDK input type for McpOAuth. */
+export interface McpOAuthInput {
+  scopeHints?: string[];
+}
+
+/** SDK input type for McpServerVendorOAuth. */
+export interface McpServerVendorOAuthInput {
+  oauthAppRef: ResourceRef;
 }
 
 function buildStdioServerConfigProto(input: StdioServerConfigInput) {
@@ -163,6 +182,30 @@ function buildToolApprovalPolicyProto(input: ToolApprovalPolicyInput) {
   }));
 }
 
+function buildMcpOAuthProto(input: McpOAuthInput) {
+  return Object.assign(create(McpOAuthSchema), stripUndefined({
+    scopeHints: input.scopeHints,
+  }));
+}
+
+function buildMcpServerVendorOAuthProto(input: McpServerVendorOAuthInput) {
+  const msg = create(McpServerVendorOAuthSchema);
+  if (input.oauthAppRef) msg.oauthAppRef = create(ApiResourceReferenceSchema, input.oauthAppRef);
+  return msg;
+}
+
+function buildMcpServerAuthProto(input: McpServerAuthInput) {
+  const msg = create(McpServerAuthSchema);
+  if (input.targetEnvVar !== undefined) msg.targetEnvVar = input.targetEnvVar;
+  if (input.tokenLifetimeHint !== undefined) msg.tokenLifetimeHint = input.tokenLifetimeHint;
+  if (input.mcpOauth) {
+    msg.method = { case: "mcpOauth", value: buildMcpOAuthProto(input.mcpOauth) };
+  } else if (input.vendorOauth) {
+    msg.method = { case: "vendorOauth", value: buildMcpServerVendorOAuthProto(input.vendorOauth) };
+  }
+  return msg;
+}
+
 function buildMcpServerProto(input: McpServerInput): McpServer {
   let envSpec;
   if (input.envSpec) {
@@ -173,6 +216,7 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
     envSpec = es;
   }
   const pinnedToolApprovals = input.pinnedToolApprovals?.map(buildToolApprovalPolicyProto);
+  const auth = input.auth ? buildMcpServerAuthProto(input.auth) : undefined;
   const spec = Object.assign(create(McpServerSpecSchema), stripUndefined({
     description: input.description,
     iconUrl: input.iconUrl,
@@ -181,6 +225,7 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
     pinnedToolApprovals,
     repositoryUrl: input.repositoryUrl,
     githubStars: input.githubStars,
+    auth,
   }));
   if (input.stdio) {
     spec.serverType = { case: "stdio", value: buildStdioServerConfigProto(input.stdio) };

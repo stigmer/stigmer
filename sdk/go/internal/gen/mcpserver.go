@@ -110,6 +110,7 @@ type McpServerInput struct {
 	PinnedToolApprovals []*ToolApprovalPolicyInput
 	RepositoryUrl       string
 	GithubStars         int32
+	Auth                *McpServerAuthInput
 }
 
 // StdioServerConfigInput is the SDK input type for StdioServerConfig.
@@ -131,6 +132,24 @@ type HttpServerConfigInput struct {
 type ToolApprovalPolicyInput struct {
 	ToolName string
 	Message  string
+}
+
+// McpServerAuthInput is the SDK input type for McpServerAuth.
+type McpServerAuthInput struct {
+	McpOauth          *McpOAuthInput
+	VendorOauth       *McpServerVendorOAuthInput
+	TargetEnvVar      string
+	TokenLifetimeHint string
+}
+
+// McpOAuthInput is the SDK input type for McpOAuth.
+type McpOAuthInput struct {
+	ScopeHints []string
+}
+
+// McpServerVendorOAuthInput is the SDK input type for McpServerVendorOAuth.
+type McpServerVendorOAuthInput struct {
+	OauthAppRef ResourceRef
 }
 
 func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
@@ -175,6 +194,9 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 	}
 	resource.Spec.RepositoryUrl = i.RepositoryUrl
 	resource.Spec.GithubStars = i.GithubStars
+	if i.Auth != nil {
+		resource.Spec.Auth = i.Auth.toProto()
+	}
 	return resource
 }
 
@@ -182,5 +204,12 @@ func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 	return &mcpserverv1.ToolApprovalPolicy{
 		ToolName: i.ToolName,
 		Message:  i.Message,
+	}
+}
+
+func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
+	return &mcpserverv1.McpServerAuth{
+		TargetEnvVar:      i.TargetEnvVar,
+		TokenLifetimeHint: i.TokenLifetimeHint,
 	}
 }

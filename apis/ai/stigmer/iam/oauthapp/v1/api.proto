@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.oauthapp.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/oauthapp/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// OAuthApp represents a registered OAuth application with an external vendor.
+//
+// An OAuthApp is owned by an organization and holds the client credentials
+// needed for vendor-specific OAuth flows. It enables Stigmer to authenticate
+// with external services (Slack, Salesforce, Figma, etc.) on behalf of users.
+//
+// OAuthApp is the outbound counterpart to IdentityProvider (inbound auth).
+// While IdentityProvider configures how external platforms authenticate
+// *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*
+// to external services.
+//
+// Referenced by McpServer resources via McpServerVendorOAuth to enable
+// automated credential acquisition for MCP servers that require
+// vendor-specific OAuth.
+//
+// Example YAML:
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: OAuthApp
+//   metadata:
+//     name: Slack OAuth
+//     slug: slack-oauth
+//     org: acme
+//   spec:
+//     provider: "Slack"
+//     client_id: "1234567890.abcdef"
+//     client_secret: "xoxs-..."
+//     authorization_url: "https://slack.com/oauth/v2/authorize"
+//     token_url: "https://slack.com/api/oauth.v2.access"
+//     scopes: ["channels:read", "chat:write"]
+message OAuthApp {
+  // API version for this resource type.
+  // Must be exactly "iam.stigmer.ai/v1".
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  // Must be exactly "OAuthApp".
+  string kind = 2 [(buf.validate.field).string.const = 'OAuthApp'];
+
+  // Standard resource metadata including name, id, org, visibility, labels, and tags.
+  // The org field identifies which organization owns this OAuth app registration.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-provided OAuth app configuration (desired state).
+  OAuthAppSpec spec = 4;
+
+  // System-managed state including audit trail.
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

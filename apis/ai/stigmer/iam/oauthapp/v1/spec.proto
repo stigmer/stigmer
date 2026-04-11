@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.oauthapp.v1;
+
+import "buf/validate/validate.proto";
+
+// OAuthAppSpec defines a registered OAuth application with an external vendor.
+//
+// @internal
+// Represents Stigmer's (or a platform builder's) OAuth app registration
+// with an external vendor like Slack, Salesforce, or Figma.
+//
+// Created by org admins or platform operators. Referenced by McpServer
+// resources that need vendor OAuth authentication via McpServerVendorOAuth.
+//
+// Analogous to IdentityProvider (inbound auth trust), OAuthApp represents
+// outbound auth — how Stigmer authenticates with external services on
+// behalf of users.
+//
+// The redirect URI is intentionally omitted: the platform derives its
+// OAuth callback URL from server configuration, not from per-app settings.
+// When registering the OAuth app with a vendor, the admin uses the
+// callback URL documented in Stigmer's deployment settings.
+//
+// Security:
+// - client_secret is encrypted at rest and redacted in logs.
+// - The resource should have visibility_private to prevent secret leakage.
+// - OAuthApp does not support public visibility.
+//
+// Example YAML:
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: OAuthApp
+//   metadata:
+//     name: Slack OAuth
+//     slug: slack-oauth
+//     org: acme
+//   spec:
+//     provider: "Slack"
+//     client_id: "1234567890.abcdef"
+//     client_secret: "xoxs-..."
+//     authorization_url: "https://slack.com/oauth/v2/authorize"
+//     token_url: "https://slack.com/api/oauth.v2.access"
+//     scopes: ["channels:read", "chat:write"]
+message OAuthAppSpec {
+  // Human-readable vendor name for UI display and logging.
+  // Examples: "Slack", "Salesforce", "Figma"
+  string provider = 1;
+
+  // OAuth client identifier registered with the vendor.
+  string client_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // OAuth client secret registered with the vendor.
+  // Encrypted at rest, redacted in logs.
+  string client_secret = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Vendor's OAuth authorization endpoint.
+  // The browser redirects here to start the authorization code flow.
+  // Example: "https://slack.com/oauth/v2/authorize"
+  string authorization_url = 4 [(buf.validate.field).string.uri = true];
+
+  // Vendor's OAuth token endpoint.
+  // The backend exchanges the authorization code for tokens here.
+  // Example: "https://slack.com/api/oauth.v2.access"
+  string token_url = 5 [(buf.validate.field).string.uri = true];
+
+  // OAuth scopes to request during the authorization flow.
+  // Scope values are vendor-specific.
+  // Examples: ["channels:read", "chat:write"] (Slack),
+  //           ["read_api", "api"] (GitLab)
+  repeated string scopes = 6;
+
+  // Optional OIDC UserInfo endpoint for fetching user profile data.
+  // When set, Stigmer calls this endpoint after token acquisition to
+  // retrieve the user's display name and avatar for the connected account.
+  // Omit for vendors that do not support a standard userinfo endpoint.
+  string userinfo_url = 7;
+}

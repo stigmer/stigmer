@@ -32,6 +32,7 @@
           "api_key",
           "invitation",
           "identity_provider",
+          "oauth_app",
           "organization",
           "platform",
           "agent",

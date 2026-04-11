@@ -1,0 +1,21 @@
+{
+  "name": "McpOAuth",
+  "description": "McpOAuth configures MCP Authorization spec authentication (DCR + PKCE).\n\n @internal\n The MCP server implements the MCP Authorization specification:\n - RFC 8414: OAuth 2.0 Authorization Server Metadata (.well-known discovery)\n - RFC 7591: Dynamic Client Registration\n - OAuth 2.1 with PKCE (S256)\n\n Stigmer discovers the authorization server metadata, registers a client\n via DCR, and performs the authorization code flow with PKCE — all\n automatically at connect time. No OAuthApp resource is needed.",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.McpOAuth",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
+  "fields": [
+    {
+      "name": "ScopeHints",
+      "jsonName": "scopeHints",
+      "protoField": "scope_hints",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Optional scope hints for UI display before the OAuth flow starts.\n These are informational — the actual scopes are negotiated during DCR\n and the authorization request based on what the server supports.",
+      "required": false
+    }
+  ]
+}

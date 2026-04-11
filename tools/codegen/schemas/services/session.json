@@ -332,6 +332,11 @@
           "description": "External identity provider for federated authentication."
         },
         {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
           "name": "organization",
           "number": 30,
           "description": "Top-level tenant that owns and manages resources."
