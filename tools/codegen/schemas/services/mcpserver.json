@@ -190,6 +190,7 @@
               "api_key",
               "invitation",
               "identity_provider",
+              "oauth_app",
               "organization",
               "platform",
               "agent",
@@ -293,6 +294,11 @@
           "name": "identity_provider",
           "number": 21,
           "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
         },
         {
           "name": "organization",

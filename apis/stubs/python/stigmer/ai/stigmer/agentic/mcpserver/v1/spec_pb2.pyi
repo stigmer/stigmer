@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -9,7 +10,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class McpServerSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "tags", "stdio", "http", "default_enabled_tools", "env_spec", "pinned_tool_approvals", "repository_url", "github_stars")
+    __slots__ = ("description", "icon_url", "tags", "stdio", "http", "default_enabled_tools", "env_spec", "pinned_tool_approvals", "repository_url", "github_stars", "auth")
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     ICON_URL_FIELD_NUMBER: _ClassVar[int]
     TAGS_FIELD_NUMBER: _ClassVar[int]
@@ -20,6 +21,7 @@ class McpServerSpec(_message.Message):
     PINNED_TOOL_APPROVALS_FIELD_NUMBER: _ClassVar[int]
     REPOSITORY_URL_FIELD_NUMBER: _ClassVar[int]
     GITHUB_STARS_FIELD_NUMBER: _ClassVar[int]
+    AUTH_FIELD_NUMBER: _ClassVar[int]
     description: str
     icon_url: str
     tags: _containers.RepeatedScalarFieldContainer[str]
@@ -30,7 +32,8 @@ class McpServerSpec(_message.Message):
     pinned_tool_approvals: _containers.RepeatedCompositeFieldContainer[ToolApprovalPolicy]
     repository_url: str
     github_stars: int
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., stdio: _Optional[_Union[StdioServerConfig, _Mapping]] = ..., http: _Optional[_Union[HttpServerConfig, _Mapping]] = ..., default_enabled_tools: _Optional[_Iterable[str]] = ..., env_spec: _Optional[_Union[_spec_pb2.EnvironmentSpec, _Mapping]] = ..., pinned_tool_approvals: _Optional[_Iterable[_Union[ToolApprovalPolicy, _Mapping]]] = ..., repository_url: _Optional[str] = ..., github_stars: _Optional[int] = ...) -> None: ...
+    auth: McpServerAuth
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., stdio: _Optional[_Union[StdioServerConfig, _Mapping]] = ..., http: _Optional[_Union[HttpServerConfig, _Mapping]] = ..., default_enabled_tools: _Optional[_Iterable[str]] = ..., env_spec: _Optional[_Union[_spec_pb2.EnvironmentSpec, _Mapping]] = ..., pinned_tool_approvals: _Optional[_Iterable[_Union[ToolApprovalPolicy, _Mapping]]] = ..., repository_url: _Optional[str] = ..., github_stars: _Optional[int] = ..., auth: _Optional[_Union[McpServerAuth, _Mapping]] = ...) -> None: ...
 
 class StdioServerConfig(_message.Message):
     __slots__ = ("command", "args", "working_dir")
@@ -75,3 +78,27 @@ class ToolApprovalPolicy(_message.Message):
     tool_name: str
     message: str
     def __init__(self, tool_name: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
+
+class McpServerAuth(_message.Message):
+    __slots__ = ("mcp_oauth", "vendor_oauth", "target_env_var", "token_lifetime_hint")
+    MCP_OAUTH_FIELD_NUMBER: _ClassVar[int]
+    VENDOR_OAUTH_FIELD_NUMBER: _ClassVar[int]
+    TARGET_ENV_VAR_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_LIFETIME_HINT_FIELD_NUMBER: _ClassVar[int]
+    mcp_oauth: McpOAuth
+    vendor_oauth: McpServerVendorOAuth
+    target_env_var: str
+    token_lifetime_hint: str
+    def __init__(self, mcp_oauth: _Optional[_Union[McpOAuth, _Mapping]] = ..., vendor_oauth: _Optional[_Union[McpServerVendorOAuth, _Mapping]] = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ...) -> None: ...
+
+class McpOAuth(_message.Message):
+    __slots__ = ("scope_hints",)
+    SCOPE_HINTS_FIELD_NUMBER: _ClassVar[int]
+    scope_hints: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, scope_hints: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class McpServerVendorOAuth(_message.Message):
+    __slots__ = ("oauth_app_ref",)
+    OAUTH_APP_REF_FIELD_NUMBER: _ClassVar[int]
+    oauth_app_ref: _io_pb2.ApiResourceReference
+    def __init__(self, oauth_app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...

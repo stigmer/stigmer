@@ -73,6 +73,14 @@ public enum ApiResourceKind
   identity_provider(21),
   /**
    * <pre>
+   * Registered OAuth application with an external vendor for outbound authentication.
+   * </pre>
+   *
+   * <code>oauth_app = 22 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  oauth_app(22),
+  /**
+   * <pre>
    * Top-level tenant that owns and manages resources.
    * </pre>
    *
@@ -253,6 +261,14 @@ public enum ApiResourceKind
   public static final int identity_provider_VALUE = 21;
   /**
    * <pre>
+   * Registered OAuth application with an external vendor for outbound authentication.
+   * </pre>
+   *
+   * <code>oauth_app = 22 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int oauth_app_VALUE = 22;
+  /**
+   * <pre>
    * Top-level tenant that owns and manages resources.
    * </pre>
    *
@@ -396,6 +412,7 @@ public enum ApiResourceKind
       case 12: return api_key;
       case 20: return invitation;
       case 21: return identity_provider;
+      case 22: return oauth_app;
       case 30: return organization;
       case 31: return platform;
       case 40: return agent;

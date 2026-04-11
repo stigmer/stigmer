@@ -13,6 +13,7 @@
     "identity-provider",
     "invitation",
     "mcp-server",
+    "o-auth-app",
     "organization",
     "project",
     "session",
