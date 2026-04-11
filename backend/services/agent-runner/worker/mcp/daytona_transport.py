@@ -29,6 +29,8 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+import json as _json
+
 import anyio
 import mcp.types as types
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
@@ -40,6 +42,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _STARTUP_TIMEOUT_SECONDS = 60
+
+# MCP methods that the *server* is allowed to send to the *client*.
+# Any JSON-RPC request arriving on stdout with a method NOT in this set
+# is almost certainly a Daytona stdin echo and should be dropped.
+_SERVER_TO_CLIENT_METHODS = frozenset({
+    "ping",
+    "sampling/createMessage",
+    "sampling/createMessageWithTools",
+    "roots/list",
+    "elicitation/create",
+    "tasks/get",
+    "tasks/result",
+    "tasks/list",
+    "tasks/cancel",
+})
 
 
 def _build_shell_command(config: dict[str, Any]) -> str:
@@ -161,6 +178,30 @@ async def daytona_stdio_client(
             for line in lines:
                 if not line.strip():
                     continue
+
+                # Daytona sessions may echo stdin back to stdout.
+                # Detect and drop echoed client-to-server requests so
+                # the MCP client session doesn't receive its own
+                # outgoing messages (which would fail validation and
+                # could disrupt the session).
+                try:
+                    raw = _json.loads(line)
+                except _json.JSONDecodeError:
+                    pass
+                else:
+                    method = raw.get("method") if isinstance(raw, dict) else None
+                    if (
+                        method is not None
+                        and "id" in raw
+                        and method not in _SERVER_TO_CLIENT_METHODS
+                    ):
+                        logger.debug(
+                            "MCP server '%s': dropped echoed client "
+                            "request from stdout (method=%s)",
+                            slug, method,
+                        )
+                        continue
+
                 try:
                     message = types.JSONRPCMessage.model_validate_json(line)
                     session_message = SessionMessage(message)

@@ -34,10 +34,11 @@ spec:
           # Stigmer API Configuration (internal Kubernetes endpoint, plain gRPC)
           STIGMER_BACKEND_ENDPOINT:
             value: $variables-group/stigmer-api/prod.kube-endpoint
-          # Auto-injected into mcp-server-stigmer subprocesses so they reach
-          # stigmer-server without users having to configure it manually.
-          STIGMER_SERVER_ADDRESS:
-            value: $variables-group/stigmer-api/prod.kube-endpoint
+          # Public gRPC endpoint injected into MCP server subprocesses.
+          # Daytona sandboxes run outside K8s and cannot reach the internal
+          # kube-endpoint, so this must be the public ingress with TLS.
+          STIGMER_MCP_PUBLIC_ENDPOINT:
+            value: $variables-group/stigmer-api/prod.grpc-endpoint
           # LLM Configuration (production uses Anthropic)
           STIGMER_LLM_PROVIDER:
             value: anthropic

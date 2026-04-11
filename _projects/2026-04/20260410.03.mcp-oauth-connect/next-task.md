@@ -13,9 +13,28 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: T05 COMPLETE + Cross-Domain Repo Remediation
+**Status**: T05 COMPLETE + Connect Bug Fixes
 **Active Task**: Manual end-to-end testing (user-driven)
 **Last Session**: 2026-04-11
+
+## Session Progress (2026-04-11, Session 3 -- Fix MCP Connect Failures)
+
+### Root Cause Analysis
+- **Stale STIGMER_SERVER_ADDRESS**: Traced to the user's personal environment in the database containing `stigmer-prod-api.planton.live` (pre-migration domain). The React SDK connect hooks sent no `runtimeEnv`, so the Java backend resolved from personal env exclusively. The agent-runner's `_inject_platform_env` skipped injection because the key was already present.
+- **MCP Initialize Failure**: Go MCP SDK v1.3.0 had only partial `2025-11-25` protocol support; the Python client (mcp v1.25.0) negotiates `2025-11-25`. Full support arrived in Go SDK v1.4.0.
+- **Daytona Stdin Echo**: Daytona sessions may echo stdin to stdout, causing the Python MCP client to receive its own `initialize` request as a spurious server message.
+
+### Fixes Applied (stigmer repo, 7 files)
+- **React SDK**: `useMcpServerConnect` and `useMcpServerOAuthConnect` now always inject system env vars (`STIGMER_SERVER_ADDRESS`, `STIGMER_API_KEY`) via `resolveSystemEnvVarValues()`
+- **Agent-runner kustomize**: Replaced `STIGMER_SERVER_ADDRESS` (internal K8s) with `STIGMER_MCP_PUBLIC_ENDPOINT` (public gRPC via new `prod.grpc-endpoint` variables group entry)
+- **Agent-runner Python**: `_inject_platform_env` now uses `_PLATFORM_INJECTABLE_MAP` (target->source mapping) and overrides instead of skipping
+- **Daytona transport**: Added echo filter in `_on_stdout` to drop echoed client-to-server requests
+- **Go MCP SDK**: Upgraded from v1.3.0 to v1.5.0 (full `2025-11-25` support, security fixes)
+- **Python mcp pin**: Aligned `requirements.txt` to `mcp==1.26.0` (matching `poetry.lock`)
+
+### Fixes Applied (stigmer-cloud repo, 2 files)
+- **Java**: `McpServerConnectHandler` now merges `runtimeEnv` ON TOP of personal env (instead of mutually exclusive). `resolveFromPersonalEnvironment` accepts `tolerateMissing` flag.
+- **Variables group**: Added `prod.grpc-endpoint: api.stigmer.ai:443` to `stigmer-api`
 
 ## Session Progress (2026-04-11, Session 2 -- Cross-Domain Repo Audit)
 
