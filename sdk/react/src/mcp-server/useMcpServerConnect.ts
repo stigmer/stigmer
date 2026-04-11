@@ -6,6 +6,7 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
+import { resolveSystemEnvVarValues } from "../environment/systemEnvVars";
 import { toError } from "../internal/toError";
 
 /** Return value of {@link useMcpServerConnect}. */
@@ -18,13 +19,15 @@ export interface UseMcpServerConnectReturn {
    * agent-runner. The RPC blocks until the workflow completes
    * (typically 5-15 seconds, ~30s timeout).
    *
-   * When `runtimeEnv` is provided, the values are sent directly to
-   * the backend as one-time credentials (not persisted to any
-   * environment). When omitted, the backend resolves credentials from
-   * the authenticated user's personal environment.
+   * Platform system env vars ({@code STIGMER_SERVER_ADDRESS},
+   * {@code STIGMER_API_KEY}) are always injected automatically from
+   * the current SDK context. When `runtimeEnv` is also provided,
+   * those values are merged on top (caller values win). The backend
+   * merges the result on top of the user's personal environment so
+   * saved credentials (e.g., OAuth tokens) are still resolved.
    *
    * @param mcpServerId - System-generated ID of the MCP server (metadata.id).
-   * @param runtimeEnv - Optional one-time environment variables.
+   * @param runtimeEnv - Optional additional environment variables.
    * @returns The updated McpServer with populated status.discovered_capabilities
    *          and status.tool_approvals.
    */
@@ -48,13 +51,14 @@ export interface UseMcpServerConnectReturn {
  * server's tools and resource templates, then classifies each tool's
  * approval policy via a structured-output LLM call.
  *
- * Supports two credential modes:
- * - **Saved credentials** (default): Credentials are pre-saved to the
- *   user's personal environment, then `connect(id)` is called without
- *   `runtimeEnv`. The backend resolves them automatically.
- * - **One-time use**: `connect(id, runtimeEnv)` passes credentials
- *   directly to the backend. They are used for this connect only and
- *   not persisted.
+ * Platform system env vars (`STIGMER_SERVER_ADDRESS`,
+ * `STIGMER_API_KEY`) are always injected from the current SDK
+ * context. The backend merges these on top of the caller's personal
+ * environment, so saved credentials (e.g., OAuth tokens) are still
+ * resolved while platform addresses are always up to date.
+ *
+ * Additional one-time credentials can be passed via `runtimeEnv`
+ * and will override both system vars and personal env values.
  *
  * @example
  * ```tsx
@@ -90,21 +94,20 @@ export function useMcpServerConnect(): UseMcpServerConnectReturn {
       setError(null);
 
       try {
+        const systemEnv = await resolveSystemEnvVarValues(stigmer);
+        const mergedEnv = { ...systemEnv, ...(runtimeEnv ?? {}) };
+
         const runtimeEnvMap: Record<string, { value: string; isSecret: boolean }> = {};
-        if (runtimeEnv) {
-          for (const [key, input] of Object.entries(runtimeEnv)) {
-            runtimeEnvMap[key] = {
-              value: input.value,
-              isSecret: input.isSecret ?? false,
-            };
-          }
+        for (const [key, envInput] of Object.entries(mergedEnv)) {
+          runtimeEnvMap[key] = {
+            value: envInput.value,
+            isSecret: envInput.isSecret ?? false,
+          };
         }
 
         const input = create(ConnectInputSchema, {
           mcpServerId,
-          ...(Object.keys(runtimeEnvMap).length > 0 && {
-            runtimeEnv: runtimeEnvMap,
-          }),
+          runtimeEnv: runtimeEnvMap,
         });
 
         return await stigmer.mcpServer.connect(input);

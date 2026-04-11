@@ -63,28 +63,34 @@ _resolver = PlaceholderResolver(strict=False)
 _strict_resolver = PlaceholderResolver(strict=True)
 
 # Platform infrastructure env vars that the agent-runner auto-injects into MCP
-# server subprocesses when declared in the server's env_spec but absent from
-# the user-provided merged environment. These are deployment-topology concerns
-# (where is the platform?) not user credentials.
+# server subprocesses. Maps the *target* env var name (what the subprocess
+# sees) to the *source* env var on the agent-runner pod.
+#
+# The source var may differ from the target because MCP subprocesses run in
+# Daytona sandboxes (outside K8s) and need the public gRPC endpoint, whereas
+# the agent-runner pod itself uses the internal kube-endpoint.
 #
 # STIGMER_API_KEY is intentionally excluded: it is a user credential that must
 # flow through the ExecutionContext / Environment merge chain.
-_PLATFORM_INJECTABLE_ENV_VARS = frozenset({"STIGMER_SERVER_ADDRESS"})
+_PLATFORM_INJECTABLE_MAP: dict[str, str] = {
+    "STIGMER_SERVER_ADDRESS": "STIGMER_MCP_PUBLIC_ENDPOINT",
+}
 
 
 def _inject_platform_env(
     spec: McpServerSpec,
     env_vars: dict[str, str],
 ) -> dict[str, str]:
-    """Return env_vars augmented with platform infrastructure env vars.
+    """Return env_vars with platform infrastructure env vars injected.
 
-    For each variable in _PLATFORM_INJECTABLE_ENV_VARS that is:
-      1. declared in the server's env_spec, AND
-      2. not already present in env_vars (user-provided takes precedence), AND
-      3. available in the agent-runner's own process environment
+    For each entry in ``_PLATFORM_INJECTABLE_MAP`` whose target key is
+    declared in the server's ``env_spec`` and whose source var is set in
+    the agent-runner's own environment, inject (or override) the value.
 
-    ...inject it so the MCP server subprocess can reach the platform without
-    requiring the user to manually provide deployment-internal addresses.
+    Platform infrastructure vars are **authoritative** -- they override
+    any value already present in ``env_vars`` (e.g., stale entries from
+    the user's personal environment) because the platform is the single
+    source of truth for deployment-topology addresses.
 
     Returns a new dict; the input is not mutated.
     """
@@ -92,21 +98,24 @@ def _inject_platform_env(
         return env_vars
 
     declared_keys = set(spec.env_spec.data)
-    injectable = declared_keys & _PLATFORM_INJECTABLE_ENV_VARS
+    injectable_targets = declared_keys & _PLATFORM_INJECTABLE_MAP.keys()
 
-    if not injectable:
+    if not injectable_targets:
         return env_vars
 
     result = dict(env_vars)
-    for key in injectable:
-        if key in result:
+    for target_key in injectable_targets:
+        source_key = _PLATFORM_INJECTABLE_MAP[target_key]
+        value = os.environ.get(source_key)
+        if not value:
             continue
-        value = os.environ.get(key)
-        if value:
-            result[key] = value
+        if target_key in result and result[target_key] != value:
             logger.info(
-                f"Auto-injected platform env var '{key}' from agent-runner environment"
+                "Platform env var '%s' overrides value from ExecutionContext "
+                "(platform infra vars are authoritative)",
+                target_key,
             )
+        result[target_key] = value
 
     return result
 

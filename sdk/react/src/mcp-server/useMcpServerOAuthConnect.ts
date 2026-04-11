@@ -9,6 +9,7 @@ import {
   ConnectInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { resolveSystemEnvVarValues } from "../environment/systemEnvVars";
 import { toError } from "../internal/toError";
 
 /**
@@ -177,8 +178,20 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
         setPhase("connecting");
 
+        const systemEnv = await resolveSystemEnvVarValues(stigmer);
+        const runtimeEnvMap: Record<string, { value: string; isSecret: boolean }> = {};
+        for (const [key, envInput] of Object.entries(systemEnv)) {
+          runtimeEnvMap[key] = {
+            value: envInput.value,
+            isSecret: envInput.isSecret ?? false,
+          };
+        }
+
         const server = await stigmer.mcpServer.connect(
-          create(ConnectInputSchema, { mcpServerId }),
+          create(ConnectInputSchema, {
+            mcpServerId,
+            runtimeEnv: runtimeEnvMap,
+          }),
         );
 
         setPhase("done");
