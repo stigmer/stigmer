@@ -23,3 +23,6 @@ spec:
       ATLASSIAN_ACCESS_TOKEN:
         is_secret: true
         description: "Atlassian API token or OAuth access token"
+  auth:
+    target_env_var: "ATLASSIAN_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

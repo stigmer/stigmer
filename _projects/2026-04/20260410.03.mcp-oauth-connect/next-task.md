@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: T01 COMPLETE -- Proto definitions implemented
-**Active Task**: T02 -- OAuthApp Handlers + Seedpack YAMLs
+**Status**: T02 COMPLETE -- Java handlers + seedpack auth blocks implemented
+**Active Task**: T03 -- Backend OAuth Client + Connect Flow + Token Refresh
 **Last Session**: 2026-04-11
 
 ## Session Progress (2026-04-11)
@@ -27,28 +27,76 @@ Drop this file into your conversation to quickly resume work on this project.
 - Created `OAuthGrant` infrastructure proto in `apis/ai/stigmer/agentic/mcpserver/v1/oauth.proto`
 - `buf lint` and `buf build` pass clean
 - All stubs regenerated (Go, Java, Python, TypeScript) via `make build`
+- **Post-T01 refactor**: Flattened `McpServerAuth` -- removed oneof wrapper, `oauth_app_ref` presence/absence is the discriminator
 
-### Design Decisions Made During Implementation
-- **`redirect_uri` dropped** from `OAuthAppSpec` -- the platform derives its OAuth callback URL from server config, not per-app settings
-- **OAuthApp is always org-private** -- no `supports_public`, no `updateVisibility` RPC (matches IdentityProvider pattern)
-- **`userinfo_url` added** to `OAuthAppSpec` (field 7) -- optional OIDC userinfo endpoint for fetching display name/avatar after token acquisition
+### T02: Java Handlers + Seedpack YAMLs -- COMPLETE
+
+#### Shared Encryption Library (stigmer-cloud)
+- Extracted `SecretEncryptionService` + `EncryptionConfig` to `backend/libs/java/infra/encryption/`
+- Refactored `EnvironmentSecretService` to thin delegate over shared service
+- Deleted old `EncryptionConfig` from `ai.stigmer.config.encryption`
+- Updated `stigmer-service` BUILD.bazel with `//backend/libs/java/infra/encryption` dep
+
+#### FGA Model
+- Created `iam/oauth_app.fga` (RESTRICTED access model, mirrors identity_provider)
+- Registered in `fga.mod`
+
+#### OAuthApp Handlers (stigmer-cloud, 11 new Java files)
+- `OAuthAppRepo` -- MongoDB repository with `@ApiResourceRepo(kind = oauth_app)`
+- `OAuthAppGrpcAutoController` -- compile-time gRPC routing
+- `EncryptClientSecret` -- pipeline step: AES-256-GCM encrypt before persist, preserve on redacted update
+- `RedactClientSecret` -- pipeline step: replace `client_secret` with `***REDACTED***` in responses
+- `OAuthAppCreateHandler` -- full create pipeline with encrypt + FGA + redact
+- `OAuthAppUpdateHandler` -- full update pipeline with encrypt + redact
+- `OAuthAppDeleteHandler` -- delete with `CheckNoReferencingMcpServers` (queries `spec.auth.oauthAppRef`)
+- `OAuthAppApplyHandler` -- standard apply delegation
+- `OAuthAppGetHandler` -- get by ID with redaction
+- `OAuthAppGetByReferenceHandler` -- get by org+slug with post-load FGA and redaction
+- `OAuthAppListByOrgHandler` -- list by org with per-entry redaction
+
+#### Seedpack YAMLs (stigmer)
+- Switched 4 servers stdio -> HTTP: Sentry, Neon, Tavily, Supabase (verified hosted endpoints)
+- Cloudflare kept as stdio (no hosted HTTP endpoint for `@cloudflare/mcp-server-cloudflare`)
+- Added flat `auth:` blocks to all 9 DCR+PKCE servers (target_env_var + token_lifetime_hint + scope_hints)
+
+### Design Decisions Made During T02
+- **Encryption as shared library** -- `SecretEncryptionService` in `backend/libs/java/infra/encryption/`, not locked to the Environment domain
+- **Flat McpServerAuth in seedpack** -- absence of `oauth_app_ref` indicates DCR mode, no wrapper nesting
+- **Delete referential integrity** -- OAuthApp deletion blocked if any MCP server references it via `spec.auth.oauthAppRef`
+- **Cloudflare stays stdio** -- no hosted HTTP endpoint found; auth block still added for future DCR support
+- **Vendor OAuth seedpack deferred** -- Slack, Stripe, Figma, Salesforce auth blocks require org-specific OAuthApp refs, deferred to T03/T04
 
 ## Next Steps
 
-1. **T02: OAuthApp Handlers + Seedpack YAMLs** (3-4 days)
-   - OAuthApp Go handlers (CRUD, FGA model, repository, validation)
-   - Switch 5 servers stdio -> HTTP
-   - Add auth blocks to 13 servers
-   - Improve descriptions for manual servers
-2. **T03**: Backend OAuth Client + Connect Flow + Token Refresh
-3. **T04**: UI Updates + Token Lifecycle
-4. **T05**: End-to-End Testing
+1. **T03: Backend OAuth Client + Connect Flow + Token Refresh** (4-5 days)
+   - MCP OAuth discovery (.well-known/oauth-authorization-server)
+   - Dynamic Client Registration (DCR)
+   - PKCE authorization code flow
+   - OAuth callback endpoint
+   - Token storage (access token -> personal env, refresh token -> convention)
+   - OAuthGrant DB record creation
+   - OAuth-aware Connect handler
+   - Pre-flight token expiry check + refresh logic
+2. **T04**: UI Updates + Token Lifecycle
+3. **T05**: End-to-End Testing
+
+## Uncommitted Work
+
+### stigmer repo (this session)
+- 9 seedpack YAMLs: transport switch + auth blocks
+- Changelog entry
+- Project session notes
+
+### stigmer-cloud repo (T01 + T02 combined)
+- T01: Proto stubs across Go, Java, Python, TypeScript (regenerated)
+- T02: Encryption library, OAuthApp handlers, FGA model, test updates
+- **Needs separate commit** in stigmer-cloud repo
 
 ## Key Design Decisions
 
 ### Domain Model
 - **OAuthApp**: First-class resource in `iam` bounded context (like IdentityProvider). Holds vendor OAuth client credentials (client_id, client_secret, URLs, scopes). Org-scoped.
-- **McpServerAuth**: `oneof` with `mcp_oauth` (DCR, inline, no OAuthApp) and `vendor_oauth` (reference to OAuthApp).
+- **McpServerAuth**: Flat message -- `oauth_app_ref` presence/absence determines auth mode (vendor OAuth vs DCR+PKCE). No oneof.
 - **OAuthGrant**: Infrastructure-only (not a public resource). Per (user, mcp_server). Stores non-secret metadata: expiry, client_id, token_endpoint, env var names.
 - **DCR stays inline on McpServer**: DCR is a capability, not pre-existing config. OAuthApp with empty credentials would be anemic.
 
@@ -67,7 +115,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ### Server Classification
 - 9 DCR + PKCE: GitLab, Linear, Atlassian, Notion, Sentry, Neon, Tavily, Supabase, Cloudflare
 - 4 vendor OAuth: Slack, Stripe, Figma (restricted), Salesforce
-- 5 servers need transport switch from stdio to HTTP
+- 4 servers switched to HTTP (Sentry, Neon, Tavily, Supabase); Cloudflare stays stdio
 - 16 manual only, 7 no auth
 
 ### Flat Environment Limitation
@@ -80,16 +128,16 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### T01: Proto Definitions -- COMPLETE
 **Repo**: stigmer
-**Scope**: OAuthApp resource (iam context: api, spec, io, command, query protos), McpServerAuth on McpServerSpec (McpOAuth, McpServerVendorOAuth), OAuthGrant infrastructure proto, stub regeneration
+**Scope**: OAuthApp resource (iam context: api, spec, io, command, query protos), McpServerAuth on McpServerSpec, OAuthGrant infrastructure proto, stub regeneration
 **Effort**: 1.5-2 days
 
-### T02: OAuthApp Handlers + Seedpack YAMLs
-**Repos**: stigmer
-**Scope**: OAuthApp Go handlers (CRUD, FGA model, repository, validation). Switch 5 servers stdio->HTTP. Add auth blocks to 13 servers. Improve descriptions for manual servers.
-**Effort**: 3-4 days
+### T02: OAuthApp Handlers + Seedpack YAMLs -- COMPLETE
+**Repos**: stigmer + stigmer-cloud
+**Scope**: Java OAuthApp handlers (CRUD, FGA model, repository, validation, encryption), shared encryption library extraction, seedpack transport switch + auth blocks
+**Effort**: 1 session (accelerated from 3-4 day estimate)
 
 ### T03: Backend OAuth Client + Connect Flow + Token Refresh
-**Repos**: stigmer
+**Repos**: stigmer + stigmer-cloud
 **Scope**: MCP OAuth discovery (.well-known), DCR, PKCE auth code flow, callback endpoint, token storage (personal env + OAuthGrant), OAuth-aware Connect handler, pre-flight token expiry check, refresh logic.
 **Effort**: 4-5 days
 
@@ -107,18 +155,14 @@ Drop this file into your conversation to quickly resume work on this project.
 
 | Area | Path |
 |------|------|
-| OAuthApp protos (NEW) | `apis/ai/stigmer/iam/oauthapp/v1/` |
-| OAuthGrant proto (NEW) | `apis/ai/stigmer/agentic/mcpserver/v1/oauth.proto` |
-| McpServer spec proto (MODIFIED) | `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto` |
-| ApiResourceKind enum (MODIFIED) | `apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto` |
-| IamPermission enum (MODIFIED) | `apis/ai/stigmer/iam/v1/enum.proto` |
-| Environment spec proto | `apis/ai/stigmer/agentic/environment/v1/spec.proto` |
-| IdentityProvider (reference pattern) | `apis/ai/stigmer/iam/identityprovider/v1/` |
+| OAuthApp protos | `apis/ai/stigmer/iam/oauthapp/v1/` |
+| OAuthGrant proto | `apis/ai/stigmer/agentic/mcpserver/v1/oauth.proto` |
+| McpServer spec proto | `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto` |
+| Shared encryption library (NEW) | `backend/libs/java/infra/encryption/` (stigmer-cloud) |
+| OAuthApp Java handlers (NEW) | `backend/services/stigmer-service/.../domain/iam/oauthapp/` (stigmer-cloud) |
+| FGA model (NEW) | `backend/services/stigmer-service/.../fga/model/iam/oauth_app.fga` (stigmer-cloud) |
 | Connect handler (Go) | `backend/services/stigmer-server/pkg/domain/mcpserver/controller/connect.go` |
-| Personal env resolution | `backend/services/stigmer-server/pkg/domain/mcpserver/controller/connect.go` (`resolveFromPersonalEnvironment`) |
-| Execution context creation | `backend/services/stigmer-server/pkg/domain/agentexecution/controller/create_execution_context_step.go` |
 | React Connect UI | `sdk/react/src/mcp-server/McpServerDetailView.tsx` |
-| Personal env hook | `sdk/react/src/environment/usePersonalEnvironment.ts` |
 | Seedpack servers | `seedpack/mcp-servers/` |
 
 ## Key References
@@ -126,6 +170,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - **MCP Auth Spec**: OAuth 2.1 + PKCE + DCR (2025-03-26 revision)
 - **Previous project (curated marketplace)**: `_projects/2026-04/20260410.01.curated-mcp-marketplace/`
 - **Personal env design**: `_projects/2026-03/20260319.02.agent-picker-personal-env/design-decisions/001-personal-environment-pattern.md`
+- **McpServerAuth flattening**: `_changelog/2026-04/2026-04-11-091131-flatten-mcp-server-auth-remove-oneof-wrapper.md`
 
 ---
 

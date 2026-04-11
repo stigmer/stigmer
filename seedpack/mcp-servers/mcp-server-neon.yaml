@@ -14,15 +14,15 @@ spec:
     - postgresql
     - serverless
     - database
-  stdio:
-    command: "npx"
-    args:
-      - "-y"
-      - "@neondatabase/mcp-server-neon"
-      - "start"
-      - "${NEON_API_KEY}"
+  http:
+    url: "https://mcp.neon.tech/mcp"
+    headers:
+      Authorization: "Bearer ${NEON_API_KEY}"
   env_spec:
     data:
       NEON_API_KEY:
         is_secret: true
         description: "Neon API key (generate at console.neon.tech/app/settings/api-keys)"
+  auth:
+    target_env_var: "NEON_API_KEY"
+    token_lifetime_hint: "1h"

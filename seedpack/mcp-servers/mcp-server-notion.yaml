@@ -23,3 +23,6 @@ spec:
       NOTION_ACCESS_TOKEN:
         is_secret: true
         description: "Notion API key or OAuth access token (generate at notion.so/my-integrations)"
+  auth:
+    target_env_var: "NOTION_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"
