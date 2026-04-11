@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi7AEKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASJQChlJbml0aWF0ZU9BdXRoQ29ubmVjdElucHV0Eh0KDW1jcF9zZXJ2ZXJfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEibQoaSW5pdGlhdGVPQXV0aENvbm5lY3RPdXRwdXQSGQoRYXV0aG9yaXphdGlvbl91cmwYASABKAkSDQoFc3RhdGUYAiABKAkSDgoGc2NvcGVzGAMgAygJEhUKDXByb3ZpZGVyX25hbWUYBCABKAkidwoZQ29tcGxldGVPQXV0aENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESIwoSYXV0aG9yaXphdGlvbl9jb2RlGAIgASgJQge6SARyAhABEhYKBXN0YXRlGAMgASgJQge6SARyAhABImQKGkNvbXBsZXRlT0F1dGhDb25uZWN0T3V0cHV0EhEKCWNvbm5lY3RlZBgBIAEoCBIWCg50YXJnZXRfZW52X3ZhchgCIAEoCRIbChN0b2tlbl9saWZldGltZV9oaW50GAMgASgJIk0KGEdldE9BdXRoR3JhbnRTdGF0dXNJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQASJ8ChlHZXRPQXV0aEdyYW50U3RhdHVzT3V0cHV0EhEKCWNvbm5lY3RlZBgBIAEoCBIfChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoAxIWCg50YXJnZXRfZW52X3ZhchgDIAEoCRITCgthdXRoX21ldGhvZBgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiggIKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkSFAoDb3JnGAMgASgJQge6SARyAhABGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAEiUAoZSW5pdGlhdGVPQXV0aENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIm0KGkluaXRpYXRlT0F1dGhDb25uZWN0T3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEg4KBnNjb3BlcxgDIAMoCRIVCg1wcm92aWRlcl9uYW1lGAQgASgJIncKGUNvbXBsZXRlT0F1dGhDb25uZWN0SW5wdXQSHQoNbWNwX3NlcnZlcl9pZBgBIAEoCUIGukgDyAEBEiMKEmF1dGhvcml6YXRpb25fY29kZRgCIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgDIAEoCUIHukgEcgIQASJkChpDb21wbGV0ZU9BdXRoQ29ubmVjdE91dHB1dBIRCgljb25uZWN0ZWQYASABKAgSFgoOdGFyZ2V0X2Vudl92YXIYAiABKAkSGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCSJNChhHZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEifAoZR2V0T0F1dGhHcmFudFN0YXR1c091dHB1dBIRCgljb25uZWN0ZWQYASABKAgSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAiABKAMSFgoOdGFyZ2V0X2Vudl92YXIYAyABKAkSEwoLYXV0aF9tZXRob2QYBCABKAliBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
 
 /**
  * McpServerId wraps an MCP server resource identifier.
@@ -65,8 +65,9 @@ export const McpServerIdSchema: GenMessage<McpServerId> = /*@__PURE__*/
  *
  * Prerequisites:
  * - The MCP server must exist and have a valid server_type (stdio or http)
+ * - org must be provided (the caller's active organization)
  * - Either runtime_env must contain all required keys, or the keys must be
- *   present in the user's personal environment
+ *   present in the user's personal environment / managed OAuth environment
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.ConnectInput
  */
@@ -86,6 +87,19 @@ export type ConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectInput
    * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
    */
   runtimeEnv: { [key: string]: ExecutionValue };
+
+  /**
+   * Organization context for credential resolution.
+   *
+   * Used to look up the caller's OAuthGrant and personal environment
+   * during environment variable resolution. Must match the org used
+   * during initiateOAuthConnect so the grant composite key aligns.
+   *
+   * Required: the backend rejects the request when this field is empty.
+   *
+   * @generated from field: string org = 3;
+   */
+  org: string;
 };
 
 /**

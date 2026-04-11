@@ -26,7 +26,7 @@ from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as ai_dot_stigmer_do
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"+\n\x0bMcpServerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x91\x02\n\x0c\x43onnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12^\n\x0bruntime_env\x18\x02 \x03(\x0b\x32=.ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntryR\nruntimeEnv\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\"b\n\x19InitiateOAuthConnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\x9c\x01\n\x1aInitiateOAuthConnectOutput\x12+\n\x11\x61uthorization_url\x18\x01 \x01(\tR\x10\x61uthorizationUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\x12\x16\n\x06scopes\x18\x03 \x03(\tR\x06scopes\x12#\n\rprovider_name\x18\x04 \x01(\tR\x0cproviderName\"\x9e\x01\n\x19\x43ompleteOAuthConnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12\x36\n\x12\x61uthorization_code\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x11\x61uthorizationCode\x12\x1d\n\x05state\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05state\"\x90\x01\n\x1a\x43ompleteOAuthConnectOutput\x12\x1c\n\tconnected\x18\x01 \x01(\x08R\tconnected\x12$\n\x0etarget_env_var\x18\x02 \x01(\tR\x0ctargetEnvVar\x12.\n\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\"^\n\x18GetOAuthGrantStatusInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\xb7\x01\n\x19GetOAuthGrantStatusOutput\x12\x1c\n\tconnected\x18\x01 \x01(\x08R\tconnected\x12\x35\n\x17\x61\x63\x63\x65ss_token_expires_at\x18\x02 \x01(\x03R\x14\x61\x63\x63\x65ssTokenExpiresAt\x12$\n\x0etarget_env_var\x18\x03 \x01(\tR\x0ctargetEnvVar\x12\x1f\n\x0b\x61uth_method\x18\x04 \x01(\tR\nauthMethodB\xcf\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"+\n\x0bMcpServerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xac\x02\n\x0c\x43onnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12^\n\x0bruntime_env\x18\x02 \x03(\x0b\x32=.ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntryR\nruntimeEnv\x12\x19\n\x03org\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\"b\n\x19InitiateOAuthConnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\x9c\x01\n\x1aInitiateOAuthConnectOutput\x12+\n\x11\x61uthorization_url\x18\x01 \x01(\tR\x10\x61uthorizationUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\x12\x16\n\x06scopes\x18\x03 \x03(\tR\x06scopes\x12#\n\rprovider_name\x18\x04 \x01(\tR\x0cproviderName\"\x9e\x01\n\x19\x43ompleteOAuthConnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12\x36\n\x12\x61uthorization_code\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x11\x61uthorizationCode\x12\x1d\n\x05state\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05state\"\x90\x01\n\x1a\x43ompleteOAuthConnectOutput\x12\x1c\n\tconnected\x18\x01 \x01(\x08R\tconnected\x12$\n\x0etarget_env_var\x18\x02 \x01(\tR\x0ctargetEnvVar\x12.\n\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\"^\n\x18GetOAuthGrantStatusInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\xb7\x01\n\x19GetOAuthGrantStatusOutput\x12\x1c\n\tconnected\x18\x01 \x01(\x08R\tconnected\x12\x35\n\x17\x61\x63\x63\x65ss_token_expires_at\x18\x02 \x01(\x03R\x14\x61\x63\x63\x65ssTokenExpiresAt\x12$\n\x0etarget_env_var\x18\x03 \x01(\tR\x0ctargetEnvVar\x12\x1f\n\x0b\x61uth_method\x18\x04 \x01(\tR\nauthMethodB\xcf\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,6 +40,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_options = b'8\001'
   _globals['_CONNECTINPUT'].fields_by_name['mcp_server_id']._loaded_options = None
   _globals['_CONNECTINPUT'].fields_by_name['mcp_server_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_CONNECTINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_CONNECTINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_INITIATEOAUTHCONNECTINPUT'].fields_by_name['mcp_server_id']._loaded_options = None
   _globals['_INITIATEOAUTHCONNECTINPUT'].fields_by_name['mcp_server_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_INITIATEOAUTHCONNECTINPUT'].fields_by_name['org']._loaded_options = None
@@ -57,19 +59,19 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_MCPSERVERID']._serialized_start=157
   _globals['_MCPSERVERID']._serialized_end=200
   _globals['_CONNECTINPUT']._serialized_start=203
-  _globals['_CONNECTINPUT']._serialized_end=476
-  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_start=359
-  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_end=476
-  _globals['_INITIATEOAUTHCONNECTINPUT']._serialized_start=478
-  _globals['_INITIATEOAUTHCONNECTINPUT']._serialized_end=576
-  _globals['_INITIATEOAUTHCONNECTOUTPUT']._serialized_start=579
-  _globals['_INITIATEOAUTHCONNECTOUTPUT']._serialized_end=735
-  _globals['_COMPLETEOAUTHCONNECTINPUT']._serialized_start=738
-  _globals['_COMPLETEOAUTHCONNECTINPUT']._serialized_end=896
-  _globals['_COMPLETEOAUTHCONNECTOUTPUT']._serialized_start=899
-  _globals['_COMPLETEOAUTHCONNECTOUTPUT']._serialized_end=1043
-  _globals['_GETOAUTHGRANTSTATUSINPUT']._serialized_start=1045
-  _globals['_GETOAUTHGRANTSTATUSINPUT']._serialized_end=1139
-  _globals['_GETOAUTHGRANTSTATUSOUTPUT']._serialized_start=1142
-  _globals['_GETOAUTHGRANTSTATUSOUTPUT']._serialized_end=1325
+  _globals['_CONNECTINPUT']._serialized_end=503
+  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_start=386
+  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_end=503
+  _globals['_INITIATEOAUTHCONNECTINPUT']._serialized_start=505
+  _globals['_INITIATEOAUTHCONNECTINPUT']._serialized_end=603
+  _globals['_INITIATEOAUTHCONNECTOUTPUT']._serialized_start=606
+  _globals['_INITIATEOAUTHCONNECTOUTPUT']._serialized_end=762
+  _globals['_COMPLETEOAUTHCONNECTINPUT']._serialized_start=765
+  _globals['_COMPLETEOAUTHCONNECTINPUT']._serialized_end=923
+  _globals['_COMPLETEOAUTHCONNECTOUTPUT']._serialized_start=926
+  _globals['_COMPLETEOAUTHCONNECTOUTPUT']._serialized_end=1070
+  _globals['_GETOAUTHGRANTSTATUSINPUT']._serialized_start=1072
+  _globals['_GETOAUTHGRANTSTATUSINPUT']._serialized_end=1166
+  _globals['_GETOAUTHGRANTSTATUSOUTPUT']._serialized_start=1169
+  _globals['_GETOAUTHGRANTSTATUSOUTPUT']._serialized_end=1352
 # @@protoc_insertion_point(module_scope)

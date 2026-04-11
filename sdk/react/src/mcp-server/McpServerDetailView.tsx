@@ -165,7 +165,7 @@ export function McpServerDetailView({
 
     const envKeys = Object.keys(mcpServer.spec?.env ?? {});
     try {
-      await connection.connect(mcpServer.metadata.id, undefined, envKeys);
+      await connection.connect(mcpServer.metadata.id, activeOrg ?? org, undefined, envKeys);
       refetch();
     } catch {
       // error state is managed by the hook
@@ -187,10 +187,11 @@ export function McpServerDetailView({
 
         if (mcpServer?.metadata?.id) {
           const envKeys = Object.keys(mcpServer.spec?.env ?? {});
+          const connectOrg = activeOrg ?? org;
           if (options.saveForFuture) {
-            await connection.connect(mcpServer.metadata.id, undefined, envKeys);
+            await connection.connect(mcpServer.metadata.id, connectOrg, undefined, envKeys);
           } else {
-            await connection.connect(mcpServer.metadata.id, values, envKeys);
+            await connection.connect(mcpServer.metadata.id, connectOrg, values, envKeys);
           }
           refetch();
         }

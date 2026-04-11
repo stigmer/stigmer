@@ -39,8 +39,9 @@ message McpServerId {
 //
 // Prerequisites:
 // - The MCP server must exist and have a valid server_type (stdio or http)
+// - org must be provided (the caller's active organization)
 // - Either runtime_env must contain all required keys, or the keys must be
-//   present in the user's personal environment
+//   present in the user's personal environment / managed OAuth environment
 message ConnectInput {
   // System-generated ID of the MCP server to connect to.
   // Obtained from McpServer.metadata.id (e.g., via getByReference).
@@ -49,6 +50,15 @@ message ConnectInput {
   // Optional environment variable values for one-time use.
   // When empty, values are resolved from the user's personal environment.
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
+
+  // Organization context for credential resolution.
+  //
+  // Used to look up the caller's OAuthGrant and personal environment
+  // during environment variable resolution. Must match the org used
+  // during initiateOAuthConnect so the grant composite key aligns.
+  //
+  // Required: the backend rejects the request when this field is empty.
+  string org = 3 [(buf.validate.field).string.min_len = 1];
 }
 
 // InitiateOAuthConnectInput starts the OAuth authorization flow for an

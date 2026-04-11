@@ -633,6 +633,7 @@ Connects to the MCP server, enumerates tools and resource templates, classifies 
 const mcpServer = await stigmer.mcpServer.connect({
   mcpServerId: "...",
   runtimeEnv: {},
+  org: "...",
 });
 ```
 </Tab>
@@ -641,6 +642,7 @@ const mcpServer = await stigmer.mcpServer.connect({
 mcpServer, err := client.McpServer.Connect(ctx, &stigmer.ConnectInput{
   McpServerId: "...",
   RuntimeEnv:  map[string]string{},
+  Org:         "...",
 })
 ```
 </Tab>
@@ -649,6 +651,7 @@ mcpServer, err := client.McpServer.Connect(ctx, &stigmer.ConnectInput{
 mcp_server = client.mcp_servers.connect(ConnectInput(
     mcp_server_id="...",
     runtime_env={},
+    org="...",
 ))
 ```
 </Tab>
@@ -657,6 +660,7 @@ mcp_server = client.mcp_servers.connect(ConnectInput(
 McpServer mcpServer = client.mcpServers().connect(ConnectInput.builder()
     .mcpServerId("...")
     .runtimeEnv(Map.of())
+    .org("...")
     .build());
 ```
 </Tab>
@@ -829,6 +833,7 @@ ConnectInput is the request for the connect RPC.
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to connect to.", required: true },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use." },
+    org: { type: "string", description: "Organization context for credential resolution." },
   }}
 />
 

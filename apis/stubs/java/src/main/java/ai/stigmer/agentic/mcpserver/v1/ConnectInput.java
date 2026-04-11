@@ -31,8 +31,9 @@ package ai.stigmer.agentic.mcpserver.v1;
  *
  * Prerequisites:
  * - The MCP server must exist and have a valid server_type (stdio or http)
+ * - org must be provided (the caller's active organization)
  * - Either runtime_env must contain all required keys, or the keys must be
- * present in the user's personal environment
+ * present in the user's personal environment / managed OAuth environment
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectInput}
@@ -58,6 +59,7 @@ private static final long serialVersionUID = 0L;
   }
   private ConnectInput() {
     mcpServerId_ = "";
+    org_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -238,6 +240,65 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     return map.get(key);
   }
 
+  public static final int ORG_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object org_ = "";
+  /**
+   * <pre>
+   * Organization context for credential resolution.
+   *
+   * Used to look up the caller's OAuthGrant and personal environment
+   * during environment variable resolution. Must match the org used
+   * during initiateOAuthConnect so the grant composite key aligns.
+   *
+   * Required: the backend rejects the request when this field is empty.
+   * </pre>
+   *
+   * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
+   */
+  @java.lang.Override
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      org_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Organization context for credential resolution.
+   *
+   * Used to look up the caller's OAuthGrant and personal environment
+   * during environment variable resolution. Must match the org used
+   * during initiateOAuthConnect so the grant composite key aligns.
+   *
+   * Required: the backend rejects the request when this field is empty.
+   * </pre>
+   *
+   * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOrgBytes() {
+    java.lang.Object ref = org_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      org_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -261,6 +322,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         internalGetRuntimeEnv(),
         RuntimeEnvDefaultEntryHolder.defaultEntry,
         2);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, org_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -283,6 +347,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, runtimeEnv__);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, org_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -302,6 +369,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         .equals(other.getMcpServerId())) return false;
     if (!internalGetRuntimeEnv().equals(
         other.internalGetRuntimeEnv())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -319,6 +388,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       hash = (37 * hash) + RUNTIME_ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetRuntimeEnv().hashCode();
     }
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -442,8 +513,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    *
    * Prerequisites:
    * - The MCP server must exist and have a valid server_type (stdio or http)
+   * - org must be provided (the caller's active organization)
    * - Either runtime_env must contain all required keys, or the keys must be
-   * present in the user's personal environment
+   * present in the user's personal environment / managed OAuth environment
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectInput}
@@ -503,6 +575,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       bitField0_ = 0;
       mcpServerId_ = "";
       internalGetMutableRuntimeEnv().clear();
+      org_ = "";
       return this;
     }
 
@@ -542,6 +615,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.org_ = org_;
+      }
     }
 
     @java.lang.Override
@@ -564,6 +640,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       internalGetMutableRuntimeEnv().mergeFrom(
           other.internalGetRuntimeEnv());
       bitField0_ |= 0x00000002;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -604,6 +685,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 26: {
+              org_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -911,6 +997,128 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) entry;
+    }
+
+    private java.lang.Object org_ = "";
+    /**
+     * <pre>
+     * Organization context for credential resolution.
+     *
+     * Used to look up the caller's OAuthGrant and personal environment
+     * during environment variable resolution. Must match the org used
+     * during initiateOAuthConnect so the grant composite key aligns.
+     *
+     * Required: the backend rejects the request when this field is empty.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return The org.
+     */
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        org_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization context for credential resolution.
+     *
+     * Used to look up the caller's OAuthGrant and personal environment
+     * during environment variable resolution. Must match the org used
+     * during initiateOAuthConnect so the grant composite key aligns.
+     *
+     * Required: the backend rejects the request when this field is empty.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for org.
+     */
+    public com.google.protobuf.ByteString
+        getOrgBytes() {
+      java.lang.Object ref = org_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        org_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization context for credential resolution.
+     *
+     * Used to look up the caller's OAuthGrant and personal environment
+     * during environment variable resolution. Must match the org used
+     * during initiateOAuthConnect so the grant composite key aligns.
+     *
+     * Required: the backend rejects the request when this field is empty.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @param value The org to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrg(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      org_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization context for credential resolution.
+     *
+     * Used to look up the caller's OAuthGrant and personal environment
+     * during environment variable resolution. Must match the org used
+     * during initiateOAuthConnect so the grant composite key aligns.
+     *
+     * Required: the backend rejects the request when this field is empty.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization context for credential resolution.
+     *
+     * Used to look up the caller's OAuthGrant and personal environment
+     * during environment variable resolution. Must match the org used
+     * during initiateOAuthConnect so the grant composite key aligns.
+     *
+     * Required: the backend rejects the request when this field is empty.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for org to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      org_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.ConnectInput)

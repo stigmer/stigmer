@@ -144,7 +144,7 @@
     },
     {
       "name": "ConnectInput",
-      "description": "ConnectInput is the request for the connect RPC.\n\n @internal\n Triggers server-side MCP discovery and tool approval classification:\n the backend creates an ephemeral ExecutionContext with the resolved\n environment variables, starts a Temporal workflow that connects to the\n MCP server (via the agent-runner), enumerates tools and resource\n templates, classifies tool approval policies, and stores the results\n in status.discovered_capabilities and status.tool_approvals.\n\n Environment variable resolution:\n - When runtime_env is provided, the backend creates an ExecutionContext directly\n   from these values (one-time use, values are not persisted to any environment).\n - When runtime_env is empty, the backend resolves values from the authenticated\n   user's personal environment.\n\n Callers:\n - Web console: calls connect after saving credentials to personal environment.\n - CLI: calls connect with runtime_env populated from local env vars.\n - Graphton backfill: calls connect with runtime_env from execution context\n   when status.discovered_capabilities is empty on first agent execution.\n\n Prerequisites:\n - The MCP server must exist and have a valid server_type (stdio or http)\n - Either runtime_env must contain all required keys, or the keys must be\n   present in the user's personal environment",
+      "description": "ConnectInput is the request for the connect RPC.\n\n @internal\n Triggers server-side MCP discovery and tool approval classification:\n the backend creates an ephemeral ExecutionContext with the resolved\n environment variables, starts a Temporal workflow that connects to the\n MCP server (via the agent-runner), enumerates tools and resource\n templates, classifies tool approval policies, and stores the results\n in status.discovered_capabilities and status.tool_approvals.\n\n Environment variable resolution:\n - When runtime_env is provided, the backend creates an ExecutionContext directly\n   from these values (one-time use, values are not persisted to any environment).\n - When runtime_env is empty, the backend resolves values from the authenticated\n   user's personal environment.\n\n Callers:\n - Web console: calls connect after saving credentials to personal environment.\n - CLI: calls connect with runtime_env populated from local env vars.\n - Graphton backfill: calls connect with runtime_env from execution context\n   when status.discovered_capabilities is empty on first agent execution.\n\n Prerequisites:\n - The MCP server must exist and have a valid server_type (stdio or http)\n - org must be provided (the caller's active organization)\n - Either runtime_env must contain all required keys, or the keys must be\n   present in the user's personal environment / managed OAuth environment",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
       "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
       "fields": [
@@ -177,6 +177,19 @@
           },
           "description": "Optional environment variable values for one-time use.\n When empty, values are resolved from the user's personal environment.",
           "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization context for credential resolution.\n\n Used to look up the caller's OAuthGrant and personal environment\n during environment variable resolution. Must match the org used\n during initiateOAuthConnect so the grant composite key aligns.\n\n Required: the backend rejects the request when this field is empty.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
         }
       ]
     },

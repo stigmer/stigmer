@@ -194,6 +194,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
         const input = create(ConnectInputSchema, {
           mcpServerId,
+          org,
           ...(Object.keys(runtimeEnvMap).length > 0
             ? { runtimeEnv: runtimeEnvMap }
             : {}),

@@ -90,4 +90,36 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    */
   ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
       java.lang.String key);
+
+  /**
+   * <pre>
+   * Organization context for credential resolution.
+   *
+   * Used to look up the caller's OAuthGrant and personal environment
+   * during environment variable resolution. Must match the org used
+   * during initiateOAuthConnect so the grant composite key aligns.
+   *
+   * Required: the backend rejects the request when this field is empty.
+   * </pre>
+   *
+   * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
+   */
+  java.lang.String getOrg();
+  /**
+   * <pre>
+   * Organization context for credential resolution.
+   *
+   * Used to look up the caller's OAuthGrant and personal environment
+   * during environment variable resolution. Must match the org used
+   * during initiateOAuthConnect so the grant composite key aligns.
+   *
+   * Required: the backend rejects the request when this field is empty.
+   * </pre>
+   *
+   * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
+   */
+  com.google.protobuf.ByteString
+      getOrgBytes();
 }
