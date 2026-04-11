@@ -84,6 +84,7 @@ export interface OAuthAppInput {
   tokenUrl?: string;
   scopes?: string[];
   userinfoUrl?: string;
+  scopeParameterName?: string;
 }
 
 function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
@@ -104,6 +105,7 @@ function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
       tokenUrl: input.tokenUrl,
       scopes: input.scopes,
       userinfoUrl: input.userinfoUrl,
+      scopeParameterName: input.scopeParameterName,
     })),
   }) as OAuthApp;
 }

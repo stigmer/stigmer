@@ -260,6 +260,7 @@ go_library(
         "skills/webapp-testing/examples/static_html_automation.py",
         "skills/webapp-testing/provenance.json",
         "skills/webapp-testing/scripts/with_server.py",
+        "agents/slack-agent.yaml",
     ],
     importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],

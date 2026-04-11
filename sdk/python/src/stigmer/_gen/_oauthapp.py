@@ -86,6 +86,7 @@ class OAuthAppInput:
     token_url: str = ""
     scopes: list[str] = field(default_factory=list)
     userinfo_url: str = ""
+    scope_parameter_name: str = ""
 
     def _to_proto(self) -> api_pb2.OAuthApp:
         spec = spec_pb2.OAuthAppSpec(
@@ -95,6 +96,7 @@ class OAuthAppInput:
             authorization_url=self.authorization_url,
             token_url=self.token_url,
             userinfo_url=self.userinfo_url,
+            scope_parameter_name=self.scope_parameter_name,
         )
         if self.scopes:
             spec.scopes.extend(self.scopes)

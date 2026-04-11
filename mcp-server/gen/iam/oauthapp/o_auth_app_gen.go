@@ -45,6 +45,7 @@ import (
 //	    authorization_url: "https://slack.com/oauth/v2/authorize"
 //	    token_url: "https://slack.com/api/oauth.v2.access"
 //	    scopes: ["channels:read", "chat:write"]
+//	    scope_parameter_name: "user_scope"
 type OAuthAppInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -73,6 +74,8 @@ type OAuthAppInput struct {
 	Scopes []string `json:"scopes,omitempty" jsonschema:"OAuth scopes to request during the authorization flow. Scope values are vendor-specific. Examples: ['channels:read', 'chat:write'] (Slack), ['read_api', 'api'] (GitLab)"`
 	// Optional OIDC UserInfo endpoint for fetching user profile data. When set, Stigmer calls this endpoint after token acquisition to retrieve the user's display name and avatar for the connected account. Omit for vendors that do not support a standard userinfo endpoint.
 	UserinfoUrl string `json:"userinfo_url,omitempty" jsonschema:"Optional OIDC UserInfo endpoint for fetching user profile data. When set, Stigmer calls this endpoint after token acquisition to retrieve the user's display name and avatar for the connected account. Omit for vendors that do not support a standard userinfo endpoint."`
+	// Name of the query parameter used to send scopes in the authorization URL. Most OAuth providers use the standard "scope" parameter. Some vendors use a non-standard name — for example, Slack's V2 OAuth API requires user token scopes to be sent as "user_scope" instead of "scope". When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+	ScopeParameterName string `json:"scope_parameter_name,omitempty" jsonschema:"Name of the query parameter used to send scopes in the authorization URL. Most OAuth providers use the standard 'scope' parameter. Some vendors use a non-standard name — for example, Slack's V2 OAuth API requires user token scopes to be sent as 'user_scope' instead of 'scope'. When empty, defaults to 'scope' (standard OAuth 2.0 behavior)."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed OAuthApp proto message.
@@ -112,5 +115,6 @@ func (input *OAuthAppInput) specToProto() (*oauthappv1.OAuthAppSpec, error) {
 	spec.TokenUrl = input.TokenUrl
 	spec.Scopes = input.Scopes
 	spec.UserinfoUrl = input.UserinfoUrl
+	spec.ScopeParameterName = input.ScopeParameterName
 	return spec, nil
 }

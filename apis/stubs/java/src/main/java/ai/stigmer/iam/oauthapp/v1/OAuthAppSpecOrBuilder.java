@@ -200,4 +200,36 @@ public interface OAuthAppSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getUserinfoUrlBytes();
+
+  /**
+   * <pre>
+   * Name of the query parameter used to send scopes in the authorization URL.
+   *
+   * Most OAuth providers use the standard "scope" parameter. Some vendors
+   * use a non-standard name — for example, Slack's V2 OAuth API requires
+   * user token scopes to be sent as "user_scope" instead of "scope".
+   *
+   * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+   * </pre>
+   *
+   * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+   * @return The scopeParameterName.
+   */
+  java.lang.String getScopeParameterName();
+  /**
+   * <pre>
+   * Name of the query parameter used to send scopes in the authorization URL.
+   *
+   * Most OAuth providers use the standard "scope" parameter. Some vendors
+   * use a non-standard name — for example, Slack's V2 OAuth API requires
+   * user token scopes to be sent as "user_scope" instead of "scope".
+   *
+   * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+   * </pre>
+   *
+   * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+   * @return The bytes for scopeParameterName.
+   */
+  com.google.protobuf.ByteString
+      getScopeParameterNameBytes();
 }
