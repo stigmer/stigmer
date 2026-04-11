@@ -5,6 +5,7 @@ package gen
 import (
 	"context"
 
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -192,7 +193,7 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 	}
 	resource.Spec.DefaultEnabledTools = i.DefaultEnabledTools
 	if len(i.Env) > 0 {
-		resource.Spec.Env = make(map[string]*mcpserverv1.EnvVarDeclaration, len(i.Env))
+		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}
