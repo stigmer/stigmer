@@ -208,6 +208,68 @@ public final class McpServerCommandControllerGrpc {
     return getConnectMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput,
+      ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput> getInitiateOAuthConnectMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "initiateOAuthConnect",
+      requestType = ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput.class,
+      responseType = ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput,
+      ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput> getInitiateOAuthConnectMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput, ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput> getInitiateOAuthConnectMethod;
+    if ((getInitiateOAuthConnectMethod = McpServerCommandControllerGrpc.getInitiateOAuthConnectMethod) == null) {
+      synchronized (McpServerCommandControllerGrpc.class) {
+        if ((getInitiateOAuthConnectMethod = McpServerCommandControllerGrpc.getInitiateOAuthConnectMethod) == null) {
+          McpServerCommandControllerGrpc.getInitiateOAuthConnectMethod = getInitiateOAuthConnectMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput, ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "initiateOAuthConnect"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("initiateOAuthConnect"))
+              .build();
+        }
+      }
+    }
+    return getInitiateOAuthConnectMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput,
+      ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput> getCompleteOAuthConnectMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "completeOAuthConnect",
+      requestType = ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput.class,
+      responseType = ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput,
+      ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput> getCompleteOAuthConnectMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput, ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput> getCompleteOAuthConnectMethod;
+    if ((getCompleteOAuthConnectMethod = McpServerCommandControllerGrpc.getCompleteOAuthConnectMethod) == null) {
+      synchronized (McpServerCommandControllerGrpc.class) {
+        if ((getCompleteOAuthConnectMethod = McpServerCommandControllerGrpc.getCompleteOAuthConnectMethod) == null) {
+          McpServerCommandControllerGrpc.getCompleteOAuthConnectMethod = getCompleteOAuthConnectMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput, ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "completeOAuthConnect"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("completeOAuthConnect"))
+              .build();
+        }
+      }
+    }
+    return getCompleteOAuthConnectMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -391,6 +453,56 @@ public final class McpServerCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getConnectMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Start the OAuth authorization flow for an MCP server.
+     * Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+     * generation) and returns an authorization URL for the frontend to
+     * redirect the user to. The frontend calls completeOAuthConnect after
+     * the user authorizes.
+     * &#64;internal
+     * Two auth modes determined by the MCP server's spec.auth block:
+     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+     *   discovers the authorization server, registers a client via DCR,
+     *   and builds the auth URL automatically.
+     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+     *   OAuthApp for client credentials and endpoint URLs.
+     * Errors:
+     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+     *   without oauth_app_ref (DCR requires HTTP transport)
+     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    default void initiateOAuthConnect(ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getInitiateOAuthConnectMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Complete the OAuth authorization flow by exchanging the authorization
+     * code for tokens.
+     * Called by the frontend after the user is redirected back from the
+     * OAuth authorization server. Exchanges the code for tokens, stores
+     * them in the user's personal environment, and creates an OAuthGrant
+     * record for pre-flight expiry checks.
+     * After success, the frontend should call connect() to trigger tool
+     * discovery using the freshly acquired token.
+     * &#64;internal
+     * Errors:
+     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+     *   not match the mcp_server_id
+     * - UNAVAILABLE: Token exchange with the authorization server failed
+     * - NOT_FOUND: No pending OAuth state found for the given state param
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    default void completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCompleteOAuthConnectMethod(), responseObserver);
+    }
   }
 
   /**
@@ -556,6 +668,58 @@ public final class McpServerCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getConnectMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Start the OAuth authorization flow for an MCP server.
+     * Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+     * generation) and returns an authorization URL for the frontend to
+     * redirect the user to. The frontend calls completeOAuthConnect after
+     * the user authorizes.
+     * &#64;internal
+     * Two auth modes determined by the MCP server's spec.auth block:
+     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+     *   discovers the authorization server, registers a client via DCR,
+     *   and builds the auth URL automatically.
+     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+     *   OAuthApp for client credentials and endpoint URLs.
+     * Errors:
+     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+     *   without oauth_app_ref (DCR requires HTTP transport)
+     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public void initiateOAuthConnect(ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getInitiateOAuthConnectMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Complete the OAuth authorization flow by exchanging the authorization
+     * code for tokens.
+     * Called by the frontend after the user is redirected back from the
+     * OAuth authorization server. Exchanges the code for tokens, stores
+     * them in the user's personal environment, and creates an OAuthGrant
+     * record for pre-flight expiry checks.
+     * After success, the frontend should call connect() to trigger tool
+     * discovery using the freshly acquired token.
+     * &#64;internal
+     * Errors:
+     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+     *   not match the mcp_server_id
+     * - UNAVAILABLE: Token exchange with the authorization server failed
+     * - NOT_FOUND: No pending OAuth state found for the given state param
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public void completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCompleteOAuthConnectMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -694,6 +858,56 @@ public final class McpServerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getConnectMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Start the OAuth authorization flow for an MCP server.
+     * Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+     * generation) and returns an authorization URL for the frontend to
+     * redirect the user to. The frontend calls completeOAuthConnect after
+     * the user authorizes.
+     * &#64;internal
+     * Two auth modes determined by the MCP server's spec.auth block:
+     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+     *   discovers the authorization server, registers a client via DCR,
+     *   and builds the auth URL automatically.
+     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+     *   OAuthApp for client credentials and endpoint URLs.
+     * Errors:
+     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+     *   without oauth_app_ref (DCR requires HTTP transport)
+     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput initiateOAuthConnect(ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getInitiateOAuthConnectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Complete the OAuth authorization flow by exchanging the authorization
+     * code for tokens.
+     * Called by the frontend after the user is redirected back from the
+     * OAuth authorization server. Exchanges the code for tokens, stores
+     * them in the user's personal environment, and creates an OAuthGrant
+     * record for pre-flight expiry checks.
+     * After success, the frontend should call connect() to trigger tool
+     * discovery using the freshly acquired token.
+     * &#64;internal
+     * Errors:
+     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+     *   not match the mcp_server_id
+     * - UNAVAILABLE: Token exchange with the authorization server failed
+     * - NOT_FOUND: No pending OAuth state found for the given state param
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCompleteOAuthConnectMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -831,6 +1045,56 @@ public final class McpServerCommandControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.McpServer connect(ai.stigmer.agentic.mcpserver.v1.ConnectInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getConnectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Start the OAuth authorization flow for an MCP server.
+     * Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+     * generation) and returns an authorization URL for the frontend to
+     * redirect the user to. The frontend calls completeOAuthConnect after
+     * the user authorizes.
+     * &#64;internal
+     * Two auth modes determined by the MCP server's spec.auth block:
+     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+     *   discovers the authorization server, registers a client via DCR,
+     *   and builds the auth URL automatically.
+     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+     *   OAuthApp for client credentials and endpoint URLs.
+     * Errors:
+     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+     *   without oauth_app_ref (DCR requires HTTP transport)
+     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput initiateOAuthConnect(ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getInitiateOAuthConnectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Complete the OAuth authorization flow by exchanging the authorization
+     * code for tokens.
+     * Called by the frontend after the user is redirected back from the
+     * OAuth authorization server. Exchanges the code for tokens, stores
+     * them in the user's personal environment, and creates an OAuthGrant
+     * record for pre-flight expiry checks.
+     * After success, the frontend should call connect() to trigger tool
+     * discovery using the freshly acquired token.
+     * &#64;internal
+     * Errors:
+     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+     *   not match the mcp_server_id
+     * - UNAVAILABLE: Token exchange with the authorization server failed
+     * - NOT_FOUND: No pending OAuth state found for the given state param
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCompleteOAuthConnectMethod(), getCallOptions(), request);
     }
   }
 
@@ -976,6 +1240,58 @@ public final class McpServerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getConnectMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Start the OAuth authorization flow for an MCP server.
+     * Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+     * generation) and returns an authorization URL for the frontend to
+     * redirect the user to. The frontend calls completeOAuthConnect after
+     * the user authorizes.
+     * &#64;internal
+     * Two auth modes determined by the MCP server's spec.auth block:
+     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+     *   discovers the authorization server, registers a client via DCR,
+     *   and builds the auth URL automatically.
+     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+     *   OAuthApp for client credentials and endpoint URLs.
+     * Errors:
+     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+     *   without oauth_app_ref (DCR requires HTTP transport)
+     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput> initiateOAuthConnect(
+        ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getInitiateOAuthConnectMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Complete the OAuth authorization flow by exchanging the authorization
+     * code for tokens.
+     * Called by the frontend after the user is redirected back from the
+     * OAuth authorization server. Exchanges the code for tokens, stores
+     * them in the user's personal environment, and creates an OAuthGrant
+     * record for pre-flight expiry checks.
+     * After success, the frontend should call connect() to trigger tool
+     * discovery using the freshly acquired token.
+     * &#64;internal
+     * Errors:
+     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+     *   not match the mcp_server_id
+     * - UNAVAILABLE: Token exchange with the authorization server failed
+     * - NOT_FOUND: No pending OAuth state found for the given state param
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput> completeOAuthConnect(
+        ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCompleteOAuthConnectMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -984,6 +1300,8 @@ public final class McpServerCommandControllerGrpc {
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_UPDATE_VISIBILITY = 4;
   private static final int METHODID_CONNECT = 5;
+  private static final int METHODID_INITIATE_OAUTH_CONNECT = 6;
+  private static final int METHODID_COMPLETE_OAUTH_CONNECT = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1025,6 +1343,14 @@ public final class McpServerCommandControllerGrpc {
         case METHODID_CONNECT:
           serviceImpl.connect((ai.stigmer.agentic.mcpserver.v1.ConnectInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer>) responseObserver);
+          break;
+        case METHODID_INITIATE_OAUTH_CONNECT:
+          serviceImpl.initiateOAuthConnect((ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput>) responseObserver);
+          break;
+        case METHODID_COMPLETE_OAUTH_CONNECT:
+          serviceImpl.completeOAuthConnect((ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1086,6 +1412,20 @@ public final class McpServerCommandControllerGrpc {
               ai.stigmer.agentic.mcpserver.v1.ConnectInput,
               ai.stigmer.agentic.mcpserver.v1.McpServer>(
                 service, METHODID_CONNECT)))
+        .addMethod(
+          getInitiateOAuthConnectMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput,
+              ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput>(
+                service, METHODID_INITIATE_OAUTH_CONNECT)))
+        .addMethod(
+          getCompleteOAuthConnectMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput,
+              ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>(
+                service, METHODID_COMPLETE_OAUTH_CONNECT)))
         .build();
   }
 
@@ -1140,6 +1480,8 @@ public final class McpServerCommandControllerGrpc {
               .addMethod(getDeleteMethod())
               .addMethod(getUpdateVisibilityMethod())
               .addMethod(getConnectMethod())
+              .addMethod(getInitiateOAuthConnectMethod())
+              .addMethod(getCompleteOAuthConnectMethod())
               .build();
         }
       }

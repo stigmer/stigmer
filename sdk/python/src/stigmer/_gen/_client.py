@@ -15,6 +15,7 @@ from ._identityaccount import IdentityAccountClient
 from ._identityprovider import IdentityProviderClient
 from ._invitation import InvitationClient
 from ._mcpserver import McpServerClient
+from ._oauthapp import OAuthAppClient
 from ._organization import OrganizationClient
 from ._project import ProjectClient
 from ._session import SessionClient
@@ -39,6 +40,7 @@ class GeneratedClient:
         self.identity_providers = IdentityProviderClient(channel)
         self.invitations = InvitationClient(channel)
         self.mcp_servers = McpServerClient(channel)
+        self.oauthapps = OAuthAppClient(channel)
         self.organizations = OrganizationClient(channel)
         self.projects = ProjectClient(channel)
         self.sessions = SessionClient(channel)

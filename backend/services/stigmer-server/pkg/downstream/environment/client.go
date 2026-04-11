@@ -34,16 +34,18 @@ import (
 // with a network gRPC connection pointing to the environment service endpoint.
 // No changes to this client code are needed - just the connection configuration.
 type Client struct {
-	conn        *grpc.ClientConn
-	queryClient environmentv1.EnvironmentQueryControllerClient
+	conn          *grpc.ClientConn
+	queryClient   environmentv1.EnvironmentQueryControllerClient
+	commandClient environmentv1.EnvironmentCommandControllerClient
 }
 
 // NewClient creates a new in-process Environment client using a gRPC connection.
 // The connection should be an in-process gRPC connection created via NewInProcessConnection.
 func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{
-		conn:        conn,
-		queryClient: environmentv1.NewEnvironmentQueryControllerClient(conn),
+		conn:          conn,
+		queryClient:   environmentv1.NewEnvironmentQueryControllerClient(conn),
+		commandClient: environmentv1.NewEnvironmentCommandControllerClient(conn),
 	}
 }
 
@@ -139,6 +141,36 @@ func (c *Client) GetSecretValue(ctx context.Context, input *environmentv1.Enviro
 		Msg("Successfully retrieved secret value")
 
 	return val, nil
+}
+
+// UpdateVariables adds or updates specific variables in an environment.
+// Existing keys not in the variables map are left unchanged.
+//
+// This makes an in-process gRPC call to EnvironmentCommandController.UpdateVariables()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: Storing OAuth access tokens and refresh tokens in the user's
+// personal environment after a successful OAuth code exchange.
+func (c *Client) UpdateVariables(ctx context.Context, req *environmentv1.UpdateEnvironmentVariablesRequest) (*environmentv1.Environment, error) {
+	log.Debug().
+		Str("environment_id", req.GetEnvironmentId()).
+		Int("variable_count", len(req.GetVariables())).
+		Msg("Updating environment variables via in-process gRPC")
+
+	env, err := c.commandClient.UpdateVariables(ctx, req)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("environment_id", req.GetEnvironmentId()).
+			Msg("Failed to update environment variables")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("environment_id", req.GetEnvironmentId()).
+		Msg("Successfully updated environment variables")
+
+	return env, nil
 }
 
 // Close closes the underlying gRPC connection.

@@ -1024,7 +1024,7 @@ func generateJavaMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefiniti
 
 	case isApiResRefIn:
 		imports.add("ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind")
-		kindConst := pascalToSnake(cfg.protoResType)
+		kindConst := cfg.resourceKind
 		fmt.Fprintf(buf, "    public %s %s(ResourceRef ref) {\n", outputType, methodName)
 		fmt.Fprintf(buf, "        try {\n")
 		fmt.Fprintf(buf, "            %s%s.%s(ref.toProto().toBuilder().setKind(ApiResourceKind.%s).build());\n", returnKw, role, javaMethodLower(m.Name), kindConst)
@@ -1075,7 +1075,7 @@ func generateJavaStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *Servic
 // =========================================================================
 
 func generateJavaSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig) {
-	kindConst := pascalToSnake(cfg.protoResType)
+	kindConst := cfg.resourceKind
 
 	buf.WriteString("    public ListResult list(ListParams params) {\n")
 	buf.WriteString("        try {\n")

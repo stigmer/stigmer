@@ -15,5 +15,6 @@ export const CLOUD_ONLY_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.api_key,
   ApiResourceKind.invitation,
   ApiResourceKind.identity_provider,
+  ApiResourceKind.oauth_app,
   ApiResourceKind.platform,
 ]);

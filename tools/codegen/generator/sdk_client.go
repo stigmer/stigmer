@@ -81,6 +81,7 @@ type sdkResourceConfig struct {
 	specSchema   string
 	apiVersion   string
 	idPrefix     string
+	resourceKind string
 }
 
 // metaFieldNames are fields that always come from ApiResourceMetadata.
@@ -228,8 +229,27 @@ func deriveResourceConfig(schema *ServiceSchemaFile, schemaDir string) sdkResour
 	}
 
 	cfg.apiVersion = deriveApiVersion(schema.Package)
+	cfg.resourceKind = resolveResourceKind(schema)
 
 	return cfg
+}
+
+// resolveResourceKind finds the ApiResourceKind enum value name that matches
+// the schema's resource identifier. It matches by stripping underscores from
+// the enum value and comparing against schema.Resource (e.g., enum "oauth_app"
+// → "oauthapp" matches resource "oauthapp"). Falls back to pascalToSnake for
+// schemas that don't embed the ApiResourceKind enum.
+func resolveResourceKind(schema *ServiceSchemaFile) string {
+	for _, e := range schema.EnumTypes {
+		if e.Name == "ApiResourceKind" {
+			for _, v := range e.Values {
+				if strings.ReplaceAll(v.Name, "_", "") == schema.Resource {
+					return v.Name
+				}
+			}
+		}
+	}
+	return pascalToSnake(schema.Resource)
 }
 
 // deriveApiVersion derives the API version string from the proto package.
@@ -546,7 +566,7 @@ func generateMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, 
 		buf.WriteString("\t})\n\treturn resp, wrapErr(err)\n}\n\n")
 
 	case isApiResRefInput:
-		kindConst := "apiresourcekind.ApiResourceKind_" + pascalToSnake(cfg.protoResType)
+		kindConst := "apiresourcekind.ApiResourceKind_" + cfg.resourceKind
 		fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, ref ResourceRef) (*%s.%s, error) {\n",
 			receiver, cfg.clientName, m.Name, outputPkg, outputType)
 		fmt.Fprintf(buf, "\tref.Kind = %s\n", kindConst)
@@ -593,7 +613,7 @@ func generateStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDef
 
 func generateSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig) {
 	receiver := strings.ToLower(cfg.clientName[:1])
-	kindConst := "apiresourcekind.ApiResourceKind_" + pascalToSnake(cfg.protoResType)
+	kindConst := "apiresourcekind.ApiResourceKind_" + cfg.resourceKind
 
 	fmt.Fprintf(buf, "func (%s *%s) List(ctx context.Context, params *ListParams) (*ListResult, error) {\n", receiver, cfg.clientName)
 	buf.WriteString("\treq := &searchv1.SearchRequest{\n")

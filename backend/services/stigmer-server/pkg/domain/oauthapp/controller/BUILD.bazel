@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "controller",
+    srcs = [
+        "apply.go",
+        "create.go",
+        "delete.go",
+        "get.go",
+        "get_by_reference.go",
+        "list_by_org.go",
+        "oauthapp_controller.go",
+        "update.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/oauthapp/controller",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/iam/oauthapp/v1:oauthapp",
+        "//backend/libs/go/grpc",
+        "//backend/libs/go/grpc/request/pipeline",
+        "//backend/libs/go/grpc/request/pipeline/steps",
+        "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/domain/oauthapp/controller/steps",
+        "//backend/services/stigmer-server/pkg/encryption",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
