@@ -6,6 +6,7 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvVarDeclaration } from "../../environment/v1/spec_pb";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb";
+import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
@@ -15,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEi6QQKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKA2VudhgIIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyU3BlYy5FbnZFbnRyeRJSChVwaW5uZWRfdG9vbF9hcHByb3ZhbHMYCyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRIWCg5yZXBvc2l0b3J5X3VybBgMIAEoCRIUCgxnaXRodWJfc3RhcnMYDSABKAUSPAoEYXV0aBgOIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyQXV0aBpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBQhQKC3NlcnZlcl90eXBlEgW6SAIIASJPChFTdGRpb1NlcnZlckNvbmZpZxIXCgdjb21tYW5kGAEgASgJQga6SAPIAQESDAoEYXJncxgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCSLgAgoQSHR0cFNlcnZlckNvbmZpZxIYCgN1cmwYASABKAlCC7pICMgBAXIDiAEBEk8KB2hlYWRlcnMYAiADKAsyPi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuSGVhZGVyc0VudHJ5ElgKDHF1ZXJ5X3BhcmFtcxgDIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5RdWVyeVBhcmFtc0VudHJ5EiMKD3RpbWVvdXRfc2Vjb25kcxgEIAEoBUIKukgHGgUYrAIoABouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBRdWVyeVBhcmFtc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQQoSVG9vbEFwcHJvdmFsUG9saWN5EhoKCXRvb2xfbmFtZRgBIAEoCUIHukgEcgIQARIPCgdtZXNzYWdlGAIgASgJIq8BCg1NY3BTZXJ2ZXJBdXRoEksKDW9hdXRoX2FwcF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2USHwoOdGFyZ2V0X2Vudl92YXIYAiABKAlCB7pIBHICEAESGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCRITCgtzY29wZV9oaW50cxgEIAMoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEi6QQKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKA2VudhgIIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyU3BlYy5FbnZFbnRyeRJSChVwaW5uZWRfdG9vbF9hcHByb3ZhbHMYCyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRIWCg5yZXBvc2l0b3J5X3VybBgMIAEoCRIUCgxnaXRodWJfc3RhcnMYDSABKAUSPAoEYXV0aBgOIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyQXV0aBpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBQhQKC3NlcnZlcl90eXBlEgW6SAIIASJPChFTdGRpb1NlcnZlckNvbmZpZxIXCgdjb21tYW5kGAEgASgJQga6SAPIAQESDAoEYXJncxgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCSLgAgoQSHR0cFNlcnZlckNvbmZpZxIYCgN1cmwYASABKAlCC7pICMgBAXIDiAEBEk8KB2hlYWRlcnMYAiADKAsyPi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuSGVhZGVyc0VudHJ5ElgKDHF1ZXJ5X3BhcmFtcxgDIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5RdWVyeVBhcmFtc0VudHJ5EiMKD3RpbWVvdXRfc2Vjb25kcxgEIAEoBUIKukgHGgUYrAIoABouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBRdWVyeVBhcmFtc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQQoSVG9vbEFwcHJvdmFsUG9saWN5EhoKCXRvb2xfbmFtZRgBIAEoCUIHukgEcgIQARIPCgdtZXNzYWdlGAIgASgJIrECCg1NY3BTZXJ2ZXJBdXRoEswBCg1vYXV0aF9hcHBfcmVmGAEgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQn+6SHi6AXUKEm9hdXRoX2FwcF9yZWYua2luZBI7b2F1dGhfYXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1vYXV0aF9hcHAaInRoaXMuc2x1ZyA9PSAnJyB8fCB0aGlzLmtpbmQgPT0gMjLghSwWEh8KDnRhcmdldF9lbnZfdmFyGAIgASgJQge6SARyAhABEhsKE3Rva2VuX2xpZmV0aW1lX2hpbnQYAyABKAkSEwoLc2NvcGVfaGludHMYBCADKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * McpServerSpec defines the configurable properties of an MCP server.
@@ -149,9 +150,10 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in the user's personal environment
-   * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env so the execution pipeline knows about it.
+   * The acquired access token is stored in a system-managed environment
+   * (identified by grant.environment_id) as the env var named by
+   * auth.target_env_var. That env var must also be declared in env so the
+   * execution pipeline knows about it.
    *
    * @generated from field: ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14;
    */
@@ -380,9 +382,11 @@ export const ToolApprovalPolicySchema: GenMessage<ToolApprovalPolicy> = /*@__PUR
  *   The referenced OAuthApp holds the client_id, client_secret, and endpoint
  *   URLs needed for the authorization code flow.
  *
- * In both cases, the acquired access token is stored in the user's personal
- * environment as target_env_var. A refresh token (if issued by the vendor) is
- * stored alongside as {target_env_var}_REFRESH_TOKEN by convention.
+ * In both cases, the acquired access token is stored in a system-managed
+ * environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
+ * token (if issued by the vendor) is stored alongside as
+ * {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
+ * is recorded on the OAuthGrant for all subsequent reads and refreshes.
  *
  * Token lifecycle:
  * - Pre-flight check before execution: if the access token is expired,
@@ -415,7 +419,7 @@ export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAu
    * Must correspond to an entry in env so the execution pipeline
    * resolves it. The refresh token is stored as
    * {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the user's personal environment.
+   * by convention. Both are written to the grant's managed environment.
    *
    * @generated from field: string target_env_var = 2;
    */

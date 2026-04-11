@@ -13,48 +13,40 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-11
-**Status**: T01 DONE, T02 DONE, T03 DONE, T04 DONE, T05 NEXT
+**Status**: T01 DONE, T02 DONE, T03 DONE, T04 DONE, T05 IN PROGRESS (migration done, E2E validation pending)
 **Active Task**: T05 — Migration + End-to-End Validation
-**Last Session**: 2026-04-11 (T04 completed — Frontend OAuth Grant Status + Session Composer)
+**Last Session**: 2026-04-11 (T05 migration completed — MongoDB data cleanup)
 
-## Session Progress (2026-04-11, Session 4)
+## Session Progress (2026-04-11, Session 5)
 
-### T04 Completed: Frontend — OAuth Grant Status + Session Composer
+### T05 In Progress: Migration + End-to-End Validation
 
-Backend `getOAuthGrantStatus` handlers implemented in Go and Java. React SDK now derives OAuth connection state from the grant status API instead of personal environment key presence. Managed environments are filtered from the environment list UI.
+MongoDB data cleanup completed via direct `mongosh` connection. E2E validation pending (manual testing by user).
 
-**Design decisions**:
-- **No pipeline for Go handler**: `GetOAuthGrantStatus` is a simple grant store lookup — no pipeline framework needed, just a direct method on `McpServerController` with nil-guard for `oauthGrantStore`.
-- **Standard common steps for Java handler**: Uses `extractResourceId` + `authorize` + custom `LookupGrant` step. Leverages the proto annotation `field_path = "resource_id"` + `can_view` permission for FGA authorization.
-- **`useOAuthGrantStatus` is standalone**: Exported as a standalone hook for platform builders who need grant status without the full credentials logic. Composed internally by `useMcpServerCredentials`.
-- **No `oauthStatus` on `McpServerSetupEntry`**: The `McpServerPicker` already derives `isConnected` from `missingVariables`. When `addServer` checks grant status and adds the OAuth target var to `existingKeys`, the picker's derivation is naturally correct — no reducer changes needed.
-- **Pool re-evaluation skips OAuth (Option A)**: OAuth status only changes after explicit user action (sign-in), which triggers `addServer` re-run via `setup.onServerAdded(ref)`. The pool effect handles non-OAuth pool key changes only.
-- **`excludeLabels` widened to accept array**: `EnvironmentListPanel` now supports OR-of-AND label exclusion — backward-compatible.
-- **BigInt(0) instead of 0n**: The client-apps/web tsconfig targets ES2017 which doesn't support BigInt literals. All SDK code uses `BigInt(0)` and `BigInt(60)` instead of `0n` / `60n`.
+**Migration actions performed:**
 
-**Changes made (stigmer — Go, 1 new file):**
-- **`get_oauth_grant_status.go`**: New handler on `McpServerController`. Nil-guard for `oauthGrantStore`, input validation, `Find(ctx, "", resourceId, org)`, maps grant to output proto.
+1. **Inspected `oauth_grant` collection**: Found 1 document with old schema (`mcpServerId` instead of `resourceId`, missing `orgId` and `resourceKind` fields). Pointed to personal environment `env_01kmmdavxx9r8qxgqytva7r45k`.
+2. **Inspected related environments**: Personal env had `SLACK_ACCESS_TOKEN` (old OAuth flow) + `GITHUB_TOKEN` (user-managed). No managed environments existed (clean slate).
+3. **Wiped `oauth_grant` collection**: `db.oauth_grant.deleteMany({})` — removed 1 stale document.
+4. **Cleaned OAuth token from personal environment**: `db.environment.updateOne(...)` — removed `spec.data.SLACK_ACCESS_TOKEN`. Only `GITHUB_TOKEN` remains.
 
-**Changes made (stigmer-cloud — Java, 1 new file):**
-- **`McpServerGetOAuthGrantStatusHandler.java`**: `CustomOperationHandlerV2` with pipeline: validate → extractResourceId → authorize → `LookupGrant` (nested `@Component` step querying `OAuthGrantRepo.find`) → sendResponse.
+**Verification**: `oauth_grant` count = 0, personal env `spec.data` keys = `[GITHUB_TOKEN]`.
 
-**Changes made (stigmer — React SDK + Console, 9 files, +117 -29):**
-- **`useOAuthGrantStatus.ts`** (new): Standalone data hook wrapping `getOAuthGrantStatus` API. Returns `{ connected, accessTokenExpiresAt, targetEnvVar, authMethod, isLoading, error, refetch }`.
-- **`useMcpServerCredentials.ts`**: Composes `useOAuthGrantStatus`. `isOAuthConnected` now from grant status API (was: personal env key check). `isReady` gates on both grant and personal env loading. Added `accessTokenExpiresAt` to return type. `refetch` calls both sources.
-- **`useMcpServerSetup.ts`**: `addServer` checks grant status for OAuth servers; adds target var to `existingKeys` when connected, so `diffEnv` treats it as present. Uses `create(GetOAuthGrantStatusInputSchema, ...)` for protobuf message construction.
-- **`McpServerDetailView.tsx`**: `ConnectBar` gains `accessTokenExpiresAt` prop. New `formatTokenExpiry` helper renders relative time ("Expires in 47 min", "Token expired"). Falls back to `tokenLifetimeHint` when expiry is zero.
-- **`EnvironmentListPanel.tsx`**: `excludeLabels` prop widened to `Record<string, string> | Record<string, string>[]`. Filter uses OR-of-AND semantics for array input.
-- **`EnvironmentsSection.tsx`** (Console): Excludes both `stigmer.ai/personal` and `stigmer.ai/managed` labeled environments from the org list.
-- **`mcp-server/index.ts`** + **`sdk/react/src/index.ts`**: Barrel exports for `useOAuthGrantStatus` + `UseOAuthGrantStatusReturn`.
-
-**Verification:**
-- Go: `go build ./backend/services/stigmer-server/...` passes
-- Java: `bazel build //backend/services/stigmer-service/...` passes (36 targets)
-- TypeScript SDK: `tsc --noEmit` passes (ES2022 target)
-- TypeScript Web: `tsc --noEmit` passes (ES2017 target)
+**Remaining (E2E validation checklist — manual testing):**
+- [ ] OAuth connect: tokens stored in new managed env (not personal env)
+- [ ] OAuthGrant has correct `org_id` and `environment_id` pointing to managed env
+- [ ] Token refresh reads from `grant.environmentId`
+- [ ] MCP connect resolves OAuth vars from managed env + manual vars from personal env
+- [ ] Session execution injects tokens correctly
+- [ ] Frontend detail page reflects grant status
+- [ ] Frontend session composer auto-resolves when grant exists
+- [ ] Managed environment not visible in environment list UI
+- [ ] Managed environment rejects user mutation attempts
+- [ ] Personal environment contains only user-managed credentials
 
 ## Previous Sessions
 
+### T04 Completed (Session 4): Frontend — OAuth Grant Status + Session Composer
 ### T03 Completed (Session 3): Connect + Refresh + Session Injection
 ### T02 Completed (Session 2): ManagedEnvironmentService + CompleteOAuthConnect Rewiring
 ### T01 Completed (Session 1): Proto + Schema Foundation
@@ -63,20 +55,20 @@ Backend `getOAuthGrantStatus` handlers implemented in Go and Java. React SDK now
 
 ## Next Steps
 
-1. **T05: Migration + End-to-End Validation** — Wipe existing `oauth_grant` data (pre-launch). Validate all flows end-to-end: OAuth connect stores tokens in managed env, refresh reads from `grant.environmentId`, MCP connect resolves OAuth vars from managed env, session execution injects tokens correctly, frontend reflects grant status, managed envs hidden from list, mutation guard rejects user edits.
+1. **T05 E2E validation (manual)** — Re-connect Slack OAuth and verify all 10 checkpoints above. The new flow should create a managed environment, store tokens there, and the frontend should reflect grant status correctly.
 
 ## Context for Resume
 
-- All four implementation tasks (T01–T04) are complete.
+- All implementation tasks (T01–T04) are complete and committed.
+- T05 migration is done — `oauth_grant` collection wiped, personal env cleaned of stale OAuth tokens.
+- MongoDB connection: `stigmer-prod-mongo-database.planton.live:27017`, db `stigmer`, user `stigmer-app`.
+- The old grant used `mcpServerId` (old schema). New grants use `resourceId` + `orgId` + `resourceKind` (three-part key).
+- No managed environments exist yet — first OAuth connect will create the first one.
+- Personal environment `env_01kmmdavxx9r8qxgqytva7r45k` (org: `suresh`) now only has `GITHUB_TOKEN`.
 - The `getOAuthGrantStatus` handler is implemented in both Go (OSS) and Java (Cloud).
-- The TypeScript SDK client method was already present from T01 stub generation.
 - `useOAuthGrantStatus` is a standalone hook — platform builders can import it independently.
-- `useMcpServerCredentials` derives `isOAuthConnected` from the grant status API. The personal env key check is gone.
-- `useMcpServerSetup.addServer` makes an imperative `getOAuthGrantStatus` call (not a hook) for OAuth servers before diffing env declarations.
-- `McpServerPicker` and `McpServerConfigPanel` required NO changes — the data flows through naturally after the hook rewiring.
-- `EnvironmentListPanel.excludeLabels` is now a union type `Record | Record[]`. Existing callers with single records are backward-compatible.
-- `usePersonalEnvironment` was already safe — mutually exclusive labels.
-- The pre-existing lint failure in `env_resolver_test.go` (`EnvSpec` field renamed to `Env` in prior project 20260411.02) is unrelated.
+- `useMcpServerCredentials` derives `isOAuthConnected` from the grant status API.
+- `useMcpServerSetup.addServer` makes an imperative `getOAuthGrantStatus` call for OAuth servers before diffing env declarations.
 
 ## Key Design Decisions Made
 

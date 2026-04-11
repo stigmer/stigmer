@@ -170,7 +170,7 @@ const { count } = useMcpServerCount("acme", { scope: "all" });
 ### useMcpServerCredentials
 
 Checks the user's personal environment against an MCP server's
-`env_spec` and provides a mechanism to save missing credentials.
+`env` declarations and provides a mechanism to save missing credentials.
 
 Designed for the discovery flow on the MCP server detail page:
 before triggering discovery, the UI needs to ensure all required
@@ -179,10 +179,12 @@ computes the missing set and exposes `saveCredentials` to persist
 them.
 
 **Auth-mode-aware**: when `spec.auth` is configured, the hook
-identifies the OAuth-managed variable (`target_env_var`) and
-excludes it from `missingVariables` — that variable is acquired
-via [`useMcpServerOAuthConnect`](#usemcpserveroauthconnect), not a manual form. Additional
-non-OAuth vars still appear in `missingVariables` (mixed mode).
+composes [`useOAuthGrantStatus`](#useoauthgrantstatus) to determine whether the
+OAuth-managed variable (`target_env_var`) is connected via an
+active grant. The OAuth variable is excluded from `missingVariables`
+— it is acquired via [`useMcpServerOAuthConnect`](#usemcpserveroauthconnect), not a manual
+form. Additional non-OAuth vars still appear in `missingVariables`
+(mixed mode).
 
 Unlike [`useMcpServerSetup`](#usemcpserversetup) which manages multi-server setup
 for session creation, this hook is scoped to a single server and
@@ -207,13 +209,14 @@ function useMcpServerCredentials(org: string | null, mcpServer: McpServer | null
 
 <TypeTable
   type={{
+    accessTokenExpiresAt: { type: "bigint", description: "When the OAuth access token expires (Unix timestamp seconds). `BigInt(0)` when no grant exists, `authMode` is `\"manual\"`, or the token does not expire. Useful for showing actual expiry in the UI." },
     authMode: { type: "McpServerAuthMode", description: "Credential acquisition mode derived from `spec.auth`.  - `\"manual\"` when `spec.auth` is absent: all env vars are user-entered. - `\"oauth\"` when `spec.auth` is present: the `target_env_var` is   acquired via OAuth. Check missingVariables for any   additional manual vars that are also needed (mixed mode).", typeDescriptionLink: "#mcpserverauthmode" },
-    error: { type: "Error | null", description: "Error from the personal environment fetch, or `null`." },
-    isLoading: { type: "boolean", description: "`true` while the personal environment is being fetched." },
-    isOAuthConnected: { type: "boolean", description: "`true` when the OAuth-managed env var exists in the personal environment. Always `false` when `authMode` is `\"manual\"`." },
-    isReady: { type: "boolean", description: "`true` when all required credentials are available — both OAuth-managed and manual variables. For OAuth servers this means the OAuth token is in the personal env AND any additional manual vars are also present." },
+    error: { type: "Error | null", description: "Error from the personal environment or grant status fetch, or `null`." },
+    isLoading: { type: "boolean", description: "`true` while the personal environment or grant status is being fetched." },
+    isOAuthConnected: { type: "boolean", description: "`true` when the user has an active OAuth grant for this server. Derived from the `getOAuthGrantStatus` API, not from personal environment key presence. Always `false` when `authMode` is `\"manual\"`." },
+    isReady: { type: "boolean", description: "`true` when all required (non-optional) credentials are available — both OAuth-managed and manual variables. For OAuth servers this means the OAuth grant is connected AND any additional required manual vars are present in the personal environment.  Servers whose env vars are all optional are always ready." },
     isSaving: { type: "boolean", description: "`true` while a save operation is in flight." },
-    missingVariables: { type: "EnvVarFormVariable[]", description: "Variables required by the MCP server that are missing from the user's personal environment. Empty when all variables are present or the server has no `env_spec`.  When `authMode` is `\"oauth\"`, the OAuth-managed `target_env_var` is excluded from this list — it is acquired via the OAuth flow, not via a manual form. Only additional non-OAuth vars appear here.  Suitable as direct input to EnvVarForm." },
+    missingVariables: { type: "EnvVarFormVariable[]", description: "Required variables (non-optional) missing from the user's personal environment. Empty when all required variables are present, the server has no `env` declarations, or all declarations are optional.  When `authMode` is `\"oauth\"`, the OAuth-managed `target_env_var` is excluded from this list — it is acquired via the OAuth flow, not via a manual form. Only additional non-OAuth required vars appear here.  Optional env vars are never included — they are discoverable in the read-only EnvSection but do not block connect.  Suitable as direct input to EnvVarForm." },
     oauthTargetEnvVar: { type: "string | null", description: "The env var name managed by OAuth, or `null` when `authMode` is `\"manual\"`. Corresponds to `spec.auth.target_env_var`." },
     refetch: { type: "() => void", description: "Re-check the personal environment." },
     saveCredentials: { type: "(values: Record<string, EnvVarInput>) => Promise<void>", description: "Save the provided credentials to the user's personal environment. Creates the personal environment if it doesn't exist yet." },
@@ -382,8 +385,8 @@ Layer 2 behavior hook that orchestrates the setup flow for multiple
 MCP servers selected in the [`McpServerPicker`](#mcpserverpicker).
 
 When a user toggles an MCP server ON, this hook fetches the server's
-full resource, checks its `env_spec` against the personal environment
-(via [`diffEnvSpec`](/docs/sdk/react/environment#diffenvspec)), and determines whether credentials are
+full resource, checks its `env` declarations against the personal
+environment (via [`diffEnv`](/docs/sdk/react/environment#diffenv)), and determines whether credentials are
 needed. It also extracts discovered tools and approval policies for
 the tool selector UI.
 
@@ -415,7 +418,7 @@ function useMcpServerSetup(org: string | null, poolKeys?: Set<string>): UseMcpSe
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization slug. Pass `null` to disable.", required: true },
-    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, servers whose `env_spec` keys   are fully covered by `poolKeys` + personal env auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsSetup` entries are re-evaluated." },
+    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, servers whose `env` keys   are fully covered by `poolKeys` + personal env auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsSetup` entries are re-evaluated." },
   }}
 />
 
@@ -423,7 +426,7 @@ function useMcpServerSetup(org: string | null, poolKeys?: Set<string>): UseMcpSe
 
 <TypeTable
   type={{
-    addServer: { type: "(ref: ResourceRef) => Promise<void>", description: "Add an MCP server to the setup flow.  Fetches the full server resource, checks `env_spec` against the personal environment, and resolves the entry to either `ready` (no credentials needed or all present) or `needsSetup` (missing variables). Also extracts discovered tools and approval policies for the tool selector.  If the server is already in entries, its entry is reset to `loading` and re-evaluated." },
+    addServer: { type: "(ref: ResourceRef) => Promise<void>", description: "Add an MCP server to the setup flow.  Fetches the full server resource, checks `env` declarations against the personal environment, and resolves the entry to either `ready` (no credentials needed or all present) or `needsSetup` (missing variables). Also extracts discovered tools and approval policies for the tool selector.  If the server is already in entries, its entry is reset to `loading` and re-evaluated." },
     allReady: { type: "boolean", description: "`true` when every selected server is in `ready` status, or when no servers are selected. `false` during `loading`, `needsSetup`, or `submitting` for any entry.  Use this for submission blocking in the session composer." },
     clearError: { type: "(ref: ResourceRef) => void", description: "Clear the error on a specific server entry without changing its phase." },
     entries: { type: "Readonly<Record<string, McpServerSetupEntry>>", description: "Per-server setup state, keyed by `\"org/slug\"` (see toServerKey).  Each entry tracks an individual MCP server through the setup lifecycle: `loading → needsSetup → submitting → ready` (or `loading → ready` when no credentials are required)." },
@@ -458,6 +461,53 @@ setEnabledTools(ref, ["create_issue", "list_issues"]);
 
 // At session creation:
 const session = await createSession({ mcpServerUsages: usageInputs });
+```
+
+
+### useOAuthGrantStatus
+
+Data hook that fetches the OAuth grant status for a single MCP server.
+
+Wraps `stigmer.mcpServer.getOAuthGrantStatus()` with loading, error,
+and idle state management. When `resourceId` or `org` changes, the
+previous in-flight request is discarded and a fresh fetch begins.
+
+Pass `null` for either parameter to skip fetching (stable no-op).
+This is useful when the MCP server resource has not loaded yet.
+
+**Signature**
+
+```tsx
+function useOAuthGrantStatus(resourceId: string | null, org: string | null): UseOAuthGrantStatusReturn
+```
+
+<TypeTable
+  type={{
+    resourceId: { type: "string | null", description: "", required: true },
+    org: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseOAuthGrantStatusReturn`
+
+<TypeTable
+  type={{
+    accessTokenExpiresAt: { type: "bigint", description: "When the access token expires (Unix timestamp seconds). `BigInt(0)` when no grant exists or the token does not expire." },
+    authMethod: { type: "string", description: "Auth method used (`\"mcp_oauth\"` or `\"vendor_oauth\"`), or empty string." },
+    connected: { type: "boolean", description: "Whether the user has an active OAuth grant for this resource + org." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the grant status is being fetched." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the grant status." },
+    targetEnvVar: { type: "string", description: "The env var name managed by OAuth, or empty string when no grant exists." },
+  }}
+/>
+
+```tsx
+const grantStatus = useOAuthGrantStatus(mcpServer?.metadata?.id ?? null, org);
+
+if (grantStatus.isLoading) return <Spinner />;
+if (grantStatus.connected) return <span>Connected via OAuth</span>;
+return <button onClick={startOAuth}>Sign in</button>;
 ```
 
 
@@ -834,15 +884,15 @@ TypeScript narrowing in consumer code.
 
 Phases:
 - `"loading"` — Fetching the full `McpServer` resource (spec + status).
-- `"needsSetup"` — The server has an `env_spec` with variables missing
-  from the user's personal environment. The UI should present a
-  credential collection form.
+- `"needsSetup"` — The server has `env` declarations with variables
+  missing from the user's personal environment. The UI should present
+  a credential collection form.
 - `"submitting"` — Environment variables are being persisted (save path)
   or collected (one-time path). The UI should show a loading indicator
   on the submit button.
 - `"ready"` — The server is fully configured and ready for session
   creation. Carries the effective `enabledTools` list. Covers both
-  the "no env_spec needed" and "env vars resolved" cases.
+  the "no env needed" and "env vars resolved" cases.
 
 
 ### McpServerSetupState

@@ -94,9 +94,10 @@ type McpServerSpec struct {
 	// When set, the MCP server's Connect page offers an OAuth flow instead of
 	// (or in addition to) manual credential entry.
 	//
-	// The acquired access token is stored in the user's personal environment
-	// as the env var named by auth.target_env_var. That env var must also be
-	// declared in env so the execution pipeline knows about it.
+	// The acquired access token is stored in a system-managed environment
+	// (identified by grant.environment_id) as the env var named by
+	// auth.target_env_var. That env var must also be declared in env so the
+	// execution pipeline knows about it.
 	Auth          *McpServerAuth `protobuf:"bytes,14,opt,name=auth,proto3" json:"auth,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -545,9 +546,11 @@ func (x *ToolApprovalPolicy) GetMessage() string {
 //     The referenced OAuthApp holds the client_id, client_secret, and endpoint
 //     URLs needed for the authorization code flow.
 //
-// In both cases, the acquired access token is stored in the user's personal
-// environment as target_env_var. A refresh token (if issued by the vendor) is
-// stored alongside as {target_env_var}_REFRESH_TOKEN by convention.
+// In both cases, the acquired access token is stored in a system-managed
+// environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
+// token (if issued by the vendor) is stored alongside as
+// {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
+// is recorded on the OAuthGrant for all subsequent reads and refreshes.
 //
 // Token lifecycle:
 //   - Pre-flight check before execution: if the access token is expired,
@@ -572,7 +575,7 @@ type McpServerAuth struct {
 	// Must correspond to an entry in env so the execution pipeline
 	// resolves it. The refresh token is stored as
 	// {target_env_var}_REFRESH_TOKEN
-	// by convention. Both are written to the user's personal environment.
+	// by convention. Both are written to the grant's managed environment.
 	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Informational hint about expected token lifetime for UI display.
 	// Helps users understand when re-authentication may be needed.
@@ -649,7 +652,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xef\x05\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xef\x05\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -685,9 +688,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xe9\x01\n" +
-	"\rMcpServerAuth\x12X\n" +
-	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\voauthAppRef\x12-\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xeb\x02\n" +
+	"\rMcpServerAuth\x12\xd9\x01\n" +
+	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x7f\xbaHx\xba\x01u\n" +
+	"\x12oauth_app_ref.kind\x12;oauth_app_ref must reference a resource with kind=oauth_app\x1a\"this.slug == '' || this.kind == 22\xe0\x85,\x16R\voauthAppRef\x12-\n" +
 	"\x0etarget_env_var\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ftargetEnvVar\x12.\n" +
 	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\x12\x1f\n" +
 	"\vscope_hints\x18\x04 \x03(\tR\n" +

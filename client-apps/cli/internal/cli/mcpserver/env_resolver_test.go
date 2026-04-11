@@ -16,9 +16,9 @@ import (
 )
 
 func makeServerWithEnvSpec(vars map[string]bool) *mcpserverv1.McpServer {
-	data := make(map[string]*envv1.EnvironmentValue)
+	data := make(map[string]*envv1.EnvVarDeclaration)
 	for name, isSecret := range vars {
-		data[name] = &envv1.EnvironmentValue{
+		data[name] = &envv1.EnvVarDeclaration{
 			IsSecret:    isSecret,
 			Description: "test var " + name,
 		}
@@ -29,7 +29,7 @@ func makeServerWithEnvSpec(vars map[string]bool) *mcpserverv1.McpServer {
 			ServerType: &mcpserverv1.McpServerSpec_Stdio{
 				Stdio: &mcpserverv1.StdioServerConfig{Command: "echo"},
 			},
-			EnvSpec: &envv1.EnvironmentSpec{Data: data},
+			Env: data,
 		},
 	}
 }

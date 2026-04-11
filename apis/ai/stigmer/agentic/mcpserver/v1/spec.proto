@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.mcpserver.v1;
 
 import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
 
@@ -270,7 +271,14 @@ message McpServerAuth {
   // perform the OAuth authorization code flow with the vendor on behalf of
   // the user. The OAuthApp must belong to the same organization as the
   // McpServer (or be accessible via cross-org reference).
-  ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1;
+  ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = oauth_app,
+    (buf.validate.field).cel = {
+      id: "oauth_app_ref.kind"
+      message: "oauth_app_ref must reference a resource with kind=oauth_app"
+      expression: "this.slug == '' || this.kind == 22"
+    }
+  ];
 
   // The env var where the acquired access token is stored.
   // Must correspond to an entry in env so the execution pipeline
