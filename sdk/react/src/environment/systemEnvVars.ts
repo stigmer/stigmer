@@ -102,3 +102,42 @@ export async function resolveSystemEnvVarValues(
   const credential = await stigmer.getAuthCredential();
   return buildSystemEnvVars(stigmer.baseUrl, credential);
 }
+
+/**
+ * Resolve only the system env vars that the target resource actually
+ * declares in its environment specification.
+ *
+ * System vars (`STIGMER_SERVER_ADDRESS`, `STIGMER_API_KEY`) should
+ * only be injected when the resource needs them — blindly injecting
+ * them causes `runtime_env` to be non-empty on the wire, which
+ * changes the backend's missing-credential tolerance semantics.
+ *
+ * @param stigmer - Live Stigmer client for credential resolution.
+ * @param declaredEnvKeys - The set of env var keys the target
+ *   resource declares (e.g., `Object.keys(mcpServer.spec.env)`).
+ *   Only system vars whose keys appear here are included.
+ * @returns Filtered system env vars (may be empty).
+ */
+export async function resolveDeclaredSystemEnvVars(
+  stigmer: Stigmer,
+  declaredEnvKeys: ReadonlySet<string> | readonly string[],
+): Promise<Record<string, EnvVarInput>> {
+  const keys =
+    declaredEnvKeys instanceof Set
+      ? declaredEnvKeys
+      : new Set(declaredEnvKeys);
+
+  const hasDeclared = [...SYSTEM_ENV_VAR_KEYS].some((k) => keys.has(k));
+  if (!hasDeclared) {
+    return {};
+  }
+
+  const all = await resolveSystemEnvVarValues(stigmer);
+  const filtered: Record<string, EnvVarInput> = {};
+  for (const [key, value] of Object.entries(all)) {
+    if (keys.has(key)) {
+      filtered[key] = value;
+    }
+  }
+  return filtered;
+}

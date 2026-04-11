@@ -46,4 +46,5 @@ export {
   toGrpcAddress,
   buildSystemEnvVars,
   resolveSystemEnvVarValues,
+  resolveDeclaredSystemEnvVars,
 } from "./systemEnvVars";
