@@ -38,6 +38,7 @@ import (
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
+	mcpserveroauth "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	oauthappcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/oauthapp/controller"
 	organizationcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/organization/controller"
 	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
@@ -472,6 +473,31 @@ func Run() error {
 		log.Info().
 			Str("runner_queue", agentExecutionTemporalCfg.RunnerQueue).
 			Msg("Injected MCP connect dependencies into McpServerController")
+	}
+
+	// Inject OAuth dependencies into McpServerController.
+	// Not gated by Temporal — initiateOAuthConnect/completeOAuthConnect
+	// don't need Temporal; only the subsequent connect (tool discovery) does.
+	pendingOAuthStateStore, err := mcpserveroauth.NewPendingOAuthStateStore(store.DB())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize pending OAuth state store")
+	}
+	oauthGrantStore, err := mcpserveroauth.NewOAuthGrantStore(store.DB())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize OAuth grant store")
+	}
+	mcpServerController.SetOAuthDependencies(
+		oauthGrantStore,
+		pendingOAuthStateStore,
+		secretService,
+		cfg.OAuthRedirectURI,
+	)
+	if cfg.OAuthRedirectURI != "" {
+		log.Info().
+			Str("redirect_uri", cfg.OAuthRedirectURI).
+			Msg("Injected MCP OAuth dependencies into McpServerController")
+	} else {
+		log.Warn().Msg("STIGMER_OAUTH_REDIRECT_URI not set — MCP OAuth Connect will be unavailable")
 	}
 
 	log.Info().Msg("Injected dependencies into controllers")

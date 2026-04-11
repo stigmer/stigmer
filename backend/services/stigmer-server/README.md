@@ -68,6 +68,7 @@ Default configuration:
 | `DB_PATH` | SQLite database path | `~/.stigmer/stigmer.db` |
 | `LOG_LEVEL` | Logging level (debug, info, warn, error) | info |
 | `ENV` | Environment (local, dev, prod) | local |
+| `STIGMER_OAUTH_REDIRECT_URI` | Frontend OAuth callback URL for MCP server auth (e.g. `http://localhost:8234/auth/oauth/callback`). When empty, OAuth Connect is disabled. | _(empty)_ |
 
 ## Controllers
 

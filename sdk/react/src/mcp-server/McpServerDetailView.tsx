@@ -265,79 +265,65 @@ export function McpServerDetailView({
         />
       )}
 
-      {credentials.authMode === "oauth" && (
-        <OAuthSection
+      <Section title="Connection">
+        <ConnectBar
+          isConnecting={connection.isConnecting || oauth.isInProgress}
+          connectionError={combinedError}
+          onConnect={handleConnectClick}
+          onClearConnectionError={combinedClearError}
+          hasDiscoveredTools={hasDiscoveredTools}
+          toolCount={tools.length}
+          policyCount={totalPolicyCount}
+          credentialsLoading={credentials.isLoading}
+          oauthPhase={oauth.phase}
+          authMode={credentials.authMode}
           isOAuthConnected={credentials.isOAuthConnected}
           tokenLifetimeHint={credentials.tokenLifetimeHint}
-          oauthPhase={oauth.phase}
-          onSignIn={handleOAuthSignIn}
-          oauthError={oauth.error}
-          onClearOAuthError={oauth.clearError}
-          serverName={mcpServer.metadata?.name || mcpServer.metadata?.slug || ""}
         />
-      )}
 
-      <section>
-        <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Capabilities
-        </h3>
-        <div className="overflow-hidden rounded-lg border border-border">
-          <ConnectBar
-            isConnecting={connection.isConnecting || oauth.isInProgress}
-            connectionError={combinedError}
-            onConnect={handleConnectClick}
-            onClearConnectionError={combinedClearError}
-            hasDiscoveredTools={hasDiscoveredTools}
-            toolCount={tools.length}
-            policyCount={totalPolicyCount}
-            credentialsLoading={credentials.isLoading}
-            oauthPhase={oauth.phase}
-            authMode={credentials.authMode}
-            isOAuthConnected={credentials.isOAuthConnected}
-          />
+        {showCredentialForm && credentials.missingVariables.length > 0 && (
+          <div
+            className="border-b border-border p-4"
+            data-cursor-target="credential-form"
+          >
+            <EnvVarForm
+              title="Credentials Required"
+              description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off for one-time use."
+              variables={credentials.missingVariables}
+              onSubmit={(values, options) => handleCredentialSubmit(values, options)}
+              onCancel={() => setShowCredentialForm(false)}
+              isSubmitting={credentials.isSaving}
+              poolValues={credentialPoolValues}
+              className="w-full max-w-md"
+            />
+          </div>
+        )}
+      </Section>
 
-          {showCredentialForm && credentials.missingVariables.length > 0 && (
-            <div
-              className="border-b border-border p-4"
-              data-cursor-target="credential-form"
-            >
-              <EnvVarForm
-                title="Credentials Required"
-                description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off for one-time use."
-                variables={credentials.missingVariables}
-                onSubmit={(values, options) => handleCredentialSubmit(values, options)}
-                onCancel={() => setShowCredentialForm(false)}
-                isSubmitting={credentials.isSaving}
-                poolValues={credentialPoolValues}
-                className="w-full max-w-md"
-              />
-            </div>
+      <Section title="Capabilities">
+        <Tabs
+          tabs={capabilityTabs}
+          activeTab={capabilityTab}
+          onTabChange={(id) => setCapabilityTab(id as CapabilityTab)}
+          aria-label="MCP server capabilities"
+        >
+          {capabilityTab === "tools" && (
+            <ToolsTabContent tools={tools} />
           )}
 
-          <Tabs
-            tabs={capabilityTabs}
-            activeTab={capabilityTab}
-            onTabChange={(id) => setCapabilityTab(id as CapabilityTab)}
-            aria-label="MCP server capabilities"
-          >
-            {capabilityTab === "tools" && (
-              <ToolsTabContent tools={tools} />
-            )}
+          {capabilityTab === "policies" && (
+            <PoliciesTabContent
+              pinnedPolicies={pinnedPolicies}
+              classifiedPolicies={classifiedPolicies}
+              hasDiscoveredTools={hasDiscoveredTools}
+            />
+          )}
 
-            {capabilityTab === "policies" && (
-              <PoliciesTabContent
-                pinnedPolicies={pinnedPolicies}
-                classifiedPolicies={classifiedPolicies}
-                hasDiscoveredTools={hasDiscoveredTools}
-              />
-            )}
-
-            {capabilityTab === "resources" && (
-              <ResourceTemplatesList templates={resourceTemplates} />
-            )}
-          </Tabs>
-        </div>
-      </section>
+          {capabilityTab === "resources" && (
+            <ResourceTemplatesList templates={resourceTemplates} />
+          )}
+        </Tabs>
+      </Section>
 
       {spec && spec.tags.length > 0 && <TagsSection tags={spec.tags} />}
     </div>
@@ -360,6 +346,7 @@ function ConnectBar({
   oauthPhase,
   authMode,
   isOAuthConnected,
+  tokenLifetimeHint,
 }: {
   readonly isConnecting: boolean;
   readonly connectionError: Error | null;
@@ -372,6 +359,7 @@ function ConnectBar({
   readonly oauthPhase: OAuthConnectPhase;
   readonly authMode: "manual" | "oauth";
   readonly isOAuthConnected: boolean;
+  readonly tokenLifetimeHint: string | null;
 }) {
   const isOAuthBusy =
     oauthPhase === "initiating" ||
@@ -394,14 +382,44 @@ function ConnectBar({
     return <ConnectIcon className="size-3.5" />;
   })();
 
+  const statusText = (() => {
+    if (authMode === "oauth" && isOAuthConnected) {
+      const hint = tokenLifetimeHint && tokenLifetimeHint !== "never"
+        ? ` \u00B7 Session lasts ~${tokenLifetimeHint}`
+        : "";
+      return `Tokens refresh automatically${hint}`;
+    }
+    if (hasDiscoveredTools) return formatConnectionSummary(toolCount, policyCount);
+    return "Not connected yet";
+  })();
+
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <span className="text-xs text-muted-foreground">
-          {hasDiscoveredTools
-            ? formatConnectionSummary(toolCount, policyCount)
-            : "Not connected yet"}
-        </span>
+      <div className="flex items-center justify-between px-3 py-2">
+        <div className="flex items-center gap-2">
+          {authMode === "oauth" && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                isOAuthConnected
+                  ? "bg-success/10 text-success"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              <span
+                className={cn(
+                  "size-1.5 rounded-full",
+                  isOAuthConnected ? "bg-success" : "bg-muted-foreground",
+                )}
+                aria-hidden="true"
+              />
+              {isOAuthConnected ? "Connected" : "Not connected"}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {statusText}
+          </span>
+        </div>
         <button
           type="button"
           onClick={onConnect}
@@ -409,8 +427,9 @@ function ConnectBar({
           data-cursor-target="connect-button"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-            "border border-border bg-background text-foreground",
-            "hover:bg-accent hover:text-accent-foreground",
+            authMode === "oauth" && !isOAuthConnected
+              ? "bg-primary text-primary-foreground hover:bg-primary-hover"
+              : "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -420,7 +439,7 @@ function ConnectBar({
       </div>
 
       {connectionError && (
-        <div className="flex items-start gap-2 border-b border-destructive/20 bg-destructive/5 px-3 py-2">
+        <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2">
           <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
           <p className="flex-1 text-xs text-destructive">
             {connectionError.message}
@@ -459,147 +478,6 @@ function formatConnectionSummary(toolCount: number, policyCount: number): string
   if (policyCount === 0) return toolLabel;
   const policyLabel = `${policyCount} ${policyCount !== 1 ? "policies" : "policy"}`;
   return `${toolLabel}, ${policyLabel}`;
-}
-
-// ---------------------------------------------------------------------------
-// OAuthSection — authentication status and sign-in action
-// ---------------------------------------------------------------------------
-
-function OAuthSection({
-  isOAuthConnected,
-  tokenLifetimeHint,
-  oauthPhase,
-  onSignIn,
-  oauthError,
-  onClearOAuthError,
-  serverName,
-}: {
-  readonly isOAuthConnected: boolean;
-  readonly tokenLifetimeHint: string | null;
-  readonly oauthPhase: OAuthConnectPhase;
-  readonly onSignIn: () => void;
-  readonly oauthError: Error | null;
-  readonly onClearOAuthError: () => void;
-  readonly serverName: string;
-}) {
-  const isOAuthBusy =
-    oauthPhase === "initiating" ||
-    oauthPhase === "awaiting-callback" ||
-    oauthPhase === "completing" ||
-    oauthPhase === "connecting";
-
-  return (
-    <Section title="Authentication">
-      <div className="flex flex-col gap-3 p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <OAuthConnectionStatusBadge isConnected={isOAuthConnected} />
-            {isOAuthConnected && tokenLifetimeHint && (
-              <span className="text-xs text-muted-foreground">
-                Tokens refresh automatically
-                {tokenLifetimeHint !== "never" &&
-                  `. Session lasts ~${tokenLifetimeHint}.`}
-              </span>
-            )}
-          </div>
-          {!isOAuthConnected && (
-            <button
-              type="button"
-              onClick={onSignIn}
-              disabled={isOAuthBusy}
-              data-cursor-target="oauth-sign-in-button"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                "bg-primary text-primary-foreground",
-                "hover:bg-primary-hover",
-                "disabled:pointer-events-none disabled:opacity-50",
-              )}
-            >
-              {isOAuthBusy ? (
-                <>
-                  <Spinner />
-                  {oauthPhaseLabel(oauthPhase)}
-                </>
-              ) : (
-                <>
-                  <OAuthIcon className="size-3.5" />
-                  Sign in with {serverName || "OAuth"}
-                </>
-              )}
-            </button>
-          )}
-          {isOAuthConnected && (
-            <button
-              type="button"
-              onClick={onSignIn}
-              disabled={isOAuthBusy}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-                "border border-border bg-background text-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
-                "disabled:pointer-events-none disabled:opacity-50",
-              )}
-            >
-              {isOAuthBusy ? (
-                <>
-                  <Spinner />
-                  {oauthPhaseLabel(oauthPhase)}
-                </>
-              ) : (
-                <>
-                  <RefreshIcon className="size-3.5" />
-                  Re-authenticate
-                </>
-              )}
-            </button>
-          )}
-        </div>
-
-        {oauthError && (
-          <div className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2">
-            <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-            <p className="flex-1 text-xs text-destructive">
-              {oauthError.message}
-            </p>
-            <button
-              type="button"
-              onClick={onClearOAuthError}
-              className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
-              aria-label="Dismiss error"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-      </div>
-    </Section>
-  );
-}
-
-function OAuthConnectionStatusBadge({
-  isConnected,
-}: {
-  readonly isConnected: boolean;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
-        isConnected
-          ? "bg-success/10 text-success"
-          : "bg-muted text-muted-foreground",
-      )}
-    >
-      <span
-        className={cn(
-          "size-1.5 rounded-full",
-          isConnected ? "bg-success" : "bg-muted-foreground",
-        )}
-        aria-hidden="true"
-      />
-      {isConnected ? "Connected" : "Not connected"}
-    </span>
-  );
 }
 
 // ---------------------------------------------------------------------------
