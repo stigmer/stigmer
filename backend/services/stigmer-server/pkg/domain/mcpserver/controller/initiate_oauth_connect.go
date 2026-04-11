@@ -116,6 +116,7 @@ func (c *McpServerController) InitiateOAuthConnect(
 		TargetEnvVar:      auth.GetTargetEnvVar(),
 		AuthMethod:        authMethod,
 		RedirectURI:       c.oauthRedirectURI,
+		Org:               input.GetOrg(),
 	}
 
 	if err := c.pendingOAuthStateStore.Save(ctx, pendingState); err != nil {

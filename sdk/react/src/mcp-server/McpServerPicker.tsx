@@ -408,7 +408,7 @@ export function McpServerPicker({
           onSignIn: async () => {
             if (!entry.mcpServer.metadata?.id) return;
             try {
-              await oauth.startOAuth(entry.mcpServer.metadata.id);
+              await oauth.startOAuth(entry.mcpServer.metadata.id, org);
               setup.onServerAdded(ref);
             } catch {
               // error state managed by oauth hook

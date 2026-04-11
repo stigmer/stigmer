@@ -421,7 +421,7 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 
 	// Read the refresh token from the personal environment
 	org := mcpServer.GetMetadata().GetOrg()
-	personalEnvID, err := c.resolvePersonalEnvironmentID(ctx, org)
+	personalEnvID, err := c.resolveOrCreatePersonalEnvironmentID(ctx, org)
 	if err != nil {
 		return nil
 	}

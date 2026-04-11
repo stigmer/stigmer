@@ -30,10 +30,12 @@ class ConnectInput(_message.Message):
     def __init__(self, mcp_server_id: _Optional[str] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ...) -> None: ...
 
 class InitiateOAuthConnectInput(_message.Message):
-    __slots__ = ("mcp_server_id",)
+    __slots__ = ("mcp_server_id", "org")
     MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     mcp_server_id: str
-    def __init__(self, mcp_server_id: _Optional[str] = ...) -> None: ...
+    org: str
+    def __init__(self, mcp_server_id: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
 class InitiateOAuthConnectOutput(_message.Message):
     __slots__ = ("authorization_url", "state", "scopes", "provider_name")

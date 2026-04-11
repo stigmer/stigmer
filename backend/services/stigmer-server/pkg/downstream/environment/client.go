@@ -173,6 +173,34 @@ func (c *Client) UpdateVariables(ctx context.Context, req *environmentv1.UpdateE
 	return env, nil
 }
 
+// Create creates a new environment resource.
+//
+// Use case: Auto-creating a personal environment when one doesn't exist
+// during OAuth token storage.
+func (c *Client) Create(ctx context.Context, env *environmentv1.Environment) (*environmentv1.Environment, error) {
+	log.Debug().
+		Str("org", env.GetMetadata().GetOrg()).
+		Str("name", env.GetMetadata().GetName()).
+		Msg("Creating environment via in-process gRPC")
+
+	created, err := c.commandClient.Create(ctx, env)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("org", env.GetMetadata().GetOrg()).
+			Str("name", env.GetMetadata().GetName()).
+			Msg("Failed to create environment")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", created.GetMetadata().GetId()).
+		Str("name", created.GetMetadata().GetName()).
+		Msg("Successfully created environment")
+
+	return created, nil
+}
+
 // Close closes the underlying gRPC connection.
 func (c *Client) Close() error {
 	if c.conn != nil {
