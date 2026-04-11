@@ -18,6 +18,32 @@ type TokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	Scope        string `json:"scope,omitempty"`
+
+	// Slack V2 nests user tokens under authed_user when only user scopes
+	// are requested. Standard OAuth providers leave this nil.
+	AuthedUser *authedUser `json:"authed_user,omitempty"`
+}
+
+// resolveFromAuthedUser promotes Slack's nested authed_user fields to
+// the top level so callers don't need vendor-specific logic.
+func (r *TokenResponse) resolveFromAuthedUser() {
+	if r.AccessToken == "" && r.AuthedUser != nil {
+		if r.AuthedUser.AccessToken != "" {
+			r.AccessToken = r.AuthedUser.AccessToken
+		}
+		if r.TokenType == "" && r.AuthedUser.TokenType != "" {
+			r.TokenType = r.AuthedUser.TokenType
+		}
+		if r.Scope == "" && r.AuthedUser.Scope != "" {
+			r.Scope = r.AuthedUser.Scope
+		}
+	}
+}
+
+type authedUser struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	Scope       string `json:"scope"`
 }
 
 var tokenHTTPClient = &http.Client{Timeout: 15 * time.Second}
@@ -114,6 +140,8 @@ func doTokenRequest(
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
 		return nil, fmt.Errorf("failed to parse token response: %w", err)
 	}
+
+	tokenResp.resolveFromAuthedUser()
 
 	if tokenResp.AccessToken == "" {
 		return nil, fmt.Errorf("token response from %s is missing access_token", tokenEndpoint)
