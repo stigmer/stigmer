@@ -89,9 +89,10 @@ message McpServerSpec {
   // When set, the MCP server's Connect page offers an OAuth flow instead of
   // (or in addition to) manual credential entry.
   //
-  // The acquired access token is stored in the user's personal environment
-  // as the env var named by auth.target_env_var. That env var must also be
-  // declared in env so the execution pipeline knows about it.
+  // The acquired access token is stored in a system-managed environment
+  // (identified by grant.environment_id) as the env var named by
+  // auth.target_env_var. That env var must also be declared in env so the
+  // execution pipeline knows about it.
   McpServerAuth auth = 14;
 }
 
@@ -246,9 +247,11 @@ message ToolApprovalPolicy {
 //   The referenced OAuthApp holds the client_id, client_secret, and endpoint
 //   URLs needed for the authorization code flow.
 //
-// In both cases, the acquired access token is stored in the user's personal
-// environment as target_env_var. A refresh token (if issued by the vendor) is
-// stored alongside as {target_env_var}_REFRESH_TOKEN by convention.
+// In both cases, the acquired access token is stored in a system-managed
+// environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
+// token (if issued by the vendor) is stored alongside as
+// {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
+// is recorded on the OAuthGrant for all subsequent reads and refreshes.
 //
 // Token lifecycle:
 // - Pre-flight check before execution: if the access token is expired,
@@ -273,7 +276,7 @@ message McpServerAuth {
   // Must correspond to an entry in env so the execution pipeline
   // resolves it. The refresh token is stored as
   // {target_env_var}_REFRESH_TOKEN
-  // by convention. Both are written to the user's personal environment.
+  // by convention. Both are written to the grant's managed environment.
   string target_env_var = 2 [(buf.validate.field).string.min_len = 1];
 
   // Informational hint about expected token lifetime for UI display.

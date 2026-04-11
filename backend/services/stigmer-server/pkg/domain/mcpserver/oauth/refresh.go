@@ -20,12 +20,12 @@ type RefreshResult struct {
 // is expired, and if so, uses the refresh token to obtain a new one.
 //
 // Returns a RefreshResult indicating whether a refresh occurred and the
-// new token values. The caller is responsible for updating the personal
+// new token values. The caller is responsible for updating the managed
 // environment and the OAuthGrant record with the new values.
 //
 // Parameters:
 //   - grant: the OAuthGrant record (must not be nil)
-//   - currentRefreshToken: the decrypted refresh token from the personal env
+//   - currentRefreshToken: the decrypted refresh token from the managed environment
 //   - clientSecret: decrypted client_secret (empty for DCR/public clients)
 //
 // Returns:

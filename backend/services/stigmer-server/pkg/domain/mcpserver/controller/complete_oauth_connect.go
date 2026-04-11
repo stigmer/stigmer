@@ -7,7 +7,6 @@ import (
 	"github.com/rs/zerolog/log"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
@@ -202,47 +201,3 @@ func (c *McpServerController) resolveOrCreateManagedEnvironment(
 	return managedEnvID, nil
 }
 
-// resolveOrCreatePersonalEnvironmentID finds the user's personal environment
-// in the given org, or auto-creates one if it doesn't exist.
-//
-// Used by refreshOAuthTokenIfNeeded in connect.go. Will be migrated to use
-// grant.EnvironmentID directly in T03.
-func (c *McpServerController) resolveOrCreatePersonalEnvironmentID(
-	ctx context.Context,
-	org string,
-) (string, error) {
-	listResp, err := c.environmentClient.List(ctx, &environmentv1.ListEnvironmentsRequest{
-		Org:    org,
-		Labels: map[string]string{personalEnvLabel: "true"},
-	})
-	if err != nil {
-		return "", grpclib.InternalError(err, "failed to list personal environments")
-	}
-	if listResp.GetTotalCount() > 0 && len(listResp.GetItems()) > 0 {
-		return listResp.GetItems()[0].GetMetadata().GetId(), nil
-	}
-
-	log.Info().Str("org", org).Msg("Personal environment not found, auto-creating")
-
-	created, err := c.environmentClient.Create(ctx, &environmentv1.Environment{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Environment",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name: "Personal",
-			Org:  org,
-			Labels: map[string]string{
-				personalEnvLabel: "true",
-			},
-		},
-	})
-	if err != nil {
-		return "", grpclib.InternalError(err, "failed to auto-create personal environment for org '"+org+"'")
-	}
-
-	log.Info().
-		Str("org", org).
-		Str("env_id", created.GetMetadata().GetId()).
-		Msg("Auto-created personal environment")
-
-	return created.GetMetadata().GetId(), nil
-}

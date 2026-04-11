@@ -9,10 +9,15 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/envmerge"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
@@ -36,6 +41,9 @@ type createExecutionContextStep struct {
 	sessionClient       *session.Client
 	environmentClient   *environment.Client
 	executionCtxClient  *executioncontext.Client
+	store               store.Store
+	oauthGrantStore     *oauth.OAuthGrantStore
+	managedEnvService   *oauth.ManagedEnvironmentService
 }
 
 func (c *AgentExecutionController) newCreateExecutionContextStep() *createExecutionContextStep {
@@ -45,6 +53,9 @@ func (c *AgentExecutionController) newCreateExecutionContextStep() *createExecut
 		sessionClient:       c.sessionClient,
 		environmentClient:   c.environmentClient,
 		executionCtxClient:  c.executionContextClient,
+		store:               c.store,
+		oauthGrantStore:     c.oauthGrantStore,
+		managedEnvService:   c.managedEnvService,
 	}
 }
 
@@ -111,7 +122,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 			Msg("Filtered env vars not declared in agent env")
 	}
 
-	// 6.5 Re-inject workspace-provisioning keys that were excluded by env_spec
+	// 6.5 Re-inject workspace-provisioning keys that were excluded by env
 	// filtering, and fall back to the caller's personal environment for keys
 	// that were never in the merge chain at all.
 	//
@@ -119,7 +130,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	// it is a session-level workspace concern, not an agent-declared tool
 	// dependency. The token typically lives in the caller's personal
 	// environment (stored via GitHub OAuth), which is not part of the
-	// standard 3-layer merge (agent env_spec, environment_refs, runtime_env).
+	// standard 2-layer merge (environment_refs, runtime_env).
 	sessionID := execution.GetSpec().GetSessionId()
 	if sessionID != "" {
 		sess, sessErr := s.sessionClient.Get(ctx.Context(), sessionID)
@@ -134,6 +145,14 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 			)
 		}
 	}
+
+	// 6.7 Inject OAuth-managed MCP variables from managed environments.
+	// For each MCP server with spec.auth, reads the access token from the
+	// grant's managed environment. Performs inline pre-flight refresh if
+	// the token is expired.
+	filtered = s.injectMcpOAuthFromManagedEnvironment(
+		ctx.Context(), filtered, agentResource, executionOrg, executionID,
+	)
 
 	// 6.9 Validate that all required (non-optional) declared env vars are
 	// present after merging, filtering, and all injections. Missing required
@@ -276,6 +295,178 @@ func injectWorkspaceProvisioningKeys(
 			Msg("Re-injected workspace-provisioning key after env_spec filter (session has git_repo entries)")
 	}
 	return filtered
+}
+
+// injectMcpOAuthFromManagedEnvironment reads OAuth-managed access tokens from
+// managed environments for MCP servers that have spec.auth configured.
+//
+// For each MCP server referenced by the agent with an auth block:
+//  1. Look up the OAuthGrant by (identity="", server_id, org) — OSS single-user
+//  2. If the target env var is missing from filtered: perform inline refresh,
+//     then read the token from the grant's managed environment
+//
+// Non-fatal: failures are logged and left for downstream validation to catch.
+func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
+	ctx context.Context,
+	filtered map[string]*executioncontextv1.ExecutionValue,
+	agentResource *agentv1.Agent,
+	executionOrg string,
+	executionID string,
+) map[string]*executioncontextv1.ExecutionValue {
+	if s.oauthGrantStore == nil || s.managedEnvService == nil || s.store == nil {
+		return filtered
+	}
+
+	usages := agentResource.GetSpec().GetMcpServerUsages()
+	if len(usages) == 0 {
+		return filtered
+	}
+
+	injected := false
+	for _, usage := range usages {
+		ref := usage.GetMcpServerRef()
+		slug := ref.GetSlug()
+		if slug == "" {
+			continue
+		}
+
+		serverOrg := ref.GetOrg()
+		if serverOrg == "" {
+			serverOrg = executionOrg
+		}
+		if serverOrg == "" {
+			continue
+		}
+
+		mcpServer, found, err := steps.FindResourceBySlug[*mcpserverv1.McpServer](
+			ctx, s.store, apiresourcekind.ApiResourceKind_mcp_server, slug, serverOrg,
+		)
+		if err != nil || !found || mcpServer.GetSpec().GetAuth() == nil {
+			continue
+		}
+
+		mcpServerID := mcpServer.GetMetadata().GetId()
+
+		grant, err := s.oauthGrantStore.Find(ctx, "", mcpServerID, serverOrg)
+		if err != nil || grant == nil {
+			continue
+		}
+
+		oauthKey := grant.AccessTokenEnvVar
+		if oauthKey == "" {
+			continue
+		}
+
+		if _, present := filtered[oauthKey]; present {
+			continue
+		}
+
+		managedEnvID := grant.EnvironmentID
+		if managedEnvID == "" {
+			log.Warn().
+				Str("mcp_server_id", mcpServerID).
+				Str("execution_id", executionID).
+				Msg("OAuth grant has no managed environment ID — skipping token injection")
+			continue
+		}
+
+		// Inline pre-flight refresh if expired.
+		refreshResult, refreshErr := inlineRefreshIfExpired(ctx, grant, s.managedEnvService, managedEnvID)
+		if refreshErr != nil {
+			log.Warn().Err(refreshErr).
+				Str("mcp_server_id", mcpServerID).
+				Str("execution_id", executionID).
+				Msg("Inline OAuth token refresh failed (non-fatal)")
+		}
+		if refreshResult != nil && refreshResult.Refreshed {
+			grant.AccessTokenExpiresAt = refreshResult.NewExpiresAt
+			if upsertErr := s.oauthGrantStore.Upsert(ctx, grant); upsertErr != nil {
+				log.Warn().Err(upsertErr).
+					Str("mcp_server_id", mcpServerID).
+					Msg("Failed to update OAuth grant after inline refresh (non-fatal)")
+			}
+		}
+
+		tokenValue, err := s.managedEnvService.ReadSecretValue(ctx, managedEnvID, oauthKey)
+		if err != nil || tokenValue == "" {
+			log.Warn().Err(err).
+				Str("mcp_server_id", mcpServerID).
+				Str("oauth_key", oauthKey).
+				Str("managed_env_id", managedEnvID).
+				Str("execution_id", executionID).
+				Msg("Failed to read OAuth token from managed environment (non-fatal)")
+			continue
+		}
+
+		if !injected {
+			cp := make(map[string]*executioncontextv1.ExecutionValue, len(filtered)+len(usages))
+			for k, v := range filtered {
+				cp[k] = v
+			}
+			filtered = cp
+			injected = true
+		}
+		filtered[oauthKey] = &executioncontextv1.ExecutionValue{
+			Value:    tokenValue,
+			IsSecret: true,
+		}
+
+		log.Info().
+			Str("execution_id", executionID).
+			Str("mcp_server_id", mcpServerID).
+			Str("oauth_key", oauthKey).
+			Str("managed_env_id", managedEnvID).
+			Msg("Injected OAuth token from managed environment")
+	}
+
+	return filtered
+}
+
+// inlineRefreshIfExpired reads the refresh token from the managed environment
+// and attempts a token refresh if the access token is expired. Returns nil
+// result if no refresh was needed or the refresh token is unavailable.
+func inlineRefreshIfExpired(
+	ctx context.Context,
+	grant *oauth.OAuthGrant,
+	managedEnvService *oauth.ManagedEnvironmentService,
+	managedEnvID string,
+) (*oauth.RefreshResult, error) {
+	refreshToken, err := managedEnvService.ReadSecretValue(ctx, managedEnvID, grant.RefreshTokenEnvVar)
+	if err != nil || refreshToken == "" {
+		return nil, nil
+	}
+
+	// No client_secret resolution in the execution context path — DCR/public
+	// clients work without it, and vendor OAuth would require loading the
+	// OAuthApp (cross-domain). The connect pre-flight refresh handles
+	// vendor OAuth; this inline path is a best-effort fallback.
+	result, err := oauth.RefreshTokenIfExpired(ctx, grant, refreshToken, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if !result.Refreshed {
+		return result, nil
+	}
+
+	tokenVars := map[string]*environmentv1.EnvironmentValue{
+		grant.AccessTokenEnvVar: {
+			Value:    result.NewAccessToken,
+			IsSecret: true,
+		},
+	}
+	if result.NewRefreshToken != refreshToken {
+		tokenVars[grant.RefreshTokenEnvVar] = &environmentv1.EnvironmentValue{
+			Value:    result.NewRefreshToken,
+			IsSecret: true,
+		}
+	}
+
+	if updateErr := managedEnvService.UpdateSecrets(ctx, managedEnvID, tokenVars); updateErr != nil {
+		return nil, fmt.Errorf("failed to write refreshed tokens to managed environment: %w", updateErr)
+	}
+
+	return result, nil
 }
 
 // personalEnvLabel is the well-known metadata label that identifies a user's

@@ -500,6 +500,11 @@ func Run() error {
 		log.Warn().Msg("STIGMER_OAUTH_REDIRECT_URI not set — MCP OAuth Connect will be unavailable")
 	}
 
+	// Inject OAuth dependencies into AgentExecutionController for
+	// managed environment token injection during session creation.
+	managedEnvService := mcpserveroauth.NewManagedEnvironmentService(environmentClient)
+	agentExecutionController.SetOAuthDependencies(oauthGrantStore, managedEnvService)
+
 	log.Info().Msg("Injected dependencies into controllers")
 
 	// ============================================================================
