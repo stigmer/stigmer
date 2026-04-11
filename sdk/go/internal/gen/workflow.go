@@ -5,7 +5,6 @@ package gen
 import (
 	"context"
 
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -117,7 +116,7 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 		resource.Spec.Tasks = append(resource.Spec.Tasks, item.toProto())
 	}
 	if len(i.Env) > 0 {
-		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
+		resource.Spec.Env = make(map[string]*workflowv1.EnvVarDeclaration, len(i.Env))
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}

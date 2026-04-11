@@ -97,8 +97,9 @@ func (x *McpServerId) GetValue() string {
 //
 // Prerequisites:
 //   - The MCP server must exist and have a valid server_type (stdio or http)
+//   - org must be provided (the caller's active organization)
 //   - Either runtime_env must contain all required keys, or the keys must be
-//     present in the user's personal environment
+//     present in the user's personal environment / managed OAuth environment
 type ConnectInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the MCP server to connect to.
@@ -106,7 +107,15 @@ type ConnectInput struct {
 	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
 	// Optional environment variable values for one-time use.
 	// When empty, values are resolved from the user's personal environment.
-	RuntimeEnv    map[string]*v1.ExecutionValue `protobuf:"bytes,2,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,2,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Organization context for credential resolution.
+	//
+	// Used to look up the caller's OAuthGrant and personal environment
+	// during environment variable resolution. Must match the org used
+	// during initiateOAuthConnect so the grant composite key aligns.
+	//
+	// Required: the backend rejects the request when this field is empty.
+	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -153,6 +162,13 @@ func (x *ConnectInput) GetRuntimeEnv() map[string]*v1.ExecutionValue {
 		return x.RuntimeEnv
 	}
 	return nil
+}
+
+func (x *ConnectInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
 }
 
 // InitiateOAuthConnectInput starts the OAuth authorization flow for an
@@ -598,11 +614,12 @@ const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"+\n" +
 	"\vMcpServerId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x91\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xac\x02\n" +
 	"\fConnectInput\x12*\n" +
 	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x12^\n" +
 	"\vruntime_env\x18\x02 \x03(\v2=.ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntryR\n" +
-	"runtimeEnv\x1au\n" +
+	"runtimeEnv\x12\x19\n" +
+	"\x03org\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"b\n" +

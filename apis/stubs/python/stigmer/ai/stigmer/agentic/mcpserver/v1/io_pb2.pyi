@@ -15,7 +15,7 @@ class McpServerId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class ConnectInput(_message.Message):
-    __slots__ = ("mcp_server_id", "runtime_env")
+    __slots__ = ("mcp_server_id", "runtime_env", "org")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -25,9 +25,11 @@ class ConnectInput(_message.Message):
         def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_spec_pb2.ExecutionValue, _Mapping]] = ...) -> None: ...
     MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     RUNTIME_ENV_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     mcp_server_id: str
     runtime_env: _containers.MessageMap[str, _spec_pb2.ExecutionValue]
-    def __init__(self, mcp_server_id: _Optional[str] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ...) -> None: ...
+    org: str
+    def __init__(self, mcp_server_id: _Optional[str] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., org: _Optional[str] = ...) -> None: ...
 
 class InitiateOAuthConnectInput(_message.Message):
     __slots__ = ("mcp_server_id", "org")

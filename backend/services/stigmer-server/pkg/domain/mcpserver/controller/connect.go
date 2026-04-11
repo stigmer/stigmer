@@ -86,6 +86,11 @@ func (c *McpServerController) Connect(
 		return nil, grpclib.InvalidArgumentError("mcp_server_id is required")
 	}
 
+	callerOrg := input.GetOrg()
+	if callerOrg == "" {
+		return nil, grpclib.InvalidArgumentError("org is required for connect")
+	}
+
 	mcpServer := &mcpserverv1.McpServer{}
 	if err := c.store.GetResource(ctx, apiresourcekind.ApiResourceKind_mcp_server, mcpServerID, mcpServer); err != nil {
 		return nil, grpclib.NotFoundError("mcp_server", mcpServerID)
@@ -96,7 +101,7 @@ func (c *McpServerController) Connect(
 	// an auth block with an existing OAuthGrant. Tokens are refreshed
 	// in the grant's managed environment.
 	if len(input.GetRuntimeEnv()) == 0 {
-		if err := c.refreshOAuthTokenIfNeeded(ctx, mcpServer); err != nil {
+		if err := c.refreshOAuthTokenIfNeeded(ctx, mcpServer, callerOrg); err != nil {
 			return nil, err
 		}
 	}
@@ -104,7 +109,7 @@ func (c *McpServerController) Connect(
 	executionID := fmt.Sprintf("connect-%s-%s", mcpServerID, uuid.New().String()[:8])
 
 	ecResourceID, err := c.createConnectExecutionContext(
-		ctx, mcpServer, executionID, input.GetRuntimeEnv(),
+		ctx, mcpServer, executionID, callerOrg, input.GetRuntimeEnv(),
 	)
 	if err != nil {
 		return nil, err
@@ -157,6 +162,7 @@ func (c *McpServerController) createConnectExecutionContext(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
 	executionID string,
+	callerOrg string,
 	runtimeEnv map[string]*executioncontextv1.ExecutionValue,
 ) (string, error) {
 	var ecData map[string]*executioncontextv1.ExecutionValue
@@ -177,16 +183,15 @@ func (c *McpServerController) createConnectExecutionContext(
 			return "", nil
 		}
 
-		org := mcpServer.GetMetadata().GetOrg()
 		mcpServerID := mcpServer.GetMetadata().GetId()
 
 		// Split resolution: OAuth vars from managed env, rest from personal env.
-		oauthVars, remainingDecls := c.resolveOAuthVarsFromManagedEnv(ctx, mcpServerID, org, envDecls)
+		oauthVars, remainingDecls := c.resolveOAuthVarsFromManagedEnv(ctx, mcpServerID, callerOrg, envDecls)
 
 		var personalVars map[string]*executioncontextv1.ExecutionValue
 		if len(remainingDecls) > 0 {
 			var err error
-			personalVars, err = c.resolveFromPersonalEnvironment(ctx, org, remainingDecls)
+			personalVars, err = c.resolveFromPersonalEnvironment(ctx, callerOrg, remainingDecls)
 			if err != nil {
 				return "", err
 			}
@@ -216,7 +221,7 @@ func (c *McpServerController) createConnectExecutionContext(
 		Kind:       "ExecutionContext",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: fmt.Sprintf("exec-ctx-%s", executionID),
-			Org:  mcpServer.GetMetadata().GetOrg(),
+			Org:  callerOrg,
 		},
 		Spec: &executioncontextv1.ExecutionContextSpec{
 			ExecutionId: executionID,
@@ -497,6 +502,7 @@ func convertToDiscoveredCapabilities(output *connectWorkflowOutput) *mcpserverv1
 func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
+	callerOrg string,
 ) error {
 	auth := mcpServer.GetSpec().GetAuth()
 	if auth == nil || c.oauthGrantStore == nil || c.managedEnvService == nil {
@@ -506,9 +512,8 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	mcpServerID := mcpServer.GetMetadata().GetId()
 
 	// OSS mode: single user, empty identity_account_id.
-	// Org comes from the MCP server's metadata.
-	org := mcpServer.GetMetadata().GetOrg()
-	grant, err := c.oauthGrantStore.Find(ctx, "", mcpServerID, org)
+	// Org comes from the caller's active org (matches how the grant was stored).
+	grant, err := c.oauthGrantStore.Find(ctx, "", mcpServerID, callerOrg)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("mcp_server_id", mcpServerID).

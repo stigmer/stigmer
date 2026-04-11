@@ -31,6 +31,8 @@ export interface UseMcpServerConnectReturn {
    * OAuth tokens) are still resolved.
    *
    * @param mcpServerId - System-generated ID of the MCP server (metadata.id).
+   * @param org - The caller's active organization slug. Required for
+   *   OAuth grant lookup and personal environment resolution.
    * @param runtimeEnv - Optional additional environment variables.
    * @param declaredEnvKeys - Keys from the server's `spec.env` declaration.
    *   System vars are only injected when declared here.
@@ -39,6 +41,7 @@ export interface UseMcpServerConnectReturn {
    */
   readonly connect: (
     mcpServerId: string,
+    org: string,
     runtimeEnv?: Record<string, EnvVarInput>,
     declaredEnvKeys?: readonly string[],
   ) => Promise<McpServer>;
@@ -97,6 +100,7 @@ export function useMcpServerConnect(): UseMcpServerConnectReturn {
   const connect = useCallback(
     async (
       mcpServerId: string,
+      org: string,
       runtimeEnv?: Record<string, EnvVarInput>,
       declaredEnvKeys?: readonly string[],
     ): Promise<McpServer> => {
@@ -119,6 +123,7 @@ export function useMcpServerConnect(): UseMcpServerConnectReturn {
 
         const input = create(ConnectInputSchema, {
           mcpServerId,
+          org,
           ...(Object.keys(runtimeEnvMap).length > 0
             ? { runtimeEnv: runtimeEnvMap }
             : {}),
