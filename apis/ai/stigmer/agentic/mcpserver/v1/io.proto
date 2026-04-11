@@ -50,3 +50,90 @@ message ConnectInput {
   // When empty, values are resolved from the user's personal environment.
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
 }
+
+// InitiateOAuthConnectInput starts the OAuth authorization flow for an
+// MCP server that has an auth block in its spec.
+//
+// @internal
+// Returns an authorization URL that the frontend redirects the user to.
+// The backend performs all setup (DCR registration for MCP OAuth servers,
+// OAuthApp credential lookup for vendor OAuth servers, PKCE pair generation)
+// and stores the pending state for the subsequent completeOAuthConnect call.
+//
+// Prerequisites:
+// - The MCP server must exist and have spec.auth configured
+// - For DCR: the server must use HTTP transport (discovery requires a URL)
+// - For vendor OAuth: the referenced OAuthApp must exist and be accessible
+message InitiateOAuthConnectInput {
+  // System-generated ID of the MCP server to initiate OAuth for.
+  string mcp_server_id = 1 [(buf.validate.field).required = true];
+}
+
+// InitiateOAuthConnectOutput contains the authorization URL and metadata
+// the frontend needs to redirect the user to the OAuth authorization server.
+message InitiateOAuthConnectOutput {
+  // Full authorization URL to redirect the user to.
+  // Includes client_id, redirect_uri, code_challenge, state, and scopes.
+  string authorization_url = 1;
+
+  // Opaque state parameter for CSRF protection.
+  // The frontend must pass this back in completeOAuthConnect to correlate
+  // the callback with this initiation.
+  string state = 2;
+
+  // OAuth scopes that will be requested.
+  // For DCR: discovered from authorization server metadata or scope_hints.
+  // For vendor OAuth: from the OAuthApp spec.
+  repeated string scopes = 3;
+
+  // Human-readable provider name for UI display during the redirect.
+  // For DCR: derived from the MCP server name.
+  // For vendor OAuth: from OAuthApp.spec.provider.
+  string provider_name = 4;
+}
+
+// CompleteOAuthConnectInput finishes the OAuth flow by exchanging the
+// authorization code for tokens.
+//
+// @internal
+// Called by the frontend after the user is redirected back from the
+// OAuth authorization server. The frontend extracts the authorization
+// code and state from the callback URL and passes them here.
+//
+// The backend:
+// 1. Validates the state parameter against the stored PendingOAuthState
+// 2. Exchanges the authorization code for tokens (using PKCE code_verifier)
+// 3. Stores the access token in the user's personal environment
+// 4. Stores the refresh token (if present) in the personal environment
+// 5. Creates an OAuthGrant record for pre-flight expiry checks
+//
+// After this succeeds, the frontend should call the regular connect RPC
+// to trigger tool discovery (which will find the fresh token in the
+// personal environment).
+message CompleteOAuthConnectInput {
+  // System-generated ID of the MCP server.
+  // Must match the mcp_server_id used in the preceding initiateOAuthConnect.
+  string mcp_server_id = 1 [(buf.validate.field).required = true];
+
+  // Authorization code from the OAuth callback redirect.
+  string authorization_code = 2 [(buf.validate.field).string.min_len = 1];
+
+  // State parameter from the OAuth callback redirect.
+  // Must match the state returned by initiateOAuthConnect.
+  string state = 3 [(buf.validate.field).string.min_len = 1];
+}
+
+// CompleteOAuthConnectOutput confirms that tokens were successfully
+// acquired and stored.
+message CompleteOAuthConnectOutput {
+  // Whether the OAuth flow completed successfully and tokens are stored.
+  bool connected = 1;
+
+  // The environment variable name where the access token was stored.
+  // Matches McpServerAuth.target_env_var on the MCP server spec.
+  string target_env_var = 2;
+
+  // Informational hint about expected token lifetime.
+  // Echoed from McpServerAuth.token_lifetime_hint for UI display.
+  string token_lifetime_hint = 3;
+}

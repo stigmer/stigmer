@@ -8,9 +8,9 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { ConnectInputSchema, type ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpOAuthSchema, McpServerVendorOAuthSchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -67,6 +67,18 @@ export class McpServerClient {
   async connect(input: ConnectInput): Promise<McpServer> {
     try {
       return await this.command.connect(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async initiateOAuthConnect(input: InitiateOAuthConnectInput): Promise<InitiateOAuthConnectOutput> {
+    try {
+      return await this.command.initiateOAuthConnect(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async completeOAuthConnect(input: CompleteOAuthConnectInput): Promise<CompleteOAuthConnectOutput> {
+    try {
+      return await this.command.completeOAuthConnect(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -142,20 +154,10 @@ export interface ToolApprovalPolicyInput {
 
 /** SDK input type for McpServerAuth. */
 export interface McpServerAuthInput {
-  mcpOauth?: McpOAuthInput;
-  vendorOauth?: McpServerVendorOAuthInput;
+  oauthAppRef?: ResourceRef;
   targetEnvVar?: string;
   tokenLifetimeHint?: string;
-}
-
-/** SDK input type for McpOAuth. */
-export interface McpOAuthInput {
   scopeHints?: string[];
-}
-
-/** SDK input type for McpServerVendorOAuth. */
-export interface McpServerVendorOAuthInput {
-  oauthAppRef: ResourceRef;
 }
 
 function buildStdioServerConfigProto(input: StdioServerConfigInput) {
@@ -182,27 +184,12 @@ function buildToolApprovalPolicyProto(input: ToolApprovalPolicyInput) {
   }));
 }
 
-function buildMcpOAuthProto(input: McpOAuthInput) {
-  return Object.assign(create(McpOAuthSchema), stripUndefined({
-    scopeHints: input.scopeHints,
-  }));
-}
-
-function buildMcpServerVendorOAuthProto(input: McpServerVendorOAuthInput) {
-  const msg = create(McpServerVendorOAuthSchema);
-  if (input.oauthAppRef) msg.oauthAppRef = create(ApiResourceReferenceSchema, input.oauthAppRef);
-  return msg;
-}
-
 function buildMcpServerAuthProto(input: McpServerAuthInput) {
   const msg = create(McpServerAuthSchema);
+  if (input.oauthAppRef) msg.oauthAppRef = create(ApiResourceReferenceSchema, input.oauthAppRef);
   if (input.targetEnvVar !== undefined) msg.targetEnvVar = input.targetEnvVar;
   if (input.tokenLifetimeHint !== undefined) msg.tokenLifetimeHint = input.tokenLifetimeHint;
-  if (input.mcpOauth) {
-    msg.method = { case: "mcpOauth", value: buildMcpOAuthProto(input.mcpOauth) };
-  } else if (input.vendorOauth) {
-    msg.method = { case: "vendorOauth", value: buildMcpServerVendorOAuthProto(input.vendorOauth) };
-  }
+  if (input.scopeHints) msg.scopeHints = input.scopeHints;
   return msg;
 }
 

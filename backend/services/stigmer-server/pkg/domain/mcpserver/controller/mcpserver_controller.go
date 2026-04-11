@@ -28,8 +28,10 @@ package mcpserver
 import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 	"go.temporal.io/sdk/client"
 )
 
@@ -58,6 +60,12 @@ type McpServerController struct {
 	runnerQueue        string
 	environmentClient  *environment.Client
 	executionCtxClient *executioncontext.Client
+
+	// Optional dependencies for OAuth Connect. Nil when not configured.
+	oauthGrantStore        *oauth.OAuthGrantStore
+	pendingOAuthStateStore *oauth.PendingOAuthStateStore
+	encryptionService      *encryption.SecretService
+	oauthRedirectURI       string
 }
 
 // NewMcpServerController creates a new McpServerController with the given store.
@@ -90,4 +98,19 @@ func (c *McpServerController) SetConnectDependencies(
 	c.runnerQueue = runnerQueue
 	c.environmentClient = environmentClient
 	c.executionCtxClient = executionCtxClient
+}
+
+// SetOAuthDependencies injects the dependencies needed for the OAuth Connect
+// RPCs (initiateOAuthConnect / completeOAuthConnect). Called after the SQLite
+// stores and encryption service are initialized.
+func (c *McpServerController) SetOAuthDependencies(
+	grantStore *oauth.OAuthGrantStore,
+	pendingStateStore *oauth.PendingOAuthStateStore,
+	encryptionService *encryption.SecretService,
+	redirectURI string,
+) {
+	c.oauthGrantStore = grantStore
+	c.pendingOAuthStateStore = pendingStateStore
+	c.encryptionService = encryptionService
+	c.oauthRedirectURI = redirectURI
 }

@@ -52,6 +52,11 @@ type Config struct {
 	// When empty, the GitHub workspace source is disabled in the UI.
 	GitHubOAuthClientID     string
 	GitHubOAuthClientSecret string
+
+	// OAuthRedirectURI is the frontend callback URL for MCP OAuth flows.
+	// Override via STIGMER_OAUTH_REDIRECT_URI. When empty, OAuth Connect
+	// for MCP servers is unavailable.
+	OAuthRedirectURI string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -76,6 +81,9 @@ func LoadConfig() (*Config, error) {
 		// GitHub OAuth configuration
 		GitHubOAuthClientID:     getEnvString("STIGMER_GITHUB_CLIENT_ID", defaultGitHubOAuthClientID),
 		GitHubOAuthClientSecret: getEnvString("STIGMER_GITHUB_CLIENT_SECRET", defaultGitHubOAuthClientSecret),
+
+		// MCP OAuth redirect URI
+		OAuthRedirectURI: getEnvString("STIGMER_OAUTH_REDIRECT_URI", ""),
 
 		// Artifact storage configuration
 		ArtifactStorage: artifactstorage.Config{

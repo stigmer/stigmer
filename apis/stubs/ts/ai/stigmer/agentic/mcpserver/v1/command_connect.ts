@@ -6,7 +6,7 @@
 import { McpServer } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
-import { ConnectInput } from "./io_pb.js";
+import { CompleteOAuthConnectInput, CompleteOAuthConnectOutput, ConnectInput, InitiateOAuthConnectInput, InitiateOAuthConnectOutput } from "./io_pb.js";
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -153,6 +153,66 @@ export const McpServerCommandController = {
       name: "connect",
       I: ConnectInput,
       O: McpServer,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Start the OAuth authorization flow for an MCP server.
+     *
+     * Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+     * generation) and returns an authorization URL for the frontend to
+     * redirect the user to. The frontend calls completeOAuthConnect after
+     * the user authorizes.
+     *
+     * @internal
+     * Two auth modes determined by the MCP server's spec.auth block:
+     * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+     *   discovers the authorization server, registers a client via DCR,
+     *   and builds the auth URL automatically.
+     * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+     *   OAuthApp for client credentials and endpoint URLs.
+     *
+     * Errors:
+     * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+     *   without oauth_app_ref (DCR requires HTTP transport)
+     * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+     *
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.initiateOAuthConnect
+     */
+    initiateOAuthConnect: {
+      name: "initiateOAuthConnect",
+      I: InitiateOAuthConnectInput,
+      O: InitiateOAuthConnectOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Complete the OAuth authorization flow by exchanging the authorization
+     * code for tokens.
+     *
+     * Called by the frontend after the user is redirected back from the
+     * OAuth authorization server. Exchanges the code for tokens, stores
+     * them in the user's personal environment, and creates an OAuthGrant
+     * record for pre-flight expiry checks.
+     *
+     * After success, the frontend should call connect() to trigger tool
+     * discovery using the freshly acquired token.
+     *
+     * @internal
+     * Errors:
+     * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+     *   not match the mcp_server_id
+     * - UNAVAILABLE: Token exchange with the authorization server failed
+     * - NOT_FOUND: No pending OAuth state found for the given state param
+     *
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.completeOAuthConnect
+     */
+    completeOAuthConnect: {
+      name: "completeOAuthConnect",
+      I: CompleteOAuthConnectInput,
+      O: CompleteOAuthConnectOutput,
       kind: MethodKind.Unary,
     },
   }

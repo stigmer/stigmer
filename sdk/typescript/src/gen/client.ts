@@ -88,7 +88,7 @@ export { type IdentityProviderInput } from "./identityprovider";
 export { InvitationClient } from "./invitation";
 export { type InvitationInput } from "./invitation";
 export { McpServerClient } from "./mcpserver";
-export { type McpServerInput, type StdioServerConfigInput, type HttpServerConfigInput, type ToolApprovalPolicyInput, type McpServerAuthInput, type McpOAuthInput, type McpServerVendorOAuthInput } from "./mcpserver";
+export { type McpServerInput, type StdioServerConfigInput, type HttpServerConfigInput, type ToolApprovalPolicyInput, type McpServerAuthInput } from "./mcpserver";
 export { OAuthAppClient } from "./oauthapp";
 export { type OAuthAppInput } from "./oauthapp";
 export { OrganizationClient } from "./organization";

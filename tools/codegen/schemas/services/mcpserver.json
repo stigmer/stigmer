@@ -54,6 +54,22 @@
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
           "description": "Connect to an MCP server: discover its tools and classify approval policies.\n\n Connects to the MCP server, enumerates tools and resource templates,\n classifies tool approval policies via a lightweight LLM, and stores the\n results in status.discovered_capabilities and status.tool_approvals.\n Blocks until completion (up to ~30 seconds) and returns the updated McpServer.\n\n @internal\n Typical flows:\n - Web console: user clicks Connect, backend resolves env vars from the\n   user's personal environment, starts a Temporal workflow on the agent-runner.\n - CLI: `stigmer discover mcp-server \u003cname\u003e` calls connect with runtime_env\n   populated from local env vars, delegating discovery to the backend.\n - Graphton backfill: agent-runner calls connect on first execution when\n   status.discovered_capabilities is empty, passing runtime_env from the\n   execution context.\n\n Errors:\n - FAILED_PRECONDITION: Required credentials missing from personal environment\n - DEADLINE_EXCEEDED: Discovery did not complete within the timeout\n - NOT_FOUND: MCP server does not exist\n\n Authorization: Requires can_connect permission on the mcp_server resource."
+        },
+        {
+          "name": "InitiateOAuthConnect",
+          "inputType": "InitiateOAuthConnectInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput",
+          "outputType": "InitiateOAuthConnectOutput",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput",
+          "description": "Start the OAuth authorization flow for an MCP server.\n\n Performs setup (DCR registration or OAuthApp credential lookup, PKCE\n generation) and returns an authorization URL for the frontend to\n redirect the user to. The frontend calls completeOAuthConnect after\n the user authorizes.\n\n @internal\n Two auth modes determined by the MCP server's spec.auth block:\n - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend\n   discovers the authorization server, registers a client via DCR,\n   and builds the auth URL automatically.\n - oauth_app_ref set: Vendor OAuth. Backend loads the referenced\n   OAuthApp for client credentials and endpoint URLs.\n\n Errors:\n - FAILED_PRECONDITION: MCP server has no auth block, or is stdio\n   without oauth_app_ref (DCR requires HTTP transport)\n - NOT_FOUND: MCP server or referenced OAuthApp does not exist\n\n Authorization: Requires can_connect permission on the mcp_server resource."
+        },
+        {
+          "name": "CompleteOAuthConnect",
+          "inputType": "CompleteOAuthConnectInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput",
+          "outputType": "CompleteOAuthConnectOutput",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput",
+          "description": "Complete the OAuth authorization flow by exchanging the authorization\n code for tokens.\n\n Called by the frontend after the user is redirected back from the\n OAuth authorization server. Exchanges the code for tokens, stores\n them in the user's personal environment, and creates an OAuthGrant\n record for pre-flight expiry checks.\n\n After success, the frontend should call connect() to trigger tool\n discovery using the freshly acquired token.\n\n @internal\n Errors:\n - FAILED_PRECONDITION: State parameter is invalid, expired, or does\n   not match the mcp_server_id\n - UNAVAILABLE: Token exchange with the authorization server failed\n - NOT_FOUND: No pending OAuth state found for the given state param\n\n Authorization: Requires can_connect permission on the mcp_server resource."
         }
       ]
     },
@@ -152,6 +168,163 @@
             }
           },
           "description": "Optional environment variable values for one-time use.\n When empty, values are resolved from the user's personal environment.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "InitiateOAuthConnectInput",
+      "description": "InitiateOAuthConnectInput starts the OAuth authorization flow for an\n MCP server that has an auth block in its spec.\n\n @internal\n Returns an authorization URL that the frontend redirects the user to.\n The backend performs all setup (DCR registration for MCP OAuth servers,\n OAuthApp credential lookup for vendor OAuth servers, PKCE pair generation)\n and stores the pending state for the subsequent completeOAuthConnect call.\n\n Prerequisites:\n - The MCP server must exist and have spec.auth configured\n - For DCR: the server must use HTTP transport (discovery requires a URL)\n - For vendor OAuth: the referenced OAuthApp must exist and be accessible",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "McpServerId",
+          "jsonName": "mcpServerId",
+          "protoField": "mcp_server_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the MCP server to initiate OAuth for.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "InitiateOAuthConnectOutput",
+      "description": "InitiateOAuthConnectOutput contains the authorization URL and metadata\n the frontend needs to redirect the user to the OAuth authorization server.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "AuthorizationUrl",
+          "jsonName": "authorizationUrl",
+          "protoField": "authorization_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Full authorization URL to redirect the user to.\n Includes client_id, redirect_uri, code_challenge, state, and scopes.",
+          "required": false
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque state parameter for CSRF protection.\n The frontend must pass this back in completeOAuthConnect to correlate\n the callback with this initiation.",
+          "required": false
+        },
+        {
+          "name": "Scopes",
+          "jsonName": "scopes",
+          "protoField": "scopes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "OAuth scopes that will be requested.\n For DCR: discovered from authorization server metadata or scope_hints.\n For vendor OAuth: from the OAuthApp spec.",
+          "required": false
+        },
+        {
+          "name": "ProviderName",
+          "jsonName": "providerName",
+          "protoField": "provider_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable provider name for UI display during the redirect.\n For DCR: derived from the MCP server name.\n For vendor OAuth: from OAuthApp.spec.provider.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CompleteOAuthConnectInput",
+      "description": "CompleteOAuthConnectInput finishes the OAuth flow by exchanging the\n authorization code for tokens.\n\n @internal\n Called by the frontend after the user is redirected back from the\n OAuth authorization server. The frontend extracts the authorization\n code and state from the callback URL and passes them here.\n\n The backend:\n 1. Validates the state parameter against the stored PendingOAuthState\n 2. Exchanges the authorization code for tokens (using PKCE code_verifier)\n 3. Stores the access token in the user's personal environment\n 4. Stores the refresh token (if present) in the personal environment\n 5. Creates an OAuthGrant record for pre-flight expiry checks\n\n After this succeeds, the frontend should call the regular connect RPC\n to trigger tool discovery (which will find the fresh token in the\n personal environment).",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "McpServerId",
+          "jsonName": "mcpServerId",
+          "protoField": "mcp_server_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the MCP server.\n Must match the mcp_server_id used in the preceding initiateOAuthConnect.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "AuthorizationCode",
+          "jsonName": "authorizationCode",
+          "protoField": "authorization_code",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Authorization code from the OAuth callback redirect.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string"
+          },
+          "description": "State parameter from the OAuth callback redirect.\n Must match the state returned by initiateOAuthConnect.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "CompleteOAuthConnectOutput",
+      "description": "CompleteOAuthConnectOutput confirms that tokens were successfully\n acquired and stored.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "Connected",
+          "jsonName": "connected",
+          "protoField": "connected",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the OAuth flow completed successfully and tokens are stored.",
+          "required": false
+        },
+        {
+          "name": "TargetEnvVar",
+          "jsonName": "targetEnvVar",
+          "protoField": "target_env_var",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The environment variable name where the access token was stored.\n Matches McpServerAuth.target_env_var on the MCP server spec.",
+          "required": false
+        },
+        {
+          "name": "TokenLifetimeHint",
+          "jsonName": "tokenLifetimeHint",
+          "protoField": "token_lifetime_hint",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Informational hint about expected token lifetime.\n Echoed from McpServerAuth.token_lifetime_hint for UI display.",
           "required": false
         }
       ]
