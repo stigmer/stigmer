@@ -9,7 +9,7 @@ import {
   ConnectInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { resolveSystemEnvVarValues } from "../environment/systemEnvVars";
+import { resolveDeclaredSystemEnvVars } from "../environment/systemEnvVars";
 import { toError } from "../internal/toError";
 
 /**
@@ -55,9 +55,11 @@ export interface UseMcpServerOAuthConnectReturn {
    *
    * @param mcpServerId - System-generated ID (metadata.id) of the MCP server.
    * @param org - Organization context for token storage (caller's active org).
+   * @param declaredEnvKeys - Keys from the server's `spec.env` declaration.
+   *   System vars are only injected when declared here.
    * @returns The updated McpServer after tool discovery completes.
    */
-  readonly startOAuth: (mcpServerId: string, org: string) => Promise<McpServer>;
+  readonly startOAuth: (mcpServerId: string, org: string, declaredEnvKeys?: readonly string[]) => Promise<McpServer>;
   /** `true` while any phase of the OAuth flow is in progress. */
   readonly isInProgress: boolean;
   /** Current phase of the OAuth flow. */
@@ -125,7 +127,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
   }, []);
 
   const startOAuth = useCallback(
-    async (mcpServerId: string, org: string): Promise<McpServer> => {
+    async (mcpServerId: string, org: string, declaredEnvKeys?: readonly string[]): Promise<McpServer> => {
       setPhase("initiating");
       setError(null);
 
@@ -179,7 +181,9 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
         setPhase("connecting");
 
-        const systemEnv = await resolveSystemEnvVarValues(stigmer);
+        const systemEnv = declaredEnvKeys
+          ? await resolveDeclaredSystemEnvVars(stigmer, declaredEnvKeys)
+          : {};
         const runtimeEnvMap: Record<string, { value: string; isSecret: boolean }> = {};
         for (const [key, envInput] of Object.entries(systemEnv)) {
           runtimeEnvMap[key] = {
@@ -188,12 +192,14 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
           };
         }
 
-        const server = await stigmer.mcpServer.connect(
-          create(ConnectInputSchema, {
-            mcpServerId,
-            runtimeEnv: runtimeEnvMap,
-          }),
-        );
+        const input = create(ConnectInputSchema, {
+          mcpServerId,
+          ...(Object.keys(runtimeEnvMap).length > 0
+            ? { runtimeEnv: runtimeEnvMap }
+            : {}),
+        });
+
+        const server = await stigmer.mcpServer.connect(input);
 
         setPhase("done");
         return server;

@@ -355,6 +355,7 @@ export {
   toGrpcAddress,
   buildSystemEnvVars,
   resolveSystemEnvVarValues,
+  resolveDeclaredSystemEnvVars,
 } from "./environment";
 export type {
   UseEnvironmentReturn,

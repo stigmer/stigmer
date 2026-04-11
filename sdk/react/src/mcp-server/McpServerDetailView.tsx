@@ -140,8 +140,9 @@ export function McpServerDetailView({
   const handleOAuthSignIn = useCallback(async () => {
     if (!mcpServer?.metadata?.id) return;
 
+    const envKeys = Object.keys(mcpServer.spec?.env ?? {});
     try {
-      await oauth.startOAuth(mcpServer.metadata.id, activeOrg ?? org);
+      await oauth.startOAuth(mcpServer.metadata.id, activeOrg ?? org, envKeys);
       credentials.refetch();
       refetch();
     } catch {
@@ -162,8 +163,9 @@ export function McpServerDetailView({
       return;
     }
 
+    const envKeys = Object.keys(mcpServer.spec?.env ?? {});
     try {
-      await connection.connect(mcpServer.metadata.id);
+      await connection.connect(mcpServer.metadata.id, undefined, envKeys);
       refetch();
     } catch {
       // error state is managed by the hook
@@ -184,10 +186,11 @@ export function McpServerDetailView({
         setShowCredentialForm(false);
 
         if (mcpServer?.metadata?.id) {
+          const envKeys = Object.keys(mcpServer.spec?.env ?? {});
           if (options.saveForFuture) {
-            await connection.connect(mcpServer.metadata.id);
+            await connection.connect(mcpServer.metadata.id, undefined, envKeys);
           } else {
-            await connection.connect(mcpServer.metadata.id, values);
+            await connection.connect(mcpServer.metadata.id, values, envKeys);
           }
           refetch();
         }
