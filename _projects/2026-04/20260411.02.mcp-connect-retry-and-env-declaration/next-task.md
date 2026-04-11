@@ -51,9 +51,17 @@ All the context you need is right here with absolute paths to project files.
 
 ## Current State
 
-- **Status**: in-progress (T01-T05 done, T06 remaining)
-- **Last Session**: 2026-04-11 — T05 completed (clean removal of env_spec, full consumer migration)
-- **Active Task**: T06 (next to start)
+- **Status**: completed (T01-T06 all done)
+- **Last Session**: 2026-04-11 — T06 completed (enforce required/optional semantics across all layers)
+- **Active Task**: None — project complete
+
+## Session Progress (2026-04-11, Session 4 — T06)
+
+- **Design principle**: "Required vars gate; optional vars ride along"
+- **Bug fix**: Java `MergeMcpServerEnvSpecsStep` was dropping `optional` flag — all MCP-sourced vars appeared required at Agent level
+- **Go backend**: `connect.go` skips optional vars when missing; new `envmerge.ValidateRequiredKeys` function with 8 test cases; both execution context steps validate required keys post-merge
+- **Java backend**: `McpServerConnectHandler` skips optional vars; `MergeMcpServerEnvSpecsStep` now preserves `optional` flag
+- **Frontend**: `diffEnv` populates `optional`; `useMcpServerCredentials` and `useMcpServerSetup` only block on required vars; `EnvSection` shows `optional` badge; `EnvVarFormVariable` has `optional` field for future extensibility
 
 ## Session Progress (2026-04-11, Session 3 — T05)
 
@@ -68,27 +76,9 @@ All the context you need is right here with absolute paths to project files.
 - **Python consumers**: Updated config_transformer.py (spec.env), fixed pre-existing bug in setup.py (_extract_runtime_env_for_server referenced nonexistent env_spec.variables)
 - **TypeScript consumers**: Renamed diffEnvSpec→diffEnv, updated hooks (credentials/setup/agentSetup), detail views (McpServerDetailView, AgentDetailView), YAML parse/serialize, site fixtures
 
-## Next Steps
+## Project Complete
 
-1. T06: Enforce required/optional semantics in Java and Go connect/execution handlers
-   - Go connect.go: skip optional vars in `resolveFromPersonalEnvironment` when missing
-   - Java McpServerConnectHandler: same
-   - Java McpEnvironmentValidator: already uses `!declaration.getOptional()` (done in T05)
-   - Go/Java execution context steps: validate required vars are present before creating ExecutionContext
-
-## Context for Resume
-
-- **env_spec is completely gone** from all protos, consumer code, tests, seedpack, and docs
-- All consumers read `env` (type `map<string, EnvVarDeclaration>`) directly — no fallback logic
-- `EnvironmentSpec` and `EnvironmentValue` still exist for the `Environment` resource (stored values), which is correct
-- `MergeEnvironmentLayers` is now 2-layer (environments + runtime); template defaults removed since `EnvVarDeclaration` has no `value` field (by design: blueprints declare needs, not values)
-- `McpEnvironmentValidator.extractRequiredVariables()` already uses `!declaration.getOptional()` from T05
-- YAML parser (`parse-resource-yaml.ts`) retains backward compat for reading old `env_spec.data` YAML
-
-## Resume Checklist
-
-When starting a new session, quickly review:
-
-1. [ ] Open `tasks.md` and check current task status
-2. [ ] T06 is the only remaining task
-3. [ ] Focus: enforce `optional` flag semantics in connect and execution handlers
+All 6 tasks (T01-T06) are done. The `EnvVarDeclaration.optional` flag is now consistently enforced across:
+- Go backend: connect handler, envmerge validation, agent/workflow execution context steps
+- Java backend: connect handler, MCP→Agent env merge, McpEnvironmentValidator (T05)
+- Frontend: diffEnv, useMcpServerCredentials, useMcpServerSetup, EnvSection badge

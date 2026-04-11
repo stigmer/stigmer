@@ -113,14 +113,30 @@ Add timestamps and notes to track your progress.
 
 ## Task 6: T06: Enforce required/optional semantics in Java and Go connect and execution handlers
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-11 17:40
+**Completed**: 2026-04-11
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Fix Java `MergeMcpServerEnvSpecsStep` bug: add `.setOptional()` to builder when copying MCP env declarations to Agent spec
+- [x] Add `optionalFlagPreserved` test to `MergeMcpServerEnvSpecsStepTest`
+- [x] Go `connect.go`: update `resolveFromPersonalEnvironment` to skip optional vars when missing, only error on required
+- [x] Go `envmerge`: add `ValidateRequiredKeys` function + 8 test cases
+- [x] Go agent execution context step: add `ValidateRequiredKeys` call after all injections (step 6.9)
+- [x] Go workflow execution context step: add `ValidateRequiredKeys` call after filtering (step 6.1)
+- [x] Java `McpServerConnectHandler`: update `resolveFromPersonalEnvironment` to skip optional vars, only fail on required
+- [x] Frontend `EnvVarFormVariable`: add `optional?: boolean` field
+- [x] Frontend `diffEnv`: populate `optional` on returned entries
+- [x] Frontend `useMcpServerCredentials`: filter to required-only for `isReady` and `missingVariables`
+- [x] Frontend `useMcpServerSetup`: filter `diffEnv` result to required-only in `addServer` and pool re-evaluation
+- [x] Frontend `EnvSection`: add `optional` badge in `McpServerDetailView`
 
 ### Notes
-- [Add notes about this task here]
+- **Design principle**: "Required vars gate; optional vars ride along." Missing required = hard blocker. Missing optional = silently skipped.
+- **Bug fix discovered**: Java `MergeMcpServerEnvSpecsStep` was dropping the `optional` flag when copying MCP server env declarations into Agent spec. All MCP-sourced vars appeared required at the Agent level. Fixed by adding `.setOptional(entry.getValue().getOptional())` to the builder.
+- **Go validation approach**: `ValidateRequiredKeys` logs warnings (not hard errors) in execution context steps, because the Go OSS server doesn't have the equivalent of Java's `injectMcpEnvFromPersonalEnvironment`. Hard validation is handled by the Java Cloud backend's `McpEnvironmentValidator` (already done in T05).
+- **Frontend approach**: `EnvVarForm` itself unchanged — still requires all passed fields to be filled. Optional-skip is achieved by callers filtering before passing vars to the form. This avoids confusing UX with partially-filled forms.
+- **Frontend UX**: Optional vars discoverable via read-only `EnvSection` (with new `optional` badge) but never shown in credential/setup forms. Servers with only optional missing vars auto-resolve to `ready`.
 
 
 ## Project Completion Checklist

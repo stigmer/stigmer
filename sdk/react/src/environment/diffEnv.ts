@@ -43,6 +43,7 @@ export function diffEnv(
       key,
       isSecret: value.isSecret,
       ...(value.description && { description: value.description }),
+      ...(value.optional && { optional: true }),
     });
   }
 

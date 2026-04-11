@@ -293,6 +293,108 @@ func TestFilterByDeclaredKeys(t *testing.T) {
 	}
 }
 
+// --- ValidateRequiredKeys tests ---
+
+func TestValidateRequiredKeys(t *testing.T) {
+	optionalDecl := func(isSecret, optional bool) *environmentv1.EnvVarDeclaration {
+		return &environmentv1.EnvVarDeclaration{IsSecret: isSecret, Optional: optional}
+	}
+
+	tests := []struct {
+		name         string
+		filtered     map[string]*executioncontextv1.ExecutionValue
+		declarations map[string]*environmentv1.EnvVarDeclaration
+		wantMissing  []string
+	}{
+		{
+			name:         "nil declarations — nothing required",
+			filtered:     map[string]*executioncontextv1.ExecutionValue{"A": execVal("a", false)},
+			declarations: nil,
+			wantMissing:  nil,
+		},
+		{
+			name:         "empty declarations — nothing required",
+			filtered:     map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{},
+			wantMissing:  nil,
+		},
+		{
+			name:     "all required keys present — valid",
+			filtered: map[string]*executioncontextv1.ExecutionValue{"API_KEY": execVal("k", true)},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"API_KEY": optionalDecl(true, false),
+			},
+			wantMissing: nil,
+		},
+		{
+			name:     "required key missing — reported",
+			filtered: map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"API_KEY": optionalDecl(true, false),
+			},
+			wantMissing: []string{"API_KEY"},
+		},
+		{
+			name:     "optional key missing — not reported",
+			filtered: map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"LOG_LEVEL": optionalDecl(false, true),
+			},
+			wantMissing: nil,
+		},
+		{
+			name:     "mix of required present, required missing, optional missing",
+			filtered: map[string]*executioncontextv1.ExecutionValue{"PRESENT": execVal("v", false)},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"PRESENT":          optionalDecl(false, false),
+				"MISSING_REQUIRED": optionalDecl(true, false),
+				"MISSING_OPTIONAL": optionalDecl(false, true),
+			},
+			wantMissing: []string{"MISSING_REQUIRED"},
+		},
+		{
+			name:     "multiple missing required keys — sorted alphabetically",
+			filtered: map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"ZEBRA_KEY": optionalDecl(false, false),
+				"ALPHA_KEY": optionalDecl(true, false),
+				"MIDDLE":    optionalDecl(false, false),
+			},
+			wantMissing: []string{"ALPHA_KEY", "MIDDLE", "ZEBRA_KEY"},
+		},
+		{
+			name:     "all optional — nothing required",
+			filtered: map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"OPT_A": optionalDecl(false, true),
+				"OPT_B": optionalDecl(true, true),
+			},
+			wantMissing: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ValidateRequiredKeys(tt.filtered, tt.declarations)
+
+			if tt.wantMissing == nil {
+				if len(got) != 0 {
+					t.Errorf("expected no missing keys, got %v", got)
+				}
+				return
+			}
+			if len(got) != len(tt.wantMissing) {
+				t.Fatalf("got %v, want %v", got, tt.wantMissing)
+			}
+			for i, key := range tt.wantMissing {
+				if got[i] != key {
+					t.Errorf("missing[%d]: got %q, want %q", i, got[i], key)
+				}
+			}
+		})
+	}
+}
+
 // TestFilterByDeclaredKeys_ReturnsSameMapWhenNoDeclarations verifies that the
 // returned map is the exact same reference (not a copy) when declarations is nil/empty.
 func TestFilterByDeclaredKeys_ReturnsSameMapWhenNoDeclarations(t *testing.T) {

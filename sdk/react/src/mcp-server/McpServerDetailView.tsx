@@ -797,6 +797,11 @@ function EnvSection({
                   oauth
                 </span>
               )}
+              {env.optional && (
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+                  optional
+                </span>
+              )}
               {env.description && (
                 <span className="text-xs text-muted-foreground">
                   {env.description}

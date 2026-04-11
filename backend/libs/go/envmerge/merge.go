@@ -76,3 +76,25 @@ func FilterByDeclaredKeys(
 	sort.Strings(excludedKeys)
 	return filtered, excludedKeys
 }
+
+// ValidateRequiredKeys checks that every required (non-optional) declared key
+// has a corresponding entry in the filtered environment map. Returns a sorted
+// list of missing required keys. An empty slice means validation passed.
+//
+// This is the Go equivalent of Java's McpEnvironmentValidator.extractRequiredVariables
+// logic: declarations where optional=false (the proto default) are required.
+func ValidateRequiredKeys(
+	filtered map[string]*executioncontextv1.ExecutionValue,
+	declarations map[string]*environmentv1.EnvVarDeclaration,
+) (missingRequired []string) {
+	for key, decl := range declarations {
+		if decl.GetOptional() {
+			continue
+		}
+		if _, ok := filtered[key]; !ok {
+			missingRequired = append(missingRequired, key)
+		}
+	}
+	sort.Strings(missingRequired)
+	return missingRequired
+}
