@@ -56,6 +56,16 @@ class McpServerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
                 _registered_method=True)
+        self.initiateOAuthConnect = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/initiateOAuthConnect',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.InitiateOAuthConnectInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.InitiateOAuthConnectOutput.FromString,
+                _registered_method=True)
+        self.completeOAuthConnect = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/completeOAuthConnect',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectOutput.FromString,
+                _registered_method=True)
 
 
 class McpServerCommandControllerServicer(object):
@@ -177,6 +187,58 @@ class McpServerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def initiateOAuthConnect(self, request, context):
+        """Start the OAuth authorization flow for an MCP server.
+
+        Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+        generation) and returns an authorization URL for the frontend to
+        redirect the user to. The frontend calls completeOAuthConnect after
+        the user authorizes.
+
+        @internal
+        Two auth modes determined by the MCP server's spec.auth block:
+        - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+        discovers the authorization server, registers a client via DCR,
+        and builds the auth URL automatically.
+        - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+        OAuthApp for client credentials and endpoint URLs.
+
+        Errors:
+        - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+        without oauth_app_ref (DCR requires HTTP transport)
+        - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+
+        Authorization: Requires can_connect permission on the mcp_server resource.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def completeOAuthConnect(self, request, context):
+        """Complete the OAuth authorization flow by exchanging the authorization
+        code for tokens.
+
+        Called by the frontend after the user is redirected back from the
+        OAuth authorization server. Exchanges the code for tokens, stores
+        them in the user's personal environment, and creates an OAuthGrant
+        record for pre-flight expiry checks.
+
+        After success, the frontend should call connect() to trigger tool
+        discovery using the freshly acquired token.
+
+        @internal
+        Errors:
+        - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+        not match the mcp_server_id
+        - UNAVAILABLE: Token exchange with the authorization server failed
+        - NOT_FOUND: No pending OAuth state found for the given state param
+
+        Authorization: Requires can_connect permission on the mcp_server resource.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_McpServerCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -209,6 +271,16 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
                     servicer.connect,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
+            ),
+            'initiateOAuthConnect': grpc.unary_unary_rpc_method_handler(
+                    servicer.initiateOAuthConnect,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.InitiateOAuthConnectInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.InitiateOAuthConnectOutput.SerializeToString,
+            ),
+            'completeOAuthConnect': grpc.unary_unary_rpc_method_handler(
+                    servicer.completeOAuthConnect,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -383,6 +455,60 @@ class McpServerCommandController(object):
             '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect',
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.ConnectInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def initiateOAuthConnect(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/initiateOAuthConnect',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.InitiateOAuthConnectInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.InitiateOAuthConnectOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def completeOAuthConnect(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/completeOAuthConnect',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.CompleteOAuthConnectOutput.FromString,
             options,
             channel_credentials,
             insecure,

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi7AEKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi7AEKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASI6ChlJbml0aWF0ZU9BdXRoQ29ubmVjdElucHV0Eh0KDW1jcF9zZXJ2ZXJfaWQYASABKAlCBrpIA8gBASJtChpJbml0aWF0ZU9BdXRoQ29ubmVjdE91dHB1dBIZChFhdXRob3JpemF0aW9uX3VybBgBIAEoCRINCgVzdGF0ZRgCIAEoCRIOCgZzY29wZXMYAyADKAkSFQoNcHJvdmlkZXJfbmFtZRgEIAEoCSJ3ChlDb21wbGV0ZU9BdXRoQ29ubmVjdElucHV0Eh0KDW1jcF9zZXJ2ZXJfaWQYASABKAlCBrpIA8gBARIjChJhdXRob3JpemF0aW9uX2NvZGUYAiABKAlCB7pIBHICEAESFgoFc3RhdGUYAyABKAlCB7pIBHICEAEiZAoaQ29tcGxldGVPQXV0aENvbm5lY3RPdXRwdXQSEQoJY29ubmVjdGVkGAEgASgIEhYKDnRhcmdldF9lbnZfdmFyGAIgASgJEhsKE3Rva2VuX2xpZmV0aW1lX2hpbnQYAyABKAliBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
 
 /**
  * McpServerId wraps an MCP server resource identifier.
@@ -94,4 +94,179 @@ export type ConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectInput
  */
 export const ConnectInputSchema: GenMessage<ConnectInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 1);
+
+/**
+ * InitiateOAuthConnectInput starts the OAuth authorization flow for an
+ * MCP server that has an auth block in its spec.
+ *
+ * @internal
+ * Returns an authorization URL that the frontend redirects the user to.
+ * The backend performs all setup (DCR registration for MCP OAuth servers,
+ * OAuthApp credential lookup for vendor OAuth servers, PKCE pair generation)
+ * and stores the pending state for the subsequent completeOAuthConnect call.
+ *
+ * Prerequisites:
+ * - The MCP server must exist and have spec.auth configured
+ * - For DCR: the server must use HTTP transport (discovery requires a URL)
+ * - For vendor OAuth: the referenced OAuthApp must exist and be accessible
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput
+ */
+export type InitiateOAuthConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput"> & {
+  /**
+   * System-generated ID of the MCP server to initiate OAuth for.
+   *
+   * @generated from field: string mcp_server_id = 1;
+   */
+  mcpServerId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput.
+ * Use `create(InitiateOAuthConnectInputSchema)` to create a new message.
+ */
+export const InitiateOAuthConnectInputSchema: GenMessage<InitiateOAuthConnectInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 2);
+
+/**
+ * InitiateOAuthConnectOutput contains the authorization URL and metadata
+ * the frontend needs to redirect the user to the OAuth authorization server.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput
+ */
+export type InitiateOAuthConnectOutput = Message<"ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput"> & {
+  /**
+   * Full authorization URL to redirect the user to.
+   * Includes client_id, redirect_uri, code_challenge, state, and scopes.
+   *
+   * @generated from field: string authorization_url = 1;
+   */
+  authorizationUrl: string;
+
+  /**
+   * Opaque state parameter for CSRF protection.
+   * The frontend must pass this back in completeOAuthConnect to correlate
+   * the callback with this initiation.
+   *
+   * @generated from field: string state = 2;
+   */
+  state: string;
+
+  /**
+   * OAuth scopes that will be requested.
+   * For DCR: discovered from authorization server metadata or scope_hints.
+   * For vendor OAuth: from the OAuthApp spec.
+   *
+   * @generated from field: repeated string scopes = 3;
+   */
+  scopes: string[];
+
+  /**
+   * Human-readable provider name for UI display during the redirect.
+   * For DCR: derived from the MCP server name.
+   * For vendor OAuth: from OAuthApp.spec.provider.
+   *
+   * @generated from field: string provider_name = 4;
+   */
+  providerName: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput.
+ * Use `create(InitiateOAuthConnectOutputSchema)` to create a new message.
+ */
+export const InitiateOAuthConnectOutputSchema: GenMessage<InitiateOAuthConnectOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 3);
+
+/**
+ * CompleteOAuthConnectInput finishes the OAuth flow by exchanging the
+ * authorization code for tokens.
+ *
+ * @internal
+ * Called by the frontend after the user is redirected back from the
+ * OAuth authorization server. The frontend extracts the authorization
+ * code and state from the callback URL and passes them here.
+ *
+ * The backend:
+ * 1. Validates the state parameter against the stored PendingOAuthState
+ * 2. Exchanges the authorization code for tokens (using PKCE code_verifier)
+ * 3. Stores the access token in the user's personal environment
+ * 4. Stores the refresh token (if present) in the personal environment
+ * 5. Creates an OAuthGrant record for pre-flight expiry checks
+ *
+ * After this succeeds, the frontend should call the regular connect RPC
+ * to trigger tool discovery (which will find the fresh token in the
+ * personal environment).
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput
+ */
+export type CompleteOAuthConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput"> & {
+  /**
+   * System-generated ID of the MCP server.
+   * Must match the mcp_server_id used in the preceding initiateOAuthConnect.
+   *
+   * @generated from field: string mcp_server_id = 1;
+   */
+  mcpServerId: string;
+
+  /**
+   * Authorization code from the OAuth callback redirect.
+   *
+   * @generated from field: string authorization_code = 2;
+   */
+  authorizationCode: string;
+
+  /**
+   * State parameter from the OAuth callback redirect.
+   * Must match the state returned by initiateOAuthConnect.
+   *
+   * @generated from field: string state = 3;
+   */
+  state: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput.
+ * Use `create(CompleteOAuthConnectInputSchema)` to create a new message.
+ */
+export const CompleteOAuthConnectInputSchema: GenMessage<CompleteOAuthConnectInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 4);
+
+/**
+ * CompleteOAuthConnectOutput confirms that tokens were successfully
+ * acquired and stored.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput
+ */
+export type CompleteOAuthConnectOutput = Message<"ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput"> & {
+  /**
+   * Whether the OAuth flow completed successfully and tokens are stored.
+   *
+   * @generated from field: bool connected = 1;
+   */
+  connected: boolean;
+
+  /**
+   * The environment variable name where the access token was stored.
+   * Matches McpServerAuth.target_env_var on the MCP server spec.
+   *
+   * @generated from field: string target_env_var = 2;
+   */
+  targetEnvVar: string;
+
+  /**
+   * Informational hint about expected token lifetime.
+   * Echoed from McpServerAuth.token_lifetime_hint for UI display.
+   *
+   * @generated from field: string token_lifetime_hint = 3;
+   */
+  tokenLifetimeHint: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput.
+ * Use `create(CompleteOAuthConnectOutputSchema)` to create a new message.
+ */
+export const CompleteOAuthConnectOutputSchema: GenMessage<CompleteOAuthConnectOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 5);
 

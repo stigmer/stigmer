@@ -41,6 +41,26 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectOutput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -61,12 +81,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "nectInput.RuntimeEnvEntryR\nruntimeEnv\032u\n" +
       "\017RuntimeEnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005va" +
       "lue\030\002 \001(\01326.ai.stigmer.agentic.execution" +
-      "context.v1.ExecutionValueR\005value:\0028\001B\252\001B" +
-      "\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.M" +
-      "cpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserv" +
-      "er\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\" +
-      "GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcps" +
-      "erver::V1b\006proto3"
+      "context.v1.ExecutionValueR\005value:\0028\001\"G\n\031" +
+      "InitiateOAuthConnectInput\022*\n\rmcp_server_" +
+      "id\030\001 \001(\tB\006\272H\003\310\001\001R\013mcpServerId\"\234\001\n\032Initia" +
+      "teOAuthConnectOutput\022+\n\021authorization_ur" +
+      "l\030\001 \001(\tR\020authorizationUrl\022\024\n\005state\030\002 \001(\t" +
+      "R\005state\022\026\n\006scopes\030\003 \003(\tR\006scopes\022#\n\rprovi" +
+      "der_name\030\004 \001(\tR\014providerName\"\236\001\n\031Complet" +
+      "eOAuthConnectInput\022*\n\rmcp_server_id\030\001 \001(" +
+      "\tB\006\272H\003\310\001\001R\013mcpServerId\0226\n\022authorization_" +
+      "code\030\002 \001(\tB\007\272H\004r\002\020\001R\021authorizationCode\022\035" +
+      "\n\005state\030\003 \001(\tB\007\272H\004r\002\020\001R\005state\"\220\001\n\032Comple" +
+      "teOAuthConnectOutput\022\034\n\tconnected\030\001 \001(\010R" +
+      "\tconnected\022$\n\016target_env_var\030\002 \001(\tR\014targ" +
+      "etEnvVar\022.\n\023token_lifetime_hint\030\003 \001(\tR\021t" +
+      "okenLifetimeHintB\252\001B\007IoProtoP\001\242\002\004ASAM\252\002\037" +
+      "Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Sti" +
+      "gmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\A" +
+      "gentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::St" +
+      "igmer::Agentic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -92,6 +125,30 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_descriptor,
+        new java.lang.String[] { "McpServerId", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_descriptor,
+        new java.lang.String[] { "AuthorizationUrl", "State", "Scopes", "ProviderName", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectInput_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectInput_descriptor,
+        new java.lang.String[] { "McpServerId", "AuthorizationCode", "State", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectOutput_descriptor =
+      getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_CompleteOAuthConnectOutput_descriptor,
+        new java.lang.String[] { "Connected", "TargetEnvVar", "TokenLifetimeHint", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

@@ -62,6 +62,16 @@ func (m *McpServerClient) Connect(ctx context.Context, input *mcpserverv1.Connec
 	return resp, wrapErr(err)
 }
 
+func (m *McpServerClient) InitiateOAuthConnect(ctx context.Context, input *mcpserverv1.InitiateOAuthConnectInput) (*mcpserverv1.InitiateOAuthConnectOutput, error) {
+	resp, err := m.command.InitiateOAuthConnect(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (m *McpServerClient) CompleteOAuthConnect(ctx context.Context, input *mcpserverv1.CompleteOAuthConnectInput) (*mcpserverv1.CompleteOAuthConnectOutput, error) {
+	resp, err := m.command.CompleteOAuthConnect(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (m *McpServerClient) Get(ctx context.Context, id string) (*mcpserverv1.McpServer, error) {
 	resp, err := m.query.Get(ctx, &apiresource.ApiResourceId{Value: id})
 	return resp, wrapErr(err)
@@ -136,20 +146,10 @@ type ToolApprovalPolicyInput struct {
 
 // McpServerAuthInput is the SDK input type for McpServerAuth.
 type McpServerAuthInput struct {
-	McpOauth          *McpOAuthInput
-	VendorOauth       *McpServerVendorOAuthInput
+	OauthAppRef       ResourceRef
 	TargetEnvVar      string
 	TokenLifetimeHint string
-}
-
-// McpOAuthInput is the SDK input type for McpOAuth.
-type McpOAuthInput struct {
-	ScopeHints []string
-}
-
-// McpServerVendorOAuthInput is the SDK input type for McpServerVendorOAuth.
-type McpServerVendorOAuthInput struct {
-	OauthAppRef ResourceRef
+	ScopeHints        []string
 }
 
 func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
@@ -209,7 +209,9 @@ func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 
 func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
 	return &mcpserverv1.McpServerAuth{
+		OauthAppRef:       i.OauthAppRef.toProto(),
 		TargetEnvVar:      i.TargetEnvVar,
 		TokenLifetimeHint: i.TokenLifetimeHint,
+		ScopeHints:        i.ScopeHints,
 	}
 }

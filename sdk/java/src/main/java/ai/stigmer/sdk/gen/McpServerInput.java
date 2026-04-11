@@ -3,11 +3,9 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.mcpserver.v1.HttpServerConfig;
-import ai.stigmer.agentic.mcpserver.v1.McpOAuth;
 import ai.stigmer.agentic.mcpserver.v1.McpServer;
 import ai.stigmer.agentic.mcpserver.v1.McpServerAuth;
 import ai.stigmer.agentic.mcpserver.v1.McpServerSpec;
-import ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth;
 import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
@@ -262,25 +260,22 @@ public final class McpServerInput {
 
     /** SDK input type for McpServerAuth. */
     public static final class McpServerAuthInput {
-        private final McpOAuthInput mcpOauth;
-        private final McpServerVendorOAuthInput vendorOauth;
+        private final ResourceRef oauthAppRef;
         private final String targetEnvVar;
         private final String tokenLifetimeHint;
+        private final java.util.List<String> scopeHints;
 
         private McpServerAuthInput(Builder builder) {
-            this.mcpOauth = builder.mcpOauth;
-            this.vendorOauth = builder.vendorOauth;
+            this.oauthAppRef = builder.oauthAppRef;
             this.targetEnvVar = builder.targetEnvVar;
             this.tokenLifetimeHint = builder.tokenLifetimeHint;
+            this.scopeHints = builder.scopeHints;
         }
 
         McpServerAuth toProto() {
             McpServerAuth.Builder builder = McpServerAuth.newBuilder();
-            if (this.mcpOauth != null) {
-                builder.setMcpOauth(this.mcpOauth.toProto());
-            }
-            if (this.vendorOauth != null) {
-                builder.setVendorOauth(this.vendorOauth.toProto());
+            if (this.oauthAppRef != null) {
+                builder.setOauthAppRef(this.oauthAppRef.toProto());
             }
             if (this.targetEnvVar != null) {
                 builder.setTargetEnvVar(this.targetEnvVar);
@@ -288,38 +283,6 @@ public final class McpServerInput {
             if (this.tokenLifetimeHint != null) {
                 builder.setTokenLifetimeHint(this.tokenLifetimeHint);
             }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private McpOAuthInput mcpOauth;
-            private McpServerVendorOAuthInput vendorOauth;
-            private String targetEnvVar;
-            private String tokenLifetimeHint;
-
-            private Builder() {}
-
-            public Builder mcpOauth(McpOAuthInput mcpOauth) { this.mcpOauth = mcpOauth; return this; }
-            public Builder vendorOauth(McpServerVendorOAuthInput vendorOauth) { this.vendorOauth = vendorOauth; return this; }
-            public Builder targetEnvVar(String targetEnvVar) { this.targetEnvVar = targetEnvVar; return this; }
-            public Builder tokenLifetimeHint(String tokenLifetimeHint) { this.tokenLifetimeHint = tokenLifetimeHint; return this; }
-
-            public McpServerAuthInput build() { return new McpServerAuthInput(this); }
-        }
-    }
-
-    /** SDK input type for McpOAuth. */
-    public static final class McpOAuthInput {
-        private final java.util.List<String> scopeHints;
-
-        private McpOAuthInput(Builder builder) {
-            this.scopeHints = builder.scopeHints;
-        }
-
-        McpOAuth toProto() {
-            McpOAuth.Builder builder = McpOAuth.newBuilder();
             if (this.scopeHints != null) {
                 builder.addAllScopeHints(this.scopeHints);
             }
@@ -329,42 +292,19 @@ public final class McpServerInput {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
+            private ResourceRef oauthAppRef;
+            private String targetEnvVar;
+            private String tokenLifetimeHint;
             private java.util.List<String> scopeHints;
 
             private Builder() {}
 
+            public Builder oauthAppRef(ResourceRef oauthAppRef) { this.oauthAppRef = oauthAppRef; return this; }
+            public Builder targetEnvVar(String targetEnvVar) { this.targetEnvVar = targetEnvVar; return this; }
+            public Builder tokenLifetimeHint(String tokenLifetimeHint) { this.tokenLifetimeHint = tokenLifetimeHint; return this; }
             public Builder scopeHints(java.util.List<String> scopeHints) { this.scopeHints = scopeHints; return this; }
 
-            public McpOAuthInput build() { return new McpOAuthInput(this); }
-        }
-    }
-
-    /** SDK input type for McpServerVendorOAuth. */
-    public static final class McpServerVendorOAuthInput {
-        private final ResourceRef oauthAppRef;
-
-        private McpServerVendorOAuthInput(Builder builder) {
-            this.oauthAppRef = builder.oauthAppRef;
-        }
-
-        McpServerVendorOAuth toProto() {
-            McpServerVendorOAuth.Builder builder = McpServerVendorOAuth.newBuilder();
-            if (this.oauthAppRef != null) {
-                builder.setOauthAppRef(this.oauthAppRef.toProto());
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private ResourceRef oauthAppRef;
-
-            private Builder() {}
-
-            public Builder oauthAppRef(ResourceRef oauthAppRef) { this.oauthAppRef = oauthAppRef; return this; }
-
-            public McpServerVendorOAuthInput build() { return new McpServerVendorOAuthInput(this); }
+            public McpServerAuthInput build() { return new McpServerAuthInput(this); }
         }
     }
 }

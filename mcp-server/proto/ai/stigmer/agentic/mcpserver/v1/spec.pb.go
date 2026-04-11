@@ -531,16 +531,18 @@ func (x *ToolApprovalPolicy) GetMessage() string {
 // McpServerAuth configures automated credential acquisition via OAuth.
 //
 // @internal
-// Two authentication methods are supported:
+// Two authentication modes are determined by the presence of oauth_app_ref:
 //
-//   - mcp_oauth: The MCP server implements the MCP Authorization specification
-//     (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with
-//     PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp
-//     resource is needed — credentials are obtained automatically via DCR.
+//   - When oauth_app_ref is empty: the MCP server implements the MCP
+//     Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
+//     Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
+//     from the server URL. No OAuthApp resource is needed — credentials are
+//     obtained automatically via DCR.
 //
-//   - vendor_oauth: The MCP server requires pre-registered OAuth app credentials
-//     from a specific vendor (Slack, Salesforce, Figma, etc.). References an
-//     OAuthApp resource created by the org admin.
+//   - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
+//     app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
+//     The referenced OAuthApp holds the client_id, client_secret, and endpoint
+//     URLs needed for the authorization code flow.
 //
 // In both cases, the acquired access token is stored in the user's personal
 // environment as target_env_var. A refresh token (if issued by the vendor) is
@@ -553,24 +555,34 @@ func (x *ToolApprovalPolicy) GetMessage() string {
 //     error, and the user re-authenticates from the MCP server Connect page.
 type McpServerAuth struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Authentication method. Exactly one must be specified.
+	// Reference to an OAuthApp for vendor-specific OAuth.
 	//
-	// Types that are valid to be assigned to Method:
+	// When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+	// Stigmer discovers the authorization server metadata, registers a client
+	// via DCR, and performs the authorization code flow with PKCE — all
+	// automatically at connect time.
 	//
-	//	*McpServerAuth_McpOauth
-	//	*McpServerAuth_VendorOauth
-	Method isMcpServerAuth_Method `protobuf_oneof:"method"`
+	// When set: Stigmer uses the referenced OAuthApp's client credentials to
+	// perform the OAuth authorization code flow with the vendor on behalf of
+	// the user. The OAuthApp must belong to the same organization as the
+	// McpServer (or be accessible via cross-org reference).
+	OauthAppRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
 	// The env var in env_spec.data where the acquired access token is stored.
 	// Must correspond to an entry in env_spec.data so the execution pipeline
 	// resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
 	// by convention. Both are written to the user's personal environment.
-	TargetEnvVar string `protobuf:"bytes,3,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
+	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Informational hint about expected token lifetime for UI display.
 	// Helps users understand when re-authentication may be needed.
 	// Empty means unknown. Examples: "1h", "2h", "90d", "never".
-	TokenLifetimeHint string `protobuf:"bytes,4,opt,name=token_lifetime_hint,json=tokenLifetimeHint,proto3" json:"token_lifetime_hint,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	TokenLifetimeHint string `protobuf:"bytes,3,opt,name=token_lifetime_hint,json=tokenLifetimeHint,proto3" json:"token_lifetime_hint,omitempty"`
+	// Optional scope hints for UI display before the OAuth flow starts.
+	// For DCR servers: shown to the user since actual scopes are discovered
+	// at connect time during authorization server metadata retrieval.
+	// For vendor OAuth: informational (scopes are defined on the OAuthApp).
+	ScopeHints    []string `protobuf:"bytes,4,rep,name=scope_hints,json=scopeHints,proto3" json:"scope_hints,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *McpServerAuth) Reset() {
@@ -603,27 +615,9 @@ func (*McpServerAuth) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *McpServerAuth) GetMethod() isMcpServerAuth_Method {
+func (x *McpServerAuth) GetOauthAppRef() *apiresource.ApiResourceReference {
 	if x != nil {
-		return x.Method
-	}
-	return nil
-}
-
-func (x *McpServerAuth) GetMcpOauth() *McpOAuth {
-	if x != nil {
-		if x, ok := x.Method.(*McpServerAuth_McpOauth); ok {
-			return x.McpOauth
-		}
-	}
-	return nil
-}
-
-func (x *McpServerAuth) GetVendorOauth() *McpServerVendorOAuth {
-	if x != nil {
-		if x, ok := x.Method.(*McpServerAuth_VendorOauth); ok {
-			return x.VendorOauth
-		}
+		return x.OauthAppRef
 	}
 	return nil
 }
@@ -642,135 +636,9 @@ func (x *McpServerAuth) GetTokenLifetimeHint() string {
 	return ""
 }
 
-type isMcpServerAuth_Method interface {
-	isMcpServerAuth_Method()
-}
-
-type McpServerAuth_McpOauth struct {
-	// MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
-	McpOauth *McpOAuth `protobuf:"bytes,1,opt,name=mcp_oauth,json=mcpOauth,proto3,oneof"`
-}
-
-type McpServerAuth_VendorOauth struct {
-	// Vendor-specific OAuth: references an OAuthApp with client credentials.
-	VendorOauth *McpServerVendorOAuth `protobuf:"bytes,2,opt,name=vendor_oauth,json=vendorOauth,proto3,oneof"`
-}
-
-func (*McpServerAuth_McpOauth) isMcpServerAuth_Method() {}
-
-func (*McpServerAuth_VendorOauth) isMcpServerAuth_Method() {}
-
-// McpOAuth configures MCP Authorization spec authentication (DCR + PKCE).
-//
-// @internal
-// The MCP server implements the MCP Authorization specification:
-// - RFC 8414: OAuth 2.0 Authorization Server Metadata (.well-known discovery)
-// - RFC 7591: Dynamic Client Registration
-// - OAuth 2.1 with PKCE (S256)
-//
-// Stigmer discovers the authorization server metadata, registers a client
-// via DCR, and performs the authorization code flow with PKCE — all
-// automatically at connect time. No OAuthApp resource is needed.
-type McpOAuth struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Optional scope hints for UI display before the OAuth flow starts.
-	// These are informational — the actual scopes are negotiated during DCR
-	// and the authorization request based on what the server supports.
-	ScopeHints    []string `protobuf:"bytes,1,rep,name=scope_hints,json=scopeHints,proto3" json:"scope_hints,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *McpOAuth) Reset() {
-	*x = McpOAuth{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *McpOAuth) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*McpOAuth) ProtoMessage() {}
-
-func (x *McpOAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use McpOAuth.ProtoReflect.Descriptor instead.
-func (*McpOAuth) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *McpOAuth) GetScopeHints() []string {
+func (x *McpServerAuth) GetScopeHints() []string {
 	if x != nil {
 		return x.ScopeHints
-	}
-	return nil
-}
-
-// McpServerVendorOAuth configures vendor-specific OAuth authentication.
-//
-// @internal
-// References an OAuthApp resource that holds the vendor's client credentials
-// (client_id, client_secret, endpoint URLs, scopes). The OAuthApp is created
-// by the org admin or platform operator who registered an OAuth app with
-// the vendor (e.g., Slack, Salesforce, Figma).
-//
-// At connect time, Stigmer uses the OAuthApp's credentials to perform
-// the OAuth authorization code flow with the vendor on behalf of the user.
-type McpServerVendorOAuth struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Reference to the OAuthApp resource providing client credentials.
-	// The referenced OAuthApp must belong to the same organization as
-	// the McpServer (or be accessible via cross-org reference).
-	OauthAppRef   *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *McpServerVendorOAuth) Reset() {
-	*x = McpServerVendorOAuth{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *McpServerVendorOAuth) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*McpServerVendorOAuth) ProtoMessage() {}
-
-func (x *McpServerVendorOAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use McpServerVendorOAuth.ProtoReflect.Descriptor instead.
-func (*McpServerVendorOAuth) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *McpServerVendorOAuth) GetOauthAppRef() *apiresource.ApiResourceReference {
-	if x != nil {
-		return x.OauthAppRef
 	}
 	return nil
 }
@@ -812,18 +680,13 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xa5\x02\n" +
-	"\rMcpServerAuth\x12H\n" +
-	"\tmcp_oauth\x18\x01 \x01(\v2).ai.stigmer.agentic.mcpserver.v1.McpOAuthH\x00R\bmcpOauth\x12Z\n" +
-	"\fvendor_oauth\x18\x02 \x01(\v25.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuthH\x00R\vvendorOauth\x12-\n" +
-	"\x0etarget_env_var\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ftargetEnvVar\x12.\n" +
-	"\x13token_lifetime_hint\x18\x04 \x01(\tR\x11tokenLifetimeHintB\x0f\n" +
-	"\x06method\x12\x05\xbaH\x02\b\x01\"+\n" +
-	"\bMcpOAuth\x12\x1f\n" +
-	"\vscope_hints\x18\x01 \x03(\tR\n" +
-	"scopeHints\"x\n" +
-	"\x14McpServerVendorOAuth\x12`\n" +
-	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\voauthAppRefB\xaa\x02\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xe9\x01\n" +
+	"\rMcpServerAuth\x12X\n" +
+	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\voauthAppRef\x12-\n" +
+	"\x0etarget_env_var\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ftargetEnvVar\x12.\n" +
+	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\x12\x1f\n" +
+	"\vscope_hints\x18\x04 \x03(\tR\n" +
+	"scopeHintsB\xaa\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZWgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -838,36 +701,32 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
 	(*McpServerSpec)(nil),                    // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
 	(*StdioServerConfig)(nil),                // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	(*HttpServerConfig)(nil),                 // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
 	(*ToolApprovalPolicy)(nil),               // 3: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
 	(*McpServerAuth)(nil),                    // 4: ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	(*McpOAuth)(nil),                         // 5: ai.stigmer.agentic.mcpserver.v1.McpOAuth
-	(*McpServerVendorOAuth)(nil),             // 6: ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth
-	nil,                                      // 7: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	nil,                                      // 8: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*v1.EnvironmentSpec)(nil),               // 9: ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	(*apiresource.ApiResourceReference)(nil), // 10: ai.stigmer.commons.apiresource.ApiResourceReference
+	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	(*v1.EnvironmentSpec)(nil),               // 7: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	(*apiresource.ApiResourceReference)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
-	1,  // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
-	2,  // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	9,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	3,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	4,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	7,  // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	8,  // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	5,  // 7: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.mcp_oauth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpOAuth
-	6,  // 8: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.vendor_oauth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth
-	10, // 9: ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
+	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
+	7, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	4, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
+	5, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	6, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }
@@ -879,17 +738,13 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() {
 		(*McpServerSpec_Stdio)(nil),
 		(*McpServerSpec_Http)(nil),
 	}
-	file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[4].OneofWrappers = []any{
-		(*McpServerAuth_McpOauth)(nil),
-		(*McpServerAuth_VendorOauth)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

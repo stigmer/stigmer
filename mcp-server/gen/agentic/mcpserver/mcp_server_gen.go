@@ -99,12 +99,6 @@ type ToolApprovalPolicyInput struct {
 	Message string `json:"message,omitempty" jsonschema:"Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: 'Execute tool: {tool_name}' Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: 'Delete', 'Send', 'Execute', 'Create'"`
 }
 
-// McpOAuth configures MCP Authorization spec authentication (DCR + PKCE). @internal The MCP server implements the MCP Authorization specification: - RFC 8414: OAuth 2.0 Authorization Server Metadata (.well-known discovery) - RFC 7591: Dynamic Client Registration - OAuth 2.1 with PKCE (S256) Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. No OAuthApp resource is needed.
-type McpOAuthInput struct {
-	// Optional scope hints for UI display before the OAuth flow starts. These are informational — the actual scopes are negotiated during DCR and the authorization request based on what the server supports.
-	ScopeHints []string `json:"scope_hints,omitempty" jsonschema:"Optional scope hints for UI display before the OAuth flow starts. These are informational — the actual scopes are negotiated during DCR and the authorization request based on what the server supports."`
-}
-
 // Generic reference to any API resource by org and slug. Used across resources to reference other resources (e.g., Environment, Agent, Skill). Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
 type ApiResourceReferenceInput struct {
 	// Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: "stigmer", "acme-corp". When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources).
@@ -117,22 +111,16 @@ type ApiResourceReferenceInput struct {
 	Version string `json:"version,omitempty" jsonschema:"Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g., 'stable', 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g., 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"`
 }
 
-// McpServerVendorOAuth configures vendor-specific OAuth authentication. @internal References an OAuthApp resource that holds the vendor's client credentials (client_id, client_secret, endpoint URLs, scopes). The OAuthApp is created by the org admin or platform operator who registered an OAuth app with the vendor (e.g., Slack, Salesforce, Figma). At connect time, Stigmer uses the OAuthApp's credentials to perform the OAuth authorization code flow with the vendor on behalf of the user.
-type McpServerVendorOAuthInput struct {
-	// Reference to the OAuthApp resource providing client credentials. The referenced OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference).
-	OauthAppRef *ApiResourceReferenceInput `json:"oauth_app_ref" jsonschema:"Reference to the OAuthApp resource providing client credentials. The referenced OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference)."`
-}
-
-// McpServerAuth configures automated credential acquisition via OAuth. @internal Two authentication methods are supported: - mcp_oauth: The MCP server implements the MCP Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp resource is needed — credentials are obtained automatically via DCR. - vendor_oauth: The MCP server requires pre-registered OAuth app credentials from a specific vendor (Slack, Salesforce, Figma, etc.). References an OAuthApp resource created by the org admin. In both cases, the acquired access token is stored in the user's personal environment as target_env_var. A refresh token (if issued by the vendor) is stored alongside as {target_env_var}_REFRESH_TOKEN by convention. Token lifecycle: - Pre-flight check before execution: if the access token is expired, the backend uses the refresh token to obtain a new one automatically. - If the refresh token is also expired: execution fails with a clear error, and the user re-authenticates from the MCP server Connect page.
+// McpServerAuth configures automated credential acquisition via OAuth. @internal Two authentication modes are determined by the presence of oauth_app_ref: - When oauth_app_ref is empty: the MCP server implements the MCP Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp resource is needed — credentials are obtained automatically via DCR. - When oauth_app_ref is set: the MCP server requires pre-registered OAuth app credentials from a specific vendor (Slack, Salesforce, Figma, etc.). The referenced OAuthApp holds the client_id, client_secret, and endpoint URLs needed for the authorization code flow. In both cases, the acquired access token is stored in the user's personal environment as target_env_var. A refresh token (if issued by the vendor) is stored alongside as {target_env_var}_REFRESH_TOKEN by convention. Token lifecycle: - Pre-flight check before execution: if the access token is expired, the backend uses the refresh token to obtain a new one automatically. - If the refresh token is also expired: execution fails with a clear error, and the user re-authenticates from the MCP server Connect page.
 type McpServerAuthInput struct {
-	// MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
-	McpOauth *McpOAuthInput `json:"mcp_oauth,omitempty" jsonschema:"MCP OAuth spec: DCR + PKCE, auto-discovered from server URL."`
-	// Vendor-specific OAuth: references an OAuthApp with client credentials.
-	VendorOauth *McpServerVendorOAuthInput `json:"vendor_oauth,omitempty" jsonschema:"Vendor-specific OAuth: references an OAuthApp with client credentials."`
+	// Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference).
+	OauthAppRef *ApiResourceReferenceInput `json:"oauth_app_ref,omitempty" jsonschema:"Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference)."`
 	// The env var in env_spec.data where the acquired access token is stored. Must correspond to an entry in env_spec.data so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the user's personal environment.
 	TargetEnvVar string `json:"target_env_var,omitempty" jsonschema:"The env var in env_spec.data where the acquired access token is stored. Must correspond to an entry in env_spec.data so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the user's personal environment."`
 	// Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: "1h", "2h", "90d", "never".
 	TokenLifetimeHint string `json:"token_lifetime_hint,omitempty" jsonschema:"Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: '1h', '2h', '90d', 'never'."`
+	// Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp).
+	ScopeHints []string `json:"scope_hints,omitempty" jsonschema:"Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp)."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed McpServer proto message.
@@ -261,13 +249,6 @@ func (input *ToolApprovalPolicyInput) toProto() (*mcpserverv1.ToolApprovalPolicy
 	return result, nil
 }
 
-func (input *McpOAuthInput) toProto() (*mcpserverv1.McpOAuth, error) {
-	result := &mcpserverv1.McpOAuth{}
-
-	result.ScopeHints = input.ScopeHints
-	return result, nil
-}
-
 func (input *ApiResourceReferenceInput) toProto() (*apiresource.ApiResourceReference, error) {
 	result := &apiresource.ApiResourceReference{}
 
@@ -278,8 +259,8 @@ func (input *ApiResourceReferenceInput) toProto() (*apiresource.ApiResourceRefer
 	return result, nil
 }
 
-func (input *McpServerVendorOAuthInput) toProto() (*mcpserverv1.McpServerVendorOAuth, error) {
-	result := &mcpserverv1.McpServerVendorOAuth{}
+func (input *McpServerAuthInput) toProto() (*mcpserverv1.McpServerAuth, error) {
+	result := &mcpserverv1.McpServerAuth{}
 
 	if input.OauthAppRef != nil {
 		v, err := input.OauthAppRef.toProto()
@@ -288,27 +269,8 @@ func (input *McpServerVendorOAuthInput) toProto() (*mcpserverv1.McpServerVendorO
 		}
 		result.OauthAppRef = v
 	}
-	return result, nil
-}
-
-func (input *McpServerAuthInput) toProto() (*mcpserverv1.McpServerAuth, error) {
-	result := &mcpserverv1.McpServerAuth{}
-
-	if input.McpOauth != nil {
-		v, err := input.McpOauth.toProto()
-		if err != nil {
-			return nil, err
-		}
-		result.Method = &mcpserverv1.McpServerAuth_McpOauth{McpOauth: v}
-	}
-	if input.VendorOauth != nil {
-		v, err := input.VendorOauth.toProto()
-		if err != nil {
-			return nil, err
-		}
-		result.Method = &mcpserverv1.McpServerAuth_VendorOauth{VendorOauth: v}
-	}
 	result.TargetEnvVar = input.TargetEnvVar
 	result.TokenLifetimeHint = input.TokenLifetimeHint
+	result.ScopeHints = input.ScopeHints
 	return result, nil
 }

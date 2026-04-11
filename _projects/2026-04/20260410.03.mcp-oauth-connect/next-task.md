@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: T02 COMPLETE -- OAuthApp handlers in both Java (Cloud) and Go (OSS)
-**Active Task**: T03 -- Backend OAuth Client + Connect Flow + Token Refresh
+**Status**: T03 COMPLETE -- Backend OAuth Client + Connect Flow + Token Refresh
+**Active Task**: T04 -- UI Updates + Token Lifecycle
 **Last Session**: 2026-04-11
 
 ## Session Progress (2026-04-11)
@@ -83,31 +83,81 @@ Drop this file into your conversation to quickly resume work on this project.
 - **Go redaction as function, not step** -- target location varies by operation; exported `RedactOAuthApp()` is simpler and more explicit
 - **No search indexing for OAuthApp** -- configuration resource, not user-searchable in OSS
 
+### T03: Backend OAuth Client + Connect Flow + Token Refresh -- COMPLETE
+
+#### Proto Additions (stigmer)
+- Added `InitiateOAuthConnectInput/Output`, `CompleteOAuthConnectInput/Output` to `io.proto`
+- Added `initiateOAuthConnect`, `completeOAuthConnect` RPCs to `command.proto` (both `can_connect` auth)
+- Ran `make codegen` (stigmer) + `make protos` (stigmer-cloud) -- stubs in Go, Java, Python, TypeScript, Dart
+
+#### OAuth Infrastructure Package (Go + Java)
+- **Go** (`pkg/domain/mcpserver/oauth/`): `pkce.go`, `discovery.go`, `dcr.go`, `token.go`, `refresh.go`
+  - RFC 8414 `.well-known` discovery with S256 PKCE validation
+  - RFC 7591 DCR for public clients (token_endpoint_auth_method: "none")
+  - PKCE S256 generation, authorization code exchange, refresh token exchange
+  - Reusable `RefreshTokenIfExpired` utility with 60s expiry buffer
+- **Java** (`ai.stigmer.domain.agentic.mcpserver.oauth`): 5 Spring `@Service` classes
+  - `PkceGenerator`, `McpOAuthDiscoveryService`, `McpDcrService`, `OAuthTokenService`, `McpOAuthException`
+  - Same HTTP contracts as Go, using `java.net.http.HttpClient` + Jackson `ObjectMapper`
+
+#### OAuthGrant + PendingOAuthState Storage
+- **Go**: SQLite tables (`oauth_grant`, `pending_oauth_state`) with UPSERT, atomic GetAndDelete, TTL enforcement
+- **Java**: MongoDB repos (`OAuthGrantRepo`, `PendingOAuthStateRepo`) with TTL index on `createdAt`
+- OAuthGrant keyed by (identity_account_id, mcp_server_id), PendingOAuthState keyed by `state` param
+
+#### InitiateOAuthConnect Handler (Go + Java)
+- DCR path: discover auth server → DCR register → generate PKCE → build auth URL → store pending state
+- Vendor OAuth path: load OAuthApp → decrypt client_secret → generate PKCE → build auth URL → store pending state
+- Validates DCR requires HTTP transport (not stdio)
+- Added `STIGMER_OAUTH_REDIRECT_URI` deployment config, `SetOAuthDependencies` on McpServerController
+
+#### CompleteOAuthConnect Handler (Go + Java)
+- Validates state param, atomically consumes PendingOAuthState
+- Exchanges authorization code for tokens via PKCE code_verifier
+- Stores access_token + refresh_token in personal environment (new `UpdateVariables` on Go env client)
+- Creates OAuthGrant record with expiry, client_id, token_endpoint
+- Java encrypts tokens via `SecretEncryptionService` before storing
+
+#### Pre-flight Token Refresh
+- **Go**: `refreshOAuthTokenIfNeeded` in `connect.go` runs before env resolution when `runtime_env` is empty
+- **Java**: `OAuthTokenRefreshService` + `RefreshOAuthToken` pipeline step in `McpServerConnectHandler`
+- Checks OAuthGrant expiry, reads refresh_token from personal env, calls token endpoint, updates env + grant
+- 60-second buffer before expiry to refresh proactively
+
+### Design Decisions Made During T03
+- **Frontend-mediated (SPA) pattern** -- two RPCs matching GitHub OAuth pattern, no HTTP callback endpoint
+- **Per-user DCR** -- client_id in OAuthGrant, no shared org-level DCR state
+- **PKCE for both auth modes** -- DCR (public client) and vendor OAuth (defense-in-depth)
+- **Separate RPCs** -- initiateOAuthConnect stores tokens; connect discovers tools (single responsibility)
+- **Deployment-level redirect URI** -- `STIGMER_OAUTH_REDIRECT_URI` env var, not per-OAuthApp or per-McpServer
+- **PendingOAuthState is not a proto** -- backend-internal storage with 10-minute TTL, similar to session state
+
 ## Next Steps
 
-1. **T03: Backend OAuth Client + Connect Flow + Token Refresh** (4-5 days)
-   - MCP OAuth discovery (.well-known/oauth-authorization-server)
-   - Dynamic Client Registration (DCR)
-   - PKCE authorization code flow
-   - OAuth callback endpoint
-   - Token storage (access token -> personal env, refresh token -> convention)
-   - OAuthGrant DB record creation
-   - OAuth-aware Connect handler
-   - Pre-flight token expiry check + refresh logic
-2. **T04**: UI Updates + Token Lifecycle
-3. **T05**: End-to-End Testing
+1. **T04: UI Updates + Token Lifecycle** (3-4 days)
+   - Connect flow: "Sign in with {vendor}" for OAuth servers
+   - Handle OAuth redirect/popup using `initiateOAuthConnect` → redirect → `completeOAuthConnect`
+   - Connection status indicators (connected/expired/not connected)
+   - Chain `completeOAuthConnect` → `connect` for seamless UX
+2. **T05**: End-to-End Testing
 
 ## Uncommitted Work
 
-### stigmer repo (this session)
-- T02b: OAuthApp Go handlers (13 new files, 2 modified)
-- Changelog entry for T02b
-- Project session notes update
-- (Previous session also has uncommitted: 9 seedpack YAMLs, prior changelogs)
+### stigmer repo (this session -- T03)
+- T03 proto additions: `io.proto`, `command.proto` (new messages + RPCs)
+- T03 Go OAuth infrastructure: `pkg/domain/mcpserver/oauth/` (7 new files)
+- T03 Go handlers: `initiate_oauth_connect.go`, `complete_oauth_connect.go`
+- T03 Go controller updates: `mcpserver_controller.go`, `connect.go` (pre-flight refresh)
+- T03 Go env client: `downstream/environment/client.go` (added `UpdateVariables`)
+- T03 Go config: `config.go` (added `OAuthRedirectURI`)
+- Regenerated stubs across all languages (Go, Java, Python, TypeScript)
+- Regenerated SDK code (Go, Java, Python, TypeScript)
+- (Previous sessions also have uncommitted: seedpack YAMLs, T02b handlers, prior changelogs)
 
-### stigmer-cloud repo (T01 + T02 combined)
+### stigmer-cloud repo (T01 + T02 + T03 combined)
 - T01: Proto stubs across Go, Java, Python, TypeScript (regenerated)
 - T02: Encryption library, OAuthApp handlers, FGA model, test updates
+- T03: Java OAuth infrastructure, handlers, repos, pre-flight refresh step
 - **Needs separate commit** in stigmer-cloud repo
 
 ## Key Design Decisions
@@ -179,6 +229,8 @@ Drop this file into your conversation to quickly resume work on this project.
 | Shared encryption library (NEW) | `backend/libs/java/infra/encryption/` (stigmer-cloud) |
 | OAuthApp Java handlers (NEW) | `backend/services/stigmer-service/.../domain/iam/oauthapp/` (stigmer-cloud) |
 | OAuthApp Go handlers (NEW) | `backend/services/stigmer-server/pkg/domain/oauthapp/controller/` (stigmer) |
+| OAuth infra Go (NEW, T03) | `backend/services/stigmer-server/pkg/domain/mcpserver/oauth/` (stigmer) |
+| OAuth infra Java (NEW, T03) | `backend/services/stigmer-service/.../domain/agentic/mcpserver/oauth/` (stigmer-cloud) |
 | FGA model (NEW) | `backend/services/stigmer-service/.../fga/model/iam/oauth_app.fga` (stigmer-cloud) |
 | Connect handler (Go) | `backend/services/stigmer-server/pkg/domain/mcpserver/controller/connect.go` |
 | React Connect UI | `sdk/react/src/mcp-server/McpServerDetailView.tsx` |

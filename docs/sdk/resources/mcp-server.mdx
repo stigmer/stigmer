@@ -67,7 +67,9 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update an existing MCP server resource. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing MCP server. |
 | [`delete`](#delete) | Delete an MCP server resource. |
+| [`completeOAuthConnect`](#completeoauthconnect) | Complete the OAuth authorization flow by exchanging the authorization code for tokens. |
 | [`connect`](#connect) | Connect to an MCP server: discover its tools and classify approval policies. |
+| [`initiateOAuthConnect`](#initiateoauthconnect) | Start the OAuth authorization flow for an MCP server. |
 
 ### get
 
@@ -522,6 +524,57 @@ McpServer mcpServer = client.mcpServers().delete(DeleteResourceInput.builder()
 
 **Returns**: [`McpServer`](#mcpserver)
 
+### completeOAuthConnect
+
+Complete the OAuth authorization flow by exchanging the authorization code for tokens.
+
+Called by the frontend after the user is redirected back from the OAuth authorization server. Exchanges the code for tokens, stores them in the user's personal environment, and creates an OAuthGrant record for pre-flight expiry checks.
+
+After success, the frontend should call connect() to trigger tool discovery using the freshly acquired token.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const completeOAuthConnectOutput = await stigmer.mcpServer.completeOAuthConnect({
+  mcpServerId: "...",
+  authorizationCode: "...",
+  state: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+completeOAuthConnectOutput, err := client.McpServer.CompleteOAuthConnect(ctx, &stigmer.CompleteOAuthConnectInput{
+  McpServerId:       "...",
+  AuthorizationCode: "...",
+  State:             "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+complete_o_auth_connect_output = client.mcp_servers.complete_o_auth_connect(CompleteOAuthConnectInput(
+    mcp_server_id="...",
+    authorization_code="...",
+    state="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+CompleteOAuthConnectOutput completeOAuthConnectOutput = client.mcpServers().completeOAuthConnect(CompleteOAuthConnectInput.builder()
+    .mcpServerId("...")
+    .authorizationCode("...")
+    .state("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CompleteOAuthConnectInput`](#completeoauthconnectinput)
+
+**Returns**: [`CompleteOAuthConnectOutput`](#completeoauthconnectoutput)
+
 ### connect
 
 Connect to an MCP server: discover its tools and classify approval policies.
@@ -566,6 +619,47 @@ McpServer mcpServer = client.mcpServers().connect(ConnectInput.builder()
 **Parameters**: [`ConnectInput`](#connectinput)
 
 **Returns**: [`McpServer`](#mcpserver)
+
+### initiateOAuthConnect
+
+Start the OAuth authorization flow for an MCP server.
+
+Performs setup (DCR registration or OAuthApp credential lookup, PKCE generation) and returns an authorization URL for the frontend to redirect the user to. The frontend calls completeOAuthConnect after the user authorizes.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const initiateOAuthConnectOutput = await stigmer.mcpServer.initiateOAuthConnect({
+  mcpServerId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+initiateOAuthConnectOutput, err := client.McpServer.InitiateOAuthConnect(ctx, &stigmer.InitiateOAuthConnectInput{
+  McpServerId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+initiate_o_auth_connect_output = client.mcp_servers.initiate_o_auth_connect(InitiateOAuthConnectInput(
+    mcp_server_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+InitiateOAuthConnectOutput initiateOAuthConnectOutput = client.mcpServers().initiateOAuthConnect(InitiateOAuthConnectInput.builder()
+    .mcpServerId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`InitiateOAuthConnectInput`](#initiateoauthconnectinput)
+
+**Returns**: [`InitiateOAuthConnectOutput`](#initiateoauthconnectoutput)
 
 ## Types
 
@@ -657,30 +751,10 @@ McpServerAuth configures automated credential acquisition via OAuth.
 
 <TypeTable
   type={{
-    mcpOauth: { type: "McpOAuthInput", description: "MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.", typeDescriptionLink: "#mcpoauthinput" },
-    vendorOauth: { type: "McpServerVendorOAuthInput", description: "Vendor-specific OAuth: references an OAuthApp with client credentials.", typeDescriptionLink: "#mcpservervendoroauthinput" },
+    oauthAppRef: { type: "ResourceRef", description: "Reference to an OAuthApp for vendor-specific OAuth.", typeDescriptionLink: "#resourceref" },
     targetEnvVar: { type: "string", description: "The env var in env_spec.data where the acquired access token is stored." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
-  }}
-/>
-
-### McpOAuthInput
-
-McpOAuth configures MCP Authorization spec authentication (DCR + PKCE).
-
-<TypeTable
-  type={{
     scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
-  }}
-/>
-
-### McpServerVendorOAuthInput
-
-McpServerVendorOAuth configures vendor-specific OAuth authentication.
-
-<TypeTable
-  type={{
-    oauthAppRef: { type: "ResourceRef", description: "Reference to the OAuthApp resource providing client credentials.", typeDescriptionLink: "#resourceref", required: true },
   }}
 />
 
@@ -716,6 +790,53 @@ ConnectInput is the request for the connect RPC.
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to connect to.", required: true },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use.", typeDescriptionLink: "#envvarinput" },
+  }}
+/>
+
+### InitiateOAuthConnectInput
+
+InitiateOAuthConnectInput starts the OAuth authorization flow for an MCP server that has an auth block in its spec.
+
+<TypeTable
+  type={{
+    mcpServerId: { type: "string", description: "System-generated ID of the MCP server to initiate OAuth for.", required: true },
+  }}
+/>
+
+### InitiateOAuthConnectOutput
+
+InitiateOAuthConnectOutput contains the authorization URL and metadata the frontend needs to redirect the user to the OAuth authorization server.
+
+<TypeTable
+  type={{
+    authorizationUrl: { type: "string", description: "Full authorization URL to redirect the user to." },
+    state: { type: "string", description: "Opaque state parameter for CSRF protection." },
+    scopes: { type: "string[]", description: "OAuth scopes that will be requested." },
+    providerName: { type: "string", description: "Human-readable provider name for UI display during the redirect." },
+  }}
+/>
+
+### CompleteOAuthConnectInput
+
+CompleteOAuthConnectInput finishes the OAuth flow by exchanging the authorization code for tokens.
+
+<TypeTable
+  type={{
+    mcpServerId: { type: "string", description: "System-generated ID of the MCP server.", required: true },
+    authorizationCode: { type: "string", description: "Authorization code from the OAuth callback redirect." },
+    state: { type: "string", description: "State parameter from the OAuth callback redirect." },
+  }}
+/>
+
+### CompleteOAuthConnectOutput
+
+CompleteOAuthConnectOutput confirms that tokens were successfully acquired and stored.
+
+<TypeTable
+  type={{
+    connected: { type: "boolean", description: "Whether the OAuth flow completed successfully and tokens are stored." },
+    targetEnvVar: { type: "string", description: "The environment variable name where the access token was stored." },
+    tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime." },
   }}
 />
 
