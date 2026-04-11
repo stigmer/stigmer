@@ -25,6 +25,7 @@ How Polyglot Works:
 - Temporal routes activity tasks to Python based on task queue
 """
 
+import logging
 import os
 from dataclasses import dataclass
 from enum import Enum
@@ -33,6 +34,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from worker.storage import ArtifactStorageConfig
+
+logger = logging.getLogger(__name__)
 
 
 class ExecutionMode(Enum):
@@ -543,16 +546,25 @@ class Config:
             config: dict[str, str] = {"type": "daytona"}
 
             # Snapshot resolution priority:
-            # 1. DAYTONA_DEV_TOOLS_SNAPSHOT_ID env var (explicit override)
-            # 2. SnapshotResolver (discovers latest from Daytona API)
+            # 1. SnapshotResolver (discovers latest custom stigmer-mcp-* snapshot)
+            # 2. DAYTONA_DEV_TOOLS_SNAPSHOT_ID env var (fallback for bootstrapping)
             # 3. None (vanilla sandbox, no snapshot)
-            snapshot_id = os.getenv("DAYTONA_DEV_TOOLS_SNAPSHOT_ID")
-            if not snapshot_id:
-                from worker.snapshot_resolver import get_snapshot_resolver
+            snapshot_id = None
 
-                resolver = get_snapshot_resolver()
-                if resolver:
-                    snapshot_id = resolver.resolve()
+            from worker.snapshot_resolver import get_snapshot_resolver
+
+            resolver = get_snapshot_resolver()
+            if resolver:
+                snapshot_id = resolver.resolve()
+
+            if not snapshot_id:
+                snapshot_id = os.getenv("DAYTONA_DEV_TOOLS_SNAPSHOT_ID")
+                if snapshot_id:
+                    logger.info(
+                        "No custom snapshot found; using fallback "
+                        "DAYTONA_DEV_TOOLS_SNAPSHOT_ID='%s'",
+                        snapshot_id,
+                    )
 
             if snapshot_id:
                 config["snapshot_id"] = snapshot_id
