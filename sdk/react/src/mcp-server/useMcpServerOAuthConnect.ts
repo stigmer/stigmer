@@ -62,7 +62,7 @@ export interface UseMcpServerOAuthConnectReturn {
   readonly isInProgress: boolean;
   /** Current phase of the OAuth flow. */
   readonly phase: OAuthConnectPhase;
-  /** Error from the most recent failed attempt, or `null`. */
+  /** Error from the most recent unsuccessful attempt, or `null`. */
   readonly error: Error | null;
   /** Reset the hook to idle state, clearing any error. */
   readonly clearError: () => void;

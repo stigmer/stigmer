@@ -19,8 +19,8 @@ export interface UseMcpServerConnectReturn {
    * agent-runner. The RPC blocks until the workflow completes
    * (typically 5-15 seconds, ~30s timeout).
    *
-   * Platform system env vars ({@code STIGMER_SERVER_ADDRESS},
-   * {@code STIGMER_API_KEY}) are always injected automatically from
+   * Platform system env vars (`STIGMER_SERVER_ADDRESS`,
+   * `STIGMER_API_KEY`) are always injected automatically from
    * the current SDK context. When `runtimeEnv` is also provided,
    * those values are merged on top (caller values win). The backend
    * merges the result on top of the user's personal environment so
