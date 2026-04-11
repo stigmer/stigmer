@@ -7,19 +7,25 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 /**
  * <pre>
- * OAuthGrant tracks OAuth metadata for a user's MCP server connection.
+ * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
+ * API resource.
  *
  * &#64;internal
  * Infrastructure-only. Not a public API resource — no kind, no apiVersion,
  * no CRUD RPCs. Stored in the backend's database, keyed by the composite
- * of (identity_account_id, mcp_server_id).
+ * of (identity_account_id, resource_id, org_id).
  *
- * Actual tokens (access + refresh) live in the user's personal environment
- * as secret env vars. OAuthGrant only holds non-secret metadata needed
- * by the refresh mechanism and pre-flight expiry checks.
+ * The grant is resource-agnostic: currently used for MCP servers, but the
+ * data model supports any API resource kind that needs OAuth credentials
+ * (e.g., workflows in the future).
+ *
+ * Actual tokens (access + refresh) live in a managed environment
+ * (stigmer.ai/managed=true label) as encrypted secret env vars.
+ * OAuthGrant only holds non-secret metadata needed by the refresh
+ * mechanism and pre-flight expiry checks.
  *
  * Storage split rationale:
- * - Personal environment: access token (target_env_var), refresh token
+ * - Managed environment: access token (target_env_var), refresh token
  * ({target_env_var}_REFRESH_TOKEN). These are secrets, encrypted at rest,
  * subject to Environment access control.
  * - OAuthGrant: expiry timestamp, client_id, token_endpoint, env var names.
@@ -50,13 +56,15 @@ private static final long serialVersionUID = 0L;
   }
   private OAuthGrant() {
     identityAccountId_ = "";
-    mcpServerId_ = "";
+    resourceId_ = "";
     clientId_ = "";
     authMethod_ = "";
     tokenEndpoint_ = "";
     accessTokenEnvVar_ = "";
     refreshTokenEnvVar_ = "";
     environmentId_ = "";
+    resourceKind_ = "";
+    orgId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -124,47 +132,51 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int MCP_SERVER_ID_FIELD_NUMBER = 2;
+  public static final int RESOURCE_ID_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object mcpServerId_ = "";
+  private volatile java.lang.Object resourceId_ = "";
   /**
    * <pre>
-   * Which MCP server this grant is for.
+   * System-generated ID (metadata.id) of the API resource this grant
+   * provides OAuth tokens for. Part of the composite key:
+   * (identity_account_id, resource_id, org_id).
    * </pre>
    *
-   * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
-   * @return The mcpServerId.
+   * <code>string resource_id = 2 [json_name = "resourceId"];</code>
+   * @return The resourceId.
    */
   @java.lang.Override
-  public java.lang.String getMcpServerId() {
-    java.lang.Object ref = mcpServerId_;
+  public java.lang.String getResourceId() {
+    java.lang.Object ref = resourceId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      mcpServerId_ = s;
+      resourceId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Which MCP server this grant is for.
+   * System-generated ID (metadata.id) of the API resource this grant
+   * provides OAuth tokens for. Part of the composite key:
+   * (identity_account_id, resource_id, org_id).
    * </pre>
    *
-   * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
-   * @return The bytes for mcpServerId.
+   * <code>string resource_id = 2 [json_name = "resourceId"];</code>
+   * @return The bytes for resourceId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getMcpServerIdBytes() {
-    java.lang.Object ref = mcpServerId_;
+      getResourceIdBytes() {
+    java.lang.Object ref = resourceId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      mcpServerId_ = b;
+      resourceId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -346,8 +358,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object accessTokenEnvVar_ = "";
   /**
    * <pre>
-   * Env var name where the access token is stored in the personal environment.
-   * Matches McpServerAuth.target_env_var on the McpServer spec.
+   * Env var name where the access token is stored in the managed environment.
    * </pre>
    *
    * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -368,8 +379,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Env var name where the access token is stored in the personal environment.
-   * Matches McpServerAuth.target_env_var on the McpServer spec.
+   * Env var name where the access token is stored in the managed environment.
    * </pre>
    *
    * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -395,7 +405,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object refreshTokenEnvVar_ = "";
   /**
    * <pre>
-   * Env var name where the refresh token is stored in the personal environment.
+   * Env var name where the refresh token is stored in the managed environment.
    * Convention: {target_env_var}_REFRESH_TOKEN.
    * </pre>
    *
@@ -417,7 +427,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Env var name where the refresh token is stored in the personal environment.
+   * Env var name where the refresh token is stored in the managed environment.
    * Convention: {target_env_var}_REFRESH_TOKEN.
    * </pre>
    *
@@ -444,10 +454,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object environmentId_ = "";
   /**
    * <pre>
-   * Which Environment resource holds the tokens.
+   * ID of the managed Environment resource that holds the tokens.
    * The refresh mechanism reads/writes tokens in this environment.
-   * Default: the user's personal environment (stigmer.ai/personal=true label).
-   * Stored explicitly to allow future flexibility for team or project environments.
+   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+   * 1:1 with this grant — revoking the grant deletes this environment.
    * </pre>
    *
    * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -468,10 +478,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Which Environment resource holds the tokens.
+   * ID of the managed Environment resource that holds the tokens.
    * The refresh mechanism reads/writes tokens in this environment.
-   * Default: the user's personal environment (stigmer.ai/personal=true label).
-   * Stored explicitly to allow future flexibility for team or project environments.
+   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+   * 1:1 with this grant — revoking the grant deletes this environment.
    * </pre>
    *
    * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -486,6 +496,106 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
       environmentId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int RESOURCE_KIND_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object resourceKind_ = "";
+  /**
+   * <pre>
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+   * "workflow"). Used for query filtering and handler routing.
+   * </pre>
+   *
+   * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+   * @return The resourceKind.
+   */
+  @java.lang.Override
+  public java.lang.String getResourceKind() {
+    java.lang.Object ref = resourceKind_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      resourceKind_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+   * "workflow"). Used for query filtering and handler routing.
+   * </pre>
+   *
+   * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+   * @return The bytes for resourceKind.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getResourceKindBytes() {
+    java.lang.Object ref = resourceKind_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      resourceKind_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int ORG_ID_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object orgId_ = "";
+  /**
+   * <pre>
+   * Organization context for this grant. Part of the composite key:
+   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * maintain separate OAuth connections for a shared resource across orgs.
+   * </pre>
+   *
+   * <code>string org_id = 11 [json_name = "orgId"];</code>
+   * @return The orgId.
+   */
+  @java.lang.Override
+  public java.lang.String getOrgId() {
+    java.lang.Object ref = orgId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      orgId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Organization context for this grant. Part of the composite key:
+   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * maintain separate OAuth connections for a shared resource across orgs.
+   * </pre>
+   *
+   * <code>string org_id = 11 [json_name = "orgId"];</code>
+   * @return The bytes for orgId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOrgIdBytes() {
+    java.lang.Object ref = orgId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      orgId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -509,8 +619,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(identityAccountId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, identityAccountId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, mcpServerId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, resourceId_);
     }
     if (accessTokenExpiresAt_ != 0L) {
       output.writeInt64(3, accessTokenExpiresAt_);
@@ -533,6 +643,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(environmentId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, environmentId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceKind_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, resourceKind_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, orgId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -545,8 +661,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(identityAccountId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, identityAccountId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, mcpServerId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, resourceId_);
     }
     if (accessTokenExpiresAt_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
@@ -570,6 +686,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(environmentId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, environmentId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceKind_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, resourceKind_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(11, orgId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -587,8 +709,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getIdentityAccountId()
         .equals(other.getIdentityAccountId())) return false;
-    if (!getMcpServerId()
-        .equals(other.getMcpServerId())) return false;
+    if (!getResourceId()
+        .equals(other.getResourceId())) return false;
     if (getAccessTokenExpiresAt()
         != other.getAccessTokenExpiresAt()) return false;
     if (!getClientId()
@@ -603,6 +725,10 @@ private static final long serialVersionUID = 0L;
         .equals(other.getRefreshTokenEnvVar())) return false;
     if (!getEnvironmentId()
         .equals(other.getEnvironmentId())) return false;
+    if (!getResourceKind()
+        .equals(other.getResourceKind())) return false;
+    if (!getOrgId()
+        .equals(other.getOrgId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -616,8 +742,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + IDENTITY_ACCOUNT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getIdentityAccountId().hashCode();
-    hash = (37 * hash) + MCP_SERVER_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getMcpServerId().hashCode();
+    hash = (37 * hash) + RESOURCE_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getResourceId().hashCode();
     hash = (37 * hash) + ACCESS_TOKEN_EXPIRES_AT_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getAccessTokenExpiresAt());
@@ -633,6 +759,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getRefreshTokenEnvVar().hashCode();
     hash = (37 * hash) + ENVIRONMENT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getEnvironmentId().hashCode();
+    hash = (37 * hash) + RESOURCE_KIND_FIELD_NUMBER;
+    hash = (53 * hash) + getResourceKind().hashCode();
+    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getOrgId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -732,19 +862,25 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * OAuthGrant tracks OAuth metadata for a user's MCP server connection.
+   * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
+   * API resource.
    *
    * &#64;internal
    * Infrastructure-only. Not a public API resource — no kind, no apiVersion,
    * no CRUD RPCs. Stored in the backend's database, keyed by the composite
-   * of (identity_account_id, mcp_server_id).
+   * of (identity_account_id, resource_id, org_id).
    *
-   * Actual tokens (access + refresh) live in the user's personal environment
-   * as secret env vars. OAuthGrant only holds non-secret metadata needed
-   * by the refresh mechanism and pre-flight expiry checks.
+   * The grant is resource-agnostic: currently used for MCP servers, but the
+   * data model supports any API resource kind that needs OAuth credentials
+   * (e.g., workflows in the future).
+   *
+   * Actual tokens (access + refresh) live in a managed environment
+   * (stigmer.ai/managed=true label) as encrypted secret env vars.
+   * OAuthGrant only holds non-secret metadata needed by the refresh
+   * mechanism and pre-flight expiry checks.
    *
    * Storage split rationale:
-   * - Personal environment: access token (target_env_var), refresh token
+   * - Managed environment: access token (target_env_var), refresh token
    * ({target_env_var}_REFRESH_TOKEN). These are secrets, encrypted at rest,
    * subject to Environment access control.
    * - OAuthGrant: expiry timestamp, client_id, token_endpoint, env var names.
@@ -786,7 +922,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       identityAccountId_ = "";
-      mcpServerId_ = "";
+      resourceId_ = "";
       accessTokenExpiresAt_ = 0L;
       clientId_ = "";
       authMethod_ = "";
@@ -794,6 +930,8 @@ private static final long serialVersionUID = 0L;
       accessTokenEnvVar_ = "";
       refreshTokenEnvVar_ = "";
       environmentId_ = "";
+      resourceKind_ = "";
+      orgId_ = "";
       return this;
     }
 
@@ -831,7 +969,7 @@ private static final long serialVersionUID = 0L;
         result.identityAccountId_ = identityAccountId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.mcpServerId_ = mcpServerId_;
+        result.resourceId_ = resourceId_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.accessTokenExpiresAt_ = accessTokenExpiresAt_;
@@ -854,6 +992,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.environmentId_ = environmentId_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.resourceKind_ = resourceKind_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.orgId_ = orgId_;
+      }
     }
 
     @java.lang.Override
@@ -873,8 +1017,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getMcpServerId().isEmpty()) {
-        mcpServerId_ = other.mcpServerId_;
+      if (!other.getResourceId().isEmpty()) {
+        resourceId_ = other.resourceId_;
         bitField0_ |= 0x00000002;
         onChanged();
       }
@@ -911,6 +1055,16 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000100;
         onChanged();
       }
+      if (!other.getResourceKind().isEmpty()) {
+        resourceKind_ = other.resourceKind_;
+        bitField0_ |= 0x00000200;
+        onChanged();
+      }
+      if (!other.getOrgId().isEmpty()) {
+        orgId_ = other.orgId_;
+        bitField0_ |= 0x00000400;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -943,7 +1097,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 10
             case 18: {
-              mcpServerId_ = input.readStringRequireUtf8();
+              resourceId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
             } // case 18
@@ -982,6 +1136,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 82: {
+              resourceKind_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
+            case 90: {
+              orgId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 90
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1091,22 +1255,24 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object mcpServerId_ = "";
+    private java.lang.Object resourceId_ = "";
     /**
      * <pre>
-     * Which MCP server this grant is for.
+     * System-generated ID (metadata.id) of the API resource this grant
+     * provides OAuth tokens for. Part of the composite key:
+     * (identity_account_id, resource_id, org_id).
      * </pre>
      *
-     * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
-     * @return The mcpServerId.
+     * <code>string resource_id = 2 [json_name = "resourceId"];</code>
+     * @return The resourceId.
      */
-    public java.lang.String getMcpServerId() {
-      java.lang.Object ref = mcpServerId_;
+    public java.lang.String getResourceId() {
+      java.lang.Object ref = resourceId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        mcpServerId_ = s;
+        resourceId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1114,20 +1280,22 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which MCP server this grant is for.
+     * System-generated ID (metadata.id) of the API resource this grant
+     * provides OAuth tokens for. Part of the composite key:
+     * (identity_account_id, resource_id, org_id).
      * </pre>
      *
-     * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
-     * @return The bytes for mcpServerId.
+     * <code>string resource_id = 2 [json_name = "resourceId"];</code>
+     * @return The bytes for resourceId.
      */
     public com.google.protobuf.ByteString
-        getMcpServerIdBytes() {
-      java.lang.Object ref = mcpServerId_;
+        getResourceIdBytes() {
+      java.lang.Object ref = resourceId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        mcpServerId_ = b;
+        resourceId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1135,49 +1303,55 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which MCP server this grant is for.
+     * System-generated ID (metadata.id) of the API resource this grant
+     * provides OAuth tokens for. Part of the composite key:
+     * (identity_account_id, resource_id, org_id).
      * </pre>
      *
-     * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
-     * @param value The mcpServerId to set.
+     * <code>string resource_id = 2 [json_name = "resourceId"];</code>
+     * @param value The resourceId to set.
      * @return This builder for chaining.
      */
-    public Builder setMcpServerId(
+    public Builder setResourceId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      mcpServerId_ = value;
+      resourceId_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Which MCP server this grant is for.
+     * System-generated ID (metadata.id) of the API resource this grant
+     * provides OAuth tokens for. Part of the composite key:
+     * (identity_account_id, resource_id, org_id).
      * </pre>
      *
-     * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
+     * <code>string resource_id = 2 [json_name = "resourceId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearMcpServerId() {
-      mcpServerId_ = getDefaultInstance().getMcpServerId();
+    public Builder clearResourceId() {
+      resourceId_ = getDefaultInstance().getResourceId();
       bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Which MCP server this grant is for.
+     * System-generated ID (metadata.id) of the API resource this grant
+     * provides OAuth tokens for. Part of the composite key:
+     * (identity_account_id, resource_id, org_id).
      * </pre>
      *
-     * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
-     * @param value The bytes for mcpServerId to set.
+     * <code>string resource_id = 2 [json_name = "resourceId"];</code>
+     * @param value The bytes for resourceId to set.
      * @return This builder for chaining.
      */
-    public Builder setMcpServerIdBytes(
+    public Builder setResourceIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      mcpServerId_ = value;
+      resourceId_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
@@ -1542,8 +1716,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object accessTokenEnvVar_ = "";
     /**
      * <pre>
-     * Env var name where the access token is stored in the personal environment.
-     * Matches McpServerAuth.target_env_var on the McpServer spec.
+     * Env var name where the access token is stored in the managed environment.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1563,8 +1736,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the access token is stored in the personal environment.
-     * Matches McpServerAuth.target_env_var on the McpServer spec.
+     * Env var name where the access token is stored in the managed environment.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1585,8 +1757,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the access token is stored in the personal environment.
-     * Matches McpServerAuth.target_env_var on the McpServer spec.
+     * Env var name where the access token is stored in the managed environment.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1603,8 +1774,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the access token is stored in the personal environment.
-     * Matches McpServerAuth.target_env_var on the McpServer spec.
+     * Env var name where the access token is stored in the managed environment.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1618,8 +1788,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the access token is stored in the personal environment.
-     * Matches McpServerAuth.target_env_var on the McpServer spec.
+     * Env var name where the access token is stored in the managed environment.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1639,7 +1808,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object refreshTokenEnvVar_ = "";
     /**
      * <pre>
-     * Env var name where the refresh token is stored in the personal environment.
+     * Env var name where the refresh token is stored in the managed environment.
      * Convention: {target_env_var}_REFRESH_TOKEN.
      * </pre>
      *
@@ -1660,7 +1829,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the refresh token is stored in the personal environment.
+     * Env var name where the refresh token is stored in the managed environment.
      * Convention: {target_env_var}_REFRESH_TOKEN.
      * </pre>
      *
@@ -1682,7 +1851,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the refresh token is stored in the personal environment.
+     * Env var name where the refresh token is stored in the managed environment.
      * Convention: {target_env_var}_REFRESH_TOKEN.
      * </pre>
      *
@@ -1700,7 +1869,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the refresh token is stored in the personal environment.
+     * Env var name where the refresh token is stored in the managed environment.
      * Convention: {target_env_var}_REFRESH_TOKEN.
      * </pre>
      *
@@ -1715,7 +1884,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the refresh token is stored in the personal environment.
+     * Env var name where the refresh token is stored in the managed environment.
      * Convention: {target_env_var}_REFRESH_TOKEN.
      * </pre>
      *
@@ -1736,10 +1905,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object environmentId_ = "";
     /**
      * <pre>
-     * Which Environment resource holds the tokens.
+     * ID of the managed Environment resource that holds the tokens.
      * The refresh mechanism reads/writes tokens in this environment.
-     * Default: the user's personal environment (stigmer.ai/personal=true label).
-     * Stored explicitly to allow future flexibility for team or project environments.
+     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+     * 1:1 with this grant — revoking the grant deletes this environment.
      * </pre>
      *
      * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -1759,10 +1928,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which Environment resource holds the tokens.
+     * ID of the managed Environment resource that holds the tokens.
      * The refresh mechanism reads/writes tokens in this environment.
-     * Default: the user's personal environment (stigmer.ai/personal=true label).
-     * Stored explicitly to allow future flexibility for team or project environments.
+     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+     * 1:1 with this grant — revoking the grant deletes this environment.
      * </pre>
      *
      * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -1783,10 +1952,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which Environment resource holds the tokens.
+     * ID of the managed Environment resource that holds the tokens.
      * The refresh mechanism reads/writes tokens in this environment.
-     * Default: the user's personal environment (stigmer.ai/personal=true label).
-     * Stored explicitly to allow future flexibility for team or project environments.
+     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+     * 1:1 with this grant — revoking the grant deletes this environment.
      * </pre>
      *
      * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -1803,10 +1972,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which Environment resource holds the tokens.
+     * ID of the managed Environment resource that holds the tokens.
      * The refresh mechanism reads/writes tokens in this environment.
-     * Default: the user's personal environment (stigmer.ai/personal=true label).
-     * Stored explicitly to allow future flexibility for team or project environments.
+     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+     * 1:1 with this grant — revoking the grant deletes this environment.
      * </pre>
      *
      * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -1820,10 +1989,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which Environment resource holds the tokens.
+     * ID of the managed Environment resource that holds the tokens.
      * The refresh mechanism reads/writes tokens in this environment.
-     * Default: the user's personal environment (stigmer.ai/personal=true label).
-     * Stored explicitly to allow future flexibility for team or project environments.
+     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+     * 1:1 with this grant — revoking the grant deletes this environment.
      * </pre>
      *
      * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -1836,6 +2005,205 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       environmentId_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object resourceKind_ = "";
+    /**
+     * <pre>
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+     * "workflow"). Used for query filtering and handler routing.
+     * </pre>
+     *
+     * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+     * @return The resourceKind.
+     */
+    public java.lang.String getResourceKind() {
+      java.lang.Object ref = resourceKind_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        resourceKind_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+     * "workflow"). Used for query filtering and handler routing.
+     * </pre>
+     *
+     * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+     * @return The bytes for resourceKind.
+     */
+    public com.google.protobuf.ByteString
+        getResourceKindBytes() {
+      java.lang.Object ref = resourceKind_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        resourceKind_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+     * "workflow"). Used for query filtering and handler routing.
+     * </pre>
+     *
+     * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+     * @param value The resourceKind to set.
+     * @return This builder for chaining.
+     */
+    public Builder setResourceKind(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      resourceKind_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+     * "workflow"). Used for query filtering and handler routing.
+     * </pre>
+     *
+     * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearResourceKind() {
+      resourceKind_ = getDefaultInstance().getResourceKind();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+     * "workflow"). Used for query filtering and handler routing.
+     * </pre>
+     *
+     * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+     * @param value The bytes for resourceKind to set.
+     * @return This builder for chaining.
+     */
+    public Builder setResourceKindBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      resourceKind_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object orgId_ = "";
+    /**
+     * <pre>
+     * Organization context for this grant. Part of the composite key:
+     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * maintain separate OAuth connections for a shared resource across orgs.
+     * </pre>
+     *
+     * <code>string org_id = 11 [json_name = "orgId"];</code>
+     * @return The orgId.
+     */
+    public java.lang.String getOrgId() {
+      java.lang.Object ref = orgId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        orgId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization context for this grant. Part of the composite key:
+     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * maintain separate OAuth connections for a shared resource across orgs.
+     * </pre>
+     *
+     * <code>string org_id = 11 [json_name = "orgId"];</code>
+     * @return The bytes for orgId.
+     */
+    public com.google.protobuf.ByteString
+        getOrgIdBytes() {
+      java.lang.Object ref = orgId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        orgId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization context for this grant. Part of the composite key:
+     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * maintain separate OAuth connections for a shared resource across orgs.
+     * </pre>
+     *
+     * <code>string org_id = 11 [json_name = "orgId"];</code>
+     * @param value The orgId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      orgId_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization context for this grant. Part of the composite key:
+     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * maintain separate OAuth connections for a shared resource across orgs.
+     * </pre>
+     *
+     * <code>string org_id = 11 [json_name = "orgId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOrgId() {
+      orgId_ = getDefaultInstance().getOrgId();
+      bitField0_ = (bitField0_ & ~0x00000400);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization context for this grant. Part of the composite key:
+     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * maintain separate OAuth connections for a shared resource across orgs.
+     * </pre>
+     *
+     * <code>string org_id = 11 [json_name = "orgId"];</code>
+     * @param value The bytes for orgId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      orgId_ = value;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }

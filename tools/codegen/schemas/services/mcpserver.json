@@ -70,6 +70,14 @@
           "outputType": "CompleteOAuthConnectOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput",
           "description": "Complete the OAuth authorization flow by exchanging the authorization\n code for tokens.\n\n Called by the frontend after the user is redirected back from the\n OAuth authorization server. Exchanges the code for tokens, stores\n them in the user's personal environment, and creates an OAuthGrant\n record for pre-flight expiry checks.\n\n After success, the frontend should call connect() to trigger tool\n discovery using the freshly acquired token.\n\n @internal\n Errors:\n - FAILED_PRECONDITION: State parameter is invalid, expired, or does\n   not match the mcp_server_id\n - UNAVAILABLE: Token exchange with the authorization server failed\n - NOT_FOUND: No pending OAuth state found for the given state param\n\n Authorization: Requires can_connect permission on the mcp_server resource."
+        },
+        {
+          "name": "GetOAuthGrantStatus",
+          "inputType": "GetOAuthGrantStatusInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput",
+          "outputType": "GetOAuthGrantStatusOutput",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput",
+          "description": "Check whether the authenticated user has an active OAuth grant for\n an MCP server in the specified org.\n\n Returns grant metadata (connected status, token expiry, auth method)\n without exposing any secret token values. The frontend uses this to\n render the correct OAuth state in the MCP server detail page and\n session composer.\n\n @internal\n Authorization: Requires can_view permission on the mcp_server resource.\n The resource_id field contains the MCP server's system-generated ID."
         }
       ]
     },
@@ -338,6 +346,88 @@
             "kind": "string"
           },
           "description": "Informational hint about expected token lifetime.\n Echoed from McpServerAuth.token_lifetime_hint for UI display.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetOAuthGrantStatusInput",
+      "description": "GetOAuthGrantStatusInput queries the OAuth grant status for a resource.\n\n @internal\n Returns whether the authenticated user has an active OAuth grant for the\n specified resource in the given org. Used by the frontend to determine\n whether to show \"Connected\" vs. \"Connect with OAuth\" UI states.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the resource to check grant status for.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization context. Required because the same user can have\n separate OAuth connections for a shared resource across orgs.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetOAuthGrantStatusOutput",
+      "description": "GetOAuthGrantStatusOutput returns the current OAuth grant status.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "Connected",
+          "jsonName": "connected",
+          "protoField": "connected",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the user has an active OAuth grant for this resource + org.",
+          "required": false
+        },
+        {
+          "name": "AccessTokenExpiresAt",
+          "jsonName": "accessTokenExpiresAt",
+          "protoField": "access_token_expires_at",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "When the access token expires (Unix timestamp seconds).\n 0 if no grant exists or the token does not expire.",
+          "required": false
+        },
+        {
+          "name": "TargetEnvVar",
+          "jsonName": "targetEnvVar",
+          "protoField": "target_env_var",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The env var name where the access token is stored.\n Empty if no grant exists.",
+          "required": false
+        },
+        {
+          "name": "AuthMethod",
+          "jsonName": "authMethod",
+          "protoField": "auth_method",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\").\n Empty if no grant exists.",
           "required": false
         }
       ]

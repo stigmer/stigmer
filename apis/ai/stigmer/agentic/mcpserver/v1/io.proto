@@ -142,3 +142,36 @@ message CompleteOAuthConnectOutput {
   // Echoed from McpServerAuth.token_lifetime_hint for UI display.
   string token_lifetime_hint = 3;
 }
+
+// GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
+//
+// @internal
+// Returns whether the authenticated user has an active OAuth grant for the
+// specified resource in the given org. Used by the frontend to determine
+// whether to show "Connected" vs. "Connect with OAuth" UI states.
+message GetOAuthGrantStatusInput {
+  // System-generated ID of the resource to check grant status for.
+  string resource_id = 1 [(buf.validate.field).required = true];
+
+  // Organization context. Required because the same user can have
+  // separate OAuth connections for a shared resource across orgs.
+  string org = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetOAuthGrantStatusOutput returns the current OAuth grant status.
+message GetOAuthGrantStatusOutput {
+  // Whether the user has an active OAuth grant for this resource + org.
+  bool connected = 1;
+
+  // When the access token expires (Unix timestamp seconds).
+  // 0 if no grant exists or the token does not expire.
+  int64 access_token_expires_at = 2;
+
+  // The env var name where the access token is stored.
+  // Empty if no grant exists.
+  string target_env_var = 3;
+
+  // Which auth method was used ("mcp_oauth" or "vendor_oauth").
+  // Empty if no grant exists.
+  string auth_method = 4;
+}

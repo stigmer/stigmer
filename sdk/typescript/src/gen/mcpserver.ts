@@ -8,7 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -79,6 +79,12 @@ export class McpServerClient {
   async completeOAuthConnect(input: CompleteOAuthConnectInput): Promise<CompleteOAuthConnectOutput> {
     try {
       return await this.command.completeOAuthConnect(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getOAuthGrantStatus(input: GetOAuthGrantStatusInput): Promise<GetOAuthGrantStatusOutput> {
+    try {
+      return await this.command.getOAuthGrantStatus(input);
     } catch (e) { throw wrapError(e); }
   }
 

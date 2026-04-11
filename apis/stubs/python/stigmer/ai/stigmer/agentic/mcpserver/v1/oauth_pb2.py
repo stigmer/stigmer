@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\"\x87\x03\n\nOAuthGrant\x12.\n\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\"\n\rmcp_server_id\x18\x02 \x01(\tR\x0bmcpServerId\x12\x35\n\x17\x61\x63\x63\x65ss_token_expires_at\x18\x03 \x01(\x03R\x14\x61\x63\x63\x65ssTokenExpiresAt\x12\x1b\n\tclient_id\x18\x04 \x01(\tR\x08\x63lientId\x12\x1f\n\x0b\x61uth_method\x18\x05 \x01(\tR\nauthMethod\x12%\n\x0etoken_endpoint\x18\x06 \x01(\tR\rtokenEndpoint\x12/\n\x14\x61\x63\x63\x65ss_token_env_var\x18\x07 \x01(\tR\x11\x61\x63\x63\x65ssTokenEnvVar\x12\x31\n\x15refresh_token_env_var\x18\x08 \x01(\tR\x12refreshTokenEnvVar\x12%\n\x0e\x65nvironment_id\x18\t \x01(\tR\renvironmentIdB\xd2\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\nOauthProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\"\xc0\x03\n\nOAuthGrant\x12.\n\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x1f\n\x0bresource_id\x18\x02 \x01(\tR\nresourceId\x12\x35\n\x17\x61\x63\x63\x65ss_token_expires_at\x18\x03 \x01(\x03R\x14\x61\x63\x63\x65ssTokenExpiresAt\x12\x1b\n\tclient_id\x18\x04 \x01(\tR\x08\x63lientId\x12\x1f\n\x0b\x61uth_method\x18\x05 \x01(\tR\nauthMethod\x12%\n\x0etoken_endpoint\x18\x06 \x01(\tR\rtokenEndpoint\x12/\n\x14\x61\x63\x63\x65ss_token_env_var\x18\x07 \x01(\tR\x11\x61\x63\x63\x65ssTokenEnvVar\x12\x31\n\x15refresh_token_env_var\x18\x08 \x01(\tR\x12refreshTokenEnvVar\x12%\n\x0e\x65nvironment_id\x18\t \x01(\tR\renvironmentId\x12#\n\rresource_kind\x18\n \x01(\tR\x0cresourceKind\x12\x15\n\x06org_id\x18\x0b \x01(\tR\x05orgIdB\xd2\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\nOauthProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,5 +33,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n#com.ai.stigmer.agentic.mcpserver.v1B\nOauthProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcpserver::V1'
   _globals['_OAUTHGRANT']._serialized_start=81
-  _globals['_OAUTHGRANT']._serialized_end=472
+  _globals['_OAUTHGRANT']._serialized_end=529
 # @@protoc_insertion_point(module_scope)

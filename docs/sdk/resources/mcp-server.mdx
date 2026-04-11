@@ -62,6 +62,7 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get an MCP server by its unique identifier. |
 | [`getByReference`](#getbyreference) | Get an MCP server by reference (scope + org + slug). |
+| [`getOAuthGrantStatus`](#getoauthgrantstatus) | Check whether the authenticated user has an active OAuth grant for an MCP server in the specified org. |
 | [`apply`](#apply) | Create or update an MCP server resource. |
 | [`create`](#create) | Create an MCP server resource. |
 | [`update`](#update) | Update an existing MCP server resource. |
@@ -158,6 +159,51 @@ McpServer mcpServer = client.mcpServers().getByReference(ApiResourceReference.bu
 **Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`McpServer`](#mcpserver)
+
+### getOAuthGrantStatus
+
+Check whether the authenticated user has an active OAuth grant for an MCP server in the specified org.
+
+Returns grant metadata (connected status, token expiry, auth method) without exposing any secret token values. The frontend uses this to render the correct OAuth state in the MCP server detail page and session composer.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const getOAuthGrantStatusOutput = await stigmer.mcpServer.getOAuthGrantStatus({
+  resourceId: "...",
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+getOAuthGrantStatusOutput, err := client.McpServer.GetOAuthGrantStatus(ctx, &stigmer.GetOAuthGrantStatusInput{
+  ResourceId: "...",
+  Org:        "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+get_o_auth_grant_status_output = client.mcp_servers.get_o_auth_grant_status(GetOAuthGrantStatusInput(
+    resource_id="...",
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+GetOAuthGrantStatusOutput getOAuthGrantStatusOutput = client.mcpServers().getOAuthGrantStatus(GetOAuthGrantStatusInput.builder()
+    .resourceId("...")
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetOAuthGrantStatusInput`](#getoauthgrantstatusinput)
+
+**Returns**: [`GetOAuthGrantStatusOutput`](#getoauthgrantstatusoutput)
 
 ### apply
 
@@ -842,6 +888,30 @@ CompleteOAuthConnectOutput confirms that tokens were successfully acquired and s
     connected: { type: "boolean", description: "Whether the OAuth flow completed successfully and tokens are stored." },
     targetEnvVar: { type: "string", description: "The environment variable name where the access token was stored." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime." },
+  }}
+/>
+
+### GetOAuthGrantStatusInput
+
+GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "System-generated ID of the resource to check grant status for.", required: true },
+    org: { type: "string", description: "Organization context." },
+  }}
+/>
+
+### GetOAuthGrantStatusOutput
+
+GetOAuthGrantStatusOutput returns the current OAuth grant status.
+
+<TypeTable
+  type={{
+    connected: { type: "boolean", description: "Whether the user has an active OAuth grant for this resource + org." },
+    accessTokenExpiresAt: { type: "number", description: "When the access token expires (Unix timestamp seconds)." },
+    targetEnvVar: { type: "string", description: "The env var name where the access token is stored." },
+    authMethod: { type: "string", description: "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\")." },
   }}
 />
 

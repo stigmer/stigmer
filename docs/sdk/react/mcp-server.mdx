@@ -558,6 +558,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    activeOrg: { type: "string", description: "The authenticated user's active organization slug. Used for OAuth token storage — tokens are stored in the user's personal environment within this org, not the MCP server's org. When omitted, falls back to the `org` prop (MCP server's org)." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     credentialPoolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Pre-fill function for credential form inputs. When provided, the EnvVarForm receives these as `poolValues`, populating fields on mount. Useful for demo scenarios that simulate a user having already entered credentials." },
     defaultCapabilityTab: { type: "CapabilityTab", description: "Initial active capability tab. Defaults to `\"tools\"`. Useful for deep-linking or demo scenarios that need to start on a specific tab.", typeDescriptionLink: "#capabilitytab" },
@@ -604,6 +605,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
+    activeOrg: { type: "string", description: "The authenticated user's active organization slug. Used for OAuth token storage — tokens are stored in the user's personal environment within this org, not the MCP server's org. When omitted, falls back to the `org` prop." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disables all interaction." },
     initialServerKey: { type: "string", description: "When provided, the picker opens directly to the configure view for the given server key (`\"org/slug\"`) instead of showing the list.  Intended for flows where the caller already knows which server needs configuration (e.g. a warning banner for a single unconfigured server, or a chip click on a specific server).  Only used as the initial view — subsequent navigation within the picker is unaffected. Ignored if the key does not match any entry in `setup.entries`." },

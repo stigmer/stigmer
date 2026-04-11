@@ -41,22 +41,23 @@ public final class OauthProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n+ai/stigmer/agentic/mcpserver/v1/oauth." +
-      "proto\022\037ai.stigmer.agentic.mcpserver.v1\"\207" +
+      "proto\022\037ai.stigmer.agentic.mcpserver.v1\"\300" +
       "\003\n\nOAuthGrant\022.\n\023identity_account_id\030\001 \001" +
-      "(\tR\021identityAccountId\022\"\n\rmcp_server_id\030\002" +
-      " \001(\tR\013mcpServerId\0225\n\027access_token_expire" +
-      "s_at\030\003 \001(\003R\024accessTokenExpiresAt\022\033\n\tclie" +
-      "nt_id\030\004 \001(\tR\010clientId\022\037\n\013auth_method\030\005 \001" +
-      "(\tR\nauthMethod\022%\n\016token_endpoint\030\006 \001(\tR\r" +
-      "tokenEndpoint\022/\n\024access_token_env_var\030\007 " +
-      "\001(\tR\021accessTokenEnvVar\0221\n\025refresh_token_" +
-      "env_var\030\010 \001(\tR\022refreshTokenEnvVar\022%\n\016env" +
-      "ironment_id\030\t \001(\tR\renvironmentIdB\255\001B\nOau" +
-      "thProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mc" +
-      "pserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserve" +
-      "r\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\G" +
-      "PBMetadata\352\002#Ai::Stigmer::Agentic::Mcpse" +
-      "rver::V1b\006proto3"
+      "(\tR\021identityAccountId\022\037\n\013resource_id\030\002 \001" +
+      "(\tR\nresourceId\0225\n\027access_token_expires_a" +
+      "t\030\003 \001(\003R\024accessTokenExpiresAt\022\033\n\tclient_" +
+      "id\030\004 \001(\tR\010clientId\022\037\n\013auth_method\030\005 \001(\tR" +
+      "\nauthMethod\022%\n\016token_endpoint\030\006 \001(\tR\rtok" +
+      "enEndpoint\022/\n\024access_token_env_var\030\007 \001(\t" +
+      "R\021accessTokenEnvVar\0221\n\025refresh_token_env" +
+      "_var\030\010 \001(\tR\022refreshTokenEnvVar\022%\n\016enviro" +
+      "nment_id\030\t \001(\tR\renvironmentId\022#\n\rresourc" +
+      "e_kind\030\n \001(\tR\014resourceKind\022\025\n\006org_id\030\013 \001" +
+      "(\tR\005orgIdB\255\001B\nOauthProtoP\001\242\002\004ASAM\252\002\037Ai.S" +
+      "tigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer" +
+      "\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agent" +
+      "ic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stigme" +
+      "r::Agentic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -67,7 +68,7 @@ public final class OauthProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthGrant_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthGrant_descriptor,
-        new java.lang.String[] { "IdentityAccountId", "McpServerId", "AccessTokenExpiresAt", "ClientId", "AuthMethod", "TokenEndpoint", "AccessTokenEnvVar", "RefreshTokenEnvVar", "EnvironmentId", });
+        new java.lang.String[] { "IdentityAccountId", "ResourceId", "AccessTokenExpiresAt", "ClientId", "AuthMethod", "TokenEndpoint", "AccessTokenEnvVar", "RefreshTokenEnvVar", "EnvironmentId", "ResourceKind", "OrgId", });
     descriptor.resolveAllFeaturesImmutable();
   }
 

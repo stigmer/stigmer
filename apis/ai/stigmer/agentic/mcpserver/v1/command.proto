@@ -179,4 +179,22 @@ service McpServerCommandController {
     option (ai.stigmer.commons.rpc.config).field_path = "mcp_server_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to complete oauth connect for mcp server";
   }
+
+  // Check whether the authenticated user has an active OAuth grant for
+  // an MCP server in the specified org.
+  //
+  // Returns grant metadata (connected status, token expiry, auth method)
+  // without exposing any secret token values. The frontend uses this to
+  // render the correct OAuth state in the MCP server detail page and
+  // session composer.
+  //
+  // @internal
+  // Authorization: Requires can_view permission on the mcp_server resource.
+  // The resource_id field contains the MCP server's system-generated ID.
+  rpc getOAuthGrantStatus(GetOAuthGrantStatusInput) returns (GetOAuthGrantStatusOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view oauth status for mcp server";
+  }
 }

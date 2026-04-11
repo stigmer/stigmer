@@ -270,6 +270,37 @@ public final class McpServerCommandControllerGrpc {
     return getCompleteOAuthConnectMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
+      ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getOAuthGrantStatus",
+      requestType = ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput.class,
+      responseType = ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
+      ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput, ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod;
+    if ((getGetOAuthGrantStatusMethod = McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod) == null) {
+      synchronized (McpServerCommandControllerGrpc.class) {
+        if ((getGetOAuthGrantStatusMethod = McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod) == null) {
+          McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod = getGetOAuthGrantStatusMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput, ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOAuthGrantStatus"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("getOAuthGrantStatus"))
+              .build();
+        }
+      }
+    }
+    return getGetOAuthGrantStatusMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -503,6 +534,24 @@ public final class McpServerCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCompleteOAuthConnectMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Check whether the authenticated user has an active OAuth grant for
+     * an MCP server in the specified org.
+     * Returns grant metadata (connected status, token expiry, auth method)
+     * without exposing any secret token values. The frontend uses this to
+     * render the correct OAuth state in the MCP server detail page and
+     * session composer.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the mcp_server resource.
+     * The resource_id field contains the MCP server's system-generated ID.
+     * </pre>
+     */
+    default void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOAuthGrantStatusMethod(), responseObserver);
+    }
   }
 
   /**
@@ -720,6 +769,25 @@ public final class McpServerCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getCompleteOAuthConnectMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Check whether the authenticated user has an active OAuth grant for
+     * an MCP server in the specified org.
+     * Returns grant metadata (connected status, token expiry, auth method)
+     * without exposing any secret token values. The frontend uses this to
+     * render the correct OAuth state in the MCP server detail page and
+     * session composer.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the mcp_server resource.
+     * The resource_id field contains the MCP server's system-generated ID.
+     * </pre>
+     */
+    public void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetOAuthGrantStatusMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -908,6 +976,24 @@ public final class McpServerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getCompleteOAuthConnectMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Check whether the authenticated user has an active OAuth grant for
+     * an MCP server in the specified org.
+     * Returns grant metadata (connected status, token expiry, auth method)
+     * without exposing any secret token values. The frontend uses this to
+     * render the correct OAuth state in the MCP server detail page and
+     * session composer.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the mcp_server resource.
+     * The resource_id field contains the MCP server's system-generated ID.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetOAuthGrantStatusMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -1095,6 +1181,24 @@ public final class McpServerCommandControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput completeOAuthConnect(ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCompleteOAuthConnectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Check whether the authenticated user has an active OAuth grant for
+     * an MCP server in the specified org.
+     * Returns grant metadata (connected status, token expiry, auth method)
+     * without exposing any secret token values. The frontend uses this to
+     * render the correct OAuth state in the MCP server detail page and
+     * session composer.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the mcp_server resource.
+     * The resource_id field contains the MCP server's system-generated ID.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetOAuthGrantStatusMethod(), getCallOptions(), request);
     }
   }
 
@@ -1292,6 +1396,25 @@ public final class McpServerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getCompleteOAuthConnectMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Check whether the authenticated user has an active OAuth grant for
+     * an MCP server in the specified org.
+     * Returns grant metadata (connected status, token expiry, auth method)
+     * without exposing any secret token values. The frontend uses this to
+     * render the correct OAuth state in the MCP server detail page and
+     * session composer.
+     * &#64;internal
+     * Authorization: Requires can_view permission on the mcp_server resource.
+     * The resource_id field contains the MCP server's system-generated ID.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getOAuthGrantStatus(
+        ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetOAuthGrantStatusMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -1302,6 +1425,7 @@ public final class McpServerCommandControllerGrpc {
   private static final int METHODID_CONNECT = 5;
   private static final int METHODID_INITIATE_OAUTH_CONNECT = 6;
   private static final int METHODID_COMPLETE_OAUTH_CONNECT = 7;
+  private static final int METHODID_GET_OAUTH_GRANT_STATUS = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1351,6 +1475,10 @@ public final class McpServerCommandControllerGrpc {
         case METHODID_COMPLETE_OAUTH_CONNECT:
           serviceImpl.completeOAuthConnect((ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>) responseObserver);
+          break;
+        case METHODID_GET_OAUTH_GRANT_STATUS:
+          serviceImpl.getOAuthGrantStatus((ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1426,6 +1554,13 @@ public final class McpServerCommandControllerGrpc {
               ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput,
               ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>(
                 service, METHODID_COMPLETE_OAUTH_CONNECT)))
+        .addMethod(
+          getGetOAuthGrantStatusMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
+              ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>(
+                service, METHODID_GET_OAUTH_GRANT_STATUS)))
         .build();
   }
 
@@ -1482,6 +1617,7 @@ public final class McpServerCommandControllerGrpc {
               .addMethod(getConnectMethod())
               .addMethod(getInitiateOAuthConnectMethod())
               .addMethod(getCompleteOAuthConnectMethod())
+              .addMethod(getGetOAuthGrantStatusMethod())
               .build();
         }
       }
