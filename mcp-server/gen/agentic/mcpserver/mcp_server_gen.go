@@ -227,7 +227,7 @@ func (input *OauthAppRefInput) toProto() (*apiresource.ApiResourceReference, err
 	return &apiresource.ApiResourceReference{
 		Org:  input.Org,
 		Slug: input.Slug,
-		Kind: apiresourcekind.ApiResourceKind_ApiResourceKind(22),
+		Kind: apiresourcekind.ApiResourceKind_oauth_app,
 	}, nil
 }
 

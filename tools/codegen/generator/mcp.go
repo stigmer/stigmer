@@ -13,6 +13,7 @@ import (
 // apiResourceKindEnumNames maps ApiResourceKind proto enum values to Go constant
 // suffix names. This list must stay in sync with api_resource_kind.proto.
 var apiResourceKindEnumNames = map[int32]string{
+	22: "oauth_app",
 	40: "agent",
 	43: "skill",
 	44: "mcp_server",

@@ -349,6 +349,11 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 		}
 	}
 
+	typeMap := make(map[string]*TypeSchema)
+	for _, t := range specTypes {
+		typeMap[t.Name] = t
+	}
+
 	needsExecutionContext := false
 	needsEnvironmentV1 := false
 	needsTimestamppb := false
@@ -359,8 +364,15 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 				if f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "ExecutionValue" {
 					needsExecutionContext = true
 				}
-				if f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "EnvironmentValue" {
-					needsEnvironmentV1 = true
+				if f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.Kind == "message" {
+					elemMsg := f.Type.ValueType.MessageType
+					if elemMsg == "EnvironmentValue" {
+						needsEnvironmentV1 = true
+					} else if ts, ok := typeMap[elemMsg]; ok && ts.ProtoType != "" {
+						if protoTypeToPackageAlias(ts.ProtoType) == "environmentv1" {
+							needsEnvironmentV1 = true
+						}
+					}
 				}
 				if f.Type.Kind == "timestamp" {
 					needsTimestamppb = true
@@ -376,11 +388,6 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 				scanFieldsForImports(t.Fields)
 			}
 		}
-	}
-
-	typeMap := make(map[string]*TypeSchema)
-	for _, t := range specTypes {
-		typeMap[t.Name] = t
 	}
 
 	enumImports := make(map[string]string)
@@ -869,8 +876,14 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 				fmt.Fprintf(buf, "\t\t\tresource.Spec.%s[k] = &environmentv1.EnvironmentValue{Value: v.Value, IsSecret: v.IsSecret, Description: v.Description}\n", protoField)
 				buf.WriteString("\t\t}\n\t}\n")
 			default:
+				elemAlias := alias
+				if ts, ok := typeMap[elemMsg]; ok && ts.ProtoType != "" {
+					if derivedAlias := protoTypeToPackageAlias(ts.ProtoType); derivedAlias != "" {
+						elemAlias = derivedAlias
+					}
+				}
 				fmt.Fprintf(buf, "\tif len(i.%s) > 0 {\n", f.Name)
-				fmt.Fprintf(buf, "\t\tresource.Spec.%s = make(map[string]*%s.%s, len(i.%s))\n", protoField, alias, elemMsg, f.Name)
+				fmt.Fprintf(buf, "\t\tresource.Spec.%s = make(map[string]*%s.%s, len(i.%s))\n", protoField, elemAlias, elemMsg, f.Name)
 				fmt.Fprintf(buf, "\t\tfor k, v := range i.%s {\n", f.Name)
 				fmt.Fprintf(buf, "\t\t\tresource.Spec.%s[k] = v.toProto()\n", protoField)
 				buf.WriteString("\t\t}\n\t}\n")
