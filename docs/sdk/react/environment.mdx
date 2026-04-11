@@ -749,6 +749,21 @@ Keys that do not exist in the environment are silently ignored.
 />
 
 
+### resolveDeclaredSystemEnvVars
+
+Resolve only the system env vars that the target resource actually
+declares in its environment specification.
+
+System vars (`STIGMER_SERVER_ADDRESS`, `STIGMER_API_KEY`) should
+only be injected when the resource needs them — blindly injecting
+them causes `runtime_env` to be non-empty on the wire, which
+changes the backend's missing-credential tolerance semantics.
+
+```tsx
+function resolveDeclaredSystemEnvVars(stigmer: Stigmer, declaredEnvKeys: ReadonlySet<string> | readonly string[]): Promise<Record<string, EnvVarInput>>
+```
+
+
 ### resolveSystemEnvVarValues
 
 Resolve system env var values from a live `Stigmer` client.
