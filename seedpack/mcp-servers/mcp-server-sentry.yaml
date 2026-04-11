@@ -14,13 +14,15 @@ spec:
     - monitoring
     - error-tracking
     - observability
-  stdio:
-    command: "npx"
-    args:
-      - "-y"
-      - "@sentry/mcp-server@latest"
+  http:
+    url: "https://mcp.sentry.dev/mcp"
+    headers:
+      Authorization: "Bearer ${SENTRY_ACCESS_TOKEN}"
   env_spec:
     data:
       SENTRY_ACCESS_TOKEN:
         is_secret: true
         description: "Sentry auth token with org:read, project:read, event:write scopes"
+  auth:
+    target_env_var: "SENTRY_ACCESS_TOKEN"
+    token_lifetime_hint: "2h"
