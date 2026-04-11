@@ -60,7 +60,7 @@ export class OAuthAppClient {
 
   async getByReference(ref: ResourceRef): Promise<OAuthApp> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.o_auth_app }));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.oauth_app }));
     } catch (e) { throw wrapError(e); }
   }
 
