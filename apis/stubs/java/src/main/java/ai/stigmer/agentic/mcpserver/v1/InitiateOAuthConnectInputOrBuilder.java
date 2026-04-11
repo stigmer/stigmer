@@ -29,4 +29,28 @@ public interface InitiateOAuthConnectInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getMcpServerIdBytes();
+
+  /**
+   * <pre>
+   * Organization context for token storage.
+   * Tokens are stored in the caller's personal environment within this org.
+   * Must be an org the caller belongs to.
+   * </pre>
+   *
+   * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
+   */
+  java.lang.String getOrg();
+  /**
+   * <pre>
+   * Organization context for token storage.
+   * Tokens are stored in the caller's personal environment within this org.
+   * Must be an org the caller belongs to.
+   * </pre>
+   *
+   * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
+   */
+  com.google.protobuf.ByteString
+      getOrgBytes();
 }

@@ -631,6 +631,7 @@ Performs setup (DCR registration or OAuthApp credential lookup, PKCE generation)
 ```typescript
 const initiateOAuthConnectOutput = await stigmer.mcpServer.initiateOAuthConnect({
   mcpServerId: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -638,6 +639,7 @@ const initiateOAuthConnectOutput = await stigmer.mcpServer.initiateOAuthConnect(
 ```go
 initiateOAuthConnectOutput, err := client.McpServer.InitiateOAuthConnect(ctx, &stigmer.InitiateOAuthConnectInput{
   McpServerId: "...",
+  Org:         "...",
 })
 ```
 </Tab>
@@ -645,6 +647,7 @@ initiateOAuthConnectOutput, err := client.McpServer.InitiateOAuthConnect(ctx, &s
 ```python
 initiate_o_auth_connect_output = client.mcp_servers.initiate_o_auth_connect(InitiateOAuthConnectInput(
     mcp_server_id="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -652,6 +655,7 @@ initiate_o_auth_connect_output = client.mcp_servers.initiate_o_auth_connect(Init
 ```java
 InitiateOAuthConnectOutput initiateOAuthConnectOutput = client.mcpServers().initiateOAuthConnect(InitiateOAuthConnectInput.builder()
     .mcpServerId("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -800,6 +804,7 @@ InitiateOAuthConnectInput starts the OAuth authorization flow for an MCP server 
 <TypeTable
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to initiate OAuth for.", required: true },
+    org: { type: "string", description: "Organization context for token storage." },
   }}
 />
 

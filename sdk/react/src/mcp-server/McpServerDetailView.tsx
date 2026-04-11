@@ -133,7 +133,7 @@ export function McpServerDetailView({
     if (!mcpServer?.metadata?.id) return;
 
     try {
-      await oauth.startOAuth(mcpServer.metadata.id);
+      await oauth.startOAuth(mcpServer.metadata.id, org);
       credentials.refetch();
       refetch();
     } catch {

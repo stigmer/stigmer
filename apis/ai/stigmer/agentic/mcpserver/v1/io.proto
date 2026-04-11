@@ -67,6 +67,11 @@ message ConnectInput {
 message InitiateOAuthConnectInput {
   // System-generated ID of the MCP server to initiate OAuth for.
   string mcp_server_id = 1 [(buf.validate.field).required = true];
+
+  // Organization context for token storage.
+  // Tokens are stored in the caller's personal environment within this org.
+  // Must be an org the caller belongs to.
+  string org = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 // InitiateOAuthConnectOutput contains the authorization URL and metadata

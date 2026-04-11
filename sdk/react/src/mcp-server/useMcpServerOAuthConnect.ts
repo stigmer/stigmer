@@ -54,9 +54,10 @@ export interface UseMcpServerOAuthConnectReturn {
    * blockers.
    *
    * @param mcpServerId - System-generated ID (metadata.id) of the MCP server.
+   * @param org - Organization context for token storage (caller's active org).
    * @returns The updated McpServer after tool discovery completes.
    */
-  readonly startOAuth: (mcpServerId: string) => Promise<McpServer>;
+  readonly startOAuth: (mcpServerId: string, org: string) => Promise<McpServer>;
   /** `true` while any phase of the OAuth flow is in progress. */
   readonly isInProgress: boolean;
   /** Current phase of the OAuth flow. */
@@ -92,7 +93,7 @@ const POPUP_CALLBACK_TIMEOUT_MS = 120_000;
  *
  * async function handleSignIn() {
  *   try {
- *     await oauth.startOAuth(mcpServer.metadata.id);
+ *     await oauth.startOAuth(mcpServer.metadata.id, org);
  *     refetch();
  *   } catch {
  *     // error is available via oauth.error
@@ -124,7 +125,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
   }, []);
 
   const startOAuth = useCallback(
-    async (mcpServerId: string): Promise<McpServer> => {
+    async (mcpServerId: string, org: string): Promise<McpServer> => {
       setPhase("initiating");
       setError(null);
 
@@ -152,7 +153,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
       try {
         const initOutput = await stigmer.mcpServer.initiateOAuthConnect(
-          create(InitiateOAuthConnectInputSchema, { mcpServerId }),
+          create(InitiateOAuthConnectInputSchema, { mcpServerId, org }),
         );
 
         popup.location.href = initOutput.authorizationUrl;

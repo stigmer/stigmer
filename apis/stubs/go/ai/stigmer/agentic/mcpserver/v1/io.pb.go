@@ -171,7 +171,11 @@ func (x *ConnectInput) GetRuntimeEnv() map[string]*v1.ExecutionValue {
 type InitiateOAuthConnectInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the MCP server to initiate OAuth for.
-	McpServerId   string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
+	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
+	// Organization context for token storage.
+	// Tokens are stored in the caller's personal environment within this org.
+	// Must be an org the caller belongs to.
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -209,6 +213,13 @@ func (*InitiateOAuthConnectInput) Descriptor() ([]byte, []int) {
 func (x *InitiateOAuthConnectInput) GetMcpServerId() string {
 	if x != nil {
 		return x.McpServerId
+	}
+	return ""
+}
+
+func (x *InitiateOAuthConnectInput) GetOrg() string {
+	if x != nil {
+		return x.Org
 	}
 	return ""
 }
@@ -457,9 +468,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"runtimeEnv\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"G\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"b\n" +
 	"\x19InitiateOAuthConnectInput\x12*\n" +
-	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\"\x9c\x01\n" +
+	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x9c\x01\n" +
 	"\x1aInitiateOAuthConnectOutput\x12+\n" +
 	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12\x16\n" +

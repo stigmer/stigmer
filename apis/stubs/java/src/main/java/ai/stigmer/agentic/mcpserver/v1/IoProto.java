@@ -81,25 +81,26 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "nectInput.RuntimeEnvEntryR\nruntimeEnv\032u\n" +
       "\017RuntimeEnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005va" +
       "lue\030\002 \001(\01326.ai.stigmer.agentic.execution" +
-      "context.v1.ExecutionValueR\005value:\0028\001\"G\n\031" +
+      "context.v1.ExecutionValueR\005value:\0028\001\"b\n\031" +
       "InitiateOAuthConnectInput\022*\n\rmcp_server_" +
-      "id\030\001 \001(\tB\006\272H\003\310\001\001R\013mcpServerId\"\234\001\n\032Initia" +
-      "teOAuthConnectOutput\022+\n\021authorization_ur" +
-      "l\030\001 \001(\tR\020authorizationUrl\022\024\n\005state\030\002 \001(\t" +
-      "R\005state\022\026\n\006scopes\030\003 \003(\tR\006scopes\022#\n\rprovi" +
-      "der_name\030\004 \001(\tR\014providerName\"\236\001\n\031Complet" +
-      "eOAuthConnectInput\022*\n\rmcp_server_id\030\001 \001(" +
-      "\tB\006\272H\003\310\001\001R\013mcpServerId\0226\n\022authorization_" +
-      "code\030\002 \001(\tB\007\272H\004r\002\020\001R\021authorizationCode\022\035" +
-      "\n\005state\030\003 \001(\tB\007\272H\004r\002\020\001R\005state\"\220\001\n\032Comple" +
-      "teOAuthConnectOutput\022\034\n\tconnected\030\001 \001(\010R" +
-      "\tconnected\022$\n\016target_env_var\030\002 \001(\tR\014targ" +
-      "etEnvVar\022.\n\023token_lifetime_hint\030\003 \001(\tR\021t" +
-      "okenLifetimeHintB\252\001B\007IoProtoP\001\242\002\004ASAM\252\002\037" +
-      "Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Sti" +
-      "gmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\A" +
-      "gentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::St" +
-      "igmer::Agentic::Mcpserver::V1b\006proto3"
+      "id\030\001 \001(\tB\006\272H\003\310\001\001R\013mcpServerId\022\031\n\003org\030\002 \001" +
+      "(\tB\007\272H\004r\002\020\001R\003org\"\234\001\n\032InitiateOAuthConnec" +
+      "tOutput\022+\n\021authorization_url\030\001 \001(\tR\020auth" +
+      "orizationUrl\022\024\n\005state\030\002 \001(\tR\005state\022\026\n\006sc" +
+      "opes\030\003 \003(\tR\006scopes\022#\n\rprovider_name\030\004 \001(" +
+      "\tR\014providerName\"\236\001\n\031CompleteOAuthConnect" +
+      "Input\022*\n\rmcp_server_id\030\001 \001(\tB\006\272H\003\310\001\001R\013mc" +
+      "pServerId\0226\n\022authorization_code\030\002 \001(\tB\007\272" +
+      "H\004r\002\020\001R\021authorizationCode\022\035\n\005state\030\003 \001(\t" +
+      "B\007\272H\004r\002\020\001R\005state\"\220\001\n\032CompleteOAuthConnec" +
+      "tOutput\022\034\n\tconnected\030\001 \001(\010R\tconnected\022$\n" +
+      "\016target_env_var\030\002 \001(\tR\014targetEnvVar\022.\n\023t" +
+      "oken_lifetime_hint\030\003 \001(\tR\021tokenLifetimeH" +
+      "intB\252\001B\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Ag" +
+      "entic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\" +
+      "Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpser" +
+      "ver\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agenti" +
+      "c::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -130,7 +131,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_descriptor,
-        new java.lang.String[] { "McpServerId", });
+        new java.lang.String[] { "McpServerId", "Org", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_fieldAccessorTable = new
