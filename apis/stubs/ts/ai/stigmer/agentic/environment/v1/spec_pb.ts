@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/environment/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_environment_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxItQBCg9FbnZpcm9ubWVudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoEZGF0YRgCIAMoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudFNwZWMuRGF0YUVudHJ5GmAKCURhdGFFbnRyeRILCgNrZXkYASABKAkSQgoFdmFsdWUYAiABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnRWYWx1ZToCOAEiSQoQRW52aXJvbm1lbnRWYWx1ZRINCgV2YWx1ZRgBIAEoCRIRCglpc19zZWNyZXQYAiABKAgSEwoLZGVzY3JpcHRpb24YAyABKAliBnByb3RvMw");
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxItQBCg9FbnZpcm9ubWVudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoEZGF0YRgCIAMoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudFNwZWMuRGF0YUVudHJ5GmAKCURhdGFFbnRyeRILCgNrZXkYASABKAkSQgoFdmFsdWUYAiABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnRWYWx1ZToCOAEiSQoQRW52aXJvbm1lbnRWYWx1ZRINCgV2YWx1ZRgBIAEoCRIRCglpc19zZWNyZXQYAiABKAgSEwoLZGVzY3JpcHRpb24YAyABKAkiTQoRRW52VmFyRGVjbGFyYXRpb24SEQoJaXNfc2VjcmV0GAEgASgIEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhAKCG9wdGlvbmFsGAMgASgIYgZwcm90bzM");
 
 /**
  * EnvironmentSpec defines the configurable properties of an environment.
@@ -87,4 +87,56 @@ export type EnvironmentValue = Message<"ai.stigmer.agentic.environment.v1.Enviro
  */
 export const EnvironmentValueSchema: GenMessage<EnvironmentValue> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_environment_v1_spec, 1);
+
+/**
+ * EnvVarDeclaration declares an environment variable required (or optionally
+ * accepted) by a blueprint resource (McpServer, Agent, Workflow).
+ *
+ * Unlike EnvironmentValue (which stores actual values), this message describes
+ * what a blueprint *needs* — its schema, not its data. This separation keeps
+ * the blueprint layer free of runtime values and enables the platform to
+ * validate completeness before execution.
+ *
+ * @generated from message ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+ */
+export type EnvVarDeclaration = Message<"ai.stigmer.agentic.environment.v1.EnvVarDeclaration"> & {
+  /**
+   * Whether the resolved value should be treated as a secret.
+   *
+   * @internal
+   * When true: encrypted at rest, redacted in logs and Temporal history.
+   * When false: stored as plaintext, visible in audit logs.
+   *
+   * @generated from field: bool is_secret = 1;
+   */
+  isSecret: boolean;
+
+  /**
+   * Human-readable description shown in the UI credential form.
+   * Should explain what the variable is used for and where to obtain it.
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * Whether this variable is optional.
+   *
+   * @internal
+   * When false (default): the execution pipeline rejects a run if this
+   * variable is missing from the user's environment.
+   * When true: a missing value is acceptable (the MCP server or agent
+   * degrades gracefully without it).
+   *
+   * @generated from field: bool optional = 3;
+   */
+  optional: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.environment.v1.EnvVarDeclaration.
+ * Use `create(EnvVarDeclarationSchema)` to create a new message.
+ */
+export const EnvVarDeclarationSchema: GenMessage<EnvVarDeclaration> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_environment_v1_spec, 2);
 

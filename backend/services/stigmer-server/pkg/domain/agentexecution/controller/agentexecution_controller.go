@@ -5,6 +5,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
@@ -27,6 +28,8 @@ type AgentExecutionController struct {
 	streamBroker           *StreamBroker
 	temporalClient         temporalclient.Client           // Temporal client for lifecycle operations
 	artifactStorage        artifactstorage.ArtifactStorage // Artifact storage for attachments and outputs
+	oauthGrantStore        *oauth.OAuthGrantStore
+	managedEnvService      *oauth.ManagedEnvironmentService
 }
 
 // NewAgentExecutionController creates a new AgentExecutionController
@@ -94,4 +97,15 @@ func (c *AgentExecutionController) SetTemporalClient(client temporalclient.Clien
 // This is used for processing attachments and managing execution outputs
 func (c *AgentExecutionController) SetArtifactStorage(storage artifactstorage.ArtifactStorage) {
 	c.artifactStorage = storage
+}
+
+// SetOAuthDependencies sets the OAuth grant store and managed environment
+// service for injecting OAuth tokens into execution contexts. If not set,
+// OAuth token injection is silently skipped (graceful degradation).
+func (c *AgentExecutionController) SetOAuthDependencies(
+	oauthGrantStore *oauth.OAuthGrantStore,
+	managedEnvService *oauth.ManagedEnvironmentService,
+) {
+	c.oauthGrantStore = oauthGrantStore
+	c.managedEnvService = managedEnvService
 }

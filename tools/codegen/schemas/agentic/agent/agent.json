@@ -82,14 +82,20 @@
       "required": false
     },
     {
-      "name": "EnvSpec",
-      "jsonName": "envSpec",
-      "protoField": "env_spec",
+      "name": "Env",
+      "jsonName": "env",
+      "protoField": "env",
       "type": {
-        "kind": "message",
-        "messageType": "EnvironmentSpec"
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "EnvVarDeclaration"
+        }
       },
-      "description": "Environment variables required by the agent.",
+      "description": "Environment variable declarations for this agent.\n Keys are variable names; values describe their metadata and optionality.",
       "required": false
     }
   ]

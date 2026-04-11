@@ -17,11 +17,10 @@ spec:
     url: "https://mcp.linear.app/mcp"
     headers:
       Authorization: "Bearer ${LINEAR_ACCESS_TOKEN}"
-  env_spec:
-    data:
-      LINEAR_ACCESS_TOKEN:
-        is_secret: true
-        description: "Linear API key or OAuth access token (generate at linear.app/settings/api)"
+  env:
+    LINEAR_ACCESS_TOKEN:
+      is_secret: true
+      description: "Linear API key or OAuth access token (generate at linear.app/settings/api)"
   auth:
     target_env_var: "LINEAR_ACCESS_TOKEN"
     token_lifetime_hint: "1h"

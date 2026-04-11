@@ -171,14 +171,13 @@ spec:
       slug: kubernetes-best-practices
     - kind: skill
       slug: company-deployment-procedures
-  env_spec:
-    data:
-      KUBERNETES_CLUSTER:
-        description: "Target Kubernetes cluster URL"
-        is_secret: false
-      SLACK_WEBHOOK:
-        description: "Slack webhook for deployment notifications"
-        is_secret: true
+  env:
+    KUBERNETES_CLUSTER:
+      description: "Target Kubernetes cluster URL"
+      is_secret: false
+    SLACK_WEBHOOK:
+      description: "Slack webhook for deployment notifications"
+      is_secret: true
   sub_agents:
     - name: health-checker
       description: "Monitors deployment health after rollout"

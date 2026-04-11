@@ -7,15 +7,18 @@ import (
 	"github.com/rs/zerolog/log"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 )
 
 // CompleteOAuthConnect finishes the OAuth flow by exchanging the authorization
-// code for tokens, storing them in the personal environment, and creating an
+// code for tokens, storing them in a managed environment, and creating an
 // OAuthGrant record.
+//
+// On re-connect (same user + server + org already has a grant with an
+// environment ID), the existing managed environment is reused — only its
+// secrets are updated with the fresh tokens.
 func (c *McpServerController) CompleteOAuthConnect(
 	ctx context.Context,
 	input *mcpserverv1.CompleteOAuthConnectInput,
@@ -23,6 +26,11 @@ func (c *McpServerController) CompleteOAuthConnect(
 	if c.pendingOAuthStateStore == nil || c.oauthGrantStore == nil {
 		return nil, grpclib.FailedPreconditionError(
 			"OAuth Connect dependencies not initialized",
+		)
+	}
+	if c.managedEnvService == nil {
+		return nil, grpclib.FailedPreconditionError(
+			"managed environment service not initialized",
 		)
 	}
 
@@ -74,45 +82,45 @@ func (c *McpServerController) CompleteOAuthConnect(
 		)
 	}
 
-	// Load the MCP server to get the auth block metadata
+	// Load the MCP server to get the auth block metadata and name
 	mcpServer := &mcpserverv1.McpServer{}
 	if err := c.store.GetResource(ctx, apiresourcekind.ApiResourceKind_mcp_server, mcpServerID, mcpServer); err != nil {
 		return nil, grpclib.NotFoundError("mcp_server", mcpServerID)
 	}
 
-	// Resolve (or auto-create) the personal environment in the caller's org
 	org := pendingState.Org
 	if org == "" {
 		org = mcpServer.GetMetadata().GetOrg()
 	}
-	personalEnvID, err := c.resolveOrCreatePersonalEnvironmentID(ctx, org)
+
+	// Resolve the managed environment: reuse from existing grant or create new
+	managedEnvID, err := c.resolveOrCreateManagedEnvironment(
+		ctx, pendingState.IdentityAccountID, mcpServerID, org,
+		mcpServer.GetMetadata().GetName(),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Store access token in personal environment
-	variables := map[string]*environmentv1.EnvironmentValue{
+	// Build token variables (plaintext — the environment pipeline encrypts)
+	tokenVars := map[string]*environmentv1.EnvironmentValue{
 		pendingState.TargetEnvVar: {
 			Value:    tokenResp.AccessToken,
 			IsSecret: true,
 		},
 	}
 
-	// Store refresh token if provided
 	refreshTokenEnvVar := pendingState.TargetEnvVar + "_REFRESH_TOKEN"
 	if tokenResp.RefreshToken != "" {
-		variables[refreshTokenEnvVar] = &environmentv1.EnvironmentValue{
+		tokenVars[refreshTokenEnvVar] = &environmentv1.EnvironmentValue{
 			Value:    tokenResp.RefreshToken,
 			IsSecret: true,
 		}
 	}
 
-	_, err = c.environmentClient.UpdateVariables(ctx, &environmentv1.UpdateEnvironmentVariablesRequest{
-		EnvironmentId: personalEnvID,
-		Variables:     variables,
-	})
-	if err != nil {
-		return nil, grpclib.InternalError(err, "failed to store OAuth tokens in personal environment")
+	// Store tokens in the managed environment
+	if err := c.managedEnvService.UpdateSecrets(ctx, managedEnvID, tokenVars); err != nil {
+		return nil, grpclib.InternalError(err, "failed to store OAuth tokens in managed environment")
 	}
 
 	// Calculate token expiry
@@ -121,17 +129,19 @@ func (c *McpServerController) CompleteOAuthConnect(
 		expiresAt = time.Now().Unix() + tokenResp.ExpiresIn
 	}
 
-	// Create OAuthGrant record
+	// Create or update the OAuthGrant record
 	grant := &oauth.OAuthGrant{
 		IdentityAccountID:    pendingState.IdentityAccountID,
-		McpServerID:          mcpServerID,
+		ResourceID:           mcpServerID,
+		ResourceKind:         "mcp_server",
+		OrgID:                org,
 		AccessTokenExpiresAt: expiresAt,
 		ClientID:             pendingState.ClientID,
 		AuthMethod:           pendingState.AuthMethod,
 		TokenEndpoint:        pendingState.TokenEndpoint,
 		AccessTokenEnvVar:    pendingState.TargetEnvVar,
 		RefreshTokenEnvVar:   refreshTokenEnvVar,
-		EnvironmentID:        personalEnvID,
+		EnvironmentID:        managedEnvID,
 	}
 
 	if err := c.oauthGrantStore.Upsert(ctx, grant); err != nil {
@@ -144,9 +154,10 @@ func (c *McpServerController) CompleteOAuthConnect(
 		Str("mcp_server_id", mcpServerID).
 		Str("auth_method", pendingState.AuthMethod).
 		Str("target_env_var", pendingState.TargetEnvVar).
+		Str("managed_env_id", managedEnvID).
 		Int64("expires_at", expiresAt).
 		Bool("has_refresh_token", tokenResp.RefreshToken != "").
-		Msg("OAuth Connect completed: tokens stored in personal environment")
+		Msg("OAuth Connect completed: tokens stored in managed environment")
 
 	return &mcpserverv1.CompleteOAuthConnectOutput{
 		Connected:         true,
@@ -155,44 +166,37 @@ func (c *McpServerController) CompleteOAuthConnect(
 	}, nil
 }
 
-// resolveOrCreatePersonalEnvironmentID finds the user's personal environment
-// in the given org, or auto-creates one if it doesn't exist.
-func (c *McpServerController) resolveOrCreatePersonalEnvironmentID(
+// resolveOrCreateManagedEnvironment checks whether an existing OAuthGrant
+// already points to a managed environment (re-connect case). If so, that
+// environment ID is reused. Otherwise a new managed environment is created.
+func (c *McpServerController) resolveOrCreateManagedEnvironment(
 	ctx context.Context,
+	identityAccountID string,
+	mcpServerID string,
 	org string,
+	mcpServerName string,
 ) (string, error) {
-	listResp, err := c.environmentClient.List(ctx, &environmentv1.ListEnvironmentsRequest{
-		Org:    org,
-		Labels: map[string]string{personalEnvLabel: "true"},
-	})
+	// Check for an existing grant with a managed environment
+	existingGrant, err := c.oauthGrantStore.Find(ctx, identityAccountID, mcpServerID, org)
 	if err != nil {
-		return "", grpclib.InternalError(err, "failed to list personal environments")
-	}
-	if listResp.GetTotalCount() > 0 && len(listResp.GetItems()) > 0 {
-		return listResp.GetItems()[0].GetMetadata().GetId(), nil
+		log.Warn().Err(err).
+			Str("mcp_server_id", mcpServerID).
+			Msg("Failed to look up existing OAuth grant (non-fatal, will create new managed env)")
 	}
 
-	log.Info().Str("org", org).Msg("Personal environment not found, auto-creating")
+	if existingGrant != nil && existingGrant.EnvironmentID != "" {
+		log.Info().
+			Str("mcp_server_id", mcpServerID).
+			Str("environment_id", existingGrant.EnvironmentID).
+			Msg("Reusing existing managed environment for OAuth re-connect")
+		return existingGrant.EnvironmentID, nil
+	}
 
-	created, err := c.environmentClient.Create(ctx, &environmentv1.Environment{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Environment",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name: "Personal",
-			Org:  org,
-			Labels: map[string]string{
-				personalEnvLabel: "true",
-			},
-		},
-	})
+	envName := "OAuth: " + mcpServerName
+	managedEnvID, err := c.managedEnvService.CreateManagedEnvironment(ctx, envName, org)
 	if err != nil {
-		return "", grpclib.InternalError(err, "failed to auto-create personal environment for org '"+org+"'")
+		return "", grpclib.InternalError(err, "failed to create managed environment for OAuth tokens")
 	}
 
-	log.Info().
-		Str("org", org).
-		Str("env_id", created.GetMetadata().GetId()).
-		Msg("Auto-created personal environment")
-
-	return created.GetMetadata().GetId(), nil
+	return managedEnvID, nil
 }

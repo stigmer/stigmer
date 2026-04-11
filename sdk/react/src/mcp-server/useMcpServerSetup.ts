@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
-import { diffEnvSpec } from "../environment/diffEnvSpec";
+import { diffEnv } from "../environment/diffEnv";
 import { toError } from "../internal/toError";
 import {
   mcpServerSetupReducer,
@@ -57,8 +59,8 @@ export interface UseMcpServerSetupReturn {
   /**
    * Add an MCP server to the setup flow.
    *
-   * Fetches the full server resource, checks `env_spec` against the
-   * personal environment, and resolves the entry to either `ready`
+   * Fetches the full server resource, checks `env` declarations against
+   * the personal environment, and resolves the entry to either `ready`
    * (no credentials needed or all present) or `needsSetup` (missing
    * variables). Also extracts discovered tools and approval policies
    * for the tool selector.
@@ -171,8 +173,8 @@ function computeDefaultEnabledTools(
  * MCP servers selected in the {@link McpServerPicker}.
  *
  * When a user toggles an MCP server ON, this hook fetches the server's
- * full resource, checks its `env_spec` against the personal environment
- * (via {@link diffEnvSpec}), and determines whether credentials are
+ * full resource, checks its `env` declarations against the personal
+ * environment (via {@link diffEnv}), and determines whether credentials are
  * needed. It also extracts discovered tools and approval policies for
  * the tool selector UI.
  *
@@ -198,7 +200,7 @@ function computeDefaultEnabledTools(
  * @param org - Organization slug. Pass `null` to disable.
  * @param poolKeys - Optional set of env-var keys already available
  *   from the session env pool (manual secrets, one-time env vars from
- *   other components). When provided, servers whose `env_spec` keys
+ *   other components). When provided, servers whose `env` keys
  *   are fully covered by `poolKeys` + personal env auto-resolve to
  *   `ready` without prompting. Reactive — when `poolKeys` changes,
  *   `needsSetup` entries are re-evaluated.
@@ -264,9 +266,9 @@ export function useMcpServerSetup(
         const discoveredTools =
           mcpServer.status?.discoveredCapabilities?.tools ?? [];
         const toolApprovals = mcpServer.spec?.pinnedToolApprovals ?? [];
-        const envSpecData = mcpServer.spec?.envSpec?.data;
+        const envDeclarations = mcpServer.spec?.env;
 
-        if (!envSpecData || Object.keys(envSpecData).length === 0) {
+        if (!envDeclarations || Object.keys(envDeclarations).length === 0) {
           dispatch({
             type: "RESOLVE_READY",
             key,
@@ -284,9 +286,29 @@ export function useMcpServerSetup(
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
-        const missingVariables = diffEnvSpec(envSpecData, existingKeys, poolKeys);
 
-        if (missingVariables.length === 0) {
+        const auth = mcpServer.spec?.auth;
+        if (auth?.targetEnvVar && mcpServer.metadata?.id) {
+          try {
+            const grantStatus = await stigmer.mcpServer.getOAuthGrantStatus(
+              create(GetOAuthGrantStatusInputSchema, {
+                resourceId: mcpServer.metadata.id,
+                org,
+              }),
+            );
+            if (grantStatus.connected) {
+              existingKeys.add(auth.targetEnvVar);
+            }
+          } catch {
+            // Non-fatal: if grant status lookup fails, the OAuth var stays
+            // in missingVariables and the UI shows the sign-in button.
+          }
+        }
+
+        const allMissing = diffEnv(envDeclarations, existingKeys, poolKeys);
+        const requiredMissing = allMissing.filter((v) => !v.optional);
+
+        if (requiredMissing.length === 0) {
           dispatch({
             type: "RESOLVE_READY",
             key,
@@ -305,7 +327,7 @@ export function useMcpServerSetup(
           type: "RESOLVE_NEEDS_SETUP",
           key,
           mcpServer,
-          missingVariables,
+          missingVariables: requiredMissing,
           discoveredTools,
           toolApprovals,
         });
@@ -420,15 +442,16 @@ export function useMcpServerSetup(
     for (const [key, entry] of Object.entries(entriesRef.current)) {
       if (entry.status !== "needsSetup") continue;
 
-      const envSpecData = entry.mcpServer.spec?.envSpec?.data;
-      if (!envSpecData) continue;
+      const envDeclarations = entry.mcpServer.spec?.env;
+      if (!envDeclarations) continue;
 
-      const missingVariables = diffEnvSpec(envSpecData, personalKeys, poolKeys);
+      const allMissing = diffEnv(envDeclarations, personalKeys, poolKeys);
+      const requiredMissing = allMissing.filter((v) => !v.optional);
       const enabledTools = computeDefaultEnabledTools(
         entry.mcpServer,
         entry.discoveredTools,
       );
-      dispatch({ type: "POOL_RESOLVE", key, missingVariables, enabledTools });
+      dispatch({ type: "POOL_RESOLVE", key, missingVariables: requiredMissing, enabledTools });
     }
   }, [poolKeys, personalEnv.environment]);
 

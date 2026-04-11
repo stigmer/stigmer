@@ -43,7 +43,7 @@ public interface StdioServerConfigOrBuilder extends
    * (same source as HTTP header/query param placeholders). This enables MCP
    * servers that take core configuration as positional CLI arguments (e.g.
    * database connection URLs, directory paths) to be parameterized per-user
-   * through env_spec.
+   * through env declarations.
    *
    * Resolution uses strict mode: missing variables produce a clear error
    * rather than passing a literal "${VAR}" to the subprocess.
@@ -73,7 +73,7 @@ public interface StdioServerConfigOrBuilder extends
    * (same source as HTTP header/query param placeholders). This enables MCP
    * servers that take core configuration as positional CLI arguments (e.g.
    * database connection URLs, directory paths) to be parameterized per-user
-   * through env_spec.
+   * through env declarations.
    *
    * Resolution uses strict mode: missing variables produce a clear error
    * rather than passing a literal "${VAR}" to the subprocess.
@@ -102,7 +102,7 @@ public interface StdioServerConfigOrBuilder extends
    * (same source as HTTP header/query param placeholders). This enables MCP
    * servers that take core configuration as positional CLI arguments (e.g.
    * database connection URLs, directory paths) to be parameterized per-user
-   * through env_spec.
+   * through env declarations.
    *
    * Resolution uses strict mode: missing variables produce a clear error
    * rather than passing a literal "${VAR}" to the subprocess.
@@ -132,7 +132,7 @@ public interface StdioServerConfigOrBuilder extends
    * (same source as HTTP header/query param placeholders). This enables MCP
    * servers that take core configuration as positional CLI arguments (e.g.
    * database connection URLs, directory paths) to be parameterized per-user
-   * through env_spec.
+   * through env declarations.
    *
    * Resolution uses strict mode: missing variables produce a clear error
    * rather than passing a literal "${VAR}" to the subprocess.

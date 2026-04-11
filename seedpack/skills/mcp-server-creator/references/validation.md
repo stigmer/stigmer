@@ -15,12 +15,12 @@ Run through this checklist before presenting any McpServer YAML. Every item must
 - [ ] `spec.stdio.command` is present
 - [ ] Command is a real executable (`npx`, `python`, `node`, `./binary`, etc.)
 - [ ] `working_dir` uses absolute path if specified
-- [ ] All required env vars declared in `env_spec`
+- [ ] All required env vars declared in `env`
 
 ## HTTP Servers
 
 - [ ] `spec.http.url` is a valid HTTP or HTTPS URL
-- [ ] Every `${VAR_NAME}` in `headers` and `query_params` has a matching `env_spec.data` entry
+- [ ] Every `${VAR_NAME}` in `headers` and `query_params` has a matching `env` entry
 - [ ] `timeout_seconds` is in range 0–300 if specified
 
 ## Metadata
@@ -32,9 +32,9 @@ Run through this checklist before presenting any McpServer YAML. Every item must
 ## Environment Variables
 
 - [ ] Every env var has `is_secret` correctly classified
-- [ ] Secret values are NOT pre-filled (no `value` field for secrets)
+- [ ] Secret values are NOT pre-filled
 - [ ] Descriptions specify required permissions/format/scopes
-- [ ] Non-secret shared defaults may optionally have `value` pre-filled
+- [ ] Variables with sensible defaults or non-critical features have `optional: true`
 
 ## Tool Names
 

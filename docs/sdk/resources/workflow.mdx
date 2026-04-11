@@ -174,7 +174,7 @@ const workflow = await stigmer.workflow.apply({
   description: "...",
   document: {},
   tasks: [],
-  envSpec: {},
+  env: {},
 });
 ```
 </Tab>
@@ -188,7 +188,7 @@ workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
   Description: "...",
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
-  EnvSpec:     &stigmer.EnvSpecInput{},
+  Env:         map[string]string{},
 })
 ```
 </Tab>
@@ -202,7 +202,7 @@ workflow = client.workflows.apply(WorkflowInput(
     description="...",
     document=None,
     tasks=[],
-    env_spec=None,
+    env={},
 ))
 ```
 </Tab>
@@ -216,7 +216,7 @@ Workflow workflow = client.workflows().apply(WorkflowInput.builder()
     .description("...")
     .document(null)
     .tasks(List.of())
-    .envSpec(null)
+    .env(Map.of())
     .build());
 ```
 </Tab>
@@ -241,7 +241,7 @@ const workflow = await stigmer.workflow.create({
   description: "...",
   document: {},
   tasks: [],
-  envSpec: {},
+  env: {},
 });
 ```
 </Tab>
@@ -255,7 +255,7 @@ workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
   Description: "...",
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
-  EnvSpec:     &stigmer.EnvSpecInput{},
+  Env:         map[string]string{},
 })
 ```
 </Tab>
@@ -269,7 +269,7 @@ workflow = client.workflows.create(WorkflowInput(
     description="...",
     document=None,
     tasks=[],
-    env_spec=None,
+    env={},
 ))
 ```
 </Tab>
@@ -283,7 +283,7 @@ Workflow workflow = client.workflows().create(WorkflowInput.builder()
     .description("...")
     .document(null)
     .tasks(List.of())
-    .envSpec(null)
+    .env(Map.of())
     .build());
 ```
 </Tab>
@@ -308,7 +308,7 @@ const workflow = await stigmer.workflow.update({
   description: "...",
   document: {},
   tasks: [],
-  envSpec: {},
+  env: {},
 });
 ```
 </Tab>
@@ -322,7 +322,7 @@ workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
   Description: "...",
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
-  EnvSpec:     &stigmer.EnvSpecInput{},
+  Env:         map[string]string{},
 })
 ```
 </Tab>
@@ -336,7 +336,7 @@ workflow = client.workflows.update(WorkflowInput(
     description="...",
     document=None,
     tasks=[],
-    env_spec=None,
+    env={},
 ))
 ```
 </Tab>
@@ -350,7 +350,7 @@ Workflow workflow = client.workflows().update(WorkflowInput.builder()
     .description("...")
     .document(null)
     .tasks(List.of())
-    .envSpec(null)
+    .env(Map.of())
     .build());
 ```
 </Tab>
@@ -410,7 +410,7 @@ Input for creating or updating a Workflow.
     description: { type: "string", description: "Human-readable description for UI and marketplace display." },
     document: { type: "WorkflowDocumentInput", description: "Workflow document metadata including DSL version, namespace, name, and version.", typeDescriptionLink: "#workflowdocumentinput", required: true },
     tasks: { type: "WorkflowTaskInput[]", description: "Ordered list of tasks that make up this workflow.", typeDescriptionLink: "#workflowtaskinput" },
-    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the workflow.", typeDescriptionLink: "#envspecinput" },
+    env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this workflow.", typeDescriptionLink: "#envvardeclarationinput" },
   }}
 />
 
@@ -462,26 +462,15 @@ FlowControl defines which task executes next after the current task completes.
   }}
 />
 
-### EnvSpecInput
+### EnvVarDeclarationInput
 
-EnvironmentSpec defines the configurable properties of an environment.
-
-<TypeTable
-  type={{
-    description: { type: "string", description: "Human-readable description for UI and listing display." },
-    data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing configuration and secrets.", typeDescriptionLink: "#envvarinput" },
-  }}
-/>
-
-### EnvVarInput
-
-EnvironmentValue represents a single configuration or secret entry.
+EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent, Workflow).
 
 <TypeTable
   type={{
-    value: { type: "string", description: "The configuration or secret string." },
-    isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
-    description: { type: "string", description: "Human-readable description of what this value is used for." },
+    isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
+    description: { type: "string", description: "Human-readable description shown in the UI credential form." },
+    optional: { type: "boolean", description: "Whether this variable is optional." },
   }}
 />
 

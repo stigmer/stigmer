@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.mcpserver.v1;
 
 import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
 
@@ -52,8 +53,9 @@ message McpServerSpec {
   // Including a resource template name here causes a fatal runtime error.
   repeated string default_enabled_tools = 7;
 
-  // Environment variables required by the MCP server.
-  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8;
+  // Environment variable declarations for this MCP server.
+  // Keys are variable names; values describe their metadata and optionality.
+  map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 8;
 
   // Manual tool approval overrides set by the MCP server owner.
   //
@@ -88,9 +90,10 @@ message McpServerSpec {
   // When set, the MCP server's Connect page offers an OAuth flow instead of
   // (or in addition to) manual credential entry.
   //
-  // The acquired access token is stored in the user's personal environment
-  // as the env var named by auth.target_env_var. That env var must also be
-  // declared in env_spec.data so the execution pipeline knows about it.
+  // The acquired access token is stored in a system-managed environment
+  // (identified by grant.environment_id) as the env var named by
+  // auth.target_env_var. That env var must also be declared in env so the
+  // execution pipeline knows about it.
   McpServerAuth auth = 14;
 }
 
@@ -117,7 +120,7 @@ message StdioServerConfig {
   // (same source as HTTP header/query param placeholders). This enables MCP
   // servers that take core configuration as positional CLI arguments (e.g.
   // database connection URLs, directory paths) to be parameterized per-user
-  // through env_spec.
+  // through env declarations.
   //
   // Resolution uses strict mode: missing variables produce a clear error
   // rather than passing a literal "${VAR}" to the subprocess.
@@ -245,9 +248,11 @@ message ToolApprovalPolicy {
 //   The referenced OAuthApp holds the client_id, client_secret, and endpoint
 //   URLs needed for the authorization code flow.
 //
-// In both cases, the acquired access token is stored in the user's personal
-// environment as target_env_var. A refresh token (if issued by the vendor) is
-// stored alongside as {target_env_var}_REFRESH_TOKEN by convention.
+// In both cases, the acquired access token is stored in a system-managed
+// environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
+// token (if issued by the vendor) is stored alongside as
+// {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
+// is recorded on the OAuthGrant for all subsequent reads and refreshes.
 //
 // Token lifecycle:
 // - Pre-flight check before execution: if the access token is expired,
@@ -266,12 +271,20 @@ message McpServerAuth {
   // perform the OAuth authorization code flow with the vendor on behalf of
   // the user. The OAuthApp must belong to the same organization as the
   // McpServer (or be accessible via cross-org reference).
-  ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1;
+  ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = oauth_app,
+    (buf.validate.field).cel = {
+      id: "oauth_app_ref.kind"
+      message: "oauth_app_ref must reference a resource with kind=oauth_app"
+      expression: "this.slug == '' || this.kind == 22"
+    }
+  ];
 
-  // The env var in env_spec.data where the acquired access token is stored.
-  // Must correspond to an entry in env_spec.data so the execution pipeline
-  // resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
-  // by convention. Both are written to the user's personal environment.
+  // The env var where the acquired access token is stored.
+  // Must correspond to an entry in env so the execution pipeline
+  // resolves it. The refresh token is stored as
+  // {target_env_var}_REFRESH_TOKEN
+  // by convention. Both are written to the grant's managed environment.
   string target_env_var = 2 [(buf.validate.field).string.min_len = 1];
 
   // Informational hint about expected token lifetime for UI display.

@@ -76,14 +76,20 @@
       "required": false
     },
     {
-      "name": "EnvSpec",
-      "jsonName": "envSpec",
-      "protoField": "env_spec",
+      "name": "Env",
+      "jsonName": "env",
+      "protoField": "env",
       "type": {
-        "kind": "message",
-        "messageType": "EnvironmentSpec"
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "EnvVarDeclaration"
+        }
       },
-      "description": "Environment variables required by the MCP server.",
+      "description": "Environment variable declarations for this MCP server.\n Keys are variable names; values describe their metadata and optionality.",
       "required": false
     },
     {
@@ -128,7 +134,7 @@
         "kind": "message",
         "messageType": "McpServerAuth"
       },
-      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n The acquired access token is stored in the user's personal environment\n as the env var named by auth.target_env_var. That env var must also be\n declared in env_spec.data so the execution pipeline knows about it.",
+      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n The acquired access token is stored in a system-managed environment\n (identified by grant.environment_id) as the env var named by\n auth.target_env_var. That env var must also be declared in env so the\n execution pipeline knows about it.",
       "required": false
     }
   ]

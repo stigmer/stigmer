@@ -10,7 +10,10 @@ import {
 import { getUserMessage } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 
-const PERSONAL_EXCLUDE_LABELS = { "stigmer.ai/personal": "true" } as const;
+const ENV_EXCLUDE_LABELS: Record<string, string>[] = [
+  { "stigmer.ai/personal": "true" },
+  { "stigmer.ai/managed": "true" },
+];
 
 export function EnvironmentsSection() {
   const org = useActiveOrgSlug();
@@ -146,7 +149,7 @@ function EnvironmentsCard({ org }: { org: string }) {
       {org ? (
         <EnvironmentListPanel
           org={org}
-          excludeLabels={PERSONAL_EXCLUDE_LABELS}
+          excludeLabels={ENV_EXCLUDE_LABELS}
           onRefetchRef={handleRefetchRef}
         />
       ) : (

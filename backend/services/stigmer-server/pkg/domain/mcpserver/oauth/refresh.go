@@ -20,12 +20,12 @@ type RefreshResult struct {
 // is expired, and if so, uses the refresh token to obtain a new one.
 //
 // Returns a RefreshResult indicating whether a refresh occurred and the
-// new token values. The caller is responsible for updating the personal
+// new token values. The caller is responsible for updating the managed
 // environment and the OAuthGrant record with the new values.
 //
 // Parameters:
 //   - grant: the OAuthGrant record (must not be nil)
-//   - currentRefreshToken: the decrypted refresh token from the personal env
+//   - currentRefreshToken: the decrypted refresh token from the managed environment
 //   - clientSecret: decrypted client_secret (empty for DCR/public clients)
 //
 // Returns:
@@ -51,14 +51,15 @@ func RefreshTokenIfExpired(
 
 	if currentRefreshToken == "" {
 		return nil, fmt.Errorf(
-			"access token for MCP server '%s' has expired and no refresh token is available. "+
+			"access token for resource '%s' has expired and no refresh token is available. "+
 				"Please re-authenticate via OAuth Connect",
-			grant.McpServerID,
+			grant.ResourceID,
 		)
 	}
 
 	log.Info().
-		Str("mcp_server_id", grant.McpServerID).
+		Str("resource_id", grant.ResourceID).
+		Str("resource_kind", grant.ResourceKind).
 		Int64("expired_at", grant.AccessTokenExpiresAt).
 		Str("token_endpoint", grant.TokenEndpoint).
 		Msg("Access token expired, refreshing via refresh_token grant")
@@ -72,9 +73,9 @@ func RefreshTokenIfExpired(
 	)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"token refresh failed for MCP server '%s': %w. "+
+			"token refresh failed for resource '%s': %w. "+
 				"Please re-authenticate via OAuth Connect",
-			grant.McpServerID, err,
+			grant.ResourceID, err,
 		)
 	}
 
@@ -89,7 +90,8 @@ func RefreshTokenIfExpired(
 	}
 
 	log.Info().
-		Str("mcp_server_id", grant.McpServerID).
+		Str("resource_id", grant.ResourceID).
+		Str("resource_kind", grant.ResourceKind).
 		Int64("new_expires_at", newExpiresAt).
 		Bool("refresh_token_rotated", tokenResp.RefreshToken != "").
 		Msg("Token refresh successful")

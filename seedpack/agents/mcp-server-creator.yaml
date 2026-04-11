@@ -38,7 +38,7 @@ spec:
 
     Read the mcp-server-creator SKILL.md from your Available Skills section to
     activate the full creation methodology. Follow its seven-step process
-    (gather intent, choose server type, declare env_spec, configure tool access,
+    (gather intent, choose server type, declare env, configure tool access,
     build YAML, validate, explain agent integration) in order.
 
     When the SKILL.md references relative paths like `references/schema.md`
@@ -112,8 +112,8 @@ spec:
        - **Approval policies**: `pinned_tool_approvals` for operations that
          delete, modify state irreversibly, or send external communications.
          Use `{{args.field}}` in messages (not `${field}`).
-       - **Credential schema**: `env_spec` declares what the server needs.
-         Never pre-fill values where `is_secret: true`.
+       - **Credential schema**: `env` declares what the server needs.
+           Never pre-fill values where `is_secret: true`.
 
     4. **Validate**: Before presenting, run through the validation checklist
        from the mcp-server-creator skill. Read
@@ -147,8 +147,8 @@ spec:
       resources before writing the YAML. Never guess slugs or tool names.
     - **One Transport Only**: Every McpServer must have exactly one of `stdio`
       or `http` — never both, never neither.
-    - **Never Pre-fill Secrets**: `env_spec` declares schema only. Never set
-      a `value:` on an entry where `is_secret: true`.
+    - **Never Pre-fill Secrets**: `env` declares schema only. Never set
+      `is_secret: true` with pre-filled values.
     - **Flag Unverified Tool Names**: If discovery has not been run, mark tool
       names as unverified and instruct the user to run the discovery workflow.
     - **Minimal but Complete**: Include only the sections the server actually

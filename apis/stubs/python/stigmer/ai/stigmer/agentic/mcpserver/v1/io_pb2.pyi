@@ -68,3 +68,23 @@ class CompleteOAuthConnectOutput(_message.Message):
     target_env_var: str
     token_lifetime_hint: str
     def __init__(self, connected: bool = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ...) -> None: ...
+
+class GetOAuthGrantStatusInput(_message.Message):
+    __slots__ = ("resource_id", "org")
+    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    resource_id: str
+    org: str
+    def __init__(self, resource_id: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
+
+class GetOAuthGrantStatusOutput(_message.Message):
+    __slots__ = ("connected", "access_token_expires_at", "target_env_var", "auth_method")
+    CONNECTED_FIELD_NUMBER: _ClassVar[int]
+    ACCESS_TOKEN_EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    TARGET_ENV_VAR_FIELD_NUMBER: _ClassVar[int]
+    AUTH_METHOD_FIELD_NUMBER: _ClassVar[int]
+    connected: bool
+    access_token_expires_at: int
+    target_env_var: str
+    auth_method: str
+    def __init__(self, connected: bool = ..., access_token_expires_at: _Optional[int] = ..., target_env_var: _Optional[str] = ..., auth_method: _Optional[str] = ...) -> None: ...

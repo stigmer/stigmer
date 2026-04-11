@@ -18,8 +18,7 @@ spec:
     args:
       - "-y"
       - "@brave/brave-search-mcp-server"
-  env_spec:
-    data:
-      BRAVE_API_KEY:
-        is_secret: true
-        description: "Brave Search API key (free tier: 2,000 queries/month at brave.com/search/api)"
+  env:
+    BRAVE_API_KEY:
+      is_secret: true
+      description: "Brave Search API key (free tier: 2,000 queries/month at brave.com/search/api)"

@@ -19,8 +19,7 @@ spec:
     args:
       - "-y"
       - "exa-mcp-server"
-  env_spec:
-    data:
-      EXA_API_KEY:
-        is_secret: true
-        description: "Exa API key (get at exa.ai)"
+  env:
+    EXA_API_KEY:
+      is_secret: true
+      description: "Exa API key (get at exa.ai)"

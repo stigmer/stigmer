@@ -2,19 +2,25 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.mcpserver.v1;
 
-// OAuthGrant tracks OAuth metadata for a user's MCP server connection.
+// OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
+// API resource.
 //
 // @internal
 // Infrastructure-only. Not a public API resource — no kind, no apiVersion,
 // no CRUD RPCs. Stored in the backend's database, keyed by the composite
-// of (identity_account_id, mcp_server_id).
+// of (identity_account_id, resource_id, org_id).
 //
-// Actual tokens (access + refresh) live in the user's personal environment
-// as secret env vars. OAuthGrant only holds non-secret metadata needed
-// by the refresh mechanism and pre-flight expiry checks.
+// The grant is resource-agnostic: currently used for MCP servers, but the
+// data model supports any API resource kind that needs OAuth credentials
+// (e.g., workflows in the future).
+//
+// Actual tokens (access + refresh) live in a managed environment
+// (stigmer.ai/managed=true label) as encrypted secret env vars.
+// OAuthGrant only holds non-secret metadata needed by the refresh
+// mechanism and pre-flight expiry checks.
 //
 // Storage split rationale:
-// - Personal environment: access token (target_env_var), refresh token
+// - Managed environment: access token (target_env_var), refresh token
 //   ({target_env_var}_REFRESH_TOKEN). These are secrets, encrypted at rest,
 //   subject to Environment access control.
 // - OAuthGrant: expiry timestamp, client_id, token_endpoint, env var names.
@@ -24,8 +30,10 @@ message OAuthGrant {
   // Which user owns this grant.
   string identity_account_id = 1;
 
-  // Which MCP server this grant is for.
-  string mcp_server_id = 2;
+  // System-generated ID (metadata.id) of the API resource this grant
+  // provides OAuth tokens for. Part of the composite key:
+  // (identity_account_id, resource_id, org_id).
+  string resource_id = 2;
 
   // When the current access token expires (Unix timestamp seconds).
   // 0 means the token does not expire (e.g., long-lived tokens from
@@ -47,17 +55,25 @@ message OAuthGrant {
   // For vendor_oauth: copied from OAuthApp.spec.token_url.
   string token_endpoint = 6;
 
-  // Env var name where the access token is stored in the personal environment.
-  // Matches McpServerAuth.target_env_var on the McpServer spec.
+  // Env var name where the access token is stored in the managed environment.
   string access_token_env_var = 7;
 
-  // Env var name where the refresh token is stored in the personal environment.
+  // Env var name where the refresh token is stored in the managed environment.
   // Convention: {target_env_var}_REFRESH_TOKEN.
   string refresh_token_env_var = 8;
 
-  // Which Environment resource holds the tokens.
+  // ID of the managed Environment resource that holds the tokens.
   // The refresh mechanism reads/writes tokens in this environment.
-  // Default: the user's personal environment (stigmer.ai/personal=true label).
-  // Stored explicitly to allow future flexibility for team or project environments.
+  // Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+  // 1:1 with this grant — revoking the grant deletes this environment.
   string environment_id = 9;
+
+  // Kind of the API resource identified by resource_id (e.g., "mcp_server",
+  // "workflow"). Used for query filtering and handler routing.
+  string resource_kind = 10;
+
+  // Organization context for this grant. Part of the composite key:
+  // (identity_account_id, resource_id, org_id). Enables the same user to
+  // maintain separate OAuth connections for a shared resource across orgs.
+  string org_id = 11;
 }

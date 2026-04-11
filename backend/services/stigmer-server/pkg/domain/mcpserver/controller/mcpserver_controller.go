@@ -61,6 +61,10 @@ type McpServerController struct {
 	environmentClient  *environment.Client
 	executionCtxClient *executioncontext.Client
 
+	// Managed environment service for OAuth token storage. Initialized
+	// alongside connect dependencies since it depends on environmentClient.
+	managedEnvService *oauth.ManagedEnvironmentService
+
 	// Optional dependencies for OAuth Connect. Nil when not configured.
 	oauthGrantStore        *oauth.OAuthGrantStore
 	pendingOAuthStateStore *oauth.PendingOAuthStateStore
@@ -98,6 +102,7 @@ func (c *McpServerController) SetConnectDependencies(
 	c.runnerQueue = runnerQueue
 	c.environmentClient = environmentClient
 	c.executionCtxClient = executionCtxClient
+	c.managedEnvService = oauth.NewManagedEnvironmentService(environmentClient)
 }
 
 // SetOAuthDependencies injects the dependencies needed for the OAuth Connect

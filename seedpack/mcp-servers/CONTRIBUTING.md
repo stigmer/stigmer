@@ -50,11 +50,10 @@ spec:
     args:
       - "-y"
       - "{npm-package-name}"
-  env_spec:
-    data:
-      EXAMPLE_API_KEY:
-        is_secret: true
-        description: "{What this key is for}"
+  env:
+    EXAMPLE_API_KEY:
+      is_secret: true
+      description: "{What this key is for}"
 ```
 
 **stdio via uvx (Python packages)**
@@ -109,7 +108,7 @@ spec:
 |-------|-------------|
 | `spec.icon_url` | Public URL to a server icon |
 | `spec.github_stars` | Star count at time of curation (0 if unknown) |
-| `spec.env_spec` | Environment variables the server requires |
+| `spec.env` | Environment variable declarations (`EnvVarDeclaration`) the server requires. Each entry supports `is_secret`, `description`, and `optional` fields. |
 | `spec.default_enabled_tools` | Subset of tools to enable by default |
 | `spec.pinned_tool_approvals` | Manual approval policies for dangerous tools |
 
@@ -148,4 +147,4 @@ Use one of these values for `metadata.labels.stigmer.ai/category`:
 - [McpServer spec](../../apis/ai/stigmer/agentic/mcpserver/v1/spec.proto) —
   `McpServerSpec` with `repository_url` and `github_stars` for upstream provenance
 - [Environment spec](../../apis/ai/stigmer/agentic/environment/v1/spec.proto) —
-  `env_spec` declaration for server configuration
+  `env` / `EnvVarDeclaration` for server configuration

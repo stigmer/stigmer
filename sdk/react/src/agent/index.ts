@@ -26,7 +26,7 @@ export type {
   AgentEnvFormVariable,
 } from "./AgentEnvForm";
 
-export { diffEnvSpec } from "../environment/diffEnvSpec";
+export { diffEnv } from "../environment/diffEnv";
 
 export { useAgentSetup } from "./useAgentSetup";
 export type {

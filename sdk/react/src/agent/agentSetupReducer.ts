@@ -14,8 +14,8 @@ import type { AgentEnvFormVariable } from "./AgentEnvForm";
  *   existed). Use `instanceId` with `createSession`.
  * - `"oneTime"` — Secrets were collected but **not** persisted. Pass
  *   `runtimeEnv` to `createExecution` for this run only.
- * - `"direct"` — The agent has no `env_spec` and needs no secrets.
- *   Create the session with `agentRef` directly.
+ * - `"direct"` — The agent has no `env` declarations and needs no
+ *   secrets. Create the session with `agentRef` directly.
  */
 export type AgentResolution =
   | {
@@ -31,7 +31,7 @@ export type AgentResolution =
       readonly runtimeEnv: Record<string, EnvVarInput>;
     }
   | {
-      /** The agent has no `env_spec` and needs no secrets. */
+      /** The agent has no `env` declarations and needs no secrets. */
       readonly mode: "direct";
     };
 

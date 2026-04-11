@@ -46,8 +46,8 @@ type WorkflowInput struct {
 	Document *WorkflowDocumentInput `json:"document" jsonschema:"Workflow document metadata including DSL version, namespace, name, and version."`
 	// Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used.
 	Tasks []WorkflowTaskInput `json:"tasks,omitempty" jsonschema:"Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used."`
-	// Environment variables required by the workflow.
-	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the workflow."`
+	// Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality.
+	Env map[string]*EnvVarDeclarationInput `json:"env,omitempty" jsonschema:"Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality."`
 }
 
 // WorkflowDocument contains workflow-level metadata for versioning and identification. @internal Maps to the `document:` block in Zigflow DSL YAML.
@@ -312,22 +312,14 @@ type WorkflowTaskInput struct {
 	Flow *FlowControlInput `json:"flow,omitempty" jsonschema:"Flow control (which task executes next). Optional - if not set, continues to next task in sequence."`
 }
 
-// EnvironmentValue represents a single configuration or secret entry.
-type EnvironmentValue struct {
-	// The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime.
-	Value string `json:"value,omitempty" jsonschema:"The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime."`
-	// Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs.
-	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs."`
-	// Human-readable description of what this value is used for.
-	Description string `json:"description,omitempty" jsonschema:"Human-readable description of what this value is used for."`
-}
-
-// EnvironmentSpec defines the configurable properties of an environment. @internal The overview.md file provides the SDK-facing description and example YAML.
-type EnvironmentInput struct {
-	// Human-readable description for UI and listing display.
-	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and listing display."`
-	// Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret.
-	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret."`
+// EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent, Workflow). Unlike EnvironmentValue (which stores actual values), this message describes what a blueprint *needs* — its schema, not its data. This separation keeps the blueprint layer free of runtime values and enables the platform to validate completeness before execution.
+type EnvVarDeclarationInput struct {
+	// Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs.
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs."`
+	// Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it."`
+	// Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it).
+	Optional bool `json:"optional,omitempty" jsonschema:"Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it)."`
 }
 
 func protoToStruct(msg proto.Message) (*structpb.Struct, error) {
@@ -387,12 +379,15 @@ func (input *WorkflowInput) specToProto() (*workflowv1.WorkflowSpec, error) {
 		}
 		spec.Tasks = append(spec.Tasks, v)
 	}
-	if input.EnvSpec != nil {
-		v, err := input.EnvSpec.toProto()
-		if err != nil {
-			return nil, err
+	if len(input.Env) > 0 {
+		spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(input.Env))
+		for k, v := range input.Env {
+			pv, err := v.toProto()
+			if err != nil {
+				return nil, err
+			}
+			spec.Env[k] = pv
 		}
-		spec.EnvSpec = v
 	}
 	return spec, nil
 }
@@ -914,28 +909,11 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 	return result, nil
 }
 
-func (input *EnvironmentValue) toProto() (*environmentv1.EnvironmentValue, error) {
-	result := &environmentv1.EnvironmentValue{}
+func (input *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, error) {
+	result := &environmentv1.EnvVarDeclaration{}
 
-	result.Value = input.Value
 	result.IsSecret = input.IsSecret
 	result.Description = input.Description
-	return result, nil
-}
-
-func (input *EnvironmentInput) toProto() (*environmentv1.EnvironmentSpec, error) {
-	result := &environmentv1.EnvironmentSpec{}
-
-	result.Description = input.Description
-	if len(input.Data) > 0 {
-		result.Data = make(map[string]*environmentv1.EnvironmentValue, len(input.Data))
-		for k, v := range input.Data {
-			pv, err := v.toProto()
-			if err != nil {
-				return nil, err
-			}
-			result.Data[k] = pv
-		}
-	}
+	result.Optional = input.Optional
 	return result, nil
 }

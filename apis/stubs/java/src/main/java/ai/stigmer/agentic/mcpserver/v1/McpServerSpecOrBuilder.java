@@ -242,30 +242,62 @@ public interface McpServerSpecOrBuilder extends
 
   /**
    * <pre>
-   * Environment variables required by the MCP server.
+   * Environment variable declarations for this MCP server.
+   * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec"];</code>
-   * @return Whether the envSpec field is set.
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
-  boolean hasEnvSpec();
+  int getEnvCount();
   /**
    * <pre>
-   * Environment variables required by the MCP server.
+   * Environment variable declarations for this MCP server.
+   * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec"];</code>
-   * @return The envSpec.
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
-  ai.stigmer.agentic.environment.v1.EnvironmentSpec getEnvSpec();
+  boolean containsEnv(
+      java.lang.String key);
+  /**
+   * Use {@link #getEnvMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  getEnv();
   /**
    * <pre>
-   * Environment variables required by the MCP server.
+   * Environment variable declarations for this MCP server.
+   * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
-  ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder getEnvSpecOrBuilder();
+  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  getEnvMap();
+  /**
+   * <pre>
+   * Environment variable declarations for this MCP server.
+   * Keys are variable names; values describe their metadata and optionality.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   */
+  /* nullable */
+ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrDefault(
+      java.lang.String key,
+      /* nullable */
+ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
+  /**
+   * <pre>
+   * Environment variable declarations for this MCP server.
+   * Keys are variable names; values describe their metadata and optionality.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   */
+  ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
+      java.lang.String key);
 
   /**
    * <pre>
@@ -430,9 +462,10 @@ public interface McpServerSpecOrBuilder extends
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in the user's personal environment
-   * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env_spec.data so the execution pipeline knows about it.
+   * The acquired access token is stored in a system-managed environment
+   * (identified by grant.environment_id) as the env var named by
+   * auth.target_env_var. That env var must also be declared in env so the
+   * execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -445,9 +478,10 @@ public interface McpServerSpecOrBuilder extends
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in the user's personal environment
-   * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env_spec.data so the execution pipeline knows about it.
+   * The acquired access token is stored in a system-managed environment
+   * (identified by grant.environment_id) as the env var named by
+   * auth.target_env_var. That env var must also be declared in env so the
+   * execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -460,9 +494,10 @@ public interface McpServerSpecOrBuilder extends
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in the user's personal environment
-   * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env_spec.data so the execution pipeline knows about it.
+   * The acquired access token is stored in a system-managed environment
+   * (identified by grant.environment_id) as the env var named by
+   * auth.target_env_var. That env var must also be declared in env so the
+   * execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>

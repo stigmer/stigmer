@@ -25,7 +25,7 @@ public interface McpServerAuthOrBuilder extends
    * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
    * @return Whether the oauthAppRef field is set.
    */
   boolean hasOauthAppRef();
@@ -44,7 +44,7 @@ public interface McpServerAuthOrBuilder extends
    * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
    * @return The oauthAppRef.
    */
   ai.stigmer.commons.apiresource.ApiResourceReference getOauthAppRef();
@@ -63,16 +63,17 @@ public interface McpServerAuthOrBuilder extends
    * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder();
 
   /**
    * <pre>
-   * The env var in env_spec.data where the acquired access token is stored.
-   * Must correspond to an entry in env_spec.data so the execution pipeline
-   * resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the user's personal environment.
+   * The env var where the acquired access token is stored.
+   * Must correspond to an entry in env so the execution pipeline
+   * resolves it. The refresh token is stored as
+   * {target_env_var}_REFRESH_TOKEN
+   * by convention. Both are written to the grant's managed environment.
    * </pre>
    *
    * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -81,10 +82,11 @@ public interface McpServerAuthOrBuilder extends
   java.lang.String getTargetEnvVar();
   /**
    * <pre>
-   * The env var in env_spec.data where the acquired access token is stored.
-   * Must correspond to an entry in env_spec.data so the execution pipeline
-   * resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the user's personal environment.
+   * The env var where the acquired access token is stored.
+   * Must correspond to an entry in env so the execution pipeline
+   * resolves it. The refresh token is stored as
+   * {target_env_var}_REFRESH_TOKEN
+   * by convention. Both are written to the grant's managed environment.
    * </pre>
    *
    * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>

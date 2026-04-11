@@ -35,15 +35,15 @@ export function toServerKey(ref: ResourceRef): string {
  *
  * Phases:
  * - `"loading"` — Fetching the full `McpServer` resource (spec + status).
- * - `"needsSetup"` — The server has an `env_spec` with variables missing
- *   from the user's personal environment. The UI should present a
- *   credential collection form.
+ * - `"needsSetup"` — The server has `env` declarations with variables
+ *   missing from the user's personal environment. The UI should present
+ *   a credential collection form.
  * - `"submitting"` — Environment variables are being persisted (save path)
  *   or collected (one-time path). The UI should show a loading indicator
  *   on the submit button.
  * - `"ready"` — The server is fully configured and ready for session
  *   creation. Carries the effective `enabledTools` list. Covers both
- *   the "no env_spec needed" and "env vars resolved" cases.
+ *   the "no env needed" and "env vars resolved" cases.
  */
 export type McpServerSetupPhase =
   | {
