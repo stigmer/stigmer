@@ -59,9 +59,9 @@ func (c *OAuthAppController) Delete(ctx context.Context, input *apiresource.ApiR
 // read the OAuthApp's org and slug for the referential integrity check.
 func (c *OAuthAppController) buildDeletePipeline() *pipeline.Pipeline[*apiresource.ApiResourceDeleteInput] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceDeleteInput]("oauthapp-delete").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                        // 1. Validate field constraints
-		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *oauthappv1.OAuthApp](c.store)).   // 2. Load OAuthApp
-		AddStep(oauthsteps.NewCheckNoReferencingMcpServersStep(c.store)).                                                  // 3. Referential integrity check
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                // 4. Delete from database
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                      // 1. Validate field constraints
+		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *oauthappv1.OAuthApp](c.store)). // 2. Load OAuthApp
+		AddStep(oauthsteps.NewCheckNoReferencingMcpServersStep(c.store)).                                                // 3. Referential integrity check
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                              // 4. Delete from database
 		Build()
 }

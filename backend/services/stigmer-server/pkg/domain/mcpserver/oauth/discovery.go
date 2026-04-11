@@ -14,11 +14,11 @@ import (
 // AuthServerMetadata holds the OAuth 2.0 Authorization Server Metadata
 // discovered via RFC 8414 (.well-known/oauth-authorization-server).
 type AuthServerMetadata struct {
-	Issuer                       string   `json:"issuer"`
-	AuthorizationEndpoint        string   `json:"authorization_endpoint"`
-	TokenEndpoint                string   `json:"token_endpoint"`
-	RegistrationEndpoint         string   `json:"registration_endpoint,omitempty"`
-	ScopesSupported              []string `json:"scopes_supported,omitempty"`
+	Issuer                        string   `json:"issuer"`
+	AuthorizationEndpoint         string   `json:"authorization_endpoint"`
+	TokenEndpoint                 string   `json:"token_endpoint"`
+	RegistrationEndpoint          string   `json:"registration_endpoint,omitempty"`
+	ScopesSupported               []string `json:"scopes_supported,omitempty"`
 	CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported,omitempty"`
 }
 

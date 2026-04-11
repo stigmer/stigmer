@@ -51,11 +51,11 @@ func (c *OAuthAppController) Update(ctx context.Context, app *oauthappv1.OAuthAp
 // is sent back.
 func (c *OAuthAppController) buildUpdatePipeline() *pipeline.Pipeline[*oauthappv1.OAuthApp] {
 	return pipeline.NewPipeline[*oauthappv1.OAuthApp]("oauthapp-update").
-		AddStep(steps.NewValidateProtoStep[*oauthappv1.OAuthApp]()).                 // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*oauthappv1.OAuthApp]()).                   // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*oauthappv1.OAuthApp](c.store)).           // 3. Load existing OAuthApp
-		AddStep(steps.NewBuildUpdateStateStep[*oauthappv1.OAuthApp]()).              // 4. Build updated state
-		AddStep(oauthsteps.NewEncryptClientSecretForUpdateStep(c.secretService)).     // 5. Encrypt or preserve client_secret
-		AddStep(steps.NewPersistStep[*oauthappv1.OAuthApp](c.store)).               // 6. Persist OAuthApp
+		AddStep(steps.NewValidateProtoStep[*oauthappv1.OAuthApp]()).              // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*oauthappv1.OAuthApp]()).                // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*oauthappv1.OAuthApp](c.store)).        // 3. Load existing OAuthApp
+		AddStep(steps.NewBuildUpdateStateStep[*oauthappv1.OAuthApp]()).           // 4. Build updated state
+		AddStep(oauthsteps.NewEncryptClientSecretForUpdateStep(c.secretService)). // 5. Encrypt or preserve client_secret
+		AddStep(steps.NewPersistStep[*oauthappv1.OAuthApp](c.store)).             // 6. Persist OAuthApp
 		Build()
 }
