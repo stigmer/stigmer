@@ -61,7 +61,7 @@ public final class OAuthAppClient {
 
     public OAuthApp getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.o_auth_app).build());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.oauth_app).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

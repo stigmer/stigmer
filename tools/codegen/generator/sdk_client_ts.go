@@ -592,7 +592,7 @@ func generateTSMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition
 	case isApiResourceRefInput:
 		imports.addType("./types", "ResourceRef")
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind")
-		kindConst := pascalToSnake(cfg.protoResType)
+		kindConst := cfg.resourceKind
 		fmt.Fprintf(buf, "  async %s(ref: ResourceRef): Promise<%s> {\n", tsMethodName(m.Name), outputType)
 		fmt.Fprintf(buf, "    try {\n")
 		fmt.Fprintf(buf, "      %sawait this.%s.%s(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.%s }));\n", returnKeyword, svc.Role, tsMethodName(m.Name), kindConst)
@@ -650,7 +650,7 @@ func generateTSStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceD
 }
 
 func generateTSSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig) {
-	kindConst := pascalToSnake(cfg.protoResType)
+	kindConst := cfg.resourceKind
 	fmt.Fprintf(buf, "  async list(params: ListParams): Promise<ListResult> {\n")
 	fmt.Fprintf(buf, "    try {\n")
 	fmt.Fprintf(buf, "      const resp = await this.search.search(create(SearchRequestSchema, {\n")

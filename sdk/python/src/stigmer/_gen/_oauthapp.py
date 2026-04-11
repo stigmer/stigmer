@@ -59,7 +59,7 @@ class OAuthAppClient:
     def get_by_reference(self, ref: ResourceRef) -> api_pb2.OAuthApp:
         try:
             proto = ref._to_proto()
-            proto.kind = api_resource_kind_pb2.o_auth_app
+            proto.kind = api_resource_kind_pb2.oauth_app
             return self._query.getByReference(proto)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
