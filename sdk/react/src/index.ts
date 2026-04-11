@@ -211,7 +211,7 @@ export type {
   SessionComposerSubmitContext,
 } from "./composer";
 
-// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, and setup orchestration
+// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, setup orchestration, and OAuth connect
 export {
   useMcpServer,
   useMcpServerCount,
@@ -219,7 +219,9 @@ export {
   useMcpServerSearch,
   useMcpServerSetup,
   useMcpServerConnect,
+  useMcpServerOAuthConnect,
   useMcpServerCredentials,
+  OAuthCallbackHandler,
   McpServerPicker,
   McpServerConfigPanel,
   McpServerDetailView,
@@ -243,11 +245,17 @@ export type {
   McpServerSetupIntegration,
   McpServerConfigPanelProps,
   McpServerCredentialsProps,
+  McpServerOAuthSignInProps,
   McpServerDetailViewProps,
   CapabilityTab,
   McpToolSelectorProps,
   UseMcpServerConnectReturn,
+  UseMcpServerOAuthConnectReturn,
+  OAuthConnectPhase,
+  OAuthCallbackHandlerProps,
+  OAuthCallbackParams,
   UseMcpServerCredentialsReturn,
+  McpServerAuthMode,
 } from "./mcp-server";
 
 // Skill — data hook, count hook, list hook, search hook, picker, and detail view component
