@@ -7,7 +7,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // McpServerSpec defines the configurable properties of an MCP server.
@@ -47,8 +47,8 @@ type McpServerInput struct {
 	RepositoryUrl string `json:"repository_url,omitempty" jsonschema:"URL of the upstream source repository for this MCP server. Shown in the marketplace so users can inspect the implementation for trust and transparency. Example: 'https://github.com/modelcontextprotocol/servers'"`
 	// GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository.
 	GithubStars int32 `json:"github_stars,omitempty" jsonschema:"GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository."`
-	// OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in the user's personal environment as the env var named by auth.target_env_var. That env var must also be declared in env so the execution pipeline knows about it.
-	Auth *McpServerAuthInput `json:"auth,omitempty" jsonschema:"OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in the user's personal environment as the env var named by auth.target_env_var. That env var must also be declared in env so the execution pipeline knows about it."`
+	// OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in a system-managed environment (identified by grant.environment_id) as the env var named by auth.target_env_var. That env var must also be declared in env so the execution pipeline knows about it.
+	Auth *McpServerAuthInput `json:"auth,omitempty" jsonschema:"OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in a system-managed environment (identified by grant.environment_id) as the env var named by auth.target_env_var. That env var must also be declared in env so the execution pipeline knows about it."`
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess. @internal Communication happens via stdin/stdout using JSON-RPC messages. The agent runner starts this process and communicates via stdio. Common examples: - Node.js servers: npx @modelcontextprotocol/server-github - Python servers: python -m mcp_server_sqlite - Go servers: ./mcp-server-binary
@@ -91,24 +91,20 @@ type ToolApprovalPolicyInput struct {
 	Message string `json:"message,omitempty" jsonschema:"Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: 'Execute tool: {tool_name}' Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: 'Delete', 'Send', 'Execute', 'Create'"`
 }
 
-// Generic reference to any API resource by org and slug. Used across resources to reference other resources (e.g., Environment, Agent, Skill). Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
-type ApiResourceReferenceInput struct {
+// Identifies a resource by org, slug, and optional version. Kind is auto-populated.
+type OauthAppRefInput struct {
 	// Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: "stigmer", "acme-corp". When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources).
 	Org string `json:"org,omitempty" jsonschema:"Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources)."`
-	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
-	Kind string `json:"kind,omitempty" jsonschema:"Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER). Allowed values: api_resource_version, iam_policy, identity_account, api_key, invitation, identity_provider, oauth_app, organization, platform, agent, agent_execution, session, skill, mcp_server, agent_instance, workflow, workflow_instance, workflow_execution, environment, execution_context, project."`
 	// Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer"). Length: 1-63 characters.
 	Slug string `json:"slug" jsonschema:"Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., 'web-search', 'code-reviewer'). Length: 1-63 characters."`
-	// Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to "latest" (most recent version) 2. Tag name → Resolves to version with this tag (e.g., "stable", "v1.0") 3. Exact hash → Immutable reference to specific version (e.g., "abc123...") Default behavior: Empty means "latest" (current version). This field is ignored for non-versioned resources. Examples: - version: "" → Use latest version - version: "latest" → Use latest version (explicit) - version: "stable" → Use version tagged as "stable" - version: "v1.0" → Use version tagged as "v1.0" - version: "abc123..." → Use exact version with this hash (immutable)
-	Version string `json:"version,omitempty" jsonschema:"Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g., 'stable', 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g., 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"`
 }
 
-// McpServerAuth configures automated credential acquisition via OAuth. @internal Two authentication modes are determined by the presence of oauth_app_ref: - When oauth_app_ref is empty: the MCP server implements the MCP Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp resource is needed — credentials are obtained automatically via DCR. - When oauth_app_ref is set: the MCP server requires pre-registered OAuth app credentials from a specific vendor (Slack, Salesforce, Figma, etc.). The referenced OAuthApp holds the client_id, client_secret, and endpoint URLs needed for the authorization code flow. In both cases, the acquired access token is stored in the user's personal environment as target_env_var. A refresh token (if issued by the vendor) is stored alongside as {target_env_var}_REFRESH_TOKEN by convention. Token lifecycle: - Pre-flight check before execution: if the access token is expired, the backend uses the refresh token to obtain a new one automatically. - If the refresh token is also expired: execution fails with a clear error, and the user re-authenticates from the MCP server Connect page.
+// McpServerAuth configures automated credential acquisition via OAuth. @internal Two authentication modes are determined by the presence of oauth_app_ref: - When oauth_app_ref is empty: the MCP server implements the MCP Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp resource is needed — credentials are obtained automatically via DCR. - When oauth_app_ref is set: the MCP server requires pre-registered OAuth app credentials from a specific vendor (Slack, Salesforce, Figma, etc.). The referenced OAuthApp holds the client_id, client_secret, and endpoint URLs needed for the authorization code flow. In both cases, the acquired access token is stored in a system-managed environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh token (if issued by the vendor) is stored alongside as {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID is recorded on the OAuthGrant for all subsequent reads and refreshes. Token lifecycle: - Pre-flight check before execution: if the access token is expired, the backend uses the refresh token to obtain a new one automatically. - If the refresh token is also expired: execution fails with a clear error, and the user re-authenticates from the MCP server Connect page.
 type McpServerAuthInput struct {
 	// Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference).
-	OauthAppRef *ApiResourceReferenceInput `json:"oauth_app_ref,omitempty" jsonschema:"Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference)."`
-	// The env var where the acquired access token is stored. Must correspond to an entry in env so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the user's personal environment.
-	TargetEnvVar string `json:"target_env_var,omitempty" jsonschema:"The env var where the acquired access token is stored. Must correspond to an entry in env so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the user's personal environment."`
+	OauthAppRef OauthAppRefInput `json:"oauth_app_ref,omitempty" jsonschema:"Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer (or be accessible via cross-org reference)."`
+	// The env var where the acquired access token is stored. Must correspond to an entry in env so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the grant's managed environment.
+	TargetEnvVar string `json:"target_env_var,omitempty" jsonschema:"The env var where the acquired access token is stored. Must correspond to an entry in env so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the grant's managed environment."`
 	// Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: "1h", "2h", "90d", "never".
 	TokenLifetimeHint string `json:"token_lifetime_hint,omitempty" jsonschema:"Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: '1h', '2h', '90d', 'never'."`
 	// Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp).
@@ -227,20 +223,18 @@ func (input *ToolApprovalPolicyInput) toProto() (*mcpserverv1.ToolApprovalPolicy
 	return result, nil
 }
 
-func (input *ApiResourceReferenceInput) toProto() (*apiresource.ApiResourceReference, error) {
-	result := &apiresource.ApiResourceReference{}
-
-	result.Org = input.Org
-	result.Kind = apiresourcekind.ApiResourceKind(apiresourcekind.ApiResourceKind_value[input.Kind])
-	result.Slug = input.Slug
-	result.Version = input.Version
-	return result, nil
+func (input *OauthAppRefInput) toProto() (*apiresource.ApiResourceReference, error) {
+	return &apiresource.ApiResourceReference{
+		Org:  input.Org,
+		Slug: input.Slug,
+		Kind: apiresourcekind.ApiResourceKind_oauth_app,
+	}, nil
 }
 
 func (input *McpServerAuthInput) toProto() (*mcpserverv1.McpServerAuth, error) {
 	result := &mcpserverv1.McpServerAuth{}
 
-	if input.OauthAppRef != nil {
+	{
 		v, err := input.OauthAppRef.toProto()
 		if err != nil {
 			return nil, err

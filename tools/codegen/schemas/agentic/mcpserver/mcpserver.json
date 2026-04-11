@@ -134,7 +134,7 @@
         "kind": "message",
         "messageType": "McpServerAuth"
       },
-      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n The acquired access token is stored in the user's personal environment\n as the env var named by auth.target_env_var. That env var must also be\n declared in env so the execution pipeline knows about it.",
+      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n The acquired access token is stored in a system-managed environment\n (identified by grant.environment_id) as the env var named by\n auth.target_env_var. That env var must also be declared in env so the\n execution pipeline knows about it.",
       "required": false
     }
   ]

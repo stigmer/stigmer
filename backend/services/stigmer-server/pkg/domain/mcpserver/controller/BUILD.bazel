@@ -10,6 +10,7 @@ go_library(
         "delete.go",
         "get.go",
         "get_by_reference.go",
+        "get_oauth_grant_status.go",
         "initiate_oauth_connect.go",
         "mcpserver_controller.go",
         "update.go",

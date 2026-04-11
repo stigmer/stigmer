@@ -1,6 +1,6 @@
 {
   "name": "McpServerAuth",
-  "description": "McpServerAuth configures automated credential acquisition via OAuth.\n\n @internal\n Two authentication modes are determined by the presence of oauth_app_ref:\n\n - When oauth_app_ref is empty: the MCP server implements the MCP\n   Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client\n   Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything\n   from the server URL. No OAuthApp resource is needed — credentials are\n   obtained automatically via DCR.\n\n - When oauth_app_ref is set: the MCP server requires pre-registered OAuth\n   app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).\n   The referenced OAuthApp holds the client_id, client_secret, and endpoint\n   URLs needed for the authorization code flow.\n\n In both cases, the acquired access token is stored in the user's personal\n environment as target_env_var. A refresh token (if issued by the vendor) is\n stored alongside as {target_env_var}_REFRESH_TOKEN by convention.\n\n Token lifecycle:\n - Pre-flight check before execution: if the access token is expired,\n   the backend uses the refresh token to obtain a new one automatically.\n - If the refresh token is also expired: execution fails with a clear\n   error, and the user re-authenticates from the MCP server Connect page.",
+  "description": "McpServerAuth configures automated credential acquisition via OAuth.\n\n @internal\n Two authentication modes are determined by the presence of oauth_app_ref:\n\n - When oauth_app_ref is empty: the MCP server implements the MCP\n   Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client\n   Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything\n   from the server URL. No OAuthApp resource is needed — credentials are\n   obtained automatically via DCR.\n\n - When oauth_app_ref is set: the MCP server requires pre-registered OAuth\n   app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).\n   The referenced OAuthApp holds the client_id, client_secret, and endpoint\n   URLs needed for the authorization code flow.\n\n In both cases, the acquired access token is stored in a system-managed\n environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh\n token (if issued by the vendor) is stored alongside as\n {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID\n is recorded on the OAuthGrant for all subsequent reads and refreshes.\n\n Token lifecycle:\n - Pre-flight check before execution: if the access token is expired,\n   the backend uses the refresh token to obtain a new one automatically.\n - If the refresh token is also expired: execution fails with a clear\n   error, and the user re-authenticates from the MCP server Connect page.",
   "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerAuth",
   "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
   "fields": [
@@ -13,7 +13,8 @@
         "messageType": "ApiResourceReference"
       },
       "description": "Reference to an OAuthApp for vendor-specific OAuth.\n\n When empty: the server supports the MCP Authorization spec (DCR + PKCE).\n Stigmer discovers the authorization server metadata, registers a client\n via DCR, and performs the authorization code flow with PKCE — all\n automatically at connect time.\n\n When set: Stigmer uses the referenced OAuthApp's client credentials to\n perform the OAuth authorization code flow with the vendor on behalf of\n the user. The OAuthApp must belong to the same organization as the\n McpServer (or be accessible via cross-org reference).",
-      "required": false
+      "required": false,
+      "referenceKind": 22
     },
     {
       "name": "TargetEnvVar",
@@ -22,7 +23,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The env var where the acquired access token is stored.\n Must correspond to an entry in env so the execution pipeline\n resolves it. The refresh token is stored as\n {target_env_var}_REFRESH_TOKEN\n by convention. Both are written to the user's personal environment.",
+      "description": "The env var where the acquired access token is stored.\n Must correspond to an entry in env so the execution pipeline\n resolves it. The refresh token is stored as\n {target_env_var}_REFRESH_TOKEN\n by convention. Both are written to the grant's managed environment.",
       "required": false,
       "validation": {
         "minLength": 1

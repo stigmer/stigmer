@@ -539,7 +539,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    excludeLabels: { type: "Record<string, string>", description: "Exclude environments whose labels contain all key-value pairs in this record. Useful for filtering the personal environment out of the organization list: `excludeLabels={{ \"stigmer.ai/personal\": \"true\" }}`." },
+    excludeLabels: { type: "Record<string, string> | Record<string, string>[]", description: "Exclude environments whose labels match one or more label sets.  A single record uses AND semantics — the environment must match **all** key-value pairs to be excluded. Pass an array of records for OR-of-AND semantics: the environment is excluded when **any** record fully matches." },
     labels: { type: "Record<string, string>", description: "Optional label filter — only environments matching ALL labels are shown." },
     onEnvironmentSelect: { type: "(env: Environment) => void", description: "Fired when a user selects (expands) an environment." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Re-expose refetch so parents can trigger a list refresh." },
@@ -607,7 +607,7 @@ hooks directly ([`useUpdateEnvironmentVariables`](#useupdateenvironmentvariables
 ### EnvVarForm
 
 Compact form that collects environment variable values for any
-resource that declares an `env_spec` (Agents, MCP servers, etc.).
+resource that declares `env` variables (Agents, MCP servers, etc.).
 
 Renders one labeled input per variable. Secret variables use a
 password field with a visibility toggle. The form validates that
@@ -682,26 +682,26 @@ function buildSystemEnvVars(baseUrl: string, credential: string | null): Record<
 ```
 
 
-### diffEnvSpec
+### diffEnv
 
 Computes the list of environment variables a resource requires that
 the user has not yet provided.
 
-Compares a resource's declared `env_spec.data` keys against a set of
+Compares a resource's declared `env` keys against a set of
 keys already present in the user's personal environment **and** an
 optional session-level env pool (manual secrets, one-time env vars
 from other components). Variables whose keys are missing from both
 sources are returned as [`EnvVarFormVariable`](#envvarformvariable) entries suitable
 for rendering in [`EnvVarForm`](#envvarform).
 
-Works with any resource that declares an `EnvironmentSpec` — Agents,
+Works with any resource that declares env var declarations — Agents,
 MCP servers, or future resource types.
 
 This is a pure function with no side effects — it can be unit-tested
 independently of hooks, providers, or API calls.
 
 ```tsx
-function diffEnvSpec(envSpecData: Record<string, { description?: string; isSecret: boolean }>, existingKeys: Set<string>, poolKeys?: Set<string>): EnvVarFormVariable[]
+function diffEnv(envDeclarations: Record<string, { description?: string; isSecret: boolean; optional?: boolean }>, existingKeys: Set<string>, poolKeys?: Set<string>): EnvVarFormVariable[]
 ```
 
 
@@ -720,16 +720,17 @@ Options reported by the form alongside the collected values on submit.
 
 Describes a single environment variable the form should collect.
 
-Typically derived from a resource's `env_spec.data` entries (Agent,
+Typically derived from a resource's `env` entries (Agent,
 McpServer, or any resource that declares required environment
 variables). The caller is responsible for filtering out variables
 the user has already provided (i.e. only pass the *missing* ones).
 
 <TypeTable
   type={{
-    description: { type: "string", description: "Help text shown below the input. From the resource's env_spec description." },
+    description: { type: "string", description: "Help text shown below the input. From the resource's env declaration description." },
     isSecret: { type: "boolean", description: "When true, the input renders as a password field with a visibility toggle.", required: true },
     key: { type: "string", description: "Environment variable key (e.g. `GITHUB_TOKEN`). Used as label.", required: true },
+    optional: { type: "boolean", description: "When true, this variable is not required for the resource to function. Callers can use this to filter optional vars out of forms or to show them separately from required vars." },
   }}
 />
 

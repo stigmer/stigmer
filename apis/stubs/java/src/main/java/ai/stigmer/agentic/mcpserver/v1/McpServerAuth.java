@@ -23,9 +23,11 @@ package ai.stigmer.agentic.mcpserver.v1;
  * The referenced OAuthApp holds the client_id, client_secret, and endpoint
  * URLs needed for the authorization code flow.
  *
- * In both cases, the acquired access token is stored in the user's personal
- * environment as target_env_var. A refresh token (if issued by the vendor) is
- * stored alongside as {target_env_var}_REFRESH_TOKEN by convention.
+ * In both cases, the acquired access token is stored in a system-managed
+ * environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
+ * token (if issued by the vendor) is stored alongside as
+ * {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
+ * is recorded on the OAuthGrant for all subsequent reads and refreshes.
  *
  * Token lifecycle:
  * - Pre-flight check before execution: if the access token is expired,
@@ -98,7 +100,7 @@ private static final long serialVersionUID = 0L;
    * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
    * @return Whether the oauthAppRef field is set.
    */
   @java.lang.Override
@@ -120,7 +122,7 @@ private static final long serialVersionUID = 0L;
    * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
    * @return The oauthAppRef.
    */
   @java.lang.Override
@@ -142,7 +144,7 @@ private static final long serialVersionUID = 0L;
    * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder() {
@@ -158,7 +160,7 @@ private static final long serialVersionUID = 0L;
    * Must correspond to an entry in env so the execution pipeline
    * resolves it. The refresh token is stored as
    * {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the user's personal environment.
+   * by convention. Both are written to the grant's managed environment.
    * </pre>
    *
    * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -183,7 +185,7 @@ private static final long serialVersionUID = 0L;
    * Must correspond to an entry in env so the execution pipeline
    * resolves it. The refresh token is stored as
    * {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the user's personal environment.
+   * by convention. Both are written to the grant's managed environment.
    * </pre>
    *
    * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -537,9 +539,11 @@ private static final long serialVersionUID = 0L;
    * The referenced OAuthApp holds the client_id, client_secret, and endpoint
    * URLs needed for the authorization code flow.
    *
-   * In both cases, the acquired access token is stored in the user's personal
-   * environment as target_env_var. A refresh token (if issued by the vendor) is
-   * stored alongside as {target_env_var}_REFRESH_TOKEN by convention.
+   * In both cases, the acquired access token is stored in a system-managed
+   * environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
+   * token (if issued by the vendor) is stored alongside as
+   * {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
+   * is recorded on the OAuthGrant for all subsequent reads and refreshes.
    *
    * Token lifecycle:
    * - Pre-flight check before execution: if the access token is expired,
@@ -767,7 +771,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      * @return Whether the oauthAppRef field is set.
      */
     public boolean hasOauthAppRef() {
@@ -788,7 +792,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      * @return The oauthAppRef.
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference getOauthAppRef() {
@@ -813,7 +817,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      */
     public Builder setOauthAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (oauthAppRefBuilder_ == null) {
@@ -843,7 +847,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      */
     public Builder setOauthAppRef(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -871,7 +875,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      */
     public Builder mergeOauthAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (oauthAppRefBuilder_ == null) {
@@ -906,7 +910,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      */
     public Builder clearOauthAppRef() {
       bitField0_ = (bitField0_ & ~0x00000001);
@@ -933,7 +937,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getOauthAppRefBuilder() {
       bitField0_ |= 0x00000001;
@@ -955,7 +959,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder() {
       if (oauthAppRefBuilder_ != null) {
@@ -980,7 +984,7 @@ private static final long serialVersionUID = 0L;
      * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
@@ -1003,7 +1007,7 @@ private static final long serialVersionUID = 0L;
      * Must correspond to an entry in env so the execution pipeline
      * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the user's personal environment.
+     * by convention. Both are written to the grant's managed environment.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1027,7 +1031,7 @@ private static final long serialVersionUID = 0L;
      * Must correspond to an entry in env so the execution pipeline
      * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the user's personal environment.
+     * by convention. Both are written to the grant's managed environment.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1052,7 +1056,7 @@ private static final long serialVersionUID = 0L;
      * Must correspond to an entry in env so the execution pipeline
      * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the user's personal environment.
+     * by convention. Both are written to the grant's managed environment.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1073,7 +1077,7 @@ private static final long serialVersionUID = 0L;
      * Must correspond to an entry in env so the execution pipeline
      * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the user's personal environment.
+     * by convention. Both are written to the grant's managed environment.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1091,7 +1095,7 @@ private static final long serialVersionUID = 0L;
      * Must correspond to an entry in env so the execution pipeline
      * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the user's personal environment.
+     * by convention. Both are written to the grant's managed environment.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>

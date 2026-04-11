@@ -462,9 +462,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in the user's personal environment
-   * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env so the execution pipeline knows about it.
+   * The acquired access token is stored in a system-managed environment
+   * (identified by grant.environment_id) as the env var named by
+   * auth.target_env_var. That env var must also be declared in env so the
+   * execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -477,9 +478,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in the user's personal environment
-   * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env so the execution pipeline knows about it.
+   * The acquired access token is stored in a system-managed environment
+   * (identified by grant.environment_id) as the env var named by
+   * auth.target_env_var. That env var must also be declared in env so the
+   * execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -492,9 +494,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in the user's personal environment
-   * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env so the execution pipeline knows about it.
+   * The acquired access token is stored in a system-managed environment
+   * (identified by grant.environment_id) as the env var named by
+   * auth.target_env_var. That env var must also be declared in env so the
+   * execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
