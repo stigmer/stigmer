@@ -13,7 +13,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: T02 COMPLETE -- Java handlers + seedpack auth blocks implemented
+**Status**: T02 COMPLETE -- OAuthApp handlers in both Java (Cloud) and Go (OSS)
 **Active Task**: T03 -- Backend OAuth Client + Connect Flow + Token Refresh
 **Last Session**: 2026-04-11
 
@@ -59,12 +59,29 @@ Drop this file into your conversation to quickly resume work on this project.
 - Cloudflare kept as stdio (no hosted HTTP endpoint for `@cloudflare/mcp-server-cloudflare`)
 - Added flat `auth:` blocks to all 9 DCR+PKCE servers (target_env_var + token_lifetime_hint + scope_hints)
 
+### T02b: Go Handlers (stigmer-server, OSS) -- COMPLETE
+
+#### OAuthApp Controller (stigmer, 11 new Go files + 2 BUILD.bazel)
+- `OAuthAppController` struct -- embeds Command+Query unimplemented servers, holds `store.Store` + `*encryption.SecretService`
+- `create.go` -- ResolveSlug -> Validate -> CheckDuplicate -> EncryptClientSecret -> BuildNewState -> Persist
+- `update.go` -- Validate -> ResolveSlug -> LoadExisting -> BuildUpdateState -> EncryptClientSecret -> Persist
+- `delete.go` -- Validate -> LoadExistingForDelete -> CheckNoReferencingMcpServers -> DeleteResource
+- `apply.go` -- Validate -> ResolveSlug -> LoadForApply -> delegates to Create or Update
+- `get.go` / `get_by_reference.go` -- Load + redact on return
+- `list_by_org.go` -- custom ListByOrg step with per-entry redaction
+- **Pipeline steps**: `EncryptClientSecret` (encrypt/preserve), `RedactOAuthApp` (function), `CheckNoReferencingMcpServers` (referential integrity)
+- Registered in `server.go` -- reuses same `secretService` as Environment controller
+- `go build`, `go vet` clean
+
 ### Design Decisions Made During T02
 - **Encryption as shared library** -- `SecretEncryptionService` in `backend/libs/java/infra/encryption/`, not locked to the Environment domain
 - **Flat McpServerAuth in seedpack** -- absence of `oauth_app_ref` indicates DCR mode, no wrapper nesting
 - **Delete referential integrity** -- OAuthApp deletion blocked if any MCP server references it via `spec.auth.oauthAppRef`
 - **Cloudflare stays stdio** -- no hosted HTTP endpoint found; auth block still added for future DCR support
 - **Vendor OAuth seedpack deferred** -- Slack, Stripe, Figma, Salesforce auth blocks require org-specific OAuthApp refs, deferred to T03/T04
+- **Go encrypt step timing** -- runs before `BuildNewState` on create (in-place mutation), after `BuildUpdateState` on update (replaces NewState from Input)
+- **Go redaction as function, not step** -- target location varies by operation; exported `RedactOAuthApp()` is simpler and more explicit
+- **No search indexing for OAuthApp** -- configuration resource, not user-searchable in OSS
 
 ## Next Steps
 
@@ -83,9 +100,10 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Uncommitted Work
 
 ### stigmer repo (this session)
-- 9 seedpack YAMLs: transport switch + auth blocks
-- Changelog entry
-- Project session notes
+- T02b: OAuthApp Go handlers (13 new files, 2 modified)
+- Changelog entry for T02b
+- Project session notes update
+- (Previous session also has uncommitted: 9 seedpack YAMLs, prior changelogs)
 
 ### stigmer-cloud repo (T01 + T02 combined)
 - T01: Proto stubs across Go, Java, Python, TypeScript (regenerated)
@@ -160,6 +178,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | McpServer spec proto | `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto` |
 | Shared encryption library (NEW) | `backend/libs/java/infra/encryption/` (stigmer-cloud) |
 | OAuthApp Java handlers (NEW) | `backend/services/stigmer-service/.../domain/iam/oauthapp/` (stigmer-cloud) |
+| OAuthApp Go handlers (NEW) | `backend/services/stigmer-server/pkg/domain/oauthapp/controller/` (stigmer) |
 | FGA model (NEW) | `backend/services/stigmer-service/.../fga/model/iam/oauth_app.fga` (stigmer-cloud) |
 | Connect handler (Go) | `backend/services/stigmer-server/pkg/domain/mcpserver/controller/connect.go` |
 | React Connect UI | `sdk/react/src/mcp-server/McpServerDetailView.tsx` |

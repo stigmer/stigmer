@@ -23,6 +23,7 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
@@ -37,6 +38,7 @@ import (
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
+	oauthappcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/oauthapp/controller"
 	organizationcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/organization/controller"
 	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
@@ -227,6 +229,13 @@ func Run() error {
 	environmentv1.RegisterEnvironmentQueryControllerServer(grpcServer, environmentController)
 
 	log.Info().Msg("Registered Environment controllers")
+
+	// Create and register OAuthApp controller (reuses encryption service from Environment)
+	oauthAppController := oauthappcontroller.NewOAuthAppController(store, secretService)
+	oauthappv1.RegisterOAuthAppCommandControllerServer(grpcServer, oauthAppController)
+	oauthappv1.RegisterOAuthAppQueryControllerServer(grpcServer, oauthAppController)
+
+	log.Info().Msg("Registered OAuthApp controllers")
 
 	// Create and register ExecutionContext controller
 	executionContextController := executioncontextcontroller.NewExecutionContextController(store)
