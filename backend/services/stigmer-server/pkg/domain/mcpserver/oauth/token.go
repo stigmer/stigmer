@@ -24,19 +24,28 @@ type TokenResponse struct {
 	AuthedUser *authedUser `json:"authed_user,omitempty"`
 }
 
-// resolveFromAuthedUser promotes Slack's nested authed_user fields to
-// the top level so callers don't need vendor-specific logic.
+// resolveFromAuthedUser promotes authed_user fields to the top level
+// when present.
+//
+// Slack's V2 OAuth returns a bot token at the top-level access_token
+// and the actual user token inside authed_user.access_token. The
+// authed_user block is only present when user-level scopes were
+// granted, so its presence is a reliable signal that the user token
+// should be preferred over the bot token. Standard OAuth providers
+// never include authed_user, so the top-level token is used unchanged
+// for those.
 func (r *TokenResponse) resolveFromAuthedUser() {
-	if r.AccessToken == "" && r.AuthedUser != nil {
-		if r.AuthedUser.AccessToken != "" {
-			r.AccessToken = r.AuthedUser.AccessToken
-		}
-		if r.TokenType == "" && r.AuthedUser.TokenType != "" {
-			r.TokenType = r.AuthedUser.TokenType
-		}
-		if r.Scope == "" && r.AuthedUser.Scope != "" {
-			r.Scope = r.AuthedUser.Scope
-		}
+	if r.AuthedUser == nil {
+		return
+	}
+	if r.AuthedUser.AccessToken != "" {
+		r.AccessToken = r.AuthedUser.AccessToken
+	}
+	if r.AuthedUser.TokenType != "" {
+		r.TokenType = r.AuthedUser.TokenType
+	}
+	if r.AuthedUser.Scope != "" {
+		r.Scope = r.AuthedUser.Scope
 	}
 }
 
