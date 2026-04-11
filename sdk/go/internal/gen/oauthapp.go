@@ -66,17 +66,18 @@ func (o *OAuthAppClient) ListByOrg(ctx context.Context, input *oauthappv1.ListOA
 
 // OAuthAppInput holds the fields for creating/updating a OAuthApp.
 type OAuthAppInput struct {
-	Name             string
-	Slug             string
-	Org              string
-	Labels           map[string]string
-	Provider         string
-	ClientId         string
-	ClientSecret     string
-	AuthorizationUrl string
-	TokenUrl         string
-	Scopes           []string
-	UserinfoUrl      string
+	Name               string
+	Slug               string
+	Org                string
+	Labels             map[string]string
+	Provider           string
+	ClientId           string
+	ClientSecret       string
+	AuthorizationUrl   string
+	TokenUrl           string
+	Scopes             []string
+	UserinfoUrl        string
+	ScopeParameterName string
 }
 
 func (i *OAuthAppInput) toProto() *oauthappv1.OAuthApp {
@@ -98,5 +99,6 @@ func (i *OAuthAppInput) toProto() *oauthappv1.OAuthApp {
 	resource.Spec.TokenUrl = i.TokenUrl
 	resource.Spec.Scopes = i.Scopes
 	resource.Spec.UserinfoUrl = i.UserinfoUrl
+	resource.Spec.ScopeParameterName = i.ScopeParameterName
 	return resource
 }

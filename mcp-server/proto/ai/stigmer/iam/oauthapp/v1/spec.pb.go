@@ -60,6 +60,7 @@ const (
 //	  authorization_url: "https://slack.com/oauth/v2/authorize"
 //	  token_url: "https://slack.com/api/oauth.v2.access"
 //	  scopes: ["channels:read", "chat:write"]
+//	  scope_parameter_name: "user_scope"
 type OAuthAppSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable vendor name for UI display and logging.
@@ -88,9 +89,17 @@ type OAuthAppSpec struct {
 	// When set, Stigmer calls this endpoint after token acquisition to
 	// retrieve the user's display name and avatar for the connected account.
 	// Omit for vendors that do not support a standard userinfo endpoint.
-	UserinfoUrl   string `protobuf:"bytes,7,opt,name=userinfo_url,json=userinfoUrl,proto3" json:"userinfo_url,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	UserinfoUrl string `protobuf:"bytes,7,opt,name=userinfo_url,json=userinfoUrl,proto3" json:"userinfo_url,omitempty"`
+	// Name of the query parameter used to send scopes in the authorization URL.
+	//
+	// Most OAuth providers use the standard "scope" parameter. Some vendors
+	// use a non-standard name — for example, Slack's V2 OAuth API requires
+	// user token scopes to be sent as "user_scope" instead of "scope".
+	//
+	// When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+	ScopeParameterName string `protobuf:"bytes,8,opt,name=scope_parameter_name,json=scopeParameterName,proto3" json:"scope_parameter_name,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *OAuthAppSpec) Reset() {
@@ -172,11 +181,18 @@ func (x *OAuthAppSpec) GetUserinfoUrl() string {
 	return ""
 }
 
+func (x *OAuthAppSpec) GetScopeParameterName() string {
+	if x != nil {
+		return x.ScopeParameterName
+	}
+	return ""
+}
+
 var File_ai_stigmer_iam_oauthapp_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a\x1bbuf/validate/validate.proto\"\x97\x02\n" +
+	"%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a\x1bbuf/validate/validate.proto\"\xc9\x02\n" +
 	"\fOAuthAppSpec\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12$\n" +
 	"\tclient_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12,\n" +
@@ -184,7 +200,8 @@ const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\x11authorization_url\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x88\x01\x01R\x10authorizationUrl\x12%\n" +
 	"\ttoken_url\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x88\x01\x01R\btokenUrl\x12\x16\n" +
 	"\x06scopes\x18\x06 \x03(\tR\x06scopes\x12!\n" +
-	"\fuserinfo_url\x18\a \x01(\tR\vuserinfoUrlB\x8b\x02\n" +
+	"\fuserinfo_url\x18\a \x01(\tR\vuserinfoUrl\x120\n" +
+	"\x14scope_parameter_name\x18\b \x01(\tR\x12scopeParameterNameB\x8b\x02\n" +
 	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01ZQgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (

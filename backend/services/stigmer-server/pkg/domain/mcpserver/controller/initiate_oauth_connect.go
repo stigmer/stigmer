@@ -192,6 +192,7 @@ func (c *McpServerController) initiateDCR(
 		pkcePair.CodeChallenge,
 		stateParam,
 		scopes,
+		"scope",
 	)
 
 	return &initiateResult{
@@ -243,6 +244,7 @@ func (c *McpServerController) initiateVendorOAuth(
 	}
 
 	scopes := oauthApp.GetSpec().GetScopes()
+	scopeParamName := oauthApp.GetSpec().GetScopeParameterName()
 	authURL := buildAuthorizationURL(
 		oauthApp.GetSpec().GetAuthorizationUrl(),
 		oauthApp.GetSpec().GetClientId(),
@@ -250,6 +252,7 @@ func (c *McpServerController) initiateVendorOAuth(
 		pkcePair.CodeChallenge,
 		stateParam,
 		scopes,
+		scopeParamName,
 	)
 
 	return &initiateResult{
@@ -265,7 +268,12 @@ func (c *McpServerController) initiateVendorOAuth(
 func buildAuthorizationURL(
 	authEndpoint, clientID, redirectURI, codeChallenge, state string,
 	scopes []string,
+	scopeParamName string,
 ) string {
+	if scopeParamName == "" {
+		scopeParamName = "scope"
+	}
+
 	params := url.Values{
 		"response_type":         {"code"},
 		"client_id":             {clientID},
@@ -275,7 +283,7 @@ func buildAuthorizationURL(
 		"state":                 {state},
 	}
 	if len(scopes) > 0 {
-		params.Set("scope", strings.Join(scopes, " "))
+		params.Set(scopeParamName, strings.Join(scopes, " "))
 	}
 
 	separator := "?"

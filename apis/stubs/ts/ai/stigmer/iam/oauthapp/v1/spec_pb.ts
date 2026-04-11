@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/oauthapp/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MSLEAQoMT0F1dGhBcHBTcGVjEhAKCHByb3ZpZGVyGAEgASgJEhoKCWNsaWVudF9pZBgCIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAMgASgJQge6SARyAhABEiMKEWF1dGhvcml6YXRpb25fdXJsGAQgASgJQgi6SAVyA4gBARIbCgl0b2tlbl91cmwYBSABKAlCCLpIBXIDiAEBEg4KBnNjb3BlcxgGIAMoCRIUCgx1c2VyaW5mb191cmwYByABKAliBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MSLiAQoMT0F1dGhBcHBTcGVjEhAKCHByb3ZpZGVyGAEgASgJEhoKCWNsaWVudF9pZBgCIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAMgASgJQge6SARyAhABEiMKEWF1dGhvcml6YXRpb25fdXJsGAQgASgJQgi6SAVyA4gBARIbCgl0b2tlbl91cmwYBSABKAlCCLpIBXIDiAEBEg4KBnNjb3BlcxgGIAMoCRIUCgx1c2VyaW5mb191cmwYByABKAkSHAoUc2NvcGVfcGFyYW1ldGVyX25hbWUYCCABKAliBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * OAuthAppSpec defines a registered OAuth application with an external vendor.
@@ -51,6 +51,7 @@ export const file_ai_stigmer_iam_oauthapp_v1_spec: GenFile = /*@__PURE__*/
  *     authorization_url: "https://slack.com/oauth/v2/authorize"
  *     token_url: "https://slack.com/api/oauth.v2.access"
  *     scopes: ["channels:read", "chat:write"]
+ *     scope_parameter_name: "user_scope"
  *
  * @generated from message ai.stigmer.iam.oauthapp.v1.OAuthAppSpec
  */
@@ -115,6 +116,19 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
    * @generated from field: string userinfo_url = 7;
    */
   userinfoUrl: string;
+
+  /**
+   * Name of the query parameter used to send scopes in the authorization URL.
+   *
+   * Most OAuth providers use the standard "scope" parameter. Some vendors
+   * use a non-standard name — for example, Slack's V2 OAuth API requires
+   * user token scopes to be sent as "user_scope" instead of "scope".
+   *
+   * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+   *
+   * @generated from field: string scope_parameter_name = 8;
+   */
+  scopeParameterName: string;
 };
 
 /**

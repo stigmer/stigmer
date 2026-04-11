@@ -42,18 +42,19 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n%ai/stigmer/iam/oauthapp/v1/spec.proto\022" +
       "\032ai.stigmer.iam.oauthapp.v1\032\033buf/validat" +
-      "e/validate.proto\"\227\002\n\014OAuthAppSpec\022\032\n\010pro" +
+      "e/validate.proto\"\311\002\n\014OAuthAppSpec\022\032\n\010pro" +
       "vider\030\001 \001(\tR\010provider\022$\n\tclient_id\030\002 \001(\t" +
       "B\007\272H\004r\002\020\001R\010clientId\022,\n\rclient_secret\030\003 \001" +
       "(\tB\007\272H\004r\002\020\001R\014clientSecret\0225\n\021authorizati" +
       "on_url\030\004 \001(\tB\010\272H\005r\003\210\001\001R\020authorizationUrl" +
       "\022%\n\ttoken_url\030\005 \001(\tB\010\272H\005r\003\210\001\001R\010tokenUrl\022" +
       "\026\n\006scopes\030\006 \003(\tR\006scopes\022!\n\014userinfo_url\030" +
-      "\007 \001(\tR\013userinfoUrlB\230\001B\tSpecProtoP\001\242\002\004ASI" +
-      "O\252\002\032Ai.Stigmer.Iam.Oauthapp.V1\312\002\032Ai\\Stig" +
-      "mer\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigmer\\Iam\\Oau" +
-      "thapp\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Iam:" +
-      ":Oauthapp::V1b\006proto3"
+      "\007 \001(\tR\013userinfoUrl\0220\n\024scope_parameter_na" +
+      "me\030\010 \001(\tR\022scopeParameterNameB\230\001B\tSpecPro" +
+      "toP\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam.Oauthapp.V1" +
+      "\312\002\032Ai\\Stigmer\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigm" +
+      "er\\Iam\\Oauthapp\\V1\\GPBMetadata\352\002\036Ai::Sti" +
+      "gmer::Iam::Oauthapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -65,7 +66,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_oauthapp_v1_OAuthAppSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_oauthapp_v1_OAuthAppSpec_descriptor,
-        new java.lang.String[] { "Provider", "ClientId", "ClientSecret", "AuthorizationUrl", "TokenUrl", "Scopes", "UserinfoUrl", });
+        new java.lang.String[] { "Provider", "ClientId", "ClientSecret", "AuthorizationUrl", "TokenUrl", "Scopes", "UserinfoUrl", "ScopeParameterName", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

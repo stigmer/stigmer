@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "oauth",
+    srcs = [
+        "dcr.go",
+        "discovery.go",
+        "grant_store.go",
+        "pending_state_store.go",
+        "pkce.go",
+        "refresh.go",
+        "token.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_rs_zerolog//log"],
+)

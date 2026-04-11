@@ -8,7 +8,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class OAuthAppSpec(_message.Message):
-    __slots__ = ("provider", "client_id", "client_secret", "authorization_url", "token_url", "scopes", "userinfo_url")
+    __slots__ = ("provider", "client_id", "client_secret", "authorization_url", "token_url", "scopes", "userinfo_url", "scope_parameter_name")
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
     CLIENT_SECRET_FIELD_NUMBER: _ClassVar[int]
@@ -16,6 +16,7 @@ class OAuthAppSpec(_message.Message):
     TOKEN_URL_FIELD_NUMBER: _ClassVar[int]
     SCOPES_FIELD_NUMBER: _ClassVar[int]
     USERINFO_URL_FIELD_NUMBER: _ClassVar[int]
+    SCOPE_PARAMETER_NAME_FIELD_NUMBER: _ClassVar[int]
     provider: str
     client_id: str
     client_secret: str
@@ -23,4 +24,5 @@ class OAuthAppSpec(_message.Message):
     token_url: str
     scopes: _containers.RepeatedScalarFieldContainer[str]
     userinfo_url: str
-    def __init__(self, provider: _Optional[str] = ..., client_id: _Optional[str] = ..., client_secret: _Optional[str] = ..., authorization_url: _Optional[str] = ..., token_url: _Optional[str] = ..., scopes: _Optional[_Iterable[str]] = ..., userinfo_url: _Optional[str] = ...) -> None: ...
+    scope_parameter_name: str
+    def __init__(self, provider: _Optional[str] = ..., client_id: _Optional[str] = ..., client_secret: _Optional[str] = ..., authorization_url: _Optional[str] = ..., token_url: _Optional[str] = ..., scopes: _Optional[_Iterable[str]] = ..., userinfo_url: _Optional[str] = ..., scope_parameter_name: _Optional[str] = ...) -> None: ...

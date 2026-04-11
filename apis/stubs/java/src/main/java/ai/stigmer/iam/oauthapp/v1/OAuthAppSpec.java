@@ -44,6 +44,7 @@ package ai.stigmer.iam.oauthapp.v1;
  * authorization_url: "https://slack.com/oauth/v2/authorize"
  * token_url: "https://slack.com/api/oauth.v2.access"
  * scopes: ["channels:read", "chat:write"]
+ * scope_parameter_name: "user_scope"
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.oauthapp.v1.OAuthAppSpec}
@@ -76,6 +77,7 @@ private static final long serialVersionUID = 0L;
     scopes_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     userinfoUrl_ = "";
+    scopeParameterName_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -461,6 +463,65 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int SCOPE_PARAMETER_NAME_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object scopeParameterName_ = "";
+  /**
+   * <pre>
+   * Name of the query parameter used to send scopes in the authorization URL.
+   *
+   * Most OAuth providers use the standard "scope" parameter. Some vendors
+   * use a non-standard name — for example, Slack's V2 OAuth API requires
+   * user token scopes to be sent as "user_scope" instead of "scope".
+   *
+   * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+   * </pre>
+   *
+   * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+   * @return The scopeParameterName.
+   */
+  @java.lang.Override
+  public java.lang.String getScopeParameterName() {
+    java.lang.Object ref = scopeParameterName_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      scopeParameterName_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Name of the query parameter used to send scopes in the authorization URL.
+   *
+   * Most OAuth providers use the standard "scope" parameter. Some vendors
+   * use a non-standard name — for example, Slack's V2 OAuth API requires
+   * user token scopes to be sent as "user_scope" instead of "scope".
+   *
+   * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+   * </pre>
+   *
+   * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+   * @return The bytes for scopeParameterName.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getScopeParameterNameBytes() {
+    java.lang.Object ref = scopeParameterName_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      scopeParameterName_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -495,6 +556,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(userinfoUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, userinfoUrl_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(scopeParameterName_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, scopeParameterName_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -531,6 +595,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(userinfoUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, userinfoUrl_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(scopeParameterName_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, scopeParameterName_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -560,6 +627,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getScopesList())) return false;
     if (!getUserinfoUrl()
         .equals(other.getUserinfoUrl())) return false;
+    if (!getScopeParameterName()
+        .equals(other.getScopeParameterName())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -587,6 +656,8 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + USERINFO_URL_FIELD_NUMBER;
     hash = (53 * hash) + getUserinfoUrl().hashCode();
+    hash = (37 * hash) + SCOPE_PARAMETER_NAME_FIELD_NUMBER;
+    hash = (53 * hash) + getScopeParameterName().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -723,6 +794,7 @@ private static final long serialVersionUID = 0L;
    * authorization_url: "https://slack.com/oauth/v2/authorize"
    * token_url: "https://slack.com/api/oauth.v2.access"
    * scopes: ["channels:read", "chat:write"]
+   * scope_parameter_name: "user_scope"
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.oauthapp.v1.OAuthAppSpec}
@@ -766,6 +838,7 @@ private static final long serialVersionUID = 0L;
       scopes_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       userinfoUrl_ = "";
+      scopeParameterName_ = "";
       return this;
     }
 
@@ -821,6 +894,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.userinfoUrl_ = userinfoUrl_;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.scopeParameterName_ = scopeParameterName_;
+      }
     }
 
     @java.lang.Override
@@ -873,6 +949,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getUserinfoUrl().isEmpty()) {
         userinfoUrl_ = other.userinfoUrl_;
         bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      if (!other.getScopeParameterName().isEmpty()) {
+        scopeParameterName_ = other.scopeParameterName_;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -936,6 +1017,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 66: {
+              scopeParameterName_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1720,6 +1806,128 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       userinfoUrl_ = value;
       bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object scopeParameterName_ = "";
+    /**
+     * <pre>
+     * Name of the query parameter used to send scopes in the authorization URL.
+     *
+     * Most OAuth providers use the standard "scope" parameter. Some vendors
+     * use a non-standard name — for example, Slack's V2 OAuth API requires
+     * user token scopes to be sent as "user_scope" instead of "scope".
+     *
+     * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+     * </pre>
+     *
+     * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+     * @return The scopeParameterName.
+     */
+    public java.lang.String getScopeParameterName() {
+      java.lang.Object ref = scopeParameterName_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        scopeParameterName_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Name of the query parameter used to send scopes in the authorization URL.
+     *
+     * Most OAuth providers use the standard "scope" parameter. Some vendors
+     * use a non-standard name — for example, Slack's V2 OAuth API requires
+     * user token scopes to be sent as "user_scope" instead of "scope".
+     *
+     * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+     * </pre>
+     *
+     * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+     * @return The bytes for scopeParameterName.
+     */
+    public com.google.protobuf.ByteString
+        getScopeParameterNameBytes() {
+      java.lang.Object ref = scopeParameterName_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        scopeParameterName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Name of the query parameter used to send scopes in the authorization URL.
+     *
+     * Most OAuth providers use the standard "scope" parameter. Some vendors
+     * use a non-standard name — for example, Slack's V2 OAuth API requires
+     * user token scopes to be sent as "user_scope" instead of "scope".
+     *
+     * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+     * </pre>
+     *
+     * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+     * @param value The scopeParameterName to set.
+     * @return This builder for chaining.
+     */
+    public Builder setScopeParameterName(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      scopeParameterName_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Name of the query parameter used to send scopes in the authorization URL.
+     *
+     * Most OAuth providers use the standard "scope" parameter. Some vendors
+     * use a non-standard name — for example, Slack's V2 OAuth API requires
+     * user token scopes to be sent as "user_scope" instead of "scope".
+     *
+     * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+     * </pre>
+     *
+     * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearScopeParameterName() {
+      scopeParameterName_ = getDefaultInstance().getScopeParameterName();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Name of the query parameter used to send scopes in the authorization URL.
+     *
+     * Most OAuth providers use the standard "scope" parameter. Some vendors
+     * use a non-standard name — for example, Slack's V2 OAuth API requires
+     * user token scopes to be sent as "user_scope" instead of "scope".
+     *
+     * When empty, defaults to "scope" (standard OAuth 2.0 behavior).
+     * </pre>
+     *
+     * <code>string scope_parameter_name = 8 [json_name = "scopeParameterName"];</code>
+     * @param value The bytes for scopeParameterName to set.
+     * @return This builder for chaining.
+     */
+    public Builder setScopeParameterNameBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      scopeParameterName_ = value;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }

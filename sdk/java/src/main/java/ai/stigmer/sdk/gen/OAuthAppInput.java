@@ -19,6 +19,7 @@ public final class OAuthAppInput {
     private final String tokenUrl;
     private final java.util.List<String> scopes;
     private final String userinfoUrl;
+    private final String scopeParameterName;
 
     private OAuthAppInput(Builder builder) {
         this.name = builder.name;
@@ -32,6 +33,7 @@ public final class OAuthAppInput {
         this.tokenUrl = builder.tokenUrl;
         this.scopes = builder.scopes;
         this.userinfoUrl = builder.userinfoUrl;
+        this.scopeParameterName = builder.scopeParameterName;
     }
 
     OAuthApp toProto() {
@@ -56,6 +58,9 @@ public final class OAuthAppInput {
         }
         if (this.userinfoUrl != null) {
             spec.setUserinfoUrl(this.userinfoUrl);
+        }
+        if (this.scopeParameterName != null) {
+            spec.setScopeParameterName(this.scopeParameterName);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -88,6 +93,7 @@ public final class OAuthAppInput {
         private String tokenUrl;
         private java.util.List<String> scopes;
         private String userinfoUrl;
+        private String scopeParameterName;
 
         private Builder() {}
 
@@ -102,6 +108,7 @@ public final class OAuthAppInput {
         public Builder tokenUrl(String tokenUrl) { this.tokenUrl = tokenUrl; return this; }
         public Builder scopes(java.util.List<String> scopes) { this.scopes = scopes; return this; }
         public Builder userinfoUrl(String userinfoUrl) { this.userinfoUrl = userinfoUrl; return this; }
+        public Builder scopeParameterName(String scopeParameterName) { this.scopeParameterName = scopeParameterName; return this; }
 
         public OAuthAppInput build() { return new OAuthAppInput(this); }
     }

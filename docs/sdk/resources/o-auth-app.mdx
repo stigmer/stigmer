@@ -192,23 +192,25 @@ const oAuthApp = await stigmer.oauthapp.apply({
   tokenUrl: "...",
   scopes: [],
   userinfoUrl: "...",
+  scopeParameterName: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Apply(ctx, &stigmer.OAuthAppInput{
-  Name:             "my-o-auth-app",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  Provider:         "...",
-  ClientId:         "...",
-  ClientSecret:     "...",
-  AuthorizationUrl: "...",
-  TokenUrl:         "...",
-  Scopes:           []string{},
-  UserinfoUrl:      "...",
+  Name:               "my-o-auth-app",
+  Org:                "acme",
+  Slug:               "...",
+  Labels:             map[string]string{},
+  Provider:           "...",
+  ClientId:           "...",
+  ClientSecret:       "...",
+  AuthorizationUrl:   "...",
+  TokenUrl:           "...",
+  Scopes:             []string{},
+  UserinfoUrl:        "...",
+  ScopeParameterName: "...",
 })
 ```
 </Tab>
@@ -226,6 +228,7 @@ o_auth_app = client.oauthapps.apply(OAuthAppInput(
     token_url="...",
     scopes=[],
     userinfo_url="...",
+    scope_parameter_name="...",
 ))
 ```
 </Tab>
@@ -243,6 +246,7 @@ OAuthApp oAuthApp = client.oauthapps().apply(OAuthAppInput.builder()
     .tokenUrl("...")
     .scopes(List.of())
     .userinfoUrl("...")
+    .scopeParameterName("...")
     .build());
 ```
 </Tab>
@@ -273,23 +277,25 @@ const oAuthApp = await stigmer.oauthapp.create({
   tokenUrl: "...",
   scopes: [],
   userinfoUrl: "...",
+  scopeParameterName: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Create(ctx, &stigmer.OAuthAppInput{
-  Name:             "my-o-auth-app",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  Provider:         "...",
-  ClientId:         "...",
-  ClientSecret:     "...",
-  AuthorizationUrl: "...",
-  TokenUrl:         "...",
-  Scopes:           []string{},
-  UserinfoUrl:      "...",
+  Name:               "my-o-auth-app",
+  Org:                "acme",
+  Slug:               "...",
+  Labels:             map[string]string{},
+  Provider:           "...",
+  ClientId:           "...",
+  ClientSecret:       "...",
+  AuthorizationUrl:   "...",
+  TokenUrl:           "...",
+  Scopes:             []string{},
+  UserinfoUrl:        "...",
+  ScopeParameterName: "...",
 })
 ```
 </Tab>
@@ -307,6 +313,7 @@ o_auth_app = client.oauthapps.create(OAuthAppInput(
     token_url="...",
     scopes=[],
     userinfo_url="...",
+    scope_parameter_name="...",
 ))
 ```
 </Tab>
@@ -324,6 +331,7 @@ OAuthApp oAuthApp = client.oauthapps().create(OAuthAppInput.builder()
     .tokenUrl("...")
     .scopes(List.of())
     .userinfoUrl("...")
+    .scopeParameterName("...")
     .build());
 ```
 </Tab>
@@ -352,23 +360,25 @@ const oAuthApp = await stigmer.oauthapp.update({
   tokenUrl: "...",
   scopes: [],
   userinfoUrl: "...",
+  scopeParameterName: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Update(ctx, &stigmer.OAuthAppInput{
-  Name:             "my-o-auth-app",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  Provider:         "...",
-  ClientId:         "...",
-  ClientSecret:     "...",
-  AuthorizationUrl: "...",
-  TokenUrl:         "...",
-  Scopes:           []string{},
-  UserinfoUrl:      "...",
+  Name:               "my-o-auth-app",
+  Org:                "acme",
+  Slug:               "...",
+  Labels:             map[string]string{},
+  Provider:           "...",
+  ClientId:           "...",
+  ClientSecret:       "...",
+  AuthorizationUrl:   "...",
+  TokenUrl:           "...",
+  Scopes:             []string{},
+  UserinfoUrl:        "...",
+  ScopeParameterName: "...",
 })
 ```
 </Tab>
@@ -386,6 +396,7 @@ o_auth_app = client.oauthapps.update(OAuthAppInput(
     token_url="...",
     scopes=[],
     userinfo_url="...",
+    scope_parameter_name="...",
 ))
 ```
 </Tab>
@@ -403,6 +414,7 @@ OAuthApp oAuthApp = client.oauthapps().update(OAuthAppInput.builder()
     .tokenUrl("...")
     .scopes(List.of())
     .userinfoUrl("...")
+    .scopeParameterName("...")
     .build());
 ```
 </Tab>
@@ -474,6 +486,7 @@ Input for creating or updating an O Auth App.
     tokenUrl: { type: "string", description: "Vendor's OAuth token endpoint." },
     scopes: { type: "string[]", description: "OAuth scopes to request during the authorization flow." },
     userinfoUrl: { type: "string", description: "Optional OIDC UserInfo endpoint for fetching user profile data." },
+    scopeParameterName: { type: "string", description: "Name of the query parameter used to send scopes in the authorization URL." },
   }}
 />
 

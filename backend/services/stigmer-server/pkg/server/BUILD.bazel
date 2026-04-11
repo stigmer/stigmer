@@ -40,6 +40,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/executioncontext/controller",
         "//backend/services/stigmer-server/pkg/domain/github/controller",
         "//backend/services/stigmer-server/pkg/domain/mcpserver/controller",
+        "//backend/services/stigmer-server/pkg/domain/mcpserver/oauth",
         "//backend/services/stigmer-server/pkg/domain/oauthapp/controller",
         "//backend/services/stigmer-server/pkg/domain/organization/controller",
         "//backend/services/stigmer-server/pkg/domain/project/controller",
