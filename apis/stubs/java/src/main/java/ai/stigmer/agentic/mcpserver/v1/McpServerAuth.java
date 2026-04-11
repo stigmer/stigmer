@@ -10,16 +10,18 @@ package ai.stigmer.agentic.mcpserver.v1;
  * McpServerAuth configures automated credential acquisition via OAuth.
  *
  * &#64;internal
- * Two authentication methods are supported:
+ * Two authentication modes are determined by the presence of oauth_app_ref:
  *
- * - mcp_oauth: The MCP server implements the MCP Authorization specification
- * (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with
- * PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp
- * resource is needed — credentials are obtained automatically via DCR.
+ * - When oauth_app_ref is empty: the MCP server implements the MCP
+ * Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
+ * Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
+ * from the server URL. No OAuthApp resource is needed — credentials are
+ * obtained automatically via DCR.
  *
- * - vendor_oauth: The MCP server requires pre-registered OAuth app credentials
- * from a specific vendor (Slack, Salesforce, Figma, etc.). References an
- * OAuthApp resource created by the org admin.
+ * - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
+ * app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
+ * The referenced OAuthApp holds the client_id, client_secret, and endpoint
+ * URLs needed for the authorization code flow.
  *
  * In both cases, the acquired access token is stored in the user's personal
  * environment as target_env_var. A refresh token (if issued by the vendor) is
@@ -56,6 +58,8 @@ private static final long serialVersionUID = 0L;
   private McpServerAuth() {
     targetEnvVar_ = "";
     tokenLifetimeHint_ = "";
+    scopeHints_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -76,135 +80,76 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.mcpserver.v1.McpServerAuth.class, ai.stigmer.agentic.mcpserver.v1.McpServerAuth.Builder.class);
   }
 
-  private int methodCase_ = 0;
-  @SuppressWarnings("serial")
-  private java.lang.Object method_;
-  public enum MethodCase
-      implements com.google.protobuf.Internal.EnumLite,
-          com.google.protobuf.AbstractMessage.InternalOneOfEnum {
-    MCP_OAUTH(1),
-    VENDOR_OAUTH(2),
-    METHOD_NOT_SET(0);
-    private final int value;
-    private MethodCase(int value) {
-      this.value = value;
-    }
-    /**
-     * @param value The number of the enum to look for.
-     * @return The enum associated with the given number.
-     * @deprecated Use {@link #forNumber(int)} instead.
-     */
-    @java.lang.Deprecated
-    public static MethodCase valueOf(int value) {
-      return forNumber(value);
-    }
-
-    public static MethodCase forNumber(int value) {
-      switch (value) {
-        case 1: return MCP_OAUTH;
-        case 2: return VENDOR_OAUTH;
-        case 0: return METHOD_NOT_SET;
-        default: return null;
-      }
-    }
-    public int getNumber() {
-      return this.value;
-    }
-  };
-
-  public MethodCase
-  getMethodCase() {
-    return MethodCase.forNumber(
-        methodCase_);
-  }
-
-  public static final int MCP_OAUTH_FIELD_NUMBER = 1;
+  private int bitField0_;
+  public static final int OAUTH_APP_REF_FIELD_NUMBER = 1;
+  private ai.stigmer.commons.apiresource.ApiResourceReference oauthAppRef_;
   /**
    * <pre>
-   * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+   * Reference to an OAuthApp for vendor-specific OAuth.
+   *
+   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+   * Stigmer discovers the authorization server metadata, registers a client
+   * via DCR, and performs the authorization code flow with PKCE — all
+   * automatically at connect time.
+   *
+   * When set: Stigmer uses the referenced OAuthApp's client credentials to
+   * perform the OAuth authorization code flow with the vendor on behalf of
+   * the user. The OAuthApp must belong to the same organization as the
+   * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
-   * @return Whether the mcpOauth field is set.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * @return Whether the oauthAppRef field is set.
    */
   @java.lang.Override
-  public boolean hasMcpOauth() {
-    return methodCase_ == 1;
+  public boolean hasOauthAppRef() {
+    return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
-   * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+   * Reference to an OAuthApp for vendor-specific OAuth.
+   *
+   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+   * Stigmer discovers the authorization server metadata, registers a client
+   * via DCR, and performs the authorization code flow with PKCE — all
+   * automatically at connect time.
+   *
+   * When set: Stigmer uses the referenced OAuthApp's client credentials to
+   * perform the OAuth authorization code flow with the vendor on behalf of
+   * the user. The OAuthApp must belong to the same organization as the
+   * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
-   * @return The mcpOauth.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * @return The oauthAppRef.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpOAuth getMcpOauth() {
-    if (methodCase_ == 1) {
-       return (ai.stigmer.agentic.mcpserver.v1.McpOAuth) method_;
-    }
-    return ai.stigmer.agentic.mcpserver.v1.McpOAuth.getDefaultInstance();
+  public ai.stigmer.commons.apiresource.ApiResourceReference getOauthAppRef() {
+    return oauthAppRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : oauthAppRef_;
   }
   /**
    * <pre>
-   * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+   * Reference to an OAuthApp for vendor-specific OAuth.
+   *
+   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+   * Stigmer discovers the authorization server metadata, registers a client
+   * via DCR, and performs the authorization code flow with PKCE — all
+   * automatically at connect time.
+   *
+   * When set: Stigmer uses the referenced OAuthApp's client credentials to
+   * perform the OAuth authorization code flow with the vendor on behalf of
+   * the user. The OAuthApp must belong to the same organization as the
+   * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpOAuthOrBuilder getMcpOauthOrBuilder() {
-    if (methodCase_ == 1) {
-       return (ai.stigmer.agentic.mcpserver.v1.McpOAuth) method_;
-    }
-    return ai.stigmer.agentic.mcpserver.v1.McpOAuth.getDefaultInstance();
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder() {
+    return oauthAppRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : oauthAppRef_;
   }
 
-  public static final int VENDOR_OAUTH_FIELD_NUMBER = 2;
-  /**
-   * <pre>
-   * Vendor-specific OAuth: references an OAuthApp with client credentials.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-   * @return Whether the vendorOauth field is set.
-   */
-  @java.lang.Override
-  public boolean hasVendorOauth() {
-    return methodCase_ == 2;
-  }
-  /**
-   * <pre>
-   * Vendor-specific OAuth: references an OAuthApp with client credentials.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-   * @return The vendorOauth.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth getVendorOauth() {
-    if (methodCase_ == 2) {
-       return (ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth) method_;
-    }
-    return ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.getDefaultInstance();
-  }
-  /**
-   * <pre>
-   * Vendor-specific OAuth: references an OAuthApp with client credentials.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuthOrBuilder getVendorOauthOrBuilder() {
-    if (methodCase_ == 2) {
-       return (ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth) method_;
-    }
-    return ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.getDefaultInstance();
-  }
-
-  public static final int TARGET_ENV_VAR_FIELD_NUMBER = 3;
+  public static final int TARGET_ENV_VAR_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
   private volatile java.lang.Object targetEnvVar_ = "";
   /**
@@ -215,7 +160,7 @@ private static final long serialVersionUID = 0L;
    * by convention. Both are written to the user's personal environment.
    * </pre>
    *
-   * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+   * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
    * @return The targetEnvVar.
    */
   @java.lang.Override
@@ -239,7 +184,7 @@ private static final long serialVersionUID = 0L;
    * by convention. Both are written to the user's personal environment.
    * </pre>
    *
-   * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+   * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
    * @return The bytes for targetEnvVar.
    */
   @java.lang.Override
@@ -257,7 +202,7 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int TOKEN_LIFETIME_HINT_FIELD_NUMBER = 4;
+  public static final int TOKEN_LIFETIME_HINT_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
   private volatile java.lang.Object tokenLifetimeHint_ = "";
   /**
@@ -267,7 +212,7 @@ private static final long serialVersionUID = 0L;
    * Empty means unknown. Examples: "1h", "2h", "90d", "never".
    * </pre>
    *
-   * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+   * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
    * @return The tokenLifetimeHint.
    */
   @java.lang.Override
@@ -290,7 +235,7 @@ private static final long serialVersionUID = 0L;
    * Empty means unknown. Examples: "1h", "2h", "90d", "never".
    * </pre>
    *
-   * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+   * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
    * @return The bytes for tokenLifetimeHint.
    */
   @java.lang.Override
@@ -308,6 +253,71 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int SCOPE_HINTS_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList scopeHints_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * </pre>
+   *
+   * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+   * @return A list containing the scopeHints.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getScopeHintsList() {
+    return scopeHints_;
+  }
+  /**
+   * <pre>
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * </pre>
+   *
+   * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+   * @return The count of scopeHints.
+   */
+  public int getScopeHintsCount() {
+    return scopeHints_.size();
+  }
+  /**
+   * <pre>
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * </pre>
+   *
+   * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+   * @param index The index of the element to return.
+   * @return The scopeHints at the given index.
+   */
+  public java.lang.String getScopeHints(int index) {
+    return scopeHints_.get(index);
+  }
+  /**
+   * <pre>
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * </pre>
+   *
+   * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the scopeHints at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getScopeHintsBytes(int index) {
+    return scopeHints_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -322,17 +332,17 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (methodCase_ == 1) {
-      output.writeMessage(1, (ai.stigmer.agentic.mcpserver.v1.McpOAuth) method_);
-    }
-    if (methodCase_ == 2) {
-      output.writeMessage(2, (ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth) method_);
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(1, getOauthAppRef());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(targetEnvVar_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, targetEnvVar_);
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, targetEnvVar_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(tokenLifetimeHint_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, tokenLifetimeHint_);
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, tokenLifetimeHint_);
+    }
+    for (int i = 0; i < scopeHints_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, scopeHints_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -343,19 +353,23 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (methodCase_ == 1) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(1, (ai.stigmer.agentic.mcpserver.v1.McpOAuth) method_);
-    }
-    if (methodCase_ == 2) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(2, (ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth) method_);
+        .computeMessageSize(1, getOauthAppRef());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(targetEnvVar_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, targetEnvVar_);
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, targetEnvVar_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(tokenLifetimeHint_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, tokenLifetimeHint_);
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, tokenLifetimeHint_);
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < scopeHints_.size(); i++) {
+        dataSize += computeStringSizeNoTag(scopeHints_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getScopeHintsList().size();
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -372,23 +386,17 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.mcpserver.v1.McpServerAuth other = (ai.stigmer.agentic.mcpserver.v1.McpServerAuth) obj;
 
+    if (hasOauthAppRef() != other.hasOauthAppRef()) return false;
+    if (hasOauthAppRef()) {
+      if (!getOauthAppRef()
+          .equals(other.getOauthAppRef())) return false;
+    }
     if (!getTargetEnvVar()
         .equals(other.getTargetEnvVar())) return false;
     if (!getTokenLifetimeHint()
         .equals(other.getTokenLifetimeHint())) return false;
-    if (!getMethodCase().equals(other.getMethodCase())) return false;
-    switch (methodCase_) {
-      case 1:
-        if (!getMcpOauth()
-            .equals(other.getMcpOauth())) return false;
-        break;
-      case 2:
-        if (!getVendorOauth()
-            .equals(other.getVendorOauth())) return false;
-        break;
-      case 0:
-      default:
-    }
+    if (!getScopeHintsList()
+        .equals(other.getScopeHintsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -400,21 +408,17 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
+    if (hasOauthAppRef()) {
+      hash = (37 * hash) + OAUTH_APP_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getOauthAppRef().hashCode();
+    }
     hash = (37 * hash) + TARGET_ENV_VAR_FIELD_NUMBER;
     hash = (53 * hash) + getTargetEnvVar().hashCode();
     hash = (37 * hash) + TOKEN_LIFETIME_HINT_FIELD_NUMBER;
     hash = (53 * hash) + getTokenLifetimeHint().hashCode();
-    switch (methodCase_) {
-      case 1:
-        hash = (37 * hash) + MCP_OAUTH_FIELD_NUMBER;
-        hash = (53 * hash) + getMcpOauth().hashCode();
-        break;
-      case 2:
-        hash = (37 * hash) + VENDOR_OAUTH_FIELD_NUMBER;
-        hash = (53 * hash) + getVendorOauth().hashCode();
-        break;
-      case 0:
-      default:
+    if (getScopeHintsCount() > 0) {
+      hash = (37 * hash) + SCOPE_HINTS_FIELD_NUMBER;
+      hash = (53 * hash) + getScopeHintsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -518,16 +522,18 @@ private static final long serialVersionUID = 0L;
    * McpServerAuth configures automated credential acquisition via OAuth.
    *
    * &#64;internal
-   * Two authentication methods are supported:
+   * Two authentication modes are determined by the presence of oauth_app_ref:
    *
-   * - mcp_oauth: The MCP server implements the MCP Authorization specification
-   * (RFC 8414 discovery, RFC 7591 Dynamic Client Registration, OAuth 2.1 with
-   * PKCE). Stigmer auto-discovers everything from the server URL. No OAuthApp
-   * resource is needed — credentials are obtained automatically via DCR.
+   * - When oauth_app_ref is empty: the MCP server implements the MCP
+   * Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
+   * Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
+   * from the server URL. No OAuthApp resource is needed — credentials are
+   * obtained automatically via DCR.
    *
-   * - vendor_oauth: The MCP server requires pre-registered OAuth app credentials
-   * from a specific vendor (Slack, Salesforce, Figma, etc.). References an
-   * OAuthApp resource created by the org admin.
+   * - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
+   * app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
+   * The referenced OAuthApp holds the client_id, client_secret, and endpoint
+   * URLs needed for the authorization code flow.
    *
    * In both cases, the acquired access token is stored in the user's personal
    * environment as target_env_var. A refresh token (if issued by the vendor) is
@@ -561,28 +567,33 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.mcpserver.v1.McpServerAuth.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetOauthAppRefFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      if (mcpOauthBuilder_ != null) {
-        mcpOauthBuilder_.clear();
-      }
-      if (vendorOauthBuilder_ != null) {
-        vendorOauthBuilder_.clear();
+      oauthAppRef_ = null;
+      if (oauthAppRefBuilder_ != null) {
+        oauthAppRefBuilder_.dispose();
+        oauthAppRefBuilder_ = null;
       }
       targetEnvVar_ = "";
       tokenLifetimeHint_ = "";
-      methodCase_ = 0;
-      method_ = null;
+      scopeHints_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -610,32 +621,30 @@ private static final long serialVersionUID = 0L;
     public ai.stigmer.agentic.mcpserver.v1.McpServerAuth buildPartial() {
       ai.stigmer.agentic.mcpserver.v1.McpServerAuth result = new ai.stigmer.agentic.mcpserver.v1.McpServerAuth(this);
       if (bitField0_ != 0) { buildPartial0(result); }
-      buildPartialOneofs(result);
       onBuilt();
       return result;
     }
 
     private void buildPartial0(ai.stigmer.agentic.mcpserver.v1.McpServerAuth result) {
       int from_bitField0_ = bitField0_;
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000001) != 0)) {
+        result.oauthAppRef_ = oauthAppRefBuilder_ == null
+            ? oauthAppRef_
+            : oauthAppRefBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.targetEnvVar_ = targetEnvVar_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.tokenLifetimeHint_ = tokenLifetimeHint_;
       }
-    }
-
-    private void buildPartialOneofs(ai.stigmer.agentic.mcpserver.v1.McpServerAuth result) {
-      result.methodCase_ = methodCase_;
-      result.method_ = this.method_;
-      if (methodCase_ == 1 &&
-          mcpOauthBuilder_ != null) {
-        result.method_ = mcpOauthBuilder_.build();
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        scopeHints_.makeImmutable();
+        result.scopeHints_ = scopeHints_;
       }
-      if (methodCase_ == 2 &&
-          vendorOauthBuilder_ != null) {
-        result.method_ = vendorOauthBuilder_.build();
-      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -650,28 +659,28 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.mcpserver.v1.McpServerAuth other) {
       if (other == ai.stigmer.agentic.mcpserver.v1.McpServerAuth.getDefaultInstance()) return this;
+      if (other.hasOauthAppRef()) {
+        mergeOauthAppRef(other.getOauthAppRef());
+      }
       if (!other.getTargetEnvVar().isEmpty()) {
         targetEnvVar_ = other.targetEnvVar_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       if (!other.getTokenLifetimeHint().isEmpty()) {
         tokenLifetimeHint_ = other.tokenLifetimeHint_;
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
-      switch (other.getMethodCase()) {
-        case MCP_OAUTH: {
-          mergeMcpOauth(other.getMcpOauth());
-          break;
+      if (!other.scopeHints_.isEmpty()) {
+        if (scopeHints_.isEmpty()) {
+          scopeHints_ = other.scopeHints_;
+          bitField0_ |= 0x00000008;
+        } else {
+          ensureScopeHintsIsMutable();
+          scopeHints_.addAll(other.scopeHints_);
         }
-        case VENDOR_OAUTH: {
-          mergeVendorOauth(other.getVendorOauth());
-          break;
-        }
-        case METHOD_NOT_SET: {
-          break;
-        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -701,26 +710,24 @@ private static final long serialVersionUID = 0L;
               break;
             case 10: {
               input.readMessage(
-                  internalGetMcpOauthFieldBuilder().getBuilder(),
+                  internalGetOauthAppRefFieldBuilder().getBuilder(),
                   extensionRegistry);
-              methodCase_ = 1;
+              bitField0_ |= 0x00000001;
               break;
             } // case 10
             case 18: {
-              input.readMessage(
-                  internalGetVendorOauthFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              methodCase_ = 2;
+              targetEnvVar_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000002;
               break;
             } // case 18
             case 26: {
-              targetEnvVar_ = input.readStringRequireUtf8();
+              tokenLifetimeHint_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
             case 34: {
-              tokenLifetimeHint_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
+              ensureScopeHintsIsMutable();
+              scopeHints_.add(input.readStringRequireUtf8());
               break;
             } // case 34
             default: {
@@ -738,377 +745,253 @@ private static final long serialVersionUID = 0L;
       } // finally
       return this;
     }
-    private int methodCase_ = 0;
-    private java.lang.Object method_;
-    public MethodCase
-        getMethodCase() {
-      return MethodCase.forNumber(
-          methodCase_);
-    }
-
-    public Builder clearMethod() {
-      methodCase_ = 0;
-      method_ = null;
-      onChanged();
-      return this;
-    }
-
     private int bitField0_;
 
+    private ai.stigmer.commons.apiresource.ApiResourceReference oauthAppRef_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpOAuth, ai.stigmer.agentic.mcpserver.v1.McpOAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpOAuthOrBuilder> mcpOauthBuilder_;
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> oauthAppRefBuilder_;
     /**
      * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
-     * @return Whether the mcpOauth field is set.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * @return Whether the oauthAppRef field is set.
      */
-    @java.lang.Override
-    public boolean hasMcpOauth() {
-      return methodCase_ == 1;
+    public boolean hasOauthAppRef() {
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
      * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
-     * @return The mcpOauth.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     * @return The oauthAppRef.
      */
-    @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.McpOAuth getMcpOauth() {
-      if (mcpOauthBuilder_ == null) {
-        if (methodCase_ == 1) {
-          return (ai.stigmer.agentic.mcpserver.v1.McpOAuth) method_;
-        }
-        return ai.stigmer.agentic.mcpserver.v1.McpOAuth.getDefaultInstance();
+    public ai.stigmer.commons.apiresource.ApiResourceReference getOauthAppRef() {
+      if (oauthAppRefBuilder_ == null) {
+        return oauthAppRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : oauthAppRef_;
       } else {
-        if (methodCase_ == 1) {
-          return mcpOauthBuilder_.getMessage();
-        }
-        return ai.stigmer.agentic.mcpserver.v1.McpOAuth.getDefaultInstance();
+        return oauthAppRefBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
      */
-    public Builder setMcpOauth(ai.stigmer.agentic.mcpserver.v1.McpOAuth value) {
-      if (mcpOauthBuilder_ == null) {
+    public Builder setOauthAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (oauthAppRefBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        method_ = value;
-        onChanged();
+        oauthAppRef_ = value;
       } else {
-        mcpOauthBuilder_.setMessage(value);
+        oauthAppRefBuilder_.setMessage(value);
       }
-      methodCase_ = 1;
+      bitField0_ |= 0x00000001;
+      onChanged();
       return this;
     }
     /**
      * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
      */
-    public Builder setMcpOauth(
-        ai.stigmer.agentic.mcpserver.v1.McpOAuth.Builder builderForValue) {
-      if (mcpOauthBuilder_ == null) {
-        method_ = builderForValue.build();
-        onChanged();
+    public Builder setOauthAppRef(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (oauthAppRefBuilder_ == null) {
+        oauthAppRef_ = builderForValue.build();
       } else {
-        mcpOauthBuilder_.setMessage(builderForValue.build());
+        oauthAppRefBuilder_.setMessage(builderForValue.build());
       }
-      methodCase_ = 1;
+      bitField0_ |= 0x00000001;
+      onChanged();
       return this;
     }
     /**
      * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
      */
-    public Builder mergeMcpOauth(ai.stigmer.agentic.mcpserver.v1.McpOAuth value) {
-      if (mcpOauthBuilder_ == null) {
-        if (methodCase_ == 1 &&
-            method_ != ai.stigmer.agentic.mcpserver.v1.McpOAuth.getDefaultInstance()) {
-          method_ = ai.stigmer.agentic.mcpserver.v1.McpOAuth.newBuilder((ai.stigmer.agentic.mcpserver.v1.McpOAuth) method_)
-              .mergeFrom(value).buildPartial();
+    public Builder mergeOauthAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (oauthAppRefBuilder_ == null) {
+        if (((bitField0_ & 0x00000001) != 0) &&
+          oauthAppRef_ != null &&
+          oauthAppRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getOauthAppRefBuilder().mergeFrom(value);
         } else {
-          method_ = value;
+          oauthAppRef_ = value;
         }
+      } else {
+        oauthAppRefBuilder_.mergeFrom(value);
+      }
+      if (oauthAppRef_ != null) {
+        bitField0_ |= 0x00000001;
         onChanged();
-      } else {
-        if (methodCase_ == 1) {
-          mcpOauthBuilder_.mergeFrom(value);
-        } else {
-          mcpOauthBuilder_.setMessage(value);
-        }
-      }
-      methodCase_ = 1;
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
-     */
-    public Builder clearMcpOauth() {
-      if (mcpOauthBuilder_ == null) {
-        if (methodCase_ == 1) {
-          methodCase_ = 0;
-          method_ = null;
-          onChanged();
-        }
-      } else {
-        if (methodCase_ == 1) {
-          methodCase_ = 0;
-          method_ = null;
-        }
-        mcpOauthBuilder_.clear();
       }
       return this;
     }
     /**
      * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
      */
-    public ai.stigmer.agentic.mcpserver.v1.McpOAuth.Builder getMcpOauthBuilder() {
-      return internalGetMcpOauthFieldBuilder().getBuilder();
+    public Builder clearOauthAppRef() {
+      bitField0_ = (bitField0_ & ~0x00000001);
+      oauthAppRef_ = null;
+      if (oauthAppRefBuilder_ != null) {
+        oauthAppRefBuilder_.dispose();
+        oauthAppRefBuilder_ = null;
+      }
+      onChanged();
+      return this;
     }
     /**
      * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
      */
-    @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.McpOAuthOrBuilder getMcpOauthOrBuilder() {
-      if ((methodCase_ == 1) && (mcpOauthBuilder_ != null)) {
-        return mcpOauthBuilder_.getMessageOrBuilder();
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getOauthAppRefBuilder() {
+      bitField0_ |= 0x00000001;
+      onChanged();
+      return internalGetOauthAppRefFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder() {
+      if (oauthAppRefBuilder_ != null) {
+        return oauthAppRefBuilder_.getMessageOrBuilder();
       } else {
-        if (methodCase_ == 1) {
-          return (ai.stigmer.agentic.mcpserver.v1.McpOAuth) method_;
-        }
-        return ai.stigmer.agentic.mcpserver.v1.McpOAuth.getDefaultInstance();
+        return oauthAppRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : oauthAppRef_;
       }
     }
     /**
      * <pre>
-     * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+     * Reference to an OAuthApp for vendor-specific OAuth.
+     *
+     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+     * Stigmer discovers the authorization server metadata, registers a client
+     * via DCR, and performs the authorization code flow with PKCE — all
+     * automatically at connect time.
+     *
+     * When set: Stigmer uses the referenced OAuthApp's client credentials to
+     * perform the OAuth authorization code flow with the vendor on behalf of
+     * the user. The OAuthApp must belong to the same organization as the
+     * McpServer (or be accessible via cross-org reference).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpOAuth, ai.stigmer.agentic.mcpserver.v1.McpOAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpOAuthOrBuilder> 
-        internalGetMcpOauthFieldBuilder() {
-      if (mcpOauthBuilder_ == null) {
-        if (!(methodCase_ == 1)) {
-          method_ = ai.stigmer.agentic.mcpserver.v1.McpOAuth.getDefaultInstance();
-        }
-        mcpOauthBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.mcpserver.v1.McpOAuth, ai.stigmer.agentic.mcpserver.v1.McpOAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpOAuthOrBuilder>(
-                (ai.stigmer.agentic.mcpserver.v1.McpOAuth) method_,
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetOauthAppRefFieldBuilder() {
+      if (oauthAppRefBuilder_ == null) {
+        oauthAppRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                getOauthAppRef(),
                 getParentForChildren(),
                 isClean());
-        method_ = null;
+        oauthAppRef_ = null;
       }
-      methodCase_ = 1;
-      onChanged();
-      return mcpOauthBuilder_;
-    }
-
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth, ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuthOrBuilder> vendorOauthBuilder_;
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     * @return Whether the vendorOauth field is set.
-     */
-    @java.lang.Override
-    public boolean hasVendorOauth() {
-      return methodCase_ == 2;
-    }
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     * @return The vendorOauth.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth getVendorOauth() {
-      if (vendorOauthBuilder_ == null) {
-        if (methodCase_ == 2) {
-          return (ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth) method_;
-        }
-        return ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.getDefaultInstance();
-      } else {
-        if (methodCase_ == 2) {
-          return vendorOauthBuilder_.getMessage();
-        }
-        return ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.getDefaultInstance();
-      }
-    }
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     */
-    public Builder setVendorOauth(ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth value) {
-      if (vendorOauthBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        method_ = value;
-        onChanged();
-      } else {
-        vendorOauthBuilder_.setMessage(value);
-      }
-      methodCase_ = 2;
-      return this;
-    }
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     */
-    public Builder setVendorOauth(
-        ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.Builder builderForValue) {
-      if (vendorOauthBuilder_ == null) {
-        method_ = builderForValue.build();
-        onChanged();
-      } else {
-        vendorOauthBuilder_.setMessage(builderForValue.build());
-      }
-      methodCase_ = 2;
-      return this;
-    }
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     */
-    public Builder mergeVendorOauth(ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth value) {
-      if (vendorOauthBuilder_ == null) {
-        if (methodCase_ == 2 &&
-            method_ != ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.getDefaultInstance()) {
-          method_ = ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.newBuilder((ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth) method_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          method_ = value;
-        }
-        onChanged();
-      } else {
-        if (methodCase_ == 2) {
-          vendorOauthBuilder_.mergeFrom(value);
-        } else {
-          vendorOauthBuilder_.setMessage(value);
-        }
-      }
-      methodCase_ = 2;
-      return this;
-    }
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     */
-    public Builder clearVendorOauth() {
-      if (vendorOauthBuilder_ == null) {
-        if (methodCase_ == 2) {
-          methodCase_ = 0;
-          method_ = null;
-          onChanged();
-        }
-      } else {
-        if (methodCase_ == 2) {
-          methodCase_ = 0;
-          method_ = null;
-        }
-        vendorOauthBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.Builder getVendorOauthBuilder() {
-      return internalGetVendorOauthFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuthOrBuilder getVendorOauthOrBuilder() {
-      if ((methodCase_ == 2) && (vendorOauthBuilder_ != null)) {
-        return vendorOauthBuilder_.getMessageOrBuilder();
-      } else {
-        if (methodCase_ == 2) {
-          return (ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth) method_;
-        }
-        return ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.getDefaultInstance();
-      }
-    }
-    /**
-     * <pre>
-     * Vendor-specific OAuth: references an OAuthApp with client credentials.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth, ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuthOrBuilder> 
-        internalGetVendorOauthFieldBuilder() {
-      if (vendorOauthBuilder_ == null) {
-        if (!(methodCase_ == 2)) {
-          method_ = ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.getDefaultInstance();
-        }
-        vendorOauthBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth, ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuthOrBuilder>(
-                (ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth) method_,
-                getParentForChildren(),
-                isClean());
-        method_ = null;
-      }
-      methodCase_ = 2;
-      onChanged();
-      return vendorOauthBuilder_;
+      return oauthAppRefBuilder_;
     }
 
     private java.lang.Object targetEnvVar_ = "";
@@ -1120,7 +1003,7 @@ private static final long serialVersionUID = 0L;
      * by convention. Both are written to the user's personal environment.
      * </pre>
      *
-     * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+     * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
      * @return The targetEnvVar.
      */
     public java.lang.String getTargetEnvVar() {
@@ -1143,7 +1026,7 @@ private static final long serialVersionUID = 0L;
      * by convention. Both are written to the user's personal environment.
      * </pre>
      *
-     * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+     * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
      * @return The bytes for targetEnvVar.
      */
     public com.google.protobuf.ByteString
@@ -1167,7 +1050,7 @@ private static final long serialVersionUID = 0L;
      * by convention. Both are written to the user's personal environment.
      * </pre>
      *
-     * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+     * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
      * @param value The targetEnvVar to set.
      * @return This builder for chaining.
      */
@@ -1175,7 +1058,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       targetEnvVar_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1187,12 +1070,12 @@ private static final long serialVersionUID = 0L;
      * by convention. Both are written to the user's personal environment.
      * </pre>
      *
-     * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+     * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearTargetEnvVar() {
       targetEnvVar_ = getDefaultInstance().getTargetEnvVar();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
@@ -1204,7 +1087,7 @@ private static final long serialVersionUID = 0L;
      * by convention. Both are written to the user's personal environment.
      * </pre>
      *
-     * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+     * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for targetEnvVar to set.
      * @return This builder for chaining.
      */
@@ -1213,7 +1096,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       targetEnvVar_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1226,7 +1109,7 @@ private static final long serialVersionUID = 0L;
      * Empty means unknown. Examples: "1h", "2h", "90d", "never".
      * </pre>
      *
-     * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+     * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
      * @return The tokenLifetimeHint.
      */
     public java.lang.String getTokenLifetimeHint() {
@@ -1248,7 +1131,7 @@ private static final long serialVersionUID = 0L;
      * Empty means unknown. Examples: "1h", "2h", "90d", "never".
      * </pre>
      *
-     * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+     * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
      * @return The bytes for tokenLifetimeHint.
      */
     public com.google.protobuf.ByteString
@@ -1271,7 +1154,7 @@ private static final long serialVersionUID = 0L;
      * Empty means unknown. Examples: "1h", "2h", "90d", "never".
      * </pre>
      *
-     * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+     * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
      * @param value The tokenLifetimeHint to set.
      * @return This builder for chaining.
      */
@@ -1279,7 +1162,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       tokenLifetimeHint_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -1290,12 +1173,12 @@ private static final long serialVersionUID = 0L;
      * Empty means unknown. Examples: "1h", "2h", "90d", "never".
      * </pre>
      *
-     * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+     * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
      * @return This builder for chaining.
      */
     public Builder clearTokenLifetimeHint() {
       tokenLifetimeHint_ = getDefaultInstance().getTokenLifetimeHint();
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
@@ -1306,7 +1189,7 @@ private static final long serialVersionUID = 0L;
      * Empty means unknown. Examples: "1h", "2h", "90d", "never".
      * </pre>
      *
-     * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+     * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
      * @param value The bytes for tokenLifetimeHint to set.
      * @return This builder for chaining.
      */
@@ -1315,6 +1198,180 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       tokenLifetimeHint_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList scopeHints_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureScopeHintsIsMutable() {
+      if (!scopeHints_.isModifiable()) {
+        scopeHints_ = new com.google.protobuf.LazyStringArrayList(scopeHints_);
+      }
+      bitField0_ |= 0x00000008;
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @return A list containing the scopeHints.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getScopeHintsList() {
+      scopeHints_.makeImmutable();
+      return scopeHints_;
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @return The count of scopeHints.
+     */
+    public int getScopeHintsCount() {
+      return scopeHints_.size();
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @param index The index of the element to return.
+     * @return The scopeHints at the given index.
+     */
+    public java.lang.String getScopeHints(int index) {
+      return scopeHints_.get(index);
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the scopeHints at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getScopeHintsBytes(int index) {
+      return scopeHints_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @param index The index to set the value at.
+     * @param value The scopeHints to set.
+     * @return This builder for chaining.
+     */
+    public Builder setScopeHints(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureScopeHintsIsMutable();
+      scopeHints_.set(index, value);
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @param value The scopeHints to add.
+     * @return This builder for chaining.
+     */
+    public Builder addScopeHints(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureScopeHintsIsMutable();
+      scopeHints_.add(value);
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @param values The scopeHints to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllScopeHints(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureScopeHintsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, scopeHints_);
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearScopeHints() {
+      scopeHints_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000008);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional scope hints for UI display before the OAuth flow starts.
+     * For DCR servers: shown to the user since actual scopes are discovered
+     * at connect time during authorization server metadata retrieval.
+     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * </pre>
+     *
+     * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+     * @param value The bytes of the scopeHints to add.
+     * @return This builder for chaining.
+     */
+    public Builder addScopeHintsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureScopeHintsIsMutable();
+      scopeHints_.add(value);
       bitField0_ |= 0x00000008;
       onChanged();
       return this;

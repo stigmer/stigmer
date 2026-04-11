@@ -12,57 +12,60 @@ public interface McpServerAuthOrBuilder extends
 
   /**
    * <pre>
-   * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+   * Reference to an OAuthApp for vendor-specific OAuth.
+   *
+   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+   * Stigmer discovers the authorization server metadata, registers a client
+   * via DCR, and performs the authorization code flow with PKCE — all
+   * automatically at connect time.
+   *
+   * When set: Stigmer uses the referenced OAuthApp's client credentials to
+   * perform the OAuth authorization code flow with the vendor on behalf of
+   * the user. The OAuthApp must belong to the same organization as the
+   * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
-   * @return Whether the mcpOauth field is set.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * @return Whether the oauthAppRef field is set.
    */
-  boolean hasMcpOauth();
+  boolean hasOauthAppRef();
   /**
    * <pre>
-   * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+   * Reference to an OAuthApp for vendor-specific OAuth.
+   *
+   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+   * Stigmer discovers the authorization server metadata, registers a client
+   * via DCR, and performs the authorization code flow with PKCE — all
+   * automatically at connect time.
+   *
+   * When set: Stigmer uses the referenced OAuthApp's client credentials to
+   * perform the OAuth authorization code flow with the vendor on behalf of
+   * the user. The OAuthApp must belong to the same organization as the
+   * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
-   * @return The mcpOauth.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
+   * @return The oauthAppRef.
    */
-  ai.stigmer.agentic.mcpserver.v1.McpOAuth getMcpOauth();
+  ai.stigmer.commons.apiresource.ApiResourceReference getOauthAppRef();
   /**
    * <pre>
-   * MCP OAuth spec: DCR + PKCE, auto-discovered from server URL.
+   * Reference to an OAuthApp for vendor-specific OAuth.
+   *
+   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
+   * Stigmer discovers the authorization server metadata, registers a client
+   * via DCR, and performs the authorization code flow with PKCE — all
+   * automatically at connect time.
+   *
+   * When set: Stigmer uses the referenced OAuthApp's client credentials to
+   * perform the OAuth authorization code flow with the vendor on behalf of
+   * the user. The OAuthApp must belong to the same organization as the
+   * McpServer (or be accessible via cross-org reference).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpOAuth mcp_oauth = 1 [json_name = "mcpOauth"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef"];</code>
    */
-  ai.stigmer.agentic.mcpserver.v1.McpOAuthOrBuilder getMcpOauthOrBuilder();
-
-  /**
-   * <pre>
-   * Vendor-specific OAuth: references an OAuthApp with client credentials.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-   * @return Whether the vendorOauth field is set.
-   */
-  boolean hasVendorOauth();
-  /**
-   * <pre>
-   * Vendor-specific OAuth: references an OAuthApp with client credentials.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-   * @return The vendorOauth.
-   */
-  ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth getVendorOauth();
-  /**
-   * <pre>
-   * Vendor-specific OAuth: references an OAuthApp with client credentials.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuth vendor_oauth = 2 [json_name = "vendorOauth"];</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.McpServerVendorOAuthOrBuilder getVendorOauthOrBuilder();
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder();
 
   /**
    * <pre>
@@ -72,7 +75,7 @@ public interface McpServerAuthOrBuilder extends
    * by convention. Both are written to the user's personal environment.
    * </pre>
    *
-   * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+   * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
    * @return The targetEnvVar.
    */
   java.lang.String getTargetEnvVar();
@@ -84,7 +87,7 @@ public interface McpServerAuthOrBuilder extends
    * by convention. Both are written to the user's personal environment.
    * </pre>
    *
-   * <code>string target_env_var = 3 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
+   * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
    * @return The bytes for targetEnvVar.
    */
   com.google.protobuf.ByteString
@@ -97,7 +100,7 @@ public interface McpServerAuthOrBuilder extends
    * Empty means unknown. Examples: "1h", "2h", "90d", "never".
    * </pre>
    *
-   * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+   * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
    * @return The tokenLifetimeHint.
    */
   java.lang.String getTokenLifetimeHint();
@@ -108,11 +111,62 @@ public interface McpServerAuthOrBuilder extends
    * Empty means unknown. Examples: "1h", "2h", "90d", "never".
    * </pre>
    *
-   * <code>string token_lifetime_hint = 4 [json_name = "tokenLifetimeHint"];</code>
+   * <code>string token_lifetime_hint = 3 [json_name = "tokenLifetimeHint"];</code>
    * @return The bytes for tokenLifetimeHint.
    */
   com.google.protobuf.ByteString
       getTokenLifetimeHintBytes();
 
-  ai.stigmer.agentic.mcpserver.v1.McpServerAuth.MethodCase getMethodCase();
+  /**
+   * <pre>
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * </pre>
+   *
+   * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+   * @return A list containing the scopeHints.
+   */
+  java.util.List<java.lang.String>
+      getScopeHintsList();
+  /**
+   * <pre>
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * </pre>
+   *
+   * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+   * @return The count of scopeHints.
+   */
+  int getScopeHintsCount();
+  /**
+   * <pre>
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * </pre>
+   *
+   * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+   * @param index The index of the element to return.
+   * @return The scopeHints at the given index.
+   */
+  java.lang.String getScopeHints(int index);
+  /**
+   * <pre>
+   * Optional scope hints for UI display before the OAuth flow starts.
+   * For DCR servers: shown to the user since actual scopes are discovered
+   * at connect time during authorization server metadata retrieval.
+   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * </pre>
+   *
+   * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the scopeHints at the given index.
+   */
+  com.google.protobuf.ByteString
+      getScopeHintsBytes(int index);
 }

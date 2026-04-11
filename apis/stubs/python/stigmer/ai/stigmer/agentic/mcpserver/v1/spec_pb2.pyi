@@ -80,25 +80,13 @@ class ToolApprovalPolicy(_message.Message):
     def __init__(self, tool_name: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
 
 class McpServerAuth(_message.Message):
-    __slots__ = ("mcp_oauth", "vendor_oauth", "target_env_var", "token_lifetime_hint")
-    MCP_OAUTH_FIELD_NUMBER: _ClassVar[int]
-    VENDOR_OAUTH_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("oauth_app_ref", "target_env_var", "token_lifetime_hint", "scope_hints")
+    OAUTH_APP_REF_FIELD_NUMBER: _ClassVar[int]
     TARGET_ENV_VAR_FIELD_NUMBER: _ClassVar[int]
     TOKEN_LIFETIME_HINT_FIELD_NUMBER: _ClassVar[int]
-    mcp_oauth: McpOAuth
-    vendor_oauth: McpServerVendorOAuth
+    SCOPE_HINTS_FIELD_NUMBER: _ClassVar[int]
+    oauth_app_ref: _io_pb2.ApiResourceReference
     target_env_var: str
     token_lifetime_hint: str
-    def __init__(self, mcp_oauth: _Optional[_Union[McpOAuth, _Mapping]] = ..., vendor_oauth: _Optional[_Union[McpServerVendorOAuth, _Mapping]] = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ...) -> None: ...
-
-class McpOAuth(_message.Message):
-    __slots__ = ("scope_hints",)
-    SCOPE_HINTS_FIELD_NUMBER: _ClassVar[int]
     scope_hints: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, scope_hints: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class McpServerVendorOAuth(_message.Message):
-    __slots__ = ("oauth_app_ref",)
-    OAUTH_APP_REF_FIELD_NUMBER: _ClassVar[int]
-    oauth_app_ref: _io_pb2.ApiResourceReference
-    def __init__(self, oauth_app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
+    def __init__(self, oauth_app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ..., scope_hints: _Optional[_Iterable[str]] = ...) -> None: ...
