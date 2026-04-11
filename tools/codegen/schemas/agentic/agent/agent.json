@@ -82,6 +82,23 @@
       "required": false
     },
     {
+      "name": "Env",
+      "jsonName": "env",
+      "protoField": "env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "EnvVarDeclaration"
+        }
+      },
+      "description": "Environment variable declarations for this agent.\n Keys are variable names; values describe their metadata and optionality.\n Replaces env_spec (which required an extra nesting level through\n EnvironmentSpec.data). Consumers read env first, falling back to\n env_spec.data during the migration period.",
+      "required": false
+    },
+    {
       "name": "EnvSpec",
       "jsonName": "envSpec",
       "protoField": "env_spec",
@@ -89,7 +106,7 @@
         "kind": "message",
         "messageType": "EnvironmentSpec"
       },
-      "description": "Environment variables required by the agent.",
+      "description": "Deprecated: use env instead. Retained for wire compatibility.",
       "required": false
     }
   ]

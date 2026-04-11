@@ -130,11 +130,37 @@ All consumers use fallback: read `env` first, fall back to `env_spec.data` durin
 
 ---
 
+## Current State
+
+- **Status**: in-progress
+- **Last Session**: 2026-04-11 — T01, T02, T03 completed
+- **Active Task**: T04 (next to start)
+
+## Session Progress (2026-04-11)
+
+- T01: Added `RetryPolicy(maximum_attempts=1)` to all 3 `workflow.execute_activity` calls in `discover_mcp_server.py`
+- T02: Added `EnvVarDeclaration` proto to `environment/v1/spec.proto`; added `map<string, EnvVarDeclaration> env` field on McpServerSpec (15), AgentSpec (8), WorkflowSpec (5); deprecated `env_spec` on all three
+- T03: Ran `make codegen` (stigmer) and `make protos` (stigmer-cloud) — all stubs regenerated
+- Architectural review: confirmed `McpServerAuth` should remain on McpServerSpec (not merged into `EnvVarDeclaration`) — aggregate boundary, separation of declaration vs acquisition
+
+## Next Steps
+
+1. T04: Migrate ~20 seedpack YAML files from `env_spec.data` to `env`
+2. T05: Update consumer code (Go, Java, Python, TypeScript) with env-first fallback-to-env_spec pattern
+3. T06: Enforce required/optional semantics in Java and Go connect/execution handlers
+
+## Context for Resume
+
+- The new `env` field exists in proto and all stubs but is not yet consumed by any runtime code
+- Existing `env_spec` continues to work unchanged — backward compatible
+- No seedpack YAMLs have been migrated yet
+- Consumer files needing updates are listed in the Key Files section above
+
 ## Resume Checklist
 
 When starting a new session, quickly review:
 
 1. [ ] Open `tasks.md` and check current task status
 2. [ ] Review the design decisions above
-3. [ ] Continue with the current task or move to next
+3. [ ] Continue with T04 (seedpack YAML migration)
 

@@ -76,6 +76,23 @@
       "required": false
     },
     {
+      "name": "Env",
+      "jsonName": "env",
+      "protoField": "env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "EnvVarDeclaration"
+        }
+      },
+      "description": "Environment variable declarations for this MCP server.\n Keys are variable names; values describe their metadata and optionality.\n Replaces env_spec (which required an extra nesting level through\n EnvironmentSpec.data). Consumers read env first, falling back to\n env_spec.data during the migration period.",
+      "required": false
+    },
+    {
       "name": "EnvSpec",
       "jsonName": "envSpec",
       "protoField": "env_spec",
@@ -83,7 +100,7 @@
         "kind": "message",
         "messageType": "EnvironmentSpec"
       },
-      "description": "Environment variables required by the MCP server.",
+      "description": "Deprecated: use env instead. Retained for wire compatibility.",
       "required": false
     },
     {
@@ -128,7 +145,7 @@
         "kind": "message",
         "messageType": "McpServerAuth"
       },
-      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n The acquired access token is stored in the user's personal environment\n as the env var named by auth.target_env_var. That env var must also be\n declared in env_spec.data so the execution pipeline knows about it.",
+      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n The acquired access token is stored in the user's personal environment\n as the env var named by auth.target_env_var. That env var must also be\n declared in env (or legacy env_spec.data) so the execution pipeline knows about it.",
       "required": false
     }
   ]

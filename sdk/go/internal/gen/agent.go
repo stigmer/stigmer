@@ -103,6 +103,7 @@ type AgentInput struct {
 	McpServerUsages []*McpServerUsageInput
 	SkillRefs       []ResourceRef
 	SubAgents       []*SubAgentInput
+	Env             map[string]*EnvVarDeclarationInput
 	EnvSpec         *EnvSpecInput
 }
 
@@ -136,6 +137,13 @@ type McpAccessInput struct {
 	EnabledTools []string
 }
 
+// EnvVarDeclarationInput is the SDK input type for EnvVarDeclaration.
+type EnvVarDeclarationInput struct {
+	IsSecret    bool
+	Description string
+	Optional    bool
+}
+
 func (i *AgentInput) toProto() *agentv1.Agent {
 	resource := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -159,6 +167,12 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 	}
 	for _, item := range i.SubAgents {
 		resource.Spec.SubAgents = append(resource.Spec.SubAgents, item.toProto())
+	}
+	if len(i.Env) > 0 {
+		resource.Spec.Env = make(map[string]*agentv1.EnvVarDeclaration, len(i.Env))
+		for k, v := range i.Env {
+			resource.Spec.Env[k] = v.toProto()
+		}
 	}
 	if i.EnvSpec != nil {
 		resource.Spec.EnvSpec = i.EnvSpec.toProto()
@@ -194,5 +208,13 @@ func (i *McpAccessInput) toProto() *agentv1.McpAccess {
 	return &agentv1.McpAccess{
 		McpServer:    i.McpServer,
 		EnabledTools: i.EnabledTools,
+	}
+}
+
+func (i *EnvVarDeclarationInput) toProto() *environmentv1.EnvVarDeclaration {
+	return &environmentv1.EnvVarDeclaration{
+		IsSecret:    i.IsSecret,
+		Description: i.Description,
+		Optional:    i.Optional,
 	}
 }

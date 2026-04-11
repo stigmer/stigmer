@@ -20,6 +20,7 @@ from ai.stigmer.commons.rpc import pagination_pb2
 
 from ._errors import wrap_error
 from ._types import DeleteResourceInput, EnvSpecInput, ListParams, ListResult, ResourceRef
+from ._agent import EnvVarDeclarationInput
 
 
 class McpServerClient:
@@ -135,6 +136,7 @@ class McpServerInput:
     stdio: StdioServerConfigInput | None = None
     http: HttpServerConfigInput | None = None
     default_enabled_tools: list[str] = field(default_factory=list)
+    env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
     env_spec: EnvSpecInput | None = None
     pinned_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
     repository_url: str = ""
@@ -154,6 +156,8 @@ class McpServerInput:
             spec.http.CopyFrom(self.http._to_proto())
         if self.default_enabled_tools:
             spec.default_enabled_tools.extend(self.default_enabled_tools)
+        for k, v in self.env.items():
+            spec.env[k].CopyFrom(v._to_proto())
         if self.env_spec is not None:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
         for item in self.pinned_tool_approvals:

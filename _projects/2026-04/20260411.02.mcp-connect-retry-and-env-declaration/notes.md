@@ -44,3 +44,24 @@ When no `retry_policy` is passed to `workflow.execute_activity()`, Temporal uses
 
 The `EnvironmentSpec` wrapper message adds an unnecessary `data` nesting level in YAML (`env_spec.data.KEY`). The new flat `map<string, EnvVarDeclaration> env` removes this: `env.KEY`. Cleaner for MCP server authors.
 
+---
+
+## 2026-04-11 -- Implementation Session
+
+### McpServerAuth should NOT be merged into EnvVarDeclaration
+
+Considered moving `McpServerAuth` into `EnvVarDeclaration` (embedding OAuth config per env var instead of separate `auth` block). Rejected for three reasons:
+
+1. **Aggregate boundary violation** — `EnvVarDeclaration` is in the `environment` package, shared across McpServer, Agent, and Workflow. OAuth is MCP-server-specific. Agents and Workflows never have OAuth flows.
+2. **Separation of "what I need" vs "how to get it"** — Declaration describes schema; auth describes an acquisition strategy. Different responsibilities.
+3. **MCP-specific runtime semantics** — DCR mode, Connect page UX, pre-flight token refresh are all tied to the McpServer domain.
+
+The `target_env_var` string indirection is a minor wart (fragile name-coupling), but the right fix is apply-time validation, not merging the concepts.
+
+### RetryPolicy on classify_tool_approvals
+
+The classify activity makes an LLM call (transient failures possible). Still set `maximum_attempts=1` because:
+- Connect is synchronous — user is waiting
+- Classify is fast (~2s) and cheap to re-trigger
+- Silent retries with backoff make the user wait with no feedback
+

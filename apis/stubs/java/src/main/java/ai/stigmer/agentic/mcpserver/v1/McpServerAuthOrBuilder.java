@@ -69,9 +69,10 @@ public interface McpServerAuthOrBuilder extends
 
   /**
    * <pre>
-   * The env var in env_spec.data where the acquired access token is stored.
-   * Must correspond to an entry in env_spec.data so the execution pipeline
-   * resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
+   * The env var where the acquired access token is stored.
+   * Must correspond to an entry in env (or legacy env_spec.data) so the
+   * execution pipeline resolves it. The refresh token is stored as
+   * {target_env_var}_REFRESH_TOKEN
    * by convention. Both are written to the user's personal environment.
    * </pre>
    *
@@ -81,9 +82,10 @@ public interface McpServerAuthOrBuilder extends
   java.lang.String getTargetEnvVar();
   /**
    * <pre>
-   * The env var in env_spec.data where the acquired access token is stored.
-   * Must correspond to an entry in env_spec.data so the execution pipeline
-   * resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
+   * The env var where the acquired access token is stored.
+   * Must correspond to an entry in env (or legacy env_spec.data) so the
+   * execution pipeline resolves it. The refresh token is stored as
+   * {target_env_var}_REFRESH_TOKEN
    * by convention. Both are written to the user's personal environment.
    * </pre>
    *

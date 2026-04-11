@@ -35,3 +35,32 @@ message EnvironmentValue {
   // Human-readable description of what this value is used for.
   string description = 3;
 }
+
+// EnvVarDeclaration declares an environment variable required (or optionally
+// accepted) by a blueprint resource (McpServer, Agent, Workflow).
+//
+// Unlike EnvironmentValue (which stores actual values), this message describes
+// what a blueprint *needs* — its schema, not its data. This separation keeps
+// the blueprint layer free of runtime values and enables the platform to
+// validate completeness before execution.
+message EnvVarDeclaration {
+  // Whether the resolved value should be treated as a secret.
+  //
+  // @internal
+  // When true: encrypted at rest, redacted in logs and Temporal history.
+  // When false: stored as plaintext, visible in audit logs.
+  bool is_secret = 1;
+
+  // Human-readable description shown in the UI credential form.
+  // Should explain what the variable is used for and where to obtain it.
+  string description = 2;
+
+  // Whether this variable is optional.
+  //
+  // @internal
+  // When false (default): the execution pipeline rejects a run if this
+  // variable is missing from the user's environment.
+  // When true: a missing value is acceptable (the MCP server or agent
+  // degrades gracefully without it).
+  bool optional = 3;
+}

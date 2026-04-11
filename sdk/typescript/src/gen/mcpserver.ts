@@ -5,7 +5,7 @@ import { stripUndefined } from "./proto-utils";
 import { type DeleteResourceInput, type ListParams, type ListResult, type EnvSpecInput, type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema, EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
@@ -130,6 +130,7 @@ export interface McpServerInput {
   stdio?: StdioServerConfigInput;
   http?: HttpServerConfigInput;
   defaultEnabledTools?: string[];
+  env?: Record<string, EnvVarDeclarationInput>;
   envSpec?: EnvSpecInput;
   pinnedToolApprovals?: ToolApprovalPolicyInput[];
   repositoryUrl?: string;
@@ -150,6 +151,13 @@ export interface HttpServerConfigInput {
   headers?: Record<string, string>;
   queryParams?: Record<string, string>;
   timeoutSeconds?: number;
+}
+
+/** SDK input type for EnvVarDeclaration. */
+export interface EnvVarDeclarationInput {
+  isSecret?: boolean;
+  description?: string;
+  optional?: boolean;
 }
 
 /** SDK input type for ToolApprovalPolicy. */
@@ -183,6 +191,14 @@ function buildHttpServerConfigProto(input: HttpServerConfigInput) {
   }));
 }
 
+function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
+  return Object.assign(create(EnvVarDeclarationSchema), stripUndefined({
+    isSecret: input.isSecret,
+    description: input.description,
+    optional: input.optional,
+  }));
+}
+
 function buildToolApprovalPolicyProto(input: ToolApprovalPolicyInput) {
   return Object.assign(create(ToolApprovalPolicySchema), stripUndefined({
     toolName: input.toolName,
@@ -200,6 +216,10 @@ function buildMcpServerAuthProto(input: McpServerAuthInput) {
 }
 
 function buildMcpServerProto(input: McpServerInput): McpServer {
+  let env;
+  if (input.env) {
+    env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
+  }
   let envSpec;
   if (input.envSpec) {
     const es = create(EnvironmentSpecSchema);
@@ -214,6 +234,7 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
     description: input.description,
     iconUrl: input.iconUrl,
     defaultEnabledTools: input.defaultEnabledTools,
+    env,
     envSpec,
     pinnedToolApprovals,
     repositoryUrl: input.repositoryUrl,

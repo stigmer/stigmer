@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/agentic/environment/v1/spec.proto\x12!ai.stigmer.agentic.environment.v1\"\xf3\x01\n\x0f\x45nvironmentSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12P\n\x04\x64\x61ta\x18\x02 \x03(\x0b\x32<.ai.stigmer.agentic.environment.v1.EnvironmentSpec.DataEntryR\x04\x64\x61ta\x1al\n\tDataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12I\n\x05value\x18\x02 \x01(\x0b\x32\x33.ai.stigmer.agentic.environment.v1.EnvironmentValueR\x05value:\x02\x38\x01\"g\n\x10\x45nvironmentValue\x12\x14\n\x05value\x18\x01 \x01(\tR\x05value\x12\x1b\n\tis_secret\x18\x02 \x01(\x08R\x08isSecret\x12 \n\x0b\x64\x65scription\x18\x03 \x01(\tR\x0b\x64\x65scriptionB\xdb\x01\n%com.ai.stigmer.agentic.environment.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/agentic/environment/v1/spec.proto\x12!ai.stigmer.agentic.environment.v1\"\xf3\x01\n\x0f\x45nvironmentSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12P\n\x04\x64\x61ta\x18\x02 \x03(\x0b\x32<.ai.stigmer.agentic.environment.v1.EnvironmentSpec.DataEntryR\x04\x64\x61ta\x1al\n\tDataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12I\n\x05value\x18\x02 \x01(\x0b\x32\x33.ai.stigmer.agentic.environment.v1.EnvironmentValueR\x05value:\x02\x38\x01\"g\n\x10\x45nvironmentValue\x12\x14\n\x05value\x18\x01 \x01(\tR\x05value\x12\x1b\n\tis_secret\x18\x02 \x01(\x08R\x08isSecret\x12 \n\x0b\x64\x65scription\x18\x03 \x01(\tR\x0b\x64\x65scription\"n\n\x11\x45nvVarDeclaration\x12\x1b\n\tis_secret\x18\x01 \x01(\x08R\x08isSecret\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12\x1a\n\x08optional\x18\x03 \x01(\x08R\x08optionalB\xdb\x01\n%com.ai.stigmer.agentic.environment.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,4 +40,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ENVIRONMENTSPEC_DATAENTRY']._serialized_end=327
   _globals['_ENVIRONMENTVALUE']._serialized_start=329
   _globals['_ENVIRONMENTVALUE']._serialized_end=432
+  _globals['_ENVVARDECLARATION']._serialized_start=434
+  _globals['_ENVVARDECLARATION']._serialized_end=544
 # @@protoc_insertion_point(module_scope)

@@ -15,36 +15,51 @@ Add timestamps and notes to track your progress.
 
 ## Task 1: T01: Eliminate retries in connect workflow (set RetryPolicy maximum_attempts=1 in discover_mcp_server.py)
 
-**Status**: 🚧 IN PROGRESS
+**Status**: ✅ DONE
 **Created**: 2026-04-11 17:40
+**Completed**: 2026-04-11 18:00
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Import `RetryPolicy` from `temporalio.common`
+- [x] Add `retry_policy=RetryPolicy(maximum_attempts=1)` to `discover_mcp_server` activity in `ConnectMcpServerWorkflow`
+- [x] Add `retry_policy=RetryPolicy(maximum_attempts=1)` to `classify_tool_approvals` activity in `ConnectMcpServerWorkflow`
+- [x] Add `retry_policy=RetryPolicy(maximum_attempts=1)` to `discover_mcp_server` activity in legacy `DiscoverMcpServerWorkflow`
 
 ### Notes
-- [Add notes about this task here]
+- All 3 `workflow.execute_activity` calls now have `maximum_attempts=1`
+- Classify activity (LLM call) also gets no-retry: connect is synchronous and user-triggered, so fail-fast is better than silent retries
 
 ## Task 2: T02: Add EnvVarDeclaration proto message to environment/v1/spec.proto and add new env field deprecating env_spec on McpServerSpec AgentSpec WorkflowSpec
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-11 17:40
+**Completed**: 2026-04-11 18:00
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Add `EnvVarDeclaration` message to `environment/v1/spec.proto` (is_secret, description, optional)
+- [x] Add `map<string, EnvVarDeclaration> env = 15` to McpServerSpec
+- [x] Add `map<string, EnvVarDeclaration> env = 8` to AgentSpec
+- [x] Add `map<string, EnvVarDeclaration> env = 5` to WorkflowSpec
+- [x] Mark `env_spec` as `[deprecated = true]` on all three specs
+- [x] Update McpServerAuth comments to reference `env` alongside legacy `env_spec.data`
 
 ### Notes
-- [Add notes about this task here]
+- Design decision: `EnvVarDeclaration` in environment package (shared), not MCP-server-specific
+- Architectural review confirmed `McpServerAuth` should NOT be merged into `EnvVarDeclaration` (aggregate boundary, separation of declaration vs acquisition)
 
 ## Task 3: T03: Regenerate proto stubs across all languages (Go Java Python TypeScript Dart)
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-11 17:40
+**Completed**: 2026-04-11 18:00
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Run `make codegen` in stigmer repo (protos + SDK docs + narration)
+- [x] Run `make protos` in stigmer-cloud repo (Go, Java, Python, TypeScript, Dart stubs)
 
 ### Notes
-- [Add notes about this task here]
+- 67 files changed in stigmer, 44 files changed in stigmer-cloud
+- New `EnvVarDeclaration` Java stubs generated as new files in both repos
 
 ## Task 4: T04: Migrate seedpack YAML files from env_spec.data to env
 

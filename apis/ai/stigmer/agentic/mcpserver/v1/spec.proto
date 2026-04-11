@@ -52,8 +52,15 @@ message McpServerSpec {
   // Including a resource template name here causes a fatal runtime error.
   repeated string default_enabled_tools = 7;
 
-  // Environment variables required by the MCP server.
-  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8;
+  // Environment variable declarations for this MCP server.
+  // Keys are variable names; values describe their metadata and optionality.
+  // Replaces env_spec (which required an extra nesting level through
+  // EnvironmentSpec.data). Consumers read env first, falling back to
+  // env_spec.data during the migration period.
+  map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 15;
+
+  // Deprecated: use env instead. Retained for wire compatibility.
+  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [deprecated = true];
 
   // Manual tool approval overrides set by the MCP server owner.
   //
@@ -90,7 +97,7 @@ message McpServerSpec {
   //
   // The acquired access token is stored in the user's personal environment
   // as the env var named by auth.target_env_var. That env var must also be
-  // declared in env_spec.data so the execution pipeline knows about it.
+  // declared in env (or legacy env_spec.data) so the execution pipeline knows about it.
   McpServerAuth auth = 14;
 }
 
@@ -268,9 +275,10 @@ message McpServerAuth {
   // McpServer (or be accessible via cross-org reference).
   ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1;
 
-  // The env var in env_spec.data where the acquired access token is stored.
-  // Must correspond to an entry in env_spec.data so the execution pipeline
-  // resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
+  // The env var where the acquired access token is stored.
+  // Must correspond to an entry in env (or legacy env_spec.data) so the
+  // execution pipeline resolves it. The refresh token is stored as
+  // {target_env_var}_REFRESH_TOKEN
   // by convention. Both are written to the user's personal environment.
   string target_env_var = 2 [(buf.validate.field).string.min_len = 1];
 

@@ -2,6 +2,7 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
 import ai.stigmer.agentic.mcpserver.v1.HttpServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.McpServer;
 import ai.stigmer.agentic.mcpserver.v1.McpServerAuth;
@@ -21,6 +22,7 @@ public final class McpServerInput {
     private final StdioServerConfigInput stdio;
     private final HttpServerConfigInput http;
     private final java.util.List<String> defaultEnabledTools;
+    private final java.util.Map<String, EnvVarDeclarationInput> env;
     private final EnvSpecInput envSpec;
     private final java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
     private final String repositoryUrl;
@@ -37,6 +39,7 @@ public final class McpServerInput {
         this.stdio = builder.stdio;
         this.http = builder.http;
         this.defaultEnabledTools = builder.defaultEnabledTools;
+        this.env = builder.env;
         this.envSpec = builder.envSpec;
         this.pinnedToolApprovals = builder.pinnedToolApprovals;
         this.repositoryUrl = builder.repositoryUrl;
@@ -60,6 +63,11 @@ public final class McpServerInput {
         }
         if (this.defaultEnabledTools != null && !this.defaultEnabledTools.isEmpty()) {
             spec.addAllDefaultEnabledTools(this.defaultEnabledTools);
+        }
+        if (this.env != null && !this.env.isEmpty()) {
+            for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
+                spec.putEnv(entry.getKey(), entry.getValue().toProto());
+            }
         }
         if (this.envSpec != null) {
             spec.setEnvSpec(this.envSpec.toProto());
@@ -105,6 +113,7 @@ public final class McpServerInput {
         private StdioServerConfigInput stdio;
         private HttpServerConfigInput http;
         private java.util.List<String> defaultEnabledTools;
+        private java.util.Map<String, EnvVarDeclarationInput> env;
         private EnvSpecInput envSpec;
         private java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
         private String repositoryUrl;
@@ -122,6 +131,7 @@ public final class McpServerInput {
         public Builder stdio(StdioServerConfigInput stdio) { this.stdio = stdio; return this; }
         public Builder http(HttpServerConfigInput http) { this.http = http; return this; }
         public Builder defaultEnabledTools(java.util.List<String> defaultEnabledTools) { this.defaultEnabledTools = defaultEnabledTools; return this; }
+        public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
         public Builder envSpec(EnvSpecInput envSpec) { this.envSpec = envSpec; return this; }
         public Builder pinnedToolApprovals(java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals) { this.pinnedToolApprovals = pinnedToolApprovals; return this; }
         public Builder repositoryUrl(String repositoryUrl) { this.repositoryUrl = repositoryUrl; return this; }
@@ -219,6 +229,45 @@ public final class McpServerInput {
             public Builder timeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; return this; }
 
             public HttpServerConfigInput build() { return new HttpServerConfigInput(this); }
+        }
+    }
+
+    /** SDK input type for EnvVarDeclaration. */
+    public static final class EnvVarDeclarationInput {
+        private final boolean isSecret;
+        private final String description;
+        private final boolean optional;
+
+        private EnvVarDeclarationInput(Builder builder) {
+            this.isSecret = builder.isSecret;
+            this.description = builder.description;
+            this.optional = builder.optional;
+        }
+
+        EnvVarDeclaration toProto() {
+            EnvVarDeclaration.Builder builder = EnvVarDeclaration.newBuilder();
+            builder.setIsSecret(this.isSecret);
+            if (this.description != null) {
+                builder.setDescription(this.description);
+            }
+            builder.setOptional(this.optional);
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private boolean isSecret;
+            private String description;
+            private boolean optional;
+
+            private Builder() {}
+
+            public Builder isSecret(boolean isSecret) { this.isSecret = isSecret; return this; }
+            public Builder description(String description) { this.description = description; return this; }
+            public Builder optional(boolean optional) { this.optional = optional; return this; }
+
+            public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
         }
     }
 

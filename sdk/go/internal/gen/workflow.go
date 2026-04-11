@@ -65,6 +65,7 @@ type WorkflowInput struct {
 	Description string
 	Document    *WorkflowDocumentInput
 	Tasks       []*WorkflowTaskInput
+	Env         map[string]*EnvVarDeclarationInput
 	EnvSpec     *EnvSpecInput
 }
 
@@ -114,6 +115,12 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 	}
 	for _, item := range i.Tasks {
 		resource.Spec.Tasks = append(resource.Spec.Tasks, item.toProto())
+	}
+	if len(i.Env) > 0 {
+		resource.Spec.Env = make(map[string]*workflowv1.EnvVarDeclaration, len(i.Env))
+		for k, v := range i.Env {
+			resource.Spec.Env[k] = v.toProto()
+		}
 	}
 	if i.EnvSpec != nil {
 		resource.Spec.EnvSpec = i.EnvSpec.toProto()

@@ -27,7 +27,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\x85\x05\n\rMcpServerSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12\x19\n\x08icon_url\x18\x02 \x01(\tR\x07iconUrl\x12\x12\n\x04tags\x18\x03 \x03(\tR\x04tags\x12J\n\x05stdio\x18\x04 \x01(\x0b\x32\x32.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n\x04http\x18\x05 \x01(\x0b\x32\x31.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x12\x32\n\x15\x64\x65\x66\x61ult_enabled_tools\x18\x07 \x03(\tR\x13\x64\x65\x66\x61ultEnabledTools\x12M\n\x08\x65nv_spec\x18\x08 \x01(\x0b\x32\x32.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\x07\x65nvSpec\x12g\n\x15pinned_tool_approvals\x18\x0b \x03(\x0b\x32\x33.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x13pinnedToolApprovals\x12%\n\x0erepository_url\x18\x0c \x01(\tR\rrepositoryUrl\x12!\n\x0cgithub_stars\x18\r \x01(\x05R\x0bgithubStars\x12\x42\n\x04\x61uth\x18\x0e \x01(\x0b\x32..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04\x61uthB\x14\n\x0bserver_type\x12\x05\xbaH\x02\x08\x01\"j\n\x11StdioServerConfig\x12 \n\x07\x63ommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x63ommand\x12\x12\n\x04\x61rgs\x18\x02 \x03(\tR\x04\x61rgs\x12\x1f\n\x0bworking_dir\x18\x03 \x01(\tR\nworkingDir\"\xa3\x03\n\x10HttpServerConfig\x12\x1d\n\x03url\x18\x01 \x01(\tB\x0b\xbaH\x08r\x03\x88\x01\x01\xc8\x01\x01R\x03url\x12X\n\x07headers\x18\x02 \x03(\x0b\x32>.ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntryR\x07headers\x12\x65\n\x0cquery_params\x18\x03 \x03(\x0b\x32\x42.ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntryR\x0bqueryParams\x12\x33\n\x0ftimeout_seconds\x18\x04 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xac\x02(\x00R\x0etimeoutSeconds\x1a:\n\x0cHeadersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1a>\n\x10QueryParamsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"T\n\x12ToolApprovalPolicy\x12$\n\ttool_name\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08toolName\x12\x18\n\x07message\x18\x02 \x01(\tR\x07message\"\xe9\x01\n\rMcpServerAuth\x12X\n\roauth_app_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x0boauthAppRef\x12-\n\x0etarget_env_var\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0ctargetEnvVar\x12.\n\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\x12\x1f\n\x0bscope_hints\x18\x04 \x03(\tR\nscopeHintsB\xd1\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xc2\x06\n\rMcpServerSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12\x19\n\x08icon_url\x18\x02 \x01(\tR\x07iconUrl\x12\x12\n\x04tags\x18\x03 \x03(\tR\x04tags\x12J\n\x05stdio\x18\x04 \x01(\x0b\x32\x32.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n\x04http\x18\x05 \x01(\x0b\x32\x31.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x12\x32\n\x15\x64\x65\x66\x61ult_enabled_tools\x18\x07 \x03(\tR\x13\x64\x65\x66\x61ultEnabledTools\x12I\n\x03\x65nv\x18\x0f \x03(\x0b\x32\x37.ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntryR\x03\x65nv\x12Q\n\x08\x65nv_spec\x18\x08 \x01(\x0b\x32\x32.ai.stigmer.agentic.environment.v1.EnvironmentSpecB\x02\x18\x01R\x07\x65nvSpec\x12g\n\x15pinned_tool_approvals\x18\x0b \x03(\x0b\x32\x33.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x13pinnedToolApprovals\x12%\n\x0erepository_url\x18\x0c \x01(\tR\rrepositoryUrl\x12!\n\x0cgithub_stars\x18\r \x01(\x05R\x0bgithubStars\x12\x42\n\x04\x61uth\x18\x0e \x01(\x0b\x32..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04\x61uth\x1al\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12J\n\x05value\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x02\x38\x01\x42\x14\n\x0bserver_type\x12\x05\xbaH\x02\x08\x01\"j\n\x11StdioServerConfig\x12 \n\x07\x63ommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x63ommand\x12\x12\n\x04\x61rgs\x18\x02 \x03(\tR\x04\x61rgs\x12\x1f\n\x0bworking_dir\x18\x03 \x01(\tR\nworkingDir\"\xa3\x03\n\x10HttpServerConfig\x12\x1d\n\x03url\x18\x01 \x01(\tB\x0b\xbaH\x08r\x03\x88\x01\x01\xc8\x01\x01R\x03url\x12X\n\x07headers\x18\x02 \x03(\x0b\x32>.ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntryR\x07headers\x12\x65\n\x0cquery_params\x18\x03 \x03(\x0b\x32\x42.ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntryR\x0bqueryParams\x12\x33\n\x0ftimeout_seconds\x18\x04 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xac\x02(\x00R\x0etimeoutSeconds\x1a:\n\x0cHeadersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1a>\n\x10QueryParamsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"T\n\x12ToolApprovalPolicy\x12$\n\ttool_name\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08toolName\x12\x18\n\x07message\x18\x02 \x01(\tR\x07message\"\xe9\x01\n\rMcpServerAuth\x12X\n\roauth_app_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x0boauthAppRef\x12-\n\x0etarget_env_var\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0ctargetEnvVar\x12.\n\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\x12\x1f\n\x0bscope_hints\x18\x04 \x03(\tR\nscopeHintsB\xd1\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,8 +35,12 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.mcpserve
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcpserver::V1'
+  _globals['_MCPSERVERSPEC_ENVENTRY']._loaded_options = None
+  _globals['_MCPSERVERSPEC_ENVENTRY']._serialized_options = b'8\001'
   _globals['_MCPSERVERSPEC'].oneofs_by_name['server_type']._loaded_options = None
   _globals['_MCPSERVERSPEC'].oneofs_by_name['server_type']._serialized_options = b'\272H\002\010\001'
+  _globals['_MCPSERVERSPEC'].fields_by_name['env_spec']._loaded_options = None
+  _globals['_MCPSERVERSPEC'].fields_by_name['env_spec']._serialized_options = b'\030\001'
   _globals['_STDIOSERVERCONFIG'].fields_by_name['command']._loaded_options = None
   _globals['_STDIOSERVERCONFIG'].fields_by_name['command']._serialized_options = b'\272H\003\310\001\001'
   _globals['_HTTPSERVERCONFIG_HEADERSENTRY']._loaded_options = None
@@ -52,17 +56,19 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_MCPSERVERAUTH'].fields_by_name['target_env_var']._loaded_options = None
   _globals['_MCPSERVERAUTH'].fields_by_name['target_env_var']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_MCPSERVERSPEC']._serialized_start=196
-  _globals['_MCPSERVERSPEC']._serialized_end=841
-  _globals['_STDIOSERVERCONFIG']._serialized_start=843
-  _globals['_STDIOSERVERCONFIG']._serialized_end=949
-  _globals['_HTTPSERVERCONFIG']._serialized_start=952
-  _globals['_HTTPSERVERCONFIG']._serialized_end=1371
-  _globals['_HTTPSERVERCONFIG_HEADERSENTRY']._serialized_start=1249
-  _globals['_HTTPSERVERCONFIG_HEADERSENTRY']._serialized_end=1307
-  _globals['_HTTPSERVERCONFIG_QUERYPARAMSENTRY']._serialized_start=1309
-  _globals['_HTTPSERVERCONFIG_QUERYPARAMSENTRY']._serialized_end=1371
-  _globals['_TOOLAPPROVALPOLICY']._serialized_start=1373
-  _globals['_TOOLAPPROVALPOLICY']._serialized_end=1457
-  _globals['_MCPSERVERAUTH']._serialized_start=1460
-  _globals['_MCPSERVERAUTH']._serialized_end=1693
+  _globals['_MCPSERVERSPEC']._serialized_end=1030
+  _globals['_MCPSERVERSPEC_ENVENTRY']._serialized_start=900
+  _globals['_MCPSERVERSPEC_ENVENTRY']._serialized_end=1008
+  _globals['_STDIOSERVERCONFIG']._serialized_start=1032
+  _globals['_STDIOSERVERCONFIG']._serialized_end=1138
+  _globals['_HTTPSERVERCONFIG']._serialized_start=1141
+  _globals['_HTTPSERVERCONFIG']._serialized_end=1560
+  _globals['_HTTPSERVERCONFIG_HEADERSENTRY']._serialized_start=1438
+  _globals['_HTTPSERVERCONFIG_HEADERSENTRY']._serialized_end=1496
+  _globals['_HTTPSERVERCONFIG_QUERYPARAMSENTRY']._serialized_start=1498
+  _globals['_HTTPSERVERCONFIG_QUERYPARAMSENTRY']._serialized_end=1560
+  _globals['_TOOLAPPROVALPOLICY']._serialized_start=1562
+  _globals['_TOOLAPPROVALPOLICY']._serialized_end=1646
+  _globals['_MCPSERVERAUTH']._serialized_start=1649
+  _globals['_MCPSERVERAUTH']._serialized_end=1882
 # @@protoc_insertion_point(module_scope)
