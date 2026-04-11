@@ -92,8 +92,9 @@ func (c *McpServerController) Connect(
 	}
 
 	// Pre-flight: refresh expired OAuth tokens before env resolution.
-	// Only applies when runtime_env is empty (personal env path) and
-	// the MCP server has an auth block with an existing OAuthGrant.
+	// Only applies when runtime_env is empty and the MCP server has
+	// an auth block with an existing OAuthGrant. Tokens are refreshed
+	// in the grant's managed environment.
 	if len(input.GetRuntimeEnv()) == 0 {
 		if err := c.refreshOAuthTokenIfNeeded(ctx, mcpServer); err != nil {
 			return nil, err
@@ -146,7 +147,10 @@ func (c *McpServerController) Connect(
 // for the connect activity.
 //
 // When runtime_env is provided, the values are used directly (one-time use).
-// When runtime_env is empty, values are resolved from the user's personal environment.
+// When runtime_env is empty, variables are resolved from two sources:
+//   - OAuth-managed variables: read from the grant's managed environment
+//   - Remaining variables: read from the user's personal environment
+//
 // Returns the ExecutionContext resource ID (for cleanup) and an error.
 // Returns ("", nil) when the MCP server has no env declarations and no runtime_env.
 func (c *McpServerController) createConnectExecutionContext(
@@ -173,18 +177,34 @@ func (c *McpServerController) createConnectExecutionContext(
 			return "", nil
 		}
 
-		resolved, err := c.resolveFromPersonalEnvironment(
-			ctx, mcpServer.GetMetadata().GetOrg(), envDecls,
-		)
-		if err != nil {
-			return "", err
+		org := mcpServer.GetMetadata().GetOrg()
+		mcpServerID := mcpServer.GetMetadata().GetId()
+
+		// Split resolution: OAuth vars from managed env, rest from personal env.
+		oauthVars, remainingDecls := c.resolveOAuthVarsFromManagedEnv(ctx, mcpServerID, org, envDecls)
+
+		var personalVars map[string]*executioncontextv1.ExecutionValue
+		if len(remainingDecls) > 0 {
+			var err error
+			personalVars, err = c.resolveFromPersonalEnvironment(ctx, org, remainingDecls)
+			if err != nil {
+				return "", err
+			}
 		}
-		ecData = resolved
+
+		ecData = make(map[string]*executioncontextv1.ExecutionValue, len(oauthVars)+len(personalVars))
+		for k, v := range personalVars {
+			ecData[k] = v
+		}
+		for k, v := range oauthVars {
+			ecData[k] = v
+		}
 
 		log.Info().
 			Str("execution_id", executionID).
-			Int("resolved_count", len(resolved)).
-			Msg("Resolved env vars from personal environment for connect ExecutionContext")
+			Int("oauth_count", len(oauthVars)).
+			Int("personal_count", len(personalVars)).
+			Msg("Resolved env vars for connect ExecutionContext")
 	}
 
 	if len(ecData) == 0 {
@@ -217,6 +237,65 @@ func (c *McpServerController) createConnectExecutionContext(
 		Msg("Created ephemeral ExecutionContext for MCP connect")
 
 	return resourceID, nil
+}
+
+// resolveOAuthVarsFromManagedEnv reads OAuth-managed variables from the grant's
+// managed environment and returns them along with the remaining declarations
+// that still need to be resolved from the personal environment.
+//
+// If no grant exists or the grant has no managed environment, all declarations
+// are returned as "remaining" (unchanged).
+func (c *McpServerController) resolveOAuthVarsFromManagedEnv(
+	ctx context.Context,
+	mcpServerID string,
+	org string,
+	envDecls map[string]*environmentv1.EnvVarDeclaration,
+) (oauthVars map[string]*executioncontextv1.ExecutionValue, remainingDecls map[string]*environmentv1.EnvVarDeclaration) {
+	if c.oauthGrantStore == nil || c.managedEnvService == nil {
+		return nil, envDecls
+	}
+
+	grant, err := c.oauthGrantStore.Find(ctx, "", mcpServerID, org)
+	if err != nil || grant == nil || grant.EnvironmentID == "" {
+		return nil, envDecls
+	}
+
+	oauthKey := grant.AccessTokenEnvVar
+	if _, declared := envDecls[oauthKey]; !declared {
+		return nil, envDecls
+	}
+
+	tokenValue, err := c.managedEnvService.ReadSecretValue(ctx, grant.EnvironmentID, oauthKey)
+	if err != nil || tokenValue == "" {
+		log.Warn().Err(err).
+			Str("mcp_server_id", mcpServerID).
+			Str("oauth_key", oauthKey).
+			Str("managed_env_id", grant.EnvironmentID).
+			Msg("Failed to read OAuth token from managed environment — falling back to personal env")
+		return nil, envDecls
+	}
+
+	oauthVars = map[string]*executioncontextv1.ExecutionValue{
+		oauthKey: {
+			Value:    tokenValue,
+			IsSecret: true,
+		},
+	}
+
+	remainingDecls = make(map[string]*environmentv1.EnvVarDeclaration, len(envDecls)-1)
+	for k, v := range envDecls {
+		if k != oauthKey {
+			remainingDecls[k] = v
+		}
+	}
+
+	log.Debug().
+		Str("mcp_server_id", mcpServerID).
+		Str("oauth_key", oauthKey).
+		Str("managed_env_id", grant.EnvironmentID).
+		Msg("Resolved OAuth token from managed environment")
+
+	return oauthVars, remainingDecls
 }
 
 // resolveFromPersonalEnvironment reads environment variables from the user's

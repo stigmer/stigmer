@@ -106,8 +106,9 @@ Infrastructure services for managed environment operations + rewire the OAuth co
 
 ## Task 3: Connect + Refresh + Session Injection
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-11
+**Completed**: 2026-04-11
 **Repos**: stigmer (Go), stigmer-cloud (Java)
 
 Update all three consumption paths to read OAuth tokens from managed environments via `grant.environmentId`.
