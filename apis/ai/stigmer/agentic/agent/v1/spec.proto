@@ -47,13 +47,7 @@ message AgentSpec {
 
   // Environment variable declarations for this agent.
   // Keys are variable names; values describe their metadata and optionality.
-  // Replaces env_spec (which required an extra nesting level through
-  // EnvironmentSpec.data). Consumers read env first, falling back to
-  // env_spec.data during the migration period.
-  map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 8;
-
-  // Deprecated: use env instead. Retained for wire compatibility.
-  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7 [deprecated = true];
+  map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 7;
 }
 
 // SubAgent defines a specialized agent that the parent can delegate to.

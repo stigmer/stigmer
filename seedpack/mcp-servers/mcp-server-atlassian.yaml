@@ -18,11 +18,10 @@ spec:
     url: "https://mcp.atlassian.com/v1/mcp"
     headers:
       Authorization: "Bearer ${ATLASSIAN_ACCESS_TOKEN}"
-  env_spec:
-    data:
-      ATLASSIAN_ACCESS_TOKEN:
-        is_secret: true
-        description: "Atlassian API token or OAuth access token"
+  env:
+    ATLASSIAN_ACCESS_TOKEN:
+      is_secret: true
+      description: "Atlassian API token or OAuth access token"
   auth:
     target_env_var: "ATLASSIAN_ACCESS_TOKEN"
     token_lifetime_hint: "1h"

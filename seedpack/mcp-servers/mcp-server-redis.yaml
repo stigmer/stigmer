@@ -22,8 +22,7 @@ spec:
       - "redis-mcp-server"
       - "--url"
       - "${REDIS_URL}"
-  env_spec:
-    data:
-      REDIS_URL:
-        is_secret: true
-        description: "Redis connection URL (e.g., redis://localhost:6379/0 or rediss://user:pass@host:port)"
+  env:
+    REDIS_URL:
+      is_secret: true
+      description: "Redis connection URL (e.g., redis://localhost:6379/0 or rediss://user:pass@host:port)"

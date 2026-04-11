@@ -20,8 +20,7 @@ spec:
       - "run"
       - "github.com/hashicorp/terraform-mcp-server/cmd/terraform-mcp-server@latest"
       - "stdio"
-  env_spec:
-    data:
-      TFE_TOKEN:
-        is_secret: true
-        description: "HCP Terraform / Terraform Enterprise API token (optional, for private registry and workspace features)"
+  env:
+    TFE_TOKEN:
+      is_secret: true
+      description: "HCP Terraform / Terraform Enterprise API token (optional, for private registry and workspace features)"

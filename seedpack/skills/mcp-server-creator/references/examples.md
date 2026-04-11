@@ -32,14 +32,13 @@ spec:
   stdio:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-github"]
-  env_spec:
-    data:
-      GITHUB_TOKEN:
-        description: "GitHub personal access token with repo and read:org scopes"
-        is_secret: true
-      GITHUB_OWNER:
-        description: "Default GitHub organization or username (e.g., acme-corp)"
-        is_secret: false
+  env:
+    GITHUB_TOKEN:
+      description: "GitHub personal access token with repo and read:org scopes"
+      is_secret: true
+    GITHUB_OWNER:
+      description: "Default GitHub organization or username (e.g., acme-corp)"
+      is_secret: false
 ```
 
 ## Stdio Server with Tool Gates and Approval Policies
@@ -75,11 +74,10 @@ spec:
       message: "Delete repository: {{args.repo}}"
     - tool_name: force_push
       message: "Force push to {{args.branch}} on {{args.repo}}"
-  env_spec:
-    data:
-      GITHUB_TOKEN:
-        description: "GitHub personal access token with repo, read:org, and admin:repo_hook scopes"
-        is_secret: true
+  env:
+    GITHUB_TOKEN:
+      description: "GitHub personal access token with repo, read:org, and admin:repo_hook scopes"
+      is_secret: true
 ```
 
 ## Database Server with Restricted Defaults
@@ -105,11 +103,10 @@ spec:
     - list_tables
     - describe_table
     - list_schemas
-  env_spec:
-    data:
-      POSTGRES_URL:
-        description: "PostgreSQL connection URL (postgres://user:pass@host/db)"
-        is_secret: true
+  env:
+    POSTGRES_URL:
+      description: "PostgreSQL connection URL (postgres://user:pass@host/db)"
+      is_secret: true
 ```
 
 ## Python Module Server
@@ -144,11 +141,10 @@ spec:
       Authorization: "Bearer ${SEARCH_API_TOKEN}"
       X-API-Version: "2024-01"
     timeout_seconds: 45
-  env_spec:
-    data:
-      SEARCH_API_TOKEN:
-        description: "API token for the web search service"
-        is_secret: true
+  env:
+    SEARCH_API_TOKEN:
+      description: "API token for the web search service"
+      is_secret: true
 ```
 
 ## HTTP Server with Multi-Tenant Routing
@@ -177,14 +173,13 @@ spec:
       message: "Create knowledge base article: {{args.title}}"
     - tool_name: delete_article
       message: "Delete article '{{args.title}}' (id: {{args.article_id}})"
-  env_spec:
-    data:
-      KB_SERVICE_TOKEN:
-        description: "Service token for the knowledge base API"
-        is_secret: true
-      TENANT_ID:
-        description: "Tenant identifier for request routing (e.g., acme-corp)"
-        is_secret: false
+  env:
+    KB_SERVICE_TOKEN:
+      description: "Service token for the knowledge base API"
+      is_secret: true
+    TENANT_ID:
+      description: "Tenant identifier for request routing (e.g., acme-corp)"
+      is_secret: false
 ```
 
 ## Public Marketplace Server (Full-Featured)
@@ -231,18 +226,17 @@ spec:
       message: "Invite {{args.user_id}} to #{{args.channel_name}}"
     - tool_name: archive_channel
       message: "Archive channel #{{args.channel_name}}"
-  env_spec:
-    data:
-      SLACK_BOT_TOKEN:
-        description: "Slack Bot User OAuth Token (xoxb-...) with channels:read, chat:write, search:read scopes"
-        is_secret: true
-      SLACK_TEAM_ID:
-        description: "Slack workspace team ID (e.g., T01234567)"
-        is_secret: false
+  env:
+    SLACK_BOT_TOKEN:
+      description: "Slack Bot User OAuth Token (xoxb-...) with channels:read, chat:write, search:read scopes"
+      is_secret: true
+    SLACK_TEAM_ID:
+      description: "Slack workspace team ID (e.g., T01234567)"
+      is_secret: false
 ```
 
 Marketplace characteristics:
 - `metadata.org` set to the publishing organization
 - `metadata.visibility: visibility_public` — any org can reference it
 - `metadata.annotations` include support/documentation URLs
-- `env_spec` descriptions precise enough for external users
+- `env` descriptions precise enough for external users

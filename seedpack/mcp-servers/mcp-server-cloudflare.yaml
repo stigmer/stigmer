@@ -19,13 +19,12 @@ spec:
     args:
       - "-y"
       - "@cloudflare/mcp-server-cloudflare"
-  env_spec:
-    data:
-      CLOUDFLARE_API_TOKEN:
-        is_secret: true
-        description: "Cloudflare API token with appropriate permissions (or authenticate via 'npx wrangler login')"
-      CLOUDFLARE_ACCOUNT_ID:
-        is_secret: false
-        description: "Cloudflare account ID"
+  env:
+    CLOUDFLARE_API_TOKEN:
+      is_secret: true
+      description: "Cloudflare API token with appropriate permissions (or authenticate via 'npx wrangler login')"
+    CLOUDFLARE_ACCOUNT_ID:
+      is_secret: false
+      description: "Cloudflare account ID"
   auth:
     target_env_var: "CLOUDFLARE_API_TOKEN"

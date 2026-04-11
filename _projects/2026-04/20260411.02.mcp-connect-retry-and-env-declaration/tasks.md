@@ -63,14 +63,23 @@ Add timestamps and notes to track your progress.
 
 ## Task 4: T04: Migrate seedpack YAML files from env_spec.data to env
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-11 17:40
+**Completed**: 2026-04-11
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Migrate 32 MCP server YAML files: lift `env_spec.data` to `env`, remove `env_spec` wrapper
+- [x] Classify and apply `optional: true` on 4 vars: `FASTMCP_LOG_LEVEL` (aws-cdk, aws-documentation), `AWS_PROFILE` (aws-lambda), `MYSQL_PORT` and `MYSQL_DB` (mysql)
+- [x] Update `seedpack/mcp-servers/CONTRIBUTING.md` templates and field table
+- [x] Update `mcp-server-creator.yaml` agent instructions (3 `env_spec` references)
+- [x] Update `mcp-server-creator` skill: SKILL.md + references/schema.md, validation.md, examples.md
+- [x] Update `agent-creator` skill: SKILL.md + references/schema.md, examples.md
 
 ### Notes
-- [Add notes about this task here]
+- Zero `env_spec` references remain in any seedpack YAML or Markdown file (verified via grep)
+- 6 MCP servers without env vars unchanged (fetch, git, kubernetes, memory, playwright, sequential-thinking)
+- Tool scripts (`03_draft-mcp-server-creator-skill.sh`, `04_generate-approval-policy.sh`) excluded — `env_spec` only in comments, one-off generators
+- Optionality classification: 4 vars marked `optional: true` (have defaults or are non-critical), ~36 vars remain required by default (safe default — execution fails if missing)
 
 ## Task 5: T05: Update consumer code (Go Java Python TypeScript) with env-first fallback-to-env_spec pattern
 

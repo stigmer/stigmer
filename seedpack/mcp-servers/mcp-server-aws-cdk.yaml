@@ -18,8 +18,8 @@ spec:
     command: "uvx"
     args:
       - "awslabs.cdk-mcp-server@latest"
-  env_spec:
-    data:
-      FASTMCP_LOG_LEVEL:
-        is_secret: false
-        description: "Log level for the MCP server (default: ERROR)"
+  env:
+    FASTMCP_LOG_LEVEL:
+      is_secret: false
+      description: "Log level for the MCP server (default: ERROR)"
+      optional: true
