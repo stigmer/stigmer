@@ -284,9 +284,10 @@ export function useMcpServerSetup(
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
-        const missingVariables = diffEnv(envDeclarations, existingKeys, poolKeys);
+        const allMissing = diffEnv(envDeclarations, existingKeys, poolKeys);
+        const requiredMissing = allMissing.filter((v) => !v.optional);
 
-        if (missingVariables.length === 0) {
+        if (requiredMissing.length === 0) {
           dispatch({
             type: "RESOLVE_READY",
             key,
@@ -305,7 +306,7 @@ export function useMcpServerSetup(
           type: "RESOLVE_NEEDS_SETUP",
           key,
           mcpServer,
-          missingVariables,
+          missingVariables: requiredMissing,
           discoveredTools,
           toolApprovals,
         });
@@ -423,12 +424,13 @@ export function useMcpServerSetup(
       const envDeclarations = entry.mcpServer.spec?.env;
       if (!envDeclarations) continue;
 
-      const missingVariables = diffEnv(envDeclarations, personalKeys, poolKeys);
+      const allMissing = diffEnv(envDeclarations, personalKeys, poolKeys);
+      const requiredMissing = allMissing.filter((v) => !v.optional);
       const enabledTools = computeDefaultEnabledTools(
         entry.mcpServer,
         entry.discoveredTools,
       );
-      dispatch({ type: "POOL_RESOLVE", key, missingVariables, enabledTools });
+      dispatch({ type: "POOL_RESOLVE", key, missingVariables: requiredMissing, enabledTools });
     }
   }, [poolKeys, personalEnv.environment]);
 

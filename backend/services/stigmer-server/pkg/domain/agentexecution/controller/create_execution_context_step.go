@@ -101,7 +101,8 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	// 6. Filter merged env vars by agent env declarations (least-privilege whitelist).
 	// Agents only receive variables they explicitly declared. If env is
 	// nil or empty, all vars pass through for backward compatibility.
-	filtered, excludedKeys := envmerge.FilterByDeclaredKeys(merged, agentResource.GetSpec().GetEnv())
+	agentEnvDecls := agentResource.GetSpec().GetEnv()
+	filtered, excludedKeys := envmerge.FilterByDeclaredKeys(merged, agentEnvDecls)
 	if len(excludedKeys) > 0 {
 		log.Warn().
 			Str("execution_id", executionID).
@@ -132,6 +133,18 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 				ctx.Context(), filtered, sess, executionOrg, executionID, s.environmentClient,
 			)
 		}
+	}
+
+	// 6.9 Validate that all required (non-optional) declared env vars are
+	// present after merging, filtering, and all injections. Missing required
+	// vars are logged as a warning — the downstream execution will fail with
+	// a clearer error (e.g. MCP server auth failure) if truly needed.
+	if missingRequired := envmerge.ValidateRequiredKeys(filtered, agentEnvDecls); len(missingRequired) > 0 {
+		log.Warn().
+			Str("execution_id", executionID).
+			Str("agent_id", agentID).
+			Strs("missing_required", missingRequired).
+			Msg("Required env vars missing after environment merge — execution may fail")
 	}
 
 	log.Info().

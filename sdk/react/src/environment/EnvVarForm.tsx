@@ -21,6 +21,12 @@ export interface EnvVarFormVariable {
   readonly isSecret: boolean;
   /** Help text shown below the input. From the resource's env declaration description. */
   readonly description?: string;
+  /**
+   * When true, this variable is not required for the resource to function.
+   * Callers can use this to filter optional vars out of forms or to show
+   * them separately from required vars.
+   */
+  readonly optional?: boolean;
 }
 
 /** Options reported by the form alongside the collected values on submit. */

@@ -219,14 +219,22 @@ func (c *McpServerController) createConnectExecutionContext(
 	return resourceID, nil
 }
 
-// resolveFromPersonalEnvironment reads the required environment variables from
-// the user's personal environment (labeled stigmer.ai/personal=true). Returns
-// ExecutionValue entries with is_secret derived from the MCP server's env declarations.
+// resolveFromPersonalEnvironment reads environment variables from the user's
+// personal environment (labeled stigmer.ai/personal=true). Required variables
+// (optional=false, the default) must be present; optional variables are
+// included when available but silently skipped when missing.
 func (c *McpServerController) resolveFromPersonalEnvironment(
 	ctx context.Context,
 	org string,
 	envDecls map[string]*environmentv1.EnvVarDeclaration,
 ) (map[string]*executioncontextv1.ExecutionValue, error) {
+	requiredKeys := make([]string, 0, len(envDecls))
+	for k, decl := range envDecls {
+		if !decl.GetOptional() {
+			requiredKeys = append(requiredKeys, k)
+		}
+	}
+
 	listResp, err := c.environmentClient.List(ctx, &environmentv1.ListEnvironmentsRequest{
 		Org:    org,
 		Labels: map[string]string{personalEnvLabel: "true"},
@@ -235,9 +243,8 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 		return nil, grpclib.InternalError(err, "failed to list personal environments")
 	}
 	if listResp.GetTotalCount() == 0 || len(listResp.GetItems()) == 0 {
-		requiredKeys := make([]string, 0, len(envDecls))
-		for k := range envDecls {
-			requiredKeys = append(requiredKeys, k)
+		if len(requiredKeys) == 0 {
+			return make(map[string]*executioncontextv1.ExecutionValue), nil
 		}
 		return nil, grpclib.FailedPreconditionError(
 			"personal environment not found for org '%s'; save required credentials first: %v", org, requiredKeys,
@@ -256,6 +263,12 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 
 	for key, decl := range envDecls {
 		if !storedKeys[key] {
+			if decl.GetOptional() {
+				log.Debug().
+					Str("key", key).
+					Msg("Optional env var not in personal environment — skipping")
+				continue
+			}
 			missing = append(missing, key)
 			continue
 		}
@@ -269,10 +282,16 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 				Str("key", key).
 				Str("personal_env_id", personalEnvID).
 				Msg("Failed to get secret value from personal environment")
+			if decl.GetOptional() {
+				continue
+			}
 			missing = append(missing, key)
 			continue
 		}
 		if secretVal.GetValue() == "" {
+			if decl.GetOptional() {
+				continue
+			}
 			missing = append(missing, key)
 			continue
 		}
@@ -392,16 +411,16 @@ func convertToDiscoveredCapabilities(output *connectWorkflowOutput) *mcpserverv1
 
 // refreshOAuthTokenIfNeeded checks whether the MCP server has an auth block
 // with an existing OAuthGrant, and if the access token is expired, refreshes
-// it using the refresh token from the personal environment.
+// it using the refresh token from the grant's managed environment.
 //
 // This is the pre-flight check that ensures the Connect workflow (and
-// agent execution) always sees a fresh token in the personal environment.
+// agent execution) always sees a fresh token in the managed environment.
 func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
 ) error {
 	auth := mcpServer.GetSpec().GetAuth()
-	if auth == nil || c.oauthGrantStore == nil {
+	if auth == nil || c.oauthGrantStore == nil || c.managedEnvService == nil {
 		return nil
 	}
 
@@ -421,21 +440,20 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 		return nil
 	}
 
-	// Read the refresh token from the personal environment
-	personalEnvID, err := c.resolveOrCreatePersonalEnvironmentID(ctx, org)
-	if err != nil {
+	if grant.EnvironmentID == "" {
+		log.Warn().
+			Str("mcp_server_id", mcpServerID).
+			Msg("OAuth grant has no managed environment ID — user must re-authenticate via OAuth Connect")
 		return nil
 	}
 
-	refreshTokenVal, err := c.environmentClient.GetSecretValue(ctx, &environmentv1.EnvironmentSecretValueInput{
-		EnvironmentId: personalEnvID,
-		Key:           grant.RefreshTokenEnvVar,
-	})
+	refreshToken, err := c.managedEnvService.ReadSecretValue(ctx, grant.EnvironmentID, grant.RefreshTokenEnvVar)
 	if err != nil {
 		log.Debug().Err(err).
 			Str("mcp_server_id", mcpServerID).
 			Str("refresh_token_var", grant.RefreshTokenEnvVar).
-			Msg("No refresh token found in personal env (may not be OAuth-connected)")
+			Str("managed_env_id", grant.EnvironmentID).
+			Msg("No refresh token found in managed environment (may not be OAuth-connected)")
 		return nil
 	}
 
@@ -451,7 +469,7 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	}
 
 	result, err := oauth.RefreshTokenIfExpired(
-		ctx, grant, refreshTokenVal.GetValue(), clientSecret,
+		ctx, grant, refreshToken, clientSecret,
 	)
 	if err != nil {
 		return grpclib.FailedPreconditionError("%v", err)
@@ -461,29 +479,24 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 		return nil
 	}
 
-	// Update the personal environment with the new tokens
-	variables := map[string]*environmentv1.EnvironmentValue{
+	// Write refreshed tokens to the grant's managed environment
+	tokenVars := map[string]*environmentv1.EnvironmentValue{
 		grant.AccessTokenEnvVar: {
 			Value:    result.NewAccessToken,
 			IsSecret: true,
 		},
 	}
-	if result.NewRefreshToken != refreshTokenVal.GetValue() {
-		variables[grant.RefreshTokenEnvVar] = &environmentv1.EnvironmentValue{
+	if result.NewRefreshToken != refreshToken {
+		tokenVars[grant.RefreshTokenEnvVar] = &environmentv1.EnvironmentValue{
 			Value:    result.NewRefreshToken,
 			IsSecret: true,
 		}
 	}
 
-	_, err = c.environmentClient.UpdateVariables(ctx, &environmentv1.UpdateEnvironmentVariablesRequest{
-		EnvironmentId: personalEnvID,
-		Variables:     variables,
-	})
-	if err != nil {
-		return grpclib.InternalError(err, "failed to update refreshed tokens in personal environment")
+	if err := c.managedEnvService.UpdateSecrets(ctx, grant.EnvironmentID, tokenVars); err != nil {
+		return grpclib.InternalError(err, "failed to update refreshed tokens in managed environment")
 	}
 
-	// Update the OAuthGrant record with new expiry
 	grant.AccessTokenExpiresAt = result.NewExpiresAt
 	if err := c.oauthGrantStore.Upsert(ctx, grant); err != nil {
 		log.Warn().Err(err).

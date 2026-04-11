@@ -44,22 +44,28 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly tokenLifetimeHint: string | null;
   /**
-   * Variables required by the MCP server that are missing from the
-   * user's personal environment. Empty when all variables are present
-   * or the server has no `env` declarations.
+   * Required variables (non-optional) missing from the user's personal
+   * environment. Empty when all required variables are present, the
+   * server has no `env` declarations, or all declarations are optional.
    *
    * When `authMode` is `"oauth"`, the OAuth-managed `target_env_var`
    * is excluded from this list — it is acquired via the OAuth flow,
-   * not via a manual form. Only additional non-OAuth vars appear here.
+   * not via a manual form. Only additional non-OAuth required vars
+   * appear here.
+   *
+   * Optional env vars are never included — they are discoverable in
+   * the read-only EnvSection but do not block connect.
    *
    * Suitable as direct input to {@link EnvVarForm}.
    */
   readonly missingVariables: EnvVarFormVariable[];
   /**
-   * `true` when all required credentials are available — both
-   * OAuth-managed and manual variables. For OAuth servers this means
-   * the OAuth token is in the personal env AND any additional manual
-   * vars are also present.
+   * `true` when all required (non-optional) credentials are available
+   * — both OAuth-managed and manual variables. For OAuth servers this
+   * means the OAuth token is in the personal env AND any additional
+   * required manual vars are also present.
+   *
+   * Servers whose env vars are all optional are always ready.
    */
   readonly isReady: boolean;
   /** `true` while the personal environment is being fetched. */
@@ -153,13 +159,18 @@ export function useMcpServerCredentials(
     );
   }, [mcpServer, existingKeys]);
 
+  const requiredMissing = useMemo(
+    () => allMissingVariables.filter((v) => !v.optional),
+    [allMissingVariables],
+  );
+
   const missingVariables = useMemo(() => {
-    if (!oauthTargetEnvVar) return allMissingVariables;
-    return allMissingVariables.filter((v) => v.key !== oauthTargetEnvVar);
-  }, [allMissingVariables, oauthTargetEnvVar]);
+    if (!oauthTargetEnvVar) return requiredMissing;
+    return requiredMissing.filter((v) => v.key !== oauthTargetEnvVar);
+  }, [requiredMissing, oauthTargetEnvVar]);
 
   const isReady =
-    !personalEnv.isLoading && allMissingVariables.length === 0;
+    !personalEnv.isLoading && requiredMissing.length === 0;
 
   const saveCredentials = useCallback(
     async (values: Record<string, EnvVarInput>): Promise<void> => {

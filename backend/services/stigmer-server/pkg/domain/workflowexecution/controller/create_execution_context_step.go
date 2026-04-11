@@ -105,13 +105,26 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 	// 6. Filter merged env vars by workflow env declarations (least-privilege whitelist).
 	// Workflows only receive variables they explicitly declared. If env is
 	// nil or empty, all vars pass through for backward compatibility.
-	filtered, excludedKeys := envmerge.FilterByDeclaredKeys(merged, workflow.GetSpec().GetEnv())
+	workflowEnvDecls := workflow.GetSpec().GetEnv()
+	filtered, excludedKeys := envmerge.FilterByDeclaredKeys(merged, workflowEnvDecls)
 	if len(excludedKeys) > 0 {
 		log.Warn().
 			Str("execution_id", executionID).
 			Str("workflow_id", workflowID).
 			Strs("excluded_keys", excludedKeys).
 			Msg("Filtered env vars not declared in workflow env")
+	}
+
+	// 6.1 Validate that all required (non-optional) declared env vars are
+	// present after merging and filtering. Workflows access MCP servers
+	// through agent tasks whose executions are validated separately, so
+	// this primarily catches missing workflow-level required vars.
+	if missingRequired := envmerge.ValidateRequiredKeys(filtered, workflowEnvDecls); len(missingRequired) > 0 {
+		log.Warn().
+			Str("execution_id", executionID).
+			Str("workflow_id", workflowID).
+			Strs("missing_required", missingRequired).
+			Msg("Required env vars missing after environment merge — execution may fail")
 	}
 
 	log.Info().
