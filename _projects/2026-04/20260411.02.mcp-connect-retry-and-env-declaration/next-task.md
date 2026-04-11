@@ -76,9 +76,29 @@ All the context you need is right here with absolute paths to project files.
 - **Python consumers**: Updated config_transformer.py (spec.env), fixed pre-existing bug in setup.py (_extract_runtime_env_for_server referenced nonexistent env_spec.variables)
 - **TypeScript consumers**: Renamed diffEnvSpec→diffEnv, updated hooks (credentials/setup/agentSetup), detail views (McpServerDetailView, AgentDetailView), YAML parse/serialize, site fixtures
 
+## Session Progress (2026-04-11, Session 5 — Post-completion bug fix)
+
+### Three bugs discovered during end-to-end OAuth connect testing:
+
+**Bug 1 (P0)**: `McpServerConnectHandler.resolveEnvironmentVariables()` hardcoded `identityAccountId = ""` — the OAuth grant lookup always returned empty because the grant is keyed by the real caller identity. Fixed by passing `invokerIdentityAccountId` from the pipeline context.
+
+**Bug 2 (P1)**: 10 `DeleteOperationHandlerV2` pipelines were missing `commonSteps.extractResourceId` before `deleteSteps.loadExisting`. This broke all direct delete RPCs for those resource types. Fixed by adding the step to all 10 handlers.
+
+**Bug 3 (P1)**: React SDK connect hooks (`useMcpServerConnect`, `useMcpServerOAuthConnect`) blanket-injected `STIGMER_SERVER_ADDRESS` and `STIGMER_API_KEY` into every connect call. This caused `hasRuntimeEnv=true` which set `tolerateMissing=true`, silently suppressing missing credential errors. Fixed by adding `resolveDeclaredSystemEnvVars()` that filters system vars by the target server's `spec.env` declarations.
+
+### Verified against production MongoDB:
+- OAuth grant exists with correct identity (`ida_01kmjcvg8w03h86dzj8tyfv8b4`)
+- Managed environment has `SLACK_ACCESS_TOKEN` stored
+- Orphaned execution context confirmed with only 2 platform vars (no `SLACK_ACCESS_TOKEN`)
+- Cleaned up orphaned execution context and IAM policy documents
+
+### Commits:
+- stigmer: `fix(sdk): filter system env vars by server declarations in connect hooks`
+- stigmer-cloud: `fix(backend): pass caller identity to OAuth grant lookup and add extractResourceId to 10 delete handlers`
+
 ## Project Complete
 
-All 6 tasks (T01-T06) are done. The `EnvVarDeclaration.optional` flag is now consistently enforced across:
+All 6 tasks (T01-T06) are done plus post-completion bug fixes. The `EnvVarDeclaration.optional` flag is now consistently enforced across:
 - Go backend: connect handler, envmerge validation, agent/workflow execution context steps
 - Java backend: connect handler, MCP→Agent env merge, McpEnvironmentValidator (T05)
 - Frontend: diffEnv, useMcpServerCredentials, useMcpServerSetup, EnvSection badge
