@@ -691,7 +691,7 @@ func generatePythonMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefini
 		fmt.Fprintf(buf, "            raise wrap_error(e) from e\n\n")
 
 	case isApiResourceRefInput:
-		kindConst := pascalToSnake(cfg.protoResType)
+		kindConst := cfg.resourceKind
 		fmt.Fprintf(buf, "    def %s(self, ref: ResourceRef) -> %s:\n", methodName, outputAnnotation)
 		fmt.Fprintf(buf, "        try:\n")
 		fmt.Fprintf(buf, "            proto = ref._to_proto()\n")
@@ -755,7 +755,7 @@ func generatePythonStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *Serv
 }
 
 func generatePythonSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig) {
-	kindConst := pascalToSnake(cfg.protoResType)
+	kindConst := cfg.resourceKind
 
 	buf.WriteString("    def list(self, params: ListParams) -> ListResult:\n")
 	buf.WriteString("        try:\n")

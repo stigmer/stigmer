@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "proto\032\'ai/stigmer/commons/apiresource/io" +
       ".proto\0328ai/stigmer/commons/apiresource/r" +
       "pc_service_options.proto\032+ai/stigmer/com" +
-      "mons/rpc/method_options.proto2\225\007\n\032McpSer" +
+      "mons/rpc/method_options.proto2\331\n\n\032McpSer" +
       "verCommandController\022_\n\005apply\022*.ai.stigm" +
       "er.agentic.mcpserver.v1.McpServer\032*.ai.s" +
       "tigmer.agentic.mcpserver.v1.McpServer\022f\n" +
@@ -65,12 +65,23 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "r.agentic.mcpserver.v1.ConnectInput\032*.ai" +
       ".stigmer.agentic.mcpserver.v1.McpServer\"" +
       ">\302\270\030:\010\026\020,\"\rmcp_server_id*%unauthorized t" +
-      "o connect to mcp server\032\004\240\377+,B\257\001B\014Comman" +
-      "dProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcp" +
-      "server.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver" +
-      "\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GP" +
-      "BMetadata\352\002#Ai::Stigmer::Agentic::Mcpser" +
-      "ver::V1b\006proto3"
+      "o connect to mcp server\022\337\001\n\024initiateOAut" +
+      "hConnect\022:.ai.stigmer.agentic.mcpserver." +
+      "v1.InitiateOAuthConnectInput\032;.ai.stigme" +
+      "r.agentic.mcpserver.v1.InitiateOAuthConn" +
+      "ectOutput\"N\302\270\030J\010\026\020,\"\rmcp_server_id*5unau" +
+      "thorized to initiate oauth connect for m" +
+      "cp server\022\337\001\n\024completeOAuthConnect\022:.ai." +
+      "stigmer.agentic.mcpserver.v1.CompleteOAu" +
+      "thConnectInput\032;.ai.stigmer.agentic.mcps" +
+      "erver.v1.CompleteOAuthConnectOutput\"N\302\270\030" +
+      "J\010\026\020,\"\rmcp_server_id*5unauthorized to co" +
+      "mplete oauth connect for mcp server\032\004\240\377+" +
+      ",B\257\001B\014CommandProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer" +
+      ".Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agent" +
+      "ic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcp" +
+      "server\\V1\\GPBMetadata\352\002#Ai::Stigmer::Age" +
+      "ntic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

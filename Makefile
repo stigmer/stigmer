@@ -180,6 +180,7 @@ lint: ## Run all linters and type checks
 	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check .
 	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
+	npm run typecheck -w @stigmer/sdk
 	npm run lint -w client-apps/web
 	$(MAKE) -C site lint
 

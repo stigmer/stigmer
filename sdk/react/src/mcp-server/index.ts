@@ -32,6 +32,7 @@ export { McpServerConfigPanel } from "./McpServerConfigPanel";
 export type {
   McpServerConfigPanelProps,
   McpServerCredentialsProps,
+  McpServerOAuthSignInProps,
 } from "./McpServerConfigPanel";
 
 export { useMcpServerSetup, toServerKey } from "./useMcpServerSetup";
@@ -52,5 +53,20 @@ export type {
 export { useMcpServerConnect } from "./useMcpServerConnect";
 export type { UseMcpServerConnectReturn } from "./useMcpServerConnect";
 
+export { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
+export type {
+  UseMcpServerOAuthConnectReturn,
+  OAuthConnectPhase,
+} from "./useMcpServerOAuthConnect";
+
+export { OAuthCallbackHandler } from "./OAuthCallbackHandler";
+export type {
+  OAuthCallbackHandlerProps,
+  OAuthCallbackParams,
+} from "./OAuthCallbackHandler";
+
 export { useMcpServerCredentials } from "./useMcpServerCredentials";
-export type { UseMcpServerCredentialsReturn } from "./useMcpServerCredentials";
+export type {
+  UseMcpServerCredentialsReturn,
+  McpServerAuthMode,
+} from "./useMcpServerCredentials";

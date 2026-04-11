@@ -15,6 +15,8 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { useMcpServer } from "./useMcpServer";
 import { useMcpServerConnect } from "./useMcpServerConnect";
 import { useMcpServerCredentials } from "./useMcpServerCredentials";
+import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
+import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
@@ -113,6 +115,7 @@ export function McpServerDetailView({
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
   const credentials = useMcpServerCredentials(org, mcpServer ?? null);
   const connection = useMcpServerConnect();
+  const oauth = useMcpServerOAuthConnect();
 
   const [showCredentialForm, setShowCredentialForm] = useState(defaultShowCredentialForm);
   const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>(defaultCapabilityTab);
@@ -126,8 +129,25 @@ export function McpServerDetailView({
     }
   }, [mcpServer]);
 
+  const handleOAuthSignIn = useCallback(async () => {
+    if (!mcpServer?.metadata?.id) return;
+
+    try {
+      await oauth.startOAuth(mcpServer.metadata.id);
+      credentials.refetch();
+      refetch();
+    } catch {
+      // error state is managed by the oauth hook
+    }
+  }, [mcpServer, oauth, credentials, refetch]);
+
   const handleConnectClick = useCallback(async () => {
     if (!mcpServer?.metadata?.id) return;
+
+    if (credentials.authMode === "oauth" && !credentials.isOAuthConnected) {
+      handleOAuthSignIn();
+      return;
+    }
 
     if (!credentials.isReady) {
       setShowCredentialForm(true);
@@ -140,7 +160,7 @@ export function McpServerDetailView({
     } catch {
       // error state is managed by the hook
     }
-  }, [mcpServer, credentials.isReady, connection, refetch]);
+  }, [mcpServer, credentials.authMode, credentials.isOAuthConnected, credentials.isReady, connection, refetch, handleOAuthSignIn]);
 
   const handleCredentialSubmit = useCallback(
     async (
@@ -197,6 +217,12 @@ export function McpServerDetailView({
     return items;
   }, [tools.length, totalPolicyCount, resourceTemplates.length]);
 
+  const combinedError = connection.error ?? oauth.error;
+  const combinedClearError = useCallback(() => {
+    connection.clearError();
+    oauth.clearError();
+  }, [connection, oauth]);
+
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -233,7 +259,22 @@ export function McpServerDetailView({
       )}
 
       {spec?.envSpec && Object.keys(spec.envSpec.data).length > 0 && (
-        <EnvSpecSection data={spec.envSpec.data} />
+        <EnvSpecSection
+          data={spec.envSpec.data}
+          oauthTargetEnvVar={credentials.oauthTargetEnvVar}
+        />
+      )}
+
+      {credentials.authMode === "oauth" && (
+        <OAuthSection
+          isOAuthConnected={credentials.isOAuthConnected}
+          tokenLifetimeHint={credentials.tokenLifetimeHint}
+          oauthPhase={oauth.phase}
+          onSignIn={handleOAuthSignIn}
+          oauthError={oauth.error}
+          onClearOAuthError={oauth.clearError}
+          serverName={mcpServer.metadata?.name || mcpServer.metadata?.slug || ""}
+        />
       )}
 
       <section>
@@ -242,14 +283,17 @@ export function McpServerDetailView({
         </h3>
         <div className="overflow-hidden rounded-lg border border-border">
           <ConnectBar
-            isConnecting={connection.isConnecting}
-            connectionError={connection.error}
+            isConnecting={connection.isConnecting || oauth.isInProgress}
+            connectionError={combinedError}
             onConnect={handleConnectClick}
-            onClearConnectionError={connection.clearError}
+            onClearConnectionError={combinedClearError}
             hasDiscoveredTools={hasDiscoveredTools}
             toolCount={tools.length}
             policyCount={totalPolicyCount}
             credentialsLoading={credentials.isLoading}
+            oauthPhase={oauth.phase}
+            authMode={credentials.authMode}
+            isOAuthConnected={credentials.isOAuthConnected}
           />
 
           {showCredentialForm && credentials.missingVariables.length > 0 && (
@@ -313,6 +357,9 @@ function ConnectBar({
   toolCount,
   policyCount,
   credentialsLoading,
+  oauthPhase,
+  authMode,
+  isOAuthConnected,
 }: {
   readonly isConnecting: boolean;
   readonly connectionError: Error | null;
@@ -322,7 +369,31 @@ function ConnectBar({
   readonly toolCount: number;
   readonly policyCount: number;
   readonly credentialsLoading: boolean;
+  readonly oauthPhase: OAuthConnectPhase;
+  readonly authMode: "manual" | "oauth";
+  readonly isOAuthConnected: boolean;
 }) {
+  const isOAuthBusy =
+    oauthPhase === "initiating" ||
+    oauthPhase === "awaiting-callback" ||
+    oauthPhase === "completing" ||
+    oauthPhase === "connecting";
+
+  const buttonLabel = (() => {
+    if (isOAuthBusy) return oauthPhaseLabel(oauthPhase);
+    if (isConnecting) return "Connecting...";
+    if (authMode === "oauth" && !isOAuthConnected) return "Sign in to connect";
+    if (hasDiscoveredTools) return "Reconnect";
+    return "Connect";
+  })();
+
+  const buttonIcon = (() => {
+    if (isOAuthBusy || isConnecting) return <Spinner />;
+    if (authMode === "oauth" && !isOAuthConnected) return <OAuthIcon className="size-3.5" />;
+    if (hasDiscoveredTools) return <RefreshIcon className="size-3.5" />;
+    return <ConnectIcon className="size-3.5" />;
+  })();
+
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
@@ -334,7 +405,7 @@ function ConnectBar({
         <button
           type="button"
           onClick={onConnect}
-          disabled={isConnecting || credentialsLoading}
+          disabled={isConnecting || isOAuthBusy || credentialsLoading}
           data-cursor-target="connect-button"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
@@ -343,22 +414,8 @@ function ConnectBar({
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
-          {isConnecting ? (
-            <>
-              <Spinner />
-              Connecting...
-            </>
-          ) : hasDiscoveredTools ? (
-            <>
-              <RefreshIcon className="size-3.5" />
-              Reconnect
-            </>
-          ) : (
-            <>
-              <ConnectIcon className="size-3.5" />
-              Connect
-            </>
-          )}
+          {buttonIcon}
+          {buttonLabel}
         </button>
       </div>
 
@@ -382,11 +439,167 @@ function ConnectBar({
   );
 }
 
+function oauthPhaseLabel(phase: OAuthConnectPhase): string {
+  switch (phase) {
+    case "initiating":
+      return "Starting sign-in...";
+    case "awaiting-callback":
+      return "Waiting for authorization...";
+    case "completing":
+      return "Completing sign-in...";
+    case "connecting":
+      return "Discovering tools...";
+    default:
+      return "Connecting...";
+  }
+}
+
 function formatConnectionSummary(toolCount: number, policyCount: number): string {
   const toolLabel = `${toolCount} tool${toolCount !== 1 ? "s" : ""}`;
   if (policyCount === 0) return toolLabel;
   const policyLabel = `${policyCount} ${policyCount !== 1 ? "policies" : "policy"}`;
   return `${toolLabel}, ${policyLabel}`;
+}
+
+// ---------------------------------------------------------------------------
+// OAuthSection — authentication status and sign-in action
+// ---------------------------------------------------------------------------
+
+function OAuthSection({
+  isOAuthConnected,
+  tokenLifetimeHint,
+  oauthPhase,
+  onSignIn,
+  oauthError,
+  onClearOAuthError,
+  serverName,
+}: {
+  readonly isOAuthConnected: boolean;
+  readonly tokenLifetimeHint: string | null;
+  readonly oauthPhase: OAuthConnectPhase;
+  readonly onSignIn: () => void;
+  readonly oauthError: Error | null;
+  readonly onClearOAuthError: () => void;
+  readonly serverName: string;
+}) {
+  const isOAuthBusy =
+    oauthPhase === "initiating" ||
+    oauthPhase === "awaiting-callback" ||
+    oauthPhase === "completing" ||
+    oauthPhase === "connecting";
+
+  return (
+    <Section title="Authentication">
+      <div className="flex flex-col gap-3 p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <OAuthConnectionStatusBadge isConnected={isOAuthConnected} />
+            {isOAuthConnected && tokenLifetimeHint && (
+              <span className="text-xs text-muted-foreground">
+                Tokens refresh automatically
+                {tokenLifetimeHint !== "never" &&
+                  `. Session lasts ~${tokenLifetimeHint}.`}
+              </span>
+            )}
+          </div>
+          {!isOAuthConnected && (
+            <button
+              type="button"
+              onClick={onSignIn}
+              disabled={isOAuthBusy}
+              data-cursor-target="oauth-sign-in-button"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+                "bg-primary text-primary-foreground",
+                "hover:bg-primary-hover",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {isOAuthBusy ? (
+                <>
+                  <Spinner />
+                  {oauthPhaseLabel(oauthPhase)}
+                </>
+              ) : (
+                <>
+                  <OAuthIcon className="size-3.5" />
+                  Sign in with {serverName || "OAuth"}
+                </>
+              )}
+            </button>
+          )}
+          {isOAuthConnected && (
+            <button
+              type="button"
+              onClick={onSignIn}
+              disabled={isOAuthBusy}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
+                "border border-border bg-background text-foreground",
+                "hover:bg-accent hover:text-accent-foreground",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {isOAuthBusy ? (
+                <>
+                  <Spinner />
+                  {oauthPhaseLabel(oauthPhase)}
+                </>
+              ) : (
+                <>
+                  <RefreshIcon className="size-3.5" />
+                  Re-authenticate
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {oauthError && (
+          <div className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2">
+            <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+            <p className="flex-1 text-xs text-destructive">
+              {oauthError.message}
+            </p>
+            <button
+              type="button"
+              onClick={onClearOAuthError}
+              className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
+              aria-label="Dismiss error"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function OAuthConnectionStatusBadge({
+  isConnected,
+}: {
+  readonly isConnected: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
+        isConnected
+          ? "bg-success/10 text-success"
+          : "bg-muted text-muted-foreground",
+      )}
+    >
+      <span
+        className={cn(
+          "size-1.5 rounded-full",
+          isConnected ? "bg-success" : "bg-muted-foreground",
+        )}
+        aria-hidden="true"
+      />
+      {isConnected ? "Connected" : "Not connected"}
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -671,8 +884,10 @@ function ResourceTemplatesList({
 
 function EnvSpecSection({
   data,
+  oauthTargetEnvVar,
 }: {
   readonly data: { [key: string]: EnvironmentValue };
+  readonly oauthTargetEnvVar: string | null;
 }) {
   const entries = Object.entries(data).sort(([a], [b]) =>
     a.localeCompare(b),
@@ -681,21 +896,29 @@ function EnvSpecSection({
   return (
     <Section title={`Environment Variables (${entries.length})`}>
       <div className="flex flex-col divide-y divide-border">
-        {entries.map(([name, env]) => (
-          <div key={name} className="flex items-start gap-3 px-3 py-2">
-            <code className="shrink-0 font-mono text-sm font-medium text-foreground">
-              {name}
-            </code>
-            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {env.isSecret ? "secret" : "config"}
-            </span>
-            {env.description && (
-              <span className="text-xs text-muted-foreground">
-                {env.description}
+        {entries.map(([name, env]) => {
+          const isOAuthManaged = name === oauthTargetEnvVar;
+          return (
+            <div key={name} className="flex items-start gap-3 px-3 py-2">
+              <code className="shrink-0 font-mono text-sm font-medium text-foreground">
+                {name}
+              </code>
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {env.isSecret ? "secret" : "config"}
               </span>
-            )}
-          </div>
-        ))}
+              {isOAuthManaged && (
+                <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                  oauth
+                </span>
+              )}
+              {env.description && (
+                <span className="text-xs text-muted-foreground">
+                  {env.description}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </Section>
   );
@@ -1089,6 +1312,25 @@ function SparklesIcon({ className }: { readonly className?: string }) {
       aria-hidden="true"
     >
       <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" />
+    </svg>
+  );
+}
+
+function OAuthIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="1.5" y="5" width="13" height="8" rx="1.5" />
+      <path d="M4.5 5V3.5a3.5 3.5 0 0 1 7 0V5" />
+      <circle cx="8" cy="9.5" r="1.25" />
     </svg>
   );
 }

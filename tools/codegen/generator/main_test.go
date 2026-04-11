@@ -532,6 +532,73 @@ func TestPascalToSnake(t *testing.T) {
 	}
 }
 
+func TestResolveResourceKind(t *testing.T) {
+	tests := []struct {
+		name   string
+		schema *ServiceSchemaFile
+		want   string
+	}{
+		{
+			name: "exact match from enum - oauth_app",
+			schema: &ServiceSchemaFile{
+				Resource: "oauthapp",
+				EnumTypes: []EnumSchema{{
+					Name: "ApiResourceKind",
+					Values: []EnumValueSchema{
+						{Name: "agent", Number: 40},
+						{Name: "oauth_app", Number: 22},
+					},
+				}},
+			},
+			want: "oauth_app",
+		},
+		{
+			name: "exact match from enum - agent",
+			schema: &ServiceSchemaFile{
+				Resource: "agent",
+				EnumTypes: []EnumSchema{{
+					Name: "ApiResourceKind",
+					Values: []EnumValueSchema{
+						{Name: "agent", Number: 40},
+						{Name: "oauth_app", Number: 22},
+					},
+				}},
+			},
+			want: "agent",
+		},
+		{
+			name: "exact match from enum - mcp_server",
+			schema: &ServiceSchemaFile{
+				Resource: "mcpserver",
+				EnumTypes: []EnumSchema{{
+					Name: "ApiResourceKind",
+					Values: []EnumValueSchema{
+						{Name: "mcp_server", Number: 44},
+					},
+				}},
+			},
+			want: "mcp_server",
+		},
+		{
+			name: "fallback when no ApiResourceKind enum",
+			schema: &ServiceSchemaFile{
+				Resource:  "agent",
+				EnumTypes: []EnumSchema{},
+			},
+			want: "agent",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resolveResourceKind(tc.schema)
+			if got != tc.want {
+				t.Errorf("resolveResourceKind() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestIsSpecialType(t *testing.T) {
 	specials := []string{"EnvironmentSpec", "EnvironmentValue", "ExecutionValue", "ApiResourceReference"}
 	for _, name := range specials {

@@ -23,3 +23,15 @@ spec:
       SLACK_ACCESS_TOKEN:
         is_secret: true
         description: "Slack user OAuth token (requires a registered Slack app with appropriate scopes)"
+  auth:
+    oauth_app_ref:
+      org: stigmer
+      kind: oauth_app
+      slug: slack-oauth
+    target_env_var: "SLACK_ACCESS_TOKEN"
+    token_lifetime_hint: "12h"
+    scope_hints:
+      - "channels:read"
+      - "chat:write"
+      - "users:read"
+      - "search:read"

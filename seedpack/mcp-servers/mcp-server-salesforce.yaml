@@ -19,3 +19,19 @@ spec:
     args:
       - "-y"
       - "@salesforce/mcp@latest"
+  env_spec:
+    data:
+      SALESFORCE_ACCESS_TOKEN:
+        is_secret: true
+        description: "Salesforce OAuth access token (acquired via OAuth Connect flow)"
+  auth:
+    oauth_app_ref:
+      org: stigmer
+      kind: oauth_app
+      slug: salesforce-oauth
+    target_env_var: "SALESFORCE_ACCESS_TOKEN"
+    token_lifetime_hint: "2h"
+    scope_hints:
+      - "api"
+      - "refresh_token"
+      - "offline_access"

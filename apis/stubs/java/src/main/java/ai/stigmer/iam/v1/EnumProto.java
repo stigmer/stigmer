@@ -36,7 +36,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n\034ai/stigmer/iam/v1/enum.proto\022\021ai.stigm" +
-      "er.iam.v1*\237\004\n\rIamPermission\022\017\n\013unspecifi" +
+      "er.iam.v1*\271\004\n\rIamPermission\022\017\n\013unspecifi" +
       "ed\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_" +
       "delete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_vi" +
       "ew_access\020\005\022\024\n\020can_create_agent\020\006\022\027\n\023can" +
@@ -44,18 +44,18 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "\020\010\022\024\n\020can_create_skill\020\t\022\026\n\022can_create_p" +
       "roject\020\n\022\022\n\016can_create_idp\020\013\022\032\n\026can_crea" +
       "te_environment\020\014\022\037\n\033can_create_identity_" +
-      "account\020\025\022\033\n\027can_create_execution_in\020\r\022\027" +
-      "\n\023can_create_instance\020\016\022\017\n\013can_execute\020\017" +
-      "\022\024\n\020can_read_secrets\020\020\022\025\n\021can_bootstrap_" +
-      "iam\020\021\022 \n\034can_manage_identity_accounts\020\022\022" +
-      "\037\n\033can_update_execution_status\020\023\022\030\n\024logi" +
-      "n_to_back_office\020\024\022\017\n\013can_connect\020\026*Q\n\007I" +
-      "amRole\022\030\n\024iam_role_unspecified\020\000\022\t\n\005owne" +
-      "r\020\001\022\t\n\005admin\020\002\022\n\n\006member\020\003\022\n\n\006viewer\020\004Br" +
-      "B\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312" +
-      "\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\" +
-      "GPBMetadata\352\002\024Ai::Stigmer::Iam::V1b\006prot" +
-      "o3"
+      "account\020\025\022\030\n\024can_create_oauth_app\020\027\022\033\n\027c" +
+      "an_create_execution_in\020\r\022\027\n\023can_create_i" +
+      "nstance\020\016\022\017\n\013can_execute\020\017\022\024\n\020can_read_s" +
+      "ecrets\020\020\022\025\n\021can_bootstrap_iam\020\021\022 \n\034can_m" +
+      "anage_identity_accounts\020\022\022\037\n\033can_update_" +
+      "execution_status\020\023\022\030\n\024login_to_back_offi" +
+      "ce\020\024\022\017\n\013can_connect\020\026*Q\n\007IamRole\022\030\n\024iam_" +
+      "role_unspecified\020\000\022\t\n\005owner\020\001\022\t\n\005admin\020\002" +
+      "\022\n\n\006member\020\003\022\n\n\006viewer\020\004BrB\tEnumProtoP\001\242" +
+      "\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312\002\021Ai\\Stigmer\\I" +
+      "am\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\GPBMetadata\352\002\024" +
+      "Ai::Stigmer::Iam::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

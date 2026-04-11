@@ -155,6 +155,295 @@ func (x *ConnectInput) GetRuntimeEnv() map[string]*v1.ExecutionValue {
 	return nil
 }
 
+// InitiateOAuthConnectInput starts the OAuth authorization flow for an
+// MCP server that has an auth block in its spec.
+//
+// @internal
+// Returns an authorization URL that the frontend redirects the user to.
+// The backend performs all setup (DCR registration for MCP OAuth servers,
+// OAuthApp credential lookup for vendor OAuth servers, PKCE pair generation)
+// and stores the pending state for the subsequent completeOAuthConnect call.
+//
+// Prerequisites:
+// - The MCP server must exist and have spec.auth configured
+// - For DCR: the server must use HTTP transport (discovery requires a URL)
+// - For vendor OAuth: the referenced OAuthApp must exist and be accessible
+type InitiateOAuthConnectInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the MCP server to initiate OAuth for.
+	McpServerId   string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitiateOAuthConnectInput) Reset() {
+	*x = InitiateOAuthConnectInput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitiateOAuthConnectInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitiateOAuthConnectInput) ProtoMessage() {}
+
+func (x *InitiateOAuthConnectInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitiateOAuthConnectInput.ProtoReflect.Descriptor instead.
+func (*InitiateOAuthConnectInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *InitiateOAuthConnectInput) GetMcpServerId() string {
+	if x != nil {
+		return x.McpServerId
+	}
+	return ""
+}
+
+// InitiateOAuthConnectOutput contains the authorization URL and metadata
+// the frontend needs to redirect the user to the OAuth authorization server.
+type InitiateOAuthConnectOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Full authorization URL to redirect the user to.
+	// Includes client_id, redirect_uri, code_challenge, state, and scopes.
+	AuthorizationUrl string `protobuf:"bytes,1,opt,name=authorization_url,json=authorizationUrl,proto3" json:"authorization_url,omitempty"`
+	// Opaque state parameter for CSRF protection.
+	// The frontend must pass this back in completeOAuthConnect to correlate
+	// the callback with this initiation.
+	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// OAuth scopes that will be requested.
+	// For DCR: discovered from authorization server metadata or scope_hints.
+	// For vendor OAuth: from the OAuthApp spec.
+	Scopes []string `protobuf:"bytes,3,rep,name=scopes,proto3" json:"scopes,omitempty"`
+	// Human-readable provider name for UI display during the redirect.
+	// For DCR: derived from the MCP server name.
+	// For vendor OAuth: from OAuthApp.spec.provider.
+	ProviderName  string `protobuf:"bytes,4,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitiateOAuthConnectOutput) Reset() {
+	*x = InitiateOAuthConnectOutput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitiateOAuthConnectOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitiateOAuthConnectOutput) ProtoMessage() {}
+
+func (x *InitiateOAuthConnectOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitiateOAuthConnectOutput.ProtoReflect.Descriptor instead.
+func (*InitiateOAuthConnectOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *InitiateOAuthConnectOutput) GetAuthorizationUrl() string {
+	if x != nil {
+		return x.AuthorizationUrl
+	}
+	return ""
+}
+
+func (x *InitiateOAuthConnectOutput) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *InitiateOAuthConnectOutput) GetScopes() []string {
+	if x != nil {
+		return x.Scopes
+	}
+	return nil
+}
+
+func (x *InitiateOAuthConnectOutput) GetProviderName() string {
+	if x != nil {
+		return x.ProviderName
+	}
+	return ""
+}
+
+// CompleteOAuthConnectInput finishes the OAuth flow by exchanging the
+// authorization code for tokens.
+//
+// @internal
+// Called by the frontend after the user is redirected back from the
+// OAuth authorization server. The frontend extracts the authorization
+// code and state from the callback URL and passes them here.
+//
+// The backend:
+// 1. Validates the state parameter against the stored PendingOAuthState
+// 2. Exchanges the authorization code for tokens (using PKCE code_verifier)
+// 3. Stores the access token in the user's personal environment
+// 4. Stores the refresh token (if present) in the personal environment
+// 5. Creates an OAuthGrant record for pre-flight expiry checks
+//
+// After this succeeds, the frontend should call the regular connect RPC
+// to trigger tool discovery (which will find the fresh token in the
+// personal environment).
+type CompleteOAuthConnectInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the MCP server.
+	// Must match the mcp_server_id used in the preceding initiateOAuthConnect.
+	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
+	// Authorization code from the OAuth callback redirect.
+	AuthorizationCode string `protobuf:"bytes,2,opt,name=authorization_code,json=authorizationCode,proto3" json:"authorization_code,omitempty"`
+	// State parameter from the OAuth callback redirect.
+	// Must match the state returned by initiateOAuthConnect.
+	State         string `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteOAuthConnectInput) Reset() {
+	*x = CompleteOAuthConnectInput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteOAuthConnectInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteOAuthConnectInput) ProtoMessage() {}
+
+func (x *CompleteOAuthConnectInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteOAuthConnectInput.ProtoReflect.Descriptor instead.
+func (*CompleteOAuthConnectInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CompleteOAuthConnectInput) GetMcpServerId() string {
+	if x != nil {
+		return x.McpServerId
+	}
+	return ""
+}
+
+func (x *CompleteOAuthConnectInput) GetAuthorizationCode() string {
+	if x != nil {
+		return x.AuthorizationCode
+	}
+	return ""
+}
+
+func (x *CompleteOAuthConnectInput) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+// CompleteOAuthConnectOutput confirms that tokens were successfully
+// acquired and stored.
+type CompleteOAuthConnectOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the OAuth flow completed successfully and tokens are stored.
+	Connected bool `protobuf:"varint,1,opt,name=connected,proto3" json:"connected,omitempty"`
+	// The environment variable name where the access token was stored.
+	// Matches McpServerAuth.target_env_var on the MCP server spec.
+	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
+	// Informational hint about expected token lifetime.
+	// Echoed from McpServerAuth.token_lifetime_hint for UI display.
+	TokenLifetimeHint string `protobuf:"bytes,3,opt,name=token_lifetime_hint,json=tokenLifetimeHint,proto3" json:"token_lifetime_hint,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CompleteOAuthConnectOutput) Reset() {
+	*x = CompleteOAuthConnectOutput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteOAuthConnectOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteOAuthConnectOutput) ProtoMessage() {}
+
+func (x *CompleteOAuthConnectOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteOAuthConnectOutput.ProtoReflect.Descriptor instead.
+func (*CompleteOAuthConnectOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CompleteOAuthConnectOutput) GetConnected() bool {
+	if x != nil {
+		return x.Connected
+	}
+	return false
+}
+
+func (x *CompleteOAuthConnectOutput) GetTargetEnvVar() string {
+	if x != nil {
+		return x.TargetEnvVar
+	}
+	return ""
+}
+
+func (x *CompleteOAuthConnectOutput) GetTokenLifetimeHint() string {
+	if x != nil {
+		return x.TokenLifetimeHint
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
@@ -168,7 +457,22 @@ const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"runtimeEnv\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01B\xa5\x02\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"G\n" +
+	"\x19InitiateOAuthConnectInput\x12*\n" +
+	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\"\x9c\x01\n" +
+	"\x1aInitiateOAuthConnectOutput\x12+\n" +
+	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12\x16\n" +
+	"\x06scopes\x18\x03 \x03(\tR\x06scopes\x12#\n" +
+	"\rprovider_name\x18\x04 \x01(\tR\fproviderName\"\x9e\x01\n" +
+	"\x19CompleteOAuthConnectInput\x12*\n" +
+	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x126\n" +
+	"\x12authorization_code\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x11authorizationCode\x12\x1d\n" +
+	"\x05state\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05state\"\x90\x01\n" +
+	"\x1aCompleteOAuthConnectOutput\x12\x1c\n" +
+	"\tconnected\x18\x01 \x01(\bR\tconnected\x12$\n" +
+	"\x0etarget_env_var\x18\x02 \x01(\tR\ftargetEnvVar\x12.\n" +
+	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHintB\xa5\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\aIoProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -183,16 +487,20 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_goTypes = []any{
-	(*McpServerId)(nil),       // 0: ai.stigmer.agentic.mcpserver.v1.McpServerId
-	(*ConnectInput)(nil),      // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput
-	nil,                       // 2: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
-	(*v1.ExecutionValue)(nil), // 3: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*McpServerId)(nil),                // 0: ai.stigmer.agentic.mcpserver.v1.McpServerId
+	(*ConnectInput)(nil),               // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput
+	(*InitiateOAuthConnectInput)(nil),  // 2: ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput
+	(*InitiateOAuthConnectOutput)(nil), // 3: ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput
+	(*CompleteOAuthConnectInput)(nil),  // 4: ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput
+	(*CompleteOAuthConnectOutput)(nil), // 5: ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput
+	nil,                                // 6: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
+	(*v1.ExecutionValue)(nil),          // 7: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.mcpserver.v1.ConnectInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
-	3, // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	6, // 0: ai.stigmer.agentic.mcpserver.v1.ConnectInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
+	7, // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -211,7 +519,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

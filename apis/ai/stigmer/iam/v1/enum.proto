@@ -33,6 +33,7 @@ enum IamPermission {
   can_create_idp = 11;
   can_create_environment = 12;
   can_create_identity_account = 21;
+  can_create_oauth_app = 23;
 
   // Resource-level create permissions.
   can_create_execution_in = 13;

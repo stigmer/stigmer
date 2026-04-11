@@ -67,7 +67,9 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update an existing MCP server resource. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing MCP server. |
 | [`delete`](#delete) | Delete an MCP server resource. |
+| [`completeOAuthConnect`](#completeoauthconnect) | Complete the OAuth authorization flow by exchanging the authorization code for tokens. |
 | [`connect`](#connect) | Connect to an MCP server: discover its tools and classify approval policies. |
+| [`initiateOAuthConnect`](#initiateoauthconnect) | Start the OAuth authorization flow for an MCP server. |
 
 ### get
 
@@ -180,6 +182,7 @@ const mcpServer = await stigmer.mcpServer.apply({
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
+  auth: {},
 });
 ```
 </Tab>
@@ -199,6 +202,7 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
+  Auth:                &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -218,6 +222,7 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
+    auth=None,
 ))
 ```
 </Tab>
@@ -237,6 +242,7 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
+    .auth(null)
     .build());
 ```
 </Tab>
@@ -269,6 +275,7 @@ const mcpServer = await stigmer.mcpServer.create({
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
+  auth: {},
 });
 ```
 </Tab>
@@ -288,6 +295,7 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
+  Auth:                &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -307,6 +315,7 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
+    auth=None,
 ))
 ```
 </Tab>
@@ -326,6 +335,7 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
+    .auth(null)
     .build());
 ```
 </Tab>
@@ -356,6 +366,7 @@ const mcpServer = await stigmer.mcpServer.update({
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
+  auth: {},
 });
 ```
 </Tab>
@@ -375,6 +386,7 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
+  Auth:                &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -394,6 +406,7 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
+    auth=None,
 ))
 ```
 </Tab>
@@ -413,6 +426,7 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
+    .auth(null)
     .build());
 ```
 </Tab>
@@ -510,6 +524,57 @@ McpServer mcpServer = client.mcpServers().delete(DeleteResourceInput.builder()
 
 **Returns**: [`McpServer`](#mcpserver)
 
+### completeOAuthConnect
+
+Complete the OAuth authorization flow by exchanging the authorization code for tokens.
+
+Called by the frontend after the user is redirected back from the OAuth authorization server. Exchanges the code for tokens, stores them in the user's personal environment, and creates an OAuthGrant record for pre-flight expiry checks.
+
+After success, the frontend should call connect() to trigger tool discovery using the freshly acquired token.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const completeOAuthConnectOutput = await stigmer.mcpServer.completeOAuthConnect({
+  mcpServerId: "...",
+  authorizationCode: "...",
+  state: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+completeOAuthConnectOutput, err := client.McpServer.CompleteOAuthConnect(ctx, &stigmer.CompleteOAuthConnectInput{
+  McpServerId:       "...",
+  AuthorizationCode: "...",
+  State:             "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+complete_o_auth_connect_output = client.mcp_servers.complete_o_auth_connect(CompleteOAuthConnectInput(
+    mcp_server_id="...",
+    authorization_code="...",
+    state="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+CompleteOAuthConnectOutput completeOAuthConnectOutput = client.mcpServers().completeOAuthConnect(CompleteOAuthConnectInput.builder()
+    .mcpServerId("...")
+    .authorizationCode("...")
+    .state("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CompleteOAuthConnectInput`](#completeoauthconnectinput)
+
+**Returns**: [`CompleteOAuthConnectOutput`](#completeoauthconnectoutput)
+
 ### connect
 
 Connect to an MCP server: discover its tools and classify approval policies.
@@ -555,6 +620,47 @@ McpServer mcpServer = client.mcpServers().connect(ConnectInput.builder()
 
 **Returns**: [`McpServer`](#mcpserver)
 
+### initiateOAuthConnect
+
+Start the OAuth authorization flow for an MCP server.
+
+Performs setup (DCR registration or OAuthApp credential lookup, PKCE generation) and returns an authorization URL for the frontend to redirect the user to. The frontend calls completeOAuthConnect after the user authorizes.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const initiateOAuthConnectOutput = await stigmer.mcpServer.initiateOAuthConnect({
+  mcpServerId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+initiateOAuthConnectOutput, err := client.McpServer.InitiateOAuthConnect(ctx, &stigmer.InitiateOAuthConnectInput{
+  McpServerId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+initiate_o_auth_connect_output = client.mcp_servers.initiate_o_auth_connect(InitiateOAuthConnectInput(
+    mcp_server_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+InitiateOAuthConnectOutput initiateOAuthConnectOutput = client.mcpServers().initiateOAuthConnect(InitiateOAuthConnectInput.builder()
+    .mcpServerId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`InitiateOAuthConnectInput`](#initiateoauthconnectinput)
+
+**Returns**: [`InitiateOAuthConnectOutput`](#initiateoauthconnectoutput)
+
 ## Types
 
 ### McpServerInput
@@ -576,6 +682,7 @@ Input for creating or updating a MCP Server.
     pinnedToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Manual tool approval overrides set by the MCP server owner.", typeDescriptionLink: "#toolapprovalpolicyinput" },
     repositoryUrl: { type: "string", description: "URL of the upstream source repository for this MCP server." },
     githubStars: { type: "number", description: "GitHub star count at the time of curation." },
+    auth: { type: "McpServerAuthInput", description: "OAuth authentication configuration for automated credential acquisition.", typeDescriptionLink: "#mcpserverauthinput" },
   }}
 />
 
@@ -638,6 +745,32 @@ ToolApprovalPolicy defines approval requirements for a specific tool.
   }}
 />
 
+### McpServerAuthInput
+
+McpServerAuth configures automated credential acquisition via OAuth.
+
+<TypeTable
+  type={{
+    oauthAppRef: { type: "ResourceRef", description: "Reference to an OAuthApp for vendor-specific OAuth.", typeDescriptionLink: "#resourceref" },
+    targetEnvVar: { type: "string", description: "The env var in env_spec.data where the acquired access token is stored." },
+    tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
+    scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
 ### UpdateVisibilityInput
 
 Input for updating the visibility of any API resource.
@@ -660,16 +793,50 @@ ConnectInput is the request for the connect RPC.
   }}
 />
 
-### ResourceRef
+### InitiateOAuthConnectInput
 
-Generic reference to any API resource by org and slug.
+InitiateOAuthConnectInput starts the OAuth authorization flow for an MCP server that has an auth block in its spec.
 
 <TypeTable
   type={{
-    org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
-    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
-    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+    mcpServerId: { type: "string", description: "System-generated ID of the MCP server to initiate OAuth for.", required: true },
+  }}
+/>
+
+### InitiateOAuthConnectOutput
+
+InitiateOAuthConnectOutput contains the authorization URL and metadata the frontend needs to redirect the user to the OAuth authorization server.
+
+<TypeTable
+  type={{
+    authorizationUrl: { type: "string", description: "Full authorization URL to redirect the user to." },
+    state: { type: "string", description: "Opaque state parameter for CSRF protection." },
+    scopes: { type: "string[]", description: "OAuth scopes that will be requested." },
+    providerName: { type: "string", description: "Human-readable provider name for UI display during the redirect." },
+  }}
+/>
+
+### CompleteOAuthConnectInput
+
+CompleteOAuthConnectInput finishes the OAuth flow by exchanging the authorization code for tokens.
+
+<TypeTable
+  type={{
+    mcpServerId: { type: "string", description: "System-generated ID of the MCP server.", required: true },
+    authorizationCode: { type: "string", description: "Authorization code from the OAuth callback redirect." },
+    state: { type: "string", description: "State parameter from the OAuth callback redirect." },
+  }}
+/>
+
+### CompleteOAuthConnectOutput
+
+CompleteOAuthConnectOutput confirms that tokens were successfully acquired and stored.
+
+<TypeTable
+  type={{
+    connected: { type: "boolean", description: "Whether the OAuth flow completed successfully and tokens are stored." },
+    targetEnvVar: { type: "string", description: "The environment variable name where the access token was stored." },
+    tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime." },
   }}
 />
 

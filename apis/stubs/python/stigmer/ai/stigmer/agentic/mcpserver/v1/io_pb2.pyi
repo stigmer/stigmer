@@ -3,7 +3,7 @@ from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Mapping as _Mapping
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
@@ -28,3 +28,41 @@ class ConnectInput(_message.Message):
     mcp_server_id: str
     runtime_env: _containers.MessageMap[str, _spec_pb2.ExecutionValue]
     def __init__(self, mcp_server_id: _Optional[str] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ...) -> None: ...
+
+class InitiateOAuthConnectInput(_message.Message):
+    __slots__ = ("mcp_server_id",)
+    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
+    mcp_server_id: str
+    def __init__(self, mcp_server_id: _Optional[str] = ...) -> None: ...
+
+class InitiateOAuthConnectOutput(_message.Message):
+    __slots__ = ("authorization_url", "state", "scopes", "provider_name")
+    AUTHORIZATION_URL_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    SCOPES_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_NAME_FIELD_NUMBER: _ClassVar[int]
+    authorization_url: str
+    state: str
+    scopes: _containers.RepeatedScalarFieldContainer[str]
+    provider_name: str
+    def __init__(self, authorization_url: _Optional[str] = ..., state: _Optional[str] = ..., scopes: _Optional[_Iterable[str]] = ..., provider_name: _Optional[str] = ...) -> None: ...
+
+class CompleteOAuthConnectInput(_message.Message):
+    __slots__ = ("mcp_server_id", "authorization_code", "state")
+    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
+    AUTHORIZATION_CODE_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    mcp_server_id: str
+    authorization_code: str
+    state: str
+    def __init__(self, mcp_server_id: _Optional[str] = ..., authorization_code: _Optional[str] = ..., state: _Optional[str] = ...) -> None: ...
+
+class CompleteOAuthConnectOutput(_message.Message):
+    __slots__ = ("connected", "target_env_var", "token_lifetime_hint")
+    CONNECTED_FIELD_NUMBER: _ClassVar[int]
+    TARGET_ENV_VAR_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_LIFETIME_HINT_FIELD_NUMBER: _ClassVar[int]
+    connected: bool
+    target_env_var: str
+    token_lifetime_hint: str
+    def __init__(self, connected: bool = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ...) -> None: ...

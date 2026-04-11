@@ -8,9 +8,9 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { ConnectInputSchema, type ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -70,6 +70,18 @@ export class McpServerClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async initiateOAuthConnect(input: InitiateOAuthConnectInput): Promise<InitiateOAuthConnectOutput> {
+    try {
+      return await this.command.initiateOAuthConnect(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async completeOAuthConnect(input: CompleteOAuthConnectInput): Promise<CompleteOAuthConnectOutput> {
+    try {
+      return await this.command.completeOAuthConnect(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<McpServer> {
     try {
       return await this.query.get(create(ApiResourceIdSchema, { value: id }));
@@ -116,6 +128,7 @@ export interface McpServerInput {
   pinnedToolApprovals?: ToolApprovalPolicyInput[];
   repositoryUrl?: string;
   githubStars?: number;
+  auth?: McpServerAuthInput;
 }
 
 /** SDK input type for StdioServerConfig. */
@@ -137,6 +150,14 @@ export interface HttpServerConfigInput {
 export interface ToolApprovalPolicyInput {
   toolName?: string;
   message?: string;
+}
+
+/** SDK input type for McpServerAuth. */
+export interface McpServerAuthInput {
+  oauthAppRef?: ResourceRef;
+  targetEnvVar?: string;
+  tokenLifetimeHint?: string;
+  scopeHints?: string[];
 }
 
 function buildStdioServerConfigProto(input: StdioServerConfigInput) {
@@ -163,6 +184,15 @@ function buildToolApprovalPolicyProto(input: ToolApprovalPolicyInput) {
   }));
 }
 
+function buildMcpServerAuthProto(input: McpServerAuthInput) {
+  const msg = create(McpServerAuthSchema);
+  if (input.oauthAppRef) msg.oauthAppRef = create(ApiResourceReferenceSchema, input.oauthAppRef);
+  if (input.targetEnvVar !== undefined) msg.targetEnvVar = input.targetEnvVar;
+  if (input.tokenLifetimeHint !== undefined) msg.tokenLifetimeHint = input.tokenLifetimeHint;
+  if (input.scopeHints) msg.scopeHints = input.scopeHints;
+  return msg;
+}
+
 function buildMcpServerProto(input: McpServerInput): McpServer {
   let envSpec;
   if (input.envSpec) {
@@ -173,6 +203,7 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
     envSpec = es;
   }
   const pinnedToolApprovals = input.pinnedToolApprovals?.map(buildToolApprovalPolicyProto);
+  const auth = input.auth ? buildMcpServerAuthProto(input.auth) : undefined;
   const spec = Object.assign(create(McpServerSpecSchema), stripUndefined({
     description: input.description,
     iconUrl: input.iconUrl,
@@ -181,6 +212,7 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
     pinnedToolApprovals,
     repositoryUrl: input.repositoryUrl,
     githubStars: input.githubStars,
+    auth,
   }));
   if (input.stdio) {
     spec.serverType = { case: "stdio", value: buildStdioServerConfigProto(input.stdio) };

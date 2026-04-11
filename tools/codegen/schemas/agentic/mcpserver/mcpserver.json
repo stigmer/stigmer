@@ -119,6 +119,17 @@
       },
       "description": "GitHub star count at the time of curation.\n Used as a popularity signal in marketplace display.\n 0 if unknown or non-GitHub repository.",
       "required": false
+    },
+    {
+      "name": "Auth",
+      "jsonName": "auth",
+      "protoField": "auth",
+      "type": {
+        "kind": "message",
+        "messageType": "McpServerAuth"
+      },
+      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n The acquired access token is stored in the user's personal environment\n as the env var named by auth.target_env_var. That env var must also be\n declared in env_spec.data so the execution pipeline knows about it.",
+      "required": false
     }
   ]
 }

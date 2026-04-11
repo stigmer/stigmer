@@ -691,6 +691,62 @@ private static final long serialVersionUID = 0L;
     return githubStars_;
   }
 
+  public static final int AUTH_FIELD_NUMBER = 14;
+  private ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth_;
+  /**
+   * <pre>
+   * OAuth authentication configuration for automated credential acquisition.
+   * When set, the MCP server's Connect page offers an OAuth flow instead of
+   * (or in addition to) manual credential entry.
+   *
+   * The acquired access token is stored in the user's personal environment
+   * as the env var named by auth.target_env_var. That env var must also be
+   * declared in env_spec.data so the execution pipeline knows about it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+   * @return Whether the auth field is set.
+   */
+  @java.lang.Override
+  public boolean hasAuth() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * OAuth authentication configuration for automated credential acquisition.
+   * When set, the MCP server's Connect page offers an OAuth flow instead of
+   * (or in addition to) manual credential entry.
+   *
+   * The acquired access token is stored in the user's personal environment
+   * as the env var named by auth.target_env_var. That env var must also be
+   * declared in env_spec.data so the execution pipeline knows about it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+   * @return The auth.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.mcpserver.v1.McpServerAuth getAuth() {
+    return auth_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerAuth.getDefaultInstance() : auth_;
+  }
+  /**
+   * <pre>
+   * OAuth authentication configuration for automated credential acquisition.
+   * When set, the MCP server's Connect page offers an OAuth flow instead of
+   * (or in addition to) manual credential entry.
+   *
+   * The acquired access token is stored in the user's personal environment
+   * as the env var named by auth.target_env_var. That env var must also be
+   * declared in env_spec.data so the execution pipeline knows about it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.mcpserver.v1.McpServerAuthOrBuilder getAuthOrBuilder() {
+    return auth_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerAuth.getDefaultInstance() : auth_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -734,6 +790,9 @@ private static final long serialVersionUID = 0L;
     }
     if (githubStars_ != 0) {
       output.writeInt32(13, githubStars_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(14, getAuth());
     }
     getUnknownFields().writeTo(output);
   }
@@ -794,6 +853,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(13, githubStars_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(14, getAuth());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -828,6 +891,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getRepositoryUrl())) return false;
     if (getGithubStars()
         != other.getGithubStars()) return false;
+    if (hasAuth() != other.hasAuth()) return false;
+    if (hasAuth()) {
+      if (!getAuth()
+          .equals(other.getAuth())) return false;
+    }
     if (!getServerTypeCase().equals(other.getServerTypeCase())) return false;
     switch (serverTypeCase_) {
       case 4:
@@ -876,6 +944,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getRepositoryUrl().hashCode();
     hash = (37 * hash) + GITHUB_STARS_FIELD_NUMBER;
     hash = (53 * hash) + getGithubStars();
+    if (hasAuth()) {
+      hash = (37 * hash) + AUTH_FIELD_NUMBER;
+      hash = (53 * hash) + getAuth().hashCode();
+    }
     switch (serverTypeCase_) {
       case 4:
         hash = (37 * hash) + STDIO_FIELD_NUMBER;
@@ -1028,6 +1100,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetEnvSpecFieldBuilder();
         internalGetPinnedToolApprovalsFieldBuilder();
+        internalGetAuthFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1060,6 +1133,11 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00000080);
       repositoryUrl_ = "";
       githubStars_ = 0;
+      auth_ = null;
+      if (authBuilder_ != null) {
+        authBuilder_.dispose();
+        authBuilder_ = null;
+      }
       serverTypeCase_ = 0;
       serverType_ = null;
       return this;
@@ -1135,6 +1213,12 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.githubStars_ = githubStars_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.auth_ = authBuilder_ == null
+            ? auth_
+            : authBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1230,6 +1314,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getGithubStars() != 0) {
         setGithubStars(other.getGithubStars());
+      }
+      if (other.hasAuth()) {
+        mergeAuth(other.getAuth());
       }
       switch (other.getServerTypeCase()) {
         case STDIO: {
@@ -1334,6 +1421,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 104
+            case 114: {
+              input.readMessage(
+                  internalGetAuthFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 114
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3222,6 +3316,217 @@ private static final long serialVersionUID = 0L;
       githubStars_ = 0;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.mcpserver.v1.McpServerAuth, ai.stigmer.agentic.mcpserver.v1.McpServerAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerAuthOrBuilder> authBuilder_;
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     * @return Whether the auth field is set.
+     */
+    public boolean hasAuth() {
+      return ((bitField0_ & 0x00000400) != 0);
+    }
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     * @return The auth.
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerAuth getAuth() {
+      if (authBuilder_ == null) {
+        return auth_ == null ? ai.stigmer.agentic.mcpserver.v1.McpServerAuth.getDefaultInstance() : auth_;
+      } else {
+        return authBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     */
+    public Builder setAuth(ai.stigmer.agentic.mcpserver.v1.McpServerAuth value) {
+      if (authBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        auth_ = value;
+      } else {
+        authBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     */
+    public Builder setAuth(
+        ai.stigmer.agentic.mcpserver.v1.McpServerAuth.Builder builderForValue) {
+      if (authBuilder_ == null) {
+        auth_ = builderForValue.build();
+      } else {
+        authBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     */
+    public Builder mergeAuth(ai.stigmer.agentic.mcpserver.v1.McpServerAuth value) {
+      if (authBuilder_ == null) {
+        if (((bitField0_ & 0x00000400) != 0) &&
+          auth_ != null &&
+          auth_ != ai.stigmer.agentic.mcpserver.v1.McpServerAuth.getDefaultInstance()) {
+          getAuthBuilder().mergeFrom(value);
+        } else {
+          auth_ = value;
+        }
+      } else {
+        authBuilder_.mergeFrom(value);
+      }
+      if (auth_ != null) {
+        bitField0_ |= 0x00000400;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     */
+    public Builder clearAuth() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      auth_ = null;
+      if (authBuilder_ != null) {
+        authBuilder_.dispose();
+        authBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerAuth.Builder getAuthBuilder() {
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return internalGetAuthFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServerAuthOrBuilder getAuthOrBuilder() {
+      if (authBuilder_ != null) {
+        return authBuilder_.getMessageOrBuilder();
+      } else {
+        return auth_ == null ?
+            ai.stigmer.agentic.mcpserver.v1.McpServerAuth.getDefaultInstance() : auth_;
+      }
+    }
+    /**
+     * <pre>
+     * OAuth authentication configuration for automated credential acquisition.
+     * When set, the MCP server's Connect page offers an OAuth flow instead of
+     * (or in addition to) manual credential entry.
+     *
+     * The acquired access token is stored in the user's personal environment
+     * as the env var named by auth.target_env_var. That env var must also be
+     * declared in env_spec.data so the execution pipeline knows about it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.mcpserver.v1.McpServerAuth, ai.stigmer.agentic.mcpserver.v1.McpServerAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerAuthOrBuilder> 
+        internalGetAuthFieldBuilder() {
+      if (authBuilder_ == null) {
+        authBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.mcpserver.v1.McpServerAuth, ai.stigmer.agentic.mcpserver.v1.McpServerAuth.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerAuthOrBuilder>(
+                getAuth(),
+                getParentForChildren(),
+                isClean());
+        auth_ = null;
+      }
+      return authBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.McpServerSpec)

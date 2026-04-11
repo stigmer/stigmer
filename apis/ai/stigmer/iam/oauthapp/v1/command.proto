@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.oauthapp.v1;
+
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/iam/oauthapp/v1/api.proto";
+
+// OAuthAppCommandController provides write operations for OAuth app resources.
+//
+// @internal
+// OAuthApps hold vendor client credentials (client_secret) and are always
+// org-private. There is no updateVisibility RPC — public visibility is
+// intentionally unsupported to prevent credential leakage.
+service OAuthAppCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = oauth_app;
+
+  // Create or update an OAuth app.
+  //
+  // If the resource does not exist, creates a new OAuth app.
+  // If the resource exists, updates the existing OAuth app.
+  //
+  // @internal
+  // The authorization and state-operation are determined depending on whether the
+  // OAuth app is going to be created or updated, which is determined as
+  // part of the request execution.
+  rpc apply(OAuthApp) returns (OAuthApp);
+
+  // Create an OAuth app.
+  //
+  // The creator's organization owns the OAuth app. The creator is granted
+  // the owner role automatically.
+  //
+  // @internal
+  // Authorization: Requires can_create_oauth_app permission in the organization.
+  rpc create(OAuthApp) returns (OAuthApp) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_oauth_app;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create oauth app in this organization";
+  }
+
+  // Update an existing OAuth app.
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the oauth_app resource.
+  rpc update(OAuthApp) returns (OAuthApp) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = oauth_app;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update oauth app";
+  }
+
+  // Delete an OAuth app.
+  //
+  // Deletion should be blocked if any McpServer resources reference this
+  // OAuth app via McpServerVendorOAuth.oauth_app_ref.
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the oauth_app resource.
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (OAuthApp) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = oauth_app;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete oauth app";
+  }
+}

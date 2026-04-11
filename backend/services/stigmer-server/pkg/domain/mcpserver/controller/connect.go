@@ -12,10 +12,13 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"go.temporal.io/sdk/client"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -86,6 +89,15 @@ func (c *McpServerController) Connect(
 	mcpServer := &mcpserverv1.McpServer{}
 	if err := c.store.GetResource(ctx, apiresourcekind.ApiResourceKind_mcp_server, mcpServerID, mcpServer); err != nil {
 		return nil, grpclib.NotFoundError("mcp_server", mcpServerID)
+	}
+
+	// Pre-flight: refresh expired OAuth tokens before env resolution.
+	// Only applies when runtime_env is empty (personal env path) and
+	// the MCP server has an auth block with an existing OAuthGrant.
+	if len(input.GetRuntimeEnv()) == 0 {
+		if err := c.refreshOAuthTokenIfNeeded(ctx, mcpServer); err != nil {
+			return nil, err
+		}
 	}
 
 	executionID := fmt.Sprintf("connect-%s-%s", mcpServerID, uuid.New().String()[:8])
@@ -376,6 +388,142 @@ func convertToDiscoveredCapabilities(output *connectWorkflowOutput) *mcpserverv1
 	}
 
 	return capabilities
+}
+
+// refreshOAuthTokenIfNeeded checks whether the MCP server has an auth block
+// with an existing OAuthGrant, and if the access token is expired, refreshes
+// it using the refresh token from the personal environment.
+//
+// This is the pre-flight check that ensures the Connect workflow (and
+// agent execution) always sees a fresh token in the personal environment.
+func (c *McpServerController) refreshOAuthTokenIfNeeded(
+	ctx context.Context,
+	mcpServer *mcpserverv1.McpServer,
+) error {
+	auth := mcpServer.GetSpec().GetAuth()
+	if auth == nil || c.oauthGrantStore == nil {
+		return nil
+	}
+
+	mcpServerID := mcpServer.GetMetadata().GetId()
+
+	// OSS mode: single user, empty identity_account_id
+	grant, err := c.oauthGrantStore.GetByUserAndServer(ctx, "", mcpServerID)
+	if err != nil {
+		log.Warn().Err(err).
+			Str("mcp_server_id", mcpServerID).
+			Msg("Failed to load OAuth grant for pre-flight check (non-fatal)")
+		return nil
+	}
+	if grant == nil {
+		return nil
+	}
+
+	// Read the refresh token from the personal environment
+	org := mcpServer.GetMetadata().GetOrg()
+	personalEnvID, err := c.resolvePersonalEnvironmentID(ctx, org)
+	if err != nil {
+		return nil
+	}
+
+	refreshTokenVal, err := c.environmentClient.GetSecretValue(ctx, &environmentv1.EnvironmentSecretValueInput{
+		EnvironmentId: personalEnvID,
+		Key:           grant.RefreshTokenEnvVar,
+	})
+	if err != nil {
+		log.Debug().Err(err).
+			Str("mcp_server_id", mcpServerID).
+			Str("refresh_token_var", grant.RefreshTokenEnvVar).
+			Msg("No refresh token found in personal env (may not be OAuth-connected)")
+		return nil
+	}
+
+	// For vendor OAuth, we need the client_secret. For DCR, it's empty.
+	var clientSecret string
+	if grant.AuthMethod == "vendor_oauth" && c.encryptionService != nil {
+		clientSecret, err = c.loadOAuthAppClientSecret(ctx, mcpServer)
+		if err != nil {
+			log.Warn().Err(err).
+				Str("mcp_server_id", mcpServerID).
+				Msg("Failed to load OAuthApp client secret for refresh")
+		}
+	}
+
+	result, err := oauth.RefreshTokenIfExpired(
+		ctx, grant, refreshTokenVal.GetValue(), clientSecret,
+	)
+	if err != nil {
+		return grpclib.FailedPreconditionError("%v", err)
+	}
+
+	if !result.Refreshed {
+		return nil
+	}
+
+	// Update the personal environment with the new tokens
+	variables := map[string]*environmentv1.EnvironmentValue{
+		grant.AccessTokenEnvVar: {
+			Value:    result.NewAccessToken,
+			IsSecret: true,
+		},
+	}
+	if result.NewRefreshToken != refreshTokenVal.GetValue() {
+		variables[grant.RefreshTokenEnvVar] = &environmentv1.EnvironmentValue{
+			Value:    result.NewRefreshToken,
+			IsSecret: true,
+		}
+	}
+
+	_, err = c.environmentClient.UpdateVariables(ctx, &environmentv1.UpdateEnvironmentVariablesRequest{
+		EnvironmentId: personalEnvID,
+		Variables:     variables,
+	})
+	if err != nil {
+		return grpclib.InternalError(err, "failed to update refreshed tokens in personal environment")
+	}
+
+	// Update the OAuthGrant record with new expiry
+	grant.AccessTokenExpiresAt = result.NewExpiresAt
+	if err := c.oauthGrantStore.Upsert(ctx, grant); err != nil {
+		log.Warn().Err(err).
+			Str("mcp_server_id", mcpServerID).
+			Msg("Failed to update OAuth grant after refresh (non-fatal)")
+	}
+
+	return nil
+}
+
+// loadOAuthAppClientSecret loads and decrypts the client_secret from the
+// referenced OAuthApp for vendor OAuth token refresh.
+func (c *McpServerController) loadOAuthAppClientSecret(
+	ctx context.Context,
+	mcpServer *mcpserverv1.McpServer,
+) (string, error) {
+	ref := mcpServer.GetSpec().GetAuth().GetOauthAppRef()
+	if ref == nil || ref.GetSlug() == "" {
+		return "", nil
+	}
+
+	oauthApps, err := c.store.ListResources(ctx, apiresourcekind.ApiResourceKind_oauth_app)
+	if err != nil {
+		return "", fmt.Errorf("failed to list oauth apps: %w", err)
+	}
+
+	for _, data := range oauthApps {
+		app := &oauthappv1.OAuthApp{}
+		if err := proto.Unmarshal(data, app); err != nil {
+			continue
+		}
+		if app.GetMetadata().GetSlug() == ref.GetSlug() {
+			secret := app.GetSpec().GetClientSecret()
+			if c.encryptionService != nil && c.encryptionService.IsEncrypted(secret) {
+				return c.encryptionService.Decrypt(secret)
+			}
+			return secret, nil
+		}
+	}
+
+	return "", fmt.Errorf("OAuthApp '%s' not found", ref.GetSlug())
 }
 
 // StartBestEffortConnect starts the connect workflow asynchronously

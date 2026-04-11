@@ -17,6 +17,7 @@ public final class GeneratedClient {
     public final IdentityProviderClient identityProvider;
     public final InvitationClient invitation;
     public final McpServerClient mcpServer;
+    public final OAuthAppClient oauthapp;
     public final OrganizationClient organization;
     public final ProjectClient project;
     public final SessionClient session;
@@ -37,6 +38,7 @@ public final class GeneratedClient {
         this.identityProvider = new IdentityProviderClient(channel);
         this.invitation = new InvitationClient(channel);
         this.mcpServer = new McpServerClient(channel);
+        this.oauthapp = new OAuthAppClient(channel);
         this.organization = new OrganizationClient(channel);
         this.project = new ProjectClient(channel);
         this.session = new SessionClient(channel);

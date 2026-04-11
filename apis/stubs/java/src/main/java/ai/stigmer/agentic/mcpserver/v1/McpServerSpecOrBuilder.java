@@ -424,5 +424,50 @@ public interface McpServerSpecOrBuilder extends
    */
   int getGithubStars();
 
+  /**
+   * <pre>
+   * OAuth authentication configuration for automated credential acquisition.
+   * When set, the MCP server's Connect page offers an OAuth flow instead of
+   * (or in addition to) manual credential entry.
+   *
+   * The acquired access token is stored in the user's personal environment
+   * as the env var named by auth.target_env_var. That env var must also be
+   * declared in env_spec.data so the execution pipeline knows about it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+   * @return Whether the auth field is set.
+   */
+  boolean hasAuth();
+  /**
+   * <pre>
+   * OAuth authentication configuration for automated credential acquisition.
+   * When set, the MCP server's Connect page offers an OAuth flow instead of
+   * (or in addition to) manual credential entry.
+   *
+   * The acquired access token is stored in the user's personal environment
+   * as the env var named by auth.target_env_var. That env var must also be
+   * declared in env_spec.data so the execution pipeline knows about it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+   * @return The auth.
+   */
+  ai.stigmer.agentic.mcpserver.v1.McpServerAuth getAuth();
+  /**
+   * <pre>
+   * OAuth authentication configuration for automated credential acquisition.
+   * When set, the MCP server's Connect page offers an OAuth flow instead of
+   * (or in addition to) manual credential entry.
+   *
+   * The acquired access token is stored in the user's personal environment
+   * as the env var named by auth.target_env_var. That env var must also be
+   * declared in env_spec.data so the execution pipeline knows about it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
+   */
+  ai.stigmer.agentic.mcpserver.v1.McpServerAuthOrBuilder getAuthOrBuilder();
+
   ai.stigmer.agentic.mcpserver.v1.McpServerSpec.ServerTypeCase getServerTypeCase();
 }

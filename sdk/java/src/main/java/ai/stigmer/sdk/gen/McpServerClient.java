@@ -2,7 +2,11 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput;
+import ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput;
 import ai.stigmer.agentic.mcpserver.v1.ConnectInput;
+import ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput;
+import ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput;
 import ai.stigmer.agentic.mcpserver.v1.McpServer;
 import ai.stigmer.agentic.mcpserver.v1.McpServerCommandControllerGrpc;
 import ai.stigmer.agentic.mcpserver.v1.McpServerQueryControllerGrpc;
@@ -68,6 +72,18 @@ public final class McpServerClient {
     public McpServer connect(ConnectInput input) {
         try {
             return command.connect(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public InitiateOAuthConnectOutput initiateOAuthConnect(InitiateOAuthConnectInput input) {
+        try {
+            return command.initiateOAuthConnect(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public CompleteOAuthConnectOutput completeOAuthConnect(CompleteOAuthConnectInput input) {
+        try {
+            return command.completeOAuthConnect(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

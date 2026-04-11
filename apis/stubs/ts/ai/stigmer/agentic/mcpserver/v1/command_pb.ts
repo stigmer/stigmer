@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { McpServerSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_api } from "./api_pb";
-import type { ConnectInputSchema } from "./io_pb";
+import type { CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_io } from "./io_pb";
 import type { ApiResourceDeleteInputSchema, UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/mcpserver/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2NvbW1hbmQucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEylQcKGk1jcFNlcnZlckNvbW1hbmRDb250cm9sbGVyEl8KBWFwcGx5EiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchJmCgZjcmVhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEpoBCgZ1cGRhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIjjCuBg0CAIQLCILbWV0YWRhdGEuaWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgbWNwIHNlcnZlchKmAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciI4wrgYNAgDECwiC3Jlc291cmNlX2lkKiF1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1jcCBzZXJ2ZXISugEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiQ8K4GD8IAhAsIgtyZXNvdXJjZV9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIHZpc2liaWxpdHkSpAEKB2Nvbm5lY3QSLS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIj7CuBg6CBYQLCINbWNwX3NlcnZlcl9pZColdW5hdXRob3JpemVkIHRvIGNvbm5lY3QgdG8gbWNwIHNlcnZlchoEoP8rLGIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2NvbW1hbmQucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEy2QoKGk1jcFNlcnZlckNvbW1hbmRDb250cm9sbGVyEl8KBWFwcGx5EiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchJmCgZjcmVhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEpoBCgZ1cGRhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIjjCuBg0CAIQLCILbWV0YWRhdGEuaWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgbWNwIHNlcnZlchKmAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciI4wrgYNAgDECwiC3Jlc291cmNlX2lkKiF1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1jcCBzZXJ2ZXISugEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiQ8K4GD8IAhAsIgtyZXNvdXJjZV9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIHZpc2liaWxpdHkSpAEKB2Nvbm5lY3QSLS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIj7CuBg6CBYQLCINbWNwX3NlcnZlcl9pZColdW5hdXRob3JpemVkIHRvIGNvbm5lY3QgdG8gbWNwIHNlcnZlchLfAQoUaW5pdGlhdGVPQXV0aENvbm5lY3QSOi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkluaXRpYXRlT0F1dGhDb25uZWN0SW5wdXQaOy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkluaXRpYXRlT0F1dGhDb25uZWN0T3V0cHV0Ik7CuBhKCBYQLCINbWNwX3NlcnZlcl9pZCo1dW5hdXRob3JpemVkIHRvIGluaXRpYXRlIG9hdXRoIGNvbm5lY3QgZm9yIG1jcCBzZXJ2ZXIS3wEKFGNvbXBsZXRlT0F1dGhDb25uZWN0EjouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Db21wbGV0ZU9BdXRoQ29ubmVjdElucHV0GjsuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Db21wbGV0ZU9BdXRoQ29ubmVjdE91dHB1dCJOwrgYSggWECwiDW1jcF9zZXJ2ZXJfaWQqNXVuYXV0aG9yaXplZCB0byBjb21wbGV0ZSBvYXV0aCBjb25uZWN0IGZvciBtY3Agc2VydmVyGgSg/yssYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -157,6 +157,64 @@ export const McpServerCommandController: GenService<{
     methodKind: "unary";
     input: typeof ConnectInputSchema;
     output: typeof McpServerSchema;
+  },
+  /**
+   * Start the OAuth authorization flow for an MCP server.
+   *
+   * Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+   * generation) and returns an authorization URL for the frontend to
+   * redirect the user to. The frontend calls completeOAuthConnect after
+   * the user authorizes.
+   *
+   * @internal
+   * Two auth modes determined by the MCP server's spec.auth block:
+   * - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+   *   discovers the authorization server, registers a client via DCR,
+   *   and builds the auth URL automatically.
+   * - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+   *   OAuthApp for client credentials and endpoint URLs.
+   *
+   * Errors:
+   * - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+   *   without oauth_app_ref (DCR requires HTTP transport)
+   * - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+   *
+   * Authorization: Requires can_connect permission on the mcp_server resource.
+   *
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.initiateOAuthConnect
+   */
+  initiateOAuthConnect: {
+    methodKind: "unary";
+    input: typeof InitiateOAuthConnectInputSchema;
+    output: typeof InitiateOAuthConnectOutputSchema;
+  },
+  /**
+   * Complete the OAuth authorization flow by exchanging the authorization
+   * code for tokens.
+   *
+   * Called by the frontend after the user is redirected back from the
+   * OAuth authorization server. Exchanges the code for tokens, stores
+   * them in the user's personal environment, and creates an OAuthGrant
+   * record for pre-flight expiry checks.
+   *
+   * After success, the frontend should call connect() to trigger tool
+   * discovery using the freshly acquired token.
+   *
+   * @internal
+   * Errors:
+   * - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+   *   not match the mcp_server_id
+   * - UNAVAILABLE: Token exchange with the authorization server failed
+   * - NOT_FOUND: No pending OAuth state found for the given state param
+   *
+   * Authorization: Requires can_connect permission on the mcp_server resource.
+   *
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.completeOAuthConnect
+   */
+  completeOAuthConnect: {
+    methodKind: "unary";
+    input: typeof CompleteOAuthConnectInputSchema;
+    output: typeof CompleteOAuthConnectOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_mcpserver_v1_command, 0);

@@ -12,6 +12,7 @@ import {
   type EnvVarFormSubmitOptions,
 } from "../environment/EnvVarForm";
 import { McpToolSelector } from "./McpToolSelector";
+import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect";
 
 // ---------------------------------------------------------------------------
 // Credential sub-props
@@ -55,6 +56,29 @@ export interface McpServerCredentialsProps {
 }
 
 // ---------------------------------------------------------------------------
+// OAuth sign-in sub-props
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for the inline OAuth sign-in action shown when a server requires
+ * OAuth authentication. Presence controls rendering — when `oauthSignIn`
+ * is provided on {@link McpServerConfigPanelProps}, the OAuth button
+ * is rendered above the credentials form.
+ */
+export interface McpServerOAuthSignInProps {
+  /** Initiates the OAuth popup flow. Must be called from a click handler. */
+  readonly onSignIn: () => void;
+  /** Current phase of the OAuth flow. */
+  readonly phase: OAuthConnectPhase;
+  /** `true` when the OAuth token already exists in the personal environment. */
+  readonly isConnected: boolean;
+  /** Error from the most recent failed OAuth attempt, or `null`. */
+  readonly error: Error | null;
+  /** Clear the OAuth error state. */
+  readonly onClearError: () => void;
+}
+
+// ---------------------------------------------------------------------------
 // Component props
 // ---------------------------------------------------------------------------
 
@@ -71,6 +95,14 @@ export interface McpServerConfigPanelProps {
    * step 2 (tool customization).
    */
   readonly credentials?: McpServerCredentialsProps;
+  /**
+   * When provided, an inline OAuth sign-in button is rendered above the
+   * credentials form. The button initiates the popup-based OAuth flow.
+   *
+   * Use alongside `credentials` for mixed-mode servers that require
+   * both OAuth and manual env vars, or on its own for OAuth-only servers.
+   */
+  readonly oauthSignIn?: McpServerOAuthSignInProps;
   /** Discovered tools from `status.discovered_capabilities.tools`. */
   readonly discoveredTools: DiscoveredTool[];
   /** Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`. */
@@ -141,6 +173,7 @@ export interface McpServerConfigPanelProps {
 export function McpServerConfigPanel({
   mcpServer,
   credentials,
+  oauthSignIn,
   discoveredTools,
   toolApprovals,
   enabledTools,
@@ -154,6 +187,13 @@ export function McpServerConfigPanel({
   const iconUrl = mcpServer.spec?.iconUrl;
   const description = mcpServer.spec?.description;
   const isDisabled = disabled || credentials?.isSubmitting;
+
+  const isOAuthBusy = oauthSignIn
+    ? oauthSignIn.phase === "initiating" ||
+      oauthSignIn.phase === "awaiting-callback" ||
+      oauthSignIn.phase === "completing" ||
+      oauthSignIn.phase === "connecting"
+    : false;
 
   const handleCredentialSubmit = useCallback(
     (values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => {
@@ -173,7 +213,7 @@ export function McpServerConfigPanel({
         <button
           type="button"
           onClick={onBack}
-          disabled={credentials?.isSubmitting}
+          disabled={credentials?.isSubmitting || isOAuthBusy}
           className={cn(
             "mt-0.5 shrink-0 rounded p-0.5",
             "text-muted-foreground hover:text-foreground hover:bg-accent/50",
@@ -208,13 +248,25 @@ export function McpServerConfigPanel({
         </div>
       </div>
 
+      {/* OAuth sign-in — shown when the server requires OAuth authentication */}
+      {oauthSignIn && (
+        <InlineOAuthSignIn
+          serverName={serverName}
+          isConnected={oauthSignIn.isConnected}
+          phase={oauthSignIn.phase}
+          onSignIn={oauthSignIn.onSignIn}
+          error={oauthSignIn.error}
+          onClearError={oauthSignIn.onClearError}
+        />
+      )}
+
       {/* Credentials form — only when credentials prop is provided */}
       {credentials && (
         <EnvVarForm
           variables={credentials.variables}
           onSubmit={handleCredentialSubmit}
           isSubmitting={credentials.isSubmitting}
-          disabled={disabled}
+          disabled={disabled || isOAuthBusy}
           title="Credentials required"
           defaultSaveForFuture={credentials.defaultSaveForFuture}
           hideSaveToggle={credentials.hideSaveToggle}
@@ -239,9 +291,107 @@ export function McpServerConfigPanel({
         toolApprovals={toolApprovals}
         enabledTools={enabledTools}
         onChange={onEnabledToolsChange}
-        disabled={!!isDisabled || !!credentials}
+        disabled={!!isDisabled || !!credentials || isOAuthBusy}
       />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inline OAuth sign-in (compact, for config panel context)
+// ---------------------------------------------------------------------------
+
+function InlineOAuthSignIn({
+  serverName,
+  isConnected,
+  phase,
+  onSignIn,
+  error,
+  onClearError,
+}: {
+  readonly serverName: string;
+  readonly isConnected: boolean;
+  readonly phase: OAuthConnectPhase;
+  readonly onSignIn: () => void;
+  readonly error: Error | null;
+  readonly onClearError: () => void;
+}) {
+  const isBusy =
+    phase === "initiating" ||
+    phase === "awaiting-callback" ||
+    phase === "completing" ||
+    phase === "connecting";
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-[0.65rem] font-medium",
+            isConnected ? "text-success" : "text-muted-foreground",
+          )}
+        >
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              isConnected ? "bg-success" : "bg-muted-foreground",
+            )}
+            aria-hidden="true"
+          />
+          {isConnected ? "Signed in" : "Sign-in required"}
+        </span>
+        <button
+          type="button"
+          onClick={onSignIn}
+          disabled={isBusy}
+          className={cn(
+            "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
+            isConnected
+              ? "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              : "bg-primary text-primary-foreground hover:bg-primary-hover",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          {isBusy ? (
+            <InlineSpinner />
+          ) : isConnected ? (
+            "Re-authenticate"
+          ) : (
+            `Sign in with ${serverName}`
+          )}
+        </button>
+      </div>
+      {error && (
+        <div className="flex items-start gap-1.5 text-[0.65rem] text-destructive">
+          <span className="flex-1">{error.message}</span>
+          <button
+            type="button"
+            onClick={onClearError}
+            className="shrink-0 underline underline-offset-2 hover:no-underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InlineSpinner() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className="animate-spin"
+      aria-hidden="true"
+    >
+      <path d="M8 2a6 6 0 1 0 6 6" />
+    </svg>
   );
 }
 

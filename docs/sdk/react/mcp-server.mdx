@@ -177,6 +177,12 @@ environment variables (API keys, tokens) are present. This hook
 computes the missing set and exposes `saveCredentials` to persist
 them.
 
+**Auth-mode-aware**: when `spec.auth` is configured, the hook
+identifies the OAuth-managed variable (`target_env_var`) and
+excludes it from `missingVariables` — that variable is acquired
+via [`useMcpServerOAuthConnect`](#usemcpserveroauthconnect), not a manual form. Additional
+non-OAuth vars still appear in `missingVariables` (mixed mode).
+
 Unlike [`useMcpServerSetup`](#usemcpserversetup) which manages multi-server setup
 for session creation, this hook is scoped to a single server and
 always persists to the personal environment (no one-time option).
@@ -200,26 +206,35 @@ function useMcpServerCredentials(org: string | null, mcpServer: McpServer | null
 
 <TypeTable
   type={{
+    authMode: { type: "McpServerAuthMode", description: "Credential acquisition mode derived from `spec.auth`.  - `\"manual\"` when `spec.auth` is absent: all env vars are user-entered. - `\"oauth\"` when `spec.auth` is present: the `target_env_var` is   acquired via OAuth. Check missingVariables for any   additional manual vars that are also needed (mixed mode).", typeDescriptionLink: "#mcpserverauthmode" },
     error: { type: "Error | null", description: "Error from the personal environment fetch, or `null`." },
     isLoading: { type: "boolean", description: "`true` while the personal environment is being fetched." },
-    isReady: { type: "boolean", description: "`true` when all required credentials are available." },
+    isOAuthConnected: { type: "boolean", description: "`true` when the OAuth-managed env var exists in the personal environment. Always `false` when `authMode` is `\"manual\"`." },
+    isReady: { type: "boolean", description: "`true` when all required credentials are available — both OAuth-managed and manual variables. For OAuth servers this means the OAuth token is in the personal env AND any additional manual vars are also present." },
     isSaving: { type: "boolean", description: "`true` while a save operation is in flight." },
-    missingVariables: { type: "EnvVarFormVariable[]", description: "Variables required by the MCP server that are missing from the user's personal environment. Empty when all variables are present or the server has no `env_spec`.  Suitable as direct input to EnvVarForm." },
+    missingVariables: { type: "EnvVarFormVariable[]", description: "Variables required by the MCP server that are missing from the user's personal environment. Empty when all variables are present or the server has no `env_spec`.  When `authMode` is `\"oauth\"`, the OAuth-managed `target_env_var` is excluded from this list — it is acquired via the OAuth flow, not via a manual form. Only additional non-OAuth vars appear here.  Suitable as direct input to EnvVarForm." },
+    oauthTargetEnvVar: { type: "string | null", description: "The env var name managed by OAuth, or `null` when `authMode` is `\"manual\"`. Corresponds to `spec.auth.target_env_var`." },
     refetch: { type: "() => void", description: "Re-check the personal environment." },
     saveCredentials: { type: "(values: Record<string, EnvVarInput>) => Promise<void>", description: "Save the provided credentials to the user's personal environment. Creates the personal environment if it doesn't exist yet." },
+    tokenLifetimeHint: { type: "string | null", description: "Informational hint about expected token lifetime, or `null`. Sourced from `spec.auth.token_lifetime_hint`." },
   }}
 />
 
 ```tsx
-const { missingVariables, isReady, saveCredentials, isSaving } =
-  useMcpServerCredentials("acme", mcpServer);
+const creds = useMcpServerCredentials("acme", mcpServer);
 
-if (!isReady) {
+// OAuth server — sign-in button + optional manual form
+if (creds.authMode === "oauth" && !creds.isOAuthConnected) {
+  return <button onClick={startOAuth}>Sign in</button>;
+}
+
+// Manual vars still needed (mixed mode or manual-only)
+if (creds.missingVariables.length > 0) {
   return (
     <EnvVarForm
-      variables={missingVariables}
-      onSubmit={(values) => saveCredentials(values)}
-      isSubmitting={isSaving}
+      variables={creds.missingVariables}
+      onSubmit={(values) => creds.saveCredentials(values)}
+      isSubmitting={creds.isSaving}
       hideSaveToggle
     />
   );
@@ -278,6 +293,58 @@ const { mcpServers, totalCount, isLoading } = useMcpServerList("acme", {
 ```tsx
 // Show all MCP servers including public/platform ones
 const { mcpServers } = useMcpServerList("acme", { scope: "all" });
+```
+
+
+### useMcpServerOAuthConnect
+
+Action hook that orchestrates the full OAuth popup flow for MCP servers.
+
+Handles the complete lifecycle:
+1. Calls `initiateOAuthConnect` to get the authorization URL
+2. Opens a popup window to the OAuth consent screen
+3. Listens for the callback via `window.postMessage`
+4. Calls `completeOAuthConnect` to exchange the code for tokens
+5. Chains to `connect` for tool discovery
+
+The popup is opened **synchronously** before the `initiateOAuthConnect`
+RPC to avoid browser popup blockers. A blank page is shown briefly
+while the RPC resolves, then the popup navigates to the auth URL.
+
+**Signature**
+
+```tsx
+function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn
+```
+
+**Returns** — `UseMcpServerOAuthConnectReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset the hook to idle state, clearing any error." },
+    error: { type: "Error | null", description: "Error from the most recent failed attempt, or `null`." },
+    isInProgress: { type: "boolean", description: "`true` while any phase of the OAuth flow is in progress." },
+    phase: { type: "OAuthConnectPhase", description: "Current phase of the OAuth flow.", typeDescriptionLink: "#oauthconnectphase" },
+    startOAuth: { type: "(mcpServerId: string) => Promise<McpServer>", description: "Start the OAuth connect flow for an MCP server.  Opens a popup for the OAuth consent screen, waits for the callback, exchanges the authorization code for tokens, then chains to the `connect` RPC for tool discovery.  **Must be called from a synchronous user-gesture handler** (e.g., an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers." },
+  }}
+/>
+
+```tsx
+const oauth = useMcpServerOAuthConnect();
+const { refetch } = useMcpServer(org, slug);
+
+async function handleSignIn() {
+  try {
+    await oauth.startOAuth(mcpServer.metadata.id);
+    refetch();
+  } catch {
+    // error is available via oauth.error
+  }
+}
+
+<button onClick={handleSignIn} disabled={oauth.isInProgress}>
+  {oauth.isInProgress ? "Signing in..." : "Sign in with OAuth"}
+</button>
 ```
 
 
@@ -431,6 +498,7 @@ All visual properties flow through `--stgm-*` design tokens.
     enabledTools: { type: "string[]", description: "Currently enabled tool names (controlled).", required: true },
     error: { type: "Error | null", description: "Error to display inline (e.g., from credential submission failure)." },
     mcpServer: { type: "McpServer", description: "The MCP server resource — used for header display (name, icon, description).", required: true, typeDescriptionLink: "/docs/sdk/resources/mcp-server" },
+    oauthSignIn: { type: "McpServerOAuthSignInProps", description: "When provided, an inline OAuth sign-in button is rendered above the credentials form. The button initiates the popup-based OAuth flow.  Use alongside `credentials` for mixed-mode servers that require both OAuth and manual env vars, or on its own for OAuth-only servers.", typeDescriptionLink: "#mcpserveroauthsigninprops" },
     onBack: { type: "() => void", description: "Called when the user clicks \"Back\" to return to the picker list.", required: true },
     onEnabledToolsChange: { type: "(enabledTools: string[]) => void", description: "Called when tool selection changes.", required: true },
     toolApprovals: { type: "ToolApprovalPolicy[]", description: "Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`.", required: true },
@@ -615,11 +683,58 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 
+### OAuthCallbackHandler
+
+Lightweight component for OAuth callback pages.
+
+Render this component at the URL configured as your OAuth redirect
+URI (`STIGMER_OAUTH_REDIRECT_URI`). It extracts the `code` and
+`state` query parameters from the current URL, posts them back to
+the opener window via `window.postMessage`, and closes the popup.
+
+The component handles three scenarios:
+1. **Popup with opener** (primary): posts the message and closes.
+2. **No opener, `onFallback` provided**: calls the fallback with
+   the extracted parameters so the host app can handle them.
+3. **No opener, no fallback**: shows a message asking the user to
+   return to the main window.
+
+Platform builders create a route in their application that renders
+this component:
+
+**Props** — `OAuthCallbackHandlerProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    onFallback: { type: "(params: OAuthCallbackParams) => void", description: "Fallback callback invoked when the page was opened as a regular navigation (no `window.opener`), meaning the popup `postMessage` path cannot be used.  Receives the extracted `code` and `state` so the host application can complete the OAuth flow via its own routing logic.  When omitted and `window.opener` is unavailable, the component renders an instructional message asking the user to close the tab." },
+  }}
+/>
+
+```tsx
+// app/auth/oauth/callback/page.tsx (Next.js)
+import { OAuthCallbackHandler } from "@stigmer/react";
+
+export default function OAuthCallbackPage() {
+  return <OAuthCallbackHandler />;
+}
+```
+
+
 ## Types
 
 ### CapabilityTab
 
 Tab identifier for the MCP server capability panel.
+
+
+### McpServerAuthMode
+
+Credential acquisition mode for an MCP server.
+
+- `"manual"` — all env vars are entered by the user via a form.
+- `"oauth"` — at least one env var (`target_env_var`) is acquired
+  via OAuth. Additional manual vars may still be required (mixed mode).
 
 
 ### McpServerCredentialsProps
@@ -640,6 +755,24 @@ rendered — no status string inspection required.
     onSubmit: { type: "(values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called when the user submits credentials via the form.", required: true },
     poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling fields from the session env pool. When provided, fields whose keys return a value are pre-populated." },
     variables: { type: "EnvVarFormVariable[]", description: "Missing env vars to collect (one form field per variable).", required: true },
+  }}
+/>
+
+
+### McpServerOAuthSignInProps
+
+Props for the inline OAuth sign-in action shown when a server requires
+OAuth authentication. Presence controls rendering — when `oauthSignIn`
+is provided on [`McpServerConfigPanelProps`](#mcpserverconfigpanelprops), the OAuth button
+is rendered above the credentials form.
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the most recent failed OAuth attempt, or `null`.", required: true },
+    isConnected: { type: "boolean", description: "`true` when the OAuth token already exists in the personal environment.", required: true },
+    onClearError: { type: "() => void", description: "Clear the OAuth error state.", required: true },
+    onSignIn: { type: "() => void", description: "Initiates the OAuth popup flow. Must be called from a click handler.", required: true },
+    phase: { type: "OAuthConnectPhase", description: "Current phase of the OAuth flow.", required: true, typeDescriptionLink: "#oauthconnectphase" },
   }}
 />
 
@@ -717,6 +850,23 @@ entries keyed by `"org/slug"` (see [`toServerKey`](#toserverkey)).
 Each entry tracks one selected MCP server independently through the
 setup lifecycle. Entries are added when the user toggles a server on
 in the picker and removed when toggled off.
+
+
+### OAuthCallbackParams
+
+Parameters extracted from the OAuth callback URL.
+
+<TypeTable
+  type={{
+    code: { type: "string", description: "", required: true },
+    state: { type: "string", description: "", required: true },
+  }}
+/>
+
+
+### OAuthConnectPhase
+
+Progress phases of the OAuth connect flow.
 
 
 ### SubmitMcpEnvVarsOptions

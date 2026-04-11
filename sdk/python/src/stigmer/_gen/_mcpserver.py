@@ -66,6 +66,18 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def initiate_o_auth_connect(self, input: io_pb2.InitiateOAuthConnectInput) -> io_pb2.InitiateOAuthConnectOutput:
+        try:
+            return self._command.initiateOAuthConnect(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def complete_o_auth_connect(self, input: io_pb2.CompleteOAuthConnectInput) -> io_pb2.CompleteOAuthConnectOutput:
+        try:
+            return self._command.completeOAuthConnect(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.McpServer:
         try:
             return self._query.get(apiresource_io_pb2.ApiResourceId(value=id))
@@ -121,6 +133,7 @@ class McpServerInput:
     pinned_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
     repository_url: str = ""
     github_stars: int = 0
+    auth: McpServerAuthInput | None = None
 
     def _to_proto(self) -> api_pb2.McpServer:
         spec = spec_pb2.McpServerSpec(
@@ -139,6 +152,8 @@ class McpServerInput:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
         for item in self.pinned_tool_approvals:
             spec.pinned_tool_approvals.append(item._to_proto())
+        if self.auth is not None:
+            spec.auth.CopyFrom(self.auth._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -206,5 +221,26 @@ class ToolApprovalPolicyInput:
             tool_name=self.tool_name,
             message=self.message,
         )
+        return msg
+
+
+@dataclass
+class McpServerAuthInput:
+    """SDK input type for McpServerAuth."""
+
+    oauth_app_ref: ResourceRef | None = None
+    target_env_var: str = ""
+    token_lifetime_hint: str = ""
+    scope_hints: list[str] = field(default_factory=list)
+
+    def _to_proto(self) -> spec_pb2.McpServerAuth:
+        msg = spec_pb2.McpServerAuth(
+            target_env_var=self.target_env_var,
+            token_lifetime_hint=self.token_lifetime_hint,
+        )
+        if self.oauth_app_ref is not None:
+            msg.oauth_app_ref.CopyFrom(self.oauth_app_ref._to_proto())
+        if self.scope_hints:
+            msg.scope_hints.extend(self.scope_hints)
         return msg
 

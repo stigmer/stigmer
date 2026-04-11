@@ -20,12 +20,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	McpServerCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/apply"
-	McpServerCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
-	McpServerCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
-	McpServerCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
-	McpServerCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility"
-	McpServerCommandController_Connect_FullMethodName          = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect"
+	McpServerCommandController_Apply_FullMethodName                = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/apply"
+	McpServerCommandController_Create_FullMethodName               = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
+	McpServerCommandController_Update_FullMethodName               = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
+	McpServerCommandController_Delete_FullMethodName               = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
+	McpServerCommandController_UpdateVisibility_FullMethodName     = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility"
+	McpServerCommandController_Connect_FullMethodName              = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect"
+	McpServerCommandController_InitiateOAuthConnect_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/initiateOAuthConnect"
+	McpServerCommandController_CompleteOAuthConnect_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/completeOAuthConnect"
 )
 
 // McpServerCommandControllerClient is the client API for McpServerCommandController service.
@@ -119,6 +121,48 @@ type McpServerCommandControllerClient interface {
 	//
 	// Authorization: Requires can_connect permission on the mcp_server resource.
 	Connect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error)
+	// Start the OAuth authorization flow for an MCP server.
+	//
+	// Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+	// generation) and returns an authorization URL for the frontend to
+	// redirect the user to. The frontend calls completeOAuthConnect after
+	// the user authorizes.
+	//
+	// @internal
+	// Two auth modes determined by the MCP server's spec.auth block:
+	//   - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+	//     discovers the authorization server, registers a client via DCR,
+	//     and builds the auth URL automatically.
+	//   - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+	//     OAuthApp for client credentials and endpoint URLs.
+	//
+	// Errors:
+	//   - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+	//     without oauth_app_ref (DCR requires HTTP transport)
+	//   - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+	//
+	// Authorization: Requires can_connect permission on the mcp_server resource.
+	InitiateOAuthConnect(ctx context.Context, in *InitiateOAuthConnectInput, opts ...grpc.CallOption) (*InitiateOAuthConnectOutput, error)
+	// Complete the OAuth authorization flow by exchanging the authorization
+	// code for tokens.
+	//
+	// Called by the frontend after the user is redirected back from the
+	// OAuth authorization server. Exchanges the code for tokens, stores
+	// them in the user's personal environment, and creates an OAuthGrant
+	// record for pre-flight expiry checks.
+	//
+	// After success, the frontend should call connect() to trigger tool
+	// discovery using the freshly acquired token.
+	//
+	// @internal
+	// Errors:
+	//   - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+	//     not match the mcp_server_id
+	//   - UNAVAILABLE: Token exchange with the authorization server failed
+	//   - NOT_FOUND: No pending OAuth state found for the given state param
+	//
+	// Authorization: Requires can_connect permission on the mcp_server resource.
+	CompleteOAuthConnect(ctx context.Context, in *CompleteOAuthConnectInput, opts ...grpc.CallOption) (*CompleteOAuthConnectOutput, error)
 }
 
 type mcpServerCommandControllerClient struct {
@@ -183,6 +227,26 @@ func (c *mcpServerCommandControllerClient) Connect(ctx context.Context, in *Conn
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(McpServer)
 	err := c.cc.Invoke(ctx, McpServerCommandController_Connect_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpServerCommandControllerClient) InitiateOAuthConnect(ctx context.Context, in *InitiateOAuthConnectInput, opts ...grpc.CallOption) (*InitiateOAuthConnectOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InitiateOAuthConnectOutput)
+	err := c.cc.Invoke(ctx, McpServerCommandController_InitiateOAuthConnect_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpServerCommandControllerClient) CompleteOAuthConnect(ctx context.Context, in *CompleteOAuthConnectInput, opts ...grpc.CallOption) (*CompleteOAuthConnectOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompleteOAuthConnectOutput)
+	err := c.cc.Invoke(ctx, McpServerCommandController_CompleteOAuthConnect_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -280,6 +344,48 @@ type McpServerCommandControllerServer interface {
 	//
 	// Authorization: Requires can_connect permission on the mcp_server resource.
 	Connect(context.Context, *ConnectInput) (*McpServer, error)
+	// Start the OAuth authorization flow for an MCP server.
+	//
+	// Performs setup (DCR registration or OAuthApp credential lookup, PKCE
+	// generation) and returns an authorization URL for the frontend to
+	// redirect the user to. The frontend calls completeOAuthConnect after
+	// the user authorizes.
+	//
+	// @internal
+	// Two auth modes determined by the MCP server's spec.auth block:
+	//   - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
+	//     discovers the authorization server, registers a client via DCR,
+	//     and builds the auth URL automatically.
+	//   - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
+	//     OAuthApp for client credentials and endpoint URLs.
+	//
+	// Errors:
+	//   - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
+	//     without oauth_app_ref (DCR requires HTTP transport)
+	//   - NOT_FOUND: MCP server or referenced OAuthApp does not exist
+	//
+	// Authorization: Requires can_connect permission on the mcp_server resource.
+	InitiateOAuthConnect(context.Context, *InitiateOAuthConnectInput) (*InitiateOAuthConnectOutput, error)
+	// Complete the OAuth authorization flow by exchanging the authorization
+	// code for tokens.
+	//
+	// Called by the frontend after the user is redirected back from the
+	// OAuth authorization server. Exchanges the code for tokens, stores
+	// them in the user's personal environment, and creates an OAuthGrant
+	// record for pre-flight expiry checks.
+	//
+	// After success, the frontend should call connect() to trigger tool
+	// discovery using the freshly acquired token.
+	//
+	// @internal
+	// Errors:
+	//   - FAILED_PRECONDITION: State parameter is invalid, expired, or does
+	//     not match the mcp_server_id
+	//   - UNAVAILABLE: Token exchange with the authorization server failed
+	//   - NOT_FOUND: No pending OAuth state found for the given state param
+	//
+	// Authorization: Requires can_connect permission on the mcp_server resource.
+	CompleteOAuthConnect(context.Context, *CompleteOAuthConnectInput) (*CompleteOAuthConnectOutput, error)
 }
 
 // UnimplementedMcpServerCommandControllerServer should be embedded to have
@@ -306,6 +412,12 @@ func (UnimplementedMcpServerCommandControllerServer) UpdateVisibility(context.Co
 }
 func (UnimplementedMcpServerCommandControllerServer) Connect(context.Context, *ConnectInput) (*McpServer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
+}
+func (UnimplementedMcpServerCommandControllerServer) InitiateOAuthConnect(context.Context, *InitiateOAuthConnectInput) (*InitiateOAuthConnectOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InitiateOAuthConnect not implemented")
+}
+func (UnimplementedMcpServerCommandControllerServer) CompleteOAuthConnect(context.Context, *CompleteOAuthConnectInput) (*CompleteOAuthConnectOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CompleteOAuthConnect not implemented")
 }
 func (UnimplementedMcpServerCommandControllerServer) testEmbeddedByValue() {}
 
@@ -435,6 +547,42 @@ func _McpServerCommandController_Connect_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpServerCommandController_InitiateOAuthConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InitiateOAuthConnectInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpServerCommandControllerServer).InitiateOAuthConnect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpServerCommandController_InitiateOAuthConnect_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpServerCommandControllerServer).InitiateOAuthConnect(ctx, req.(*InitiateOAuthConnectInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpServerCommandController_CompleteOAuthConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteOAuthConnectInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpServerCommandControllerServer).CompleteOAuthConnect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpServerCommandController_CompleteOAuthConnect_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpServerCommandControllerServer).CompleteOAuthConnect(ctx, req.(*CompleteOAuthConnectInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McpServerCommandController_ServiceDesc is the grpc.ServiceDesc for McpServerCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -465,6 +613,14 @@ var McpServerCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "connect",
 			Handler:    _McpServerCommandController_Connect_Handler,
+		},
+		{
+			MethodName: "initiateOAuthConnect",
+			Handler:    _McpServerCommandController_InitiateOAuthConnect_Handler,
+		},
+		{
+			MethodName: "completeOAuthConnect",
+			Handler:    _McpServerCommandController_CompleteOAuthConnect_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
