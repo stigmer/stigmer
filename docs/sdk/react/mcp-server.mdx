@@ -97,7 +97,7 @@ function useMcpServerConnect(): UseMcpServerConnectReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Clear the error state." },
-    connect: { type: "(mcpServerId: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools, resource templates, and classify tool approval policies via a lightweight LLM call.  Calls the `connect` RPC which starts a Temporal workflow on the agent-runner. The RPC blocks until the workflow completes (typically 5-15 seconds, ~30s timeout).  Platform system env vars (STIGMER_SERVER_ADDRESS, STIGMER_API_KEY) are always injected automatically from the current SDK context. When `runtimeEnv` is also provided, those values are merged on top (caller values win). The backend merges the result on top of the user's personal environment so saved credentials (e.g., OAuth tokens) are still resolved." },
+    connect: { type: "(mcpServerId: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools, resource templates, and classify tool approval policies via a lightweight LLM call.  Calls the `connect` RPC which starts a Temporal workflow on the agent-runner. The RPC blocks until the workflow completes (typically 5-15 seconds, ~30s timeout).  Platform system env vars (`STIGMER_SERVER_ADDRESS`, `STIGMER_API_KEY`) are always injected automatically from the current SDK context. When `runtimeEnv` is also provided, those values are merged on top (caller values win). The backend merges the result on top of the user's personal environment so saved credentials (e.g., OAuth tokens) are still resolved." },
     error: { type: "Error | null", description: "Error from the most recent failed connect, or `null`." },
     isConnecting: { type: "boolean", description: "`true` while the connect RPC is in flight." },
   }}
@@ -323,10 +323,10 @@ function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset the hook to idle state, clearing any error." },
-    error: { type: "Error | null", description: "Error from the most recent failed attempt, or `null`." },
+    error: { type: "Error | null", description: "Error from the most recent unsuccessful attempt, or `null`." },
     isInProgress: { type: "boolean", description: "`true` while any phase of the OAuth flow is in progress." },
     phase: { type: "OAuthConnectPhase", description: "Current phase of the OAuth flow.", typeDescriptionLink: "#oauthconnectphase" },
-    startOAuth: { type: "(mcpServerId: string) => Promise<McpServer>", description: "Start the OAuth connect flow for an MCP server.  Opens a popup for the OAuth consent screen, waits for the callback, exchanges the authorization code for tokens, then chains to the `connect` RPC for tool discovery.  **Must be called from a synchronous user-gesture handler** (e.g., an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers." },
+    startOAuth: { type: "(mcpServerId: string, org: string) => Promise<McpServer>", description: "Start the OAuth connect flow for an MCP server.  Opens a popup for the OAuth consent screen, waits for the callback, exchanges the authorization code for tokens, then chains to the `connect` RPC for tool discovery.  **Must be called from a synchronous user-gesture handler** (e.g., an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers." },
   }}
 />
 
@@ -336,7 +336,7 @@ const { refetch } = useMcpServer(org, slug);
 
 async function handleSignIn() {
   try {
-    await oauth.startOAuth(mcpServer.metadata.id);
+    await oauth.startOAuth(mcpServer.metadata.id, org);
     refetch();
   } catch {
     // error is available via oauth.error
@@ -859,8 +859,8 @@ Parameters extracted from the OAuth callback URL.
 
 <TypeTable
   type={{
-    code: { type: "string", description: "", required: true },
-    state: { type: "string", description: "", required: true },
+    code: { type: "string", description: "The authorization code returned by the OAuth provider.", required: true },
+    state: { type: "string", description: "The opaque state token used to correlate the callback with the originating request.", required: true },
   }}
 />
 

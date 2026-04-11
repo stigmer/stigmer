@@ -7,7 +7,9 @@ import type { OAuthCallbackMessage } from "./useMcpServerOAuthConnect";
 
 /** Parameters extracted from the OAuth callback URL. */
 export interface OAuthCallbackParams {
+  /** The authorization code returned by the OAuth provider. */
   readonly code: string;
+  /** The opaque state token used to correlate the callback with the originating request. */
   readonly state: string;
 }
 

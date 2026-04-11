@@ -23,13 +23,12 @@ newlines, each complete line is parsed as a ``JSONRPCMessage``.
 
 from __future__ import annotations
 
+import json as _json
 import logging
 import shlex
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
-
-import json as _json
 
 import anyio
 import mcp.types as types
