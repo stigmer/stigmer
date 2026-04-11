@@ -54,8 +54,9 @@ The data layer that everything else builds on. All proto changes, stub regenerat
 
 ## Task 2: ManagedEnvironmentService + CompleteOAuthConnect
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-11
+**Completed**: 2026-04-11
 **Repos**: stigmer (Go), stigmer-cloud (Java)
 
 Infrastructure services for managed environment operations + rewire the OAuth complete flow to use them.
