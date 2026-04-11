@@ -19,6 +19,7 @@ import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 import { McpServerConfigPanel } from "./McpServerConfigPanel";
 import type { McpServerSetupEntry } from "./mcpServerSetupReducer";
+import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
 
 // ---------------------------------------------------------------------------
 // Setup integration props
@@ -255,6 +256,7 @@ export function McpServerPicker({
 
   const { results, isLoading, error, query, setQuery } =
     useMcpServerSearch(org, { scope });
+  const oauth = useMcpServerOAuthConnect();
 
   const [focusIndex, setFocusIndex] = useState(-1);
   const [view, setView] = useState<PickerView>(() =>
@@ -384,14 +386,50 @@ export function McpServerPicker({
     const needsCredentials =
       entry.status === "needsSetup" || entry.status === "submitting";
 
+    const auth = entry.mcpServer.spec?.auth;
+    const oauthTargetEnvVar = auth?.targetEnvVar || null;
+    const hasOAuth = !!auth;
+
+    const entryMissingVars =
+      entry.status === "needsSetup" ? entry.missingVariables : [];
+
+    const filteredMissingVars = oauthTargetEnvVar
+      ? entryMissingVars.filter((v) => v.key !== oauthTargetEnvVar)
+      : entryMissingVars;
+
+    const hasManualVars = filteredMissingVars.length > 0;
+
+    const oauthTokenMissing = oauthTargetEnvVar
+      ? entryMissingVars.some((v) => v.key === oauthTargetEnvVar)
+      : false;
+
+    const oauthSignInProps = hasOAuth
+      ? {
+          onSignIn: async () => {
+            if (!entry.mcpServer.metadata?.id) return;
+            try {
+              await oauth.startOAuth(entry.mcpServer.metadata.id);
+              setup.onServerAdded(ref);
+            } catch {
+              // error state managed by oauth hook
+            }
+          },
+          phase: oauth.phase,
+          isConnected: !oauthTokenMissing,
+          error: oauth.error,
+          onClearError: oauth.clearError,
+        }
+      : undefined;
+
     return (
       <div className={cn("w-72", className)}>
         <McpServerConfigPanel
           mcpServer={entry.mcpServer}
+          oauthSignIn={oauthSignInProps}
           credentials={
-            needsCredentials
+            needsCredentials && hasManualVars
               ? {
-                  variables: entry.missingVariables,
+                  variables: filteredMissingVars,
                   onSubmit: (values, opts) =>
                     setup.onSubmitEnvVars(ref, values, opts),
                   isSubmitting: entry.status === "submitting",

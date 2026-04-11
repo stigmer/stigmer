@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: T03 COMPLETE -- Backend OAuth Client + Connect Flow + Token Refresh
-**Active Task**: T04 -- UI Updates + Token Lifecycle
+**Status**: T04 COMPLETE -- UI Updates + Token Lifecycle
+**Active Task**: T05 -- End-to-End Testing
 **Last Session**: 2026-04-11
 
 ## Session Progress (2026-04-11)
@@ -132,27 +132,55 @@ Drop this file into your conversation to quickly resume work on this project.
 - **Deployment-level redirect URI** -- `STIGMER_OAUTH_REDIRECT_URI` env var, not per-OAuthApp or per-McpServer
 - **PendingOAuthState is not a proto** -- backend-internal storage with 10-minute TTL, similar to session state
 
+### T04: React SDK OAuth Connect UI -- COMPLETE
+
+#### New Files (SDK)
+- **`useMcpServerOAuthConnect.ts`** -- Core OAuth popup flow hook. Opens popup synchronously (avoids blockers), calls `initiateOAuthConnect` → navigates popup → listens for `postMessage` → `completeOAuthConnect` → chains `connect`. Phase state machine: `idle → initiating → awaiting-callback → completing → connecting → done`. 120s timeout, popup-closed detection.
+- **`OAuthCallbackHandler.tsx`** -- Callback page component. Extracts `code`+`state` from URL, posts to `window.opener` via `postMessage` (origin-validated), closes popup. Handles no-opener fallback.
+
+#### New File (Console)
+- **`client-apps/web/src/app/auth/oauth/callback/page.tsx`** -- Console callback route rendering `<OAuthCallbackHandler />`.
+
+#### Updated Hooks
+- **`useMcpServerCredentials`** -- Now returns `authMode` (`"manual" | "oauth"`), `oauthTargetEnvVar`, `isOAuthConnected`, `tokenLifetimeHint`. Excludes OAuth-managed var from `missingVariables`. `isReady` checks ALL vars (both OAuth + manual).
+
+#### Updated Components
+- **`McpServerDetailView`** -- New `OAuthSection` with sign-in button + green/gray connection status badge. `ConnectBar` shows phase-aware labels. Mixed mode: OAuth section + env var form for non-OAuth vars. `EnvSpecSection` marks OAuth-managed var with "oauth" badge.
+- **`McpServerConfigPanel`** -- New `oauthSignIn` prop with `McpServerOAuthSignInProps`. Compact inline OAuth sign-in button. Disables form + tool selector during OAuth.
+- **`McpServerPicker`** -- Uses `useMcpServerOAuthConnect` internally. Detects `spec.auth`, filters `target_env_var` from credential form, wires OAuth button. Re-adds server after OAuth for setup re-evaluation.
+
+#### Barrel Exports
+- `mcp-server/index.ts` and `sdk/react/src/index.ts` updated with 3 new exports + expanded types.
+
+### Design Decisions Made During T04
+- **Popup-based OAuth (not redirect)** -- critical for SDK-first embeddable components; platform builders can't have users navigated away
+- **Synchronous popup open before async RPC** -- `window.open("about:blank")` first to avoid popup blockers, then set `location` after `initiateOAuthConnect` resolves
+- **Connection status is env-var-presence-based** -- frontend can't know token expiry (OAuthGrant is backend-internal). Green/gray based on `target_env_var` in personal env. Amber "re-auth needed" only on connect failure.
+- **Mixed-mode credential flow** -- OAuth and manual vars are parallel paths into the same personal env. Both sections render independently. `isReady` gates on all vars present.
+- **Session setup OAuth is lightweight** -- inline per-server action in config panel, not a page-level flow. Picker re-adds server after OAuth to trigger re-evaluation.
+- **No redirect fallback in T04** -- popup covers all standard browser environments. `OAuthCallbackHandler` detects no-opener for future redirect support.
+- **`useMcpServerSetup` unchanged** -- OAuth awareness handled at the UI layer (Picker filters vars, shows button). After OAuth, Picker calls `onServerAdded(ref)` to re-evaluate.
+
 ## Next Steps
 
-1. **T04: UI Updates + Token Lifecycle** (3-4 days)
-   - Connect flow: "Sign in with {vendor}" for OAuth servers
-   - Handle OAuth redirect/popup using `initiateOAuthConnect` → redirect → `completeOAuthConnect`
-   - Connection status indicators (connected/expired/not connected)
-   - Chain `completeOAuthConnect` → `connect` for seamless UX
-2. **T05**: End-to-End Testing
+1. **T05: End-to-End Testing** (2-3 days)
+   - Real OAuth flow against a DCR server (GitLab or Linear)
+   - Vendor OAuth with OAuthApp (Slack or Stripe)
+   - Token refresh cycle verification
+   - Pre-flight expiry check
+   - Validate all 37 seedpack YAMLs
+   - Test popup flow in Console
+   - Test mixed-mode (OAuth + manual vars) scenario
 
 ## Uncommitted Work
 
-### stigmer repo (this session -- T03)
-- T03 proto additions: `io.proto`, `command.proto` (new messages + RPCs)
-- T03 Go OAuth infrastructure: `pkg/domain/mcpserver/oauth/` (7 new files)
-- T03 Go handlers: `initiate_oauth_connect.go`, `complete_oauth_connect.go`
-- T03 Go controller updates: `mcpserver_controller.go`, `connect.go` (pre-flight refresh)
-- T03 Go env client: `downstream/environment/client.go` (added `UpdateVariables`)
-- T03 Go config: `config.go` (added `OAuthRedirectURI`)
-- Regenerated stubs across all languages (Go, Java, Python, TypeScript)
-- Regenerated SDK code (Go, Java, Python, TypeScript)
-- (Previous sessions also have uncommitted: seedpack YAMLs, T02b handlers, prior changelogs)
+### stigmer repo (T04 -- this session)
+- T04 React SDK: `useMcpServerOAuthConnect.ts`, `OAuthCallbackHandler.tsx` (2 new files)
+- T04 React SDK updates: `useMcpServerCredentials.ts`, `McpServerDetailView.tsx`, `McpServerConfigPanel.tsx`, `McpServerPicker.tsx` (4 modified)
+- T04 Console: `client-apps/web/src/app/auth/oauth/callback/page.tsx` (1 new file)
+- T04 Barrel exports: `mcp-server/index.ts`, `sdk/react/src/index.ts` (2 modified)
+- T04 Changelog: `_changelog/2026-04/2026-04-11-104407-t04-react-sdk-oauth-connect-ui.md`
+- (Previous sessions also have uncommitted: T01-T03 proto, backend, seedpack, stubs, SDK codegen)
 
 ### stigmer-cloud repo (T01 + T02 + T03 combined)
 - T01: Proto stubs across Go, Java, Python, TypeScript (regenerated)
@@ -234,6 +262,9 @@ Drop this file into your conversation to quickly resume work on this project.
 | FGA model (NEW) | `backend/services/stigmer-service/.../fga/model/iam/oauth_app.fga` (stigmer-cloud) |
 | Connect handler (Go) | `backend/services/stigmer-server/pkg/domain/mcpserver/controller/connect.go` |
 | React Connect UI | `sdk/react/src/mcp-server/McpServerDetailView.tsx` |
+| OAuth Connect hook (NEW, T04) | `sdk/react/src/mcp-server/useMcpServerOAuthConnect.ts` |
+| OAuth Callback component (NEW, T04) | `sdk/react/src/mcp-server/OAuthCallbackHandler.tsx` |
+| Console OAuth callback (NEW, T04) | `client-apps/web/src/app/auth/oauth/callback/page.tsx` |
 | Seedpack servers | `seedpack/mcp-servers/` |
 
 ## Key References
