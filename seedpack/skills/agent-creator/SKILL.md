@@ -72,7 +72,7 @@ Read `references/examples.md` for complete examples ranging from minimal to full
 - For `mcp_server_usages`, use relative references (omit `org`) when the MCP server belongs to the same org as the agent
 - For `skill_refs`, use relative references by default; use absolute references (with `org`) only for cross-org public resources
 - For `sub_agents`, ensure the parent's `instructions` describe when and how to delegate
-- Only include `env_spec` if the agent itself (not just its MCP servers) needs custom environment variables
+- Only include `env` if the agent itself (not just its MCP servers) needs custom environment variables
 - Never set `status` — it is system-managed
 - Omit `metadata.slug` unless the user explicitly wants a slug different from the auto-generated one
 

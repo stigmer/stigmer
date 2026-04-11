@@ -18,11 +18,10 @@ spec:
     url: "https://mcp.slack.com/mcp"
     headers:
       Authorization: "Bearer ${SLACK_ACCESS_TOKEN}"
-  env_spec:
-    data:
-      SLACK_ACCESS_TOKEN:
-        is_secret: true
-        description: "Slack user OAuth token (requires a registered Slack app with appropriate scopes)"
+  env:
+    SLACK_ACCESS_TOKEN:
+      is_secret: true
+      description: "Slack user OAuth token (requires a registered Slack app with appropriate scopes)"
   auth:
     oauth_app_ref:
       org: stigmer

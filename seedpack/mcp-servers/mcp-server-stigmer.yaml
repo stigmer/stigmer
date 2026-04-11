@@ -15,11 +15,10 @@ spec:
     args:
       - "run"
       - "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest"
-  env_spec:
-    data:
-      STIGMER_SERVER_ADDRESS:
-        is_secret: false
-        description: "gRPC address of the stigmer-server (e.g., localhost:9090 or api.stigmer.ai:443)"
-      STIGMER_API_KEY:
-        is_secret: true
-        description: "API key for authenticating with stigmer-server (optional for local unauthenticated backends)"
+  env:
+    STIGMER_SERVER_ADDRESS:
+      is_secret: false
+      description: "gRPC address of the stigmer-server (e.g., localhost:9090 or api.stigmer.ai:443)"
+    STIGMER_API_KEY:
+      is_secret: true
+      description: "API key for authenticating with stigmer-server (optional for local unauthenticated backends)"

@@ -20,8 +20,7 @@ spec:
       - "run"
       - "github.com/github/github-mcp-server/cmd/github-mcp-server@latest"
       - "stdio"
-  env_spec:
-    data:
-      GITHUB_PERSONAL_ACCESS_TOKEN:
-        is_secret: true
-        description: "GitHub personal access token with repo, issues, and pull request scopes"
+  env:
+    GITHUB_PERSONAL_ACCESS_TOKEN:
+      is_secret: true
+      description: "GitHub personal access token with repo, issues, and pull request scopes"

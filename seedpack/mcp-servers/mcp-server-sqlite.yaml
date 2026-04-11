@@ -20,8 +20,7 @@ spec:
       - "-y"
       - "mcp-sqlite"
       - "${SQLITE_DB_PATH}"
-  env_spec:
-    data:
-      SQLITE_DB_PATH:
-        is_secret: false
-        description: "Path to the SQLite database file (e.g., /data/my-database.db)"
+  env:
+    SQLITE_DB_PATH:
+      is_secret: false
+      description: "Path to the SQLite database file (e.g., /data/my-database.db)"

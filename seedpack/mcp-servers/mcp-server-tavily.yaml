@@ -18,10 +18,9 @@ spec:
     url: "https://mcp.tavily.com/mcp"
     headers:
       Authorization: "Bearer ${TAVILY_API_KEY}"
-  env_spec:
-    data:
-      TAVILY_API_KEY:
-        is_secret: true
-        description: "Tavily API key (get at tavily.com)"
+  env:
+    TAVILY_API_KEY:
+      is_secret: true
+      description: "Tavily API key (get at tavily.com)"
   auth:
     target_env_var: "TAVILY_API_KEY"

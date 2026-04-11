@@ -19,11 +19,10 @@ spec:
     url: "https://gitlab.com/api/v4/mcp"
     headers:
       Authorization: "Bearer ${GITLAB_ACCESS_TOKEN}"
-  env_spec:
-    data:
-      GITLAB_ACCESS_TOKEN:
-        is_secret: true
-        description: "GitLab personal access token or OAuth token (requires Premium or Ultimate tier)"
+  env:
+    GITLAB_ACCESS_TOKEN:
+      is_secret: true
+      description: "GitLab personal access token or OAuth token (requires Premium or Ultimate tier)"
   auth:
     target_env_var: "GITLAB_ACCESS_TOKEN"
     token_lifetime_hint: "2h"

@@ -58,25 +58,29 @@ For field details, see [references/schema.md](references/schema.md).
 
 ## Step 3 — Configure Environment Variables
 
-Declare every environment variable in `env_spec.data`. For each variable:
+Declare every environment variable in `env`. For each variable:
 - Set `is_secret: true` for API tokens, passwords, private keys
 - Set `is_secret: false` for regions, org names, URLs, feature flags
+- Set `optional: true` for variables with sensible defaults or that enable non-critical features
 - Write a `description` that specifies required permissions/format
-- **Never pre-fill `value` for secrets** — values are provided at runtime via AgentInstance
+- **Never pre-fill secret values** — values are provided at runtime via AgentInstance
 
 ```yaml
 spec:
-  env_spec:
-    data:
-      GITHUB_TOKEN:
-        description: "GitHub personal access token with repo and read:org scopes"
-        is_secret: true
-      GITHUB_OWNER:
-        description: "Default GitHub organization or username"
-        is_secret: false
+  env:
+    GITHUB_TOKEN:
+      description: "GitHub personal access token with repo and read:org scopes"
+      is_secret: true
+    GITHUB_OWNER:
+      description: "Default GitHub organization or username"
+      is_secret: false
+    LOG_LEVEL:
+      description: "Server log level (default: ERROR)"
+      is_secret: false
+      optional: true
 ```
 
-For HTTP servers, ensure every `${VAR_NAME}` in headers/query_params has a matching `env_spec` entry.
+For HTTP servers, ensure every `${VAR_NAME}` in headers/query_params has a matching `env` entry.
 
 ## Step 4 — Set Default Tools and Approval Policies
 
@@ -103,7 +107,7 @@ Before presenting the final YAML, verify every rule in [references/validation.md
 5. `spec.stdio.command` is present (for stdio servers)
 6. `spec.http.url` is a valid HTTP/HTTPS URL (for http servers)
 7. No `status` fields are set (system-managed)
-8. No secret values pre-filled in `env_spec`
+8. No secret values pre-filled in `env`
 9. Slug format: `^[a-z][a-z0-9-]*$`, 1–63 chars (if specified)
 10. `${VAR_NAME}` syntax in HTTP headers/params (not `{{}}`)
 11. `{{args.field}}` syntax in approval messages (not `${}`)

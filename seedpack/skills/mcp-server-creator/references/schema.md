@@ -23,7 +23,7 @@ spec:                                 # required
   stdio: <StdioServerConfig>         # exactly one of stdio or http (required)
   http: <HttpServerConfig>           # exactly one of stdio or http (required)
   default_enabled_tools: [string]    # optional — tool gate
-  env_spec: <EnvironmentSpec>        # optional — credential contract
+  env: <EnvVarDeclaration map>       # optional — credential contract
   default_tool_approvals: [ToolApprovalPolicy]  # optional — approval policies
 # status: {} — system-managed, never set by users
 ```
@@ -65,24 +65,23 @@ Remote server communicating over HTTP POST + Server-Sent Events.
 
 **Environment variable interpolation** in headers/params uses `${VAR_NAME}` syntax — resolved at runtime from AgentInstance's environment binding.
 
-## EnvironmentSpec (`env_spec`)
+## Environment Variable Declarations (`env`)
 
-Declares required environment variables — schema only, not values.
+Declares environment variables the server needs — schema only, not values. Each entry is an `EnvVarDeclaration`.
 
 ```yaml
-env_spec:
-  data:
-    VAR_NAME:
-      value: ""                  # leave empty for secrets
-      is_secret: true/false      # true = encrypted at rest, redacted in logs
-      description: "What this variable is for and required format/permissions"
+env:
+  VAR_NAME:
+    is_secret: true/false      # true = encrypted at rest, redacted in logs
+    description: "What this variable is for and required format/permissions"
+    optional: true/false       # true = server works without it; default: false (required)
 ```
 
-| EnvironmentValue Field | Description |
+| EnvVarDeclaration Field | Description |
 |---|---|
-| `value` | Leave empty in McpServer spec. Values provided at runtime via AgentInstance. |
 | `is_secret` | `true`: encrypted, redacted. `false`: plaintext, visible in audit logs. |
-| `description` | Document required permissions, format, scopes. Shown in UI during AgentInstance setup. |
+| `description` | Document required permissions, format, scopes. Shown in UI during setup. |
+| `optional` | `false` (default): execution fails if missing. `true`: server degrades gracefully without it. |
 
 ## ToolApprovalPolicy (`default_tool_approvals`)
 

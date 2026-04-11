@@ -18,8 +18,7 @@ spec:
     url: "https://mapstools.googleapis.com/mcp"
     headers:
       Authorization: "Bearer ${GOOGLE_MAPS_API_KEY}"
-  env_spec:
-    data:
-      GOOGLE_MAPS_API_KEY:
-        is_secret: true
-        description: "Google Maps Platform API key (enable Maps Grounding Lite API in Google Cloud Console)"
+  env:
+    GOOGLE_MAPS_API_KEY:
+      is_secret: true
+      description: "Google Maps Platform API key (enable Maps Grounding Lite API in Google Cloud Console)"

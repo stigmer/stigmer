@@ -19,8 +19,7 @@ spec:
       - "-y"
       - "@modelcontextprotocol/server-filesystem"
       - "${FILESYSTEM_ALLOWED_DIR}"
-  env_spec:
-    data:
-      FILESYSTEM_ALLOWED_DIR:
-        is_secret: false
-        description: "Root directory the server is allowed to access (e.g., /home/user/projects)"
+  env:
+    FILESYSTEM_ALLOWED_DIR:
+      is_secret: false
+      description: "Root directory the server is allowed to access (e.g., /home/user/projects)"
