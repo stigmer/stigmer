@@ -52,11 +52,11 @@ func (c *OAuthAppController) Create(ctx context.Context, app *oauthappv1.OAuthAp
 // the current state -- the encrypted value must be in place before the clone.
 func (c *OAuthAppController) buildCreatePipeline() *pipeline.Pipeline[*oauthappv1.OAuthApp] {
 	return pipeline.NewPipeline[*oauthappv1.OAuthApp]("oauthapp-create").
-		AddStep(steps.NewResolveSlugStep[*oauthappv1.OAuthApp]()).                   // 1. Resolve slug
-		AddStep(steps.NewValidateProtoStep[*oauthappv1.OAuthApp]()).                 // 2. Validate field constraints
-		AddStep(steps.NewCheckDuplicateStep[*oauthappv1.OAuthApp](c.store)).         // 3. Check duplicate
-		AddStep(oauthsteps.NewEncryptClientSecretForCreateStep(c.secretService)).     // 4. Encrypt client_secret
-		AddStep(steps.NewBuildNewStateStep[*oauthappv1.OAuthApp]()).                 // 5. Build new state
-		AddStep(steps.NewPersistStep[*oauthappv1.OAuthApp](c.store)).               // 6. Persist OAuthApp
+		AddStep(steps.NewResolveSlugStep[*oauthappv1.OAuthApp]()).                // 1. Resolve slug
+		AddStep(steps.NewValidateProtoStep[*oauthappv1.OAuthApp]()).              // 2. Validate field constraints
+		AddStep(steps.NewCheckDuplicateStep[*oauthappv1.OAuthApp](c.store)).      // 3. Check duplicate
+		AddStep(oauthsteps.NewEncryptClientSecretForCreateStep(c.secretService)). // 4. Encrypt client_secret
+		AddStep(steps.NewBuildNewStateStep[*oauthappv1.OAuthApp]()).              // 5. Build new state
+		AddStep(steps.NewPersistStep[*oauthappv1.OAuthApp](c.store)).             // 6. Persist OAuthApp
 		Build()
 }

@@ -38,7 +38,7 @@ func (c *OAuthAppController) GetByReference(ctx context.Context, ref *apiresourc
 
 func (c *OAuthAppController) buildGetByReferencePipeline() *pipeline.Pipeline[*apiresource.ApiResourceReference] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceReference]("oauthapp-get-by-reference").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()).   // 1. Validate input
-		AddStep(steps.NewLoadByReferenceStep[*oauthappv1.OAuthApp](c.store)).      // 2. Load by slug
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()). // 1. Validate input
+		AddStep(steps.NewLoadByReferenceStep[*oauthappv1.OAuthApp](c.store)).     // 2. Load by slug
 		Build()
 }

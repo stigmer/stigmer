@@ -54,7 +54,7 @@ func (o *OAuthAppClient) Get(ctx context.Context, id string) (*oauthappv1.OAuthA
 }
 
 func (o *OAuthAppClient) GetByReference(ctx context.Context, ref ResourceRef) (*oauthappv1.OAuthApp, error) {
-	ref.Kind = apiresourcekind.ApiResourceKind_o_auth_app
+	ref.Kind = apiresourcekind.ApiResourceKind_oauth_app
 	resp, err := o.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }

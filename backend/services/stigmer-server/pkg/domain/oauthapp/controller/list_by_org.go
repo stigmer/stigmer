@@ -48,7 +48,7 @@ func (c *OAuthAppController) ListByOrg(ctx context.Context, req *oauthappv1.List
 func (c *OAuthAppController) buildListByOrgPipeline() *pipeline.Pipeline[*oauthappv1.ListOAuthAppsByOrgInput] {
 	return pipeline.NewPipeline[*oauthappv1.ListOAuthAppsByOrgInput]("oauthapp-list-by-org").
 		AddStep(steps.NewValidateProtoStep[*oauthappv1.ListOAuthAppsByOrgInput]()). // 1. Validate input
-		AddStep(newListByOrgStep(c.store)).                                          // 2. Load, filter, redact
+		AddStep(newListByOrgStep(c.store)).                                         // 2. Load, filter, redact
 		Build()
 }
 

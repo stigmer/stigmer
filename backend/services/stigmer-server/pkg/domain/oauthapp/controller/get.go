@@ -37,7 +37,7 @@ func (c *OAuthAppController) Get(ctx context.Context, id *apiresource.ApiResourc
 
 func (c *OAuthAppController) buildGetPipeline() *pipeline.Pipeline[*apiresource.ApiResourceId] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceId]("oauthapp-get").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                              // 1. Validate input
-		AddStep(steps.NewLoadTargetStep[*apiresource.ApiResourceId, *oauthappv1.OAuthApp](c.store)).   // 2. Load by ID
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                           // 1. Validate input
+		AddStep(steps.NewLoadTargetStep[*apiresource.ApiResourceId, *oauthappv1.OAuthApp](c.store)). // 2. Load by ID
 		Build()
 }
