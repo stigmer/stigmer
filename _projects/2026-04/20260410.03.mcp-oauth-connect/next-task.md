@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-10
-**Status**: T04 COMPLETE -- UI Updates + Token Lifecycle
-**Active Task**: T05 -- End-to-End Testing
+**Status**: T05 COMPLETE -- Vendor OAuth Bootstrap Migration
+**Active Task**: Manual end-to-end testing (user-driven)
 **Last Session**: 2026-04-11
 
 ## Session Progress (2026-04-11)
@@ -161,11 +161,39 @@ Drop this file into your conversation to quickly resume work on this project.
 - **No redirect fallback in T04** -- popup covers all standard browser environments. `OAuthCallbackHandler` detects no-opener for future redirect support.
 - **`useMcpServerSetup` unchanged** -- OAuth awareness handled at the UI layer (Picker filters vars, shows button). After OAuth, Picker calls `onServerAdded(ref)` to re-evaluate.
 
+### T05: Vendor OAuth Bootstrap Migration -- COMPLETE
+
+#### Vendor OAuth App Registration
+- Registered OAuth apps with Slack (free), Figma (free, pending review), Salesforce (free Developer Edition)
+- Configured redirect URL `https://app.stigmer.ai/auth/oauth/callback` on all three
+- Slack: PKCE enabled, user token scopes (channels:read, chat:write, users:read, search:read)
+- Figma: Public distribution, scopes (file_content:read, file_metadata:read, file_comments:read)
+- Salesforce: External Client App, Authorization Code flow, PKCE enabled, scopes (api, refresh_token, offline_access)
+- Stripe excluded -- uses API keys, not OAuth
+
+#### Credential Pipeline (stigmer-cloud, 4 new files + 2 modified)
+- **SecretsGroup**: `vendor-oauth-credentials.yaml` (3 client secrets via planton)
+- **VariablesGroup**: `vendor-oauth-config.yaml` (3 client IDs via planton)
+- **Kustomize**: 6 env var mappings in `service.yaml` (3 variables + 3 secrets)
+- **Spring**: `stigmer.vendor-oauth.*` in `application.yaml` + `VendorOAuthBootstrapConfig.java`
+
+#### Mongock Migration (stigmer-cloud, 1 new file)
+- `U20260411_SeedVendorOAuthApps.java` -- `@ChangeUnit(order = "013")`
+- Creates 3 OAuthApp documents with encrypted client_secret
+- Writes FGA tuples (org link + owner) matching `createSteps.createAuthorizationTuples`
+- Idempotent, graceful skip for unconfigured vendors, full rollback support
+- Owner: `operator@stigmer.ai`, org: `stigmer`
+
+#### Seedpack YAML Updates (stigmer, 3 modified files)
+- `mcp-server-slack.yaml`: Added `auth.oauth_app_ref: slack-oauth`
+- `mcp-server-figma.yaml`: Added `auth.oauth_app_ref: figma-oauth`
+- `mcp-server-salesforce.yaml`: Added `env_spec` + `auth.oauth_app_ref: salesforce-oauth`
+
 ## Next Steps
 
-1. **T05: End-to-End Testing** (2-3 days)
+1. **Manual end-to-end testing** (user-driven)
    - Real OAuth flow against a DCR server (GitLab or Linear)
-   - Vendor OAuth with OAuthApp (Slack or Stripe)
+   - Vendor OAuth with OAuthApp (Slack, Figma, Salesforce)
    - Token refresh cycle verification
    - Pre-flight expiry check
    - Validate all 37 seedpack YAMLs
@@ -174,19 +202,17 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Uncommitted Work
 
-### stigmer repo (T04 -- this session)
-- T04 React SDK: `useMcpServerOAuthConnect.ts`, `OAuthCallbackHandler.tsx` (2 new files)
-- T04 React SDK updates: `useMcpServerCredentials.ts`, `McpServerDetailView.tsx`, `McpServerConfigPanel.tsx`, `McpServerPicker.tsx` (4 modified)
-- T04 Console: `client-apps/web/src/app/auth/oauth/callback/page.tsx` (1 new file)
-- T04 Barrel exports: `mcp-server/index.ts`, `sdk/react/src/index.ts` (2 modified)
-- T04 Changelog: `_changelog/2026-04/2026-04-11-104407-t04-react-sdk-oauth-connect-ui.md`
-- (Previous sessions also have uncommitted: T01-T03 proto, backend, seedpack, stubs, SDK codegen)
+### stigmer repo (T01-T05, all sessions combined)
+- T01-T03: Protos, backend Go code, stubs, seedpack auth blocks
+- T04: React SDK OAuth Connect UI, Console callback page
+- T05: Seedpack YAML vendor OAuth `auth` blocks (Slack, Figma, Salesforce)
+- Changelogs for all tasks
 
-### stigmer-cloud repo (T01 + T02 + T03 combined)
+### stigmer-cloud repo (T01-T05, all sessions combined)
 - T01: Proto stubs across Go, Java, Python, TypeScript (regenerated)
 - T02: Encryption library, OAuthApp handlers, FGA model, test updates
 - T03: Java OAuth infrastructure, handlers, repos, pre-flight refresh step
-- **Needs separate commit** in stigmer-cloud repo
+- T05: Vendor OAuth bootstrap migration, planton groups, Kustomize, Spring config
 
 ## Key Design Decisions
 
