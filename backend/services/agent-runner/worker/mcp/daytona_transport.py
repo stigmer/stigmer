@@ -146,9 +146,12 @@ async def daytona_stdio_client(
 
         buffer = ""
         got_first_output = anyio.Event()
+        stderr_lines: list[str] = []
+        got_stdout = False
 
         async def _on_stdout(chunk: str) -> None:
-            nonlocal buffer
+            nonlocal buffer, got_stdout
+            got_stdout = True
             if not got_first_output.is_set():
                 got_first_output.set()
 
@@ -173,8 +176,10 @@ async def daytona_stdio_client(
             if not got_first_output.is_set():
                 got_first_output.set()
             for line in chunk.splitlines():
-                if line.strip():
-                    logger.debug("MCP server '%s' stderr: %s", slug, line)
+                stripped = line.strip()
+                if stripped:
+                    stderr_lines.append(stripped)
+                    logger.warning("MCP server '%s' stderr: %s", slug, stripped)
 
         async def _stdout_reader() -> None:
             try:
@@ -184,6 +189,13 @@ async def daytona_stdio_client(
                         _on_stdout,
                         _on_stderr,
                     )
+                    if not got_stdout and stderr_lines:
+                        logger.error(
+                            "MCP server '%s' exited without producing "
+                            "stdout. stderr:\n  %s",
+                            slug,
+                            "\n  ".join(stderr_lines[-20:]),
+                        )
             except anyio.ClosedResourceError:
                 pass
             except Exception:
@@ -210,8 +222,17 @@ async def daytona_stdio_client(
             except anyio.ClosedResourceError:
                 pass
             except Exception:
-                logger.exception(
-                    "MCP server '%s': stdin writer error", slug,
+                stderr_context = (
+                    "; stderr: " + " | ".join(stderr_lines[-5:])
+                    if stderr_lines
+                    else ""
+                )
+                logger.error(
+                    "MCP server '%s': stdin write failed — process likely "
+                    "exited%s",
+                    slug,
+                    stderr_context,
+                    exc_info=True,
                 )
 
         # -- Run transport tasks ------------------------------------------
