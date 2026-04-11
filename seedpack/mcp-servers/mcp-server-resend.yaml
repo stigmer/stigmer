@@ -19,8 +19,7 @@ spec:
     args:
       - "-y"
       - "resend-mcp"
-  env_spec:
-    data:
-      RESEND_API_KEY:
-        is_secret: true
-        description: "Resend API key (get at resend.com/api-keys)"
+  env:
+    RESEND_API_KEY:
+      is_secret: true
+      description: "Resend API key (get at resend.com/api-keys)"

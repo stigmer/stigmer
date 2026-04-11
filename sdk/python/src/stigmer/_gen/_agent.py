@@ -17,9 +17,10 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
+from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
 
 from ._errors import wrap_error
-from ._types import EnvSpecInput, ListParams, ListResult, ResourceRef
+from ._types import ListParams, ListResult, ResourceRef
 
 
 class AgentClient:
@@ -118,7 +119,7 @@ class AgentInput:
     mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     sub_agents: list[SubAgentInput] = field(default_factory=list)
-    env_spec: EnvSpecInput | None = None
+    env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -132,8 +133,8 @@ class AgentInput:
             spec.skill_refs.append(ref._to_proto())
         for item in self.sub_agents:
             spec.sub_agents.append(item._to_proto())
-        if self.env_spec is not None:
-            spec.env_spec.CopyFrom(self.env_spec._to_proto())
+        for k, v in self.env.items():
+            spec.env[k].CopyFrom(v._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -224,5 +225,22 @@ class McpAccessInput:
         )
         if self.enabled_tools:
             msg.enabled_tools.extend(self.enabled_tools)
+        return msg
+
+
+@dataclass
+class EnvVarDeclarationInput:
+    """SDK input type for EnvVarDeclaration."""
+
+    is_secret: bool = False
+    description: str = ""
+    optional: bool = False
+
+    def _to_proto(self) -> environment_spec_pb2.EnvVarDeclaration:
+        msg = environment_spec_pb2.EnvVarDeclaration(
+            is_secret=self.is_secret,
+            description=self.description,
+            optional=self.optional,
+        )
         return msg
 

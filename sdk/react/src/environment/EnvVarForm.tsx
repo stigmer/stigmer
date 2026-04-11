@@ -9,7 +9,7 @@ import { ScrollFade } from "../internal/ScrollFade";
 /**
  * Describes a single environment variable the form should collect.
  *
- * Typically derived from a resource's `env_spec.data` entries (Agent,
+ * Typically derived from a resource's `env` entries (Agent,
  * McpServer, or any resource that declares required environment
  * variables). The caller is responsible for filtering out variables
  * the user has already provided (i.e. only pass the *missing* ones).
@@ -19,8 +19,14 @@ export interface EnvVarFormVariable {
   readonly key: string;
   /** When true, the input renders as a password field with a visibility toggle. */
   readonly isSecret: boolean;
-  /** Help text shown below the input. From the resource's env_spec description. */
+  /** Help text shown below the input. From the resource's env declaration description. */
   readonly description?: string;
+  /**
+   * When true, this variable is not required for the resource to function.
+   * Callers can use this to filter optional vars out of forms or to show
+   * them separately from required vars.
+   */
+  readonly optional?: boolean;
 }
 
 /** Options reported by the form alongside the collected values on submit. */
@@ -110,7 +116,7 @@ export interface EnvVarFormProps {
 
 /**
  * Compact form that collects environment variable values for any
- * resource that declares an `env_spec` (Agents, MCP servers, etc.).
+ * resource that declares `env` variables (Agents, MCP servers, etc.).
  *
  * Renders one labeled input per variable. Secret variables use a
  * password field with a visibility toggle. The form validates that

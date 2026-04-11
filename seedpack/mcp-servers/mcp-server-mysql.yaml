@@ -18,20 +18,21 @@ spec:
     args:
       - "-y"
       - "@benborla29/mcp-server-mysql"
-  env_spec:
-    data:
-      MYSQL_HOST:
-        is_secret: false
-        description: "MySQL server hostname (e.g., localhost)"
-      MYSQL_PORT:
-        is_secret: false
-        description: "MySQL server port (default: 3306)"
-      MYSQL_USER:
-        is_secret: false
-        description: "MySQL username"
-      MYSQL_PASS:
-        is_secret: true
-        description: "MySQL password"
-      MYSQL_DB:
-        is_secret: false
-        description: "MySQL database name (omit for multi-database access)"
+  env:
+    MYSQL_HOST:
+      is_secret: false
+      description: "MySQL server hostname (e.g., localhost)"
+    MYSQL_PORT:
+      is_secret: false
+      description: "MySQL server port (default: 3306)"
+      optional: true
+    MYSQL_USER:
+      is_secret: false
+      description: "MySQL username"
+    MYSQL_PASS:
+      is_secret: true
+      description: "MySQL password"
+    MYSQL_DB:
+      is_secret: false
+      description: "MySQL database name (omit for multi-database access)"
+      optional: true

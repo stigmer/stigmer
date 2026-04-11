@@ -5,6 +5,7 @@ package gen
 import (
 	"context"
 
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -72,6 +73,11 @@ func (m *McpServerClient) CompleteOAuthConnect(ctx context.Context, input *mcpse
 	return resp, wrapErr(err)
 }
 
+func (m *McpServerClient) GetOAuthGrantStatus(ctx context.Context, input *mcpserverv1.GetOAuthGrantStatusInput) (*mcpserverv1.GetOAuthGrantStatusOutput, error) {
+	resp, err := m.command.GetOAuthGrantStatus(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (m *McpServerClient) Get(ctx context.Context, id string) (*mcpserverv1.McpServer, error) {
 	resp, err := m.query.Get(ctx, &apiresource.ApiResourceId{Value: id})
 	return resp, wrapErr(err)
@@ -116,7 +122,7 @@ type McpServerInput struct {
 	Stdio               *StdioServerConfigInput
 	Http                *HttpServerConfigInput
 	DefaultEnabledTools []string
-	EnvSpec             *EnvSpecInput
+	Env                 map[string]*EnvVarDeclarationInput
 	PinnedToolApprovals []*ToolApprovalPolicyInput
 	RepositoryUrl       string
 	GithubStars         int32
@@ -186,8 +192,11 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 		}
 	}
 	resource.Spec.DefaultEnabledTools = i.DefaultEnabledTools
-	if i.EnvSpec != nil {
-		resource.Spec.EnvSpec = i.EnvSpec.toProto()
+	if len(i.Env) > 0 {
+		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
+		for k, v := range i.Env {
+			resource.Spec.Env[k] = v.toProto()
+		}
 	}
 	for _, item := range i.PinnedToolApprovals {
 		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, item.toProto())

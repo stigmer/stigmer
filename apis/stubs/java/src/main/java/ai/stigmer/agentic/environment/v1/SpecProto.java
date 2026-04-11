@@ -41,6 +41,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_environment_v1_EnvironmentValue_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_environment_v1_EnvVarDeclaration_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_environment_v1_EnvVarDeclaration_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -60,12 +65,15 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ntic.environment.v1.EnvironmentValueR\005va" +
       "lue:\0028\001\"g\n\020EnvironmentValue\022\024\n\005value\030\001 \001" +
       "(\tR\005value\022\033\n\tis_secret\030\002 \001(\010R\010isSecret\022 " +
-      "\n\013description\030\003 \001(\tR\013descriptionB\264\001B\tSpe" +
-      "cProtoP\001\242\002\004ASAE\252\002!Ai.Stigmer.Agentic.Env" +
-      "ironment.V1\312\002!Ai\\Stigmer\\Agentic\\Environ" +
-      "ment\\V1\342\002-Ai\\Stigmer\\Agentic\\Environment" +
-      "\\V1\\GPBMetadata\352\002%Ai::Stigmer::Agentic::" +
-      "Environment::V1b\006proto3"
+      "\n\013description\030\003 \001(\tR\013description\"n\n\021EnvV" +
+      "arDeclaration\022\033\n\tis_secret\030\001 \001(\010R\010isSecr" +
+      "et\022 \n\013description\030\002 \001(\tR\013description\022\032\n\010" +
+      "optional\030\003 \001(\010R\010optionalB\264\001B\tSpecProtoP\001" +
+      "\242\002\004ASAE\252\002!Ai.Stigmer.Agentic.Environment" +
+      ".V1\312\002!Ai\\Stigmer\\Agentic\\Environment\\V1\342" +
+      "\002-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBM" +
+      "etadata\352\002%Ai::Stigmer::Agentic::Environm" +
+      "ent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -89,6 +97,12 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_environment_v1_EnvironmentValue_descriptor,
         new java.lang.String[] { "Value", "IsSecret", "Description", });
+    internal_static_ai_stigmer_agentic_environment_v1_EnvVarDeclaration_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_environment_v1_EnvVarDeclaration_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_environment_v1_EnvVarDeclaration_descriptor,
+        new java.lang.String[] { "IsSecret", "Description", "Optional", });
     descriptor.resolveAllFeaturesImmutable();
   }
 

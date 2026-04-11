@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { EnvironmentSpec } from "../../environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "../../environment/v1/spec_pb";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb";
 import type { WorkflowTaskKind } from "./enum_pb";
 import { file_ai_stigmer_agentic_workflow_v1_enum } from "./enum_pb";
@@ -17,7 +17,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxIvwBCgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESRAoIZW52X3NwZWMYBCABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnRTcGVjIpABChBXb3JrZmxvd0RvY3VtZW50Eh0KA2RzbBgBIAEoCUIQukgNcgsyCV4xXC4wXC4wJBIZCgluYW1lc3BhY2UYAiABKAlCBrpIA8gBARIUCgRuYW1lGAMgASgJQga6SAPIAQESFwoHdmVyc2lvbhgEIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAUgASgJIp0CCgxXb3JrZmxvd1Rhc2sSFAoEbmFtZRgBIAEoCUIGukgDyAEBEkYKBGtpbmQYAiABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dUYXNrS2luZEIGukgDyAEBEjwKC3Rhc2tfY29uZmlnGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIOukgDyAEB6oUsBGtpbmQSNgoGZXhwb3J0GAQgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkV4cG9ydBI5CgRmbG93GAUgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkZsb3dDb250cm9sIh0KBkV4cG9ydBITCgJhcxgBIAEoCUIHukgEcgIQASIbCgtGbG93Q29udHJvbBIMCgR0aGVuGAEgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxItwCCgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESQgoDZW52GAQgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3BlYy5FbnZFbnRyeRpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBIpABChBXb3JrZmxvd0RvY3VtZW50Eh0KA2RzbBgBIAEoCUIQukgNcgsyCV4xXC4wXC4wJBIZCgluYW1lc3BhY2UYAiABKAlCBrpIA8gBARIUCgRuYW1lGAMgASgJQga6SAPIAQESFwoHdmVyc2lvbhgEIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAUgASgJIp0CCgxXb3JrZmxvd1Rhc2sSFAoEbmFtZRgBIAEoCUIGukgDyAEBEkYKBGtpbmQYAiABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dUYXNrS2luZEIGukgDyAEBEjwKC3Rhc2tfY29uZmlnGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIOukgDyAEB6oUsBGtpbmQSNgoGZXhwb3J0GAQgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkV4cG9ydBI5CgRmbG93GAUgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkZsb3dDb250cm9sIh0KBkV4cG9ydBITCgJhcxgBIAEoCUIHukgEcgIQASIbCgtGbG93Q29udHJvbBIMCgR0aGVuGAEgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowSpec defines the configurable properties of a workflow.
@@ -55,11 +55,12 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
   tasks: WorkflowTask[];
 
   /**
-   * Environment variables required by the workflow.
+   * Environment variable declarations for this workflow.
+   * Keys are variable names; values describe their metadata and optionality.
    *
-   * @generated from field: ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4;
+   * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 4;
    */
-  envSpec?: EnvironmentSpec;
+  env: { [key: string]: EnvVarDeclaration };
 };
 
 /**

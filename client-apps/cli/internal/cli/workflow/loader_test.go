@@ -553,7 +553,7 @@ spec:
 	require.NoError(t, err)
 	assert.NotNil(t, result.Workflow.Spec)
 	assert.Empty(t, result.Workflow.Spec.Description)
-	assert.Nil(t, result.Workflow.Spec.EnvSpec)
+	assert.Empty(t, result.Workflow.Spec.Env)
 }
 
 func TestLoad_YAMLSpecialCharacters(t *testing.T) {

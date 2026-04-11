@@ -8,6 +8,7 @@ import ai.stigmer.agentic.agent.v1.McpAccess;
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.SubAgent;
 import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
+import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 
 /** Input for creating/updating a Agent. */
@@ -22,7 +23,7 @@ public final class AgentInput {
     private final java.util.List<McpServerUsageInput> mcpServerUsages;
     private final java.util.List<ResourceRef> skillRefs;
     private final java.util.List<SubAgentInput> subAgents;
-    private final EnvSpecInput envSpec;
+    private final java.util.Map<String, EnvVarDeclarationInput> env;
 
     private AgentInput(Builder builder) {
         this.name = builder.name;
@@ -35,7 +36,7 @@ public final class AgentInput {
         this.mcpServerUsages = builder.mcpServerUsages;
         this.skillRefs = builder.skillRefs;
         this.subAgents = builder.subAgents;
-        this.envSpec = builder.envSpec;
+        this.env = builder.env;
     }
 
     Agent toProto() {
@@ -64,8 +65,10 @@ public final class AgentInput {
                 spec.addSubAgents(item.toProto());
             }
         }
-        if (this.envSpec != null) {
-            spec.setEnvSpec(this.envSpec.toProto());
+        if (this.env != null && !this.env.isEmpty()) {
+            for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
+                spec.putEnv(entry.getKey(), entry.getValue().toProto());
+            }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -97,7 +100,7 @@ public final class AgentInput {
         private java.util.List<McpServerUsageInput> mcpServerUsages;
         private java.util.List<ResourceRef> skillRefs;
         private java.util.List<SubAgentInput> subAgents;
-        private EnvSpecInput envSpec;
+        private java.util.Map<String, EnvVarDeclarationInput> env;
 
         private Builder() {}
 
@@ -111,7 +114,7 @@ public final class AgentInput {
         public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder subAgents(java.util.List<SubAgentInput> subAgents) { this.subAgents = subAgents; return this; }
-        public Builder envSpec(EnvSpecInput envSpec) { this.envSpec = envSpec; return this; }
+        public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }
@@ -303,6 +306,45 @@ public final class AgentInput {
             public Builder enabledTools(java.util.List<String> enabledTools) { this.enabledTools = enabledTools; return this; }
 
             public McpAccessInput build() { return new McpAccessInput(this); }
+        }
+    }
+
+    /** SDK input type for EnvVarDeclaration. */
+    public static final class EnvVarDeclarationInput {
+        private final boolean isSecret;
+        private final String description;
+        private final boolean optional;
+
+        private EnvVarDeclarationInput(Builder builder) {
+            this.isSecret = builder.isSecret;
+            this.description = builder.description;
+            this.optional = builder.optional;
+        }
+
+        EnvVarDeclaration toProto() {
+            EnvVarDeclaration.Builder builder = EnvVarDeclaration.newBuilder();
+            builder.setIsSecret(this.isSecret);
+            if (this.description != null) {
+                builder.setDescription(this.description);
+            }
+            builder.setOptional(this.optional);
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private boolean isSecret;
+            private String description;
+            private boolean optional;
+
+            private Builder() {}
+
+            public Builder isSecret(boolean isSecret) { this.isSecret = isSecret; return this; }
+            public Builder description(String description) { this.description = description; return this; }
+            public Builder optional(boolean optional) { this.optional = optional; return this; }
+
+            public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
         }
     }
 }

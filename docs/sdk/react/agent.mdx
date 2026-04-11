@@ -215,7 +215,7 @@ personal environment resolution, and secret delivery routing flow.
 
 When a user picks an agent in the [`AgentPicker`](#agentpicker), this hook
 determines whether the agent requires credentials (via its
-`env_spec`), checks what the user has already provided in their
+`env` declarations), checks what the user has already provided in their
 personal environment, and either reports the agent as ready or
 identifies the missing variables so the caller can render
 [`AgentEnvForm`](#agentenvform).
@@ -251,7 +251,7 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>): UseAgentSetu
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization slug. Pass `null` to disable.", required: true },
-    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, agents whose `env_spec` keys   are fully covered by `poolKeys` + personal env auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsEnvVars` is re-evaluated." },
+    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, agents whose `env` keys   are fully covered by `poolKeys` + personal env auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsEnvVars` is re-evaluated." },
   }}
 />
 
@@ -261,7 +261,7 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>): UseAgentSetu
   type={{
     clearError: { type: "() => void", description: "Clear the error without changing the current phase." },
     reset: { type: "() => void", description: "Reset to `idle` state, clearing all phase data and errors." },
-    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env_spec`, checks for an existing personal instance, and diffs env_spec keys against the personal environment. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm." },
+    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations, checks for an existing personal instance, and diffs env keys against the personal environment. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm." },
     state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving environment / creating instance - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
     submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Creates or updates the personal environment   with the provided values, then creates a personal agent instance.   Returns `{ resolution: { mode: \"saved\", instanceId } }`. - `false` — Collects values as `runtimeEnv` without any API calls.   Returns `{ resolution: { mode: \"oneTime\", runtimeEnv } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
   }}
@@ -485,8 +485,8 @@ should create the session and its first execution.
   existed). Use `instanceId` with `createSession`.
 - `"oneTime"` — Secrets were collected but **not** persisted. Pass
   `runtimeEnv` to `createExecution` for this run only.
-- `"direct"` — The agent has no `env_spec` and needs no secrets.
-  Create the session with `agentRef` directly.
+- `"direct"` — The agent has no `env` declarations and needs no
+  secrets. Create the session with `agentRef` directly.
 
 
 ### AgentSetupPhase

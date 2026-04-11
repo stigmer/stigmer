@@ -20,14 +20,13 @@ spec:
       - "-y"
       - "@twilio-alpha/mcp"
       - "${TWILIO_ACCOUNT_SID}/${TWILIO_API_KEY}:${TWILIO_API_SECRET}"
-  env_spec:
-    data:
-      TWILIO_ACCOUNT_SID:
-        is_secret: false
-        description: "Twilio Account SID"
-      TWILIO_API_KEY:
-        is_secret: true
-        description: "Twilio API key"
-      TWILIO_API_SECRET:
-        is_secret: true
-        description: "Twilio API secret"
+  env:
+    TWILIO_ACCOUNT_SID:
+      is_secret: false
+      description: "Twilio Account SID"
+    TWILIO_API_KEY:
+      is_secret: true
+      description: "Twilio API key"
+    TWILIO_API_SECRET:
+      is_secret: true
+      description: "Twilio API secret"

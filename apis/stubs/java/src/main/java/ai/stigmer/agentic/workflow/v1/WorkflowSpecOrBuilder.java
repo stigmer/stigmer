@@ -108,28 +108,60 @@ public interface WorkflowSpecOrBuilder extends
 
   /**
    * <pre>
-   * Environment variables required by the workflow.
+   * Environment variable declarations for this workflow.
+   * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
-   * @return Whether the envSpec field is set.
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
    */
-  boolean hasEnvSpec();
+  int getEnvCount();
   /**
    * <pre>
-   * Environment variables required by the workflow.
+   * Environment variable declarations for this workflow.
+   * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
-   * @return The envSpec.
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
    */
-  ai.stigmer.agentic.environment.v1.EnvironmentSpec getEnvSpec();
+  boolean containsEnv(
+      java.lang.String key);
+  /**
+   * Use {@link #getEnvMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  getEnv();
   /**
    * <pre>
-   * Environment variables required by the workflow.
+   * Environment variable declarations for this workflow.
+   * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4 [json_name = "envSpec"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
    */
-  ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder getEnvSpecOrBuilder();
+  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  getEnvMap();
+  /**
+   * <pre>
+   * Environment variable declarations for this workflow.
+   * Keys are variable names; values describe their metadata and optionality.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
+   */
+  /* nullable */
+ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrDefault(
+      java.lang.String key,
+      /* nullable */
+ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
+  /**
+   * <pre>
+   * Environment variable declarations for this workflow.
+   * Keys are variable names; values describe their metadata and optionality.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 4 [json_name = "env"];</code>
+   */
+  ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
+      java.lang.String key);
 }

@@ -18,11 +18,10 @@ spec:
     url: "https://mcp.supabase.com/mcp"
     headers:
       Authorization: "Bearer ${SUPABASE_ACCESS_TOKEN}"
-  env_spec:
-    data:
-      SUPABASE_ACCESS_TOKEN:
-        is_secret: true
-        description: "Supabase personal access token (generate at supabase.com/dashboard/account/tokens)"
+  env:
+    SUPABASE_ACCESS_TOKEN:
+      is_secret: true
+      description: "Supabase personal access token (generate at supabase.com/dashboard/account/tokens)"
   auth:
     target_env_var: "SUPABASE_ACCESS_TOKEN"
     token_lifetime_hint: "1h"

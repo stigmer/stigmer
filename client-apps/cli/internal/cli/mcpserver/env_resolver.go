@@ -67,20 +67,20 @@ type EnvResolutionResult struct {
 //   - PLANTON_API_KEY — resolved from ~/.planton/credentials/{env}/token.json.
 //   - PLANTON_CLOUD_ENVIRONMENT — resolved from ~/.planton/config.yaml (defaults to "production").
 func ResolveEnvForDiscovery(server *mcpserverv1.McpServer, cfg *config.Config) *EnvResolutionResult {
-	envSpec := server.GetSpec().GetEnvSpec().GetData()
-	if len(envSpec) == 0 {
+	envDecls := server.GetSpec().GetEnv()
+	if len(envDecls) == 0 {
 		return &EnvResolutionResult{}
 	}
 
 	result := &EnvResolutionResult{}
-	for name, spec := range envSpec {
+	for name, decl := range envDecls {
 		if os.Getenv(name) != "" {
 			continue
 		}
 
 		if val, ok := resolveKnownVar(name, cfg); ok {
 			result.Overrides = append(result.Overrides, fmt.Sprintf("%s=%s", name, val))
-		} else if spec.GetIsSecret() {
+		} else if decl.GetIsSecret() {
 			result.Unresolved = append(result.Unresolved, name)
 		} else {
 			result.UnresolvedOptional = append(result.UnresolvedOptional, name)

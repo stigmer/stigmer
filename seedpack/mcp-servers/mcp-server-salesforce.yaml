@@ -19,11 +19,10 @@ spec:
     args:
       - "-y"
       - "@salesforce/mcp@latest"
-  env_spec:
-    data:
-      SALESFORCE_ACCESS_TOKEN:
-        is_secret: true
-        description: "Salesforce OAuth access token (acquired via OAuth Connect flow)"
+  env:
+    SALESFORCE_ACCESS_TOKEN:
+      is_secret: true
+      description: "Salesforce OAuth access token (acquired via OAuth Connect flow)"
   auth:
     oauth_app_ref:
       org: stigmer

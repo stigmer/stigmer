@@ -22,7 +22,7 @@ spec:                                # REQUIRED
   mcp_server_usages: []              # optional — MCP server tool integrations
   skill_refs: []                     # optional — skill knowledge references
   sub_agents: []                     # optional — inline delegated sub-agents
-  env_spec: {}                       # optional — environment variable schema
+  env: {}                             # optional — environment variable declarations
 ```
 
 ## metadata
@@ -104,17 +104,16 @@ sub_agents:
 - Sub-agents with no `mcp_access` have **zero** tool access
 - `skill_refs` are independent — sub-agents can use any skill
 
-## spec.env_spec
+## spec.env
 
-Declares required environment variables (schema only — values provided at runtime via AgentInstance).
+Declares environment variables the agent needs (schema only — values provided at runtime via AgentInstance). Each entry is an `EnvVarDeclaration`.
 
 ```yaml
-env_spec:
-  data:
-    VAR_NAME:
-      description: "What this variable is for"
-      is_secret: true|false
-      value: ""               # typically empty in agent spec
+env:
+  VAR_NAME:
+    description: "What this variable is for"
+    is_secret: true|false
+    optional: true|false     # default: false (required)
 ```
 
 ## ApiResourceReference Format

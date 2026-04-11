@@ -153,6 +153,87 @@ func (x *EnvironmentValue) GetDescription() string {
 	return ""
 }
 
+// EnvVarDeclaration declares an environment variable required (or optionally
+// accepted) by a blueprint resource (McpServer, Agent, Workflow).
+//
+// Unlike EnvironmentValue (which stores actual values), this message describes
+// what a blueprint *needs* — its schema, not its data. This separation keeps
+// the blueprint layer free of runtime values and enables the platform to
+// validate completeness before execution.
+type EnvVarDeclaration struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the resolved value should be treated as a secret.
+	//
+	// @internal
+	// When true: encrypted at rest, redacted in logs and Temporal history.
+	// When false: stored as plaintext, visible in audit logs.
+	IsSecret bool `protobuf:"varint,1,opt,name=is_secret,json=isSecret,proto3" json:"is_secret,omitempty"`
+	// Human-readable description shown in the UI credential form.
+	// Should explain what the variable is used for and where to obtain it.
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// Whether this variable is optional.
+	//
+	// @internal
+	// When false (default): the execution pipeline rejects a run if this
+	// variable is missing from the user's environment.
+	// When true: a missing value is acceptable (the MCP server or agent
+	// degrades gracefully without it).
+	Optional      bool `protobuf:"varint,3,opt,name=optional,proto3" json:"optional,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnvVarDeclaration) Reset() {
+	*x = EnvVarDeclaration{}
+	mi := &file_ai_stigmer_agentic_environment_v1_spec_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnvVarDeclaration) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnvVarDeclaration) ProtoMessage() {}
+
+func (x *EnvVarDeclaration) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_environment_v1_spec_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnvVarDeclaration.ProtoReflect.Descriptor instead.
+func (*EnvVarDeclaration) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_environment_v1_spec_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *EnvVarDeclaration) GetIsSecret() bool {
+	if x != nil {
+		return x.IsSecret
+	}
+	return false
+}
+
+func (x *EnvVarDeclaration) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *EnvVarDeclaration) GetOptional() bool {
+	if x != nil {
+		return x.Optional
+	}
+	return false
+}
+
 var File_ai_stigmer_agentic_environment_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_environment_v1_spec_proto_rawDesc = "" +
@@ -167,7 +248,11 @@ const file_ai_stigmer_agentic_environment_v1_spec_proto_rawDesc = "" +
 	"\x10EnvironmentValue\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x1b\n" +
 	"\tis_secret\x18\x02 \x01(\bR\bisSecret\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescriptionB\xb4\x02\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\"n\n" +
+	"\x11EnvVarDeclaration\x12\x1b\n" +
+	"\tis_secret\x18\x01 \x01(\bR\bisSecret\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
+	"\boptional\x18\x03 \x01(\bR\boptionalB\xb4\x02\n" +
 	"%com.ai.stigmer.agentic.environment.v1B\tSpecProtoP\x01ZWgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
 
 var (
@@ -182,14 +267,15 @@ func file_ai_stigmer_agentic_environment_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_environment_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_environment_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_environment_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_environment_v1_spec_proto_goTypes = []any{
-	(*EnvironmentSpec)(nil),  // 0: ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	(*EnvironmentValue)(nil), // 1: ai.stigmer.agentic.environment.v1.EnvironmentValue
-	nil,                      // 2: ai.stigmer.agentic.environment.v1.EnvironmentSpec.DataEntry
+	(*EnvironmentSpec)(nil),   // 0: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	(*EnvironmentValue)(nil),  // 1: ai.stigmer.agentic.environment.v1.EnvironmentValue
+	(*EnvVarDeclaration)(nil), // 2: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	nil,                       // 3: ai.stigmer.agentic.environment.v1.EnvironmentSpec.DataEntry
 }
 var file_ai_stigmer_agentic_environment_v1_spec_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.environment.v1.EnvironmentSpec.data:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec.DataEntry
+	3, // 0: ai.stigmer.agentic.environment.v1.EnvironmentSpec.data:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec.DataEntry
 	1, // 1: ai.stigmer.agentic.environment.v1.EnvironmentSpec.DataEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentValue
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
@@ -209,7 +295,7 @@ func file_ai_stigmer_agentic_environment_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_environment_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_environment_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

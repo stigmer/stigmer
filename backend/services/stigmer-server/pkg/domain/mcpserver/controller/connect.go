@@ -92,8 +92,9 @@ func (c *McpServerController) Connect(
 	}
 
 	// Pre-flight: refresh expired OAuth tokens before env resolution.
-	// Only applies when runtime_env is empty (personal env path) and
-	// the MCP server has an auth block with an existing OAuthGrant.
+	// Only applies when runtime_env is empty and the MCP server has
+	// an auth block with an existing OAuthGrant. Tokens are refreshed
+	// in the grant's managed environment.
 	if len(input.GetRuntimeEnv()) == 0 {
 		if err := c.refreshOAuthTokenIfNeeded(ctx, mcpServer); err != nil {
 			return nil, err
@@ -146,9 +147,12 @@ func (c *McpServerController) Connect(
 // for the connect activity.
 //
 // When runtime_env is provided, the values are used directly (one-time use).
-// When runtime_env is empty, values are resolved from the user's personal environment.
+// When runtime_env is empty, variables are resolved from two sources:
+//   - OAuth-managed variables: read from the grant's managed environment
+//   - Remaining variables: read from the user's personal environment
+//
 // Returns the ExecutionContext resource ID (for cleanup) and an error.
-// Returns ("", nil) when the MCP server has no env_spec and no runtime_env.
+// Returns ("", nil) when the MCP server has no env declarations and no runtime_env.
 func (c *McpServerController) createConnectExecutionContext(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
@@ -165,26 +169,42 @@ func (c *McpServerController) createConnectExecutionContext(
 			Int("runtime_env_count", len(runtimeEnv)).
 			Msg("Using runtime_env for connect ExecutionContext (one-time use)")
 	} else {
-		envSpec := mcpServer.GetSpec().GetEnvSpec()
-		if envSpec == nil || len(envSpec.GetData()) == 0 {
+		envDecls := mcpServer.GetSpec().GetEnv()
+		if len(envDecls) == 0 {
 			log.Debug().
 				Str("execution_id", executionID).
-				Msg("MCP server has no env_spec — skipping ExecutionContext creation")
+				Msg("MCP server has no env declarations — skipping ExecutionContext creation")
 			return "", nil
 		}
 
-		resolved, err := c.resolveFromPersonalEnvironment(
-			ctx, mcpServer.GetMetadata().GetOrg(), envSpec,
-		)
-		if err != nil {
-			return "", err
+		org := mcpServer.GetMetadata().GetOrg()
+		mcpServerID := mcpServer.GetMetadata().GetId()
+
+		// Split resolution: OAuth vars from managed env, rest from personal env.
+		oauthVars, remainingDecls := c.resolveOAuthVarsFromManagedEnv(ctx, mcpServerID, org, envDecls)
+
+		var personalVars map[string]*executioncontextv1.ExecutionValue
+		if len(remainingDecls) > 0 {
+			var err error
+			personalVars, err = c.resolveFromPersonalEnvironment(ctx, org, remainingDecls)
+			if err != nil {
+				return "", err
+			}
 		}
-		ecData = resolved
+
+		ecData = make(map[string]*executioncontextv1.ExecutionValue, len(oauthVars)+len(personalVars))
+		for k, v := range personalVars {
+			ecData[k] = v
+		}
+		for k, v := range oauthVars {
+			ecData[k] = v
+		}
 
 		log.Info().
 			Str("execution_id", executionID).
-			Int("resolved_count", len(resolved)).
-			Msg("Resolved env vars from personal environment for connect ExecutionContext")
+			Int("oauth_count", len(oauthVars)).
+			Int("personal_count", len(personalVars)).
+			Msg("Resolved env vars for connect ExecutionContext")
 	}
 
 	if len(ecData) == 0 {
@@ -219,14 +239,81 @@ func (c *McpServerController) createConnectExecutionContext(
 	return resourceID, nil
 }
 
-// resolveFromPersonalEnvironment reads the required environment variables from
-// the user's personal environment (labeled stigmer.ai/personal=true). Returns
-// ExecutionValue entries with is_secret derived from the MCP server's env_spec.
+// resolveOAuthVarsFromManagedEnv reads OAuth-managed variables from the grant's
+// managed environment and returns them along with the remaining declarations
+// that still need to be resolved from the personal environment.
+//
+// If no grant exists or the grant has no managed environment, all declarations
+// are returned as "remaining" (unchanged).
+func (c *McpServerController) resolveOAuthVarsFromManagedEnv(
+	ctx context.Context,
+	mcpServerID string,
+	org string,
+	envDecls map[string]*environmentv1.EnvVarDeclaration,
+) (oauthVars map[string]*executioncontextv1.ExecutionValue, remainingDecls map[string]*environmentv1.EnvVarDeclaration) {
+	if c.oauthGrantStore == nil || c.managedEnvService == nil {
+		return nil, envDecls
+	}
+
+	grant, err := c.oauthGrantStore.Find(ctx, "", mcpServerID, org)
+	if err != nil || grant == nil || grant.EnvironmentID == "" {
+		return nil, envDecls
+	}
+
+	oauthKey := grant.AccessTokenEnvVar
+	if _, declared := envDecls[oauthKey]; !declared {
+		return nil, envDecls
+	}
+
+	tokenValue, err := c.managedEnvService.ReadSecretValue(ctx, grant.EnvironmentID, oauthKey)
+	if err != nil || tokenValue == "" {
+		log.Warn().Err(err).
+			Str("mcp_server_id", mcpServerID).
+			Str("oauth_key", oauthKey).
+			Str("managed_env_id", grant.EnvironmentID).
+			Msg("Failed to read OAuth token from managed environment — falling back to personal env")
+		return nil, envDecls
+	}
+
+	oauthVars = map[string]*executioncontextv1.ExecutionValue{
+		oauthKey: {
+			Value:    tokenValue,
+			IsSecret: true,
+		},
+	}
+
+	remainingDecls = make(map[string]*environmentv1.EnvVarDeclaration, len(envDecls)-1)
+	for k, v := range envDecls {
+		if k != oauthKey {
+			remainingDecls[k] = v
+		}
+	}
+
+	log.Debug().
+		Str("mcp_server_id", mcpServerID).
+		Str("oauth_key", oauthKey).
+		Str("managed_env_id", grant.EnvironmentID).
+		Msg("Resolved OAuth token from managed environment")
+
+	return oauthVars, remainingDecls
+}
+
+// resolveFromPersonalEnvironment reads environment variables from the user's
+// personal environment (labeled stigmer.ai/personal=true). Required variables
+// (optional=false, the default) must be present; optional variables are
+// included when available but silently skipped when missing.
 func (c *McpServerController) resolveFromPersonalEnvironment(
 	ctx context.Context,
 	org string,
-	envSpec *environmentv1.EnvironmentSpec,
+	envDecls map[string]*environmentv1.EnvVarDeclaration,
 ) (map[string]*executioncontextv1.ExecutionValue, error) {
+	requiredKeys := make([]string, 0, len(envDecls))
+	for k, decl := range envDecls {
+		if !decl.GetOptional() {
+			requiredKeys = append(requiredKeys, k)
+		}
+	}
+
 	listResp, err := c.environmentClient.List(ctx, &environmentv1.ListEnvironmentsRequest{
 		Org:    org,
 		Labels: map[string]string{personalEnvLabel: "true"},
@@ -235,9 +322,8 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 		return nil, grpclib.InternalError(err, "failed to list personal environments")
 	}
 	if listResp.GetTotalCount() == 0 || len(listResp.GetItems()) == 0 {
-		requiredKeys := make([]string, 0, len(envSpec.GetData()))
-		for k := range envSpec.GetData() {
-			requiredKeys = append(requiredKeys, k)
+		if len(requiredKeys) == 0 {
+			return make(map[string]*executioncontextv1.ExecutionValue), nil
 		}
 		return nil, grpclib.FailedPreconditionError(
 			"personal environment not found for org '%s'; save required credentials first: %v", org, requiredKeys,
@@ -251,11 +337,17 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 		storedKeys[k] = true
 	}
 
-	result := make(map[string]*executioncontextv1.ExecutionValue, len(envSpec.GetData()))
+	result := make(map[string]*executioncontextv1.ExecutionValue, len(envDecls))
 	var missing []string
 
-	for key, envVal := range envSpec.GetData() {
+	for key, decl := range envDecls {
 		if !storedKeys[key] {
+			if decl.GetOptional() {
+				log.Debug().
+					Str("key", key).
+					Msg("Optional env var not in personal environment — skipping")
+				continue
+			}
 			missing = append(missing, key)
 			continue
 		}
@@ -269,17 +361,23 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 				Str("key", key).
 				Str("personal_env_id", personalEnvID).
 				Msg("Failed to get secret value from personal environment")
+			if decl.GetOptional() {
+				continue
+			}
 			missing = append(missing, key)
 			continue
 		}
 		if secretVal.GetValue() == "" {
+			if decl.GetOptional() {
+				continue
+			}
 			missing = append(missing, key)
 			continue
 		}
 
 		result[key] = &executioncontextv1.ExecutionValue{
 			Value:    secretVal.GetValue(),
-			IsSecret: envVal.GetIsSecret(),
+			IsSecret: decl.GetIsSecret(),
 		}
 	}
 
@@ -392,23 +490,25 @@ func convertToDiscoveredCapabilities(output *connectWorkflowOutput) *mcpserverv1
 
 // refreshOAuthTokenIfNeeded checks whether the MCP server has an auth block
 // with an existing OAuthGrant, and if the access token is expired, refreshes
-// it using the refresh token from the personal environment.
+// it using the refresh token from the grant's managed environment.
 //
 // This is the pre-flight check that ensures the Connect workflow (and
-// agent execution) always sees a fresh token in the personal environment.
+// agent execution) always sees a fresh token in the managed environment.
 func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
 ) error {
 	auth := mcpServer.GetSpec().GetAuth()
-	if auth == nil || c.oauthGrantStore == nil {
+	if auth == nil || c.oauthGrantStore == nil || c.managedEnvService == nil {
 		return nil
 	}
 
 	mcpServerID := mcpServer.GetMetadata().GetId()
 
-	// OSS mode: single user, empty identity_account_id
-	grant, err := c.oauthGrantStore.GetByUserAndServer(ctx, "", mcpServerID)
+	// OSS mode: single user, empty identity_account_id.
+	// Org comes from the MCP server's metadata.
+	org := mcpServer.GetMetadata().GetOrg()
+	grant, err := c.oauthGrantStore.Find(ctx, "", mcpServerID, org)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("mcp_server_id", mcpServerID).
@@ -419,22 +519,20 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 		return nil
 	}
 
-	// Read the refresh token from the personal environment
-	org := mcpServer.GetMetadata().GetOrg()
-	personalEnvID, err := c.resolveOrCreatePersonalEnvironmentID(ctx, org)
-	if err != nil {
+	if grant.EnvironmentID == "" {
+		log.Warn().
+			Str("mcp_server_id", mcpServerID).
+			Msg("OAuth grant has no managed environment ID — user must re-authenticate via OAuth Connect")
 		return nil
 	}
 
-	refreshTokenVal, err := c.environmentClient.GetSecretValue(ctx, &environmentv1.EnvironmentSecretValueInput{
-		EnvironmentId: personalEnvID,
-		Key:           grant.RefreshTokenEnvVar,
-	})
+	refreshToken, err := c.managedEnvService.ReadSecretValue(ctx, grant.EnvironmentID, grant.RefreshTokenEnvVar)
 	if err != nil {
 		log.Debug().Err(err).
 			Str("mcp_server_id", mcpServerID).
 			Str("refresh_token_var", grant.RefreshTokenEnvVar).
-			Msg("No refresh token found in personal env (may not be OAuth-connected)")
+			Str("managed_env_id", grant.EnvironmentID).
+			Msg("No refresh token found in managed environment (may not be OAuth-connected)")
 		return nil
 	}
 
@@ -450,7 +548,7 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	}
 
 	result, err := oauth.RefreshTokenIfExpired(
-		ctx, grant, refreshTokenVal.GetValue(), clientSecret,
+		ctx, grant, refreshToken, clientSecret,
 	)
 	if err != nil {
 		return grpclib.FailedPreconditionError("%v", err)
@@ -460,29 +558,24 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 		return nil
 	}
 
-	// Update the personal environment with the new tokens
-	variables := map[string]*environmentv1.EnvironmentValue{
+	// Write refreshed tokens to the grant's managed environment
+	tokenVars := map[string]*environmentv1.EnvironmentValue{
 		grant.AccessTokenEnvVar: {
 			Value:    result.NewAccessToken,
 			IsSecret: true,
 		},
 	}
-	if result.NewRefreshToken != refreshTokenVal.GetValue() {
-		variables[grant.RefreshTokenEnvVar] = &environmentv1.EnvironmentValue{
+	if result.NewRefreshToken != refreshToken {
+		tokenVars[grant.RefreshTokenEnvVar] = &environmentv1.EnvironmentValue{
 			Value:    result.NewRefreshToken,
 			IsSecret: true,
 		}
 	}
 
-	_, err = c.environmentClient.UpdateVariables(ctx, &environmentv1.UpdateEnvironmentVariablesRequest{
-		EnvironmentId: personalEnvID,
-		Variables:     variables,
-	})
-	if err != nil {
-		return grpclib.InternalError(err, "failed to update refreshed tokens in personal environment")
+	if err := c.managedEnvService.UpdateSecrets(ctx, grant.EnvironmentID, tokenVars); err != nil {
+		return grpclib.InternalError(err, "failed to update refreshed tokens in managed environment")
 	}
 
-	// Update the OAuthGrant record with new expiry
 	grant.AccessTokenExpiresAt = result.NewExpiresAt
 	if err := c.oauthGrantStore.Upsert(ctx, grant); err != nil {
 		log.Warn().Err(err).
@@ -530,7 +623,7 @@ func (c *McpServerController) loadOAuthAppClientSecret(
 // without blocking. Used by the apply handler for auto-discovery on create.
 // Failures are logged but do not propagate.
 //
-// Skips when the MCP server defines an env_spec, because creating an
+// Skips when the MCP server declares env vars, because creating an
 // ExecutionContext requires the caller's gRPC context (for personal
 // environment resolution), which is unavailable in a fire-and-forget
 // goroutine. Users must trigger manual connect for these servers.
@@ -544,12 +637,11 @@ func (c *McpServerController) StartBestEffortConnect(
 		return
 	}
 
-	envSpec := mcpServer.GetSpec().GetEnvSpec()
-	if envSpec != nil && len(envSpec.GetData()) > 0 {
+	if len(mcpServer.GetSpec().GetEnv()) > 0 {
 		log.Debug().
 			Str("mcp_server_id", mcpServer.GetMetadata().GetId()).
-			Int("env_spec_keys", len(envSpec.GetData())).
-			Msg("Skipping best-effort auto-connect: MCP server has env_spec (requires manual connect)")
+			Int("env_keys", len(mcpServer.GetSpec().GetEnv())).
+			Msg("Skipping best-effort auto-connect: MCP server has env declarations (requires manual connect)")
 		return
 	}
 

@@ -6,6 +6,7 @@ import (
 	"context"
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
@@ -103,7 +104,7 @@ type AgentInput struct {
 	McpServerUsages []*McpServerUsageInput
 	SkillRefs       []ResourceRef
 	SubAgents       []*SubAgentInput
-	EnvSpec         *EnvSpecInput
+	Env             map[string]*EnvVarDeclarationInput
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -136,6 +137,13 @@ type McpAccessInput struct {
 	EnabledTools []string
 }
 
+// EnvVarDeclarationInput is the SDK input type for EnvVarDeclaration.
+type EnvVarDeclarationInput struct {
+	IsSecret    bool
+	Description string
+	Optional    bool
+}
+
 func (i *AgentInput) toProto() *agentv1.Agent {
 	resource := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -160,8 +168,11 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 	for _, item := range i.SubAgents {
 		resource.Spec.SubAgents = append(resource.Spec.SubAgents, item.toProto())
 	}
-	if i.EnvSpec != nil {
-		resource.Spec.EnvSpec = i.EnvSpec.toProto()
+	if len(i.Env) > 0 {
+		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
+		for k, v := range i.Env {
+			resource.Spec.Env[k] = v.toProto()
+		}
 	}
 	return resource
 }
@@ -194,5 +205,13 @@ func (i *McpAccessInput) toProto() *agentv1.McpAccess {
 	return &agentv1.McpAccess{
 		McpServer:    i.McpServer,
 		EnabledTools: i.EnabledTools,
+	}
+}
+
+func (i *EnvVarDeclarationInput) toProto() *environmentv1.EnvVarDeclaration {
+	return &environmentv1.EnvVarDeclaration{
+		IsSecret:    i.IsSecret,
+		Description: i.Description,
+		Optional:    i.Optional,
 	}
 }

@@ -42,8 +42,9 @@ type WorkflowSpec struct {
 	// Ordered list of tasks that make up this workflow.
 	// Tasks execute sequentially unless fork/parallel is used.
 	Tasks []*WorkflowTask `protobuf:"bytes,3,rep,name=tasks,proto3" json:"tasks,omitempty"`
-	// Environment variables required by the workflow.
-	EnvSpec       *v1.EnvironmentSpec `protobuf:"bytes,4,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
+	// Environment variable declarations for this workflow.
+	// Keys are variable names; values describe their metadata and optionality.
+	Env           map[string]*v1.EnvVarDeclaration `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -99,9 +100,9 @@ func (x *WorkflowSpec) GetTasks() []*WorkflowTask {
 	return nil
 }
 
-func (x *WorkflowSpec) GetEnvSpec() *v1.EnvironmentSpec {
+func (x *WorkflowSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
 	if x != nil {
-		return x.EnvSpec
+		return x.Env
 	}
 	return nil
 }
@@ -425,12 +426,15 @@ var File_ai_stigmer_agentic_workflow_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa3\x02\n" +
+	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x8b\x03\n" +
 	"\fWorkflowSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12T\n" +
 	"\bdocument\x18\x02 \x01(\v20.ai.stigmer.agentic.workflow.v1.WorkflowDocumentB\x06\xbaH\x03\xc8\x01\x01R\bdocument\x12L\n" +
-	"\x05tasks\x18\x03 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x05tasks\x12M\n" +
-	"\benv_spec\x18\x04 \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xbc\x01\n" +
+	"\x05tasks\x18\x03 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x05tasks\x12G\n" +
+	"\x03env\x18\x04 \x03(\v25.ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntryR\x03env\x1al\n" +
+	"\bEnvEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
+	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01\"\xbc\x01\n" +
 	"\x10WorkflowDocument\x12\"\n" +
 	"\x03dsl\x18\x01 \x01(\tB\x10\xbaH\rr\v2\t^1\\.0\\.0$R\x03dsl\x12$\n" +
 	"\tnamespace\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tnamespace\x12\x1a\n" +
@@ -462,30 +466,32 @@ func file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_goTypes = []any{
-	(*WorkflowSpec)(nil),       // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec
-	(*WorkflowDocument)(nil),   // 1: ai.stigmer.agentic.workflow.v1.WorkflowDocument
-	(*WorkflowTask)(nil),       // 2: ai.stigmer.agentic.workflow.v1.WorkflowTask
-	(*Export)(nil),             // 3: ai.stigmer.agentic.workflow.v1.Export
-	(*FlowControl)(nil),        // 4: ai.stigmer.agentic.workflow.v1.FlowControl
-	(*v1.EnvironmentSpec)(nil), // 5: ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	(WorkflowTaskKind)(0),      // 6: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	(*structpb.Struct)(nil),    // 7: google.protobuf.Struct
+	(*WorkflowSpec)(nil),         // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec
+	(*WorkflowDocument)(nil),     // 1: ai.stigmer.agentic.workflow.v1.WorkflowDocument
+	(*WorkflowTask)(nil),         // 2: ai.stigmer.agentic.workflow.v1.WorkflowTask
+	(*Export)(nil),               // 3: ai.stigmer.agentic.workflow.v1.Export
+	(*FlowControl)(nil),          // 4: ai.stigmer.agentic.workflow.v1.FlowControl
+	nil,                          // 5: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
+	(WorkflowTaskKind)(0),        // 6: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(*structpb.Struct)(nil),      // 7: google.protobuf.Struct
+	(*v1.EnvVarDeclaration)(nil), // 8: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec.document:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowDocument
 	2, // 1: ai.stigmer.agentic.workflow.v1.WorkflowSpec.tasks:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
-	5, // 2: ai.stigmer.agentic.workflow.v1.WorkflowSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	5, // 2: ai.stigmer.agentic.workflow.v1.WorkflowSpec.env:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry
 	6, // 3: ai.stigmer.agentic.workflow.v1.WorkflowTask.kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
 	7, // 4: ai.stigmer.agentic.workflow.v1.WorkflowTask.task_config:type_name -> google.protobuf.Struct
 	3, // 5: ai.stigmer.agentic.workflow.v1.WorkflowTask.export:type_name -> ai.stigmer.agentic.workflow.v1.Export
 	4, // 6: ai.stigmer.agentic.workflow.v1.WorkflowTask.flow:type_name -> ai.stigmer.agentic.workflow.v1.FlowControl
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	8, // 7: ai.stigmer.agentic.workflow.v1.WorkflowSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_spec_proto_init() }
@@ -500,7 +506,7 @@ func file_ai_stigmer_agentic_workflow_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

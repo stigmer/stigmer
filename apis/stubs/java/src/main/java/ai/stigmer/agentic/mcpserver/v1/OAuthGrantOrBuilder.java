@@ -32,23 +32,27 @@ public interface OAuthGrantOrBuilder extends
 
   /**
    * <pre>
-   * Which MCP server this grant is for.
+   * System-generated ID (metadata.id) of the API resource this grant
+   * provides OAuth tokens for. Part of the composite key:
+   * (identity_account_id, resource_id, org_id).
    * </pre>
    *
-   * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
-   * @return The mcpServerId.
+   * <code>string resource_id = 2 [json_name = "resourceId"];</code>
+   * @return The resourceId.
    */
-  java.lang.String getMcpServerId();
+  java.lang.String getResourceId();
   /**
    * <pre>
-   * Which MCP server this grant is for.
+   * System-generated ID (metadata.id) of the API resource this grant
+   * provides OAuth tokens for. Part of the composite key:
+   * (identity_account_id, resource_id, org_id).
    * </pre>
    *
-   * <code>string mcp_server_id = 2 [json_name = "mcpServerId"];</code>
-   * @return The bytes for mcpServerId.
+   * <code>string resource_id = 2 [json_name = "resourceId"];</code>
+   * @return The bytes for resourceId.
    */
   com.google.protobuf.ByteString
-      getMcpServerIdBytes();
+      getResourceIdBytes();
 
   /**
    * <pre>
@@ -136,8 +140,7 @@ public interface OAuthGrantOrBuilder extends
 
   /**
    * <pre>
-   * Env var name where the access token is stored in the personal environment.
-   * Matches McpServerAuth.target_env_var on the McpServer spec.
+   * Env var name where the access token is stored in the managed environment.
    * </pre>
    *
    * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -146,8 +149,7 @@ public interface OAuthGrantOrBuilder extends
   java.lang.String getAccessTokenEnvVar();
   /**
    * <pre>
-   * Env var name where the access token is stored in the personal environment.
-   * Matches McpServerAuth.target_env_var on the McpServer spec.
+   * Env var name where the access token is stored in the managed environment.
    * </pre>
    *
    * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -158,7 +160,7 @@ public interface OAuthGrantOrBuilder extends
 
   /**
    * <pre>
-   * Env var name where the refresh token is stored in the personal environment.
+   * Env var name where the refresh token is stored in the managed environment.
    * Convention: {target_env_var}_REFRESH_TOKEN.
    * </pre>
    *
@@ -168,7 +170,7 @@ public interface OAuthGrantOrBuilder extends
   java.lang.String getRefreshTokenEnvVar();
   /**
    * <pre>
-   * Env var name where the refresh token is stored in the personal environment.
+   * Env var name where the refresh token is stored in the managed environment.
    * Convention: {target_env_var}_REFRESH_TOKEN.
    * </pre>
    *
@@ -180,10 +182,10 @@ public interface OAuthGrantOrBuilder extends
 
   /**
    * <pre>
-   * Which Environment resource holds the tokens.
+   * ID of the managed Environment resource that holds the tokens.
    * The refresh mechanism reads/writes tokens in this environment.
-   * Default: the user's personal environment (stigmer.ai/personal=true label).
-   * Stored explicitly to allow future flexibility for team or project environments.
+   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+   * 1:1 with this grant — revoking the grant deletes this environment.
    * </pre>
    *
    * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -192,10 +194,10 @@ public interface OAuthGrantOrBuilder extends
   java.lang.String getEnvironmentId();
   /**
    * <pre>
-   * Which Environment resource holds the tokens.
+   * ID of the managed Environment resource that holds the tokens.
    * The refresh mechanism reads/writes tokens in this environment.
-   * Default: the user's personal environment (stigmer.ai/personal=true label).
-   * Stored explicitly to allow future flexibility for team or project environments.
+   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
+   * 1:1 with this grant — revoking the grant deletes this environment.
    * </pre>
    *
    * <code>string environment_id = 9 [json_name = "environmentId"];</code>
@@ -203,4 +205,50 @@ public interface OAuthGrantOrBuilder extends
    */
   com.google.protobuf.ByteString
       getEnvironmentIdBytes();
+
+  /**
+   * <pre>
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+   * "workflow"). Used for query filtering and handler routing.
+   * </pre>
+   *
+   * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+   * @return The resourceKind.
+   */
+  java.lang.String getResourceKind();
+  /**
+   * <pre>
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
+   * "workflow"). Used for query filtering and handler routing.
+   * </pre>
+   *
+   * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
+   * @return The bytes for resourceKind.
+   */
+  com.google.protobuf.ByteString
+      getResourceKindBytes();
+
+  /**
+   * <pre>
+   * Organization context for this grant. Part of the composite key:
+   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * maintain separate OAuth connections for a shared resource across orgs.
+   * </pre>
+   *
+   * <code>string org_id = 11 [json_name = "orgId"];</code>
+   * @return The orgId.
+   */
+  java.lang.String getOrgId();
+  /**
+   * <pre>
+   * Organization context for this grant. Part of the composite key:
+   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * maintain separate OAuth connections for a shared resource across orgs.
+   * </pre>
+   *
+   * <code>string org_id = 11 [json_name = "orgId"];</code>
+   * @return The bytes for orgId.
+   */
+  com.google.protobuf.ByteString
+      getOrgIdBytes();
 }

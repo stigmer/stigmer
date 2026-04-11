@@ -19,8 +19,7 @@ spec:
       - "postgres-mcp"
       - "--url"
       - "${POSTGRES_CONNECTION_URL}"
-  env_spec:
-    data:
-      POSTGRES_CONNECTION_URL:
-        is_secret: true
-        description: "PostgreSQL connection URL (e.g., postgresql://user:password@localhost:5432/dbname)"
+  env:
+    POSTGRES_CONNECTION_URL:
+      is_secret: true
+      description: "PostgreSQL connection URL (e.g., postgresql://user:password@localhost:5432/dbname)"

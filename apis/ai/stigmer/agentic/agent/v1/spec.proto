@@ -45,8 +45,9 @@ message AgentSpec {
   // Sub-agents can access a subset of the parent's MCP servers and tools.
   repeated SubAgent sub_agents = 6;
 
-  // Environment variables required by the agent.
-  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7;
+  // Environment variable declarations for this agent.
+  // Keys are variable names; values describe their metadata and optionality.
+  map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 7;
 }
 
 // SubAgent defines a specialized agent that the parent can delegate to.

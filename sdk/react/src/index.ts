@@ -221,6 +221,7 @@ export {
   useMcpServerConnect,
   useMcpServerOAuthConnect,
   useMcpServerCredentials,
+  useOAuthGrantStatus,
   OAuthCallbackHandler,
   McpServerPicker,
   McpServerConfigPanel,
@@ -255,6 +256,7 @@ export type {
   OAuthCallbackHandlerProps,
   OAuthCallbackParams,
   UseMcpServerCredentialsReturn,
+  UseOAuthGrantStatusReturn,
   McpServerAuthMode,
 } from "./mcp-server";
 
@@ -298,7 +300,7 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env_spec diffing, and default agent
+// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, and default agent
 export {
   useAgent,
   useAgentCount,
@@ -307,7 +309,7 @@ export {
   AgentPicker,
   AgentDetailView,
   AgentEnvForm,
-  diffEnvSpec,
+  diffEnv,
   useAgentSetup,
   useDefaultAgent,
 } from "./agent";

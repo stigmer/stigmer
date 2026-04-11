@@ -31,6 +31,7 @@ type McpServerUsageInput = gen.McpServerUsageInput
 type ToolApprovalOverrideInput = gen.ToolApprovalOverrideInput
 type SubAgentInput = gen.SubAgentInput
 type McpAccessInput = gen.McpAccessInput
+type EnvVarDeclarationInput = gen.EnvVarDeclarationInput
 type AgentExecutionInput = gen.AgentExecutionInput
 type ExecutionConfigInput = gen.ExecutionConfigInput
 type ContextManagementConfigInput = gen.ContextManagementConfigInput

@@ -6,6 +6,7 @@ go_library(
         "dcr.go",
         "discovery.go",
         "grant_store.go",
+        "managed_env.go",
         "pending_state_store.go",
         "pkce.go",
         "refresh.go",
@@ -13,5 +14,10 @@ go_library(
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_rs_zerolog//log"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/environment/v1:environment",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//backend/services/stigmer-server/pkg/downstream/environment",
+        "@com_github_rs_zerolog//log",
+    ],
 )

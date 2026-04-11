@@ -17,6 +17,10 @@ func execVal(value string, isSecret bool) *executioncontextv1.ExecutionValue {
 	return &executioncontextv1.ExecutionValue{Value: value, IsSecret: isSecret}
 }
 
+func decl(isSecret bool) *environmentv1.EnvVarDeclaration {
+	return &environmentv1.EnvVarDeclaration{IsSecret: isSecret}
+}
+
 func makeEnv(data map[string]*environmentv1.EnvironmentValue) *environmentv1.Environment {
 	return &environmentv1.Environment{
 		Spec: &environmentv1.EnvironmentSpec{Data: data},
@@ -28,7 +32,6 @@ func makeEnv(data map[string]*environmentv1.EnvironmentValue) *environmentv1.Env
 func TestMergeEnvironmentLayers(t *testing.T) {
 	tests := []struct {
 		name         string
-		templateData map[string]*environmentv1.EnvironmentValue
 		environments []*environmentv1.Environment
 		runtimeEnv   map[string]*executioncontextv1.ExecutionValue
 		wantKeys     map[string]*executioncontextv1.ExecutionValue
@@ -38,49 +41,16 @@ func TestMergeEnvironmentLayers(t *testing.T) {
 			wantKeys: map[string]*executioncontextv1.ExecutionValue{},
 		},
 		{
-			name: "template defaults only",
-			templateData: map[string]*environmentv1.EnvironmentValue{
-				"API_KEY": envVal("key-123", true),
-				"REGION":  envVal("us-east-1", false),
+			name: "single environment",
+			environments: []*environmentv1.Environment{
+				makeEnv(map[string]*environmentv1.EnvironmentValue{
+					"API_KEY": envVal("key-123", true),
+					"REGION":  envVal("us-east-1", false),
+				}),
 			},
 			wantKeys: map[string]*executioncontextv1.ExecutionValue{
 				"API_KEY": execVal("key-123", true),
 				"REGION":  execVal("us-east-1", false),
-			},
-		},
-		{
-			name: "template entries with empty values are skipped",
-			templateData: map[string]*environmentv1.EnvironmentValue{
-				"HAS_VALUE":     envVal("present", false),
-				"SCHEMA_ONLY":   envVal("", false),
-				"SCHEMA_SECRET": envVal("", true),
-			},
-			wantKeys: map[string]*executioncontextv1.ExecutionValue{
-				"HAS_VALUE": execVal("present", false),
-			},
-		},
-		{
-			name: "nil template entries are skipped",
-			templateData: map[string]*environmentv1.EnvironmentValue{
-				"GOOD": envVal("ok", false),
-				"NIL":  nil,
-			},
-			wantKeys: map[string]*executioncontextv1.ExecutionValue{
-				"GOOD": execVal("ok", false),
-			},
-		},
-		{
-			name: "environment layer overrides template",
-			templateData: map[string]*environmentv1.EnvironmentValue{
-				"SHARED": envVal("from-template", false),
-			},
-			environments: []*environmentv1.Environment{
-				makeEnv(map[string]*environmentv1.EnvironmentValue{
-					"SHARED": envVal("from-env", false),
-				}),
-			},
-			wantKeys: map[string]*executioncontextv1.ExecutionValue{
-				"SHARED": execVal("from-env", false),
 			},
 		},
 		{
@@ -126,10 +96,7 @@ func TestMergeEnvironmentLayers(t *testing.T) {
 			},
 		},
 		{
-			name: "runtime_env overrides all lower layers",
-			templateData: map[string]*environmentv1.EnvironmentValue{
-				"SHARED": envVal("template", false),
-			},
+			name: "runtime_env overrides environments",
 			environments: []*environmentv1.Environment{
 				makeEnv(map[string]*environmentv1.EnvironmentValue{
 					"SHARED": envVal("env", false),
@@ -153,36 +120,30 @@ func TestMergeEnvironmentLayers(t *testing.T) {
 			},
 		},
 		{
-			name: "full priority chain — template < env < runtime",
-			templateData: map[string]*environmentv1.EnvironmentValue{
-				"TEMPLATE_ONLY":    envVal("from-template", false),
-				"TEMPLATE_AND_ENV": envVal("t-val", false),
-				"ALL_THREE":        envVal("t-val", false),
-			},
+			name: "full priority chain — env < runtime",
 			environments: []*environmentv1.Environment{
 				makeEnv(map[string]*environmentv1.EnvironmentValue{
-					"TEMPLATE_AND_ENV": envVal("e-val", false),
-					"ALL_THREE":        envVal("e-val", false),
-					"ENV_ONLY":         envVal("from-env", false),
+					"ENV_AND_RUNTIME": envVal("e-val", false),
+					"ENV_ONLY":        envVal("from-env", false),
+					"BOTH":            envVal("e-val", false),
 				}),
 			},
 			runtimeEnv: map[string]*executioncontextv1.ExecutionValue{
-				"ALL_THREE":    execVal("r-val", false),
+				"BOTH":         execVal("r-val", false),
 				"RUNTIME_ONLY": execVal("from-runtime", false),
 			},
 			wantKeys: map[string]*executioncontextv1.ExecutionValue{
-				"TEMPLATE_ONLY":    execVal("from-template", false),
-				"TEMPLATE_AND_ENV": execVal("e-val", false),
-				"ALL_THREE":        execVal("r-val", false),
-				"ENV_ONLY":         execVal("from-env", false),
-				"RUNTIME_ONLY":     execVal("from-runtime", false),
+				"ENV_AND_RUNTIME": execVal("e-val", false),
+				"BOTH":            execVal("r-val", false),
+				"ENV_ONLY":        execVal("from-env", false),
+				"RUNTIME_ONLY":    execVal("from-runtime", false),
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := MergeEnvironmentLayers(tt.templateData, tt.environments, tt.runtimeEnv)
+			got := MergeEnvironmentLayers(tt.environments, tt.runtimeEnv)
 
 			if len(got) != len(tt.wantKeys) {
 				t.Fatalf("got %d entries, want %d", len(got), len(tt.wantKeys))
@@ -204,27 +165,27 @@ func TestMergeEnvironmentLayers(t *testing.T) {
 	}
 }
 
-// --- FilterByEnvSpec tests ---
+// --- FilterByDeclaredKeys tests ---
 
-func TestFilterByEnvSpec(t *testing.T) {
+func TestFilterByDeclaredKeys(t *testing.T) {
 	tests := []struct {
 		name             string
 		merged           map[string]*executioncontextv1.ExecutionValue
-		envSpecData      map[string]*environmentv1.EnvironmentValue
+		declarations     map[string]*environmentv1.EnvVarDeclaration
 		wantFilteredKeys []string
 		wantExcluded     []string
 	}{
 		{
-			name:             "nil envSpecData passes all through",
+			name:             "nil declarations passes all through",
 			merged:           map[string]*executioncontextv1.ExecutionValue{"A": execVal("a", false), "B": execVal("b", false)},
-			envSpecData:      nil,
+			declarations:     nil,
 			wantFilteredKeys: []string{"A", "B"},
 			wantExcluded:     nil,
 		},
 		{
-			name:             "empty envSpecData passes all through",
+			name:             "empty declarations passes all through",
 			merged:           map[string]*executioncontextv1.ExecutionValue{"A": execVal("a", false)},
-			envSpecData:      map[string]*environmentv1.EnvironmentValue{},
+			declarations:     map[string]*environmentv1.EnvVarDeclaration{},
 			wantFilteredKeys: []string{"A"},
 			wantExcluded:     nil,
 		},
@@ -234,34 +195,34 @@ func TestFilterByEnvSpec(t *testing.T) {
 				"DECLARED":   execVal("val", false),
 				"UNDECLARED": execVal("secret", true),
 			},
-			envSpecData: map[string]*environmentv1.EnvironmentValue{
-				"DECLARED": envVal("", false),
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"DECLARED": decl(false),
 			},
 			wantFilteredKeys: []string{"DECLARED"},
 			wantExcluded:     []string{"UNDECLARED"},
 		},
 		{
-			name: "env_spec with empty-value entries still allows those keys",
+			name: "secret declarations allow those keys",
 			merged: map[string]*executioncontextv1.ExecutionValue{
 				"GITHUB_TOKEN": execVal("ghp_abc123", true),
 				"EXTRA":        execVal("not-needed", false),
 			},
-			envSpecData: map[string]*environmentv1.EnvironmentValue{
-				"GITHUB_TOKEN": envVal("", true),
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"GITHUB_TOKEN": decl(true),
 			},
 			wantFilteredKeys: []string{"GITHUB_TOKEN"},
 			wantExcluded:     []string{"EXTRA"},
 		},
 		{
-			name: "all merged keys in env_spec — no exclusion",
+			name: "all merged keys in declarations — no exclusion",
 			merged: map[string]*executioncontextv1.ExecutionValue{
 				"A": execVal("a", false),
 				"B": execVal("b", false),
 			},
-			envSpecData: map[string]*environmentv1.EnvironmentValue{
-				"A": envVal("default-a", false),
-				"B": envVal("", false),
-				"C": envVal("", false),
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"A": decl(false),
+				"B": decl(false),
+				"C": decl(false),
 			},
 			wantFilteredKeys: []string{"A", "B"},
 			wantExcluded:     []string{},
@@ -274,8 +235,8 @@ func TestFilterByEnvSpec(t *testing.T) {
 				"MANGO": execVal("m", false),
 				"KEEP":  execVal("k", false),
 			},
-			envSpecData: map[string]*environmentv1.EnvironmentValue{
-				"KEEP": envVal("", false),
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"KEEP": decl(false),
 			},
 			wantFilteredKeys: []string{"KEEP"},
 			wantExcluded:     []string{"APPLE", "MANGO", "ZEBRA"},
@@ -283,7 +244,7 @@ func TestFilterByEnvSpec(t *testing.T) {
 		{
 			name:             "empty merged map returns empty",
 			merged:           map[string]*executioncontextv1.ExecutionValue{},
-			envSpecData:      map[string]*environmentv1.EnvironmentValue{"A": envVal("", false)},
+			declarations:     map[string]*environmentv1.EnvVarDeclaration{"A": decl(false)},
 			wantFilteredKeys: []string{},
 			wantExcluded:     []string{},
 		},
@@ -293,8 +254,8 @@ func TestFilterByEnvSpec(t *testing.T) {
 				"DECLARED":      execVal("from-runtime", false),
 				"RUNTIME_EXTRA": execVal("injected", true),
 			},
-			envSpecData: map[string]*environmentv1.EnvironmentValue{
-				"DECLARED": envVal("default", false),
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"DECLARED": decl(false),
 			},
 			wantFilteredKeys: []string{"DECLARED"},
 			wantExcluded:     []string{"RUNTIME_EXTRA"},
@@ -303,7 +264,7 @@ func TestFilterByEnvSpec(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			filtered, excludedKeys := FilterByEnvSpec(tt.merged, tt.envSpecData)
+			filtered, excludedKeys := FilterByDeclaredKeys(tt.merged, tt.declarations)
 
 			if len(filtered) != len(tt.wantFilteredKeys) {
 				t.Fatalf("filtered: got %d entries, want %d", len(filtered), len(tt.wantFilteredKeys))
@@ -332,20 +293,122 @@ func TestFilterByEnvSpec(t *testing.T) {
 	}
 }
 
-// TestFilterByEnvSpec_ReturnsSameMapWhenNoEnvSpec verifies that the returned map
-// is the exact same reference (not a copy) when env_spec is nil/empty.
-func TestFilterByEnvSpec_ReturnsSameMapWhenNoEnvSpec(t *testing.T) {
+// --- ValidateRequiredKeys tests ---
+
+func TestValidateRequiredKeys(t *testing.T) {
+	optionalDecl := func(isSecret, optional bool) *environmentv1.EnvVarDeclaration {
+		return &environmentv1.EnvVarDeclaration{IsSecret: isSecret, Optional: optional}
+	}
+
+	tests := []struct {
+		name         string
+		filtered     map[string]*executioncontextv1.ExecutionValue
+		declarations map[string]*environmentv1.EnvVarDeclaration
+		wantMissing  []string
+	}{
+		{
+			name:         "nil declarations — nothing required",
+			filtered:     map[string]*executioncontextv1.ExecutionValue{"A": execVal("a", false)},
+			declarations: nil,
+			wantMissing:  nil,
+		},
+		{
+			name:         "empty declarations — nothing required",
+			filtered:     map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{},
+			wantMissing:  nil,
+		},
+		{
+			name:     "all required keys present — valid",
+			filtered: map[string]*executioncontextv1.ExecutionValue{"API_KEY": execVal("k", true)},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"API_KEY": optionalDecl(true, false),
+			},
+			wantMissing: nil,
+		},
+		{
+			name:     "required key missing — reported",
+			filtered: map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"API_KEY": optionalDecl(true, false),
+			},
+			wantMissing: []string{"API_KEY"},
+		},
+		{
+			name:     "optional key missing — not reported",
+			filtered: map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"LOG_LEVEL": optionalDecl(false, true),
+			},
+			wantMissing: nil,
+		},
+		{
+			name:     "mix of required present, required missing, optional missing",
+			filtered: map[string]*executioncontextv1.ExecutionValue{"PRESENT": execVal("v", false)},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"PRESENT":          optionalDecl(false, false),
+				"MISSING_REQUIRED": optionalDecl(true, false),
+				"MISSING_OPTIONAL": optionalDecl(false, true),
+			},
+			wantMissing: []string{"MISSING_REQUIRED"},
+		},
+		{
+			name:     "multiple missing required keys — sorted alphabetically",
+			filtered: map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"ZEBRA_KEY": optionalDecl(false, false),
+				"ALPHA_KEY": optionalDecl(true, false),
+				"MIDDLE":    optionalDecl(false, false),
+			},
+			wantMissing: []string{"ALPHA_KEY", "MIDDLE", "ZEBRA_KEY"},
+		},
+		{
+			name:     "all optional — nothing required",
+			filtered: map[string]*executioncontextv1.ExecutionValue{},
+			declarations: map[string]*environmentv1.EnvVarDeclaration{
+				"OPT_A": optionalDecl(false, true),
+				"OPT_B": optionalDecl(true, true),
+			},
+			wantMissing: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ValidateRequiredKeys(tt.filtered, tt.declarations)
+
+			if tt.wantMissing == nil {
+				if len(got) != 0 {
+					t.Errorf("expected no missing keys, got %v", got)
+				}
+				return
+			}
+			if len(got) != len(tt.wantMissing) {
+				t.Fatalf("got %v, want %v", got, tt.wantMissing)
+			}
+			for i, key := range tt.wantMissing {
+				if got[i] != key {
+					t.Errorf("missing[%d]: got %q, want %q", i, got[i], key)
+				}
+			}
+		})
+	}
+}
+
+// TestFilterByDeclaredKeys_ReturnsSameMapWhenNoDeclarations verifies that the
+// returned map is the exact same reference (not a copy) when declarations is nil/empty.
+func TestFilterByDeclaredKeys_ReturnsSameMapWhenNoDeclarations(t *testing.T) {
 	original := map[string]*executioncontextv1.ExecutionValue{
 		"KEY": execVal("val", false),
 	}
 
-	filtered, excluded := FilterByEnvSpec(original, nil)
+	filtered, excluded := FilterByDeclaredKeys(original, nil)
 	if excluded != nil {
-		t.Errorf("expected nil excludedKeys for nil envSpecData")
+		t.Errorf("expected nil excludedKeys for nil declarations")
 	}
 
 	original["NEW_KEY"] = execVal("new", false)
 	if _, ok := filtered["NEW_KEY"]; !ok {
-		t.Error("expected filtered to be the same map reference as original when envSpecData is nil")
+		t.Error("expected filtered to be the same map reference as original when declarations is nil")
 	}
 }

@@ -6,7 +6,7 @@
 import { McpServer } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
-import { CompleteOAuthConnectInput, CompleteOAuthConnectOutput, ConnectInput, InitiateOAuthConnectInput, InitiateOAuthConnectOutput } from "./io_pb.js";
+import { CompleteOAuthConnectInput, CompleteOAuthConnectOutput, ConnectInput, GetOAuthGrantStatusInput, GetOAuthGrantStatusOutput, InitiateOAuthConnectInput, InitiateOAuthConnectOutput } from "./io_pb.js";
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -213,6 +213,27 @@ export const McpServerCommandController = {
       name: "completeOAuthConnect",
       I: CompleteOAuthConnectInput,
       O: CompleteOAuthConnectOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Check whether the authenticated user has an active OAuth grant for
+     * an MCP server in the specified org.
+     *
+     * Returns grant metadata (connected status, token expiry, auth method)
+     * without exposing any secret token values. The frontend uses this to
+     * render the correct OAuth state in the MCP server detail page and
+     * session composer.
+     *
+     * @internal
+     * Authorization: Requires can_view permission on the mcp_server resource.
+     * The resource_id field contains the MCP server's system-generated ID.
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.getOAuthGrantStatus
+     */
+    getOAuthGrantStatus: {
+      name: "getOAuthGrantStatus",
+      I: GetOAuthGrantStatusInput,
+      O: GetOAuthGrantStatusOutput,
       kind: MethodKind.Unary,
     },
   }

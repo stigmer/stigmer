@@ -19,7 +19,8 @@ from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
 
 from ._errors import wrap_error
-from ._types import DeleteResourceInput, EnvSpecInput, ListParams, ListResult, ResourceRef
+from ._types import DeleteResourceInput, ListParams, ListResult, ResourceRef
+from ._agent import EnvVarDeclarationInput
 
 
 class McpServerClient:
@@ -78,6 +79,12 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_o_auth_grant_status(self, input: io_pb2.GetOAuthGrantStatusInput) -> io_pb2.GetOAuthGrantStatusOutput:
+        try:
+            return self._command.getOAuthGrantStatus(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.McpServer:
         try:
             return self._query.get(apiresource_io_pb2.ApiResourceId(value=id))
@@ -129,7 +136,7 @@ class McpServerInput:
     stdio: StdioServerConfigInput | None = None
     http: HttpServerConfigInput | None = None
     default_enabled_tools: list[str] = field(default_factory=list)
-    env_spec: EnvSpecInput | None = None
+    env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
     pinned_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
     repository_url: str = ""
     github_stars: int = 0
@@ -148,8 +155,8 @@ class McpServerInput:
             spec.http.CopyFrom(self.http._to_proto())
         if self.default_enabled_tools:
             spec.default_enabled_tools.extend(self.default_enabled_tools)
-        if self.env_spec is not None:
-            spec.env_spec.CopyFrom(self.env_spec._to_proto())
+        for k, v in self.env.items():
+            spec.env[k].CopyFrom(v._to_proto())
         for item in self.pinned_tool_approvals:
             spec.pinned_tool_approvals.append(item._to_proto())
         if self.auth is not None:

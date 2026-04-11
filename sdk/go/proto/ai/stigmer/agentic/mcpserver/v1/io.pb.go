@@ -455,6 +455,143 @@ func (x *CompleteOAuthConnectOutput) GetTokenLifetimeHint() string {
 	return ""
 }
 
+// GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
+//
+// @internal
+// Returns whether the authenticated user has an active OAuth grant for the
+// specified resource in the given org. Used by the frontend to determine
+// whether to show "Connected" vs. "Connect with OAuth" UI states.
+type GetOAuthGrantStatusInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the resource to check grant status for.
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// Organization context. Required because the same user can have
+	// separate OAuth connections for a shared resource across orgs.
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOAuthGrantStatusInput) Reset() {
+	*x = GetOAuthGrantStatusInput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOAuthGrantStatusInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOAuthGrantStatusInput) ProtoMessage() {}
+
+func (x *GetOAuthGrantStatusInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOAuthGrantStatusInput.ProtoReflect.Descriptor instead.
+func (*GetOAuthGrantStatusInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetOAuthGrantStatusInput) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *GetOAuthGrantStatusInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// GetOAuthGrantStatusOutput returns the current OAuth grant status.
+type GetOAuthGrantStatusOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the user has an active OAuth grant for this resource + org.
+	Connected bool `protobuf:"varint,1,opt,name=connected,proto3" json:"connected,omitempty"`
+	// When the access token expires (Unix timestamp seconds).
+	// 0 if no grant exists or the token does not expire.
+	AccessTokenExpiresAt int64 `protobuf:"varint,2,opt,name=access_token_expires_at,json=accessTokenExpiresAt,proto3" json:"access_token_expires_at,omitempty"`
+	// The env var name where the access token is stored.
+	// Empty if no grant exists.
+	TargetEnvVar string `protobuf:"bytes,3,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
+	// Which auth method was used ("mcp_oauth" or "vendor_oauth").
+	// Empty if no grant exists.
+	AuthMethod    string `protobuf:"bytes,4,opt,name=auth_method,json=authMethod,proto3" json:"auth_method,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOAuthGrantStatusOutput) Reset() {
+	*x = GetOAuthGrantStatusOutput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOAuthGrantStatusOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOAuthGrantStatusOutput) ProtoMessage() {}
+
+func (x *GetOAuthGrantStatusOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOAuthGrantStatusOutput.ProtoReflect.Descriptor instead.
+func (*GetOAuthGrantStatusOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetOAuthGrantStatusOutput) GetConnected() bool {
+	if x != nil {
+		return x.Connected
+	}
+	return false
+}
+
+func (x *GetOAuthGrantStatusOutput) GetAccessTokenExpiresAt() int64 {
+	if x != nil {
+		return x.AccessTokenExpiresAt
+	}
+	return 0
+}
+
+func (x *GetOAuthGrantStatusOutput) GetTargetEnvVar() string {
+	if x != nil {
+		return x.TargetEnvVar
+	}
+	return ""
+}
+
+func (x *GetOAuthGrantStatusOutput) GetAuthMethod() string {
+	if x != nil {
+		return x.AuthMethod
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
@@ -484,7 +621,17 @@ const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"\x1aCompleteOAuthConnectOutput\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x12$\n" +
 	"\x0etarget_env_var\x18\x02 \x01(\tR\ftargetEnvVar\x12.\n" +
-	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHintB\xa4\x02\n" +
+	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\"^\n" +
+	"\x18GetOAuthGrantStatusInput\x12'\n" +
+	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"resourceId\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xb7\x01\n" +
+	"\x19GetOAuthGrantStatusOutput\x12\x1c\n" +
+	"\tconnected\x18\x01 \x01(\bR\tconnected\x125\n" +
+	"\x17access_token_expires_at\x18\x02 \x01(\x03R\x14accessTokenExpiresAt\x12$\n" +
+	"\x0etarget_env_var\x18\x03 \x01(\tR\ftargetEnvVar\x12\x1f\n" +
+	"\vauth_method\x18\x04 \x01(\tR\n" +
+	"authMethodB\xa4\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\aIoProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -499,7 +646,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_goTypes = []any{
 	(*McpServerId)(nil),                // 0: ai.stigmer.agentic.mcpserver.v1.McpServerId
 	(*ConnectInput)(nil),               // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput
@@ -507,12 +654,14 @@ var file_ai_stigmer_agentic_mcpserver_v1_io_proto_goTypes = []any{
 	(*InitiateOAuthConnectOutput)(nil), // 3: ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput
 	(*CompleteOAuthConnectInput)(nil),  // 4: ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput
 	(*CompleteOAuthConnectOutput)(nil), // 5: ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput
-	nil,                                // 6: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
-	(*v1.ExecutionValue)(nil),          // 7: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*GetOAuthGrantStatusInput)(nil),   // 6: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput
+	(*GetOAuthGrantStatusOutput)(nil),  // 7: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
+	nil,                                // 8: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
+	(*v1.ExecutionValue)(nil),          // 9: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_depIdxs = []int32{
-	6, // 0: ai.stigmer.agentic.mcpserver.v1.ConnectInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
-	7, // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	8, // 0: ai.stigmer.agentic.mcpserver.v1.ConnectInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
+	9, // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -531,7 +680,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

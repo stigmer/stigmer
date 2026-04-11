@@ -27,8 +27,9 @@ message WorkflowSpec {
   // Tasks execute sequentially unless fork/parallel is used.
   repeated WorkflowTask tasks = 3 [(buf.validate.field).repeated.min_items = 1];
 
-  // Environment variables required by the workflow.
-  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4;
+  // Environment variable declarations for this workflow.
+  // Keys are variable names; values describe their metadata and optionality.
+  map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 4;
 }
 
 // WorkflowDocument contains workflow-level metadata for versioning and identification.

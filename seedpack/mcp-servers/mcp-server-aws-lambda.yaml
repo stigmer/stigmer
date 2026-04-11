@@ -18,11 +18,11 @@ spec:
     command: "uvx"
     args:
       - "awslabs.lambda-tool-mcp-server@latest"
-  env_spec:
-    data:
-      AWS_REGION:
-        is_secret: false
-        description: "AWS region for Lambda operations (e.g., us-east-1)"
-      AWS_PROFILE:
-        is_secret: false
-        description: "AWS CLI profile name (default: default)"
+  env:
+    AWS_REGION:
+      is_secret: false
+      description: "AWS region for Lambda operations (e.g., us-east-1)"
+    AWS_PROFILE:
+      is_secret: false
+      description: "AWS CLI profile name (default: default)"
+      optional: true

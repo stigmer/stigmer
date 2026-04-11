@@ -191,23 +191,23 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 }
 
 // applyAutoEnvForAgent resolves well-known credentials scoped to the agent's
-// env_spec and merges them into the runtime env. Only variables declared in
-// the agent's env_spec are auto-resolved — this prevents injecting unneeded
+// env declarations and merges them into the runtime env. Only variables declared
+// in the agent's env are auto-resolved — this prevents injecting unneeded
 // secrets (e.g. PLANTON_API_KEY for an agent that only needs STIGMER_SERVER_ADDRESS).
 //
 // User-provided --env/--secret flags always win over auto-resolved values.
 func applyAutoEnvForAgent(runtimeEnv envfile.EnvMap, agent *agentv1.Agent) (envfile.EnvMap, error) {
-	envSpec := agent.GetSpec().GetEnvSpec().GetData()
-	if len(envSpec) == 0 {
+	envDecls := agent.GetSpec().GetEnv()
+	if len(envDecls) == 0 {
 		return runtimeEnv, nil
 	}
 
-	requiredVars := make(map[string]bool, len(envSpec))
-	for name := range envSpec {
-		requiredVars[name] = true
+	declaredVars := make(map[string]bool, len(envDecls))
+	for name := range envDecls {
+		declaredVars[name] = true
 	}
 
-	return resolveAndMergeAutoEnvScoped(runtimeEnv, requiredVars)
+	return resolveAndMergeAutoEnvScoped(runtimeEnv, declaredVars)
 }
 
 // ---------------------------------------------------------------------------

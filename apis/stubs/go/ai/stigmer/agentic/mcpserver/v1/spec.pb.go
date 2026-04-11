@@ -61,8 +61,9 @@ type McpServerSpec struct {
 	// resource templates are read-only data endpoints, not callable tools.
 	// Including a resource template name here causes a fatal runtime error.
 	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
-	// Environment variables required by the MCP server.
-	EnvSpec *v1.EnvironmentSpec `protobuf:"bytes,8,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
+	// Environment variable declarations for this MCP server.
+	// Keys are variable names; values describe their metadata and optionality.
+	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,8,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Manual tool approval overrides set by the MCP server owner.
 	//
 	// @internal
@@ -93,9 +94,10 @@ type McpServerSpec struct {
 	// When set, the MCP server's Connect page offers an OAuth flow instead of
 	// (or in addition to) manual credential entry.
 	//
-	// The acquired access token is stored in the user's personal environment
-	// as the env var named by auth.target_env_var. That env var must also be
-	// declared in env_spec.data so the execution pipeline knows about it.
+	// The acquired access token is stored in a system-managed environment
+	// (identified by grant.environment_id) as the env var named by
+	// auth.target_env_var. That env var must also be declared in env so the
+	// execution pipeline knows about it.
 	Auth          *McpServerAuth `protobuf:"bytes,14,opt,name=auth,proto3" json:"auth,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -184,9 +186,9 @@ func (x *McpServerSpec) GetDefaultEnabledTools() []string {
 	return nil
 }
 
-func (x *McpServerSpec) GetEnvSpec() *v1.EnvironmentSpec {
+func (x *McpServerSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
 	if x != nil {
-		return x.EnvSpec
+		return x.Env
 	}
 	return nil
 }
@@ -262,7 +264,7 @@ type StdioServerConfig struct {
 	// (same source as HTTP header/query param placeholders). This enables MCP
 	// servers that take core configuration as positional CLI arguments (e.g.
 	// database connection URLs, directory paths) to be parameterized per-user
-	// through env_spec.
+	// through env declarations.
 	//
 	// Resolution uses strict mode: missing variables produce a clear error
 	// rather than passing a literal "${VAR}" to the subprocess.
@@ -544,9 +546,11 @@ func (x *ToolApprovalPolicy) GetMessage() string {
 //     The referenced OAuthApp holds the client_id, client_secret, and endpoint
 //     URLs needed for the authorization code flow.
 //
-// In both cases, the acquired access token is stored in the user's personal
-// environment as target_env_var. A refresh token (if issued by the vendor) is
-// stored alongside as {target_env_var}_REFRESH_TOKEN by convention.
+// In both cases, the acquired access token is stored in a system-managed
+// environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
+// token (if issued by the vendor) is stored alongside as
+// {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
+// is recorded on the OAuthGrant for all subsequent reads and refreshes.
 //
 // Token lifecycle:
 //   - Pre-flight check before execution: if the access token is expired,
@@ -567,10 +571,11 @@ type McpServerAuth struct {
 	// the user. The OAuthApp must belong to the same organization as the
 	// McpServer (or be accessible via cross-org reference).
 	OauthAppRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
-	// The env var in env_spec.data where the acquired access token is stored.
-	// Must correspond to an entry in env_spec.data so the execution pipeline
-	// resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN
-	// by convention. Both are written to the user's personal environment.
+	// The env var where the acquired access token is stored.
+	// Must correspond to an entry in env so the execution pipeline
+	// resolves it. The refresh token is stored as
+	// {target_env_var}_REFRESH_TOKEN
+	// by convention. Both are written to the grant's managed environment.
 	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Informational hint about expected token lifetime for UI display.
 	// Helps users understand when re-authentication may be needed.
@@ -647,19 +652,22 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x85\x05\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xef\x05\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
 	"\x04tags\x18\x03 \x03(\tR\x04tags\x12J\n" +
 	"\x05stdio\x18\x04 \x01(\v22.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n" +
 	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x122\n" +
-	"\x15default_enabled_tools\x18\a \x03(\tR\x13defaultEnabledTools\x12M\n" +
-	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\x12g\n" +
+	"\x15default_enabled_tools\x18\a \x03(\tR\x13defaultEnabledTools\x12I\n" +
+	"\x03env\x18\b \x03(\v27.ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntryR\x03env\x12g\n" +
 	"\x15pinned_tool_approvals\x18\v \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x13pinnedToolApprovals\x12%\n" +
 	"\x0erepository_url\x18\f \x01(\tR\rrepositoryUrl\x12!\n" +
 	"\fgithub_stars\x18\r \x01(\x05R\vgithubStars\x12B\n" +
-	"\x04auth\x18\x0e \x01(\v2..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04authB\x14\n" +
+	"\x04auth\x18\x0e \x01(\v2..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04auth\x1al\n" +
+	"\bEnvEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
+	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01B\x14\n" +
 	"\vserver_type\x12\x05\xbaH\x02\b\x01\"j\n" +
 	"\x11StdioServerConfig\x12 \n" +
 	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
@@ -680,9 +688,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xe9\x01\n" +
-	"\rMcpServerAuth\x12X\n" +
-	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\voauthAppRef\x12-\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xeb\x02\n" +
+	"\rMcpServerAuth\x12\xd9\x01\n" +
+	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x7f\xbaHx\xba\x01u\n" +
+	"\x12oauth_app_ref.kind\x12;oauth_app_ref must reference a resource with kind=oauth_app\x1a\"this.slug == '' || this.kind == 22\xe0\x85,\x16R\voauthAppRef\x12-\n" +
 	"\x0etarget_env_var\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ftargetEnvVar\x12.\n" +
 	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\x12\x1f\n" +
 	"\vscope_hints\x18\x04 \x03(\tR\n" +
@@ -701,32 +710,34 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
 	(*McpServerSpec)(nil),                    // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
 	(*StdioServerConfig)(nil),                // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	(*HttpServerConfig)(nil),                 // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
 	(*ToolApprovalPolicy)(nil),               // 3: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
 	(*McpServerAuth)(nil),                    // 4: ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*v1.EnvironmentSpec)(nil),               // 7: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
+	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	nil,                                      // 7: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
 	(*apiresource.ApiResourceReference)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	7, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	5, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
 	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
 	4, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	5, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	6, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	7, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
 	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	9, // 8: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }
@@ -744,7 +755,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

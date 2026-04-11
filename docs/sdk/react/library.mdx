@@ -541,7 +541,7 @@ type for use with `stigmer.agent.apply()` or `stigmer.mcpServer.apply()`.
 
 Handles the conversion from proto-style snake_case YAML field names to
 the camelCase TypeScript SDK input types, including nested structures
-like `mcp_server_usages`, `sub_agents`, and `env_spec`.
+like `mcp_server_usages`, `sub_agents`, and `env`.
 
 The `org` parameter **always overrides** `metadata.org` in the YAML.
 This matches the UX intent of "Apply to [my-org]" — the user explicitly

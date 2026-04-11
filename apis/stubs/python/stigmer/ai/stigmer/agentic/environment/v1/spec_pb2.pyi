@@ -30,3 +30,13 @@ class EnvironmentValue(_message.Message):
     is_secret: bool
     description: str
     def __init__(self, value: _Optional[str] = ..., is_secret: bool = ..., description: _Optional[str] = ...) -> None: ...
+
+class EnvVarDeclaration(_message.Message):
+    __slots__ = ("is_secret", "description", "optional")
+    IS_SECRET_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    OPTIONAL_FIELD_NUMBER: _ClassVar[int]
+    is_secret: bool
+    description: str
+    optional: bool
+    def __init__(self, is_secret: bool = ..., description: _Optional[str] = ..., optional: bool = ...) -> None: ...

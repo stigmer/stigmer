@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi7AEKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASJQChlJbml0aWF0ZU9BdXRoQ29ubmVjdElucHV0Eh0KDW1jcF9zZXJ2ZXJfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEibQoaSW5pdGlhdGVPQXV0aENvbm5lY3RPdXRwdXQSGQoRYXV0aG9yaXphdGlvbl91cmwYASABKAkSDQoFc3RhdGUYAiABKAkSDgoGc2NvcGVzGAMgAygJEhUKDXByb3ZpZGVyX25hbWUYBCABKAkidwoZQ29tcGxldGVPQXV0aENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESIwoSYXV0aG9yaXphdGlvbl9jb2RlGAIgASgJQge6SARyAhABEhYKBXN0YXRlGAMgASgJQge6SARyAhABImQKGkNvbXBsZXRlT0F1dGhDb25uZWN0T3V0cHV0EhEKCWNvbm5lY3RlZBgBIAEoCBIWCg50YXJnZXRfZW52X3ZhchgCIAEoCRIbChN0b2tlbl9saWZldGltZV9oaW50GAMgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi7AEKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASJQChlJbml0aWF0ZU9BdXRoQ29ubmVjdElucHV0Eh0KDW1jcF9zZXJ2ZXJfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEibQoaSW5pdGlhdGVPQXV0aENvbm5lY3RPdXRwdXQSGQoRYXV0aG9yaXphdGlvbl91cmwYASABKAkSDQoFc3RhdGUYAiABKAkSDgoGc2NvcGVzGAMgAygJEhUKDXByb3ZpZGVyX25hbWUYBCABKAkidwoZQ29tcGxldGVPQXV0aENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESIwoSYXV0aG9yaXphdGlvbl9jb2RlGAIgASgJQge6SARyAhABEhYKBXN0YXRlGAMgASgJQge6SARyAhABImQKGkNvbXBsZXRlT0F1dGhDb25uZWN0T3V0cHV0EhEKCWNvbm5lY3RlZBgBIAEoCBIWCg50YXJnZXRfZW52X3ZhchgCIAEoCRIbChN0b2tlbl9saWZldGltZV9oaW50GAMgASgJIk0KGEdldE9BdXRoR3JhbnRTdGF0dXNJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQASJ8ChlHZXRPQXV0aEdyYW50U3RhdHVzT3V0cHV0EhEKCWNvbm5lY3RlZBgBIAEoCBIfChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoAxIWCg50YXJnZXRfZW52X3ZhchgDIAEoCRITCgthdXRoX21ldGhvZBgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
 
 /**
  * McpServerId wraps an MCP server resource identifier.
@@ -278,4 +278,83 @@ export type CompleteOAuthConnectOutput = Message<"ai.stigmer.agentic.mcpserver.v
  */
 export const CompleteOAuthConnectOutputSchema: GenMessage<CompleteOAuthConnectOutput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 5);
+
+/**
+ * GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
+ *
+ * @internal
+ * Returns whether the authenticated user has an active OAuth grant for the
+ * specified resource in the given org. Used by the frontend to determine
+ * whether to show "Connected" vs. "Connect with OAuth" UI states.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput
+ */
+export type GetOAuthGrantStatusInput = Message<"ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput"> & {
+  /**
+   * System-generated ID of the resource to check grant status for.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * Organization context. Required because the same user can have
+   * separate OAuth connections for a shared resource across orgs.
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput.
+ * Use `create(GetOAuthGrantStatusInputSchema)` to create a new message.
+ */
+export const GetOAuthGrantStatusInputSchema: GenMessage<GetOAuthGrantStatusInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 6);
+
+/**
+ * GetOAuthGrantStatusOutput returns the current OAuth grant status.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
+ */
+export type GetOAuthGrantStatusOutput = Message<"ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput"> & {
+  /**
+   * Whether the user has an active OAuth grant for this resource + org.
+   *
+   * @generated from field: bool connected = 1;
+   */
+  connected: boolean;
+
+  /**
+   * When the access token expires (Unix timestamp seconds).
+   * 0 if no grant exists or the token does not expire.
+   *
+   * @generated from field: int64 access_token_expires_at = 2;
+   */
+  accessTokenExpiresAt: bigint;
+
+  /**
+   * The env var name where the access token is stored.
+   * Empty if no grant exists.
+   *
+   * @generated from field: string target_env_var = 3;
+   */
+  targetEnvVar: string;
+
+  /**
+   * Which auth method was used ("mcp_oauth" or "vendor_oauth").
+   * Empty if no grant exists.
+   *
+   * @generated from field: string auth_method = 4;
+   */
+  authMethod: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.
+ * Use `create(GetOAuthGrantStatusOutputSchema)` to create a new message.
+ */
+export const GetOAuthGrantStatusOutputSchema: GenMessage<GetOAuthGrantStatusOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 7);
 

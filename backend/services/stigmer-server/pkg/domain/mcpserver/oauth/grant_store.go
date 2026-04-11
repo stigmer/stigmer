@@ -10,10 +10,16 @@ import (
 )
 
 // OAuthGrant is the Go representation of the OAuthGrant infrastructure record.
-// Not an API resource — stored directly in SQLite, keyed by (user, server).
+// Not an API resource — stored directly in SQLite, keyed by
+// (identity_account_id, resource_id, org_id).
+//
+// Resource-agnostic: resource_id can refer to any API resource kind
+// (e.g., MCP server, workflow) that requires OAuth credentials.
 type OAuthGrant struct {
 	IdentityAccountID    string
-	McpServerID          string
+	ResourceID           string
+	ResourceKind         string // e.g., "mcp_server", "workflow"
+	OrgID                string
 	AccessTokenExpiresAt int64
 	ClientID             string
 	AuthMethod           string // "mcp_oauth" or "vendor_oauth"
@@ -43,7 +49,9 @@ func (s *OAuthGrantStore) ensureTable() error {
 	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS oauth_grant (
 			identity_account_id    TEXT NOT NULL,
-			mcp_server_id          TEXT NOT NULL,
+			resource_id            TEXT NOT NULL,
+			resource_kind          TEXT NOT NULL DEFAULT '',
+			org_id                 TEXT NOT NULL DEFAULT '',
 			access_token_expires_at INTEGER NOT NULL DEFAULT 0,
 			client_id              TEXT NOT NULL DEFAULT '',
 			auth_method            TEXT NOT NULL DEFAULT '',
@@ -53,7 +61,7 @@ func (s *OAuthGrantStore) ensureTable() error {
 			environment_id         TEXT NOT NULL DEFAULT '',
 			created_at             INTEGER NOT NULL,
 			updated_at             INTEGER NOT NULL,
-			PRIMARY KEY (identity_account_id, mcp_server_id)
+			PRIMARY KEY (identity_account_id, resource_id, org_id)
 		)
 	`)
 	return err
@@ -69,12 +77,13 @@ func (s *OAuthGrantStore) Upsert(ctx context.Context, grant *OAuthGrant) error {
 
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO oauth_grant (
-			identity_account_id, mcp_server_id, access_token_expires_at,
-			client_id, auth_method, token_endpoint,
+			identity_account_id, resource_id, resource_kind, org_id,
+			access_token_expires_at, client_id, auth_method, token_endpoint,
 			access_token_env_var, refresh_token_env_var, environment_id,
 			created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT (identity_account_id, mcp_server_id) DO UPDATE SET
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (identity_account_id, resource_id, org_id) DO UPDATE SET
+			resource_kind = excluded.resource_kind,
 			access_token_expires_at = excluded.access_token_expires_at,
 			client_id = excluded.client_id,
 			auth_method = excluded.auth_method,
@@ -84,8 +93,8 @@ func (s *OAuthGrantStore) Upsert(ctx context.Context, grant *OAuthGrant) error {
 			environment_id = excluded.environment_id,
 			updated_at = excluded.updated_at
 	`,
-		grant.IdentityAccountID, grant.McpServerID, grant.AccessTokenExpiresAt,
-		grant.ClientID, grant.AuthMethod, grant.TokenEndpoint,
+		grant.IdentityAccountID, grant.ResourceID, grant.ResourceKind, grant.OrgID,
+		grant.AccessTokenExpiresAt, grant.ClientID, grant.AuthMethod, grant.TokenEndpoint,
 		grant.AccessTokenEnvVar, grant.RefreshTokenEnvVar, grant.EnvironmentID,
 		grant.CreatedAt, grant.UpdatedAt,
 	)
@@ -95,25 +104,27 @@ func (s *OAuthGrantStore) Upsert(ctx context.Context, grant *OAuthGrant) error {
 
 	log.Debug().
 		Str("identity_account_id", grant.IdentityAccountID).
-		Str("mcp_server_id", grant.McpServerID).
+		Str("resource_id", grant.ResourceID).
+		Str("resource_kind", grant.ResourceKind).
+		Str("org_id", grant.OrgID).
 		Msg("Upserted OAuth grant")
 	return nil
 }
 
-// GetByUserAndServer retrieves an OAuthGrant by user and MCP server.
+// Find retrieves an OAuthGrant by its composite key.
 // Returns nil, nil if no grant exists.
-func (s *OAuthGrantStore) GetByUserAndServer(ctx context.Context, identityAccountID, mcpServerID string) (*OAuthGrant, error) {
+func (s *OAuthGrantStore) Find(ctx context.Context, identityAccountID, resourceID, orgID string) (*OAuthGrant, error) {
 	grant := &OAuthGrant{}
 	err := s.db.QueryRowContext(ctx, `
-		SELECT identity_account_id, mcp_server_id, access_token_expires_at,
-			client_id, auth_method, token_endpoint,
+		SELECT identity_account_id, resource_id, resource_kind, org_id,
+			access_token_expires_at, client_id, auth_method, token_endpoint,
 			access_token_env_var, refresh_token_env_var, environment_id,
 			created_at, updated_at
 		FROM oauth_grant
-		WHERE identity_account_id = ? AND mcp_server_id = ?
-	`, identityAccountID, mcpServerID).Scan(
-		&grant.IdentityAccountID, &grant.McpServerID, &grant.AccessTokenExpiresAt,
-		&grant.ClientID, &grant.AuthMethod, &grant.TokenEndpoint,
+		WHERE identity_account_id = ? AND resource_id = ? AND org_id = ?
+	`, identityAccountID, resourceID, orgID).Scan(
+		&grant.IdentityAccountID, &grant.ResourceID, &grant.ResourceKind, &grant.OrgID,
+		&grant.AccessTokenExpiresAt, &grant.ClientID, &grant.AuthMethod, &grant.TokenEndpoint,
 		&grant.AccessTokenEnvVar, &grant.RefreshTokenEnvVar, &grant.EnvironmentID,
 		&grant.CreatedAt, &grant.UpdatedAt,
 	)
@@ -126,12 +137,12 @@ func (s *OAuthGrantStore) GetByUserAndServer(ctx context.Context, identityAccoun
 	return grant, nil
 }
 
-// DeleteByUserAndServer removes an OAuthGrant by user and MCP server.
-func (s *OAuthGrantStore) DeleteByUserAndServer(ctx context.Context, identityAccountID, mcpServerID string) error {
+// Delete removes an OAuthGrant by its composite key.
+func (s *OAuthGrantStore) Delete(ctx context.Context, identityAccountID, resourceID, orgID string) error {
 	_, err := s.db.ExecContext(ctx, `
 		DELETE FROM oauth_grant
-		WHERE identity_account_id = ? AND mcp_server_id = ?
-	`, identityAccountID, mcpServerID)
+		WHERE identity_account_id = ? AND resource_id = ? AND org_id = ?
+	`, identityAccountID, resourceID, orgID)
 	if err != nil {
 		return fmt.Errorf("failed to delete oauth grant: %w", err)
 	}

@@ -62,6 +62,7 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get an MCP server by its unique identifier. |
 | [`getByReference`](#getbyreference) | Get an MCP server by reference (scope + org + slug). |
+| [`getOAuthGrantStatus`](#getoauthgrantstatus) | Check whether the authenticated user has an active OAuth grant for an MCP server in the specified org. |
 | [`apply`](#apply) | Create or update an MCP server resource. |
 | [`create`](#create) | Create an MCP server resource. |
 | [`update`](#update) | Update an existing MCP server resource. |
@@ -159,6 +160,51 @@ McpServer mcpServer = client.mcpServers().getByReference(ApiResourceReference.bu
 
 **Returns**: [`McpServer`](#mcpserver)
 
+### getOAuthGrantStatus
+
+Check whether the authenticated user has an active OAuth grant for an MCP server in the specified org.
+
+Returns grant metadata (connected status, token expiry, auth method) without exposing any secret token values. The frontend uses this to render the correct OAuth state in the MCP server detail page and session composer.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const getOAuthGrantStatusOutput = await stigmer.mcpServer.getOAuthGrantStatus({
+  resourceId: "...",
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+getOAuthGrantStatusOutput, err := client.McpServer.GetOAuthGrantStatus(ctx, &stigmer.GetOAuthGrantStatusInput{
+  ResourceId: "...",
+  Org:        "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+get_o_auth_grant_status_output = client.mcp_servers.get_o_auth_grant_status(GetOAuthGrantStatusInput(
+    resource_id="...",
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+GetOAuthGrantStatusOutput getOAuthGrantStatusOutput = client.mcpServers().getOAuthGrantStatus(GetOAuthGrantStatusInput.builder()
+    .resourceId("...")
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetOAuthGrantStatusInput`](#getoauthgrantstatusinput)
+
+**Returns**: [`GetOAuthGrantStatusOutput`](#getoauthgrantstatusoutput)
+
 ### apply
 
 Create or update an MCP server resource.
@@ -178,7 +224,7 @@ const mcpServer = await stigmer.mcpServer.apply({
   stdio: {},
   http: {},
   defaultEnabledTools: [],
-  envSpec: {},
+  env: {},
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
@@ -198,7 +244,7 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
   Stdio:               &stigmer.StdioServerConfigInput{},
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
-  EnvSpec:             &stigmer.EnvSpecInput{},
+  Env:                 map[string]string{},
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
@@ -218,7 +264,7 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     stdio=None,
     http=None,
     default_enabled_tools=[],
-    env_spec=None,
+    env={},
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
@@ -238,7 +284,7 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .stdio(null)
     .http(null)
     .defaultEnabledTools(List.of())
-    .envSpec(null)
+    .env(Map.of())
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
@@ -271,7 +317,7 @@ const mcpServer = await stigmer.mcpServer.create({
   stdio: {},
   http: {},
   defaultEnabledTools: [],
-  envSpec: {},
+  env: {},
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
@@ -291,7 +337,7 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
   Stdio:               &stigmer.StdioServerConfigInput{},
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
-  EnvSpec:             &stigmer.EnvSpecInput{},
+  Env:                 map[string]string{},
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
@@ -311,7 +357,7 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     stdio=None,
     http=None,
     default_enabled_tools=[],
-    env_spec=None,
+    env={},
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
@@ -331,7 +377,7 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .stdio(null)
     .http(null)
     .defaultEnabledTools(List.of())
-    .envSpec(null)
+    .env(Map.of())
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
@@ -362,7 +408,7 @@ const mcpServer = await stigmer.mcpServer.update({
   stdio: {},
   http: {},
   defaultEnabledTools: [],
-  envSpec: {},
+  env: {},
   pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
@@ -382,7 +428,7 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
   Stdio:               &stigmer.StdioServerConfigInput{},
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
-  EnvSpec:             &stigmer.EnvSpecInput{},
+  Env:                 map[string]string{},
   PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
   RepositoryUrl:       "...",
   GithubStars:         0,
@@ -402,7 +448,7 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     stdio=None,
     http=None,
     default_enabled_tools=[],
-    env_spec=None,
+    env={},
     pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
@@ -422,7 +468,7 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .stdio(null)
     .http(null)
     .defaultEnabledTools(List.of())
-    .envSpec(null)
+    .env(Map.of())
     .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
@@ -682,7 +728,7 @@ Input for creating or updating a MCP Server.
     stdio: { type: "StdioServerConfigInput", description: "stdio-based server (subprocess with stdin/stdout communication).", typeDescriptionLink: "#stdioserverconfiginput" },
     http: { type: "HttpServerConfigInput", description: "HTTP-based server (HTTP + Server-Sent Events communication).", typeDescriptionLink: "#httpserverconfiginput" },
     defaultEnabledTools: { type: "string[]", description: "Default tools to enable from this MCP server." },
-    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the MCP server.", typeDescriptionLink: "#envspecinput" },
+    env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this MCP server.", typeDescriptionLink: "#envvardeclarationinput" },
     pinnedToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Manual tool approval overrides set by the MCP server owner.", typeDescriptionLink: "#toolapprovalpolicyinput" },
     repositoryUrl: { type: "string", description: "URL of the upstream source repository for this MCP server." },
     githubStars: { type: "number", description: "GitHub star count at the time of curation." },
@@ -715,26 +761,15 @@ HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
   }}
 />
 
-### EnvSpecInput
+### EnvVarDeclarationInput
 
-EnvironmentSpec defines the configurable properties of an environment.
-
-<TypeTable
-  type={{
-    description: { type: "string", description: "Human-readable description for UI and listing display." },
-    data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing configuration and secrets.", typeDescriptionLink: "#envvarinput" },
-  }}
-/>
-
-### EnvVarInput
-
-EnvironmentValue represents a single configuration or secret entry.
+EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent, Workflow).
 
 <TypeTable
   type={{
-    value: { type: "string", description: "The configuration or secret string." },
-    isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
-    description: { type: "string", description: "Human-readable description of what this value is used for." },
+    isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
+    description: { type: "string", description: "Human-readable description shown in the UI credential form." },
+    optional: { type: "boolean", description: "Whether this variable is optional." },
   }}
 />
 
@@ -756,7 +791,7 @@ McpServerAuth configures automated credential acquisition via OAuth.
 <TypeTable
   type={{
     oauthAppRef: { type: "ResourceRef", description: "Reference to an OAuthApp for vendor-specific OAuth.", typeDescriptionLink: "#resourceref" },
-    targetEnvVar: { type: "string", description: "The env var in env_spec.data where the acquired access token is stored." },
+    targetEnvVar: { type: "string", description: "The env var where the acquired access token is stored." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
     scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
   }}
@@ -793,7 +828,7 @@ ConnectInput is the request for the connect RPC.
 <TypeTable
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to connect to.", required: true },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use.", typeDescriptionLink: "#envvarinput" },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use." },
   }}
 />
 
@@ -842,6 +877,30 @@ CompleteOAuthConnectOutput confirms that tokens were successfully acquired and s
     connected: { type: "boolean", description: "Whether the OAuth flow completed successfully and tokens are stored." },
     targetEnvVar: { type: "string", description: "The environment variable name where the access token was stored." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime." },
+  }}
+/>
+
+### GetOAuthGrantStatusInput
+
+GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "System-generated ID of the resource to check grant status for.", required: true },
+    org: { type: "string", description: "Organization context." },
+  }}
+/>
+
+### GetOAuthGrantStatusOutput
+
+GetOAuthGrantStatusOutput returns the current OAuth grant status.
+
+<TypeTable
+  type={{
+    connected: { type: "boolean", description: "Whether the user has an active OAuth grant for this resource + org." },
+    accessTokenExpiresAt: { type: "number", description: "When the access token expires (Unix timestamp seconds)." },
+    targetEnvVar: { type: "string", description: "The env var name where the access token is stored." },
+    authMethod: { type: "string", description: "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\")." },
   }}
 />
 

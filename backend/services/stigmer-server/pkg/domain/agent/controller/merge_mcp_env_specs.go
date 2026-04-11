@@ -11,12 +11,12 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 )
 
-// mergeMcpServerEnvSpecsStep merges env_spec entries from referenced MCP servers
-// into the agent's env_spec at create/update time.
+// mergeMcpServerEnvSpecsStep merges env declarations from referenced MCP servers
+// into the agent's env at create/update time.
 //
 // When an agent references MCP servers via mcp_server_usages, those servers may
-// declare required environment variables in their env_spec. This step ensures the
-// agent's env_spec includes those declarations so that:
+// declare required environment variables in their env field. This step ensures the
+// agent's env includes those declarations so that:
 //   - The UI/CLI can show what env vars the agent needs
 //   - AgentInstance configuration knows which env vars to supply
 //   - Execution-time validation has the complete schema to check against
@@ -24,8 +24,8 @@ import (
 // Merge semantics:
 //   - Agent-declared entries always take precedence (user intent is preserved)
 //   - Among MCP servers, first-encountered wins for overlapping keys
-//   - Only schema fields (description, is_secret) are merged; value is left empty
-//     because actual values come from AgentInstance.environment_refs at runtime
+//   - Only declaration fields (description, is_secret, optional) are merged;
+//     actual values come from AgentInstance.environment_refs at runtime
 //
 // This step is lenient: if an MCP server cannot be found (not yet created, different
 // org, etc.), it logs a warning and continues. The authoritative fail-fast check
@@ -52,8 +52,7 @@ func (s *mergeMcpServerEnvSpecsStep) Execute(ctx *pipeline.RequestContext[*agent
 		return nil
 	}
 
-	// Collect env vars from all referenced MCP servers (first-encountered wins)
-	mcpEnvVars := make(map[string]*environmentv1.EnvironmentValue)
+	mcpEnvVars := make(map[string]*environmentv1.EnvVarDeclaration)
 	for _, usage := range usages {
 		ref := usage.GetMcpServerRef()
 
@@ -77,27 +76,28 @@ func (s *mergeMcpServerEnvSpecsStep) Execute(ctx *pipeline.RequestContext[*agent
 			log.Warn().Err(err).
 				Str("mcp_server_slug", slug).
 				Str("org", org).
-				Msg("Failed to look up MCP server for env_spec merge")
+				Msg("Failed to look up MCP server for env merge")
 			continue
 		}
 		if !found {
 			log.Warn().
 				Str("mcp_server_slug", slug).
 				Str("org", org).
-				Msg("MCP server not found — skipping env_spec merge for this server")
+				Msg("MCP server not found — skipping env merge for this server")
 			continue
 		}
 
-		serverEnvData := mcpServer.GetSpec().GetEnvSpec().GetData()
-		if len(serverEnvData) == 0 {
+		serverEnv := mcpServer.GetSpec().GetEnv()
+		if len(serverEnv) == 0 {
 			continue
 		}
 
-		for varName, varValue := range serverEnvData {
+		for varName, decl := range serverEnv {
 			if _, exists := mcpEnvVars[varName]; !exists {
-				mcpEnvVars[varName] = &environmentv1.EnvironmentValue{
-					Description: varValue.GetDescription(),
-					IsSecret:    varValue.GetIsSecret(),
+				mcpEnvVars[varName] = &environmentv1.EnvVarDeclaration{
+					Description: decl.GetDescription(),
+					IsSecret:    decl.GetIsSecret(),
+					Optional:    decl.GetOptional(),
 				}
 			}
 		}
@@ -107,35 +107,30 @@ func (s *mergeMcpServerEnvSpecsStep) Execute(ctx *pipeline.RequestContext[*agent
 		return nil
 	}
 
-	// Merge: agent-declared entries take precedence
 	spec := agent.GetSpec()
 	if spec == nil {
 		return nil
 	}
 
-	envSpec := spec.GetEnvSpec()
-	existingData := envSpec.GetData()
+	existingEnv := spec.GetEnv()
 
-	merged := make(map[string]*environmentv1.EnvironmentValue, len(mcpEnvVars)+len(existingData))
+	merged := make(map[string]*environmentv1.EnvVarDeclaration, len(mcpEnvVars)+len(existingEnv))
 	for k, v := range mcpEnvVars {
 		merged[k] = v
 	}
-	for k, v := range existingData {
+	for k, v := range existingEnv {
 		merged[k] = v
 	}
 
-	if spec.EnvSpec == nil {
-		spec.EnvSpec = &environmentv1.EnvironmentSpec{}
-	}
-	spec.EnvSpec.Data = merged
+	spec.Env = merged
 
-	mergedCount := len(merged) - len(existingData)
+	mergedCount := len(merged) - len(existingEnv)
 	if mergedCount > 0 {
 		log.Info().
 			Int("injected_count", mergedCount).
 			Int("total_count", len(merged)).
 			Str("agent", agent.GetMetadata().GetSlug()).
-			Msg("Merged MCP server env vars into agent env_spec")
+			Msg("Merged MCP server env declarations into agent env")
 	}
 
 	return nil

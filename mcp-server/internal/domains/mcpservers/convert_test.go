@@ -200,43 +200,40 @@ func TestToProto_pinnedToolApprovals(t *testing.T) {
 
 func TestToProto_environment(t *testing.T) {
 	input := &geninput.McpServerInput{
-		EnvSpec: &geninput.EnvironmentInput{
-			Description: "GitHub credentials",
-			Data: map[string]*geninput.EnvironmentValue{
-				"GITHUB_TOKEN": {Value: "", IsSecret: true, Description: "Personal access token"},
-				"GITHUB_OWNER": {Value: "acme", IsSecret: false, Description: "Default org"},
-			},
+		Env: map[string]*geninput.EnvVarDeclarationInput{
+			"GITHUB_TOKEN": {IsSecret: true, Description: "Personal access token"},
+			"GITHUB_OWNER": {IsSecret: false, Description: "Default org", Optional: true},
 		},
 	}
 	input.Name = "GitHub"
 	input.Org = "acme"
 
 	mcp := mustToProto(t, input)
-	env := mcp.GetSpec().GetEnvSpec()
-	if env == nil {
-		t.Fatal("EnvSpec is nil")
-	}
-	if env.GetDescription() != "GitHub credentials" {
-		t.Errorf("Description = %q", env.GetDescription())
-	}
-	if len(env.GetData()) != 2 {
-		t.Fatalf("Data length = %d, want 2", len(env.GetData()))
+	env := mcp.GetSpec().GetEnv()
+	if len(env) != 2 {
+		t.Fatalf("Env length = %d, want 2", len(env))
 	}
 
-	token := env.GetData()["GITHUB_TOKEN"]
+	token := env["GITHUB_TOKEN"]
 	if !token.GetIsSecret() {
 		t.Error("GITHUB_TOKEN.IsSecret = false, want true")
 	}
 	if token.GetDescription() != "Personal access token" {
 		t.Errorf("GITHUB_TOKEN.Description = %q", token.GetDescription())
 	}
-
-	owner := env.GetData()["GITHUB_OWNER"]
-	if owner.GetValue() != "acme" {
-		t.Errorf("GITHUB_OWNER.Value = %q, want %q", owner.GetValue(), "acme")
+	if token.GetOptional() {
+		t.Error("GITHUB_TOKEN.Optional = true, want false")
 	}
+
+	owner := env["GITHUB_OWNER"]
 	if owner.GetIsSecret() {
 		t.Error("GITHUB_OWNER.IsSecret = true, want false")
+	}
+	if owner.GetDescription() != "Default org" {
+		t.Errorf("GITHUB_OWNER.Description = %q, want %q", owner.GetDescription(), "Default org")
+	}
+	if !owner.GetOptional() {
+		t.Error("GITHUB_OWNER.Optional = false, want true")
 	}
 }
 
@@ -270,11 +267,8 @@ func TestToProto_fullInput(t *testing.T) {
 			Args:    []string{"-y", "@modelcontextprotocol/server-github"},
 		},
 		DefaultEnabledTools: []string{"search_code", "create_pr"},
-		EnvSpec: &geninput.EnvironmentInput{
-			Description: "Required credentials",
-			Data: map[string]*geninput.EnvironmentValue{
-				"GITHUB_TOKEN": {IsSecret: true, Description: "PAT with repo scope"},
-			},
+		Env: map[string]*geninput.EnvVarDeclarationInput{
+			"GITHUB_TOKEN": {IsSecret: true, Description: "PAT with repo scope"},
 		},
 		PinnedToolApprovals: []geninput.ToolApprovalPolicyInput{
 			{ToolName: "delete_repository", Message: "Delete {{args.repo}}"},
@@ -315,8 +309,8 @@ func TestToProto_fullInput(t *testing.T) {
 	if len(spec.GetDefaultEnabledTools()) != 2 {
 		t.Errorf("DefaultEnabledTools length = %d", len(spec.GetDefaultEnabledTools()))
 	}
-	if spec.GetEnvSpec() == nil {
-		t.Error("EnvSpec is nil")
+	if len(spec.GetEnv()) != 1 {
+		t.Errorf("Env length = %d, want 1", len(spec.GetEnv()))
 	}
 	if len(spec.GetPinnedToolApprovals()) != 1 {
 		t.Errorf("PinnedToolApprovals length = %d", len(spec.GetPinnedToolApprovals()))

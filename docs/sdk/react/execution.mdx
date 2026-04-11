@@ -970,7 +970,7 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disable all inputs and buttons." },
-    requiredByMap: { type: "Readonly<Record<string, readonly string[]>>", description: "Map of env-var keys to the names of resources that require them.  When a session variable's key matches a required key, a subtle \"Used by: X\" indicator is shown, confirming the cross-link between the variable and the agent/MCP server that needs it.  Built by `SessionComposer` from the selected agent's and MCP servers' `env_spec` declarations." },
+    requiredByMap: { type: "Readonly<Record<string, readonly string[]>>", description: "Map of env-var keys to the names of resources that require them.  When a session variable's key matches a required key, a subtle \"Used by: X\" indicator is shown, confirming the cross-link between the variable and the agent/MCP server that needs it.  Built by `SessionComposer` from the selected agent's and MCP servers' `env` declarations." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Hook instance returned by useSessionVariables.", required: true, typeDescriptionLink: "#usesessionvariablesreturn" },
   }}
 />

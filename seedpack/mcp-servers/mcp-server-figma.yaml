@@ -18,11 +18,10 @@ spec:
     url: "https://mcp.figma.com/mcp"
     headers:
       Authorization: "Bearer ${FIGMA_ACCESS_TOKEN}"
-  env_spec:
-    data:
-      FIGMA_ACCESS_TOKEN:
-        is_secret: true
-        description: "Figma personal access token or OAuth token (generate at figma.com/developers)"
+  env:
+    FIGMA_ACCESS_TOKEN:
+      is_secret: true
+      description: "Figma personal access token or OAuth token (generate at figma.com/developers)"
   auth:
     oauth_app_ref:
       org: stigmer
