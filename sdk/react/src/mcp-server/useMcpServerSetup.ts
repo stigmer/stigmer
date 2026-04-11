@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks";
@@ -284,6 +286,25 @@ export function useMcpServerSetup(
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
+
+        const auth = mcpServer.spec?.auth;
+        if (auth?.targetEnvVar && mcpServer.metadata?.id) {
+          try {
+            const grantStatus = await stigmer.mcpServer.getOAuthGrantStatus(
+              create(GetOAuthGrantStatusInputSchema, {
+                resourceId: mcpServer.metadata.id,
+                org,
+              }),
+            );
+            if (grantStatus.connected) {
+              existingKeys.add(auth.targetEnvVar);
+            }
+          } catch {
+            // Non-fatal: if grant status lookup fails, the OAuth var stays
+            // in missingVariables and the UI shows the sign-in button.
+          }
+        }
+
         const allMissing = diffEnv(envDeclarations, existingKeys, poolKeys);
         const requiredMissing = allMissing.filter((v) => !v.optional);
 

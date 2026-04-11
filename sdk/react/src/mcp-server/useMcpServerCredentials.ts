@@ -7,6 +7,7 @@ import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { diffEnv } from "../environment/diffEnv";
 import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
+import { useOAuthGrantStatus } from "./useOAuthGrantStatus";
 
 /**
  * Credential acquisition mode for an MCP server.
@@ -34,10 +35,17 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly oauthTargetEnvVar: string | null;
   /**
-   * `true` when the OAuth-managed env var exists in the personal
-   * environment. Always `false` when `authMode` is `"manual"`.
+   * `true` when the user has an active OAuth grant for this server.
+   * Derived from the `getOAuthGrantStatus` API, not from personal
+   * environment key presence. Always `false` when `authMode` is `"manual"`.
    */
   readonly isOAuthConnected: boolean;
+  /**
+   * When the OAuth access token expires (Unix timestamp seconds).
+   * `BigInt(0)` when no grant exists, `authMode` is `"manual"`, or the token
+   * does not expire. Useful for showing actual expiry in the UI.
+   */
+  readonly accessTokenExpiresAt: bigint;
   /**
    * Informational hint about expected token lifetime, or `null`.
    * Sourced from `spec.auth.token_lifetime_hint`.
@@ -62,15 +70,15 @@ export interface UseMcpServerCredentialsReturn {
   /**
    * `true` when all required (non-optional) credentials are available
    * — both OAuth-managed and manual variables. For OAuth servers this
-   * means the OAuth token is in the personal env AND any additional
-   * required manual vars are also present.
+   * means the OAuth grant is connected AND any additional required
+   * manual vars are present in the personal environment.
    *
    * Servers whose env vars are all optional are always ready.
    */
   readonly isReady: boolean;
-  /** `true` while the personal environment is being fetched. */
+  /** `true` while the personal environment or grant status is being fetched. */
   readonly isLoading: boolean;
-  /** Error from the personal environment fetch, or `null`. */
+  /** Error from the personal environment or grant status fetch, or `null`. */
   readonly error: Error | null;
   /**
    * Save the provided credentials to the user's personal environment.
@@ -96,10 +104,12 @@ export interface UseMcpServerCredentialsReturn {
  * them.
  *
  * **Auth-mode-aware**: when `spec.auth` is configured, the hook
- * identifies the OAuth-managed variable (`target_env_var`) and
- * excludes it from `missingVariables` — that variable is acquired
- * via {@link useMcpServerOAuthConnect}, not a manual form. Additional
- * non-OAuth vars still appear in `missingVariables` (mixed mode).
+ * composes {@link useOAuthGrantStatus} to determine whether the
+ * OAuth-managed variable (`target_env_var`) is connected via an
+ * active grant. The OAuth variable is excluded from `missingVariables`
+ * — it is acquired via {@link useMcpServerOAuthConnect}, not a manual
+ * form. Additional non-OAuth vars still appear in `missingVariables`
+ * (mixed mode).
  *
  * Unlike {@link useMcpServerSetup} which manages multi-server setup
  * for session creation, this hook is scoped to a single server and
@@ -140,14 +150,17 @@ export function useMcpServerCredentials(
   const oauthTargetEnvVar = auth?.targetEnvVar || null;
   const tokenLifetimeHint = auth?.tokenLifetimeHint || null;
 
+  const grantStatus = useOAuthGrantStatus(
+    authMode === "oauth" ? (mcpServer?.metadata?.id ?? null) : null,
+    authMode === "oauth" ? org : null,
+  );
+
+  const isOAuthConnected = authMode === "oauth" && grantStatus.connected;
+
   const existingKeys = useMemo(
     () => new Set(Object.keys(personalEnv.environment?.spec?.data ?? {})),
     [personalEnv.environment],
   );
-
-  const isOAuthConnected = authMode === "oauth"
-    && oauthTargetEnvVar !== null
-    && existingKeys.has(oauthTargetEnvVar);
 
   const allMissingVariables = useMemo(() => {
     if (!mcpServer) return [];
@@ -170,7 +183,10 @@ export function useMcpServerCredentials(
   }, [requiredMissing, oauthTargetEnvVar]);
 
   const isReady =
-    !personalEnv.isLoading && requiredMissing.length === 0;
+    !personalEnv.isLoading &&
+    !grantStatus.isLoading &&
+    missingVariables.length === 0 &&
+    (authMode === "manual" || isOAuthConnected);
 
   const saveCredentials = useCallback(
     async (values: Record<string, EnvVarInput>): Promise<void> => {
@@ -180,17 +196,23 @@ export function useMcpServerCredentials(
     [personalEnv],
   );
 
+  const refetch = useCallback(() => {
+    personalEnv.refetch();
+    grantStatus.refetch();
+  }, [personalEnv, grantStatus]);
+
   return {
     authMode,
     oauthTargetEnvVar,
     isOAuthConnected,
+    accessTokenExpiresAt: grantStatus.accessTokenExpiresAt,
     tokenLifetimeHint,
     missingVariables,
     isReady,
-    isLoading: personalEnv.isLoading,
-    error: personalEnv.error,
+    isLoading: personalEnv.isLoading || grantStatus.isLoading,
+    error: personalEnv.error ?? grantStatus.error,
     saveCredentials,
     isSaving: personalEnv.isMutating,
-    refetch: personalEnv.refetch,
+    refetch,
   };
 }
