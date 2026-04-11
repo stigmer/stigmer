@@ -244,24 +244,18 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 15 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   int getEnvCount();
   /**
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 15 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   boolean containsEnv(
       java.lang.String key);
@@ -275,12 +269,9 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 15 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
   getEnvMap();
@@ -288,12 +279,9 @@ public interface McpServerSpecOrBuilder extends
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 15 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   /* nullable */
 ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrDefault(
@@ -304,46 +292,12 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
-   * Replaces env_spec (which required an extra nesting level through
-   * EnvironmentSpec.data). Consumers read env first, falling back to
-   * env_spec.data during the migration period.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 15 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
       java.lang.String key);
-
-  /**
-   * <pre>
-   * Deprecated: use env instead. Retained for wire compatibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec is deprecated.
-   *     See ai/stigmer/agentic/mcpserver/v1/spec.proto;l=62
-   * @return Whether the envSpec field is set.
-   */
-  @java.lang.Deprecated boolean hasEnvSpec();
-  /**
-   * <pre>
-   * Deprecated: use env instead. Retained for wire compatibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec is deprecated.
-   *     See ai/stigmer/agentic/mcpserver/v1/spec.proto;l=62
-   * @return The envSpec.
-   */
-  @java.lang.Deprecated ai.stigmer.agentic.environment.v1.EnvironmentSpec getEnvSpec();
-  /**
-   * <pre>
-   * Deprecated: use env instead. Retained for wire compatibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8 [json_name = "envSpec", deprecated = true];</code>
-   */
-  @java.lang.Deprecated ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder getEnvSpecOrBuilder();
 
   /**
    * <pre>
@@ -510,7 +464,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    *
    * The acquired access token is stored in the user's personal environment
    * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env (or legacy env_spec.data) so the execution pipeline knows about it.
+   * declared in env so the execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -525,7 +479,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    *
    * The acquired access token is stored in the user's personal environment
    * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env (or legacy env_spec.data) so the execution pipeline knows about it.
+   * declared in env so the execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -540,7 +494,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    *
    * The acquired access token is stored in the user's personal environment
    * as the env var named by auth.target_env_var. That env var must also be
-   * declared in env (or legacy env_spec.data) so the execution pipeline knows about it.
+   * declared in env so the execution pipeline knows about it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>

@@ -35,7 +35,7 @@ export type {
   EnvVarFormVariable,
   EnvVarFormSubmitOptions,
 } from "./EnvVarForm";
-export { diffEnvSpec } from "./diffEnvSpec";
+export { diffEnv } from "./diffEnv";
 export { useSessionEnvPool } from "./useSessionEnvPool";
 export type {
   SessionEnvPoolInput,

@@ -12,7 +12,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class WorkflowSpec(_message.Message):
-    __slots__ = ("description", "document", "tasks", "env", "env_spec")
+    __slots__ = ("description", "document", "tasks", "env")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -24,13 +24,11 @@ class WorkflowSpec(_message.Message):
     DOCUMENT_FIELD_NUMBER: _ClassVar[int]
     TASKS_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
-    ENV_SPEC_FIELD_NUMBER: _ClassVar[int]
     description: str
     document: WorkflowDocument
     tasks: _containers.RepeatedCompositeFieldContainer[WorkflowTask]
     env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
-    env_spec: _spec_pb2.EnvironmentSpec
-    def __init__(self, description: _Optional[str] = ..., document: _Optional[_Union[WorkflowDocument, _Mapping]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., env_spec: _Optional[_Union[_spec_pb2.EnvironmentSpec, _Mapping]] = ...) -> None: ...
+    def __init__(self, description: _Optional[str] = ..., document: _Optional[_Union[WorkflowDocument, _Mapping]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ...) -> None: ...
 
 class WorkflowDocument(_message.Message):
     __slots__ = ("dsl", "namespace", "name", "version", "description")

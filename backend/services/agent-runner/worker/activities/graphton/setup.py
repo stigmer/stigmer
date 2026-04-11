@@ -1449,20 +1449,19 @@ def _extract_runtime_env_for_server(
 ) -> dict[str, str] | None:
     """Extract the MCP server's required env vars from the merged env.
 
-    Returns only the keys declared in ``spec.env_spec`` that are present
+    Returns only the keys declared in ``spec.env`` that are present
     in the execution's merged environment.  Returns None if the server
-    has no env_spec (no env vars needed).
+    has no env declarations (no env vars needed).
     """
     try:
-        env_spec = server.spec.env_spec
-        if not env_spec or not env_spec.variables:
+        env_decls = server.spec.env
+        if not env_decls:
             return None
     except AttributeError:
         return None
 
     runtime_env: dict[str, str] = {}
-    for var in env_spec.variables:
-        key = var.name if hasattr(var, "name") else str(var)
+    for key in env_decls:
         if key in merged_env_vars:
             runtime_env[key] = merged_env_vars[key]
 

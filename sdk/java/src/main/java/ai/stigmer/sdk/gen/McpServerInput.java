@@ -23,7 +23,6 @@ public final class McpServerInput {
     private final HttpServerConfigInput http;
     private final java.util.List<String> defaultEnabledTools;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
-    private final EnvSpecInput envSpec;
     private final java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
     private final String repositoryUrl;
     private final int githubStars;
@@ -40,7 +39,6 @@ public final class McpServerInput {
         this.http = builder.http;
         this.defaultEnabledTools = builder.defaultEnabledTools;
         this.env = builder.env;
-        this.envSpec = builder.envSpec;
         this.pinnedToolApprovals = builder.pinnedToolApprovals;
         this.repositoryUrl = builder.repositoryUrl;
         this.githubStars = builder.githubStars;
@@ -68,9 +66,6 @@ public final class McpServerInput {
             for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
                 spec.putEnv(entry.getKey(), entry.getValue().toProto());
             }
-        }
-        if (this.envSpec != null) {
-            spec.setEnvSpec(this.envSpec.toProto());
         }
         if (this.pinnedToolApprovals != null) {
             for (ToolApprovalPolicyInput item : this.pinnedToolApprovals) {
@@ -114,7 +109,6 @@ public final class McpServerInput {
         private HttpServerConfigInput http;
         private java.util.List<String> defaultEnabledTools;
         private java.util.Map<String, EnvVarDeclarationInput> env;
-        private EnvSpecInput envSpec;
         private java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
         private String repositoryUrl;
         private int githubStars;
@@ -132,7 +126,6 @@ public final class McpServerInput {
         public Builder http(HttpServerConfigInput http) { this.http = http; return this; }
         public Builder defaultEnabledTools(java.util.List<String> defaultEnabledTools) { this.defaultEnabledTools = defaultEnabledTools; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
-        public Builder envSpec(EnvSpecInput envSpec) { this.envSpec = envSpec; return this; }
         public Builder pinnedToolApprovals(java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals) { this.pinnedToolApprovals = pinnedToolApprovals; return this; }
         public Builder repositoryUrl(String repositoryUrl) { this.repositoryUrl = repositoryUrl; return this; }
         public Builder githubStars(int githubStars) { this.githubStars = githubStars; return this; }

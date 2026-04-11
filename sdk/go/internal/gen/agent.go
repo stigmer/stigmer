@@ -104,7 +104,6 @@ type AgentInput struct {
 	SkillRefs       []ResourceRef
 	SubAgents       []*SubAgentInput
 	Env             map[string]*EnvVarDeclarationInput
-	EnvSpec         *EnvSpecInput
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -173,9 +172,6 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}
-	}
-	if i.EnvSpec != nil {
-		resource.Spec.EnvSpec = i.EnvSpec.toProto()
 	}
 	return resource
 }

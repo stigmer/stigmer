@@ -27,9 +27,8 @@ import (
 //   - store.GetResource(workflow_id) -> Workflow.env_spec (follows WE controller's "same service" store-access pattern)
 //
 // Merge priority (lowest to highest):
-//  1. Workflow.spec.env_spec.data (template defaults)
-//  2. WorkflowInstance.env_refs resolved via environmentClient (in order)
-//  3. WorkflowExecution.spec.runtime_env (execution-time overrides)
+//  1. WorkflowInstance.env_refs resolved via environmentClient (in order)
+//  2. WorkflowExecution.spec.runtime_env (execution-time overrides)
 type createExecutionContextStep struct {
 	store                  store.Store
 	workflowInstanceClient *workflowinstance.Client
@@ -85,7 +84,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 
 	workflowID := instance.GetSpec().GetWorkflowId()
 
-	// 3. Load Workflow from store to get env_spec (follows WE controller's "same service" pattern)
+	// 3. Load Workflow from store to get env declarations (follows WE controller's "same service" pattern)
 	workflow := &workflowv1.Workflow{}
 	if err := s.store.GetResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow, workflowID, workflow); err != nil {
 		return fmt.Errorf("load workflow %s: %w", workflowID, err)
@@ -99,21 +98,20 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 
 	// 5. Merge all layers
 	merged := envmerge.MergeEnvironmentLayers(
-		workflow.GetSpec().GetEnvSpec().GetData(),
 		environments,
 		execution.GetSpec().GetRuntimeEnv(),
 	)
 
-	// 6. Filter merged env vars by workflow env_spec (least-privilege whitelist).
-	// Workflows only receive variables they explicitly declared. If env_spec is
+	// 6. Filter merged env vars by workflow env declarations (least-privilege whitelist).
+	// Workflows only receive variables they explicitly declared. If env is
 	// nil or empty, all vars pass through for backward compatibility.
-	filtered, excludedKeys := envmerge.FilterByEnvSpec(merged, workflow.GetSpec().GetEnvSpec().GetData())
+	filtered, excludedKeys := envmerge.FilterByDeclaredKeys(merged, workflow.GetSpec().GetEnv())
 	if len(excludedKeys) > 0 {
 		log.Warn().
 			Str("execution_id", executionID).
 			Str("workflow_id", workflowID).
 			Strs("excluded_keys", excludedKeys).
-			Msg("Filtered env vars not declared in workflow env_spec")
+			Msg("Filtered env vars not declared in workflow env")
 	}
 
 	log.Info().

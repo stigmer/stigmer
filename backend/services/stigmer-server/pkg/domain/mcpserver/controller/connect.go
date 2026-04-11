@@ -148,7 +148,7 @@ func (c *McpServerController) Connect(
 // When runtime_env is provided, the values are used directly (one-time use).
 // When runtime_env is empty, values are resolved from the user's personal environment.
 // Returns the ExecutionContext resource ID (for cleanup) and an error.
-// Returns ("", nil) when the MCP server has no env_spec and no runtime_env.
+// Returns ("", nil) when the MCP server has no env declarations and no runtime_env.
 func (c *McpServerController) createConnectExecutionContext(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
@@ -165,16 +165,16 @@ func (c *McpServerController) createConnectExecutionContext(
 			Int("runtime_env_count", len(runtimeEnv)).
 			Msg("Using runtime_env for connect ExecutionContext (one-time use)")
 	} else {
-		envSpec := mcpServer.GetSpec().GetEnvSpec()
-		if envSpec == nil || len(envSpec.GetData()) == 0 {
+		envDecls := mcpServer.GetSpec().GetEnv()
+		if len(envDecls) == 0 {
 			log.Debug().
 				Str("execution_id", executionID).
-				Msg("MCP server has no env_spec — skipping ExecutionContext creation")
+				Msg("MCP server has no env declarations — skipping ExecutionContext creation")
 			return "", nil
 		}
 
 		resolved, err := c.resolveFromPersonalEnvironment(
-			ctx, mcpServer.GetMetadata().GetOrg(), envSpec,
+			ctx, mcpServer.GetMetadata().GetOrg(), envDecls,
 		)
 		if err != nil {
 			return "", err
@@ -221,11 +221,11 @@ func (c *McpServerController) createConnectExecutionContext(
 
 // resolveFromPersonalEnvironment reads the required environment variables from
 // the user's personal environment (labeled stigmer.ai/personal=true). Returns
-// ExecutionValue entries with is_secret derived from the MCP server's env_spec.
+// ExecutionValue entries with is_secret derived from the MCP server's env declarations.
 func (c *McpServerController) resolveFromPersonalEnvironment(
 	ctx context.Context,
 	org string,
-	envSpec *environmentv1.EnvironmentSpec,
+	envDecls map[string]*environmentv1.EnvVarDeclaration,
 ) (map[string]*executioncontextv1.ExecutionValue, error) {
 	listResp, err := c.environmentClient.List(ctx, &environmentv1.ListEnvironmentsRequest{
 		Org:    org,
@@ -235,8 +235,8 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 		return nil, grpclib.InternalError(err, "failed to list personal environments")
 	}
 	if listResp.GetTotalCount() == 0 || len(listResp.GetItems()) == 0 {
-		requiredKeys := make([]string, 0, len(envSpec.GetData()))
-		for k := range envSpec.GetData() {
+		requiredKeys := make([]string, 0, len(envDecls))
+		for k := range envDecls {
 			requiredKeys = append(requiredKeys, k)
 		}
 		return nil, grpclib.FailedPreconditionError(
@@ -251,10 +251,10 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 		storedKeys[k] = true
 	}
 
-	result := make(map[string]*executioncontextv1.ExecutionValue, len(envSpec.GetData()))
+	result := make(map[string]*executioncontextv1.ExecutionValue, len(envDecls))
 	var missing []string
 
-	for key, envVal := range envSpec.GetData() {
+	for key, decl := range envDecls {
 		if !storedKeys[key] {
 			missing = append(missing, key)
 			continue
@@ -279,7 +279,7 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 
 		result[key] = &executioncontextv1.ExecutionValue{
 			Value:    secretVal.GetValue(),
-			IsSecret: envVal.GetIsSecret(),
+			IsSecret: decl.GetIsSecret(),
 		}
 	}
 
@@ -531,7 +531,7 @@ func (c *McpServerController) loadOAuthAppClientSecret(
 // without blocking. Used by the apply handler for auto-discovery on create.
 // Failures are logged but do not propagate.
 //
-// Skips when the MCP server defines an env_spec, because creating an
+// Skips when the MCP server declares env vars, because creating an
 // ExecutionContext requires the caller's gRPC context (for personal
 // environment resolution), which is unavailable in a fire-and-forget
 // goroutine. Users must trigger manual connect for these servers.
@@ -545,12 +545,11 @@ func (c *McpServerController) StartBestEffortConnect(
 		return
 	}
 
-	envSpec := mcpServer.GetSpec().GetEnvSpec()
-	if envSpec != nil && len(envSpec.GetData()) > 0 {
+	if len(mcpServer.GetSpec().GetEnv()) > 0 {
 		log.Debug().
 			Str("mcp_server_id", mcpServer.GetMetadata().GetId()).
-			Int("env_spec_keys", len(envSpec.GetData())).
-			Msg("Skipping best-effort auto-connect: MCP server has env_spec (requires manual connect)")
+			Int("env_keys", len(mcpServer.GetSpec().GetEnv())).
+			Msg("Skipping best-effort auto-connect: MCP server has env declarations (requires manual connect)")
 		return
 	}
 

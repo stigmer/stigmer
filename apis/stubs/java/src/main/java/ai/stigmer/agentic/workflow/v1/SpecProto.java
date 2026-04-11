@@ -71,39 +71,36 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "o\032)ai/stigmer/agentic/workflow/v1/enum.p" +
       "roto\0322ai/stigmer/commons/apiresource/fie" +
       "ld_options.proto\032\033buf/validate/validate." +
-      "proto\032\034google/protobuf/struct.proto\"\336\003\n\014" +
+      "proto\032\034google/protobuf/struct.proto\"\213\003\n\014" +
       "WorkflowSpec\022 \n\013description\030\001 \001(\tR\013descr" +
       "iption\022T\n\010document\030\002 \001(\01320.ai.stigmer.ag" +
       "entic.workflow.v1.WorkflowDocumentB\006\272H\003\310" +
       "\001\001R\010document\022L\n\005tasks\030\003 \003(\0132,.ai.stigmer" +
       ".agentic.workflow.v1.WorkflowTaskB\010\272H\005\222\001" +
-      "\002\010\001R\005tasks\022G\n\003env\030\005 \003(\01325.ai.stigmer.age" +
+      "\002\010\001R\005tasks\022G\n\003env\030\004 \003(\01325.ai.stigmer.age" +
       "ntic.workflow.v1.WorkflowSpec.EnvEntryR\003" +
-      "env\022Q\n\010env_spec\030\004 \001(\01322.ai.stigmer.agent" +
-      "ic.environment.v1.EnvironmentSpecB\002\030\001R\007e" +
-      "nvSpec\032l\n\010EnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005" +
-      "value\030\002 \001(\01324.ai.stigmer.agentic.environ" +
-      "ment.v1.EnvVarDeclarationR\005value:\0028\001\"\274\001\n" +
-      "\020WorkflowDocument\022\"\n\003dsl\030\001 \001(\tB\020\272H\rr\0132\t^" +
-      "1\\.0\\.0$R\003dsl\022$\n\tnamespace\030\002 \001(\tB\006\272H\003\310\001\001" +
-      "R\tnamespace\022\032\n\004name\030\003 \001(\tB\006\272H\003\310\001\001R\004name\022" +
-      " \n\007version\030\004 \001(\tB\006\272H\003\310\001\001R\007version\022 \n\013des" +
-      "cription\030\005 \001(\tR\013description\"\303\002\n\014Workflow" +
-      "Task\022\032\n\004name\030\001 \001(\tB\006\272H\003\310\001\001R\004name\022L\n\004kind" +
-      "\030\002 \001(\01620.ai.stigmer.agentic.workflow.v1." +
-      "WorkflowTaskKindB\006\272H\003\310\001\001R\004kind\022H\n\013task_c" +
-      "onfig\030\003 \001(\0132\027.google.protobuf.StructB\016\272H" +
-      "\003\310\001\001\352\205,\004kindR\ntaskConfig\022>\n\006export\030\004 \001(\013" +
-      "2&.ai.stigmer.agentic.workflow.v1.Export" +
-      "R\006export\022?\n\004flow\030\005 \001(\0132+.ai.stigmer.agen" +
-      "tic.workflow.v1.FlowControlR\004flow\"!\n\006Exp" +
-      "ort\022\027\n\002as\030\001 \001(\tB\007\272H\004r\002\020\001R\002as\"!\n\013FlowCont" +
-      "rol\022\022\n\004then\030\001 \001(\tR\004thenB\250\001B\tSpecProtoP\001\242" +
-      "\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312" +
-      "\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\St" +
-      "igmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"" +
-      "Ai::Stigmer::Agentic::Workflow::V1b\006prot" +
-      "o3"
+      "env\032l\n\010EnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005val" +
+      "ue\030\002 \001(\01324.ai.stigmer.agentic.environmen" +
+      "t.v1.EnvVarDeclarationR\005value:\0028\001\"\274\001\n\020Wo" +
+      "rkflowDocument\022\"\n\003dsl\030\001 \001(\tB\020\272H\rr\0132\t^1\\." +
+      "0\\.0$R\003dsl\022$\n\tnamespace\030\002 \001(\tB\006\272H\003\310\001\001R\tn" +
+      "amespace\022\032\n\004name\030\003 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\007" +
+      "version\030\004 \001(\tB\006\272H\003\310\001\001R\007version\022 \n\013descri" +
+      "ption\030\005 \001(\tR\013description\"\303\002\n\014WorkflowTas" +
+      "k\022\032\n\004name\030\001 \001(\tB\006\272H\003\310\001\001R\004name\022L\n\004kind\030\002 " +
+      "\001(\01620.ai.stigmer.agentic.workflow.v1.Wor" +
+      "kflowTaskKindB\006\272H\003\310\001\001R\004kind\022H\n\013task_conf" +
+      "ig\030\003 \001(\0132\027.google.protobuf.StructB\016\272H\003\310\001" +
+      "\001\352\205,\004kindR\ntaskConfig\022>\n\006export\030\004 \001(\0132&." +
+      "ai.stigmer.agentic.workflow.v1.ExportR\006e" +
+      "xport\022?\n\004flow\030\005 \001(\0132+.ai.stigmer.agentic" +
+      ".workflow.v1.FlowControlR\004flow\"!\n\006Export" +
+      "\022\027\n\002as\030\001 \001(\tB\007\272H\004r\002\020\001R\002as\"!\n\013FlowControl" +
+      "\022\022\n\004then\030\001 \001(\tR\004thenB\250\001B\tSpecProtoP\001\242\002\004A" +
+      "SAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036A" +
+      "i\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigm" +
+      "er\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai:" +
+      ":Stigmer::Agentic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -119,7 +116,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_descriptor,
-        new java.lang.String[] { "Description", "Document", "Tasks", "Env", "EnvSpec", });
+        new java.lang.String[] { "Description", "Document", "Tasks", "Env", });
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowSpec_EnvEntry_fieldAccessorTable = new

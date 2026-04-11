@@ -10,7 +10,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { ToolApprovalPolicy, McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useMcpServer } from "./useMcpServer";
 import { useMcpServerConnect } from "./useMcpServerConnect";
@@ -266,9 +266,9 @@ export function McpServerDetailView({
         <ServerConfigSection serverType={spec.serverType} />
       )}
 
-      {spec?.envSpec && Object.keys(spec.envSpec.data).length > 0 && (
-        <EnvSpecSection
-          data={spec.envSpec.data}
+      {spec?.env && Object.keys(spec.env).length > 0 && (
+        <EnvSection
+          data={spec.env}
           oauthTargetEnvVar={credentials.oauthTargetEnvVar}
         />
       )}
@@ -768,11 +768,11 @@ function ResourceTemplatesList({
   );
 }
 
-function EnvSpecSection({
+function EnvSection({
   data,
   oauthTargetEnvVar,
 }: {
-  readonly data: { [key: string]: EnvironmentValue };
+  readonly data: { [key: string]: EnvVarDeclaration };
   readonly oauthTargetEnvVar: string | null;
 }) {
   const entries = Object.entries(data).sort(([a], [b]) =>

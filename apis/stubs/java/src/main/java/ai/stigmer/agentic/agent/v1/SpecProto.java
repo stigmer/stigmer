@@ -70,7 +70,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "r/agentic/environment/v1/spec.proto\0322ai/" +
       "stigmer/commons/apiresource/field_option" +
       "s.proto\032\'ai/stigmer/commons/apiresource/" +
-      "io.proto\032\033buf/validate/validate.proto\"\337\006" +
+      "io.proto\032\033buf/validate/validate.proto\"\214\006" +
       "\n\tAgentSpec\022 \n\013description\030\001 \001(\tR\013descri" +
       "ption\022\031\n\010icon_url\030\002 \001(\tR\007iconUrl\022+\n\014inst" +
       "ructions\030\003 \001(\tB\007\272H\004r\002\020\nR\014instructions\022\337\001" +
@@ -86,40 +86,38 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "urces with kind=skill\032\017this.kind == 43\340\205" +
       ",+R\tskillRefs\022D\n\nsub_agents\030\006 \003(\0132%.ai.s" +
       "tigmer.agentic.agent.v1.SubAgentR\tsubAge" +
-      "nts\022A\n\003env\030\010 \003(\0132/.ai.stigmer.agentic.ag" +
-      "ent.v1.AgentSpec.EnvEntryR\003env\022Q\n\010env_sp" +
-      "ec\030\007 \001(\01322.ai.stigmer.agentic.environmen" +
-      "t.v1.EnvironmentSpecB\002\030\001R\007envSpec\032l\n\010Env" +
-      "Entry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001(\01324" +
-      ".ai.stigmer.agentic.environment.v1.EnvVa" +
-      "rDeclarationR\005value:\0028\001\"\241\003\n\010SubAgent\022\032\n\004" +
-      "name\030\001 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\013description\030" +
-      "\002 \001(\tR\013description\022+\n\014instructions\030\003 \001(\t" +
-      "B\007\272H\004r\002\020\nR\014instructions\022E\n\nmcp_access\030\004 " +
-      "\003(\0132&.ai.stigmer.agentic.agent.v1.McpAcc" +
-      "essR\tmcpAccess\022\273\001\n\nskill_refs\030\005 \003(\01324.ai" +
-      ".stigmer.commons.apiresource.ApiResource" +
-      "ReferenceBf\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\022" +
-      "3skill_refs must reference resources wit" +
-      "h kind=skill\032\017this.kind == 43\340\205,+R\tskill" +
-      "Refs\022%\n\016model_override\030\006 \001(\tR\rmodelOverr" +
-      "ide\"\210\002\n\016McpServerUsage\022f\n\016mcp_server_ref" +
-      "\030\001 \001(\01324.ai.stigmer.commons.apiresource." +
-      "ApiResourceReferenceB\n\272H\003\310\001\001\340\205,,R\014mcpSer" +
-      "verRef\022#\n\renabled_tools\030\002 \003(\tR\014enabledTo" +
-      "ols\022i\n\027tool_approval_overrides\030\003 \003(\01321.a" +
-      "i.stigmer.agentic.agent.v1.ToolApprovalO" +
-      "verrideR\025toolApprovalOverrides\"W\n\tMcpAcc" +
-      "ess\022%\n\nmcp_server\030\001 \001(\tB\006\272H\003\310\001\001R\tmcpServ" +
-      "er\022#\n\renabled_tools\030\002 \003(\tR\014enabledTools\"" +
-      "\203\001\n\024ToolApprovalOverride\022$\n\ttool_name\030\001 " +
-      "\001(\tB\007\272H\004r\002\020\001R\010toolName\022+\n\021requires_appro" +
-      "val\030\002 \001(\010R\020requiresApproval\022\030\n\007message\030\003" +
-      " \001(\tR\007messageB\234\001B\tSpecProtoP\001\242\002\004ASAA\252\002\033A" +
-      "i.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\" +
-      "Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Ag" +
-      "ent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agenti" +
-      "c::Agent::V1b\006proto3"
+      "nts\022A\n\003env\030\007 \003(\0132/.ai.stigmer.agentic.ag" +
+      "ent.v1.AgentSpec.EnvEntryR\003env\032l\n\010EnvEnt" +
+      "ry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001(\01324.ai" +
+      ".stigmer.agentic.environment.v1.EnvVarDe" +
+      "clarationR\005value:\0028\001\"\241\003\n\010SubAgent\022\032\n\004nam" +
+      "e\030\001 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\013description\030\002 \001" +
+      "(\tR\013description\022+\n\014instructions\030\003 \001(\tB\007\272" +
+      "H\004r\002\020\nR\014instructions\022E\n\nmcp_access\030\004 \003(\013" +
+      "2&.ai.stigmer.agentic.agent.v1.McpAccess" +
+      "R\tmcpAccess\022\273\001\n\nskill_refs\030\005 \003(\01324.ai.st" +
+      "igmer.commons.apiresource.ApiResourceRef" +
+      "erenceBf\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223sk" +
+      "ill_refs must reference resources with k" +
+      "ind=skill\032\017this.kind == 43\340\205,+R\tskillRef" +
+      "s\022%\n\016model_override\030\006 \001(\tR\rmodelOverride" +
+      "\"\210\002\n\016McpServerUsage\022f\n\016mcp_server_ref\030\001 " +
+      "\001(\01324.ai.stigmer.commons.apiresource.Api" +
+      "ResourceReferenceB\n\272H\003\310\001\001\340\205,,R\014mcpServer" +
+      "Ref\022#\n\renabled_tools\030\002 \003(\tR\014enabledTools" +
+      "\022i\n\027tool_approval_overrides\030\003 \003(\01321.ai.s" +
+      "tigmer.agentic.agent.v1.ToolApprovalOver" +
+      "rideR\025toolApprovalOverrides\"W\n\tMcpAccess" +
+      "\022%\n\nmcp_server\030\001 \001(\tB\006\272H\003\310\001\001R\tmcpServer\022" +
+      "#\n\renabled_tools\030\002 \003(\tR\014enabledTools\"\203\001\n" +
+      "\024ToolApprovalOverride\022$\n\ttool_name\030\001 \001(\t" +
+      "B\007\272H\004r\002\020\001R\010toolName\022+\n\021requires_approval" +
+      "\030\002 \001(\010R\020requiresApproval\022\030\n\007message\030\003 \001(" +
+      "\tR\007messageB\234\001B\tSpecProtoP\001\242\002\004ASAA\252\002\033Ai.S" +
+      "tigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\Age" +
+      "ntic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent" +
+      "\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::" +
+      "Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -134,7 +132,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_descriptor,
-        new java.lang.String[] { "Description", "IconUrl", "Instructions", "McpServerUsages", "SkillRefs", "SubAgents", "Env", "EnvSpec", });
+        new java.lang.String[] { "Description", "IconUrl", "Instructions", "McpServerUsages", "SkillRefs", "SubAgents", "Env", });
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_fieldAccessorTable = new

@@ -269,40 +269,40 @@ func TestToProto_toolApprovalOverrides(t *testing.T) {
 func TestToProto_environment(t *testing.T) {
 	input := &geninput.AgentInput{
 		Instructions: "placeholder",
-		EnvSpec: &geninput.EnvironmentInput{
-			Description: "Production credentials",
-			Data: map[string]*geninput.EnvironmentValue{
-				"AWS_REGION": {Value: "us-west-2", IsSecret: false, Description: "AWS region"},
-				"API_KEY":    {Value: "", IsSecret: true, Description: "API key for external service"},
-			},
+		Env: map[string]*geninput.EnvVarDeclarationInput{
+			"AWS_REGION": {IsSecret: false, Description: "AWS region", Optional: true},
+			"API_KEY":    {IsSecret: true, Description: "API key for external service"},
 		},
 	}
 	input.Name = "Agent"
 	input.Org = "acme"
 
 	agent := mustToProto(t, input)
-	env := agent.GetSpec().GetEnvSpec()
-	if env == nil {
-		t.Fatal("EnvSpec is nil")
-	}
-	if env.GetDescription() != "Production credentials" {
-		t.Errorf("EnvSpec.Description = %q, want %q", env.GetDescription(), "Production credentials")
-	}
-	if len(env.GetData()) != 2 {
-		t.Fatalf("EnvSpec.Data length = %d, want 2", len(env.GetData()))
+	env := agent.GetSpec().GetEnv()
+	if len(env) != 2 {
+		t.Fatalf("Env length = %d, want 2", len(env))
 	}
 
-	region := env.GetData()["AWS_REGION"]
-	if region.GetValue() != "us-west-2" {
-		t.Errorf("AWS_REGION.Value = %q, want %q", region.GetValue(), "us-west-2")
-	}
+	region := env["AWS_REGION"]
 	if region.GetIsSecret() {
 		t.Error("AWS_REGION.IsSecret = true, want false")
 	}
+	if region.GetDescription() != "AWS region" {
+		t.Errorf("AWS_REGION.Description = %q, want %q", region.GetDescription(), "AWS region")
+	}
+	if !region.GetOptional() {
+		t.Error("AWS_REGION.Optional = false, want true")
+	}
 
-	key := env.GetData()["API_KEY"]
+	key := env["API_KEY"]
 	if !key.GetIsSecret() {
 		t.Error("API_KEY.IsSecret = false, want true")
+	}
+	if key.GetDescription() != "API key for external service" {
+		t.Errorf("API_KEY.Description = %q, want %q", key.GetDescription(), "API key for external service")
+	}
+	if key.GetOptional() {
+		t.Error("API_KEY.Optional = true, want false")
 	}
 }
 
@@ -351,11 +351,8 @@ func TestToProto_fullInput(t *testing.T) {
 				SkillRefs:    []geninput.SkillRefInput{{Org: "stigmer", Slug: "security-guidelines"}},
 			},
 		},
-		EnvSpec: &geninput.EnvironmentInput{
-			Description: "Required credentials",
-			Data: map[string]*geninput.EnvironmentValue{
-				"GITHUB_TOKEN": {IsSecret: true, Description: "GitHub token"},
-			},
+		Env: map[string]*geninput.EnvVarDeclarationInput{
+			"GITHUB_TOKEN": {IsSecret: true, Description: "GitHub token"},
 		},
 	}
 	input.Name = "Engineering Assistant"
@@ -396,8 +393,8 @@ func TestToProto_fullInput(t *testing.T) {
 	if len(spec.GetSubAgents()) != 1 {
 		t.Errorf("SubAgents length = %d", len(spec.GetSubAgents()))
 	}
-	if spec.GetEnvSpec() == nil {
-		t.Error("EnvSpec is nil")
+	if len(spec.GetEnv()) != 1 {
+		t.Errorf("Env length = %d, want 1", len(spec.GetEnv()))
 	}
 }
 

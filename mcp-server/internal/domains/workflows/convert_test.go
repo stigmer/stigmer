@@ -216,40 +216,40 @@ func TestToProto_environment(t *testing.T) {
 		Document: &geninput.WorkflowDocumentInput{
 			Namespace: "acme", Name: "deploy", Version: "1.0.0",
 		},
-		EnvSpec: &geninput.EnvironmentInput{
-			Description: "Deployment credentials",
-			Data: map[string]*geninput.EnvironmentValue{
-				"DEPLOY_KEY": {Value: "", IsSecret: true, Description: "SSH deploy key"},
-				"REGION":     {Value: "us-west-2", IsSecret: false, Description: "Target region"},
-			},
+		Env: map[string]*geninput.EnvVarDeclarationInput{
+			"DEPLOY_KEY": {IsSecret: true, Description: "SSH deploy key"},
+			"REGION":     {IsSecret: false, Description: "Target region", Optional: true},
 		},
 	}
 	input.Name = "Deploy"
 	input.Org = "acme"
 
 	wf := mustToProto(t, input)
-	env := wf.GetSpec().GetEnvSpec()
-	if env == nil {
-		t.Fatal("EnvSpec is nil")
-	}
-	if env.GetDescription() != "Deployment credentials" {
-		t.Errorf("Description = %q", env.GetDescription())
-	}
-	if len(env.GetData()) != 2 {
-		t.Fatalf("Data length = %d, want 2", len(env.GetData()))
+	env := wf.GetSpec().GetEnv()
+	if len(env) != 2 {
+		t.Fatalf("Env length = %d, want 2", len(env))
 	}
 
-	key := env.GetData()["DEPLOY_KEY"]
+	key := env["DEPLOY_KEY"]
 	if !key.GetIsSecret() {
 		t.Error("DEPLOY_KEY.IsSecret = false, want true")
 	}
-
-	region := env.GetData()["REGION"]
-	if region.GetValue() != "us-west-2" {
-		t.Errorf("REGION.Value = %q, want %q", region.GetValue(), "us-west-2")
+	if key.GetDescription() != "SSH deploy key" {
+		t.Errorf("DEPLOY_KEY.Description = %q, want %q", key.GetDescription(), "SSH deploy key")
 	}
+	if key.GetOptional() {
+		t.Error("DEPLOY_KEY.Optional = true, want false")
+	}
+
+	region := env["REGION"]
 	if region.GetIsSecret() {
 		t.Error("REGION.IsSecret = true, want false")
+	}
+	if region.GetDescription() != "Target region" {
+		t.Errorf("REGION.Description = %q, want %q", region.GetDescription(), "Target region")
+	}
+	if !region.GetOptional() {
+		t.Error("REGION.Optional = false, want true")
 	}
 }
 
@@ -355,11 +355,8 @@ func TestToProto_fullInput(t *testing.T) {
 				},
 			},
 		},
-		EnvSpec: &geninput.EnvironmentInput{
-			Description: "Deploy creds",
-			Data: map[string]*geninput.EnvironmentValue{
-				"TOKEN": {IsSecret: true, Description: "Deploy token"},
-			},
+		Env: map[string]*geninput.EnvVarDeclarationInput{
+			"TOKEN": {IsSecret: true, Description: "Deploy token"},
 		},
 	}
 	input.Name = "Full Deploy Pipeline"
@@ -394,7 +391,7 @@ func TestToProto_fullInput(t *testing.T) {
 	if len(spec.GetTasks()) != 2 {
 		t.Errorf("Tasks length = %d", len(spec.GetTasks()))
 	}
-	if spec.GetEnvSpec() == nil {
-		t.Error("EnvSpec is nil")
+	if len(spec.GetEnv()) != 1 {
+		t.Errorf("Env length = %d, want 1", len(spec.GetEnv()))
 	}
 }

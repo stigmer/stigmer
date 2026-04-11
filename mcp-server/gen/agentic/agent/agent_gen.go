@@ -41,10 +41,8 @@ type AgentInput struct {
 	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skill resources providing additional knowledge to the agent."`
 	// Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools.
 	SubAgents []SubAgentInput `json:"sub_agents,omitempty" jsonschema:"Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools."`
-	// Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality. Replaces env_spec (which required an extra nesting level through EnvironmentSpec.data). Consumers read env first, falling back to env_spec.data during the migration period.
-	Env map[string]*EnvVarDeclarationInput `json:"env,omitempty" jsonschema:"Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality. Replaces env_spec (which required an extra nesting level through EnvironmentSpec.data). Consumers read env first, falling back to env_spec.data during the migration period."`
-	// Deprecated: use env instead. Retained for wire compatibility.
-	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Deprecated: use env instead. Retained for wire compatibility."`
+	// Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality.
+	Env map[string]*EnvVarDeclarationInput `json:"env,omitempty" jsonschema:"Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality."`
 }
 
 // Identifies a resource by org, slug, and optional version. Kind is auto-populated.
@@ -119,24 +117,6 @@ type EnvVarDeclarationInput struct {
 	Optional bool `json:"optional,omitempty" jsonschema:"Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it)."`
 }
 
-// EnvironmentValue represents a single configuration or secret entry.
-type EnvironmentValue struct {
-	// The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime.
-	Value string `json:"value,omitempty" jsonschema:"The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime."`
-	// Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs.
-	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs."`
-	// Human-readable description of what this value is used for.
-	Description string `json:"description,omitempty" jsonschema:"Human-readable description of what this value is used for."`
-}
-
-// EnvironmentSpec defines the configurable properties of an environment. @internal The overview.md file provides the SDK-facing description and example YAML.
-type EnvironmentInput struct {
-	// Human-readable description for UI and listing display.
-	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and listing display."`
-	// Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret.
-	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret."`
-}
-
 // ToProto converts the flat MCP input into a fully-formed Agent proto message.
 func (input *AgentInput) ToProto() (*agentv1.Agent, error) {
 	slug := input.Slug
@@ -200,13 +180,6 @@ func (input *AgentInput) specToProto() (*agentv1.AgentSpec, error) {
 			}
 			spec.Env[k] = pv
 		}
-	}
-	if input.EnvSpec != nil {
-		v, err := input.EnvSpec.toProto()
-		if err != nil {
-			return nil, err
-		}
-		spec.EnvSpec = v
 	}
 	return spec, nil
 }
@@ -296,31 +269,5 @@ func (input *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration
 	result.IsSecret = input.IsSecret
 	result.Description = input.Description
 	result.Optional = input.Optional
-	return result, nil
-}
-
-func (input *EnvironmentValue) toProto() (*environmentv1.EnvironmentValue, error) {
-	result := &environmentv1.EnvironmentValue{}
-
-	result.Value = input.Value
-	result.IsSecret = input.IsSecret
-	result.Description = input.Description
-	return result, nil
-}
-
-func (input *EnvironmentInput) toProto() (*environmentv1.EnvironmentSpec, error) {
-	result := &environmentv1.EnvironmentSpec{}
-
-	result.Description = input.Description
-	if len(input.Data) > 0 {
-		result.Data = make(map[string]*environmentv1.EnvironmentValue, len(input.Data))
-		for k, v := range input.Data {
-			pv, err := v.toProto()
-			if err != nil {
-				return nil, err
-			}
-			result.Data[k] = pv
-		}
-	}
 	return result, nil
 }

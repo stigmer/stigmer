@@ -122,7 +122,6 @@ type McpServerInput struct {
 	Http                *HttpServerConfigInput
 	DefaultEnabledTools []string
 	Env                 map[string]*EnvVarDeclarationInput
-	EnvSpec             *EnvSpecInput
 	PinnedToolApprovals []*ToolApprovalPolicyInput
 	RepositoryUrl       string
 	GithubStars         int32
@@ -197,9 +196,6 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}
-	}
-	if i.EnvSpec != nil {
-		resource.Spec.EnvSpec = i.EnvSpec.toProto()
 	}
 	for _, item := range i.PinnedToolApprovals {
 		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, item.toProto())

@@ -66,7 +66,6 @@ type WorkflowInput struct {
 	Document    *WorkflowDocumentInput
 	Tasks       []*WorkflowTaskInput
 	Env         map[string]*EnvVarDeclarationInput
-	EnvSpec     *EnvSpecInput
 }
 
 // WorkflowDocumentInput is the SDK input type for WorkflowDocument.
@@ -121,9 +120,6 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}
-	}
-	if i.EnvSpec != nil {
-		resource.Spec.EnvSpec = i.EnvSpec.toProto()
 	}
 	return resource
 }

@@ -119,19 +119,19 @@ func callConnect(
 //  2. OS environment variables
 //  3. Explicit --env flag overrides
 //
-// Only keys declared in the MCP server's env_spec are included (plus any
+// Only keys declared in the MCP server's env are included (plus any
 // extra keys from envOverrides).
 func buildRuntimeEnv(
 	server *mcpserverv1.McpServer,
 	cfg *config.Config,
 	envOverrides []string,
 ) map[string]*executioncontextv1.ExecutionValue {
-	envSpec := server.GetSpec().GetEnvSpec().GetData()
+	envDecls := server.GetSpec().GetEnv()
 
 	overrideMap := parseEnvOverrides(envOverrides)
 
-	allKeys := make(map[string]bool, len(envSpec)+len(overrideMap))
-	for k := range envSpec {
+	allKeys := make(map[string]bool, len(envDecls)+len(overrideMap))
+	for k := range envDecls {
 		allKeys[k] = true
 	}
 	for k := range overrideMap {
@@ -144,29 +144,29 @@ func buildRuntimeEnv(
 
 	result := make(map[string]*executioncontextv1.ExecutionValue, len(allKeys))
 
-	requiredVars := make(map[string]bool, len(envSpec))
-	for k := range envSpec {
-		requiredVars[k] = true
+	declaredVars := make(map[string]bool, len(envDecls))
+	for k := range envDecls {
+		declaredVars[k] = true
 	}
 	if cfg != nil {
-		for k, v := range ResolveWellKnownEnvScoped(cfg, requiredVars) {
+		for k, v := range ResolveWellKnownEnvScoped(cfg, declaredVars) {
 			result[k] = v
 		}
 	}
 
-	for key, envVal := range envSpec {
+	for key, decl := range envDecls {
 		if val := os.Getenv(key); val != "" {
 			result[key] = &executioncontextv1.ExecutionValue{
 				Value:    val,
-				IsSecret: envVal.GetIsSecret(),
+				IsSecret: decl.GetIsSecret(),
 			}
 		}
 	}
 
 	for key, val := range overrideMap {
 		isSecret := false
-		if spec, ok := envSpec[key]; ok {
-			isSecret = spec.GetIsSecret()
+		if decl, ok := envDecls[key]; ok {
+			isSecret = decl.GetIsSecret()
 		}
 		result[key] = &executioncontextv1.ExecutionValue{
 			Value:    val,

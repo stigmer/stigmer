@@ -63,14 +63,7 @@ type McpServerSpec struct {
 	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
 	// Environment variable declarations for this MCP server.
 	// Keys are variable names; values describe their metadata and optionality.
-	// Replaces env_spec (which required an extra nesting level through
-	// EnvironmentSpec.data). Consumers read env first, falling back to
-	// env_spec.data during the migration period.
-	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,15,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Deprecated: use env instead. Retained for wire compatibility.
-	//
-	// Deprecated: Marked as deprecated in ai/stigmer/agentic/mcpserver/v1/spec.proto.
-	EnvSpec *v1.EnvironmentSpec `protobuf:"bytes,8,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
+	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,8,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Manual tool approval overrides set by the MCP server owner.
 	//
 	// @internal
@@ -103,7 +96,7 @@ type McpServerSpec struct {
 	//
 	// The acquired access token is stored in the user's personal environment
 	// as the env var named by auth.target_env_var. That env var must also be
-	// declared in env (or legacy env_spec.data) so the execution pipeline knows about it.
+	// declared in env so the execution pipeline knows about it.
 	Auth          *McpServerAuth `protobuf:"bytes,14,opt,name=auth,proto3" json:"auth,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -199,14 +192,6 @@ func (x *McpServerSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
 	return nil
 }
 
-// Deprecated: Marked as deprecated in ai/stigmer/agentic/mcpserver/v1/spec.proto.
-func (x *McpServerSpec) GetEnvSpec() *v1.EnvironmentSpec {
-	if x != nil {
-		return x.EnvSpec
-	}
-	return nil
-}
-
 func (x *McpServerSpec) GetPinnedToolApprovals() []*ToolApprovalPolicy {
 	if x != nil {
 		return x.PinnedToolApprovals
@@ -278,7 +263,7 @@ type StdioServerConfig struct {
 	// (same source as HTTP header/query param placeholders). This enables MCP
 	// servers that take core configuration as positional CLI arguments (e.g.
 	// database connection URLs, directory paths) to be parameterized per-user
-	// through env_spec.
+	// through env declarations.
 	//
 	// Resolution uses strict mode: missing variables produce a clear error
 	// rather than passing a literal "${VAR}" to the subprocess.
@@ -584,8 +569,8 @@ type McpServerAuth struct {
 	// McpServer (or be accessible via cross-org reference).
 	OauthAppRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
 	// The env var where the acquired access token is stored.
-	// Must correspond to an entry in env (or legacy env_spec.data) so the
-	// execution pipeline resolves it. The refresh token is stored as
+	// Must correspond to an entry in env so the execution pipeline
+	// resolves it. The refresh token is stored as
 	// {target_env_var}_REFRESH_TOKEN
 	// by convention. Both are written to the user's personal environment.
 	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
@@ -664,7 +649,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc2\x06\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xef\x05\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -672,8 +657,7 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05stdio\x18\x04 \x01(\v22.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n" +
 	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x122\n" +
 	"\x15default_enabled_tools\x18\a \x03(\tR\x13defaultEnabledTools\x12I\n" +
-	"\x03env\x18\x0f \x03(\v27.ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntryR\x03env\x12Q\n" +
-	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecB\x02\x18\x01R\aenvSpec\x12g\n" +
+	"\x03env\x18\b \x03(\v27.ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntryR\x03env\x12g\n" +
 	"\x15pinned_tool_approvals\x18\v \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x13pinnedToolApprovals\x12%\n" +
 	"\x0erepository_url\x18\f \x01(\tR\rrepositoryUrl\x12!\n" +
 	"\fgithub_stars\x18\r \x01(\x05R\vgithubStars\x12B\n" +
@@ -732,26 +716,24 @@ var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
 	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
 	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
 	nil,                                      // 7: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*v1.EnvironmentSpec)(nil),               // 8: ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	(*apiresource.ApiResourceReference)(nil), // 9: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 10: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*apiresource.ApiResourceReference)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
-	1,  // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
-	2,  // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	5,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
-	8,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	3,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	4,  // 5: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	6,  // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	7,  // 7: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	9,  // 8: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	10, // 9: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
+	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
+	5, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
+	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	4, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
+	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	7, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	9, // 8: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }

@@ -80,10 +80,10 @@ spec:
     Order lookup, inventory checks, and return processing.
   http:
     url: https://orders.internal.acme.com/mcp
-  envSpec:
+  env:
     API_KEY:
       description: API key for order management authentication
-      isSecret: true`;
+      is_secret: true`;
 
 // ---------------------------------------------------------------------------
 // Fixture data

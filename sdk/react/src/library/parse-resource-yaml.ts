@@ -9,8 +9,6 @@ import type {
   StdioServerConfigInput,
   HttpServerConfigInput,
   ToolApprovalPolicyInput,
-  EnvSpecInput,
-  EnvVarInput,
   ResourceRef,
 } from "@stigmer/sdk";
 import type { StigmerResourceKind } from "./detect-stigmer-resource";
@@ -47,7 +45,7 @@ export type ParsedResource =
  *
  * Handles the conversion from proto-style snake_case YAML field names to
  * the camelCase TypeScript SDK input types, including nested structures
- * like `mcp_server_usages`, `sub_agents`, and `env_spec`.
+ * like `mcp_server_usages`, `sub_agents`, and `env`.
  *
  * The `org` parameter **always overrides** `metadata.org` in the YAML.
  * This matches the UX intent of "Apply to [my-org]" — the user explicitly
@@ -207,7 +205,7 @@ function buildAgentInput(
     ...optionalField("mcpServerUsages", extractMcpServerUsages(spec)),
     ...optionalField("skillRefs", extractResourceRefs(spec, "skill_refs")),
     ...optionalField("subAgents", extractSubAgents(spec)),
-    ...optionalField("envSpec", extractEnvSpec(spec)),
+    ...optionalField("env", extractEnv(spec)),
   };
 }
 
@@ -333,7 +331,7 @@ function buildMcpServerInput(
       "pinnedToolApprovals",
       extractToolApprovalPolicy,
     ),
-    ...optionalField("envSpec", extractEnvSpec(spec)),
+    ...optionalField("env", extractEnv(spec)),
   };
 }
 
@@ -389,35 +387,46 @@ function extractToolApprovalPolicy(
 // Shared extractors
 // ---------------------------------------------------------------------------
 
-function extractEnvSpec(
+function extractEnv(
   spec: Record<string, unknown>,
-): EnvSpecInput | undefined {
-  const envSpecRaw = spec.env_spec ?? spec.envSpec;
-  if (!isPlainObject(envSpecRaw)) return undefined;
+): Record<string, { isSecret?: boolean; description?: string; optional?: boolean }> | undefined {
+  // Support both new flat `env` and legacy nested `env_spec.data` / `envSpec.data`.
+  let envMap: Record<string, unknown> | undefined;
 
-  // Proto uses `data` as the map field name; SDK uses `variables`.
-  const data = envSpecRaw.data ?? envSpecRaw.variables;
-  if (!isPlainObject(data)) return undefined;
+  const envRaw = spec.env;
+  if (isPlainObject(envRaw)) {
+    envMap = envRaw;
+  } else {
+    const envSpecRaw = spec.env_spec ?? spec.envSpec;
+    if (isPlainObject(envSpecRaw)) {
+      const data = envSpecRaw.data ?? envSpecRaw.variables;
+      if (isPlainObject(data)) {
+        envMap = data;
+      }
+    }
+  }
 
-  const variables: Record<string, EnvVarInput> = {};
+  if (!envMap) return undefined;
+
+  const result: Record<string, { isSecret?: boolean; description?: string; optional?: boolean }> = {};
   let hasEntries = false;
 
-  for (const [key, val] of Object.entries(data)) {
+  for (const [key, val] of Object.entries(envMap)) {
     if (!isPlainObject(val)) continue;
 
-    const value = typeof val.value === "string" ? val.value : "";
     const isSecret = val.is_secret ?? val.isSecret;
     const description = val.description;
+    const optional = val.optional;
 
-    variables[key] = {
-      value,
+    result[key] = {
       ...(typeof isSecret === "boolean" && { isSecret }),
       ...(typeof description === "string" && { description }),
+      ...(typeof optional === "boolean" && { optional }),
     };
     hasEntries = true;
   }
 
-  return hasEntries ? { variables } : undefined;
+  return hasEntries ? result : undefined;
 }
 
 function extractResourceRef(raw: Record<string, unknown>): ResourceRef {

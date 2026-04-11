@@ -15,7 +15,7 @@ import type {
   ToolApprovalPolicy,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { EnvironmentSpec } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 
 /**
  * Serializes a proto `Agent` into the canonical Stigmer YAML format.
@@ -147,10 +147,10 @@ function buildAgentSpec(
     result.sub_agents = spec.subAgents.map(serializeSubAgent);
   }
 
-  if (spec.envSpec) {
-    const envSpec = serializeEnvSpec(spec.envSpec);
-    if (envSpec) {
-      result.env_spec = envSpec;
+  if (hasEntries(spec.env)) {
+    const env = serializeEnv(spec.env);
+    if (env) {
+      result.env = env;
     }
   }
 
@@ -271,10 +271,10 @@ function buildMcpServerSpec(
       spec.pinnedToolApprovals.map(serializeToolApprovalPolicy);
   }
 
-  if (spec.envSpec) {
-    const envSpec = serializeEnvSpec(spec.envSpec);
-    if (envSpec) {
-      result.env_spec = envSpec;
+  if (hasEntries(spec.env)) {
+    const env = serializeEnv(spec.env);
+    if (env) {
+      result.env = env;
     }
   }
 
@@ -361,19 +361,16 @@ function serializeResourceRef(
   return result;
 }
 
-function serializeEnvSpec(
-  envSpec: EnvironmentSpec,
-): Record<string, unknown> | undefined {
-  if (!hasEntries(envSpec.data)) return undefined;
+function serializeEnv(
+  env: { [key: string]: EnvVarDeclaration },
+): Record<string, Record<string, unknown>> | undefined {
+  const keys = Object.keys(env);
+  if (keys.length === 0) return undefined;
 
-  const data: Record<string, Record<string, unknown>> = {};
+  const result: Record<string, Record<string, unknown>> = {};
 
-  for (const [key, val] of Object.entries(envSpec.data)) {
+  for (const [key, val] of Object.entries(env)) {
     const entry: Record<string, unknown> = {};
-
-    if (val.value) {
-      entry.value = val.value;
-    }
 
     if (val.isSecret) {
       entry.is_secret = val.isSecret;
@@ -383,16 +380,12 @@ function serializeEnvSpec(
       entry.description = val.description;
     }
 
-    data[key] = entry;
+    if (val.optional) {
+      entry.optional = val.optional;
+    }
+
+    result[key] = entry;
   }
-
-  const result: Record<string, unknown> = {};
-
-  if (envSpec.description) {
-    result.description = envSpec.description;
-  }
-
-  result.data = data;
 
   return result;
 }

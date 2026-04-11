@@ -155,8 +155,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The env var where the acquired access token is stored.
-   * Must correspond to an entry in env (or legacy env_spec.data) so the
-   * execution pipeline resolves it. The refresh token is stored as
+   * Must correspond to an entry in env so the execution pipeline
+   * resolves it. The refresh token is stored as
    * {target_env_var}_REFRESH_TOKEN
    * by convention. Both are written to the user's personal environment.
    * </pre>
@@ -180,8 +180,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The env var where the acquired access token is stored.
-   * Must correspond to an entry in env (or legacy env_spec.data) so the
-   * execution pipeline resolves it. The refresh token is stored as
+   * Must correspond to an entry in env so the execution pipeline
+   * resolves it. The refresh token is stored as
    * {target_env_var}_REFRESH_TOKEN
    * by convention. Both are written to the user's personal environment.
    * </pre>
@@ -1000,8 +1000,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env (or legacy env_spec.data) so the
-     * execution pipeline resolves it. The refresh token is stored as
+     * Must correspond to an entry in env so the execution pipeline
+     * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
      * by convention. Both are written to the user's personal environment.
      * </pre>
@@ -1024,8 +1024,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env (or legacy env_spec.data) so the
-     * execution pipeline resolves it. The refresh token is stored as
+     * Must correspond to an entry in env so the execution pipeline
+     * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
      * by convention. Both are written to the user's personal environment.
      * </pre>
@@ -1049,8 +1049,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env (or legacy env_spec.data) so the
-     * execution pipeline resolves it. The refresh token is stored as
+     * Must correspond to an entry in env so the execution pipeline
+     * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
      * by convention. Both are written to the user's personal environment.
      * </pre>
@@ -1070,8 +1070,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env (or legacy env_spec.data) so the
-     * execution pipeline resolves it. The refresh token is stored as
+     * Must correspond to an entry in env so the execution pipeline
+     * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
      * by convention. Both are written to the user's personal environment.
      * </pre>
@@ -1088,8 +1088,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env (or legacy env_spec.data) so the
-     * execution pipeline resolves it. The refresh token is stored as
+     * Must correspond to an entry in env so the execution pipeline
+     * resolves it. The refresh token is stored as
      * {target_env_var}_REFRESH_TOKEN
      * by convention. Both are written to the user's personal environment.
      * </pre>
