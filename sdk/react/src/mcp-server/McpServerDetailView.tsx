@@ -286,6 +286,7 @@ export function McpServerDetailView({
           oauthPhase={oauth.phase}
           authMode={credentials.authMode}
           isOAuthConnected={credentials.isOAuthConnected}
+          accessTokenExpiresAt={credentials.accessTokenExpiresAt}
           tokenLifetimeHint={credentials.tokenLifetimeHint}
         />
 
@@ -354,6 +355,7 @@ function ConnectBar({
   oauthPhase,
   authMode,
   isOAuthConnected,
+  accessTokenExpiresAt,
   tokenLifetimeHint,
 }: {
   readonly isConnecting: boolean;
@@ -367,6 +369,7 @@ function ConnectBar({
   readonly oauthPhase: OAuthConnectPhase;
   readonly authMode: "manual" | "oauth";
   readonly isOAuthConnected: boolean;
+  readonly accessTokenExpiresAt: bigint;
   readonly tokenLifetimeHint: string | null;
 }) {
   const isOAuthBusy =
@@ -392,6 +395,8 @@ function ConnectBar({
 
   const statusText = (() => {
     if (authMode === "oauth" && isOAuthConnected) {
+      const expiryLabel = formatTokenExpiry(accessTokenExpiresAt);
+      if (expiryLabel) return `Tokens refresh automatically \u00B7 ${expiryLabel}`;
       const hint = tokenLifetimeHint && tokenLifetimeHint !== "never"
         ? ` \u00B7 Session lasts ~${tokenLifetimeHint}`
         : "";
@@ -486,6 +491,20 @@ function formatConnectionSummary(toolCount: number, policyCount: number): string
   if (policyCount === 0) return toolLabel;
   const policyLabel = `${policyCount} ${policyCount !== 1 ? "policies" : "policy"}`;
   return `${toolLabel}, ${policyLabel}`;
+}
+
+function formatTokenExpiry(expiresAtSeconds: bigint): string | null {
+  if (expiresAtSeconds === BigInt(0)) return null;
+  const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+  const remainingSeconds = expiresAtSeconds - nowSeconds;
+  if (remainingSeconds <= BigInt(0)) return "Token expired";
+  const minutes = Number(remainingSeconds / BigInt(60));
+  if (minutes < 1) return "Expires in <1 min";
+  if (minutes < 60) return `Expires in ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Expires in ${hours}h ${minutes % 60}m`;
+  const days = Math.floor(hours / 24);
+  return `Expires in ${days}d`;
 }
 
 // ---------------------------------------------------------------------------

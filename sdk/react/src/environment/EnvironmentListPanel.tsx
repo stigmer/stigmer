@@ -18,11 +18,26 @@ export interface EnvironmentListPanelProps {
   /** Optional label filter — only environments matching ALL labels are shown. */
   readonly labels?: Record<string, string>;
   /**
-   * Exclude environments whose labels contain all key-value pairs in this
-   * record. Useful for filtering the personal environment out of the
-   * organization list: `excludeLabels={{ "stigmer.ai/personal": "true" }}`.
+   * Exclude environments whose labels match one or more label sets.
+   *
+   * A single record uses AND semantics — the environment must match
+   * **all** key-value pairs to be excluded. Pass an array of records
+   * for OR-of-AND semantics: the environment is excluded when **any**
+   * record fully matches.
+   *
+   * @example
+   * ```tsx
+   * // Exclude personal envs only (single record — backward-compatible)
+   * excludeLabels={{ "stigmer.ai/personal": "true" }}
+   *
+   * // Exclude personal AND managed envs (array of records)
+   * excludeLabels={[
+   *   { "stigmer.ai/personal": "true" },
+   *   { "stigmer.ai/managed": "true" },
+   * ]}
+   * ```
    */
-  readonly excludeLabels?: Record<string, string>;
+  readonly excludeLabels?: Record<string, string> | Record<string, string>[];
   /** Fired when a user selects (expands) an environment. */
   readonly onEnvironmentSelect?: (env: Environment) => void;
   /** When `true`, variable editors render in read-only mode. */
@@ -82,13 +97,16 @@ export function EnvironmentListPanel({
   }
 
   const filtered = useMemo(() => {
-    if (!excludeLabels || Object.keys(excludeLabels).length === 0) {
-      return environments;
-    }
+    if (!excludeLabels) return environments;
+    const labelSets = Array.isArray(excludeLabels)
+      ? excludeLabels
+      : [excludeLabels];
+    if (labelSets.length === 0) return environments;
+
     return environments.filter((env) => {
       const envLabels = env.metadata?.labels ?? {};
-      const shouldExclude = Object.entries(excludeLabels).every(
-        ([k, v]) => envLabels[k] === v,
+      const shouldExclude = labelSets.some((labelSet) =>
+        Object.entries(labelSet).every(([k, v]) => envLabels[k] === v),
       );
       return !shouldExclude;
     });

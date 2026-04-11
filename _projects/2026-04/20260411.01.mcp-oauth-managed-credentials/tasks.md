@@ -160,9 +160,10 @@ Update all three consumption paths to read OAuth tokens from managed environment
 
 ## Task 4: Frontend — OAuth Grant Status + Session Composer
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-11
-**Repos**: stigmer (Go handlers + React SDK)
+**Completed**: 2026-04-11
+**Repos**: stigmer (Go handlers + React SDK), stigmer-cloud (Java handler)
 
 Backend query handlers and all frontend changes for OAuth status detection.
 
