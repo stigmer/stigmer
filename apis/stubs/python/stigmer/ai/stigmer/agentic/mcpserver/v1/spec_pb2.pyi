@@ -89,17 +89,19 @@ class ToolApprovalPolicy(_message.Message):
     def __init__(self, tool_name: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
 
 class McpServerAuth(_message.Message):
-    __slots__ = ("oauth_app_ref", "target_env_var", "token_lifetime_hint", "scope_hints", "vendor_approval_status", "vendor_approval_docs_url")
+    __slots__ = ("oauth_app_ref", "target_env_var", "token_lifetime_hint", "scope_hints", "vendor_approval_status", "vendor_approval_docs_url", "discovery_url")
     OAUTH_APP_REF_FIELD_NUMBER: _ClassVar[int]
     TARGET_ENV_VAR_FIELD_NUMBER: _ClassVar[int]
     TOKEN_LIFETIME_HINT_FIELD_NUMBER: _ClassVar[int]
     SCOPE_HINTS_FIELD_NUMBER: _ClassVar[int]
     VENDOR_APPROVAL_STATUS_FIELD_NUMBER: _ClassVar[int]
     VENDOR_APPROVAL_DOCS_URL_FIELD_NUMBER: _ClassVar[int]
+    DISCOVERY_URL_FIELD_NUMBER: _ClassVar[int]
     oauth_app_ref: _io_pb2.ApiResourceReference
     target_env_var: str
     token_lifetime_hint: str
     scope_hints: _containers.RepeatedScalarFieldContainer[str]
     vendor_approval_status: _spec_pb2_1.VendorApprovalStatus
     vendor_approval_docs_url: str
-    def __init__(self, oauth_app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ..., scope_hints: _Optional[_Iterable[str]] = ..., vendor_approval_status: _Optional[_Union[_spec_pb2_1.VendorApprovalStatus, str]] = ..., vendor_approval_docs_url: _Optional[str] = ...) -> None: ...
+    discovery_url: str
+    def __init__(self, oauth_app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ..., scope_hints: _Optional[_Iterable[str]] = ..., vendor_approval_status: _Optional[_Union[_spec_pb2_1.VendorApprovalStatus, str]] = ..., vendor_approval_docs_url: _Optional[str] = ..., discovery_url: _Optional[str] = ...) -> None: ...

@@ -152,16 +152,23 @@ func (c *McpServerController) initiateDCR(
 	pkcePair *oauth.PKCEPair,
 	stateParam string,
 ) (*initiateResult, error) {
-	httpConfig := mcpServer.GetSpec().GetHttp()
-	if httpConfig == nil {
+	// Resolve the URL for OAuth authorization server discovery.
+	// Priority: auth.discovery_url > http.url.
+	// discovery_url enables DCR for stdio servers that have no HTTP URL.
+	serverURL := mcpServer.GetSpec().GetAuth().GetDiscoveryUrl()
+	if serverURL == "" {
+		httpConfig := mcpServer.GetSpec().GetHttp()
+		if httpConfig != nil {
+			serverURL = httpConfig.GetUrl()
+		}
+	}
+	if serverURL == "" {
 		return nil, grpclib.FailedPreconditionError(
-			"DCR (MCP OAuth) requires an HTTP server. MCP server '%s' uses stdio transport. "+
-				"Set oauth_app_ref for vendor OAuth, or switch to HTTP transport",
+			"DCR requires a discoverable URL. MCP server '%s' has no http.url and no auth.discovery_url. "+
+				"Set auth.discovery_url for stdio servers, oauth_app_ref for vendor OAuth, or switch to HTTP transport",
 			mcpServer.GetMetadata().GetId(),
 		)
 	}
-
-	serverURL := httpConfig.GetUrl()
 	metadata, err := oauth.DiscoverAuthorizationServer(ctx, serverURL)
 	if err != nil {
 		return nil, grpclib.FailedPreconditionError(

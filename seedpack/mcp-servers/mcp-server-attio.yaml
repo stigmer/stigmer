@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-attio
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "crm-support"
+spec:
+  description: "Attio MCP server for contact management, deal tracking, sales pipeline operations, and CRM data access."
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - attio
+    - crm
+    - sales
+    - contacts
+  http:
+    url: "https://mcp.attio.com/mcp"
+    headers:
+      Authorization: "Bearer ${ATTIO_ACCESS_TOKEN}"
+  env:
+    ATTIO_ACCESS_TOKEN:
+      is_secret: true
+      description: "Attio API key or OAuth access token (generate at attio.com/developers)"
+  auth:
+    target_env_var: "ATTIO_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

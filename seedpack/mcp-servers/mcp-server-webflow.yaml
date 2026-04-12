@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-webflow
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "design"
+spec:
+  description: "Webflow MCP server for site management, CMS operations, design configuration, and publishing workflows."
+  repository_url: "https://github.com/webflow/mcp-server"
+  github_stars: 113
+  tags:
+    - webflow
+    - website-builder
+    - cms
+    - web-design
+  http:
+    url: "https://mcp.webflow.com/sse"
+    headers:
+      Authorization: "Bearer ${WEBFLOW_ACCESS_TOKEN}"
+  env:
+    WEBFLOW_ACCESS_TOKEN:
+      is_secret: true
+      description: "Webflow API key or OAuth access token (generate at developers.webflow.com)"
+  auth:
+    target_env_var: "WEBFLOW_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

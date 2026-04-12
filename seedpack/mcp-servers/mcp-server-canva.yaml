@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-canva
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "design"
+spec:
+  description: "Canva MCP server for creating designs, managing templates, uploading assets, and generating visual content."
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - canva
+    - design
+    - graphics
+    - templates
+  http:
+    url: "https://mcp.canva.com/mcp"
+    headers:
+      Authorization: "Bearer ${CANVA_ACCESS_TOKEN}"
+  env:
+    CANVA_ACCESS_TOKEN:
+      is_secret: true
+      description: "Canva OAuth access token"
+  auth:
+    target_env_var: "CANVA_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"
