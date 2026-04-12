@@ -67,3 +67,27 @@ Keep entries **timestamped** and **concise**. This isn't a novel - just enough c
 
 ---
 
+## 2026-04-12 -- T06+T03 Combined (Session 4)
+
+### Key Decisions
+- **Combined T06 and T03** into a single verification pass. All 13 servers verified in parallel, then YAML written in batch.
+- **Dropbox moved to T04**: Has full OAuth (auth server at `www.dropbox.com`, well-known metadata, registration_endpoint) but DCR returns "Only pre-registered MCP trusted partners are allowed." Same allowlist pattern as Vercel.
+- **Stack Overflow skipped**: 404 on well-known. No OAuth metadata at all.
+- **Grafbase skipped**: Vercel deployment removed (DEPLOYMENT_NOT_FOUND). Service is down.
+
+### Learnings
+- **Atlassian DCR works** despite awesome-remote-mcp-servers listing it as "no DCR." The listing is wrong. Discovery is at the ROOT of `mcp.atlassian.com`, not under the `/v1/` path. Issuer is `cf.mcp.atlassian.com` (Cloudflare-fronted OAuth proxy).
+- **GitLab DCR works** with `scope: "mcp"` and `require_pkce: true`. GitLab supports MCP-specific OAuth scopes (`mcp`, `mcp_orbit`).
+- **Dropbox uses Protected Resource Metadata** (RFC 8707 pattern): The MCP endpoint returns `WWW-Authenticate` with `resource_metadata` URL, which points to the auth server at `www.dropbox.com`. The direct `/.well-known/oauth-authorization-server` at `mcp.dropbox.com` returns 429 -- it may not be served from there at all.
+- **Egnyte redirects OAuth discovery**: `mcp-server.egnyte.com` 302-redirects well-known requests to `mcp-oauth.egnyte.com`. The MCP endpoint stays at `mcp-server.egnyte.com/sse`.
+- **Port IO domain**: Listed as `mcp.port.io` in task, actual OAuth issuer is `auth.getport.io`, endpoints at `mcp.getport.io`. Both `mcp.port.io` and `mcp.getport.io` resolve to the same MCP service.
+- **Prisma uses JWT client_ids**: DCR returns a signed JWT as client_id with a `client_secret`. Auth server at `auth.prisma.io`, separate from MCP endpoint at `mcp.prisma.io`.
+- **Ramp overrides client_name**: DCR POST returned `client_name: "Ramp MCP Remote"` regardless of what we sent. No impact on functionality.
+
+### Verification Results Summary
+- **DCR confirmed (8 new)**: Wix, Canva, Netlify, Ramp, Prisma, Cloudinary, Egnyte, Port IO
+- **DCR confirmed (2 existing)**: Atlassian, GitLab -- existing YAML configs are correct
+- **No DCR / blocked (3)**: Dropbox (allowlist), Stack Overflow (no OAuth), Grafbase (service down)
+- **Marketplace count**: 48 → 56 servers
+
+---

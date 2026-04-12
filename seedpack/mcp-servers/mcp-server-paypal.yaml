@@ -7,8 +7,8 @@ metadata:
     stigmer.ai/category: "payments"
 spec:
   description: "PayPal MCP server for payment processing, invoicing, transaction management, and e-commerce operations."
-  repository_url: ""
-  github_stars: 0
+  repository_url: "https://github.com/paypal/paypal-mcp-server"
+  github_stars: 9
   tags:
     - paypal
     - payments

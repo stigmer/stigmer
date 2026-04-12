@@ -67,8 +67,9 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-04-12  
-**Status**: In Progress (T01+T02+T05 complete, 3 tasks remaining)  
-**Current Focus**: No task in progress — pick next from T03, T04, T06
+**Status**: In Progress (T01+T02+T03+T05+T06 complete, 1 task remaining)  
+**Current Focus**: No task in progress — T04 is the last remaining task  
+**Last Session**: Session 4 (2026-04-12) — T06+T03 combined, then quality audit
 
 ## Session Progress (2026-04-12, session 2)
 
@@ -96,16 +97,34 @@ That's it! No complex structure - just focused work.
 - Proto enhanced: `discovery_url` field enables DCR on stdio servers (future use)
 - Marketplace count: 45 → 48 servers
 
+## Session Progress (2026-04-12, session 4)
+
+- Completed T06 + T03 combined: verified DCR for 13 servers, added 8 new DCR-confirmed servers
+- T06 audit: Atlassian and GitLab both confirmed DCR working. awesome-remote-mcp-servers "no DCR" listing for Atlassian is wrong.
+- T03 results: 8 of 11 servers confirmed DCR (Wix, Canva, Netlify, Ramp, Prisma, Cloudinary, Egnyte, Port IO)
+- 3 servers deferred/skipped: Dropbox (allowlist, moved to T04), Stack Overflow (no OAuth), Grafbase (service down)
+- Marketplace count: 48 → 56 servers
+
+## Session Progress (2026-04-12, session 4 continued -- quality audit)
+
+- Post-DCR quality audit revealed 3 servers to remove and 9 missing repo URLs
+- **Removed**: Port IO (archived repo Feb 2026), Egnyte (stale repo, uncertain remote relationship), Ramp (no npm package, remote endpoint undocumented)
+- **Fixed**: Cloudinary repo URL + endpoint path, Wix repo URL + endpoint path
+- **Added repos for 7 servers**: PayPal (`paypal/paypal-mcp-server`), Square (`square/square-mcp-server`, 95 stars), Intercom (`intercom/intercom-mcp-server`), monday.com (`mondaycom/mcp`, 387 stars), Buildkite (`buildkite/buildkite-mcp-server`, 49 stars), Webflow (`webflow/mcp-server`, 113 stars), PagerDuty (`PagerDuty/pagerduty-mcp-server`, 58 stars)
+- Final marketplace count: 53 servers (56 - 3 removed)
+- Audit result: zero high-risk servers remaining; all are first-party vendor with public repo or official docs
+
 ## Next Steps
-1. **T06 (~30 min)**: Audit Atlassian and GitLab DCR status
-2. **T03 (~2 hrs)**: Verify and add 11 unverified DCR servers
-3. **T04 (~3-4 hrs)**: Add no-DCR vendor OAuth servers — now includes HubSpot and PagerDuty upgrades alongside Asana, Vercel, Shopify, Salesforce, Box, Plaid, Close CRM
+1. **T04 (~3-4 hrs)**: Add no-DCR vendor OAuth servers — now includes Dropbox alongside GitHub, Asana, Vercel, Shopify, Salesforce, Box, Plaid, Close CRM, HubSpot upgrade, PagerDuty upgrade
 
 ## Context for Resume
 - Branch: `feat/mcp-oauth-expansion`
 - Changes span both repos: stigmer (OSS) and stigmer-cloud
 - GitHub OAuth redirect URI: need to verify `https://app.stigmer.ai/auth/oauth/callback` is configured at github.com/settings/developers
 - Google Calendar: unverified — submit for Google verification when ready
+- Dropbox: needs partner registration before OAuth will work
+- Vercel: needs client allowlist approval before OAuth will work
+- 10 servers remain without `repository_url` (Attio, Canva, Datadog, Brevo, HubSpot, Prisma, Linear, Slack, Google Maps, Stigmer) — all verified official vendor-hosted with docs
 
 ---
 

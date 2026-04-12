@@ -139,57 +139,57 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
 
 ## Task 3: T03 Wave-2 -- Verify and add unverified DCR servers (test /register endpoint first)
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-12 16:48
-**Effort**: ~2 hours (verification + YAML)
+**Completed**: 2026-04-12
+**Effort**: ~1 hour (combined with T06)
 **What**: For each server, fetch `/.well-known/oauth-authorization-server`, confirm `registration_endpoint`, POST to it, and confirm a `client_id` is returned. Only then create the YAML.
 
 ### Subtasks
 
-- [ ] **Dropbox** -- `https://mcp.dropbox.com/mcp` (files) + `https://mcp.dropbox.com/dash` (universal search)
-  - Got 429 last time. Retry metadata fetch.
-  - Category: `productivity`, Tags: dropbox, file-management, cloud-storage
-  - Note: Dash searches 30+ apps (Slack, Google Drive, Jira, etc). Requires Business plan.
+- [x] **Wix** -- `https://mcp.wix.com/sse`
+  - DCR confirmed: `client_id: CTWEHGzLonfWbAfV`
+  - YAML created: `seedpack/mcp-servers/mcp-server-wix.yaml`
 
-- [ ] **Wix** -- `https://mcp.wix.com/sse`
-  - Category: `developer-tools`, Tags: wix, website-builder, cms
+- [x] **Canva** -- `https://mcp.canva.com/mcp`
+  - DCR confirmed: `client_id: 5KWgRCCZ4GRbdMn9`
+  - YAML created: `seedpack/mcp-servers/mcp-server-canva.yaml`
 
-- [ ] **Canva** -- `https://mcp.canva.com/mcp`
-  - Fetch timed out last time. Retry.
-  - Category: `design`, Tags: canva, design, graphics
+- [x] **Netlify** -- `https://netlify-mcp.netlify.app/mcp`
+  - DCR confirmed: `client_id: WPj6y5rioBefjlitAdDp330AEzrtXXL5k75na1AR1Wp`
+  - YAML created: `seedpack/mcp-servers/mcp-server-netlify.yaml`
 
-- [ ] **Netlify** -- `https://netlify-mcp.netlify.app/mcp`
-  - Category: `developer-tools`, Tags: netlify, deployment, hosting, jamstack
+- [x] **Ramp** -- `https://ramp-mcp-remote.ramp.com/mcp`
+  - DCR confirmed: `client_id: <REDACTED>`
+  - YAML created: `seedpack/mcp-servers/mcp-server-ramp.yaml`
 
-- [ ] **Ramp** -- `https://ramp-mcp-remote.ramp.com/mcp`
-  - Category: `payments`, Tags: ramp, expense-management, corporate-finance
+- [x] **Prisma Postgres** -- `https://mcp.prisma.io/mcp`
+  - DCR confirmed: JWT client_id + client_secret (auth server at `auth.prisma.io`)
+  - YAML created: `seedpack/mcp-servers/mcp-server-prisma.yaml`
 
-- [ ] **Prisma Postgres** -- `https://mcp.prisma.io/mcp`
-  - Category: `databases`, Tags: prisma, postgresql, orm, database
+- [x] **Cloudinary** -- `https://asset-management.mcp.cloudinary.com/sse`
+  - DCR confirmed: `client_id: mcp_client_HtziK8uOd46PWdkf`
+  - YAML created: `seedpack/mcp-servers/mcp-server-cloudinary.yaml`
 
-- [ ] **Stack Overflow** -- `https://mcp.stackoverflow.com`
-  - Category: `developer-tools`, Tags: stackoverflow, knowledge-base, q-and-a
+- [x] **Egnyte** -- `https://mcp-server.egnyte.com/sse`
+  - DCR confirmed: `client_id: 9e226cf9-5825-4a93-8513-f09a850a6061` (OAuth proxy at `mcp-oauth.egnyte.com`)
+  - YAML created: `seedpack/mcp-servers/mcp-server-egnyte.yaml`
 
-- [ ] **Cloudinary** -- `https://asset-management.mcp.cloudinary.com/sse`
-  - Category: `developer-tools`, Tags: cloudinary, asset-management, image-optimization
+- [x] **Port IO** -- `https://mcp.port.io/v1`
+  - DCR confirmed: `client_id: E7dCDHFLiiohBxiRV4iiihMkTw61lRBO` (auth at `auth.getport.io`)
+  - YAML created: `seedpack/mcp-servers/mcp-server-port.yaml`
 
-- [ ] **Egnyte** -- `https://mcp-server.egnyte.com/sse`
-  - Category: `productivity`, Tags: egnyte, file-management, enterprise-storage
+- [x] **Dropbox** -- DEFERRED to T04. OAuth metadata exists (auth server at `www.dropbox.com`) but DCR blocked: "Only pre-registered MCP trusted partners are allowed."
 
-- [ ] **Grafbase** -- `https://api.grafbase.com/mcp`
-  - Category: `developer-tools`, Tags: grafbase, graphql, api-platform
+- [x] **Stack Overflow** -- SKIPPED. 404 on `/.well-known/oauth-authorization-server`. No OAuth support.
 
-- [ ] **Port IO** -- `https://mcp.port.io/v1`
-  - Category: `developer-tools`, Tags: port, developer-portal, internal-tools
-
-### Verification Steps (for each)
-1. `curl -s https://<url>/.well-known/oauth-authorization-server | jq .registration_endpoint`
-2. If `registration_endpoint` exists, POST to it with test client metadata
-3. If `client_id` returned, DCR works -- create YAML
-4. If fails, move to Wave 3 (needs OAuthApp)
+- [x] **Grafbase** -- SKIPPED. Vercel deployment not found (`DEPLOYMENT_NOT_FOUND`). Service is down.
 
 ### Notes
-- Some of these may turn out to not support DCR despite being listed as OAuth 2.1.
+- 8 of 11 servers confirmed DCR and added to marketplace.
+- Dropbox has full OAuth infrastructure but enforces a partner allowlist (same pattern as Vercel). Move to T04.
+- Stack Overflow has no OAuth metadata at all -- may be API-key-only or not yet implemented.
+- Grafbase appears to have been taken down from Vercel hosting.
 
 ---
 
@@ -201,6 +201,13 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
 **What**: For each vendor, manually register an OAuth app, create an OAuthApp resource in Stigmer, then create/update the MCP server YAML with `oauth_app_ref`. Reference pattern: `seedpack/mcp-servers/mcp-server-figma.yaml`
 
 ### Subtasks
+
+- [ ] **Dropbox** (moved from T03) -- `https://mcp.dropbox.com/mcp` (files) + `https://mcp.dropbox.com/dash` (universal search)
+  - Has full OAuth infrastructure (auth server at `www.dropbox.com`) but blocks DCR: "Only pre-registered MCP trusted partners are allowed."
+  - Manual steps: Contact Dropbox to add Stigmer to partner allowlist, or register app at dropbox.com/developers
+  - Scopes: account_info.read, files.metadata.read, files.content.write, sharing.write, files.content.read
+  - Create OAuthApp resource: `dropbox-oauth`
+  - Note: Dash endpoint (`/dash`) searches 30+ apps. Requires Business plan.
 
 - [ ] **GitHub** (upgrade existing to remote) -- `https://api.githubcopilot.com/mcp/`
   - Manual steps: Register GitHub App or OAuth App at github.com/settings/developers
@@ -286,27 +293,31 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
 
 ## Task 6: T06 Audit -- Verify Atlassian and GitLab DCR status and fix config if broken
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-12 16:48
-**Effort**: ~30 min
+**Completed**: 2026-04-12
+**Effort**: ~15 min (combined with T03)
 **What**: The existing `mcp-server-atlassian.yaml` and `mcp-server-gitlab.yaml` are configured with `auth.target_env_var` but NO `oauth_app_ref`, implying DCR support. Verify this is correct.
 
 ### Subtasks
 
-- [ ] **Atlassian** -- `https://mcp.atlassian.com/v1/sse`
-  - Current config: `auth.target_env_var: ATLASSIAN_ACCESS_TOKEN` (no oauth_app_ref)
-  - Concern: awesome-remote-mcp-servers lists as "OAuth2.1 (no DCR)" 
-  - Verify: `curl -s https://mcp.atlassian.com/v1/.well-known/oauth-authorization-server | jq .registration_endpoint`
-  - If no DCR: Need to register Atlassian OAuth app at developer.atlassian.com and add `oauth_app_ref`
+- [x] **Atlassian** -- `https://mcp.atlassian.com/v1/mcp`
+  - DCR CONFIRMED: `registration_endpoint` at `https://cf.mcp.atlassian.com/v1/register`, POST returned `client_id: VPpg6WfDS0y7YJwt`
+  - Discovery is at ROOT (`mcp.atlassian.com/.well-known/oauth-authorization-server`), NOT under `/v1/`
+  - Issuer: `https://cf.mcp.atlassian.com` (Cloudflare-fronted)
+  - awesome-remote-mcp-servers "no DCR" listing is WRONG -- DCR works
+  - No YAML change needed: existing Pattern A config is correct
 
-- [ ] **GitLab** -- `https://gitlab.com/api/v4/mcp`
-  - Current config: `auth.target_env_var: GITLAB_ACCESS_TOKEN` (no oauth_app_ref)
-  - Verify: `curl -s https://gitlab.com/.well-known/oauth-authorization-server | jq .registration_endpoint`
-  - GitLab Premium/Ultimate required for MCP access
+- [x] **GitLab** -- `https://gitlab.com/api/v4/mcp`
+  - DCR CONFIRMED: `registration_endpoint` at `https://gitlab.com/oauth/register`, POST returned `client_id: 0f0beabb...`
+  - `scope: "mcp"`, `require_pkce: true`, `dynamic: true`
+  - Scopes supported include `mcp` and `mcp_orbit` (new GitLab-specific scopes)
+  - No YAML change needed: existing Pattern A config is correct
 
 ### Notes
-- If DCR doesn't work, these existing configs may be silently broken (users fall back to manual API key entry).
-- Fix would follow the Figma/Slack pattern: create OAuthApp resource + add `oauth_app_ref`.
+- Both servers verified: existing YAML configs are correct and DCR works.
+- The awesome-remote-mcp-servers listing for Atlassian as "no DCR" is incorrect -- DCR registration succeeds.
+- Atlassian uses a Cloudflare-fronted OAuth proxy (`cf.mcp.atlassian.com`) separate from the MCP endpoint domain.
 
 
 ## Project Completion Checklist
