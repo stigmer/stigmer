@@ -843,6 +843,23 @@ async def _perform_setup_core(
             mcp_servers_config = mcp_config_result.servers
             mcp_tools_config = mcp_config_result.tools
 
+            # Belt-and-suspenders: drop any servers that still have empty
+            # tool lists after transform (should not happen after the
+            # discovered-tools expansion in config_transformer, but guards
+            # against edge cases like a never-discovered server).
+            empty_tool_slugs = [
+                slug for slug, tools in mcp_tools_config.items()
+                if not tools
+            ]
+            for slug in empty_tool_slugs:
+                logger.warning(
+                    "Removing MCP server '%s' — empty tool list after "
+                    "transform (Graphton requires explicit tool names)",
+                    slug,
+                )
+                mcp_servers_config.pop(slug, None)
+                mcp_tools_config.pop(slug, None)
+
             logger.info(
                 "Transformed MCP configs: servers=%s, tools=%d total",
                 list(mcp_servers_config.keys()),
