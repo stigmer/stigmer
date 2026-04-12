@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ApprovalAction,
     ExecutionPhase,
     TodoStatus,
     ToolCallStatus,
@@ -124,6 +125,19 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
         return
 
     resolved_id = sb._tool_call_id_capture.resolve(run_id)
+
+    if resolved_id == run_id:
+        for existing_tc in sb.iter_all_tool_calls():
+            if (existing_tc.name == tool_name
+                    and existing_tc.approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+                    and existing_tc.status == ToolCallStatus.TOOL_CALL_RUNNING):
+                sb._tool_call_id_capture.register_alias(run_id, existing_tc.id)
+                sb.logger.info(
+                    "[IDENTITY_DEDUP] execution=%s tool=%s run_id=%s -> "
+                    "existing_tc=%s (resume phantom guard)",
+                    sb.execution_id, tool_name, run_id, existing_tc.id,
+                )
+                return
 
     approval_requirement = check_approval_requirement(sb, tool_name, tool_args)
 

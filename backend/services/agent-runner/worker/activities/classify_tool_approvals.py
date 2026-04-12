@@ -249,4 +249,10 @@ async def classify_tool_approvals(
         server_description=input.server_description,
     )
 
-    return [a.model_dump() for a in result.approvals]
+    approved = [a for a in result.approvals if a.requires_approval]
+    logger.info(
+        "Returning %d/%d tools that require approval for '%s'",
+        len(approved), len(result.approvals), input.server_name,
+    )
+
+    return [a.model_dump() for a in approved]

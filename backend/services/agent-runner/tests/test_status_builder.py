@@ -5830,6 +5830,156 @@ class TestRunIdAliasResolution:
 
 
 # =============================================================================
+# Tests for resume phantom guard
+# =============================================================================
+
+
+class TestResumePhantomGuard:
+    """Tests for the resume-aware identity dedup that prevents phantom
+    WAITING_APPROVAL tool calls during the approval resume path.
+
+    During resume from Command(resume=...), LangGraph can emit two
+    on_tool_start v2 events with different run_ids for the same tool
+    execution. The first is deduped via ToolCallIdCapture. The second
+    has no mapping and would create a phantom tool call that incorrectly
+    sets the phase to WAITING_FOR_APPROVAL.
+
+    The guard detects unmapped run_ids that match a recently-approved
+    tool call (same name, approval_action set, status RUNNING) and
+    aliases them instead of creating a new tool call.
+    """
+
+    @pytest.fixture
+    def mock_initial_status(self):
+        status = MagicMock()
+        status.messages = []
+        status.sub_agent_executions = []
+        status.todos = {}
+        status.artifacts = []
+        status.resolved_context = ResolvedExecutionContext()
+        status.context_info = ContextInfo()
+        return status
+
+    @pytest.mark.asyncio
+    async def test_phantom_event_deduped_during_resume(self, mock_initial_status):
+        """An unmapped on_tool_start for a tool that was just approved
+        is treated as a phantom and aliased instead of creating a new
+        tool call."""
+        from google.protobuf.struct_pb2 import Struct
+
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        original_tc_id = "toolu_01WvNdJXKbCCtKJrbTnCzbit"
+        phantom_run_id = "019d823d-cde5-7df0-8c51-0d3532198d43"
+
+        args = Struct()
+        args.update({"assignee": "me"})
+        existing_tc = ToolCall(
+            id=original_tc_id,
+            name="list_issues",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.append(existing_tc)
+        mock_initial_status.messages.append(ai_msg)
+
+        capture = ToolCallIdCapture()
+
+        builder = StatusBuilder(
+            "exec-phantom-1", mock_initial_status,
+            tool_call_id_capture=capture,
+        )
+        builder.rebuild_index_from_persisted_status()
+
+        assert builder.tool_call_count() == 1
+
+        event = {
+            "event": "on_tool_start",
+            "name": "list_issues",
+            "run_id": phantom_run_id,
+            "data": {"input": {"assignee": "me"}},
+        }
+        await builder.process_event(event)
+
+        assert builder.tool_call_count() == 1
+        assert builder.resolve_run_id(phantom_run_id) == original_tc_id
+
+        tc = builder.get_tool_call(original_tc_id)
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+
+    @pytest.mark.asyncio
+    async def test_no_false_positive_on_normal_tool_call(self, mock_initial_status):
+        """A normal on_tool_start (no approval history) is not affected
+        by the phantom guard and creates a new tool call as usual."""
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        run_id = "normal-run-001"
+
+        capture = ToolCallIdCapture()
+
+        builder = StatusBuilder(
+            "exec-normal-1", mock_initial_status,
+            tool_call_id_capture=capture,
+        )
+
+        assert builder.tool_call_count() == 0
+
+        event = {
+            "event": "on_tool_start",
+            "name": "list_issues",
+            "run_id": run_id,
+            "data": {"input": {"assignee": "me"}},
+        }
+        await builder.process_event(event)
+
+        assert builder.tool_call_count() == 1
+
+    @pytest.mark.asyncio
+    async def test_guard_skips_completed_tool_calls(self, mock_initial_status):
+        """The phantom guard does not match tool calls that have already
+        transitioned to COMPLETED -- only RUNNING (actively resuming)."""
+        from google.protobuf.struct_pb2 import Struct
+
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        completed_tc_id = "toolu_completed_001"
+        new_run_id = "019d-new-run"
+
+        args = Struct()
+        args.update({"assignee": "me"})
+        completed_tc = ToolCall(
+            id=completed_tc_id,
+            name="list_issues",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.append(completed_tc)
+        mock_initial_status.messages.append(ai_msg)
+
+        capture = ToolCallIdCapture()
+
+        builder = StatusBuilder(
+            "exec-completed-1", mock_initial_status,
+            tool_call_id_capture=capture,
+        )
+        builder.rebuild_index_from_persisted_status()
+
+        event = {
+            "event": "on_tool_start",
+            "name": "list_issues",
+            "run_id": new_run_id,
+            "data": {"input": {"assignee": "me"}},
+        }
+        await builder.process_event(event)
+
+        assert builder.tool_call_count() == 2
+
+
+# =============================================================================
 # Tests for native thinking block translation
 # =============================================================================
 
