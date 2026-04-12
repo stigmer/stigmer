@@ -55,14 +55,26 @@ func tsProtoFileToSuffix(protoFile string) string {
 	return name + "_pb"
 }
 
+// tsApisDir is the root directory containing proto API definitions.
+// Used by tsResolveEnumImport to determine whether a package has a
+// dedicated enum.proto file. Defaults to "apis" (repo root CWD).
+var tsApisDir = "apis"
+
 // tsResolveEnumImport resolves the import path for an enum type.
-// Enums in this codebase consistently live in enum_pb.ts files.
+// It checks whether the enum's package has a dedicated enum.proto;
+// if not, the enum is assumed to live in spec.proto.
 func tsResolveEnumImport(enumFullType string) (importFrom string, enumName string) {
 	parts := strings.Split(enumFullType, ".")
 	enumName = parts[len(parts)-1]
 	enumPkg := strings.Join(parts[:len(parts)-1], ".")
 	importBase := deriveTSImportBase(enumPkg)
-	return importBase + "/enum_pb", enumName
+
+	suffix := "spec_pb"
+	pkgPath := strings.ReplaceAll(enumPkg, ".", "/")
+	if _, err := os.Stat(filepath.Join(tsApisDir, pkgPath, "enum.proto")); err == nil {
+		suffix = "enum_pb"
+	}
+	return importBase + "/" + suffix, enumName
 }
 
 // isCommonsType checks if a fully-qualified type belongs to the commons package.
