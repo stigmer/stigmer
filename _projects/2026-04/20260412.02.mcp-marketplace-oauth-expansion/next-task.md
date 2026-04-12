@@ -67,8 +67,8 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-04-12  
-**Status**: In Progress (T01+T02 complete, 4 tasks remaining)  
-**Current Focus**: No task in progress — pick next from T03-T06
+**Status**: In Progress (T01+T02+T05 complete, 3 tasks remaining)  
+**Current Focus**: No task in progress — pick next from T03, T04, T06
 
 ## Session Progress (2026-04-12, session 2)
 
@@ -87,15 +87,25 @@ That's it! No complex structure - just focused work.
 - Marketplace expanded from 36 to 45 servers
 - Committed: `bc4c754c0` on branch `feat/mcp-oauth-expansion`
 
+## Session Progress (2026-04-12, session 3)
+
+- Completed T05 (expanded scope): 3 API-key servers + proto `discovery_url` + GitHub/Google Calendar vendor OAuth
+- BigQuery dropped: no confirmed hosted endpoint, wrong credential type
+- Surprise: HubSpot and PagerDuty both support OAuth (without DCR) — added as API-key-only, flagged for T04 upgrade
+- First stdio servers with `auth` blocks: GitHub + Google Calendar prove vendor OAuth on stdio works
+- Proto enhanced: `discovery_url` field enables DCR on stdio servers (future use)
+- Marketplace count: 45 → 48 servers
+
 ## Next Steps
-1. **T05 (~30 min)**: Add 4 API-key-only servers (HubSpot, BigQuery, Brevo, PagerDuty)
-2. **T06 (~30 min)**: Audit Atlassian and GitLab DCR status
-3. **T03 (~2 hrs)**: Verify and add 11 unverified DCR servers
-4. **T04 (~3-4 hrs)**: Add 8 no-DCR vendor OAuth servers (manual registration)
+1. **T06 (~30 min)**: Audit Atlassian and GitLab DCR status
+2. **T03 (~2 hrs)**: Verify and add 11 unverified DCR servers
+3. **T04 (~3-4 hrs)**: Add no-DCR vendor OAuth servers — now includes HubSpot and PagerDuty upgrades alongside Asana, Vercel, Shopify, Salesforce, Box, Plaid, Close CRM
 
 ## Context for Resume
 - Branch: `feat/mcp-oauth-expansion`
-- Uncommitted backend changes exist (setup.py, config_transformer.py, create_execution_context_step.go) — these are unrelated to T02 and were not committed with this task
+- Changes span both repos: stigmer (OSS) and stigmer-cloud
+- GitHub OAuth redirect URI: need to verify `https://app.stigmer.ai/auth/oauth/callback` is configured at github.com/settings/developers
+- Google Calendar: unverified — submit for Google verification when ready
 
 ---
 

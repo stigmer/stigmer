@@ -222,4 +222,54 @@ public interface McpServerAuthOrBuilder extends
    */
   com.google.protobuf.ByteString
       getVendorApprovalDocsUrlBytes();
+
+  /**
+   * <pre>
+   * Optional URL for OAuth authorization server discovery on stdio servers.
+   *
+   * HTTP servers do not need this: the platform derives the discovery
+   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+   * relative to the server URL).
+   *
+   * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+   * Set this field to the base URL of the vendor's OAuth authorization
+   * server to enable DCR for a stdio-based MCP server.
+   *
+   * Resolution priority:
+   * 1. discovery_url (if set — used for both stdio and HTTP)
+   * 2. http.url (default for HTTP servers)
+   *
+   * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+   * directly, no discovery needed).
+   * </pre>
+   *
+   * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+   * @return The discoveryUrl.
+   */
+  java.lang.String getDiscoveryUrl();
+  /**
+   * <pre>
+   * Optional URL for OAuth authorization server discovery on stdio servers.
+   *
+   * HTTP servers do not need this: the platform derives the discovery
+   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+   * relative to the server URL).
+   *
+   * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+   * Set this field to the base URL of the vendor's OAuth authorization
+   * server to enable DCR for a stdio-based MCP server.
+   *
+   * Resolution priority:
+   * 1. discovery_url (if set — used for both stdio and HTTP)
+   * 2. http.url (default for HTTP servers)
+   *
+   * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+   * directly, no discovery needed).
+   * </pre>
+   *
+   * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+   * @return The bytes for discoveryUrl.
+   */
+  com.google.protobuf.ByteString
+      getDiscoveryUrlBytes();
 }

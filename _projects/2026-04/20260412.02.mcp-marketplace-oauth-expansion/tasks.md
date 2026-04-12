@@ -247,39 +247,40 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
 
 ---
 
-## Task 5: T05 Wave-4 -- Add API-key-only remote servers (YAML with env vars, no OAuth)
+## Task 5: T05 Expanded -- API-key servers + proto enhancement + GitHub/Google Calendar vendor OAuth
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-12 16:48
-**Effort**: ~30 min
-**What**: Simple HTTP servers that use API key auth only. No `auth:` block needed. Just `http.url` + `http.headers` + `env`.
+**Completed**: 2026-04-12
+**Effort**: ~2 hours (expanded from original 30 min scope)
+**What**: Added 3 API-key HTTP servers, `discovery_url` proto field, and vendor OAuth for GitHub + Google Calendar.
 
 ### Subtasks
 
-- [ ] **HubSpot** -- `https://app.hubspot.com/mcp/v1/http`
-  - Category: `crm-support`, Tags: hubspot, crm, marketing, sales
-  - Env: `HUBSPOT_API_KEY` (is_secret: true)
-  - Header: `Authorization: Bearer ${HUBSPOT_API_KEY}`
+- [x] **HubSpot** -- `https://app.hubspot.com/mcp/v1/http` (API-key-only)
+  - Category: `crm-support`, Env: `HUBSPOT_ACCESS_TOKEN` (renamed from HUBSPOT_API_KEY)
+  - Discovery: supports OAuth without DCR. Upgrade to vendor OAuth in T04.
 
-- [ ] **Google BigQuery** -- `https://bigquery.googleapis.com/mcp`
-  - Category: `databases`, Tags: google, bigquery, data-warehouse, analytics
-  - Env: `GOOGLE_API_KEY` (is_secret: true)
+- [x] **Brevo** -- `https://mcp.brevo.com/v1/brevo/mcp` (API-key-only)
+  - Category: `communication`, Env: `BREVO_MCP_TOKEN`
+  - Genuinely API-key-only (no OAuth metadata).
 
-- [ ] **Brevo** -- `https://mcp.brevo.com/v1/brevo/mcp`
-  - Category: `communication`, Tags: brevo, email, marketing, crm
-  - Env: `BREVO_MCP_TOKEN` (is_secret: true)
-  - Header: `Authorization: Bearer ${BREVO_MCP_TOKEN}`
-  - Note: 27 modules. Also has per-module endpoints (contacts, deals, campaigns, etc).
+- [x] **PagerDuty** -- `https://mcp.pagerduty.com/mcp` (API-key-only)
+  - Category: `monitoring`, Env: `PAGERDUTY_API_TOKEN`, Header: `Authorization: Token ...`
+  - Discovery: supports OAuth without DCR. Upgrade to vendor OAuth in T04.
 
-- [ ] **PagerDuty** -- `https://mcp.pagerduty.com/mcp`
-  - Category: `monitoring`, Tags: pagerduty, incident-management, on-call, alerting
-  - Env: `PAGERDUTY_API_TOKEN` (is_secret: true)
-  - Header: `Authorization: Token ${PAGERDUTY_API_TOKEN}`
-  - Note: EU endpoint at `mcp.eu.pagerduty.com/mcp`. Read-only by default.
+- [x] **BigQuery** -- DROPPED. No confirmed hosted endpoint. stdio-only. Wrong credential type.
+
+- [x] **Proto: discovery_url** -- Added `discovery_url` field (field 7) to `McpServerAuth`. Enables DCR for stdio servers. Updated Go + Java backends to prefer `discovery_url` > `http.url`.
+
+- [x] **GitHub vendor OAuth** -- Added `auth` block with `oauth_app_ref: github-oauth` to `mcp-server-github.yaml` (stdio transport). Reused existing GitHub OAuth App credentials. New Mongock migration seeds OAuthApp.
+
+- [x] **Google Calendar vendor OAuth** -- Added `auth` block with `oauth_app_ref: google-calendar-oauth` to `mcp-server-google-calendar.yaml` (stdio transport). New Google Cloud OAuth client created with Calendar scope. Unverified (pending Google review).
 
 ### Notes
-- No `auth:` block for these -- users must get their own API keys.
-- These could gain OAuth support later; easy to add `auth:` block when vendors support it.
+- HubSpot and PagerDuty both support OAuth (RFC 8414 discovery) but NOT DCR. They should be upgraded to vendor OAuth in T04 when we register OAuth apps with them.
+- GitHub and Google Calendar are the first stdio servers with `auth` blocks in the marketplace — proving that vendor OAuth on stdio works.
+- Marketplace count: 45 → 48 servers (3 new API-key servers).
 
 ---
 

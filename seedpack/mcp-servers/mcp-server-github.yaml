@@ -23,4 +23,15 @@ spec:
   env:
     GITHUB_PERSONAL_ACCESS_TOKEN:
       is_secret: true
-      description: "GitHub personal access token with repo, issues, and pull request scopes"
+      description: "GitHub personal access token or OAuth access token (generate at github.com/settings/tokens)"
+  auth:
+    oauth_app_ref:
+      org: stigmer
+      kind: oauth_app
+      slug: github-oauth
+    target_env_var: "GITHUB_PERSONAL_ACCESS_TOKEN"
+    token_lifetime_hint: "8h"
+    scope_hints:
+      - "repo"
+      - "read:org"
+      - "read:user"

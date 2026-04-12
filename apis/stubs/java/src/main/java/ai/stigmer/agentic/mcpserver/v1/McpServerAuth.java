@@ -64,6 +64,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     vendorApprovalStatus_ = 0;
     vendorApprovalDocsUrl_ = "";
+    discoveryUrl_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -409,6 +410,83 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int DISCOVERY_URL_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object discoveryUrl_ = "";
+  /**
+   * <pre>
+   * Optional URL for OAuth authorization server discovery on stdio servers.
+   *
+   * HTTP servers do not need this: the platform derives the discovery
+   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+   * relative to the server URL).
+   *
+   * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+   * Set this field to the base URL of the vendor's OAuth authorization
+   * server to enable DCR for a stdio-based MCP server.
+   *
+   * Resolution priority:
+   * 1. discovery_url (if set — used for both stdio and HTTP)
+   * 2. http.url (default for HTTP servers)
+   *
+   * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+   * directly, no discovery needed).
+   * </pre>
+   *
+   * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+   * @return The discoveryUrl.
+   */
+  @java.lang.Override
+  public java.lang.String getDiscoveryUrl() {
+    java.lang.Object ref = discoveryUrl_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      discoveryUrl_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Optional URL for OAuth authorization server discovery on stdio servers.
+   *
+   * HTTP servers do not need this: the platform derives the discovery
+   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+   * relative to the server URL).
+   *
+   * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+   * Set this field to the base URL of the vendor's OAuth authorization
+   * server to enable DCR for a stdio-based MCP server.
+   *
+   * Resolution priority:
+   * 1. discovery_url (if set — used for both stdio and HTTP)
+   * 2. http.url (default for HTTP servers)
+   *
+   * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+   * directly, no discovery needed).
+   * </pre>
+   *
+   * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+   * @return The bytes for discoveryUrl.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getDiscoveryUrlBytes() {
+    java.lang.Object ref = discoveryUrl_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      discoveryUrl_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -440,6 +518,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(vendorApprovalDocsUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, vendorApprovalDocsUrl_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(discoveryUrl_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, discoveryUrl_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -475,6 +556,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(vendorApprovalDocsUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, vendorApprovalDocsUrl_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(discoveryUrl_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, discoveryUrl_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -504,6 +588,8 @@ private static final long serialVersionUID = 0L;
     if (vendorApprovalStatus_ != other.vendorApprovalStatus_) return false;
     if (!getVendorApprovalDocsUrl()
         .equals(other.getVendorApprovalDocsUrl())) return false;
+    if (!getDiscoveryUrl()
+        .equals(other.getDiscoveryUrl())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -531,6 +617,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + vendorApprovalStatus_;
     hash = (37 * hash) + VENDOR_APPROVAL_DOCS_URL_FIELD_NUMBER;
     hash = (53 * hash) + getVendorApprovalDocsUrl().hashCode();
+    hash = (37 * hash) + DISCOVERY_URL_FIELD_NUMBER;
+    hash = (53 * hash) + getDiscoveryUrl().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -709,6 +797,7 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.LazyStringArrayList.emptyList();
       vendorApprovalStatus_ = 0;
       vendorApprovalDocsUrl_ = "";
+      discoveryUrl_ = "";
       return this;
     }
 
@@ -765,6 +854,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.vendorApprovalDocsUrl_ = vendorApprovalDocsUrl_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.discoveryUrl_ = discoveryUrl_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -809,6 +901,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getVendorApprovalDocsUrl().isEmpty()) {
         vendorApprovalDocsUrl_ = other.vendorApprovalDocsUrl_;
         bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      if (!other.getDiscoveryUrl().isEmpty()) {
+        discoveryUrl_ = other.discoveryUrl_;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -869,6 +966,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 50
+            case 58: {
+              discoveryUrl_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1711,6 +1813,173 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       vendorApprovalDocsUrl_ = value;
       bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object discoveryUrl_ = "";
+    /**
+     * <pre>
+     * Optional URL for OAuth authorization server discovery on stdio servers.
+     *
+     * HTTP servers do not need this: the platform derives the discovery
+     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+     * relative to the server URL).
+     *
+     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+     * Set this field to the base URL of the vendor's OAuth authorization
+     * server to enable DCR for a stdio-based MCP server.
+     *
+     * Resolution priority:
+     * 1. discovery_url (if set — used for both stdio and HTTP)
+     * 2. http.url (default for HTTP servers)
+     *
+     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+     * directly, no discovery needed).
+     * </pre>
+     *
+     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+     * @return The discoveryUrl.
+     */
+    public java.lang.String getDiscoveryUrl() {
+      java.lang.Object ref = discoveryUrl_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        discoveryUrl_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Optional URL for OAuth authorization server discovery on stdio servers.
+     *
+     * HTTP servers do not need this: the platform derives the discovery
+     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+     * relative to the server URL).
+     *
+     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+     * Set this field to the base URL of the vendor's OAuth authorization
+     * server to enable DCR for a stdio-based MCP server.
+     *
+     * Resolution priority:
+     * 1. discovery_url (if set — used for both stdio and HTTP)
+     * 2. http.url (default for HTTP servers)
+     *
+     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+     * directly, no discovery needed).
+     * </pre>
+     *
+     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+     * @return The bytes for discoveryUrl.
+     */
+    public com.google.protobuf.ByteString
+        getDiscoveryUrlBytes() {
+      java.lang.Object ref = discoveryUrl_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        discoveryUrl_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Optional URL for OAuth authorization server discovery on stdio servers.
+     *
+     * HTTP servers do not need this: the platform derives the discovery
+     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+     * relative to the server URL).
+     *
+     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+     * Set this field to the base URL of the vendor's OAuth authorization
+     * server to enable DCR for a stdio-based MCP server.
+     *
+     * Resolution priority:
+     * 1. discovery_url (if set — used for both stdio and HTTP)
+     * 2. http.url (default for HTTP servers)
+     *
+     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+     * directly, no discovery needed).
+     * </pre>
+     *
+     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+     * @param value The discoveryUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDiscoveryUrl(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      discoveryUrl_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional URL for OAuth authorization server discovery on stdio servers.
+     *
+     * HTTP servers do not need this: the platform derives the discovery
+     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+     * relative to the server URL).
+     *
+     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+     * Set this field to the base URL of the vendor's OAuth authorization
+     * server to enable DCR for a stdio-based MCP server.
+     *
+     * Resolution priority:
+     * 1. discovery_url (if set — used for both stdio and HTTP)
+     * 2. http.url (default for HTTP servers)
+     *
+     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+     * directly, no discovery needed).
+     * </pre>
+     *
+     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDiscoveryUrl() {
+      discoveryUrl_ = getDefaultInstance().getDiscoveryUrl();
+      bitField0_ = (bitField0_ & ~0x00000040);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional URL for OAuth authorization server discovery on stdio servers.
+     *
+     * HTTP servers do not need this: the platform derives the discovery
+     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
+     * relative to the server URL).
+     *
+     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
+     * Set this field to the base URL of the vendor's OAuth authorization
+     * server to enable DCR for a stdio-based MCP server.
+     *
+     * Resolution priority:
+     * 1. discovery_url (if set — used for both stdio and HTTP)
+     * 2. http.url (default for HTTP servers)
+     *
+     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+     * directly, no discovery needed).
+     * </pre>
+     *
+     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
+     * @param value The bytes for discoveryUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDiscoveryUrlBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      discoveryUrl_ = value;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }

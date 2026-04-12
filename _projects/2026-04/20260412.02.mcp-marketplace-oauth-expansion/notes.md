@@ -45,3 +45,25 @@ Keep entries **timestamped** and **concise**. This isn't a novel - just enough c
 
 ---
 
+## 2026-04-12 -- T05 Expanded (Session 3)
+
+### Key Decisions
+- **BigQuery dropped**: No confirmed hosted endpoint at `https://bigquery.googleapis.com/mcp`. Google's BigQuery MCP server is stdio-only. `GOOGLE_API_KEY` is wrong credential type for BigQuery.
+- **HubSpot env var**: Used `HUBSPOT_ACCESS_TOKEN` (not `HUBSPOT_API_KEY`). HubSpot deprecated API keys in 2022; the actual credential is a "Private App Access Token." Matches codebase convention.
+- **discovery_url proto field**: Added `discovery_url` to `McpServerAuth` to enable DCR for stdio servers. Resolution: `discovery_url` > `http.url`. Ignored when `oauth_app_ref` is set.
+- **GitHub OAuth reuses existing credentials**: Duplicated from `github-oauth-config/credentials` into `vendor-oauth-config/credentials`. Same client_id/secret, separate pipeline entry.
+- **Google Calendar OAuth**: New dedicated Google Cloud OAuth client created (separate from Auth0 Login client). Calendar scope classified as sensitive — shows unverified warning until Google verification.
+
+### Learnings
+- **stdio + OAuth is architecturally supported**: The proto schema already allows `auth` on stdio servers. Vendor OAuth (with `oauth_app_ref`) works because the OAuthApp provides endpoints directly — no URL discovery needed. DCR needed `discovery_url` because there's no `http.url` to derive the discovery endpoint from.
+- **HubSpot and PagerDuty support OAuth** (without DCR): Both expose `/.well-known/oauth-authorization-server` with full authorization/token endpoints but no `registration_endpoint`. They are vendor OAuth candidates (T04) but added as API-key-only for now since we don't have registered OAuth apps.
+- **Brevo is genuinely API-key-only**: No OAuth metadata at all (404 on well-known endpoints).
+
+### Future Work (move to T04)
+- **Upgrade HubSpot to vendor OAuth**: Register OAuth app at HubSpot developer portal, create OAuthApp resource, add `oauth_app_ref` to `mcp-server-hubspot.yaml`.
+- **Upgrade PagerDuty to vendor OAuth**: Register OAuth app at PagerDuty, create OAuthApp resource, add `oauth_app_ref` to `mcp-server-pagerduty.yaml`.
+- **Submit Google Calendar for verification**: Go to Google Auth Platform > Verification centre, submit for sensitive scope review.
+- **Verify GitHub OAuth App redirect URI**: Ensure `https://app.stigmer.ai/auth/oauth/callback` is added to the GitHub OAuth App's redirect URIs at github.com/settings/developers.
+
+---
+

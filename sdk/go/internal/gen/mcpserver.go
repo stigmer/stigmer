@@ -159,6 +159,7 @@ type McpServerAuthInput struct {
 	ScopeHints            []string
 	VendorApprovalStatus  oauthappv1.VendorApprovalStatus
 	VendorApprovalDocsUrl string
+	DiscoveryUrl          string
 }
 
 func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
@@ -227,5 +228,6 @@ func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
 		ScopeHints:            i.ScopeHints,
 		VendorApprovalStatus:  i.VendorApprovalStatus,
 		VendorApprovalDocsUrl: i.VendorApprovalDocsUrl,
+		DiscoveryUrl:          i.DiscoveryUrl,
 	}
 }
