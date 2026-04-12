@@ -5,7 +5,7 @@ Add new MCP server integrations with verified OAuth/DCR support to the Stigmer m
 
 **Created**: 2026-04-12  
 **Estimated Time**: 1-4 hours  
-**Status**: 🚧 In Progress
+**Status**: ✅ Closed
 
 ## Goal
 Expand the Stigmer MCP marketplace from 36 to 50+ servers by adding verified remote OAuth integrations one category at a time, with proper DCR verification and manual OAuthApp setup where needed.

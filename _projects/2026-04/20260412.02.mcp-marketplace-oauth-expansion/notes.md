@@ -91,3 +91,26 @@ Keep entries **timestamped** and **concise**. This isn't a novel - just enough c
 - **Marketplace count**: 48 → 56 servers
 
 ---
+
+## 2026-04-12 -- Project Closed (Session 6)
+
+### Key Decisions
+- **GCP MCP servers deferred**: BigQuery, Compute Engine, and GKE all confirmed live and official (verified via MCP initialize + tools/list). However, they require Google Cloud OAuth 2.0 (NOT API keys as awesome-remote-mcp-servers claims). Google's own docs state: "The BigQuery MCP server doesn't accept API keys."
+- **Billing blocker for Compute Engine + GKE**: Enabling these APIs in the `stigmer-auth0-client` OAuth project requires linking a billing account. Not worth it just for hosting OAuth scopes.
+- **BigQuery scope was available** (Analytics Hub API already enabled) but skipped along with the other two for consistency.
+- **Project closed as-is**: 53 servers in marketplace. T04 remaining vendors (Salesforce, Asana, Box, Close CRM, HubSpot/PagerDuty upgrades, blocked vendors) deferred to future work.
+
+### Learnings
+- Google Cloud MCP servers use a shared `StatelessServer` (ESF) architecture across all services.
+- GKE's MCP requires the broad `cloud-platform` scope — no narrow GKE-specific scope exists.
+- The existing `Stigmer MCP OAuth` Google client (used for Calendar) can be reused for all Google services — just add scopes under Data Access. Scopes are requested at auth time, not locked to the client.
+- Enabling "billable APIs" (Compute, GKE) requires billing even if you'll never make API calls in that project.
+
+### Final Marketplace Stats
+- **Starting count**: 36 servers
+- **Final count**: 53 servers (+17)
+- **New DCR servers**: PayPal, Square, Intercom, Attio, monday.com, Contentful, Buildkite, Webflow, Datadog, Wix, Canva, Netlify, Prisma, Cloudinary
+- **Upgraded to remote**: Stripe, Cloudflare, GitHub
+- **New API-key servers**: HubSpot, Brevo, PagerDuty
+- **New vendor OAuth (stdio)**: GitHub, Google Calendar
+- **Removed in quality audit**: Port IO, Egnyte, Ramp
