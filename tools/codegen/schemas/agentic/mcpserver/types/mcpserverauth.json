@@ -51,6 +51,32 @@
       },
       "description": "Optional scope hints for UI display before the OAuth flow starts.\n For DCR servers: shown to the user since actual scopes are discovered\n at connect time during authorization server metadata retrieval.\n For vendor OAuth: informational (scopes are defined on the OAuthApp).",
       "required": false
+    },
+    {
+      "name": "VendorApprovalStatus",
+      "jsonName": "vendorApprovalStatus",
+      "protoField": "vendor_approval_status",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus",
+        "enumValues": [
+          "VENDOR_APPROVAL_STATUS_PENDING",
+          "VENDOR_APPROVAL_STATUS_APPROVED",
+          "VENDOR_APPROVAL_STATUS_REJECTED"
+        ]
+      },
+      "description": "Read-only. Resolved from the referenced OAuthApp at query time.\n Indicates whether the vendor has approved this OAuth app for public use.\n Not persisted on the McpServer — populated by the backend when serving\n MCP server data so the frontend can gate the sign-in button without\n a separate OAuthApp fetch.",
+      "required": false
+    },
+    {
+      "name": "VendorApprovalDocsUrl",
+      "jsonName": "vendorApprovalDocsUrl",
+      "protoField": "vendor_approval_docs_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Read-only. Resolved from the referenced OAuthApp at query time.\n Documentation URL for users who want to bring their own OAuth\n credentials while the platform's OAuth app is pending vendor approval.",
+      "required": false
     }
   ]
 }

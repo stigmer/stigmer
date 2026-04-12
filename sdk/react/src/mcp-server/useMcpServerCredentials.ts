@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { EnvVarInput } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { diffEnv } from "../environment/diffEnv";
 import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars";
@@ -91,6 +92,19 @@ export interface UseMcpServerCredentialsReturn {
   readonly isSaving: boolean;
   /** Re-check the personal environment. */
   readonly refetch: () => void;
+  /**
+   * `true` when the referenced OAuthApp's vendor approval is still pending.
+   * When pending, the platform-managed OAuth sign-in flow is unavailable
+   * and the sign-in button should be disabled. Users can still connect
+   * via manual token entry (manual override).
+   */
+  readonly isVendorApprovalPending: boolean;
+  /**
+   * Documentation URL for users who want to bring their own OAuth
+   * credentials while the platform's OAuth app is pending vendor approval.
+   * `null` when no documentation link is available.
+   */
+  readonly vendorApprovalDocsUrl: string | null;
   /**
    * When `true`, the user has opted to bypass OAuth and enter the
    * `target_env_var` token manually. In this state:
@@ -189,6 +203,11 @@ export function useMcpServerCredentials(
   const oauthTargetEnvVar = auth?.targetEnvVar || null;
   const tokenLifetimeHint = auth?.tokenLifetimeHint || null;
 
+  const isVendorApprovalPending =
+    authMode === "oauth" &&
+    auth?.vendorApprovalStatus === VendorApprovalStatus.PENDING;
+  const vendorApprovalDocsUrl = auth?.vendorApprovalDocsUrl || null;
+
   const grantStatus = useOAuthGrantStatus(
     authMode === "oauth" ? (mcpServer?.metadata?.id ?? null) : null,
     authMode === "oauth" ? org : null,
@@ -246,6 +265,8 @@ export function useMcpServerCredentials(
     isOAuthConnected,
     accessTokenExpiresAt: grantStatus.accessTokenExpiresAt,
     tokenLifetimeHint,
+    isVendorApprovalPending,
+    vendorApprovalDocsUrl,
     missingVariables,
     isReady,
     isLoading: personalEnv.isLoading || grantStatus.isLoading,

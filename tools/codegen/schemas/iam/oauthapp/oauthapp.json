@@ -93,6 +93,32 @@
       },
       "description": "Name of the query parameter used to send scopes in the authorization URL.\n\n Most OAuth providers use the standard \"scope\" parameter. Some vendors\n use a non-standard name — for example, Slack's V2 OAuth API requires\n user token scopes to be sent as \"user_scope\" instead of \"scope\".\n\n When empty, defaults to \"scope\" (standard OAuth 2.0 behavior).",
       "required": false
+    },
+    {
+      "name": "VendorApprovalStatus",
+      "jsonName": "vendorApprovalStatus",
+      "protoField": "vendor_approval_status",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus",
+        "enumValues": [
+          "VENDOR_APPROVAL_STATUS_PENDING",
+          "VENDOR_APPROVAL_STATUS_APPROVED",
+          "VENDOR_APPROVAL_STATUS_REJECTED"
+        ]
+      },
+      "description": "Vendor marketplace/app-review approval status for this OAuth app.\n\n Many vendors (Slack, Figma, Salesforce, etc.) require an approval\n process before a third-party OAuth app can be used publicly. This\n field tracks where Stigmer's registration stands with the vendor.\n\n UNSPECIFIED is treated as approved for backwards compatibility — only\n apps explicitly marked PENDING are gated in the UI.",
+      "required": false
+    },
+    {
+      "name": "VendorApprovalDocsUrl",
+      "jsonName": "vendorApprovalDocsUrl",
+      "protoField": "vendor_approval_docs_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Documentation URL explaining how users can bring their own OAuth\n app credentials or personal access tokens for this vendor while\n the platform's OAuth app is pending approval.\n\n Shown in the frontend as a help link when vendor_approval_status\n is PENDING. Empty means no documentation link is displayed.",
+      "required": false
     }
   ]
 }

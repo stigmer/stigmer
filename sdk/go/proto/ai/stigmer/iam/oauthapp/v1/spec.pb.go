@@ -22,6 +22,70 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Lifecycle status of an OAuthApp's vendor marketplace approval.
+//
+// Vendors like Slack, Figma, and Salesforce require third-party OAuth
+// apps to pass a review/approval process before they can be used by
+// end users. This enum tracks that lifecycle.
+type VendorApprovalStatus int32
+
+const (
+	// Default / unset. Treated as approved for backwards compatibility.
+	// OAuth apps that do not go through a vendor approval process
+	// (e.g., self-hosted or private vendor integrations) leave this unset.
+	VendorApprovalStatus_VENDOR_APPROVAL_STATUS_UNSPECIFIED VendorApprovalStatus = 0
+	// The OAuth app has been submitted to the vendor for review and is
+	// awaiting approval. The sign-in button is disabled in the UI.
+	VendorApprovalStatus_VENDOR_APPROVAL_STATUS_PENDING VendorApprovalStatus = 1
+	// The vendor has approved the OAuth app. Sign-in is enabled.
+	VendorApprovalStatus_VENDOR_APPROVAL_STATUS_APPROVED VendorApprovalStatus = 2
+	// The vendor rejected the OAuth app. Sign-in is disabled.
+	VendorApprovalStatus_VENDOR_APPROVAL_STATUS_REJECTED VendorApprovalStatus = 3
+)
+
+// Enum value maps for VendorApprovalStatus.
+var (
+	VendorApprovalStatus_name = map[int32]string{
+		0: "VENDOR_APPROVAL_STATUS_UNSPECIFIED",
+		1: "VENDOR_APPROVAL_STATUS_PENDING",
+		2: "VENDOR_APPROVAL_STATUS_APPROVED",
+		3: "VENDOR_APPROVAL_STATUS_REJECTED",
+	}
+	VendorApprovalStatus_value = map[string]int32{
+		"VENDOR_APPROVAL_STATUS_UNSPECIFIED": 0,
+		"VENDOR_APPROVAL_STATUS_PENDING":     1,
+		"VENDOR_APPROVAL_STATUS_APPROVED":    2,
+		"VENDOR_APPROVAL_STATUS_REJECTED":    3,
+	}
+)
+
+func (x VendorApprovalStatus) Enum() *VendorApprovalStatus {
+	p := new(VendorApprovalStatus)
+	*p = x
+	return p
+}
+
+func (x VendorApprovalStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (VendorApprovalStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_iam_oauthapp_v1_spec_proto_enumTypes[0].Descriptor()
+}
+
+func (VendorApprovalStatus) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_iam_oauthapp_v1_spec_proto_enumTypes[0]
+}
+
+func (x VendorApprovalStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use VendorApprovalStatus.Descriptor instead.
+func (VendorApprovalStatus) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescGZIP(), []int{0}
+}
+
 // OAuthAppSpec defines a registered OAuth application with an external vendor.
 //
 // @internal
@@ -98,8 +162,24 @@ type OAuthAppSpec struct {
 	//
 	// When empty, defaults to "scope" (standard OAuth 2.0 behavior).
 	ScopeParameterName string `protobuf:"bytes,8,opt,name=scope_parameter_name,json=scopeParameterName,proto3" json:"scope_parameter_name,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Vendor marketplace/app-review approval status for this OAuth app.
+	//
+	// Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+	// process before a third-party OAuth app can be used publicly. This
+	// field tracks where Stigmer's registration stands with the vendor.
+	//
+	// UNSPECIFIED is treated as approved for backwards compatibility — only
+	// apps explicitly marked PENDING are gated in the UI.
+	VendorApprovalStatus VendorApprovalStatus `protobuf:"varint,9,opt,name=vendor_approval_status,json=vendorApprovalStatus,proto3,enum=ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus" json:"vendor_approval_status,omitempty"`
+	// Documentation URL explaining how users can bring their own OAuth
+	// app credentials or personal access tokens for this vendor while
+	// the platform's OAuth app is pending approval.
+	//
+	// Shown in the frontend as a help link when vendor_approval_status
+	// is PENDING. Empty means no documentation link is displayed.
+	VendorApprovalDocsUrl string `protobuf:"bytes,10,opt,name=vendor_approval_docs_url,json=vendorApprovalDocsUrl,proto3" json:"vendor_approval_docs_url,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *OAuthAppSpec) Reset() {
@@ -188,11 +268,25 @@ func (x *OAuthAppSpec) GetScopeParameterName() string {
 	return ""
 }
 
+func (x *OAuthAppSpec) GetVendorApprovalStatus() VendorApprovalStatus {
+	if x != nil {
+		return x.VendorApprovalStatus
+	}
+	return VendorApprovalStatus_VENDOR_APPROVAL_STATUS_UNSPECIFIED
+}
+
+func (x *OAuthAppSpec) GetVendorApprovalDocsUrl() string {
+	if x != nil {
+		return x.VendorApprovalDocsUrl
+	}
+	return ""
+}
+
 var File_ai_stigmer_iam_oauthapp_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a\x1bbuf/validate/validate.proto\"\xc9\x02\n" +
+	"%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a\x1bbuf/validate/validate.proto\"\xea\x03\n" +
 	"\fOAuthAppSpec\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12$\n" +
 	"\tclient_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12,\n" +
@@ -201,7 +295,15 @@ const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\ttoken_url\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x88\x01\x01R\btokenUrl\x12\x16\n" +
 	"\x06scopes\x18\x06 \x03(\tR\x06scopes\x12!\n" +
 	"\fuserinfo_url\x18\a \x01(\tR\vuserinfoUrl\x120\n" +
-	"\x14scope_parameter_name\x18\b \x01(\tR\x12scopeParameterNameB\x87\x02\n" +
+	"\x14scope_parameter_name\x18\b \x01(\tR\x12scopeParameterName\x12f\n" +
+	"\x16vendor_approval_status\x18\t \x01(\x0e20.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x127\n" +
+	"\x18vendor_approval_docs_url\x18\n" +
+	" \x01(\tR\x15vendorApprovalDocsUrl*\xac\x01\n" +
+	"\x14VendorApprovalStatus\x12&\n" +
+	"\"VENDOR_APPROVAL_STATUS_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eVENDOR_APPROVAL_STATUS_PENDING\x10\x01\x12#\n" +
+	"\x1fVENDOR_APPROVAL_STATUS_APPROVED\x10\x02\x12#\n" +
+	"\x1fVENDOR_APPROVAL_STATUS_REJECTED\x10\x03B\x87\x02\n" +
 	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01ZMgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (
@@ -216,16 +318,19 @@ func file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescData
 }
 
+var file_ai_stigmer_iam_oauthapp_v1_spec_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_iam_oauthapp_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_iam_oauthapp_v1_spec_proto_goTypes = []any{
-	(*OAuthAppSpec)(nil), // 0: ai.stigmer.iam.oauthapp.v1.OAuthAppSpec
+	(VendorApprovalStatus)(0), // 0: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	(*OAuthAppSpec)(nil),      // 1: ai.stigmer.iam.oauthapp.v1.OAuthAppSpec
 }
 var file_ai_stigmer_iam_oauthapp_v1_spec_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: ai.stigmer.iam.oauthapp.v1.OAuthAppSpec.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_oauthapp_v1_spec_proto_init() }
@@ -238,13 +343,14 @@ func file_ai_stigmer_iam_oauthapp_v1_spec_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc), len(file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_iam_oauthapp_v1_spec_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_iam_oauthapp_v1_spec_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_iam_oauthapp_v1_spec_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_iam_oauthapp_v1_spec_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_iam_oauthapp_v1_spec_proto = out.File

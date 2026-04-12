@@ -76,6 +76,16 @@ export interface McpServerOAuthSignInProps {
   readonly error: Error | null;
   /** Clear the OAuth error state. */
   readonly onClearError: () => void;
+  /**
+   * `true` when the platform's OAuth app is pending vendor approval.
+   * Disables the sign-in button and shows an informational message.
+   */
+  readonly isVendorApprovalPending?: boolean;
+  /**
+   * Documentation URL for bringing your own OAuth token.
+   * Shown as a help link when `isVendorApprovalPending` is `true`.
+   */
+  readonly vendorApprovalDocsUrl?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -271,6 +281,8 @@ export function McpServerConfigPanel({
           onSignIn={oauthSignIn.onSignIn}
           error={oauthSignIn.error}
           onClearError={oauthSignIn.onClearError}
+          isVendorApprovalPending={oauthSignIn.isVendorApprovalPending}
+          vendorApprovalDocsUrl={oauthSignIn.vendorApprovalDocsUrl}
           onSwitchToManual={onSwitchToManual}
         />
       )}
@@ -334,6 +346,8 @@ function InlineOAuthSignIn({
   onSignIn,
   error,
   onClearError,
+  isVendorApprovalPending,
+  vendorApprovalDocsUrl,
   onSwitchToManual,
 }: {
   readonly serverName: string;
@@ -342,6 +356,8 @@ function InlineOAuthSignIn({
   readonly onSignIn: () => void;
   readonly error: Error | null;
   readonly onClearError: () => void;
+  readonly isVendorApprovalPending?: boolean;
+  readonly vendorApprovalDocsUrl?: string | null;
   readonly onSwitchToManual?: () => void;
 }) {
   const isBusy =
@@ -350,28 +366,38 @@ function InlineOAuthSignIn({
     phase === "completing" ||
     phase === "connecting";
 
+  const signInDisabled = isBusy || !!isVendorApprovalPending;
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <span
           className={cn(
             "inline-flex items-center gap-1 text-[0.65rem] font-medium",
-            isConnected ? "text-success" : "text-muted-foreground",
+            isConnected
+              ? "text-success"
+              : isVendorApprovalPending
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-muted-foreground",
           )}
         >
           <span
             className={cn(
               "size-1.5 rounded-full",
-              isConnected ? "bg-success" : "bg-muted-foreground",
+              isConnected
+                ? "bg-success"
+                : isVendorApprovalPending
+                  ? "bg-amber-500"
+                  : "bg-muted-foreground",
             )}
             aria-hidden="true"
           />
-          {isConnected ? "Signed in" : "Sign-in required"}
+          {isConnected ? "Signed in" : isVendorApprovalPending ? "Pending approval" : "Sign-in required"}
         </span>
         <button
           type="button"
           onClick={onSignIn}
-          disabled={isBusy}
+          disabled={signInDisabled}
           className={cn(
             "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
             isConnected
@@ -389,6 +415,21 @@ function InlineOAuthSignIn({
           )}
         </button>
       </div>
+      {isVendorApprovalPending && !isConnected && (
+        <div className="text-[0.65rem] text-amber-700 dark:text-amber-300">
+          <p>OAuth sign-in is pending vendor approval.</p>
+          {vendorApprovalDocsUrl && (
+            <a
+              href={vendorApprovalDocsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-amber-600/40 underline-offset-2 hover:decoration-amber-600 dark:decoration-amber-400/40 dark:hover:decoration-amber-400"
+            >
+              Learn how to bring your own token
+            </a>
+          )}
+        </div>
+      )}
       {error && (
         <div className="flex items-start gap-1.5 text-[0.65rem] text-destructive">
           <span className="flex-1">{error.message}</span>

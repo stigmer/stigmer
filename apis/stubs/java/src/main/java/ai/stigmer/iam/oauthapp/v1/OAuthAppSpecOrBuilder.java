@@ -232,4 +232,67 @@ public interface OAuthAppSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getScopeParameterNameBytes();
+
+  /**
+   * <pre>
+   * Vendor marketplace/app-review approval status for this OAuth app.
+   *
+   * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+   * process before a third-party OAuth app can be used publicly. This
+   * field tracks where Stigmer's registration stands with the vendor.
+   *
+   * UNSPECIFIED is treated as approved for backwards compatibility — only
+   * apps explicitly marked PENDING are gated in the UI.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+   * @return The enum numeric value on the wire for vendorApprovalStatus.
+   */
+  int getVendorApprovalStatusValue();
+  /**
+   * <pre>
+   * Vendor marketplace/app-review approval status for this OAuth app.
+   *
+   * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+   * process before a third-party OAuth app can be used publicly. This
+   * field tracks where Stigmer's registration stands with the vendor.
+   *
+   * UNSPECIFIED is treated as approved for backwards compatibility — only
+   * apps explicitly marked PENDING are gated in the UI.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+   * @return The vendorApprovalStatus.
+   */
+  ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus getVendorApprovalStatus();
+
+  /**
+   * <pre>
+   * Documentation URL explaining how users can bring their own OAuth
+   * app credentials or personal access tokens for this vendor while
+   * the platform's OAuth app is pending approval.
+   *
+   * Shown in the frontend as a help link when vendor_approval_status
+   * is PENDING. Empty means no documentation link is displayed.
+   * </pre>
+   *
+   * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+   * @return The vendorApprovalDocsUrl.
+   */
+  java.lang.String getVendorApprovalDocsUrl();
+  /**
+   * <pre>
+   * Documentation URL explaining how users can bring their own OAuth
+   * app credentials or personal access tokens for this vendor while
+   * the platform's OAuth app is pending approval.
+   *
+   * Shown in the frontend as a help link when vendor_approval_status
+   * is PENDING. Empty means no documentation link is displayed.
+   * </pre>
+   *
+   * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+   * @return The bytes for vendorApprovalDocsUrl.
+   */
+  com.google.protobuf.ByteString
+      getVendorApprovalDocsUrlBytes();
 }

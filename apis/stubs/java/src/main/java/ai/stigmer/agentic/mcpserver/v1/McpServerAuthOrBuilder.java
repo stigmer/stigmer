@@ -171,4 +171,55 @@ public interface McpServerAuthOrBuilder extends
    */
   com.google.protobuf.ByteString
       getScopeHintsBytes(int index);
+
+  /**
+   * <pre>
+   * Read-only. Resolved from the referenced OAuthApp at query time.
+   * Indicates whether the vendor has approved this OAuth app for public use.
+   * Not persisted on the McpServer — populated by the backend when serving
+   * MCP server data so the frontend can gate the sign-in button without
+   * a separate OAuthApp fetch.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 5 [json_name = "vendorApprovalStatus"];</code>
+   * @return The enum numeric value on the wire for vendorApprovalStatus.
+   */
+  int getVendorApprovalStatusValue();
+  /**
+   * <pre>
+   * Read-only. Resolved from the referenced OAuthApp at query time.
+   * Indicates whether the vendor has approved this OAuth app for public use.
+   * Not persisted on the McpServer — populated by the backend when serving
+   * MCP server data so the frontend can gate the sign-in button without
+   * a separate OAuthApp fetch.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 5 [json_name = "vendorApprovalStatus"];</code>
+   * @return The vendorApprovalStatus.
+   */
+  ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus getVendorApprovalStatus();
+
+  /**
+   * <pre>
+   * Read-only. Resolved from the referenced OAuthApp at query time.
+   * Documentation URL for users who want to bring their own OAuth
+   * credentials while the platform's OAuth app is pending vendor approval.
+   * </pre>
+   *
+   * <code>string vendor_approval_docs_url = 6 [json_name = "vendorApprovalDocsUrl"];</code>
+   * @return The vendorApprovalDocsUrl.
+   */
+  java.lang.String getVendorApprovalDocsUrl();
+  /**
+   * <pre>
+   * Read-only. Resolved from the referenced OAuthApp at query time.
+   * Documentation URL for users who want to bring their own OAuth
+   * credentials while the platform's OAuth app is pending vendor approval.
+   * </pre>
+   *
+   * <code>string vendor_approval_docs_url = 6 [json_name = "vendorApprovalDocsUrl"];</code>
+   * @return The bytes for vendorApprovalDocsUrl.
+   */
+  com.google.protobuf.ByteString
+      getVendorApprovalDocsUrlBytes();
 }

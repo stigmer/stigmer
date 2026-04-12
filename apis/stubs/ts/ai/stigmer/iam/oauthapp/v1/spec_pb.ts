@@ -2,8 +2,8 @@
 // @generated from file ai/stigmer/iam/oauthapp/v1/spec.proto (package ai.stigmer.iam.oauthapp.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/oauthapp/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MSLiAQoMT0F1dGhBcHBTcGVjEhAKCHByb3ZpZGVyGAEgASgJEhoKCWNsaWVudF9pZBgCIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAMgASgJQge6SARyAhABEiMKEWF1dGhvcml6YXRpb25fdXJsGAQgASgJQgi6SAVyA4gBARIbCgl0b2tlbl91cmwYBSABKAlCCLpIBXIDiAEBEg4KBnNjb3BlcxgGIAMoCRIUCgx1c2VyaW5mb191cmwYByABKAkSHAoUc2NvcGVfcGFyYW1ldGVyX25hbWUYCCABKAliBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MSLWAgoMT0F1dGhBcHBTcGVjEhAKCHByb3ZpZGVyGAEgASgJEhoKCWNsaWVudF9pZBgCIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAMgASgJQge6SARyAhABEiMKEWF1dGhvcml6YXRpb25fdXJsGAQgASgJQgi6SAVyA4gBARIbCgl0b2tlbl91cmwYBSABKAlCCLpIBXIDiAEBEg4KBnNjb3BlcxgGIAMoCRIUCgx1c2VyaW5mb191cmwYByABKAkSHAoUc2NvcGVfcGFyYW1ldGVyX25hbWUYCCABKAkSUAoWdmVuZG9yX2FwcHJvdmFsX3N0YXR1cxgJIAEoDjIwLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlZlbmRvckFwcHJvdmFsU3RhdHVzEiAKGHZlbmRvcl9hcHByb3ZhbF9kb2NzX3VybBgKIAEoCSqsAQoUVmVuZG9yQXBwcm92YWxTdGF0dXMSJgoiVkVORE9SX0FQUFJPVkFMX1NUQVRVU19VTlNQRUNJRklFRBAAEiIKHlZFTkRPUl9BUFBST1ZBTF9TVEFUVVNfUEVORElORxABEiMKH1ZFTkRPUl9BUFBST1ZBTF9TVEFUVVNfQVBQUk9WRUQQAhIjCh9WRU5ET1JfQVBQUk9WQUxfU1RBVFVTX1JFSkVDVEVEEANiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * OAuthAppSpec defines a registered OAuth application with an external vendor.
@@ -129,6 +129,32 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
    * @generated from field: string scope_parameter_name = 8;
    */
   scopeParameterName: string;
+
+  /**
+   * Vendor marketplace/app-review approval status for this OAuth app.
+   *
+   * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+   * process before a third-party OAuth app can be used publicly. This
+   * field tracks where Stigmer's registration stands with the vendor.
+   *
+   * UNSPECIFIED is treated as approved for backwards compatibility — only
+   * apps explicitly marked PENDING are gated in the UI.
+   *
+   * @generated from field: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9;
+   */
+  vendorApprovalStatus: VendorApprovalStatus;
+
+  /**
+   * Documentation URL explaining how users can bring their own OAuth
+   * app credentials or personal access tokens for this vendor while
+   * the platform's OAuth app is pending approval.
+   *
+   * Shown in the frontend as a help link when vendor_approval_status
+   * is PENDING. Empty means no documentation link is displayed.
+   *
+   * @generated from field: string vendor_approval_docs_url = 10;
+   */
+  vendorApprovalDocsUrl: string;
 };
 
 /**
@@ -137,4 +163,52 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
  */
 export const OAuthAppSpecSchema: GenMessage<OAuthAppSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_oauthapp_v1_spec, 0);
+
+/**
+ * Lifecycle status of an OAuthApp's vendor marketplace approval.
+ *
+ * Vendors like Slack, Figma, and Salesforce require third-party OAuth
+ * apps to pass a review/approval process before they can be used by
+ * end users. This enum tracks that lifecycle.
+ *
+ * @generated from enum ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+ */
+export enum VendorApprovalStatus {
+  /**
+   * Default / unset. Treated as approved for backwards compatibility.
+   * OAuth apps that do not go through a vendor approval process
+   * (e.g., self-hosted or private vendor integrations) leave this unset.
+   *
+   * @generated from enum value: VENDOR_APPROVAL_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The OAuth app has been submitted to the vendor for review and is
+   * awaiting approval. The sign-in button is disabled in the UI.
+   *
+   * @generated from enum value: VENDOR_APPROVAL_STATUS_PENDING = 1;
+   */
+  PENDING = 1,
+
+  /**
+   * The vendor has approved the OAuth app. Sign-in is enabled.
+   *
+   * @generated from enum value: VENDOR_APPROVAL_STATUS_APPROVED = 2;
+   */
+  APPROVED = 2,
+
+  /**
+   * The vendor rejected the OAuth app. Sign-in is disabled.
+   *
+   * @generated from enum value: VENDOR_APPROVAL_STATUS_REJECTED = 3;
+   */
+  REJECTED = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus.
+ */
+export const VendorApprovalStatusSchema: GenEnum<VendorApprovalStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_iam_oauthapp_v1_spec, 0);
 

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "oauth",
@@ -20,4 +20,10 @@ go_library(
         "//backend/services/stigmer-server/pkg/downstream/environment",
         "@com_github_rs_zerolog//log",
     ],
+)
+
+go_test(
+    name = "oauth_test",
+    srcs = ["token_test.go"],
+    embed = [":oauth"],
 )
