@@ -113,6 +113,18 @@ export interface McpServerConfigPanelProps {
   readonly onEnabledToolsChange: (enabledTools: string[]) => void;
   /** Called when the user clicks "Back" to return to the picker list. */
   readonly onBack: () => void;
+  /**
+   * When provided, a "Enter token manually" link is shown below the
+   * OAuth sign-in section. Clicking it switches the panel to manual
+   * token entry mode — the caller is responsible for updating the
+   * `credentials` and `oauthSignIn` props accordingly.
+   */
+  readonly onSwitchToManual?: () => void;
+  /**
+   * When provided, a "Sign in with OAuth instead" link is shown near
+   * the credentials form. Clicking it reverts to the OAuth flow.
+   */
+  readonly onSwitchToOAuth?: () => void;
   /** Error to display inline (e.g., from credential submission failure). */
   readonly error?: Error | null;
   /** Disables all interaction. */
@@ -179,6 +191,8 @@ export function McpServerConfigPanel({
   enabledTools,
   onEnabledToolsChange,
   onBack,
+  onSwitchToManual,
+  onSwitchToOAuth,
   error,
   disabled,
   className,
@@ -257,7 +271,19 @@ export function McpServerConfigPanel({
           onSignIn={oauthSignIn.onSignIn}
           error={oauthSignIn.error}
           onClearError={oauthSignIn.onClearError}
+          onSwitchToManual={onSwitchToManual}
         />
+      )}
+
+      {/* Switch back to OAuth — shown in manual override mode */}
+      {!oauthSignIn && onSwitchToOAuth && (
+        <button
+          type="button"
+          onClick={onSwitchToOAuth}
+          className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+        >
+          Sign in with OAuth instead
+        </button>
       )}
 
       {/* Credentials form — only when credentials prop is provided */}
@@ -308,6 +334,7 @@ function InlineOAuthSignIn({
   onSignIn,
   error,
   onClearError,
+  onSwitchToManual,
 }: {
   readonly serverName: string;
   readonly isConnected: boolean;
@@ -315,6 +342,7 @@ function InlineOAuthSignIn({
   readonly onSignIn: () => void;
   readonly error: Error | null;
   readonly onClearError: () => void;
+  readonly onSwitchToManual?: () => void;
 }) {
   const isBusy =
     phase === "initiating" ||
@@ -372,6 +400,15 @@ function InlineOAuthSignIn({
             Dismiss
           </button>
         </div>
+      )}
+      {onSwitchToManual && !isConnected && !isBusy && (
+        <button
+          type="button"
+          onClick={onSwitchToManual}
+          className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+        >
+          Enter token manually
+        </button>
       )}
     </div>
   );

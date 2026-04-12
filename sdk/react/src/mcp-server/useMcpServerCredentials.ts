@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { EnvVarInput } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
@@ -91,6 +91,22 @@ export interface UseMcpServerCredentialsReturn {
   readonly isSaving: boolean;
   /** Re-check the personal environment. */
   readonly refetch: () => void;
+  /**
+   * When `true`, the user has opted to bypass OAuth and enter the
+   * `target_env_var` token manually. In this state:
+   *
+   * - {@link missingVariables} includes the OAuth-managed variable
+   * - {@link isReady} no longer requires an active OAuth grant
+   *
+   * Only meaningful when `authMode` is `"oauth"`. Has no effect on
+   * manual-only servers.
+   */
+  readonly manualOverride: boolean;
+  /**
+   * Toggle the manual override. Pass `true` to switch from OAuth to
+   * manual token entry; `false` to revert to the OAuth flow.
+   */
+  readonly setManualOverride: (override: boolean) => void;
 }
 
 /**
@@ -121,9 +137,31 @@ export interface UseMcpServerCredentialsReturn {
  * ```tsx
  * const creds = useMcpServerCredentials("acme", mcpServer);
  *
- * // OAuth server — sign-in button + optional manual form
+ * // OAuth server — sign-in button + manual override escape hatch
  * if (creds.authMode === "oauth" && !creds.isOAuthConnected) {
- *   return <button onClick={startOAuth}>Sign in</button>;
+ *   if (creds.manualOverride) {
+ *     // User opted to enter the token manually
+ *     return (
+ *       <>
+ *         <EnvVarForm
+ *           variables={creds.missingVariables}
+ *           onSubmit={(values) => creds.saveCredentials(values)}
+ *           isSubmitting={creds.isSaving}
+ *         />
+ *         <button onClick={() => creds.setManualOverride(false)}>
+ *           Sign in with OAuth instead
+ *         </button>
+ *       </>
+ *     );
+ *   }
+ *   return (
+ *     <>
+ *       <button onClick={startOAuth}>Sign in</button>
+ *       <button onClick={() => creds.setManualOverride(true)}>
+ *         Enter token manually
+ *       </button>
+ *     </>
+ *   );
  * }
  *
  * // Manual vars still needed (mixed mode or manual-only)
@@ -144,6 +182,7 @@ export function useMcpServerCredentials(
   mcpServer: McpServer | null,
 ): UseMcpServerCredentialsReturn {
   const personalEnv = usePersonalEnvironment(org);
+  const [manualOverride, setManualOverride] = useState(false);
 
   const auth = mcpServer?.spec?.auth;
   const authMode: McpServerAuthMode = auth ? "oauth" : "manual";
@@ -178,15 +217,15 @@ export function useMcpServerCredentials(
   );
 
   const missingVariables = useMemo(() => {
-    if (!oauthTargetEnvVar) return requiredMissing;
+    if (!oauthTargetEnvVar || manualOverride) return requiredMissing;
     return requiredMissing.filter((v) => v.key !== oauthTargetEnvVar);
-  }, [requiredMissing, oauthTargetEnvVar]);
+  }, [requiredMissing, oauthTargetEnvVar, manualOverride]);
 
   const isReady =
     !personalEnv.isLoading &&
     !grantStatus.isLoading &&
     missingVariables.length === 0 &&
-    (authMode === "manual" || isOAuthConnected);
+    (authMode === "manual" || manualOverride || isOAuthConnected);
 
   const saveCredentials = useCallback(
     async (values: Record<string, EnvVarInput>): Promise<void> => {
@@ -214,5 +253,7 @@ export function useMcpServerCredentials(
     saveCredentials,
     isSaving: personalEnv.isMutating,
     refetch,
+    manualOverride,
+    setManualOverride,
   };
 }

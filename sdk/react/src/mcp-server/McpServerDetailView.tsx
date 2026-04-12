@@ -153,7 +153,11 @@ export function McpServerDetailView({
   const handleConnectClick = useCallback(async () => {
     if (!mcpServer?.metadata?.id) return;
 
-    if (credentials.authMode === "oauth" && !credentials.isOAuthConnected) {
+    if (
+      credentials.authMode === "oauth" &&
+      !credentials.isOAuthConnected &&
+      !credentials.manualOverride
+    ) {
       handleOAuthSignIn();
       return;
     }
@@ -170,7 +174,7 @@ export function McpServerDetailView({
     } catch {
       // error state is managed by the hook
     }
-  }, [mcpServer, credentials.authMode, credentials.isOAuthConnected, credentials.isReady, connection, refetch, handleOAuthSignIn]);
+  }, [mcpServer, credentials.authMode, credentials.isOAuthConnected, credentials.manualOverride, credentials.isReady, connection, refetch, handleOAuthSignIn]);
 
   const handleCredentialSubmit = useCallback(
     async (
@@ -292,6 +296,15 @@ export function McpServerDetailView({
           isOAuthConnected={credentials.isOAuthConnected}
           accessTokenExpiresAt={credentials.accessTokenExpiresAt}
           tokenLifetimeHint={credentials.tokenLifetimeHint}
+          manualOverride={credentials.manualOverride}
+          onManualOverride={() => {
+            credentials.setManualOverride(true);
+            setShowCredentialForm(true);
+          }}
+          onBackToOAuth={() => {
+            credentials.setManualOverride(false);
+            setShowCredentialForm(false);
+          }}
         />
 
         {showCredentialForm && credentials.missingVariables.length > 0 && (
@@ -361,6 +374,9 @@ function ConnectBar({
   isOAuthConnected,
   accessTokenExpiresAt,
   tokenLifetimeHint,
+  manualOverride,
+  onManualOverride,
+  onBackToOAuth,
 }: {
   readonly isConnecting: boolean;
   readonly connectionError: Error | null;
@@ -375,6 +391,9 @@ function ConnectBar({
   readonly isOAuthConnected: boolean;
   readonly accessTokenExpiresAt: bigint;
   readonly tokenLifetimeHint: string | null;
+  readonly manualOverride: boolean;
+  readonly onManualOverride: () => void;
+  readonly onBackToOAuth: () => void;
 }) {
   const isOAuthBusy =
     oauthPhase === "initiating" ||
@@ -382,17 +401,20 @@ function ConnectBar({
     oauthPhase === "completing" ||
     oauthPhase === "connecting";
 
+  const showOAuthPrimary =
+    authMode === "oauth" && !isOAuthConnected && !manualOverride;
+
   const buttonLabel = (() => {
     if (isOAuthBusy) return oauthPhaseLabel(oauthPhase);
     if (isConnecting) return "Connecting...";
-    if (authMode === "oauth" && !isOAuthConnected) return "Sign in to connect";
+    if (showOAuthPrimary) return "Sign in to connect";
     if (hasDiscoveredTools) return "Reconnect";
     return "Connect";
   })();
 
   const buttonIcon = (() => {
     if (isOAuthBusy || isConnecting) return <Spinner />;
-    if (authMode === "oauth" && !isOAuthConnected) return <OAuthIcon className="size-3.5" />;
+    if (showOAuthPrimary) return <OAuthIcon className="size-3.5" />;
     if (hasDiscoveredTools) return <RefreshIcon className="size-3.5" />;
     return <ConnectIcon className="size-3.5" />;
   })();
@@ -406,6 +428,7 @@ function ConnectBar({
         : "";
       return `Tokens refresh automatically${hint}`;
     }
+    if (manualOverride) return "Entering token manually";
     if (hasDiscoveredTools) return formatConnectionSummary(toolCount, policyCount);
     return "Not connected yet";
   })();
@@ -414,7 +437,7 @@ function ConnectBar({
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center gap-2">
-          {authMode === "oauth" && (
+          {authMode === "oauth" && !manualOverride && (
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
@@ -444,7 +467,7 @@ function ConnectBar({
           data-cursor-target="connect-button"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-            authMode === "oauth" && !isOAuthConnected
+            showOAuthPrimary
               ? "bg-primary text-primary-foreground hover:bg-primary-hover"
               : "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
             "disabled:pointer-events-none disabled:opacity-50",
@@ -454,6 +477,29 @@ function ConnectBar({
           {buttonLabel}
         </button>
       </div>
+
+      {/* Secondary action: switch between OAuth and manual token entry */}
+      {authMode === "oauth" && !isOAuthConnected && !isOAuthBusy && !isConnecting && (
+        <div className="border-t border-border px-3 py-1.5">
+          {manualOverride ? (
+            <button
+              type="button"
+              onClick={onBackToOAuth}
+              className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            >
+              Sign in with OAuth instead
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onManualOverride}
+              className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            >
+              Enter token manually
+            </button>
+          )}
+        </div>
+      )}
 
       {connectionError && (
         <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2">

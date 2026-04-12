@@ -272,6 +272,9 @@ export function McpServerPicker({
       ? { type: "configure", serverKey: initialServerKey }
       : { type: "list" },
   );
+  const [manualOverrideKeys, setManualOverrideKeys] = useState<Set<string>>(
+    () => new Set(),
+  );
   const searchRef = useRef<HTMLInputElement>(null);
   const results_ = useScrollShadows();
   const selected_ = useScrollShadows();
@@ -397,13 +400,15 @@ export function McpServerPicker({
     const auth = entry.mcpServer.spec?.auth;
     const oauthTargetEnvVar = auth?.targetEnvVar || null;
     const hasOAuth = !!auth;
+    const isManualOverride = manualOverrideKeys.has(view.serverKey);
 
     const entryMissingVars =
       entry.status === "needsSetup" ? entry.missingVariables : [];
 
-    const filteredMissingVars = oauthTargetEnvVar
-      ? entryMissingVars.filter((v) => v.key !== oauthTargetEnvVar)
-      : entryMissingVars;
+    const filteredMissingVars =
+      oauthTargetEnvVar && !isManualOverride
+        ? entryMissingVars.filter((v) => v.key !== oauthTargetEnvVar)
+        : entryMissingVars;
 
     const hasManualVars = filteredMissingVars.length > 0;
 
@@ -411,23 +416,48 @@ export function McpServerPicker({
       ? entryMissingVars.some((v) => v.key === oauthTargetEnvVar)
       : false;
 
-    const oauthSignInProps = hasOAuth
-      ? {
-          onSignIn: async () => {
-            if (!entry.mcpServer.metadata?.id) return;
-            try {
-              await oauth.startOAuth(entry.mcpServer.metadata.id, activeOrg ?? org);
-              setup.onServerAdded(ref);
-            } catch {
-              // error state managed by oauth hook
-            }
-          },
-          phase: oauth.phase,
-          isConnected: !oauthTokenMissing,
-          error: oauth.error,
-          onClearError: oauth.clearError,
+    const oauthSignInProps =
+      hasOAuth && !isManualOverride
+        ? {
+            onSignIn: async () => {
+              if (!entry.mcpServer.metadata?.id) return;
+              try {
+                await oauth.startOAuth(
+                  entry.mcpServer.metadata.id,
+                  activeOrg ?? org,
+                );
+                setup.onServerAdded(ref);
+              } catch {
+                // error state managed by oauth hook
+              }
+            },
+            phase: oauth.phase,
+            isConnected: !oauthTokenMissing,
+            error: oauth.error,
+            onClearError: oauth.clearError,
+          }
+        : undefined;
+
+    const handleSwitchToManual = hasOAuth
+      ? () => {
+          setManualOverrideKeys((prev) => {
+            const next = new Set(prev);
+            next.add(view.serverKey);
+            return next;
+          });
         }
       : undefined;
+
+    const handleSwitchToOAuth =
+      hasOAuth && isManualOverride
+        ? () => {
+            setManualOverrideKeys((prev) => {
+              const next = new Set(prev);
+              next.delete(view.serverKey);
+              return next;
+            });
+          }
+        : undefined;
 
     return (
       <div className={cn("w-72", className)}>
@@ -445,6 +475,8 @@ export function McpServerPicker({
                 }
               : undefined
           }
+          onSwitchToManual={handleSwitchToManual}
+          onSwitchToOAuth={handleSwitchToOAuth}
           discoveredTools={entry.discoveredTools}
           toolApprovals={entry.toolApprovals}
           enabledTools={
