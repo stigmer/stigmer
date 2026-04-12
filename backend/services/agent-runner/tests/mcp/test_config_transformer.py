@@ -15,6 +15,7 @@ import pytest
 
 from worker.mcp.config_transformer import (
     McpConfigResult,
+    _get_discovered_tool_names,
     _resolve_stdio_args,
     transform_all_mcp_configs,
     transform_mcp_config,
@@ -77,7 +78,7 @@ def mock_mcp_server():
 
 @pytest.fixture
 def mock_mcp_server_http():
-    """Create a mock McpServer with HTTP config."""
+    """Create a mock McpServer with HTTP config and discovered tools."""
     server = MagicMock()
     server.metadata.id = "mcp-server-456"
     server.metadata.name = "custom-mcp"
@@ -88,6 +89,12 @@ def mock_mcp_server_http():
     server.spec.http.query_params = {}
     server.spec.http.timeout_seconds = 30
     server.spec.default_enabled_tools = []
+    # Discovered tools (populated by backfill/connect)
+    tool_a = MagicMock()
+    tool_a.name = "tool_alpha"
+    tool_b = MagicMock()
+    tool_b.name = "tool_beta"
+    server.status.discovered_capabilities.tools = [tool_a, tool_b]
     return server
 
 
@@ -563,6 +570,9 @@ class TestTransformAllMcpConfigs:
         assert len(result.servers) == 2
         assert "github" in result.servers
         assert "custom-api" in result.servers
+        # HTTP server with no enabled_tools and no default_enabled_tools
+        # should expand from discovered capabilities
+        assert result.tools["custom-api"] == ["tool_alpha", "tool_beta"]
 
     def test_transform_empty_list(self):
         """Test transforming empty server list."""
@@ -642,6 +652,149 @@ class TestTransformAllMcpConfigs:
 
         # Should use default_enabled_tools from server spec
         assert result.tools["github"] == ["search_code", "create_pr"]
+
+
+# =============================================================================
+# Tests for _get_discovered_tool_names() and "all tools" expansion
+# =============================================================================
+
+
+class TestGetDiscoveredToolNames:
+    """Tests for extracting discovered tool names from server status."""
+
+    def test_returns_tool_names(self):
+        """Test extracting names from discovered capabilities."""
+        server = MagicMock()
+        t1 = MagicMock()
+        t1.name = "get_issues"
+        t2 = MagicMock()
+        t2.name = "create_issue"
+        server.status.discovered_capabilities.tools = [t1, t2]
+
+        result = _get_discovered_tool_names(server)
+        assert result == ["get_issues", "create_issue"]
+
+    def test_returns_empty_when_no_status(self):
+        """Test returns empty list when server has no status."""
+        server = MagicMock()
+        del server.status
+        server.status = MagicMock(spec=[])
+
+        result = _get_discovered_tool_names(server)
+        assert result == []
+
+    def test_returns_empty_when_no_discovered_capabilities(self):
+        """Test returns empty list when discovered_capabilities is absent."""
+        server = MagicMock()
+        server.status = MagicMock(spec=[])
+
+        result = _get_discovered_tool_names(server)
+        assert result == []
+
+    def test_skips_empty_tool_names(self):
+        """Test that tools with empty names are filtered out."""
+        server = MagicMock()
+        t1 = MagicMock()
+        t1.name = "valid_tool"
+        t2 = MagicMock()
+        t2.name = ""
+        server.status.discovered_capabilities.tools = [t1, t2]
+
+        result = _get_discovered_tool_names(server)
+        assert result == ["valid_tool"]
+
+
+class TestAllToolsExpansion:
+    """Tests for expanding empty tool lists from discovered capabilities."""
+
+    def test_all_tools_expanded_from_discovered(self):
+        """When no enabled/default tools, expand from discovered capabilities."""
+        server = MagicMock()
+        server.metadata.id = "mcp-linear"
+        server.metadata.slug = "linear"
+        server.spec.HasField.side_effect = lambda x: x == "http"
+        server.spec.http.url = "https://mcp.linear.app/mcp"
+        server.spec.http.headers = {}
+        server.spec.http.query_params = {}
+        server.spec.http.timeout_seconds = 0
+        server.spec.default_enabled_tools = []
+        server.spec.env = {}
+
+        t1 = MagicMock()
+        t1.name = "get_issue"
+        t2 = MagicMock()
+        t2.name = "list_issues"
+        server.status.discovered_capabilities.tools = [t1, t2]
+
+        usage = MagicMock()
+        usage.mcp_server_ref.slug = "linear"
+        usage.enabled_tools = []
+
+        result = transform_all_mcp_configs(
+            mcp_servers=[server],
+            mcp_server_usages=[usage],
+            env_vars={},
+        )
+
+        assert "linear" in result.servers
+        assert result.tools["linear"] == ["get_issue", "list_issues"]
+
+    def test_server_skipped_when_no_discovered_tools(self):
+        """Server with no enabled, default, or discovered tools is skipped."""
+        server = MagicMock()
+        server.metadata.id = "mcp-broken"
+        server.metadata.slug = "broken"
+        server.spec.HasField.side_effect = lambda x: x == "http"
+        server.spec.http.url = "https://broken.example.com/mcp"
+        server.spec.http.headers = {}
+        server.spec.http.query_params = {}
+        server.spec.http.timeout_seconds = 0
+        server.spec.default_enabled_tools = []
+        server.spec.env = {}
+        server.status = MagicMock(spec=[])
+
+        usage = MagicMock()
+        usage.mcp_server_ref.slug = "broken"
+        usage.enabled_tools = []
+
+        result = transform_all_mcp_configs(
+            mcp_servers=[server],
+            mcp_server_usages=[usage],
+            env_vars={},
+        )
+
+        assert "broken" not in result.servers
+        assert "broken" not in result.tools
+
+    def test_explicit_tools_not_overridden_by_discovered(self):
+        """When enabled_tools is explicit, discovered tools are not used."""
+        server = MagicMock()
+        server.metadata.id = "mcp-123"
+        server.metadata.slug = "github"
+        server.spec.HasField.side_effect = lambda x: x == "stdio"
+        server.spec.stdio.command = "npx"
+        server.spec.stdio.args = []
+        server.spec.stdio.working_dir = ""
+        server.spec.default_enabled_tools = []
+        server.spec.env = {}
+
+        t1 = MagicMock()
+        t1.name = "search_code"
+        t2 = MagicMock()
+        t2.name = "create_pr"
+        server.status.discovered_capabilities.tools = [t1, t2]
+
+        usage = MagicMock()
+        usage.mcp_server_ref.slug = "github"
+        usage.enabled_tools = ["search_code"]
+
+        result = transform_all_mcp_configs(
+            mcp_servers=[server],
+            mcp_server_usages=[usage],
+            env_vars={},
+        )
+
+        assert result.tools["github"] == ["search_code"]
 
 
 # =============================================================================
