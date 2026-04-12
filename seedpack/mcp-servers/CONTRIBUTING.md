@@ -140,7 +140,7 @@ Use one of these values for `metadata.labels.stigmer.ai/category`:
 | `ai-reasoning` | Sequential thinking, memory, AI-augmented tools |
 | `notifications` | Twilio, Resend, SMS, email delivery |
 | `scheduling` | Google Calendar, time management |
-| `crm-support` | Salesforce, Atlassian (Jira/Confluence), customer platforms |
+| `crm-support` | Atlassian (Jira/Confluence), customer platforms |
 
 ## Proto Schema Reference
 
