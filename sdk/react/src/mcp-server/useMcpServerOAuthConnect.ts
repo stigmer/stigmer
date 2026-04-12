@@ -20,6 +20,14 @@ import { toError } from "../internal/toError";
 export const OAUTH_CALLBACK_MESSAGE_TYPE = "stigmer:oauth:callback";
 
 /**
+ * BroadcastChannel name used as a fallback when `window.opener` is severed
+ * by `Cross-Origin-Opener-Policy` headers on the OAuth provider.
+ *
+ * @internal
+ */
+export const OAUTH_BROADCAST_CHANNEL = "stigmer:oauth:broadcast";
+
+/**
  * Shape of the `postMessage` payload sent from the OAuth callback popup.
  *
  * @internal
@@ -231,6 +239,14 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 // Popup callback listener
 // ---------------------------------------------------------------------------
 
+/**
+ * Grace period (ms) after `popup.closed` is first detected before treating
+ * it as a user-initiated close. COOP providers sever the opener reference
+ * immediately, making `popup.closed` appear `true` while the popup is still
+ * active. The grace period lets the BroadcastChannel callback arrive.
+ */
+const POPUP_CLOSED_GRACE_MS = 5_000;
+
 function waitForOAuthCallback(
   popup: Window,
   expectedState: string,
@@ -240,11 +256,13 @@ function waitForOAuthCallback(
     let settled = false;
     let timeoutId: ReturnType<typeof setTimeout>;
     let pollId: ReturnType<typeof setInterval>;
+    let bc: BroadcastChannel | null = null;
 
     function cleanup() {
       if (timeoutId) clearTimeout(timeoutId);
       if (pollId) clearInterval(pollId);
       window.removeEventListener("message", onMessage);
+      try { bc?.close(); } catch { /* ignore */ }
     }
 
     function settle(
@@ -265,10 +283,7 @@ function waitForOAuthCallback(
       closePopup(popup);
     });
 
-    function onMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return;
-
-      const data = event.data as OAuthCallbackMessage | undefined;
+    function validateAndSettle(data: OAuthCallbackMessage | undefined) {
       if (data?.type !== OAUTH_CALLBACK_MESSAGE_TYPE) return;
 
       if (data.state !== expectedState) {
@@ -289,7 +304,22 @@ function waitForOAuthCallback(
       settle({ code: data.code, state: data.state });
     }
 
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      validateAndSettle(event.data as OAuthCallbackMessage | undefined);
+    }
+
     window.addEventListener("message", onMessage);
+
+    // BroadcastChannel — works even when COOP severs window.opener.
+    try {
+      bc = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
+      bc.onmessage = (event: MessageEvent) => {
+        validateAndSettle(event.data as OAuthCallbackMessage | undefined);
+      };
+    } catch {
+      // BroadcastChannel unsupported — rely on postMessage only.
+    }
 
     timeoutId = setTimeout(() => {
       settle(
@@ -302,9 +332,20 @@ function waitForOAuthCallback(
       closePopup(popup);
     }, POPUP_CALLBACK_TIMEOUT_MS);
 
+    // COOP providers make popup.closed appear true immediately after
+    // cross-origin navigation. Wait a grace period before treating it
+    // as a real user-initiated close.
+    let popupClosedAt: number | null = null;
+
     pollId = setInterval(() => {
       if (popup.closed) {
-        settle(new Error("The authentication window was closed before completing sign-in."));
+        if (popupClosedAt === null) {
+          popupClosedAt = Date.now();
+        } else if (Date.now() - popupClosedAt > POPUP_CLOSED_GRACE_MS) {
+          settle(new Error("The authentication window was closed before completing sign-in."));
+        }
+      } else {
+        popupClosedAt = null;
       }
     }, 500);
   });
