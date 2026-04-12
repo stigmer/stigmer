@@ -67,9 +67,9 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-04-12  
-**Status**: In Progress (T01+T02+T03+T05+T06 complete, 1 task remaining)  
-**Current Focus**: No task in progress — T04 is the last remaining task  
-**Last Session**: Session 4 (2026-04-12) — T06+T03 combined, then quality audit
+**Status**: In Progress (T01+T02+T03+T05+T06 complete, T04 partially done)  
+**Current Focus**: T04 — GitHub subtask complete, remaining vendors need manual registration  
+**Last Session**: Session 5 (2026-04-12) — GitHub stdio→HTTP upgrade, vendor assessment
 
 ## Session Progress (2026-04-12, session 2)
 
@@ -114,14 +114,33 @@ That's it! No complex structure - just focused work.
 - Final marketplace count: 53 servers (56 - 3 removed)
 - Audit result: zero high-risk servers remaining; all are first-party vendor with public repo or official docs
 
+## Session Progress (2026-04-12, session 5)
+
+- Completed GitHub upgrade: stdio → remote HTTP at `api.githubcopilot.com/mcp/`
+- Env var renamed `GITHUB_PERSONAL_ACCESS_TOKEN` → `GITHUB_ACCESS_TOKEN` to match OAuth convention
+- No migration or credential changes needed — already existed from session 3
+- Assessed all remaining T04 vendors for registration difficulty
+- Confirmed: **No official Google Calendar remote MCP endpoint exists** (Google briefly shipped and removed Workspace MCP in Mar 2026). Community server (`nspady/google-calendar-mcp`) remains the only option; already has auth block from session 3.
+- Commit: `45d1bb571` on branch `feat/mcp-oauth-expansion`
+
+### Vendor Assessment (T04 remaining)
+- **Immediately actionable**: Asana (easy), Box (easy), Close CRM (easy)
+- **Medium difficulty**: Plaid (business verification), Salesforce YAML (migration+creds exist, just needs YAML)
+- **Blocked on vendor**: Dropbox (partner allowlist), Vercel (client allowlist), Shopify (Level 2 data access)
+
 ## Next Steps
-1. **T04 (~3-4 hrs)**: Add no-DCR vendor OAuth servers — now includes Dropbox alongside GitHub, Asana, Vercel, Shopify, Salesforce, Box, Plaid, Close CRM, HubSpot upgrade, PagerDuty upgrade
+1. **Salesforce YAML** (~5 min): Migration and credentials already exist. Just create `mcp-server-salesforce.yaml`.
+2. **Asana** (~20 min): Register OAuth app at developers.asana.com (easy, no approval gate). V1 shuts down May 11, 2026.
+3. **Box** (~20 min): Register at developer.box.com (straightforward).
+4. **Close CRM** (~20 min): Register at Close developer portal.
+5. **HubSpot/PagerDuty upgrade**: Register OAuth apps, upgrade from API-key to vendor OAuth.
+6. **Blocked vendors** (Dropbox, Vercel, Shopify): Contact vendors for partner/allowlist approval.
 
 ## Context for Resume
 - Branch: `feat/mcp-oauth-expansion`
 - Changes span both repos: stigmer (OSS) and stigmer-cloud
-- GitHub OAuth redirect URI: need to verify `https://app.stigmer.ai/auth/oauth/callback` is configured at github.com/settings/developers
-- Google Calendar: unverified — submit for Google verification when ready
+- GitHub OAuth redirect URI: verify `https://app.stigmer.ai/auth/oauth/callback` is configured at github.com/settings/developers
+- Google Calendar: unverified — submit for Google verification when ready. No remote endpoint exists; stays on stdio.
 - Dropbox: needs partner registration before OAuth will work
 - Vercel: needs client allowlist approval before OAuth will work
 - 10 servers remain without `repository_url` (Attio, Canva, Datadog, Brevo, HubSpot, Prisma, Linear, Slack, Google Maps, Stigmer) — all verified official vendor-hosted with docs

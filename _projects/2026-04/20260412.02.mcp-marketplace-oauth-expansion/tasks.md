@@ -195,7 +195,7 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
 
 ## Task 4: T04 Wave-3 -- Add no-DCR vendor OAuth servers (requires manual OAuthApp registration)
 
-**Status**: ⏸️ TODO
+**Status**: 🚧 IN PROGRESS
 **Created**: 2026-04-12 16:48
 **Effort**: ~3-4 hours (includes manual registration at each vendor)
 **What**: For each vendor, manually register an OAuth app, create an OAuthApp resource in Stigmer, then create/update the MCP server YAML with `oauth_app_ref`. Reference pattern: `seedpack/mcp-servers/mcp-server-figma.yaml`
@@ -209,12 +209,10 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
   - Create OAuthApp resource: `dropbox-oauth`
   - Note: Dash endpoint (`/dash`) searches 30+ apps. Requires Business plan.
 
-- [ ] **GitHub** (upgrade existing to remote) -- `https://api.githubcopilot.com/mcp/`
-  - Manual steps: Register GitHub App or OAuth App at github.com/settings/developers
-  - Scopes: repo, read:org, read:user, user:email, read:packages, write:packages, read:project
-  - Create OAuthApp resource: `github-oauth` (org: stigmer, kind: oauth_app)
-  - Update `mcp-server-github.yaml`: change stdio to http, add `oauth_app_ref`
-  - Note: GitHub explicitly says "DCR is NOT supported". Needs pre-registered app.
+- [x] **GitHub** (upgrade existing to remote) -- `https://api.githubcopilot.com/mcp/`
+  - COMPLETED (session 5): YAML upgraded from stdio to remote HTTP. Migration and credentials already existed from session 3.
+  - Env var renamed: `GITHUB_PERSONAL_ACCESS_TOKEN` → `GITHUB_ACCESS_TOKEN`
+  - Commit: `45d1bb571` on branch `feat/mcp-oauth-expansion`
 
 - [ ] **Asana** -- `https://mcp.asana.com/v2/mcp`
   - Manual steps: Register app at developers.asana.com > developer console > Create new app > OAuth tab
