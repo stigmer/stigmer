@@ -84,4 +84,44 @@ message OAuthAppSpec {
   //
   // When empty, defaults to "scope" (standard OAuth 2.0 behavior).
   string scope_parameter_name = 8;
+
+  // Vendor marketplace/app-review approval status for this OAuth app.
+  //
+  // Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+  // process before a third-party OAuth app can be used publicly. This
+  // field tracks where Stigmer's registration stands with the vendor.
+  //
+  // UNSPECIFIED is treated as approved for backwards compatibility — only
+  // apps explicitly marked PENDING are gated in the UI.
+  VendorApprovalStatus vendor_approval_status = 9;
+
+  // Documentation URL explaining how users can bring their own OAuth
+  // app credentials or personal access tokens for this vendor while
+  // the platform's OAuth app is pending approval.
+  //
+  // Shown in the frontend as a help link when vendor_approval_status
+  // is PENDING. Empty means no documentation link is displayed.
+  string vendor_approval_docs_url = 10;
+}
+
+// Lifecycle status of an OAuthApp's vendor marketplace approval.
+//
+// Vendors like Slack, Figma, and Salesforce require third-party OAuth
+// apps to pass a review/approval process before they can be used by
+// end users. This enum tracks that lifecycle.
+enum VendorApprovalStatus {
+  // Default / unset. Treated as approved for backwards compatibility.
+  // OAuth apps that do not go through a vendor approval process
+  // (e.g., self-hosted or private vendor integrations) leave this unset.
+  VENDOR_APPROVAL_STATUS_UNSPECIFIED = 0;
+
+  // The OAuth app has been submitted to the vendor for review and is
+  // awaiting approval. The sign-in button is disabled in the UI.
+  VENDOR_APPROVAL_STATUS_PENDING = 1;
+
+  // The vendor has approved the OAuth app. Sign-in is enabled.
+  VENDOR_APPROVAL_STATUS_APPROVED = 2;
+
+  // The vendor rejected the OAuth app. Sign-in is disabled.
+  VENDOR_APPROVAL_STATUS_REJECTED = 3;
 }

@@ -26,5 +26,3 @@ spec:
     CLOUDFLARE_ACCOUNT_ID:
       is_secret: false
       description: "Cloudflare account ID"
-  auth:
-    target_env_var: "CLOUDFLARE_API_TOKEN"
