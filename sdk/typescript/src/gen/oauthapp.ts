@@ -10,10 +10,9 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { OAuthAppSchema, type OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
-import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/enum_pb";
 import { ListOAuthAppsByOrgInputSchema, OAuthAppsSchema, type ListOAuthAppsByOrgInput, type OAuthApps } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
-import { OAuthAppSpecSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { OAuthAppSpecSchema, VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 /** Provides operations on oauthapp resources. */
 export class OAuthAppClient {

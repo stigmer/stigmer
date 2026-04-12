@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-datadog
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "monitoring"
+spec:
+  description: "Datadog MCP server for infrastructure monitoring, log analysis, APM traces, and observability dashboards."
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - datadog
+    - monitoring
+    - observability
+    - apm
+    - logs
+  http:
+    url: "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp?toolsets=core"
+    headers:
+      Authorization: "Bearer ${DATADOG_ACCESS_TOKEN}"
+  env:
+    DATADOG_ACCESS_TOKEN:
+      is_secret: true
+      description: "Datadog API key or OAuth access token (generate at app.datadoghq.com)"
+  auth:
+    target_env_var: "DATADOG_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

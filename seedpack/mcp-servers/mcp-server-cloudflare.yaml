@@ -7,22 +7,21 @@ metadata:
     stigmer.ai/category: "cloud-infrastructure"
 spec:
   description: "Cloudflare MCP server for managing Workers, KV, R2, D1, and other Cloudflare developer platform services."
-  repository_url: "https://github.com/cloudflare/mcp-server-cloudflare"
+  repository_url: "https://github.com/cloudflare/mcp"
   github_stars: 3596
   tags:
     - cloudflare
     - cloud
     - workers
     - edge-computing
-  stdio:
-    command: "npx"
-    args:
-      - "-y"
-      - "@cloudflare/mcp-server-cloudflare"
+  http:
+    url: "https://mcp.cloudflare.com/mcp"
+    headers:
+      Authorization: "Bearer ${CLOUDFLARE_ACCESS_TOKEN}"
   env:
-    CLOUDFLARE_API_TOKEN:
+    CLOUDFLARE_ACCESS_TOKEN:
       is_secret: true
-      description: "Cloudflare API token with appropriate permissions (or authenticate via 'npx wrangler login')"
-    CLOUDFLARE_ACCOUNT_ID:
-      is_secret: false
-      description: "Cloudflare account ID"
+      description: "Cloudflare OAuth access token (obtained via Connect or at dash.cloudflare.com/profile/api-tokens)"
+  auth:
+    target_env_var: "CLOUDFLARE_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

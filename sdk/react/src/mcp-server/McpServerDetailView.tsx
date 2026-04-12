@@ -121,7 +121,7 @@ export function McpServerDetailView({
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
-  const credentials = useMcpServerCredentials(org, mcpServer ?? null);
+  const credentials = useMcpServerCredentials(activeOrg ?? org, mcpServer ?? null);
   const connection = useMcpServerConnect();
   const oauth = useMcpServerOAuthConnect();
 

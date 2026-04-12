@@ -375,6 +375,24 @@ def _transform_http_config(
     return config
 
 
+def _get_discovered_tool_names(server: McpServer) -> list[str]:
+    """Extract discovered tool names from server status.
+
+    When neither ``enabled_tools`` nor ``default_enabled_tools`` is set,
+    the "all tools" convention (empty list) must be resolved to explicit
+    tool names before reaching Graphton — which requires a non-empty list
+    for each server in ``mcp_tools``.
+
+    Returns an empty list when the server has no discovered capabilities
+    (e.g. never connected or status not populated).
+    """
+    try:
+        tools = server.status.discovered_capabilities.tools
+        return [t.name for t in tools if t.name]
+    except AttributeError:
+        return []
+
+
 def transform_all_mcp_configs(
     mcp_servers: list[McpServer],
     mcp_server_usages: list[McpServerUsage],
@@ -456,7 +474,31 @@ def transform_all_mcp_configs(
             )
             result_servers[slug] = config
             result_tools[slug] = tools
-            
+
+            # Resolve "all tools" convention: an empty list from
+            # transform_mcp_config means "enable every tool." Graphton
+            # requires explicit tool names, so expand from the server's
+            # discovered capabilities.
+            if not tools:
+                discovered = _get_discovered_tool_names(server)
+                if discovered:
+                    result_tools[slug] = discovered
+                    logger.info(
+                        "MCP server '%s': expanded 'all tools' to %d "
+                        "discovered tool name(s)",
+                        slug, len(discovered),
+                    )
+                else:
+                    logger.warning(
+                        "MCP server '%s': no enabled_tools, no "
+                        "default_enabled_tools, and no discovered tools "
+                        "available — skipping server",
+                        slug,
+                    )
+                    result_servers.pop(slug, None)
+                    result_tools.pop(slug, None)
+                    continue
+
         except (ValueError, PlaceholderResolutionError) as e:
             logger.error(f"Failed to transform MCP server '{slug}': {e}")
             continue

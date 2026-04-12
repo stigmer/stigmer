@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-netlify
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "developer-tools"
+spec:
+  description: "Netlify MCP server for deploying sites, managing builds, configuring DNS, and accessing deployment logs."
+  repository_url: "https://github.com/netlify/netlify-mcp"
+  github_stars: 39
+  tags:
+    - netlify
+    - deployment
+    - hosting
+    - jamstack
+  http:
+    url: "https://netlify-mcp.netlify.app/mcp"
+    headers:
+      Authorization: "Bearer ${NETLIFY_ACCESS_TOKEN}"
+  env:
+    NETLIFY_ACCESS_TOKEN:
+      is_secret: true
+      description: "Netlify OAuth access token"
+  auth:
+    target_env_var: "NETLIFY_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

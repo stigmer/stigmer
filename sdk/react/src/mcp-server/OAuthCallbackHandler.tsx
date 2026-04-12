@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { OAUTH_CALLBACK_MESSAGE_TYPE } from "./useMcpServerOAuthConnect";
+import {
+  OAUTH_CALLBACK_MESSAGE_TYPE,
+  OAUTH_BROADCAST_CHANNEL,
+} from "./useMcpServerOAuthConnect";
 import type { OAuthCallbackMessage } from "./useMcpServerOAuthConnect";
 
 /** Parameters extracted from the OAuth callback URL. */
@@ -92,25 +95,49 @@ export function OAuthCallbackHandler({
       return;
     }
 
+    const message: OAuthCallbackMessage = {
+      type: OAUTH_CALLBACK_MESSAGE_TYPE,
+      code,
+      state,
+    };
+
+    // Always broadcast via BroadcastChannel — works even when
+    // Cross-Origin-Opener-Policy has severed window.opener.
+    let broadcastSent = false;
+    try {
+      const bc = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
+      bc.postMessage(message);
+      bc.close();
+      broadcastSent = true;
+    } catch {
+      // BroadcastChannel unavailable — rely on postMessage below.
+    }
+
     const opener = window.opener as Window | null;
     if (opener && !opener.closed) {
-      const message: OAuthCallbackMessage = {
-        type: OAUTH_CALLBACK_MESSAGE_TYPE,
-        code,
-        state,
-      };
-
       try {
         opener.postMessage(message, window.location.origin);
         setStatus("done");
         window.close();
       } catch {
-        setErrorMessage(
-          "Could not communicate with the parent window. " +
-            "Please close this tab and try again.",
-        );
-        setStatus("error");
+        if (broadcastSent) {
+          setStatus("done");
+          window.close();
+        } else {
+          setErrorMessage(
+            "Could not communicate with the parent window. " +
+              "Please close this tab and try again.",
+          );
+          setStatus("error");
+        }
       }
+      return;
+    }
+
+    // opener is null (COOP case) but BroadcastChannel delivered the message.
+    if (broadcastSent) {
+      setStatus("done");
+      window.close();
       return;
     }
 

@@ -132,8 +132,10 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	// environment (stored via GitHub OAuth), which is not part of the
 	// standard 2-layer merge (environment_refs, runtime_env).
 	sessionID := execution.GetSpec().GetSessionId()
+	var sess *sessionv1.Session
 	if sessionID != "" {
-		sess, sessErr := s.sessionClient.Get(ctx.Context(), sessionID)
+		var sessErr error
+		sess, sessErr = s.sessionClient.Get(ctx.Context(), sessionID)
 		if sessErr != nil {
 			log.Warn().Err(sessErr).
 				Str("execution_id", executionID).
@@ -150,8 +152,13 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	// For each MCP server with spec.auth, reads the access token from the
 	// grant's managed environment. Performs inline pre-flight refresh if
 	// the token is expired.
+	//
+	// Uses merged agent + session MCP usages so that session-level servers
+	// (added at runtime, not declared on the agent) also get their OAuth
+	// tokens injected.
+	mergedMcpUsages := mergeAgentAndSessionMcpUsages(agentResource, sess)
 	filtered = s.injectMcpOAuthFromManagedEnvironment(
-		ctx.Context(), filtered, agentResource, executionOrg, executionID,
+		ctx.Context(), filtered, mergedMcpUsages, executionOrg, executionID,
 	)
 
 	// 6.9 Validate that all required (non-optional) declared env vars are
@@ -297,10 +304,50 @@ func injectWorkspaceProvisioningKeys(
 	return filtered
 }
 
+// mergeAgentAndSessionMcpUsages combines MCP server usages from the agent and
+// session, deduplicating by server slug. Agent-level usages take priority over
+// session-level usages for the same slug.
+//
+// This ensures that MCP servers added at the session level (e.g. via the UI at
+// runtime) are included in OAuth token injection — not just servers declared
+// on the agent.
+func mergeAgentAndSessionMcpUsages(
+	agentResource *agentv1.Agent,
+	sess *sessionv1.Session,
+) []*agentv1.McpServerUsage {
+	merged := make(map[string]*agentv1.McpServerUsage)
+
+	// Session usages first (lower priority).
+	if sess != nil {
+		for _, usage := range sess.GetSpec().GetMcpServerUsages() {
+			slug := usage.GetMcpServerRef().GetSlug()
+			if slug != "" {
+				merged[slug] = usage
+			}
+		}
+	}
+
+	// Agent usages override (higher priority).
+	if agentResource != nil {
+		for _, usage := range agentResource.GetSpec().GetMcpServerUsages() {
+			slug := usage.GetMcpServerRef().GetSlug()
+			if slug != "" {
+				merged[slug] = usage
+			}
+		}
+	}
+
+	result := make([]*agentv1.McpServerUsage, 0, len(merged))
+	for _, usage := range merged {
+		result = append(result, usage)
+	}
+	return result
+}
+
 // injectMcpOAuthFromManagedEnvironment reads OAuth-managed access tokens from
 // managed environments for MCP servers that have spec.auth configured.
 //
-// For each MCP server referenced by the agent with an auth block:
+// For each MCP server in the merged (agent + session) usages with an auth block:
 //  1. Look up the OAuthGrant by (identity="", server_id, org) — OSS single-user
 //  2. If the target env var is missing from filtered: perform inline refresh,
 //     then read the token from the grant's managed environment
@@ -309,7 +356,7 @@ func injectWorkspaceProvisioningKeys(
 func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 	ctx context.Context,
 	filtered map[string]*executioncontextv1.ExecutionValue,
-	agentResource *agentv1.Agent,
+	mcpServerUsages []*agentv1.McpServerUsage,
 	executionOrg string,
 	executionID string,
 ) map[string]*executioncontextv1.ExecutionValue {
@@ -317,13 +364,12 @@ func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 		return filtered
 	}
 
-	usages := agentResource.GetSpec().GetMcpServerUsages()
-	if len(usages) == 0 {
+	if len(mcpServerUsages) == 0 {
 		return filtered
 	}
 
 	injected := false
-	for _, usage := range usages {
+	for _, usage := range mcpServerUsages {
 		ref := usage.GetMcpServerRef()
 		slug := ref.GetSlug()
 		if slug == "" {
@@ -399,7 +445,7 @@ func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 		}
 
 		if !injected {
-			cp := make(map[string]*executioncontextv1.ExecutionValue, len(filtered)+len(usages))
+			cp := make(map[string]*executioncontextv1.ExecutionValue, len(filtered)+len(mcpServerUsages))
 			for k, v := range filtered {
 				cp[k] = v
 			}

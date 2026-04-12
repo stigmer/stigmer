@@ -805,6 +805,10 @@ func TestTsProtoFileToSuffix(t *testing.T) {
 }
 
 func TestTsResolveEnumImport(t *testing.T) {
+	saved := tsApisDir
+	tsApisDir = "../../../apis"
+	defer func() { tsApisDir = saved }()
+
 	tests := []struct {
 		input    string
 		wantFrom string
@@ -817,8 +821,13 @@ func TestTsResolveEnumImport(t *testing.T) {
 		},
 		{
 			"ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
-			"@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/enum_pb",
+			"@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/spec_pb",
 			"ApiResourceKind",
+		},
+		{
+			"ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus",
+			"@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb",
+			"VendorApprovalStatus",
 		},
 	}
 
