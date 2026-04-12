@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-paypal
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "payments"
+spec:
+  description: "PayPal MCP server for payment processing, invoicing, transaction management, and e-commerce operations."
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - paypal
+    - payments
+    - e-commerce
+    - invoicing
+  http:
+    url: "https://mcp.paypal.com/sse"
+    headers:
+      Authorization: "Bearer ${PAYPAL_ACCESS_TOKEN}"
+  env:
+    PAYPAL_ACCESS_TOKEN:
+      is_secret: true
+      description: "PayPal API key or OAuth access token (generate at developer.paypal.com/dashboard)"
+  auth:
+    target_env_var: "PAYPAL_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

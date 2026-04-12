@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-monday
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "productivity"
+spec:
+  description: "monday.com MCP server for board management, item tracking, workflow automation, and team collaboration."
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - monday
+    - project-management
+    - work-management
+    - collaboration
+  http:
+    url: "https://mcp.monday.com/sse"
+    headers:
+      Authorization: "Bearer ${MONDAY_ACCESS_TOKEN}"
+  env:
+    MONDAY_ACCESS_TOKEN:
+      is_secret: true
+      description: "monday.com API key or OAuth access token (generate at monday.com/developers)"
+  auth:
+    target_env_var: "MONDAY_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-square
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "payments"
+spec:
+  description: "Square MCP server for payment processing, point-of-sale management, inventory tracking, and order operations."
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - square
+    - payments
+    - point-of-sale
+    - inventory
+  http:
+    url: "https://mcp.squareup.com/sse"
+    headers:
+      Authorization: "Bearer ${SQUARE_ACCESS_TOKEN}"
+  env:
+    SQUARE_ACCESS_TOKEN:
+      is_secret: true
+      description: "Square API key or OAuth access token (generate at developer.squareup.com/apps)"
+  auth:
+    target_env_var: "SQUARE_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"
