@@ -72,7 +72,6 @@ go_library(
         "mcp-servers/mcp-server-postgres.yaml",
         "mcp-servers/mcp-server-redis.yaml",
         "mcp-servers/mcp-server-resend.yaml",
-        "mcp-servers/mcp-server-salesforce.yaml",
         "mcp-servers/mcp-server-sentry.yaml",
         "mcp-servers/mcp-server-sequential-thinking.yaml",
         "mcp-servers/mcp-server-slack.yaml",
