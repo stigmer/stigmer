@@ -66,8 +66,36 @@ That's it! No complex structure - just focused work.
 
 ## Current Status
 
-**Last Updated**: Check tasks.md for most recent status  
-**Current Focus**: See which task is marked 🚧 IN PROGRESS in tasks.md
+**Last Updated**: 2026-04-12  
+**Status**: In Progress (T01+T02 complete, 4 tasks remaining)  
+**Current Focus**: No task in progress — pick next from T03-T06
+
+## Session Progress (2026-04-12, session 2)
+
+- Completed T02 Wave-1b: upgraded Stripe and Cloudflare from stdio to remote HTTP with DCR-verified OAuth
+- Both endpoints live-verified before YAML changes: OAuth metadata, DCR registration (got client_ids), and MCP endpoint connectivity
+- Stripe: `https://mcp.stripe.com/` (Streamable HTTP, issuer at `access.stripe.com/mcp`)
+- Cloudflare: `https://mcp.cloudflare.com/mcp` (returns 401 with proper WWW-Authenticate, resource_name: "Cloudflare API MCP Server")
+
+### Key Decisions Made (T02)
+- Single env var pattern: `STRIPE_ACCESS_TOKEN` replaces `STRIPE_SECRET_KEY`, `CLOUDFLARE_ACCESS_TOKEN` replaces `CLOUDFLARE_API_TOKEN` — no dead env var declarations
+- Dropped `CLOUDFLARE_ACCOUNT_ID`: the new remote endpoint handles account context via OAuth
+- Cloudflare `repository_url` updated from `cloudflare/mcp-server-cloudflare` to `cloudflare/mcp` (new first-party repo)
+
+### Previous Session (2026-04-12, session 1)
+- Completed T01 Wave-1a: added 9 DCR-verified MCP servers (PayPal, Square, Intercom, Attio, monday.com, Contentful, Buildkite, Webflow, Datadog)
+- Marketplace expanded from 36 to 45 servers
+- Committed: `bc4c754c0` on branch `feat/mcp-oauth-expansion`
+
+## Next Steps
+1. **T05 (~30 min)**: Add 4 API-key-only servers (HubSpot, BigQuery, Brevo, PagerDuty)
+2. **T06 (~30 min)**: Audit Atlassian and GitLab DCR status
+3. **T03 (~2 hrs)**: Verify and add 11 unverified DCR servers
+4. **T04 (~3-4 hrs)**: Add 8 no-DCR vendor OAuth servers (manual registration)
+
+## Context for Resume
+- Branch: `feat/mcp-oauth-expansion`
+- Uncommitted backend changes exist (setup.py, config_transformer.py, create_execution_context_step.go) — these are unrelated to T02 and were not committed with this task
 
 ---
 

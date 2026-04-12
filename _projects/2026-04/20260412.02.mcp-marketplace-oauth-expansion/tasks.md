@@ -103,14 +103,15 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
 
 ## Task 2: T02 Wave-1b -- Upgrade Stripe and Cloudflare to remote OAuth (DCR verified)
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-04-12 16:48
+**Completed**: 2026-04-12
 **Effort**: ~30 min
 **What**: Convert existing stdio-based YAML to remote HTTP with OAuth auth block.
 
 ### Subtasks
 
-- [ ] **Stripe** -- Change from stdio to HTTP
+- [x] **Stripe** -- Change from stdio to HTTP
   - Current: `stdio` with `npx -y @stripe/mcp@latest` + `STRIPE_SECRET_KEY`
   - New URL: `https://mcp.stripe.com/`
   - New env var: `STRIPE_ACCESS_TOKEN` (is_secret: true)
@@ -118,7 +119,7 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
   - DCR: `registration_endpoint` at `https://access.stripe.com/mcp/oauth2/register`
   - Note: Stripe built a dedicated MCP OAuth proxy layer. Keep the old `STRIPE_SECRET_KEY` env for users who prefer API key.
 
-- [ ] **Cloudflare** -- Change from stdio to HTTP (NEW server)
+- [x] **Cloudflare** -- Change from stdio to HTTP (NEW server)
   - Current: `stdio` with `npx -y @cloudflare/mcp-server-cloudflare` + `CLOUDFLARE_API_TOKEN`
   - New URL: `https://mcp.cloudflare.com/mcp`
   - New env var: `CLOUDFLARE_ACCESS_TOKEN` (is_secret: true)
@@ -128,8 +129,11 @@ Reference template: `seedpack/mcp-servers/mcp-server-linear.yaml`
   - Note: This is the NEW `mcp.cloudflare.com` server (Jan 2026), NOT the old `bindings.mcp.cloudflare.com`. The old one had broken DCR (issue #257, fixed March 2026). Test before shipping.
 
 ### Notes
-- Keep old env vars as fallback for users who already have API keys configured.
-- The old Cloudflare server at `bindings.mcp.cloudflare.com` is different from `mcp.cloudflare.com`.
+- Decided on single env var pattern (STRIPE_ACCESS_TOKEN, CLOUDFLARE_ACCESS_TOKEN) instead of keeping old env vars alongside. Cleaner and avoids dead declarations.
+- Dropped CLOUDFLARE_ACCOUNT_ID — the new remote endpoint handles account context via OAuth.
+- Both endpoints live-verified: OAuth metadata, DCR registration, and MCP endpoint connectivity confirmed before writing YAML.
+- Stripe uses Streamable HTTP transport (POST-only at root /), not SSE.
+- Cloudflare repo URL updated from `cloudflare/mcp-server-cloudflare` to `cloudflare/mcp`.
 
 ---
 

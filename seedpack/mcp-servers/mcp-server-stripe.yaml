@@ -14,12 +14,14 @@ spec:
     - payments
     - e-commerce
     - billing
-  stdio:
-    command: "npx"
-    args:
-      - "-y"
-      - "@stripe/mcp@latest"
+  http:
+    url: "https://mcp.stripe.com/"
+    headers:
+      Authorization: "Bearer ${STRIPE_ACCESS_TOKEN}"
   env:
-    STRIPE_SECRET_KEY:
+    STRIPE_ACCESS_TOKEN:
       is_secret: true
-      description: "Stripe secret API key (find at dashboard.stripe.com/apikeys)"
+      description: "Stripe OAuth access token (obtained via Connect or at dashboard.stripe.com/apikeys)"
+  auth:
+    target_env_var: "STRIPE_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"
