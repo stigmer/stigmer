@@ -7,8 +7,8 @@ metadata:
     stigmer.ai/category: "design"
 spec:
   description: "Webflow MCP server for site management, CMS operations, design configuration, and publishing workflows."
-  repository_url: ""
-  github_stars: 0
+  repository_url: "https://github.com/webflow/mcp-server"
+  github_stars: 113
   tags:
     - webflow
     - website-builder

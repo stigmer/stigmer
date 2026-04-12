@@ -7,8 +7,8 @@ metadata:
     stigmer.ai/category: "developer-tools"
 spec:
   description: "Buildkite MCP server for pipeline management, build operations, agent monitoring, and CI/CD workflow control."
-  repository_url: ""
-  github_stars: 0
+  repository_url: "https://github.com/buildkite/buildkite-mcp-server"
+  github_stars: 49
   tags:
     - buildkite
     - ci-cd

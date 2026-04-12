@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-wix
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "developer-tools"
+spec:
+  description: "Wix MCP server for managing websites, collections, pages, and site content through the Wix platform."
+  repository_url: "https://github.com/wix/wix-mcp"
+  github_stars: 10
+  tags:
+    - wix
+    - website-builder
+    - cms
+    - web-design
+  http:
+    url: "https://mcp.wix.com/mcp"
+    headers:
+      Authorization: "Bearer ${WIX_ACCESS_TOKEN}"
+  env:
+    WIX_ACCESS_TOKEN:
+      is_secret: true
+      description: "Wix OAuth access token"
+  auth:
+    target_env_var: "WIX_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

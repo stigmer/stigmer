@@ -7,8 +7,8 @@ metadata:
     stigmer.ai/category: "productivity"
 spec:
   description: "monday.com MCP server for board management, item tracking, workflow automation, and team collaboration."
-  repository_url: ""
-  github_stars: 0
+  repository_url: "https://github.com/mondaycom/mcp"
+  github_stars: 387
   tags:
     - monday
     - project-management

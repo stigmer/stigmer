@@ -7,8 +7,8 @@ metadata:
     stigmer.ai/category: "crm-support"
 spec:
   description: "Intercom MCP server for customer messaging, support ticket management, help center content, and user engagement."
-  repository_url: ""
-  github_stars: 0
+  repository_url: "https://github.com/intercom/intercom-mcp-server"
+  github_stars: 5
   tags:
     - intercom
     - customer-support
