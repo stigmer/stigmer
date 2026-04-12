@@ -67,9 +67,28 @@ When starting a new session:
 
 ## Current Status
 
-**Created**: 2026-04-12 09:00
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+- **Status**: in-progress
+- **Last Session**: 2026-04-12 — Implemented vendor OAuth approval status gating
+- **Active Task**: T01 (Slack marketplace submission checklist)
+
+## Session Progress (2026-04-12)
+- Designed and implemented full vendor OAuth approval status feature (proto, backend, frontend, docs)
+- All three vendor OAuthApps (Slack, Figma, Salesforce) set to PENDING via migration
+- Frontend shows "Pending approval" pill with disabled sign-in and docs link
+- Manual token override path preserved for users who have their own tokens
+- Committed both stigmer and stigmer-cloud repos
+
+## Next Steps
+1. Deploy the vendor approval status changes to staging/production
+2. Continue with Slack marketplace submission requirements (listing assets, scope justifications)
+3. Update vendor_approval_status to APPROVED as each vendor completes review
+4. Improve the bring-your-own-oauth documentation with detailed vendor-specific instructions
+
+## Context for Resume
+- Vendor approval status is a new proto enum on OAuthAppSpec — UNSPECIFIED is treated as approved for backwards compatibility
+- Backend enrichment resolves OAuthApp ref at query time and copies approval fields onto McpServerAuth
+- The placeholder docs URL is `https://docs.stigmer.ai/guides/bring-your-own-oauth`
+- Migration order is 016 (after the Figma token URL patch at 015)
 
 ## Quick Commands
 
