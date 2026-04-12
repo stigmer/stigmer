@@ -1,0 +1,24 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: mcp-server-pagerduty
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "monitoring"
+spec:
+  description: "PagerDuty MCP server for incident management, on-call schedules, alerting, escalation policies, and service health monitoring."
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - pagerduty
+    - incident-management
+    - on-call
+    - alerting
+  http:
+    url: "https://mcp.pagerduty.com/mcp"
+    headers:
+      Authorization: "Token ${PAGERDUTY_API_TOKEN}"
+  env:
+    PAGERDUTY_API_TOKEN:
+      is_secret: true
+      description: "PagerDuty REST API token (generate at your-subdomain.pagerduty.com > Integrations > API Access Keys)"

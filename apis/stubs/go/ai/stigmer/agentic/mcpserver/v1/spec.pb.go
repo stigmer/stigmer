@@ -597,8 +597,25 @@ type McpServerAuth struct {
 	// Documentation URL for users who want to bring their own OAuth
 	// credentials while the platform's OAuth app is pending vendor approval.
 	VendorApprovalDocsUrl string `protobuf:"bytes,6,opt,name=vendor_approval_docs_url,json=vendorApprovalDocsUrl,proto3" json:"vendor_approval_docs_url,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Optional URL for OAuth authorization server discovery on stdio servers.
+	//
+	// HTTP servers do not need this: the platform derives the discovery
+	// endpoint from http.url (fetching /.well-known/oauth-authorization-server
+	// relative to the server URL).
+	//
+	// Stdio servers have no URL, so DCR discovery has nothing to derive from.
+	// Set this field to the base URL of the vendor's OAuth authorization
+	// server to enable DCR for a stdio-based MCP server.
+	//
+	// Resolution priority:
+	//  1. discovery_url (if set — used for both stdio and HTTP)
+	//  2. http.url (default for HTTP servers)
+	//
+	// Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
+	// directly, no discovery needed).
+	DiscoveryUrl  string `protobuf:"bytes,7,opt,name=discovery_url,json=discoveryUrl,proto3" json:"discovery_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *McpServerAuth) Reset() {
@@ -673,6 +690,13 @@ func (x *McpServerAuth) GetVendorApprovalDocsUrl() string {
 	return ""
 }
 
+func (x *McpServerAuth) GetDiscoveryUrl() string {
+	if x != nil {
+		return x.DiscoveryUrl
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
@@ -713,7 +737,7 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x8c\x04\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xb1\x04\n" +
 	"\rMcpServerAuth\x12\xd9\x01\n" +
 	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x7f\xbaHx\xba\x01u\n" +
 	"\x12oauth_app_ref.kind\x12;oauth_app_ref must reference a resource with kind=oauth_app\x1a\"this.slug == '' || this.kind == 22\xe0\x85,\x16R\voauthAppRef\x12-\n" +
@@ -722,7 +746,8 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\vscope_hints\x18\x04 \x03(\tR\n" +
 	"scopeHints\x12f\n" +
 	"\x16vendor_approval_status\x18\x05 \x01(\x0e20.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x127\n" +
-	"\x18vendor_approval_docs_url\x18\x06 \x01(\tR\x15vendorApprovalDocsUrlB\xa7\x02\n" +
+	"\x18vendor_approval_docs_url\x18\x06 \x01(\tR\x15vendorApprovalDocsUrl\x12#\n" +
+	"\rdiscovery_url\x18\a \x01(\tR\fdiscoveryUrlB\xa7\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (

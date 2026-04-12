@@ -309,6 +309,7 @@ public final class McpServerInput {
         private final java.util.List<String> scopeHints;
         private final VendorApprovalStatus vendorApprovalStatus;
         private final String vendorApprovalDocsUrl;
+        private final String discoveryUrl;
 
         private McpServerAuthInput(Builder builder) {
             this.oauthAppRef = builder.oauthAppRef;
@@ -317,6 +318,7 @@ public final class McpServerInput {
             this.scopeHints = builder.scopeHints;
             this.vendorApprovalStatus = builder.vendorApprovalStatus;
             this.vendorApprovalDocsUrl = builder.vendorApprovalDocsUrl;
+            this.discoveryUrl = builder.discoveryUrl;
         }
 
         McpServerAuth toProto() {
@@ -339,6 +341,9 @@ public final class McpServerInput {
             if (this.vendorApprovalDocsUrl != null) {
                 builder.setVendorApprovalDocsUrl(this.vendorApprovalDocsUrl);
             }
+            if (this.discoveryUrl != null) {
+                builder.setDiscoveryUrl(this.discoveryUrl);
+            }
             return builder.build();
         }
 
@@ -351,6 +356,7 @@ public final class McpServerInput {
             private java.util.List<String> scopeHints;
             private VendorApprovalStatus vendorApprovalStatus;
             private String vendorApprovalDocsUrl;
+            private String discoveryUrl;
 
             private Builder() {}
 
@@ -360,6 +366,7 @@ public final class McpServerInput {
             public Builder scopeHints(java.util.List<String> scopeHints) { this.scopeHints = scopeHints; return this; }
             public Builder vendorApprovalStatus(VendorApprovalStatus vendorApprovalStatus) { this.vendorApprovalStatus = vendorApprovalStatus; return this; }
             public Builder vendorApprovalDocsUrl(String vendorApprovalDocsUrl) { this.vendorApprovalDocsUrl = vendorApprovalDocsUrl; return this; }
+            public Builder discoveryUrl(String discoveryUrl) { this.discoveryUrl = discoveryUrl; return this; }
 
             public McpServerAuthInput build() { return new McpServerAuthInput(this); }
         }

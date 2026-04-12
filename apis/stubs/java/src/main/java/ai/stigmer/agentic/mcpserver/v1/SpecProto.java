@@ -116,7 +116,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005v" +
       "alue:\0028\001\"T\n\022ToolApprovalPolicy\022$\n\ttool_n" +
       "ame\030\001 \001(\tB\007\272H\004r\002\020\001R\010toolName\022\030\n\007message\030" +
-      "\002 \001(\tR\007message\"\214\004\n\rMcpServerAuth\022\331\001\n\roau" +
+      "\002 \001(\tR\007message\"\261\004\n\rMcpServerAuth\022\331\001\n\roau" +
       "th_app_ref\030\001 \001(\01324.ai.stigmer.commons.ap" +
       "iresource.ApiResourceReferenceB\177\272Hx\272\001u\n\022" +
       "oauth_app_ref.kind\022;oauth_app_ref must r" +
@@ -129,12 +129,13 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "status\030\005 \001(\01620.ai.stigmer.iam.oauthapp.v" +
       "1.VendorApprovalStatusR\024vendorApprovalSt" +
       "atus\0227\n\030vendor_approval_docs_url\030\006 \001(\tR\025" +
-      "vendorApprovalDocsUrlB\254\001B\tSpecProtoP\001\242\002\004" +
-      "ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002" +
-      "\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\St" +
-      "igmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002" +
-      "#Ai::Stigmer::Agentic::Mcpserver::V1b\006pr" +
-      "oto3"
+      "vendorApprovalDocsUrl\022#\n\rdiscovery_url\030\007" +
+      " \001(\tR\014discoveryUrlB\254\001B\tSpecProtoP\001\242\002\004ASA" +
+      "M\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai" +
+      "\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigm" +
+      "er\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai" +
+      "::Stigmer::Agentic::Mcpserver::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -192,7 +193,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerAuth_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerAuth_descriptor,
-        new java.lang.String[] { "OauthAppRef", "TargetEnvVar", "TokenLifetimeHint", "ScopeHints", "VendorApprovalStatus", "VendorApprovalDocsUrl", });
+        new java.lang.String[] { "OauthAppRef", "TargetEnvVar", "TokenLifetimeHint", "ScopeHints", "VendorApprovalStatus", "VendorApprovalDocsUrl", "DiscoveryUrl", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();

@@ -22,4 +22,13 @@ spec:
   env:
     GOOGLE_OAUTH_CREDENTIALS:
       is_secret: true
-      description: "Path to Google Cloud OAuth credentials JSON file (create at console.cloud.google.com, enable Calendar API)"
+      description: "Google OAuth access token or credentials JSON path (obtained via Connect or at console.cloud.google.com)"
+  auth:
+    oauth_app_ref:
+      org: stigmer
+      kind: oauth_app
+      slug: google-calendar-oauth
+    target_env_var: "GOOGLE_OAUTH_CREDENTIALS"
+    token_lifetime_hint: "1h"
+    scope_hints:
+      - "https://www.googleapis.com/auth/calendar"

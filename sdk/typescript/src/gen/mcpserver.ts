@@ -174,6 +174,7 @@ export interface McpServerAuthInput {
   scopeHints?: string[];
   vendorApprovalStatus?: VendorApprovalStatus;
   vendorApprovalDocsUrl?: string;
+  discoveryUrl?: string;
 }
 
 function buildStdioServerConfigProto(input: StdioServerConfigInput) {
@@ -216,6 +217,7 @@ function buildMcpServerAuthProto(input: McpServerAuthInput) {
   if (input.scopeHints) msg.scopeHints = input.scopeHints;
   if (input.vendorApprovalStatus !== undefined) msg.vendorApprovalStatus = input.vendorApprovalStatus;
   if (input.vendorApprovalDocsUrl !== undefined) msg.vendorApprovalDocsUrl = input.vendorApprovalDocsUrl;
+  if (input.discoveryUrl !== undefined) msg.discoveryUrl = input.discoveryUrl;
   return msg;
 }
 
