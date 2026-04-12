@@ -239,11 +239,15 @@ class McpServerAuthInput:
     target_env_var: str = ""
     token_lifetime_hint: str = ""
     scope_hints: list[str] = field(default_factory=list)
+    vendor_approval_status: int = 0
+    vendor_approval_docs_url: str = ""
 
     def _to_proto(self) -> spec_pb2.McpServerAuth:
         msg = spec_pb2.McpServerAuth(
             target_env_var=self.target_env_var,
             token_lifetime_hint=self.token_lifetime_hint,
+            vendor_approval_status=self.vendor_approval_status,
+            vendor_approval_docs_url=self.vendor_approval_docs_url,
         )
         if self.oauth_app_ref is not None:
             msg.oauth_app_ref.CopyFrom(self.oauth_app_ref._to_proto())

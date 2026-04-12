@@ -8,6 +8,7 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	oauthappv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/oauthapp/v1"
 )
 
 // McpServerSpec defines the configurable properties of an MCP server.
@@ -109,6 +110,10 @@ type McpServerAuthInput struct {
 	TokenLifetimeHint string `json:"token_lifetime_hint,omitempty" jsonschema:"Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: '1h', '2h', '90d', 'never'."`
 	// Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp).
 	ScopeHints []string `json:"scope_hints,omitempty" jsonschema:"Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp)."`
+	// Read-only. Resolved from the referenced OAuthApp at query time. Indicates whether the vendor has approved this OAuth app for public use. Not persisted on the McpServer — populated by the backend when serving MCP server data so the frontend can gate the sign-in button without a separate OAuthApp fetch.
+	VendorApprovalStatus string `json:"vendor_approval_status,omitempty" jsonschema:"Read-only. Resolved from the referenced OAuthApp at query time. Indicates whether the vendor has approved this OAuth app for public use. Not persisted on the McpServer — populated by the backend when serving MCP server data so the frontend can gate the sign-in button without a separate OAuthApp fetch. Allowed values: VENDOR_APPROVAL_STATUS_PENDING, VENDOR_APPROVAL_STATUS_APPROVED, VENDOR_APPROVAL_STATUS_REJECTED."`
+	// Read-only. Resolved from the referenced OAuthApp at query time. Documentation URL for users who want to bring their own OAuth credentials while the platform's OAuth app is pending vendor approval.
+	VendorApprovalDocsUrl string `json:"vendor_approval_docs_url,omitempty" jsonschema:"Read-only. Resolved from the referenced OAuthApp at query time. Documentation URL for users who want to bring their own OAuth credentials while the platform's OAuth app is pending vendor approval."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed McpServer proto message.
@@ -244,5 +249,7 @@ func (input *McpServerAuthInput) toProto() (*mcpserverv1.McpServerAuth, error) {
 	result.TargetEnvVar = input.TargetEnvVar
 	result.TokenLifetimeHint = input.TokenLifetimeHint
 	result.ScopeHints = input.ScopeHints
+	result.VendorApprovalStatus = oauthappv1.VendorApprovalStatus(oauthappv1.VendorApprovalStatus_value[input.VendorApprovalStatus])
+	result.VendorApprovalDocsUrl = input.VendorApprovalDocsUrl
 	return result, nil
 }

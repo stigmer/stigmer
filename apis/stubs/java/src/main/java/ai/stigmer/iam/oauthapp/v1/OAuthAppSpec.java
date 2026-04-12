@@ -78,6 +78,8 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     userinfoUrl_ = "";
     scopeParameterName_ = "";
+    vendorApprovalStatus_ = 0;
+    vendorApprovalDocsUrl_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -522,6 +524,103 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int VENDOR_APPROVAL_STATUS_FIELD_NUMBER = 9;
+  private int vendorApprovalStatus_ = 0;
+  /**
+   * <pre>
+   * Vendor marketplace/app-review approval status for this OAuth app.
+   *
+   * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+   * process before a third-party OAuth app can be used publicly. This
+   * field tracks where Stigmer's registration stands with the vendor.
+   *
+   * UNSPECIFIED is treated as approved for backwards compatibility — only
+   * apps explicitly marked PENDING are gated in the UI.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+   * @return The enum numeric value on the wire for vendorApprovalStatus.
+   */
+  @java.lang.Override public int getVendorApprovalStatusValue() {
+    return vendorApprovalStatus_;
+  }
+  /**
+   * <pre>
+   * Vendor marketplace/app-review approval status for this OAuth app.
+   *
+   * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+   * process before a third-party OAuth app can be used publicly. This
+   * field tracks where Stigmer's registration stands with the vendor.
+   *
+   * UNSPECIFIED is treated as approved for backwards compatibility — only
+   * apps explicitly marked PENDING are gated in the UI.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+   * @return The vendorApprovalStatus.
+   */
+  @java.lang.Override public ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus getVendorApprovalStatus() {
+    ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus result = ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus.forNumber(vendorApprovalStatus_);
+    return result == null ? ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus.UNRECOGNIZED : result;
+  }
+
+  public static final int VENDOR_APPROVAL_DOCS_URL_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object vendorApprovalDocsUrl_ = "";
+  /**
+   * <pre>
+   * Documentation URL explaining how users can bring their own OAuth
+   * app credentials or personal access tokens for this vendor while
+   * the platform's OAuth app is pending approval.
+   *
+   * Shown in the frontend as a help link when vendor_approval_status
+   * is PENDING. Empty means no documentation link is displayed.
+   * </pre>
+   *
+   * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+   * @return The vendorApprovalDocsUrl.
+   */
+  @java.lang.Override
+  public java.lang.String getVendorApprovalDocsUrl() {
+    java.lang.Object ref = vendorApprovalDocsUrl_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      vendorApprovalDocsUrl_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Documentation URL explaining how users can bring their own OAuth
+   * app credentials or personal access tokens for this vendor while
+   * the platform's OAuth app is pending approval.
+   *
+   * Shown in the frontend as a help link when vendor_approval_status
+   * is PENDING. Empty means no documentation link is displayed.
+   * </pre>
+   *
+   * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+   * @return The bytes for vendorApprovalDocsUrl.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getVendorApprovalDocsUrlBytes() {
+    java.lang.Object ref = vendorApprovalDocsUrl_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      vendorApprovalDocsUrl_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -559,6 +658,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(scopeParameterName_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, scopeParameterName_);
+    }
+    if (vendorApprovalStatus_ != ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus.VENDOR_APPROVAL_STATUS_UNSPECIFIED.getNumber()) {
+      output.writeEnum(9, vendorApprovalStatus_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(vendorApprovalDocsUrl_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, vendorApprovalDocsUrl_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -598,6 +703,13 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(scopeParameterName_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, scopeParameterName_);
     }
+    if (vendorApprovalStatus_ != ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus.VENDOR_APPROVAL_STATUS_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(9, vendorApprovalStatus_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(vendorApprovalDocsUrl_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, vendorApprovalDocsUrl_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -629,6 +741,9 @@ private static final long serialVersionUID = 0L;
         .equals(other.getUserinfoUrl())) return false;
     if (!getScopeParameterName()
         .equals(other.getScopeParameterName())) return false;
+    if (vendorApprovalStatus_ != other.vendorApprovalStatus_) return false;
+    if (!getVendorApprovalDocsUrl()
+        .equals(other.getVendorApprovalDocsUrl())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -658,6 +773,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getUserinfoUrl().hashCode();
     hash = (37 * hash) + SCOPE_PARAMETER_NAME_FIELD_NUMBER;
     hash = (53 * hash) + getScopeParameterName().hashCode();
+    hash = (37 * hash) + VENDOR_APPROVAL_STATUS_FIELD_NUMBER;
+    hash = (53 * hash) + vendorApprovalStatus_;
+    hash = (37 * hash) + VENDOR_APPROVAL_DOCS_URL_FIELD_NUMBER;
+    hash = (53 * hash) + getVendorApprovalDocsUrl().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -839,6 +958,8 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.LazyStringArrayList.emptyList();
       userinfoUrl_ = "";
       scopeParameterName_ = "";
+      vendorApprovalStatus_ = 0;
+      vendorApprovalDocsUrl_ = "";
       return this;
     }
 
@@ -897,6 +1018,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.scopeParameterName_ = scopeParameterName_;
       }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.vendorApprovalStatus_ = vendorApprovalStatus_;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.vendorApprovalDocsUrl_ = vendorApprovalDocsUrl_;
+      }
     }
 
     @java.lang.Override
@@ -954,6 +1081,14 @@ private static final long serialVersionUID = 0L;
       if (!other.getScopeParameterName().isEmpty()) {
         scopeParameterName_ = other.scopeParameterName_;
         bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      if (other.vendorApprovalStatus_ != 0) {
+        setVendorApprovalStatusValue(other.getVendorApprovalStatusValue());
+      }
+      if (!other.getVendorApprovalDocsUrl().isEmpty()) {
+        vendorApprovalDocsUrl_ = other.vendorApprovalDocsUrl_;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1022,6 +1157,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 66
+            case 72: {
+              vendorApprovalStatus_ = input.readEnum();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 72
+            case 82: {
+              vendorApprovalDocsUrl_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1928,6 +2073,230 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       scopeParameterName_ = value;
       bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
+    private int vendorApprovalStatus_ = 0;
+    /**
+     * <pre>
+     * Vendor marketplace/app-review approval status for this OAuth app.
+     *
+     * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+     * process before a third-party OAuth app can be used publicly. This
+     * field tracks where Stigmer's registration stands with the vendor.
+     *
+     * UNSPECIFIED is treated as approved for backwards compatibility — only
+     * apps explicitly marked PENDING are gated in the UI.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+     * @return The enum numeric value on the wire for vendorApprovalStatus.
+     */
+    @java.lang.Override public int getVendorApprovalStatusValue() {
+      return vendorApprovalStatus_;
+    }
+    /**
+     * <pre>
+     * Vendor marketplace/app-review approval status for this OAuth app.
+     *
+     * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+     * process before a third-party OAuth app can be used publicly. This
+     * field tracks where Stigmer's registration stands with the vendor.
+     *
+     * UNSPECIFIED is treated as approved for backwards compatibility — only
+     * apps explicitly marked PENDING are gated in the UI.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+     * @param value The enum numeric value on the wire for vendorApprovalStatus to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setVendorApprovalStatusValue(int value) {
+      vendorApprovalStatus_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Vendor marketplace/app-review approval status for this OAuth app.
+     *
+     * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+     * process before a third-party OAuth app can be used publicly. This
+     * field tracks where Stigmer's registration stands with the vendor.
+     *
+     * UNSPECIFIED is treated as approved for backwards compatibility — only
+     * apps explicitly marked PENDING are gated in the UI.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+     * @return The vendorApprovalStatus.
+     */
+    @java.lang.Override
+    public ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus getVendorApprovalStatus() {
+      ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus result = ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus.forNumber(vendorApprovalStatus_);
+      return result == null ? ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Vendor marketplace/app-review approval status for this OAuth app.
+     *
+     * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+     * process before a third-party OAuth app can be used publicly. This
+     * field tracks where Stigmer's registration stands with the vendor.
+     *
+     * UNSPECIFIED is treated as approved for backwards compatibility — only
+     * apps explicitly marked PENDING are gated in the UI.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+     * @param value The vendorApprovalStatus to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVendorApprovalStatus(ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000100;
+      vendorApprovalStatus_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Vendor marketplace/app-review approval status for this OAuth app.
+     *
+     * Many vendors (Slack, Figma, Salesforce, etc.) require an approval
+     * process before a third-party OAuth app can be used publicly. This
+     * field tracks where Stigmer's registration stands with the vendor.
+     *
+     * UNSPECIFIED is treated as approved for backwards compatibility — only
+     * apps explicitly marked PENDING are gated in the UI.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearVendorApprovalStatus() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      vendorApprovalStatus_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object vendorApprovalDocsUrl_ = "";
+    /**
+     * <pre>
+     * Documentation URL explaining how users can bring their own OAuth
+     * app credentials or personal access tokens for this vendor while
+     * the platform's OAuth app is pending approval.
+     *
+     * Shown in the frontend as a help link when vendor_approval_status
+     * is PENDING. Empty means no documentation link is displayed.
+     * </pre>
+     *
+     * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+     * @return The vendorApprovalDocsUrl.
+     */
+    public java.lang.String getVendorApprovalDocsUrl() {
+      java.lang.Object ref = vendorApprovalDocsUrl_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        vendorApprovalDocsUrl_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Documentation URL explaining how users can bring their own OAuth
+     * app credentials or personal access tokens for this vendor while
+     * the platform's OAuth app is pending approval.
+     *
+     * Shown in the frontend as a help link when vendor_approval_status
+     * is PENDING. Empty means no documentation link is displayed.
+     * </pre>
+     *
+     * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+     * @return The bytes for vendorApprovalDocsUrl.
+     */
+    public com.google.protobuf.ByteString
+        getVendorApprovalDocsUrlBytes() {
+      java.lang.Object ref = vendorApprovalDocsUrl_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        vendorApprovalDocsUrl_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Documentation URL explaining how users can bring their own OAuth
+     * app credentials or personal access tokens for this vendor while
+     * the platform's OAuth app is pending approval.
+     *
+     * Shown in the frontend as a help link when vendor_approval_status
+     * is PENDING. Empty means no documentation link is displayed.
+     * </pre>
+     *
+     * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+     * @param value The vendorApprovalDocsUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVendorApprovalDocsUrl(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      vendorApprovalDocsUrl_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Documentation URL explaining how users can bring their own OAuth
+     * app credentials or personal access tokens for this vendor while
+     * the platform's OAuth app is pending approval.
+     *
+     * Shown in the frontend as a help link when vendor_approval_status
+     * is PENDING. Empty means no documentation link is displayed.
+     * </pre>
+     *
+     * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearVendorApprovalDocsUrl() {
+      vendorApprovalDocsUrl_ = getDefaultInstance().getVendorApprovalDocsUrl();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Documentation URL explaining how users can bring their own OAuth
+     * app credentials or personal access tokens for this vendor while
+     * the platform's OAuth app is pending approval.
+     *
+     * Shown in the frontend as a help link when vendor_approval_status
+     * is PENDING. Empty means no documentation link is displayed.
+     * </pre>
+     *
+     * <code>string vendor_approval_docs_url = 10 [json_name = "vendorApprovalDocsUrl"];</code>
+     * @param value The bytes for vendorApprovalDocsUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVendorApprovalDocsUrlBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      vendorApprovalDocsUrl_ = value;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }

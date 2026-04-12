@@ -76,6 +76,10 @@ type OAuthAppInput struct {
 	UserinfoUrl string `json:"userinfo_url,omitempty" jsonschema:"Optional OIDC UserInfo endpoint for fetching user profile data. When set, Stigmer calls this endpoint after token acquisition to retrieve the user's display name and avatar for the connected account. Omit for vendors that do not support a standard userinfo endpoint."`
 	// Name of the query parameter used to send scopes in the authorization URL. Most OAuth providers use the standard "scope" parameter. Some vendors use a non-standard name — for example, Slack's V2 OAuth API requires user token scopes to be sent as "user_scope" instead of "scope". When empty, defaults to "scope" (standard OAuth 2.0 behavior).
 	ScopeParameterName string `json:"scope_parameter_name,omitempty" jsonschema:"Name of the query parameter used to send scopes in the authorization URL. Most OAuth providers use the standard 'scope' parameter. Some vendors use a non-standard name — for example, Slack's V2 OAuth API requires user token scopes to be sent as 'user_scope' instead of 'scope'. When empty, defaults to 'scope' (standard OAuth 2.0 behavior)."`
+	// Vendor marketplace/app-review approval status for this OAuth app. Many vendors (Slack, Figma, Salesforce, etc.) require an approval process before a third-party OAuth app can be used publicly. This field tracks where Stigmer's registration stands with the vendor. UNSPECIFIED is treated as approved for backwards compatibility — only apps explicitly marked PENDING are gated in the UI.
+	VendorApprovalStatus string `json:"vendor_approval_status,omitempty" jsonschema:"Vendor marketplace/app-review approval status for this OAuth app. Many vendors (Slack, Figma, Salesforce, etc.) require an approval process before a third-party OAuth app can be used publicly. This field tracks where Stigmer's registration stands with the vendor. UNSPECIFIED is treated as approved for backwards compatibility — only apps explicitly marked PENDING are gated in the UI. Allowed values: VENDOR_APPROVAL_STATUS_PENDING, VENDOR_APPROVAL_STATUS_APPROVED, VENDOR_APPROVAL_STATUS_REJECTED."`
+	// Documentation URL explaining how users can bring their own OAuth app credentials or personal access tokens for this vendor while the platform's OAuth app is pending approval. Shown in the frontend as a help link when vendor_approval_status is PENDING. Empty means no documentation link is displayed.
+	VendorApprovalDocsUrl string `json:"vendor_approval_docs_url,omitempty" jsonschema:"Documentation URL explaining how users can bring their own OAuth app credentials or personal access tokens for this vendor while the platform's OAuth app is pending approval. Shown in the frontend as a help link when vendor_approval_status is PENDING. Empty means no documentation link is displayed."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed OAuthApp proto message.
@@ -116,5 +120,7 @@ func (input *OAuthAppInput) specToProto() (*oauthappv1.OAuthAppSpec, error) {
 	spec.Scopes = input.Scopes
 	spec.UserinfoUrl = input.UserinfoUrl
 	spec.ScopeParameterName = input.ScopeParameterName
+	spec.VendorApprovalStatus = oauthappv1.VendorApprovalStatus(oauthappv1.VendorApprovalStatus_value[input.VendorApprovalStatus])
+	spec.VendorApprovalDocsUrl = input.VendorApprovalDocsUrl
 	return spec, nil
 }

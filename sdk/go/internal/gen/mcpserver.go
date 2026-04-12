@@ -10,6 +10,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	oauthappv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
@@ -152,10 +153,12 @@ type ToolApprovalPolicyInput struct {
 
 // McpServerAuthInput is the SDK input type for McpServerAuth.
 type McpServerAuthInput struct {
-	OauthAppRef       ResourceRef
-	TargetEnvVar      string
-	TokenLifetimeHint string
-	ScopeHints        []string
+	OauthAppRef           ResourceRef
+	TargetEnvVar          string
+	TokenLifetimeHint     string
+	ScopeHints            []string
+	VendorApprovalStatus  oauthappv1.VendorApprovalStatus
+	VendorApprovalDocsUrl string
 }
 
 func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
@@ -218,9 +221,11 @@ func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 
 func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
 	return &mcpserverv1.McpServerAuth{
-		OauthAppRef:       i.OauthAppRef.toProto(),
-		TargetEnvVar:      i.TargetEnvVar,
-		TokenLifetimeHint: i.TokenLifetimeHint,
-		ScopeHints:        i.ScopeHints,
+		OauthAppRef:           i.OauthAppRef.toProto(),
+		TargetEnvVar:          i.TargetEnvVar,
+		TokenLifetimeHint:     i.TokenLifetimeHint,
+		ScopeHints:            i.ScopeHints,
+		VendorApprovalStatus:  i.VendorApprovalStatus,
+		VendorApprovalDocsUrl: i.VendorApprovalDocsUrl,
 	}
 }

@@ -1,0 +1,70 @@
+---
+title: Bring Your Own OAuth Token
+description:
+  How to connect MCP servers that use vendor OAuth when the platform's OAuth app
+  is pending approval.
+---
+
+# Bring Your Own OAuth Token
+
+## Overview
+
+<!-- vale Vale.Spelling = NO -->
+
+Some MCP server integrations (Slack, Figma, Salesforce, and others) use OAuth to
+authenticate with the vendor on your behalf. Stigmer registers an OAuth app with
+each vendor, but the vendor's marketplace or app-review process can take time to
+complete.
+
+While the platform's OAuth app is pending approval, the **Sign in to connect**
+button is not available on those MCP servers. This page explains how to connect
+in the meantime by providing your own OAuth credentials.
+
+## Current status
+
+The following vendor OAuth integrations are currently pending approval:
+
+| Vendor     | status           |
+| ---------- | ---------------- |
+| Slack      | Pending approval |
+| Figma      | Pending approval |
+| Salesforce | Pending approval |
+
+Once a vendor approves the platform's OAuth app, the sign-in flow will be
+enabled automatically and this page will be updated.
+
+## Workaround: Enter Your Own Token
+
+Even while the platform's OAuth app is pending, you can still connect to the MCP
+server by entering a personal access token or your own OAuth app credentials
+manually.
+
+### Steps
+
+1. Navigate to the MCP server's detail page in the Stigmer library.
+2. In the **Connection** section, click **Enter token manually**.
+3. Provide the required token or API key in the credentials form.
+4. Click **Connect** to discover tools and start using the integration.
+
+### Where to Get Tokens
+
+Each vendor has its own process for generating personal access tokens or
+registering OAuth apps:
+
+- **Slack** — Visit the [Slack API Apps](https://api.slack.com/apps) page to
+  create an app and generate a user token with the scopes you need.
+- **Figma** — Go to [Figma account settings](https://www.figma.com/developers)
+  to generate a personal access token.
+- **Salesforce** — Use the
+  [Salesforce Connected Apps](https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm)
+  documentation to set up your own OAuth app or generate a security token.
+
+## What Happens When Approval Completes
+
+Once Stigmer's OAuth app is approved by a vendor:
+
+- The **Sign in to connect** button becomes active.
+- You can use the one-click OAuth flow instead of entering tokens manually.
+- Existing manual token connections continue to work; you do not need to
+  re-connect.
+- The platform automatically handles token refresh for OAuth-connected users.

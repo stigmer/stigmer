@@ -296,6 +296,8 @@ export function McpServerDetailView({
           isOAuthConnected={credentials.isOAuthConnected}
           accessTokenExpiresAt={credentials.accessTokenExpiresAt}
           tokenLifetimeHint={credentials.tokenLifetimeHint}
+          isVendorApprovalPending={credentials.isVendorApprovalPending}
+          vendorApprovalDocsUrl={credentials.vendorApprovalDocsUrl}
           manualOverride={credentials.manualOverride}
           onManualOverride={() => {
             credentials.setManualOverride(true);
@@ -374,6 +376,8 @@ function ConnectBar({
   isOAuthConnected,
   accessTokenExpiresAt,
   tokenLifetimeHint,
+  isVendorApprovalPending,
+  vendorApprovalDocsUrl,
   manualOverride,
   onManualOverride,
   onBackToOAuth,
@@ -391,6 +395,8 @@ function ConnectBar({
   readonly isOAuthConnected: boolean;
   readonly accessTokenExpiresAt: bigint;
   readonly tokenLifetimeHint: string | null;
+  readonly isVendorApprovalPending: boolean;
+  readonly vendorApprovalDocsUrl: string | null;
   readonly manualOverride: boolean;
   readonly onManualOverride: () => void;
   readonly onBackToOAuth: () => void;
@@ -403,6 +409,8 @@ function ConnectBar({
 
   const showOAuthPrimary =
     authMode === "oauth" && !isOAuthConnected && !manualOverride;
+
+  const oauthSignInDisabled = isVendorApprovalPending && showOAuthPrimary;
 
   const buttonLabel = (() => {
     if (isOAuthBusy) return oauthPhaseLabel(oauthPhase);
@@ -443,27 +451,33 @@ function ConnectBar({
                 "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
                 isOAuthConnected
                   ? "bg-success/10 text-success"
-                  : "bg-muted text-muted-foreground",
+                  : oauthSignInDisabled
+                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    : "bg-muted text-muted-foreground",
               )}
             >
               <span
                 className={cn(
                   "size-1.5 rounded-full",
-                  isOAuthConnected ? "bg-success" : "bg-muted-foreground",
+                  isOAuthConnected
+                    ? "bg-success"
+                    : oauthSignInDisabled
+                      ? "bg-amber-500"
+                      : "bg-muted-foreground",
                 )}
                 aria-hidden="true"
               />
-              {isOAuthConnected ? "Connected" : "Not connected"}
+              {isOAuthConnected ? "Connected" : oauthSignInDisabled ? "Pending approval" : "Not connected"}
             </span>
           )}
           <span className="text-xs text-muted-foreground">
-            {statusText}
+            {oauthSignInDisabled ? "OAuth sign-in is pending vendor approval" : statusText}
           </span>
         </div>
         <button
           type="button"
           onClick={onConnect}
-          disabled={isConnecting || isOAuthBusy || credentialsLoading}
+          disabled={isConnecting || isOAuthBusy || credentialsLoading || oauthSignInDisabled}
           data-cursor-target="connect-button"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
@@ -478,6 +492,30 @@ function ConnectBar({
         </button>
       </div>
 
+      {/* Vendor approval pending banner with docs link */}
+      {oauthSignInDisabled && (
+        <div className="flex items-start gap-2 border-t border-amber-500/20 bg-amber-500/5 px-3 py-2">
+          <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="flex-1 text-xs text-amber-700 dark:text-amber-300">
+            <p>
+              The platform&apos;s OAuth app is awaiting vendor approval.
+              You can still connect by entering your own token manually.
+            </p>
+            {vendorApprovalDocsUrl && (
+              <a
+                href={vendorApprovalDocsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex items-center gap-1 underline decoration-amber-600/40 underline-offset-2 hover:decoration-amber-600 dark:decoration-amber-400/40 dark:hover:decoration-amber-400"
+              >
+                Learn how to bring your own token
+                <ExternalLinkIcon className="size-3 shrink-0" />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Secondary action: switch between OAuth and manual token entry */}
       {authMode === "oauth" && !isOAuthConnected && !isOAuthBusy && !isConnecting && (
         <div className="border-t border-border px-3 py-1.5">
@@ -487,7 +525,7 @@ function ConnectBar({
               onClick={onBackToOAuth}
               className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
             >
-              Sign in with OAuth instead
+              {isVendorApprovalPending ? "Back to OAuth status" : "Sign in with OAuth instead"}
             </button>
           ) : (
             <button

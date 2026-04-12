@@ -193,24 +193,28 @@ const oAuthApp = await stigmer.oauthapp.apply({
   scopes: [],
   userinfoUrl: "...",
   scopeParameterName: "...",
+  vendorApprovalStatus: "...",
+  vendorApprovalDocsUrl: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Apply(ctx, &stigmer.OAuthAppInput{
-  Name:               "my-o-auth-app",
-  Org:                "acme",
-  Slug:               "...",
-  Labels:             map[string]string{},
-  Provider:           "...",
-  ClientId:           "...",
-  ClientSecret:       "...",
-  AuthorizationUrl:   "...",
-  TokenUrl:           "...",
-  Scopes:             []string{},
-  UserinfoUrl:        "...",
-  ScopeParameterName: "...",
+  Name:                  "my-o-auth-app",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  Provider:              "...",
+  ClientId:              "...",
+  ClientSecret:          "...",
+  AuthorizationUrl:      "...",
+  TokenUrl:              "...",
+  Scopes:                []string{},
+  UserinfoUrl:           "...",
+  ScopeParameterName:    "...",
+  VendorApprovalStatus:  "...",
+  VendorApprovalDocsUrl: "...",
 })
 ```
 </Tab>
@@ -229,6 +233,8 @@ o_auth_app = client.oauthapps.apply(OAuthAppInput(
     scopes=[],
     userinfo_url="...",
     scope_parameter_name="...",
+    vendor_approval_status="...",
+    vendor_approval_docs_url="...",
 ))
 ```
 </Tab>
@@ -247,6 +253,8 @@ OAuthApp oAuthApp = client.oauthapps().apply(OAuthAppInput.builder()
     .scopes(List.of())
     .userinfoUrl("...")
     .scopeParameterName("...")
+    .vendorApprovalStatus("...")
+    .vendorApprovalDocsUrl("...")
     .build());
 ```
 </Tab>
@@ -278,24 +286,28 @@ const oAuthApp = await stigmer.oauthapp.create({
   scopes: [],
   userinfoUrl: "...",
   scopeParameterName: "...",
+  vendorApprovalStatus: "...",
+  vendorApprovalDocsUrl: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Create(ctx, &stigmer.OAuthAppInput{
-  Name:               "my-o-auth-app",
-  Org:                "acme",
-  Slug:               "...",
-  Labels:             map[string]string{},
-  Provider:           "...",
-  ClientId:           "...",
-  ClientSecret:       "...",
-  AuthorizationUrl:   "...",
-  TokenUrl:           "...",
-  Scopes:             []string{},
-  UserinfoUrl:        "...",
-  ScopeParameterName: "...",
+  Name:                  "my-o-auth-app",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  Provider:              "...",
+  ClientId:              "...",
+  ClientSecret:          "...",
+  AuthorizationUrl:      "...",
+  TokenUrl:              "...",
+  Scopes:                []string{},
+  UserinfoUrl:           "...",
+  ScopeParameterName:    "...",
+  VendorApprovalStatus:  "...",
+  VendorApprovalDocsUrl: "...",
 })
 ```
 </Tab>
@@ -314,6 +326,8 @@ o_auth_app = client.oauthapps.create(OAuthAppInput(
     scopes=[],
     userinfo_url="...",
     scope_parameter_name="...",
+    vendor_approval_status="...",
+    vendor_approval_docs_url="...",
 ))
 ```
 </Tab>
@@ -332,6 +346,8 @@ OAuthApp oAuthApp = client.oauthapps().create(OAuthAppInput.builder()
     .scopes(List.of())
     .userinfoUrl("...")
     .scopeParameterName("...")
+    .vendorApprovalStatus("...")
+    .vendorApprovalDocsUrl("...")
     .build());
 ```
 </Tab>
@@ -361,24 +377,28 @@ const oAuthApp = await stigmer.oauthapp.update({
   scopes: [],
   userinfoUrl: "...",
   scopeParameterName: "...",
+  vendorApprovalStatus: "...",
+  vendorApprovalDocsUrl: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Update(ctx, &stigmer.OAuthAppInput{
-  Name:               "my-o-auth-app",
-  Org:                "acme",
-  Slug:               "...",
-  Labels:             map[string]string{},
-  Provider:           "...",
-  ClientId:           "...",
-  ClientSecret:       "...",
-  AuthorizationUrl:   "...",
-  TokenUrl:           "...",
-  Scopes:             []string{},
-  UserinfoUrl:        "...",
-  ScopeParameterName: "...",
+  Name:                  "my-o-auth-app",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  Provider:              "...",
+  ClientId:              "...",
+  ClientSecret:          "...",
+  AuthorizationUrl:      "...",
+  TokenUrl:              "...",
+  Scopes:                []string{},
+  UserinfoUrl:           "...",
+  ScopeParameterName:    "...",
+  VendorApprovalStatus:  "...",
+  VendorApprovalDocsUrl: "...",
 })
 ```
 </Tab>
@@ -397,6 +417,8 @@ o_auth_app = client.oauthapps.update(OAuthAppInput(
     scopes=[],
     userinfo_url="...",
     scope_parameter_name="...",
+    vendor_approval_status="...",
+    vendor_approval_docs_url="...",
 ))
 ```
 </Tab>
@@ -415,6 +437,8 @@ OAuthApp oAuthApp = client.oauthapps().update(OAuthAppInput.builder()
     .scopes(List.of())
     .userinfoUrl("...")
     .scopeParameterName("...")
+    .vendorApprovalStatus("...")
+    .vendorApprovalDocsUrl("...")
     .build());
 ```
 </Tab>
@@ -487,6 +511,8 @@ Input for creating or updating an O Auth App.
     scopes: { type: "string[]", description: "OAuth scopes to request during the authorization flow." },
     userinfoUrl: { type: "string", description: "Optional OIDC UserInfo endpoint for fetching user profile data." },
     scopeParameterName: { type: "string", description: "Name of the query parameter used to send scopes in the authorization URL." },
+    vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Vendor marketplace/app-review approval status for this OAuth app.", typeDescriptionLink: "#vendorapprovalstatus" },
+    vendorApprovalDocsUrl: { type: "string", description: "Documentation URL explaining how users can bring their own OAuth app credentials or personal access tokens for this vendor while the platform's OAuth app is pending approval." },
   }}
 />
 
@@ -536,4 +562,14 @@ OAuthApp represents a registered OAuth application with an external vendor.
     status: { type: "OAuthAppStatus", description: "System-managed state. See `OAuthAppStatus`." },
   }}
 />
+
+### VendorApprovalStatus
+
+Lifecycle status of an OAuthApp's vendor marketplace approval.
+
+| Value | Description |
+|-------|-------------|
+| `VENDOR_APPROVAL_STATUS_PENDING` | The OAuth app has been submitted to the vendor for review and is awaiting approval. |
+| `VENDOR_APPROVAL_STATUS_APPROVED` | The vendor has approved the OAuth app. |
+| `VENDOR_APPROVAL_STATUS_REJECTED` | The vendor rejected the OAuth app. |
 

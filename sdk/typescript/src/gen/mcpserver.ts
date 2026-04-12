@@ -15,6 +15,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/enum_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
@@ -171,6 +172,8 @@ export interface McpServerAuthInput {
   targetEnvVar?: string;
   tokenLifetimeHint?: string;
   scopeHints?: string[];
+  vendorApprovalStatus?: VendorApprovalStatus;
+  vendorApprovalDocsUrl?: string;
 }
 
 function buildStdioServerConfigProto(input: StdioServerConfigInput) {
@@ -211,6 +214,8 @@ function buildMcpServerAuthProto(input: McpServerAuthInput) {
   if (input.targetEnvVar !== undefined) msg.targetEnvVar = input.targetEnvVar;
   if (input.tokenLifetimeHint !== undefined) msg.tokenLifetimeHint = input.tokenLifetimeHint;
   if (input.scopeHints) msg.scopeHints = input.scopeHints;
+  if (input.vendorApprovalStatus !== undefined) msg.vendorApprovalStatus = input.vendorApprovalStatus;
+  if (input.vendorApprovalDocsUrl !== undefined) msg.vendorApprovalDocsUrl = input.vendorApprovalDocsUrl;
   return msg;
 }
 

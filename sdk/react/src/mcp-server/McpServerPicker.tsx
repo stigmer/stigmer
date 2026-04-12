@@ -416,6 +416,10 @@ export function McpServerPicker({
       ? entryMissingVars.some((v) => v.key === oauthTargetEnvVar)
       : false;
 
+    const vendorApprovalStatus = auth?.vendorApprovalStatus;
+    const isVendorApprovalPending =
+      hasOAuth && vendorApprovalStatus === 1; // VendorApprovalStatus.PENDING
+
     const oauthSignInProps =
       hasOAuth && !isManualOverride
         ? {
@@ -435,6 +439,8 @@ export function McpServerPicker({
             isConnected: !oauthTokenMissing,
             error: oauth.error,
             onClearError: oauth.clearError,
+            isVendorApprovalPending,
+            vendorApprovalDocsUrl: auth?.vendorApprovalDocsUrl || null,
           }
         : undefined;
 

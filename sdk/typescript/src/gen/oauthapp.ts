@@ -10,6 +10,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { OAuthAppSchema, type OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
+import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/enum_pb";
 import { ListOAuthAppsByOrgInputSchema, OAuthAppsSchema, type ListOAuthAppsByOrgInput, type OAuthApps } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
 import { OAuthAppSpecSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
@@ -85,6 +86,8 @@ export interface OAuthAppInput {
   scopes?: string[];
   userinfoUrl?: string;
   scopeParameterName?: string;
+  vendorApprovalStatus?: VendorApprovalStatus;
+  vendorApprovalDocsUrl?: string;
 }
 
 function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
@@ -106,6 +109,8 @@ function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
       scopes: input.scopes,
       userinfoUrl: input.userinfoUrl,
       scopeParameterName: input.scopeParameterName,
+      vendorApprovalStatus: input.vendorApprovalStatus,
+      vendorApprovalDocsUrl: input.vendorApprovalDocsUrl,
     })),
   }) as OAuthApp;
 }

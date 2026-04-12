@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.iam.oauthapp.v1.OAuthApp;
 import ai.stigmer.iam.oauthapp.v1.OAuthAppSpec;
+import ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus;
 
 /** Input for creating/updating a OAuthApp. */
 public final class OAuthAppInput {
@@ -20,6 +21,8 @@ public final class OAuthAppInput {
     private final java.util.List<String> scopes;
     private final String userinfoUrl;
     private final String scopeParameterName;
+    private final VendorApprovalStatus vendorApprovalStatus;
+    private final String vendorApprovalDocsUrl;
 
     private OAuthAppInput(Builder builder) {
         this.name = builder.name;
@@ -34,6 +37,8 @@ public final class OAuthAppInput {
         this.scopes = builder.scopes;
         this.userinfoUrl = builder.userinfoUrl;
         this.scopeParameterName = builder.scopeParameterName;
+        this.vendorApprovalStatus = builder.vendorApprovalStatus;
+        this.vendorApprovalDocsUrl = builder.vendorApprovalDocsUrl;
     }
 
     OAuthApp toProto() {
@@ -61,6 +66,12 @@ public final class OAuthAppInput {
         }
         if (this.scopeParameterName != null) {
             spec.setScopeParameterName(this.scopeParameterName);
+        }
+        if (this.vendorApprovalStatus != null) {
+            spec.setVendorApprovalStatus(this.vendorApprovalStatus);
+        }
+        if (this.vendorApprovalDocsUrl != null) {
+            spec.setVendorApprovalDocsUrl(this.vendorApprovalDocsUrl);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -94,6 +105,8 @@ public final class OAuthAppInput {
         private java.util.List<String> scopes;
         private String userinfoUrl;
         private String scopeParameterName;
+        private VendorApprovalStatus vendorApprovalStatus;
+        private String vendorApprovalDocsUrl;
 
         private Builder() {}
 
@@ -109,6 +122,8 @@ public final class OAuthAppInput {
         public Builder scopes(java.util.List<String> scopes) { this.scopes = scopes; return this; }
         public Builder userinfoUrl(String userinfoUrl) { this.userinfoUrl = userinfoUrl; return this; }
         public Builder scopeParameterName(String scopeParameterName) { this.scopeParameterName = scopeParameterName; return this; }
+        public Builder vendorApprovalStatus(VendorApprovalStatus vendorApprovalStatus) { this.vendorApprovalStatus = vendorApprovalStatus; return this; }
+        public Builder vendorApprovalDocsUrl(String vendorApprovalDocsUrl) { this.vendorApprovalDocsUrl = vendorApprovalDocsUrl; return this; }
 
         public OAuthAppInput build() { return new OAuthAppInput(this); }
     }

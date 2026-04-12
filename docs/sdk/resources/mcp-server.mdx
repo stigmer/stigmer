@@ -798,6 +798,8 @@ McpServerAuth configures automated credential acquisition via OAuth.
     targetEnvVar: { type: "string", description: "The env var where the acquired access token is stored." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
     scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
+    vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Read-only.", typeDescriptionLink: "#vendorapprovalstatus" },
+    vendorApprovalDocsUrl: { type: "string", description: "Read-only." },
   }}
 />
 
@@ -993,4 +995,14 @@ ValidationState represents the structural validity of an MCP server definition.
 |-------|-------------|
 | `valid` | The MCP server definition is structurally valid. |
 | `invalid` | The MCP server definition is invalid. |
+
+### VendorApprovalStatus
+
+Lifecycle status of an OAuthApp's vendor marketplace approval.
+
+| Value | Description |
+|-------|-------------|
+| `VENDOR_APPROVAL_STATUS_PENDING` | The OAuth app has been submitted to the vendor for review and is awaiting approval. |
+| `VENDOR_APPROVAL_STATUS_APPROVED` | The vendor has approved the OAuth app. |
+| `VENDOR_APPROVAL_STATUS_REJECTED` | The vendor rejected the OAuth app. |
 
