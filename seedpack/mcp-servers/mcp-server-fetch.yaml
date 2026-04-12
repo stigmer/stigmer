@@ -15,7 +15,6 @@ spec:
     - content-extraction
     - scraping
   stdio:
-    command: "npx"
+    command: "uvx"
     args:
-      - "-y"
-      - "@modelcontextprotocol/server-fetch"
+      - "mcp-server-fetch"

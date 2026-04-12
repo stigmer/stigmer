@@ -154,11 +154,32 @@ def _resolve_packages(
 # ---------------------------------------------------------------------------
 
 
+def _build_install_script(manager_cmd: str, packages: list[str]) -> str:
+    """Build a shell snippet that installs packages individually.
+
+    Each package is attempted in isolation so a single 404 or version
+    conflict does not prevent the remaining packages from installing.
+    Failures are logged as warnings and collected into a summary line
+    visible in the snapshot build logs.
+    """
+    lines = [
+        'failed=""',
+        f"for pkg in {' '.join(packages)}; do",
+        f"  {manager_cmd} \"$pkg\" || failed=\"$failed $pkg\"",
+        "done",
+        '[ -z "$failed" ] || echo "WARN: failed to install:$failed"',
+    ]
+    return "; ".join(lines)
+
+
 def _build_image(
     base_image: str,
     packages: dict[str, list[str]],
 ):
     """Build a ``daytona.Image`` with the given packages pre-installed.
+
+    Each package is installed individually so that one broken or missing
+    package does not prevent the rest from being installed.
 
     Returns:
         A ``daytona.Image`` instance ready for snapshot creation.
@@ -168,16 +189,18 @@ def _build_image(
     image = Image.base(base_image)
 
     if packages["npm"]:
-        cmd = "npm install -g " + " ".join(packages["npm"])
+        cmd = _build_install_script("npm install -g", packages["npm"])
         image = image.run_commands(cmd)
 
     if packages["pip"]:
-        cmd = "python -m pip install --break-system-packages " + " ".join(packages["pip"])
+        cmd = _build_install_script(
+            "python -m pip install --break-system-packages", packages["pip"]
+        )
         image = image.run_commands(cmd)
 
     if packages["go"]:
-        cmds = [f"go install {pkg}" for pkg in packages["go"]]
-        image = image.run_commands(*cmds)
+        cmd = _build_install_script("go install", packages["go"])
+        image = image.run_commands(cmd)
 
     return image
 
