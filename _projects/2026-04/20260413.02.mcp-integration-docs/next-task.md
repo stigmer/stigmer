@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-13
-**Current Task**: T04 — BYOA guide + hero demo
-**Status**: T04 COMPLETE
-**Last Session**: 2026-04-13 — Completed T04
+**Current Task**: T05 — Architecture transparency page
+**Status**: T05 COMPLETE
+**Last Session**: 2026-04-13 — Completed T05
 
 ## Session Progress (2026-04-13, session 3 — T02)
 
@@ -259,11 +259,66 @@ Side-track from the docs project to address UX gaps found during BYOA testing:
 | `site/src/components/mdx.tsx` | Register in MDX component map |
 | `site/src/components/docs/demos/scenarios/registry.ts` | Register for video export |
 
+## Session Progress (2026-04-13, session 6 — T05)
+
+- Created `docs/guides/integrations/oauth-architecture.mdx` — Diataxis
+  Explanation page with three mermaid diagrams covering the full OAuth
+  architecture for platform builders
+- Three core sections:
+  1. **Resolution chain** — flowchart showing DCR vs vendor OAuth decision tree,
+     three-level resolution (org override → platform default → none), when
+     resolution runs (connect time + every token refresh)
+  2. **Credential storage** — two-layer diagram showing OAuthGrant (non-secret
+     metadata) vs Managed Environment (encrypted tokens), security boundary
+     rationale, environment priority table
+  3. **Token lifecycle** — state machine diagram covering connect flow,
+     pre-flight check, auto-refresh, failure mode, and four health signals
+- Brief capstone section: what BYOA changes across all three layers, including
+  why removing an override breaks existing grants
+- No demo (by design) — this is an explanation page; UI interactions already
+  demoed in T03 and T04; mermaid diagrams are the right medium for architecture
+- Audience scoped to platform builders only — external reviewer (Slack
+  marketplace) artifact deferred to a future project
+- All cross-links verified: `meta.json`, `overview.mdx`, T03 and T04 all
+  already point to this page
+- Build verified: `yarn build` passes
+
+### Files created
+
+| File | Purpose |
+|------|---------|
+| `docs/guides/integrations/oauth-architecture.mdx` | Explanation page |
+| `_projects/2026-04/20260413.02.mcp-integration-docs/tasks/T05_0_plan.md` | Task plan file |
+
+### No files modified
+
+T05 required no changes to existing files — all cross-links and navigation
+entries were already in place from T01–T04.
+
+## Key Decisions (T05)
+
+- **Explanation type, not how-to**: The only non-how-to page in the integrations
+  section. Justified because it's the architectural capstone that T03 and T04
+  cross-link to for depth.
+- **No demo**: Mermaid diagrams are the right medium for architecture. A forced
+  ScenarioPlayer demo for an explanation page would be artificial — the UI
+  interactions are already covered by T03 and T04 demos.
+- **Platform builders only**: External reviewer (Slack marketplace) audience
+  explicitly deferred to a future project. One page cannot serve both a "help me
+  understand the system I'm building on" audience and a "prove to me your system
+  is safe" audience without diluting both.
+- **Three pillars matching cross-link promises**: The page structure maps exactly
+  to the three promises made by T03 and T04: resolution chain, credential
+  storage, token lifecycle. No extra sections, no padding.
+- **Fresh resolution on every refresh**: Documented that the resolution chain is
+  evaluated on every token refresh, not just connect time. This is the key
+  insight that explains why BYOA changes take effect immediately and why
+  removing overrides breaks existing grants.
+
 ## Next Steps
 
-1. Start T05: Architecture transparency page
-2. Write `docs/guides/integrations/oauth-architecture.mdx`
-3. Build mermaid diagrams for resolution chain, token lifecycle, credential storage
+1. Start T06: Tutorial completion + demo updates
+2. Start T07: SDK reference polish
 
 ## Task Map
 
@@ -273,7 +328,7 @@ Side-track from the docs project to address UX gaps found during BYOA testing:
 | T02 | Marketplace and connect guides + demos | COMPLETE |
 | T03 | OAuth for tools guide + hero demo | COMPLETE |
 | T04 | BYOA guide + demo | COMPLETE |
-| T05 | Architecture transparency page | Not started |
+| T05 | Architecture transparency page | COMPLETE |
 | T06 | Tutorial completion + demo updates | Not started |
 | T07 | SDK reference polish | Not started |
 

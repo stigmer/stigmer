@@ -66,7 +66,7 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 - [x] T02: Marketplace and connect guides + demos
 - [x] T03: OAuth for tools guide + hero demo
 - [x] T04: BYOA guide + demo
-- [ ] T05: Architecture transparency page
+- [x] T05: Architecture transparency page
 - [ ] T06: Tutorial completion + demo updates
 - [ ] T07: SDK reference polish
 
