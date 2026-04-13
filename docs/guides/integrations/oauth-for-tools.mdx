@@ -1,0 +1,129 @@
+---
+title: OAuth for tools
+description:
+  Connect OAuth-protected MCP servers with a single sign-in. Stigmer handles
+  token exchange, secure storage, and credential lifecycle automatically.
+---
+
+import { DemoOAuthConnectFlow } from "@/components/docs";
+
+Some MCP servers connect to services that require OAuth — GitHub, Slack, Figma,
+Google Calendar. When a server declares an `auth` section, Stigmer manages the
+entire OAuth flow: sign-in popup, token exchange, encrypted storage, and
+automatic refresh. You never handle tokens directly.
+
+<Callout type="info">
+  This guide assumes you've read the [Connect from the
+  marketplace](/docs/guides/integrations/connect-from-marketplace) guide. The
+  connect process (discovery, classification, approval policies) is the same for
+  OAuth and non-OAuth servers — the difference is how credentials are obtained.
+</Callout>
+
+<DemoOAuthConnectFlow />
+
+## How OAuth tools differ
+
+When you open an MCP server that uses API keys (like PostgreSQL), the detail
+view shows a credential form where you enter the value before connecting. OAuth
+servers skip that form entirely. Instead, the connection section shows a **Sign
+in to connect** button.
+
+The difference comes from the `auth` section in the MCP server definition. Here
+is what it looks like for the GitHub server:
+
+```yaml
+spec:
+  http:
+    url: "https://api.githubcopilot.com/mcp/"
+    headers:
+      Authorization: "Bearer ${GITHUB_ACCESS_TOKEN}"
+  env:
+    GITHUB_ACCESS_TOKEN:
+      is_secret: true
+      description: "GitHub OAuth token or personal access token"
+  auth:
+    oauth_app_ref:
+      kind: oauth_app
+      slug: github-oauth
+    target_env_var: "GITHUB_ACCESS_TOKEN"
+    scope_hints:
+      - "repo"
+      - "read:org"
+      - "read:user"
+```
+
+The `auth` block tells Stigmer two things:
+
+- **Where to store the token** — `target_env_var` names the Environment variable
+  that receives the access token. This variable also appears in `env`, so the
+  execution pipeline resolves it the same way it resolves any other credential.
+- **What scopes to request** — `scope_hints` appear in the authorization prompt
+  so you know what access you're granting before you authorize.
+
+The Environment variable section in the detail view labels the OAuth-managed
+variable with an **OAuth** badge to distinguish it from variables you enter
+manually.
+
+## Connect an OAuth-protected tool
+
+1. Open the MCP server detail view from the tool library.
+2. Click **Sign in to connect**. A popup opens to the provider's authorization
+   page — GitHub, Slack, or whichever service the server integrates with.
+3. Review the requested permissions and authorize the application.
+4. The popup closes. Stigmer exchanges the authorization code for an access
+   token, stores it in a managed Environment, then connects to the server.
+5. Tools are discovered and approval policies are classified — the same process
+   described in the
+   [marketplace guide](/docs/guides/integrations/connect-from-marketplace#connect-an-mcp-server).
+
+<Callout type="info">
+  You never see or handle the access token. Stigmer stores it in an encrypted
+  managed Environment tied to your identity and injects it at runtime when the
+  Agent calls a tool.
+</Callout>
+
+## Token lifecycle
+
+After you authorize, Stigmer keeps the credential healthy without further
+action. The connection section in the detail view shows one of four states:
+
+| State              | What it means                                       | What to do                                     |
+| ------------------ | --------------------------------------------------- | ---------------------------------------------- |
+| **Connected**      | The access token is valid. Tools work normally.     | Nothing — you're set                           |
+| **Token expired**  | The token expired but a refresh token is available. | Stigmer refreshes it automatically on next use |
+| **Re-auth needed** | Both the access and refresh tokens have expired.    | Click **Sign in to connect** again             |
+| **Not connected**  | No credential exists yet.                           | Click **Sign in to connect**                   |
+
+When the provider supports refresh tokens, Stigmer refreshes the access token
+automatically at execution time. You don't need to re-authorize unless the
+refresh token itself expires.
+
+The detail view also shows a token lifetime hint (like "8 h" for GitHub) so you
+know how long a Session lasts before the next automatic refresh.
+
+## Manual override
+
+If you prefer to use a personal access token or a service account key instead of
+the OAuth flow, you can enter the value directly:
+
+1. Click **Enter token manually** in the connection section.
+2. Type or paste the token into the credential form.
+3. Click **Connect**.
+
+The server connects the same way — Stigmer saves the value to your personal
+Environment and uses it for tool execution. The difference is that you manage
+token rotation yourself instead of relying on the automatic OAuth lifecycle.
+
+To switch back to OAuth, click **Sign in with OAuth instead** in the connection
+section.
+
+## What's next
+
+If your Organization needs to use its own OAuth app registrations instead of the
+platform defaults — for tighter control over scopes, branding, or to bypass
+vendor approval delays — see
+[Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth).
+
+For a deeper look at how Stigmer handles OAuth internally — the resolution
+chain, credential storage model, and token refresh mechanics — see
+[OAuth architecture](/docs/guides/integrations/oauth-architecture).

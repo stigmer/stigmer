@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-13
-**Current Task**: T02 — Marketplace and connect guides + demos
-**Status**: T02 COMPLETE
-**Last Session**: 2026-04-13 — Completed T02
+**Current Task**: T03 — OAuth for tools guide + hero demo
+**Status**: T03 COMPLETE
+**Last Session**: 2026-04-13 — Completed T03
 
 ## Session Progress (2026-04-13, session 3 — T02)
 
@@ -182,11 +182,48 @@ Side-track from the docs project to address UX gaps found during BYOA testing:
 - **MDX comment syntax fix**: `overview.mdx` from T01 used HTML comments
   (`<!-- -->`); MDX requires `{/* */}` — fixed during build verification
 
+## Session Progress (2026-04-13, session 4 — T03)
+
+- Created `docs/guides/integrations/oauth-for-tools.mdx` — how-to guide with
+  hero demo, OAuth vs API-key contrast, YAML `auth` block example, 5-step
+  connect walkthrough, token lifecycle table, manual override path, and
+  cross-links to T04/T05
+- Built `oauth-connect-flow` demo scenario (5-step playback):
+  detail (pre-connect, "Sign in to connect") → cursor clicks sign-in →
+  GitHub authorization page (BrowserView) → connected detail with tools →
+  policies tab
+- GitHub McpServer fixture built from real seedpack entry (vendor OAuth,
+  HTTP transport, scope hints, 6 discovered tools, 3 approval policies)
+- GitHub authorize page: hand-built JSX inside BrowserView with realistic
+  scope list, app name, and authorize/cancel buttons
+- Added `fixtures.mcpServer.getOAuthGrantStatus` and
+  `fixtures.mcpServer.getOrgOAuthApp` to SDK demo fixtures for OAuth
+  state fixturing
+- Registered demo in `index.ts`, `mdx.tsx`, and `registry.ts`
+- Build verified: `yarn build` passes
+
+### Files created
+
+| File | Purpose |
+|------|---------|
+| `docs/guides/integrations/oauth-for-tools.mdx` | How-to guide page |
+| `site/src/components/docs/demos/scenarios/oauth-connect-flow/index.tsx` | Demo component |
+| `site/src/components/docs/demos/scenarios/oauth-connect-flow/steps.ts` | Fixtures + step data |
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `sdk/react/src/demo/fixtures.ts` | Added OAuth fixture helpers |
+| `site/src/components/docs/index.ts` | Export `DemoOAuthConnectFlow` |
+| `site/src/components/mdx.tsx` | Register in MDX component map |
+| `site/src/components/docs/demos/scenarios/registry.ts` | Register for video export |
+
 ## Next Steps
 
-1. Start T03: OAuth for tools guide + hero demo
-2. Write `docs/guides/integrations/oauth-for-tools.mdx`
-3. Build `oauth-connect-flow` demo (hero demo with OAuth redirect flow)
+1. Start T04: BYOA guide + demo
+2. Write `docs/guides/integrations/bring-your-own-oauth.mdx`
+3. Build `byoa-setup` demo (BYOA flow with org-level OAuth app override)
 
 ## Task Map
 
@@ -194,7 +231,7 @@ Side-track from the docs project to address UX gaps found during BYOA testing:
 |------|-------|--------|
 | T01 | Concepts expansion + nav setup | COMPLETE |
 | T02 | Marketplace and connect guides + demos | COMPLETE |
-| T03 | OAuth for tools guide + hero demo | Not started |
+| T03 | OAuth for tools guide + hero demo | COMPLETE |
 | T04 | BYOA guide + demo | Not started |
 | T05 | Architecture transparency page | Not started |
 | T06 | Tutorial completion + demo updates | Not started |
