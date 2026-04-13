@@ -24,7 +24,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | **T04** | Backend: BYOA infrastructure (repo, resolution, migration) | stigmer-cloud | DONE | T01 |
 | **T05** | Backend: BYOA handlers + resolution chain integration | stigmer-cloud | DONE | T04 |
 | **T06** | Frontend: disconnect + health + error UX | stigmer | DONE | T02, T03 |
-| **T07** | Frontend: BYOA experience | stigmer | NOT STARTED | T05, T06 |
+| **T07** | Frontend: BYOA experience | stigmer | DONE | T05, T06 |
 
 ### Dependency Graph
 
@@ -204,12 +204,44 @@ When starting a new session:
 18. Health pill uses extracted helper functions (`healthPillProps`, `inlineHealthProps`) instead of nested ternaries — cleaner, easier to extend for T07 BYOA states
 19. `McpServerConfigPanel` stays presentational — disconnect state management wired through optional props from parent, not internal hooks
 
+### T07 Completed
+- New `useOrgOAuthApp` hook: hybrid data+behavior (auto-fetches `getOrgOAuthApp`, exposes `setOrgOAuthApp` and `deleteOrgOAuthApp` mutations bound to resource+org context)
+- New `OAuthAppForm` component: pure presentational two-field form (client_id + client_secret), headless-first, themed via `--stgm-*` tokens
+- Enhanced `useMcpServerCredentials` with 4 BYOA-derived fields: `effectiveOAuthSource`, `isOrgOAuthApp`, `canBringOwnApp`, `isVendorApprovalBlocked` — from backend enrichment, zero extra RPCs
+- Enhanced ConnectBar: BYOA button in vendor-blocked banner, secondary link when vendor approved, org override indicator + "Remove custom app" inline confirmation, native `<dialog>` for form
+- Enhanced InlineOAuthSignIn: 7 new optional BYOA props on `McpServerOAuthSignInProps`, mirrors ConnectBar at compact density
+- Exported `useOrgOAuthApp`, `OAuthAppForm`, and types from barrel
+- 7 files changed, 1091 insertions, 29 deletions
+- Committed: stigmer `4d21a2230`
+
+### Key Design Decisions Made (Session 7)
+20. BYOA available at all vendor approval states — primary when blocked (PENDING/REJECTED), secondary when approved — Hick's Law for the common case, user control for power users
+21. Save and sign-in are separate user gestures — browsers block popups from async chains, so BYOA submit says "Save" and sign-in is a subsequent click
+22. `isVendorApprovalBlocked` covers both PENDING and REJECTED — existing `isVendorApprovalPending` preserved for backward compat
+23. Org override bypasses vendor gate — `oauthSignInDisabled` is `false` when `isOrgOAuthApp` (the org's app is self-approved)
+24. Config panel stays presentational for BYOA — receives BYOA callbacks via optional props, picker wiring is a follow-up
+25. `useOrgOAuthApp` auto-fetches on mount (same pattern as `useOAuthGrantStatus`) — derive basic BYOA state from enrichment, fetch details for management UI
+
 ## Current Status
 
 **Created**: 2026-04-13 11:03
-**Current Task**: T07 (next to pick)
-**Status**: T01–T06 complete. T07 is unblocked (last task).
+**Completed**: 2026-04-13
+**Status**: ALL 7 TASKS COMPLETE. Project done.
 
-## Next Steps
+All 10 identified architectural gaps are addressed:
+1. GAP 1: OAuthApp admin UI → T07 BYOA form + useOrgOAuthApp hook
+2. GAP 2: Disconnect flow → T02 handler + T06 frontend
+3. GAP 3: Grant health → T02 OAuthConnectionHealth + T06 health pills
+4. GAP 4: Execution refresh → T03 hard failure
+5. GAP 5: Token expiry → T02 health evaluation with 60s buffer
+6. GAP 6: Token refresh resolves wrong app → T05 resolution chain
+7. GAP 7: BYOA support → T04 infrastructure + T05 handlers + T07 frontend
+8. GAP 8: Vendor gate enforcement → T03 backend + T06 frontend
+9. GAP 9: Error UX → T03 layered errors + T06 getUserMessage
+10. GAP 10: Stale grant → T02 disconnect + T06 health display
 
-1. T07: Frontend BYOA experience (unblocked by T05 + T06) — final task
+## Follow-up Items
+
+1. **`useMcpServerSetup` / picker wiring**: Config panel accepts BYOA props but the picker's orchestrator doesn't wire them yet — natural follow-up
+2. **Provider name resolution**: `OAuthAppForm` uses MCP server name as provider name; a dedicated `provider` field on `OAuthStatus` would be cleaner
+3. **`VendorApprovalStatus.REJECTED` end-to-end test**: Frontend now handles REJECTED but no seedpack server has this status — verify when one does
