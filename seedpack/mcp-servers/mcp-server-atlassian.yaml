@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "crm-support"
 spec:
   description: "Atlassian MCP server for Jira issue management, Confluence page access, and project collaboration via the Rovo platform."
+  icon_url: "https://cdn.simpleicons.org/atlassian"
   repository_url: "https://github.com/atlassian/atlassian-mcp-server"
   github_stars: 557
   tags:

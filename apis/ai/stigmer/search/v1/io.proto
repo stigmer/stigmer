@@ -139,7 +139,7 @@ message SearchResponse {
 //
 // Contains only the fields needed for search result display:
 // - Identity: kind, id, slug, org
-// - Display: name, description, tags
+// - Display: name, description, icon_url, tags
 // - Metadata: visibility, timestamps, relevance score
 //
 // This is not the full resource. To get the complete resource, call the
@@ -239,4 +239,12 @@ message SearchResult {
   //
   // Used for sorting when a search query is provided.
   float score = 12;
+
+  // Icon URL for display in search result cards and listings.
+  //
+  // Populated from the resource's spec.icon_url when available.
+  // Empty for resource types that don't support icons (e.g., skills).
+  //
+  // Must be a publicly accessible URL (SVG, PNG, or JPEG).
+  string icon_url = 13;
 }

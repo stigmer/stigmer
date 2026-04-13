@@ -382,4 +382,34 @@ public interface SearchResultOrBuilder extends
    * @return The score.
    */
   float getScore();
+
+  /**
+   * <pre>
+   * Icon URL for display in search result cards and listings.
+   *
+   * Populated from the resource's spec.icon_url when available.
+   * Empty for resource types that don't support icons (e.g., skills).
+   *
+   * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+   * </pre>
+   *
+   * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+   * @return The iconUrl.
+   */
+  java.lang.String getIconUrl();
+  /**
+   * <pre>
+   * Icon URL for display in search result cards and listings.
+   *
+   * Populated from the resource's spec.icon_url when available.
+   * Empty for resource types that don't support icons (e.g., skills).
+   *
+   * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+   * </pre>
+   *
+   * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+   * @return The bytes for iconUrl.
+   */
+  com.google.protobuf.ByteString
+      getIconUrlBytes();
 }

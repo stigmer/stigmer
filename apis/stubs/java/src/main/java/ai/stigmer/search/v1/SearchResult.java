@@ -11,7 +11,7 @@ package ai.stigmer.search.v1;
  *
  * Contains only the fields needed for search result display:
  * - Identity: kind, id, slug, org
- * - Display: name, description, tags
+ * - Display: name, description, icon_url, tags
  * - Metadata: visibility, timestamps, relevance score
  *
  * This is not the full resource. To get the complete resource, call the
@@ -57,6 +57,7 @@ private static final long serialVersionUID = 0L;
     visibility_ = 0;
     tags_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    iconUrl_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -666,6 +667,63 @@ private static final long serialVersionUID = 0L;
     return score_;
   }
 
+  public static final int ICON_URL_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object iconUrl_ = "";
+  /**
+   * <pre>
+   * Icon URL for display in search result cards and listings.
+   *
+   * Populated from the resource's spec.icon_url when available.
+   * Empty for resource types that don't support icons (e.g., skills).
+   *
+   * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+   * </pre>
+   *
+   * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+   * @return The iconUrl.
+   */
+  @java.lang.Override
+  public java.lang.String getIconUrl() {
+    java.lang.Object ref = iconUrl_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      iconUrl_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Icon URL for display in search result cards and listings.
+   *
+   * Populated from the resource's spec.icon_url when available.
+   * Empty for resource types that don't support icons (e.g., skills).
+   *
+   * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+   * </pre>
+   *
+   * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+   * @return The bytes for iconUrl.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getIconUrlBytes() {
+    java.lang.Object ref = iconUrl_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      iconUrl_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -715,6 +773,9 @@ private static final long serialVersionUID = 0L;
     }
     if (java.lang.Float.floatToRawIntBits(score_) != 0) {
       output.writeFloat(12, score_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(iconUrl_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 13, iconUrl_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -771,6 +832,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeFloatSize(12, score_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(iconUrl_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(13, iconUrl_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -815,6 +879,8 @@ private static final long serialVersionUID = 0L;
     if (java.lang.Float.floatToIntBits(getScore())
         != java.lang.Float.floatToIntBits(
             other.getScore())) return false;
+    if (!getIconUrl()
+        .equals(other.getIconUrl())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -857,6 +923,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + SCORE_FIELD_NUMBER;
     hash = (53 * hash) + java.lang.Float.floatToIntBits(
         getScore());
+    hash = (37 * hash) + ICON_URL_FIELD_NUMBER;
+    hash = (53 * hash) + getIconUrl().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -960,7 +1028,7 @@ private static final long serialVersionUID = 0L;
    *
    * Contains only the fields needed for search result display:
    * - Identity: kind, id, slug, org
-   * - Display: name, description, tags
+   * - Display: name, description, icon_url, tags
    * - Metadata: visibility, timestamps, relevance score
    *
    * This is not the full resource. To get the complete resource, call the
@@ -1035,6 +1103,7 @@ private static final long serialVersionUID = 0L;
         updatedAtBuilder_ = null;
       }
       score_ = 0F;
+      iconUrl_ = "";
       return this;
     }
 
@@ -1112,6 +1181,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000800) != 0)) {
         result.score_ = score_;
       }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.iconUrl_ = iconUrl_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1181,6 +1253,11 @@ private static final long serialVersionUID = 0L;
       }
       if (java.lang.Float.floatToRawIntBits(other.getScore()) != 0) {
         setScore(other.getScore());
+      }
+      if (!other.getIconUrl().isEmpty()) {
+        iconUrl_ = other.iconUrl_;
+        bitField0_ |= 0x00001000;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1272,6 +1349,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000800;
               break;
             } // case 101
+            case 106: {
+              iconUrl_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2774,6 +2856,123 @@ private static final long serialVersionUID = 0L;
     public Builder clearScore() {
       bitField0_ = (bitField0_ & ~0x00000800);
       score_ = 0F;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object iconUrl_ = "";
+    /**
+     * <pre>
+     * Icon URL for display in search result cards and listings.
+     *
+     * Populated from the resource's spec.icon_url when available.
+     * Empty for resource types that don't support icons (e.g., skills).
+     *
+     * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+     * </pre>
+     *
+     * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+     * @return The iconUrl.
+     */
+    public java.lang.String getIconUrl() {
+      java.lang.Object ref = iconUrl_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        iconUrl_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Icon URL for display in search result cards and listings.
+     *
+     * Populated from the resource's spec.icon_url when available.
+     * Empty for resource types that don't support icons (e.g., skills).
+     *
+     * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+     * </pre>
+     *
+     * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+     * @return The bytes for iconUrl.
+     */
+    public com.google.protobuf.ByteString
+        getIconUrlBytes() {
+      java.lang.Object ref = iconUrl_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        iconUrl_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Icon URL for display in search result cards and listings.
+     *
+     * Populated from the resource's spec.icon_url when available.
+     * Empty for resource types that don't support icons (e.g., skills).
+     *
+     * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+     * </pre>
+     *
+     * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+     * @param value The iconUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIconUrl(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      iconUrl_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Icon URL for display in search result cards and listings.
+     *
+     * Populated from the resource's spec.icon_url when available.
+     * Empty for resource types that don't support icons (e.g., skills).
+     *
+     * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+     * </pre>
+     *
+     * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearIconUrl() {
+      iconUrl_ = getDefaultInstance().getIconUrl();
+      bitField0_ = (bitField0_ & ~0x00001000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Icon URL for display in search result cards and listings.
+     *
+     * Populated from the resource's spec.icon_url when available.
+     * Empty for resource types that don't support icons (e.g., skills).
+     *
+     * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+     * </pre>
+     *
+     * <code>string icon_url = 13 [json_name = "iconUrl"];</code>
+     * @param value The bytes for iconUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIconUrlBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      iconUrl_ = value;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }

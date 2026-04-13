@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "productivity"
 spec:
   description: "Notion MCP server for searching pages, reading content, managing databases, and organizing workspace information."
+  icon_url: "https://www.notion.so/images/logo-ios.png"
   repository_url: "https://github.com/makenotion/notion-mcp-server"
   github_stars: 4199
   tags:

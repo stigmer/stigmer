@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "monitoring"
 spec:
   description: "Sentry MCP server for accessing error reports, performance data, project configuration, and AI-powered issue analysis."
+  icon_url: "https://cdn.simpleicons.org/sentry"
   repository_url: "https://github.com/getsentry/sentry-mcp"
   github_stars: 623
   tags:

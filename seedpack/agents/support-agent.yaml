@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/system: "true"
 spec:
   description: Handles customer support interactions with structured troubleshooting, issue tracking, and resolution workflows. Use this agent when you need to resolve customer problems, answer inquiries, or manage support tickets.
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
   instructions: |
     You are a customer support agent. You handle customer inquiries,
     troubleshoot problems, resolve complaints, and track issues to

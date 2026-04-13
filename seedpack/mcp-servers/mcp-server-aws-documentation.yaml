@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "cloud-infrastructure"
 spec:
   description: "AWS Documentation MCP server for searching and retrieving official AWS documentation, API references, and getting-started guides."
+  icon_url: "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"
   repository_url: "https://github.com/awslabs/mcp"
   github_stars: 8732
   tags:
