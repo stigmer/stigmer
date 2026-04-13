@@ -67,7 +67,7 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 - [x] T03: OAuth for tools guide + hero demo
 - [x] T04: BYOA guide + demo
 - [x] T05: Architecture transparency page
-- [ ] T06: Tutorial completion + demo updates
+- [x] T06: Tutorial refresh + cross-link bridge + demo audit
 - [ ] T07: SDK reference polish
 
 ## How to Resume Work

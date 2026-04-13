@@ -68,9 +68,49 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-13
-**Current Task**: T05 closure amendment — Settings CRUD acknowledgment
-**Status**: T05 COMPLETE (amendment applied)
-**Last Session**: 2026-04-13 — T05 closure amendment
+**Current Task**: T06 — Tutorial refresh + cross-link bridge + demo audit
+**Status**: T06 COMPLETE
+**Last Session**: 2026-04-13 — T06 tutorial refresh
+
+## Session Progress (2026-04-13, session 8 — T06)
+
+- **Rescoped T06**: Original plan called for "build 2 tutorial pages." After
+  Diataxis analysis, determined new tutorial pages would overlap with the
+  existing how-to guides (T02–T04). Rescoped to refresh + bridge + demo audit.
+- **Refreshed `connect-tools.mdx`**: Added marketplace awareness callout after
+  "The problem" section. Added "Going deeper" cards at end linking to
+  marketplace guide, OAuth guide, and Tools concept page.
+- **Cross-link bridge**: Added "Tool Integrations" card to `create-agent.mdx`
+  "What's next" section. Added tutorial backlink to `integrations/overview.mdx`
+  prerequisites. Bidirectional bridge: tutorials point to guides, guides point
+  back to tutorials.
+- **Demo audit**: Found `mcp-server-creation-tour` and `agent-creation-tour`
+  showing library list views without `layout="grid"`, inconsistent with the
+  production card grid layout. Added `layout="grid"` to all 6 `ResourceListPage`
+  calls. Verified `connect-tools-tour`, `connect-playback` proto fixtures match
+  current shapes. Confirmed `skill-creation-tour` correctly stays as list layout.
+- Build verified: `yarn build` passes
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `docs/getting-started/connect-tools.mdx` | Marketplace callout + "Going deeper" cards |
+| `docs/getting-started/create-agent.mdx` | Tool Integrations card in "What's next" |
+| `docs/guides/integrations/overview.mdx` | Tutorial backlink in prerequisites |
+| `site/.../mcp-server-creation-tour/index.tsx` | `layout="grid"` on 3 ResourceListPage calls |
+| `site/.../agent-creation-tour/index.tsx` | `layout="grid"` on 3 ResourceListPage calls |
+
+### Key decisions
+
+- **No new tutorial pages**: Diataxis analysis showed the getting-started
+  sequence is already complete. How-to guides (T02–T05) cover specific tasks.
+  New tutorials would create overlap and maintenance burden.
+- **Custom creation stays as primary tutorial path**: Teaches deeper
+  fundamentals. Marketplace is acknowledged via callout, not the main flow.
+- **Grid layout for Agents too**: Agent list pages also use card grid in
+  production (per changelog). Updated agent-creation-tour alongside
+  mcp-server-creation-tour for consistency.
 
 ## Session Progress (2026-04-13, session 7 — T05 closure amendment)
 
@@ -345,9 +385,8 @@ entries were already in place from T01–T04.
 
 ## Next Steps
 
-1. Start T06: Tutorial completion + demo updates
-2. Start T07: SDK reference polish
-3. Future: T08 — Custom integration OAuth setup guide (deferred, "MCP server authors" audience)
+1. Start T07: SDK reference polish
+2. Future: T08 — Custom integration OAuth setup guide (deferred, "MCP server authors" audience)
 
 ## Task Map
 
@@ -358,7 +397,7 @@ entries were already in place from T01–T04.
 | T03 | OAuth for tools guide + hero demo | COMPLETE |
 | T04 | BYOA guide + demo | COMPLETE (amended: Settings CRUD) |
 | T05 | Architecture transparency page | COMPLETE |
-| T06 | Tutorial completion + demo updates | Not started |
+| T06 | Tutorial refresh + cross-link bridge + demo audit | COMPLETE (rescoped) |
 | T07 | SDK reference polish | Not started |
 | T08 | Custom integration OAuth setup guide | Deferred |
 

@@ -158,6 +158,7 @@ function renderStep(step: McpCreationStep) {
             createLabel="Add MCP Server"
             cursorTarget="create-mcp-server"
             items={EXISTING_SERVERS}
+            layout="grid"
           />
         </AppShell>
       );
@@ -170,6 +171,7 @@ function renderStep(step: McpCreationStep) {
             createLabel="Add MCP Server"
             cursorTarget="create-mcp-server"
             items={EXISTING_SERVERS}
+            layout="grid"
             highlightCreate
           />
         </AppShell>
@@ -251,6 +253,7 @@ function renderStep(step: McpCreationStep) {
             createLabel="Add MCP Server"
             cursorTarget="create-mcp-server"
             items={ALL_SERVERS}
+            layout="grid"
             showNewItem
           />
         </AppShell>
