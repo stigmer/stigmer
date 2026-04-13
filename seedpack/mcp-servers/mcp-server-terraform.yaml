@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "cloud-infrastructure"
 spec:
   description: "Terraform MCP server for infrastructure-as-code assistance with HCL configuration, provider documentation, and module discovery."
+  icon_url: "https://cdn.simpleicons.org/terraform"
   repository_url: "https://github.com/hashicorp/terraform-mcp-server"
   github_stars: 1314
   tags:

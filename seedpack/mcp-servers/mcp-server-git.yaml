@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "developer-tools"
 spec:
   description: "Git MCP server for reading, searching, and analyzing local Git repositories including log, diff, blame, and branch operations."
+  icon_url: "https://cdn.simpleicons.org/git"
   repository_url: "https://github.com/modelcontextprotocol/servers"
   github_stars: 83366
   tags:

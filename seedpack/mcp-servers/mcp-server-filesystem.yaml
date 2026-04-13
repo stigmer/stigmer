@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "developer-tools"
 spec:
   description: "Filesystem MCP server for secure file operations with configurable access controls, including read, write, search, and directory management."
+  icon_url: "https://cdn.simpleicons.org/files"
   repository_url: "https://github.com/modelcontextprotocol/servers"
   github_stars: 83366
   tags:

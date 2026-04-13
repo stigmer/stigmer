@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "search"
 spec:
   description: "Exa MCP server for AI-native web search with neural and keyword modes, content retrieval, and domain-specific filtering."
+  icon_url: "https://cdn.simpleicons.org/exa"
   repository_url: "https://github.com/exa-labs/exa-mcp-server"
   github_stars: 4201
   tags:

@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "notifications"
 spec:
   description: "Twilio MCP server for SMS, voice, WhatsApp messaging, and communication API operations."
+  icon_url: "https://cdn.simpleicons.org/twilio"
   repository_url: "https://github.com/twilio-labs/mcp"
   github_stars: 100
   tags:

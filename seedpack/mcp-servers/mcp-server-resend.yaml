@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "notifications"
 spec:
   description: "Resend MCP server for sending transactional emails, managing domains, and accessing email delivery analytics."
+  icon_url: "https://cdn.simpleicons.org/resend"
   repository_url: "https://github.com/resend/resend-mcp"
   github_stars: 493
   tags:
