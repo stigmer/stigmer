@@ -409,7 +409,7 @@ export function McpServerDetailView({
         ref={byoaDialogRef}
         onCancel={handleByoaDialogCancel}
         className={cn(
-          "w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-lg",
+          "m-auto w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-lg",
           "backdrop:bg-black/50",
         )}
       >
