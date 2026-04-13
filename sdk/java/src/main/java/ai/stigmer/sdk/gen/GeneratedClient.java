@@ -5,7 +5,7 @@ package ai.stigmer.sdk.gen;
 import io.grpc.Channel;
 
 /** Aggregate client with all resource-specific sub-clients. */
-public final class GeneratedClient {
+public class GeneratedClient {
     public final AgentClient agent;
     public final AgentExecutionClient agentExecution;
     public final AgentInstanceClient agentInstance;

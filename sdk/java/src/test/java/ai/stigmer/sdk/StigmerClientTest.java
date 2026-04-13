@@ -60,24 +60,26 @@ class StigmerClientTest {
         try (StigmerClient client = StigmerClient.builder("sk_test_key")
                 .insecure()
                 .build()) {
-            assertNotNull(client.agents());
-            assertNotNull(client.agentExecutions());
-            assertNotNull(client.agentInstances());
-            assertNotNull(client.apiKeys());
-            assertNotNull(client.environments());
-            assertNotNull(client.executionContexts());
-            assertNotNull(client.iamPolicies());
-            assertNotNull(client.identityAccounts());
-            assertNotNull(client.identityProviders());
-            assertNotNull(client.mcpServers());
-            assertNotNull(client.organizations());
-            assertNotNull(client.projects());
-            assertNotNull(client.sessions());
-            assertNotNull(client.skills());
-            assertNotNull(client.workflows());
-            assertNotNull(client.workflowExecutions());
-            assertNotNull(client.workflowInstances());
+            assertNotNull(client.agent);
+            assertNotNull(client.agentExecution);
+            assertNotNull(client.agentInstance);
+            assertNotNull(client.apiKey);
+            assertNotNull(client.environment);
+            assertNotNull(client.executionContext);
+            assertNotNull(client.iamPolicy);
+            assertNotNull(client.identityAccount);
+            assertNotNull(client.identityProvider);
+            assertNotNull(client.mcpServer);
+            assertNotNull(client.oauthapp);
+            assertNotNull(client.organization);
+            assertNotNull(client.project);
+            assertNotNull(client.session);
+            assertNotNull(client.skill);
+            assertNotNull(client.workflow);
+            assertNotNull(client.workflowExecution);
+            assertNotNull(client.workflowInstance);
             assertNotNull(client.search());
+            assertNotNull(client.github());
         }
     }
 }
