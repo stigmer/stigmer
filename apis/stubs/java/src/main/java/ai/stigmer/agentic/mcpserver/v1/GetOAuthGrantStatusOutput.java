@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   private GetOAuthGrantStatusOutput() {
     targetEnvVar_ = "";
     authMethod_ = "";
+    connectionHealth_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -183,6 +184,38 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int CONNECTION_HEALTH_FIELD_NUMBER = 5;
+  private int connectionHealth_ = 0;
+  /**
+   * <pre>
+   * Evaluated health of the OAuth connection.
+   * Provides an actionable signal beyond the binary "connected" field:
+   * the frontend can distinguish "healthy" from "expired but refreshable"
+   * from "expired and needs re-auth" from "never connected."
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+   * @return The enum numeric value on the wire for connectionHealth.
+   */
+  @java.lang.Override public int getConnectionHealthValue() {
+    return connectionHealth_;
+  }
+  /**
+   * <pre>
+   * Evaluated health of the OAuth connection.
+   * Provides an actionable signal beyond the binary "connected" field:
+   * the frontend can distinguish "healthy" from "expired but refreshable"
+   * from "expired and needs re-auth" from "never connected."
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+   * @return The connectionHealth.
+   */
+  @java.lang.Override public ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth getConnectionHealth() {
+    ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth result = ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth.forNumber(connectionHealth_);
+    return result == null ? ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -209,6 +242,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(authMethod_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, authMethod_);
     }
+    if (connectionHealth_ != ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_UNSPECIFIED.getNumber()) {
+      output.writeEnum(5, connectionHealth_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -231,6 +267,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(authMethod_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, authMethod_);
+    }
+    if (connectionHealth_ != ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(5, connectionHealth_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -255,6 +295,7 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTargetEnvVar())) return false;
     if (!getAuthMethod()
         .equals(other.getAuthMethod())) return false;
+    if (connectionHealth_ != other.connectionHealth_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -276,6 +317,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTargetEnvVar().hashCode();
     hash = (37 * hash) + AUTH_METHOD_FIELD_NUMBER;
     hash = (53 * hash) + getAuthMethod().hashCode();
+    hash = (37 * hash) + CONNECTION_HEALTH_FIELD_NUMBER;
+    hash = (53 * hash) + connectionHealth_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -415,6 +458,7 @@ private static final long serialVersionUID = 0L;
       accessTokenExpiresAt_ = 0L;
       targetEnvVar_ = "";
       authMethod_ = "";
+      connectionHealth_ = 0;
       return this;
     }
 
@@ -460,6 +504,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.authMethod_ = authMethod_;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.connectionHealth_ = connectionHealth_;
+      }
     }
 
     @java.lang.Override
@@ -489,6 +536,9 @@ private static final long serialVersionUID = 0L;
         authMethod_ = other.authMethod_;
         bitField0_ |= 0x00000008;
         onChanged();
+      }
+      if (other.connectionHealth_ != 0) {
+        setConnectionHealthValue(other.getConnectionHealthValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -536,6 +586,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
+            case 40: {
+              connectionHealth_ = input.readEnum();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -834,6 +889,93 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       authMethod_ = value;
       bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
+    private int connectionHealth_ = 0;
+    /**
+     * <pre>
+     * Evaluated health of the OAuth connection.
+     * Provides an actionable signal beyond the binary "connected" field:
+     * the frontend can distinguish "healthy" from "expired but refreshable"
+     * from "expired and needs re-auth" from "never connected."
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+     * @return The enum numeric value on the wire for connectionHealth.
+     */
+    @java.lang.Override public int getConnectionHealthValue() {
+      return connectionHealth_;
+    }
+    /**
+     * <pre>
+     * Evaluated health of the OAuth connection.
+     * Provides an actionable signal beyond the binary "connected" field:
+     * the frontend can distinguish "healthy" from "expired but refreshable"
+     * from "expired and needs re-auth" from "never connected."
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+     * @param value The enum numeric value on the wire for connectionHealth to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setConnectionHealthValue(int value) {
+      connectionHealth_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Evaluated health of the OAuth connection.
+     * Provides an actionable signal beyond the binary "connected" field:
+     * the frontend can distinguish "healthy" from "expired but refreshable"
+     * from "expired and needs re-auth" from "never connected."
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+     * @return The connectionHealth.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth getConnectionHealth() {
+      ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth result = ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth.forNumber(connectionHealth_);
+      return result == null ? ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Evaluated health of the OAuth connection.
+     * Provides an actionable signal beyond the binary "connected" field:
+     * the frontend can distinguish "healthy" from "expired but refreshable"
+     * from "expired and needs re-auth" from "never connected."
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+     * @param value The connectionHealth to set.
+     * @return This builder for chaining.
+     */
+    public Builder setConnectionHealth(ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000010;
+      connectionHealth_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Evaluated health of the OAuth connection.
+     * Provides an actionable signal beyond the binary "connected" field:
+     * the frontend can distinguish "healthy" from "expired but refreshable"
+     * from "expired and needs re-auth" from "never connected."
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearConnectionHealth() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      connectionHealth_ = 0;
       onChanged();
       return this;
     }

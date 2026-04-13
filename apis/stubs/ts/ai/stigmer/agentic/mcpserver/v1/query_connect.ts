@@ -6,6 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { McpServer } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import { GetOAuthGrantStatusInput, GetOAuthGrantStatusOutput, GetOrgOAuthAppInput, GetOrgOAuthAppOutput } from "./io_pb.js";
 
 /**
  * McpServerQueryController provides read operations for MCP server resources.
@@ -55,6 +56,47 @@ export const McpServerQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: McpServer,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Check whether the authenticated user has an active OAuth grant for
+     * an MCP server in the specified org.
+     *
+     * Returns grant metadata (connected status, token expiry, auth method)
+     * without exposing any secret token values. The frontend uses this to
+     * render the correct OAuth state in the MCP server detail page and
+     * session composer.
+     *
+     * @internal
+     * Authorization: Requires can_view permission on the mcp_server resource.
+     * The resource_id field contains the MCP server's system-generated ID.
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOAuthGrantStatus
+     */
+    getOAuthGrantStatus: {
+      name: "getOAuthGrantStatus",
+      I: GetOAuthGrantStatusInput,
+      O: GetOAuthGrantStatusOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Query whether an org has a BYOA override for a resource.
+     *
+     * Returns override metadata (existence, OAuthApp ID, client_id) without
+     * exposing secrets. The frontend uses this to show which credential
+     * source is active and to offer override management options to org admins.
+     *
+     * @internal
+     * Authorization: Requires can_view permission on the mcp_server resource.
+     * Any user who can view the MCP server can check whether their org has
+     * an override — no secrets are exposed.
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOrgOAuthApp
+     */
+    getOrgOAuthApp: {
+      name: "getOrgOAuthApp",
+      I: GetOrgOAuthAppInput,
+      O: GetOrgOAuthAppOutput,
       kind: MethodKind.Unary,
     },
   }

@@ -74,4 +74,29 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getAuthMethodBytes();
+
+  /**
+   * <pre>
+   * Evaluated health of the OAuth connection.
+   * Provides an actionable signal beyond the binary "connected" field:
+   * the frontend can distinguish "healthy" from "expired but refreshable"
+   * from "expired and needs re-auth" from "never connected."
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+   * @return The enum numeric value on the wire for connectionHealth.
+   */
+  int getConnectionHealthValue();
+  /**
+   * <pre>
+   * Evaluated health of the OAuth connection.
+   * Provides an actionable signal beyond the binary "connected" field:
+   * the frontend can distinguish "healthy" from "expired but refreshable"
+   * from "expired and needs re-auth" from "never connected."
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5 [json_name = "connectionHealth"];</code>
+   * @return The connectionHealth.
+   */
+  ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth getConnectionHealth();
 }

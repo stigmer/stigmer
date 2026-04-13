@@ -10,7 +10,6 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/environment/v1"
 	apiresource "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	v11 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/oauthapp/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -587,16 +586,6 @@ type McpServerAuth struct {
 	// at connect time during authorization server metadata retrieval.
 	// For vendor OAuth: informational (scopes are defined on the OAuthApp).
 	ScopeHints []string `protobuf:"bytes,4,rep,name=scope_hints,json=scopeHints,proto3" json:"scope_hints,omitempty"`
-	// Read-only. Resolved from the referenced OAuthApp at query time.
-	// Indicates whether the vendor has approved this OAuth app for public use.
-	// Not persisted on the McpServer — populated by the backend when serving
-	// MCP server data so the frontend can gate the sign-in button without
-	// a separate OAuthApp fetch.
-	VendorApprovalStatus v11.VendorApprovalStatus `protobuf:"varint,5,opt,name=vendor_approval_status,json=vendorApprovalStatus,proto3,enum=ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus" json:"vendor_approval_status,omitempty"`
-	// Read-only. Resolved from the referenced OAuthApp at query time.
-	// Documentation URL for users who want to bring their own OAuth
-	// credentials while the platform's OAuth app is pending vendor approval.
-	VendorApprovalDocsUrl string `protobuf:"bytes,6,opt,name=vendor_approval_docs_url,json=vendorApprovalDocsUrl,proto3" json:"vendor_approval_docs_url,omitempty"`
 	// Optional URL for OAuth authorization server discovery on stdio servers.
 	//
 	// HTTP servers do not need this: the platform derives the discovery
@@ -676,20 +665,6 @@ func (x *McpServerAuth) GetScopeHints() []string {
 	return nil
 }
 
-func (x *McpServerAuth) GetVendorApprovalStatus() v11.VendorApprovalStatus {
-	if x != nil {
-		return x.VendorApprovalStatus
-	}
-	return v11.VendorApprovalStatus(0)
-}
-
-func (x *McpServerAuth) GetVendorApprovalDocsUrl() string {
-	if x != nil {
-		return x.VendorApprovalDocsUrl
-	}
-	return ""
-}
-
 func (x *McpServerAuth) GetDiscoveryUrl() string {
 	if x != nil {
 		return x.DiscoveryUrl
@@ -701,7 +676,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a%ai/stigmer/iam/oauthapp/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xef\x05\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xef\x05\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -737,17 +712,16 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xb1\x04\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xa8\x03\n" +
 	"\rMcpServerAuth\x12\xd9\x01\n" +
 	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x7f\xbaHx\xba\x01u\n" +
 	"\x12oauth_app_ref.kind\x12;oauth_app_ref must reference a resource with kind=oauth_app\x1a\"this.slug == '' || this.kind == 22\xe0\x85,\x16R\voauthAppRef\x12-\n" +
 	"\x0etarget_env_var\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ftargetEnvVar\x12.\n" +
 	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\x12\x1f\n" +
 	"\vscope_hints\x18\x04 \x03(\tR\n" +
-	"scopeHints\x12f\n" +
-	"\x16vendor_approval_status\x18\x05 \x01(\x0e20.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x127\n" +
-	"\x18vendor_approval_docs_url\x18\x06 \x01(\tR\x15vendorApprovalDocsUrl\x12#\n" +
-	"\rdiscovery_url\x18\a \x01(\tR\fdiscoveryUrlB\xaa\x02\n" +
+	"scopeHints\x12#\n" +
+	"\rdiscovery_url\x18\a \x01(\tR\fdiscoveryUrlJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"B\xaa\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZWgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -773,25 +747,23 @@ var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
 	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
 	nil,                                      // 7: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
 	(*apiresource.ApiResourceReference)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceReference
-	(v11.VendorApprovalStatus)(0),            // 9: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
-	(*v1.EnvVarDeclaration)(nil),             // 10: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
-	1,  // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
-	2,  // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	5,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
-	3,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	4,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	6,  // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	7,  // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	8,  // 7: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	9,  // 8: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
-	10, // 9: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
+	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
+	5, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
+	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	4, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
+	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	7, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	9, // 8: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }

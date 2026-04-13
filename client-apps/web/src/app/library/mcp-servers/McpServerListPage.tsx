@@ -55,6 +55,7 @@ export function McpServerListPage() {
       </div>
 
       <ResourceListView
+        layout="grid"
         items={mcpServers}
         isLoading={isLoading}
         error={error}
@@ -69,6 +70,19 @@ export function McpServerListPage() {
         onItemClick={(item) =>
           navigateToDetail("mcp-servers", item.org, item.slug)
         }
+        renderItemAction={(item) => (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigateToDetail("mcp-servers", item.org, item.slug);
+            }}
+            aria-label={`Open ${item.name || item.slug}`}
+            className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+          </button>
+        )}
         emptyIcon={<Server className="size-10" aria-hidden="true" />}
         emptyTitle="No MCP servers found"
         onRetry={refetch}

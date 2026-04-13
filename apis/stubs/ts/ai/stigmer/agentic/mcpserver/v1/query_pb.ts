@@ -6,6 +6,8 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { McpServerSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_api } from "./api_pb";
+import type { GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, GetOrgOAuthAppInputSchema, GetOrgOAuthAppOutputSchema } from "./io_pb";
+import { file_ai_stigmer_agentic_mcpserver_v1_io } from "./io_pb";
 import type { ApiResourceIdSchema, ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
@@ -15,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/mcpserver/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3F1ZXJ5LnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxMq8CChhNY3BTZXJ2ZXJRdWVyeUNvbnRyb2xsZXISkgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiMMK4GCwIARAsIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIHZpZXcgbWNwIHNlcnZlchJ4Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBGgSg/yssYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3F1ZXJ5LnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxMssFChhNY3BTZXJ2ZXJRdWVyeUNvbnRyb2xsZXISkgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiMMK4GCwIARAsIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIHZpZXcgbWNwIHNlcnZlchJ4Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEtUBChNnZXRPQXV0aEdyYW50U3RhdHVzEjkuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5HZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQaOi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkdldE9BdXRoR3JhbnRTdGF0dXNPdXRwdXQiR8K4GEMIARAsIgtyZXNvdXJjZV9pZCowdW5hdXRob3JpemVkIHRvIHZpZXcgb2F1dGggc3RhdHVzIGZvciBtY3Agc2VydmVyEsEBCg5nZXRPcmdPQXV0aEFwcBI0LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuR2V0T3JnT0F1dGhBcHBJbnB1dBo1LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuR2V0T3JnT0F1dGhBcHBPdXRwdXQiQsK4GD4IARAsIgtyZXNvdXJjZV9pZCordW5hdXRob3JpemVkIHRvIHZpZXcgb3JnIG9hdXRoIGFwcCBvdmVycmlkZRoEoP8rLGIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * McpServerQueryController provides read operations for MCP server resources.
@@ -62,6 +64,45 @@ export const McpServerQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof McpServerSchema;
+  },
+  /**
+   * Check whether the authenticated user has an active OAuth grant for
+   * an MCP server in the specified org.
+   *
+   * Returns grant metadata (connected status, token expiry, auth method)
+   * without exposing any secret token values. The frontend uses this to
+   * render the correct OAuth state in the MCP server detail page and
+   * session composer.
+   *
+   * @internal
+   * Authorization: Requires can_view permission on the mcp_server resource.
+   * The resource_id field contains the MCP server's system-generated ID.
+   *
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOAuthGrantStatus
+   */
+  getOAuthGrantStatus: {
+    methodKind: "unary";
+    input: typeof GetOAuthGrantStatusInputSchema;
+    output: typeof GetOAuthGrantStatusOutputSchema;
+  },
+  /**
+   * Query whether an org has a BYOA override for a resource.
+   *
+   * Returns override metadata (existence, OAuthApp ID, client_id) without
+   * exposing secrets. The frontend uses this to show which credential
+   * source is active and to offer override management options to org admins.
+   *
+   * @internal
+   * Authorization: Requires can_view permission on the mcp_server resource.
+   * Any user who can view the MCP server can check whether their org has
+   * an override — no secrets are exposed.
+   *
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOrgOAuthApp
+   */
+  getOrgOAuthApp: {
+    methodKind: "unary";
+    input: typeof GetOrgOAuthAppInputSchema;
+    output: typeof GetOrgOAuthAppOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_mcpserver_v1_query, 0);

@@ -270,35 +270,97 @@ public final class McpServerCommandControllerGrpc {
     return getCompleteOAuthConnectMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
-      ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput,
+      ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> getDisconnectOAuthMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getOAuthGrantStatus",
-      requestType = ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput.class,
-      responseType = ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.class,
+      fullMethodName = SERVICE_NAME + '/' + "disconnectOAuth",
+      requestType = ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput.class,
+      responseType = ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
-      ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput, ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod;
-    if ((getGetOAuthGrantStatusMethod = McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput,
+      ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> getDisconnectOAuthMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput, ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> getDisconnectOAuthMethod;
+    if ((getDisconnectOAuthMethod = McpServerCommandControllerGrpc.getDisconnectOAuthMethod) == null) {
       synchronized (McpServerCommandControllerGrpc.class) {
-        if ((getGetOAuthGrantStatusMethod = McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod) == null) {
-          McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod = getGetOAuthGrantStatusMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput, ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>newBuilder()
+        if ((getDisconnectOAuthMethod = McpServerCommandControllerGrpc.getDisconnectOAuthMethod) == null) {
+          McpServerCommandControllerGrpc.getDisconnectOAuthMethod = getDisconnectOAuthMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput, ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOAuthGrantStatus"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "disconnectOAuth"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput.getDefaultInstance()))
+                  ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.getDefaultInstance()))
-              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("getOAuthGrantStatus"))
+                  ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("disconnectOAuth"))
               .build();
         }
       }
     }
-    return getGetOAuthGrantStatusMethod;
+    return getDisconnectOAuthMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput,
+      ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> getSetOrgOAuthAppMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "setOrgOAuthApp",
+      requestType = ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput.class,
+      responseType = ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput,
+      ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> getSetOrgOAuthAppMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput, ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> getSetOrgOAuthAppMethod;
+    if ((getSetOrgOAuthAppMethod = McpServerCommandControllerGrpc.getSetOrgOAuthAppMethod) == null) {
+      synchronized (McpServerCommandControllerGrpc.class) {
+        if ((getSetOrgOAuthAppMethod = McpServerCommandControllerGrpc.getSetOrgOAuthAppMethod) == null) {
+          McpServerCommandControllerGrpc.getSetOrgOAuthAppMethod = getSetOrgOAuthAppMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput, ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "setOrgOAuthApp"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("setOrgOAuthApp"))
+              .build();
+        }
+      }
+    }
+    return getSetOrgOAuthAppMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput,
+      ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput> getDeleteOrgOAuthAppMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "deleteOrgOAuthApp",
+      requestType = ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput.class,
+      responseType = ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput,
+      ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput> getDeleteOrgOAuthAppMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput, ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput> getDeleteOrgOAuthAppMethod;
+    if ((getDeleteOrgOAuthAppMethod = McpServerCommandControllerGrpc.getDeleteOrgOAuthAppMethod) == null) {
+      synchronized (McpServerCommandControllerGrpc.class) {
+        if ((getDeleteOrgOAuthAppMethod = McpServerCommandControllerGrpc.getDeleteOrgOAuthAppMethod) == null) {
+          McpServerCommandControllerGrpc.getDeleteOrgOAuthAppMethod = getDeleteOrgOAuthAppMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput, ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "deleteOrgOAuthApp"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("deleteOrgOAuthApp"))
+              .build();
+        }
+      }
+    }
+    return getDeleteOrgOAuthAppMethod;
   }
 
   /**
@@ -537,20 +599,68 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
+     * Disconnect the authenticated user's OAuth connection for a resource.
+     * Tears down the user's personal OAuth connection by deleting the
+     * OAuthGrant and its associated managed environment (which holds the
+     * access and refresh tokens). The MCP server definition is unchanged —
+     * only the caller's credentials are removed.
+     * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * Uses the same permission as connect/initiateOAuthConnect — if you can
+     * establish a connection, you can tear it down.
      * </pre>
      */
-    default void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOAuthGrantStatusMethod(), responseObserver);
+    default void disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDisconnectOAuthMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Create or update an org-level BYOA OAuth app override for a resource.
+     * Allows an organization to use its own OAuth app credentials instead of
+     * the platform default. The handler clones the platform OAuthApp template
+     * (endpoint URLs, scopes) and applies the org-provided client credentials.
+     * Idempotent: if an override already exists for this resource + org, the
+     * existing OAuthApp is updated with the new credentials.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * This is an org-admin operation — setting credentials that affect all users
+     * in the org who connect to this resource.
+     * Errors:
+     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+     *   (BYOA requires a platform template to clone from)
+     * - NOT_FOUND: Resource does not exist
+     * </pre>
+     */
+    default void setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSetOrgOAuthAppMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Remove an org-level BYOA override for a resource.
+     * Deletes the OAuthAppOverride binding and the OAuthApp resource that
+     * was created for it. After this, the resolution chain falls back to
+     * the platform default.
+     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * will fail on next token refresh — those users will need to
+     * re-authenticate using the platform default or a new org override.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
+     * Errors:
+     * - NOT_FOUND: No override exists for this resource + org
+     * </pre>
+     */
+    default void deleteOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteOrgOAuthAppMethod(), responseObserver);
     }
   }
 
@@ -772,21 +882,71 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
+     * Disconnect the authenticated user's OAuth connection for a resource.
+     * Tears down the user's personal OAuth connection by deleting the
+     * OAuthGrant and its associated managed environment (which holds the
+     * access and refresh tokens). The MCP server definition is unchanged —
+     * only the caller's credentials are removed.
+     * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * Uses the same permission as connect/initiateOAuthConnect — if you can
+     * establish a connection, you can tear it down.
      * </pre>
      */
-    public void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> responseObserver) {
+    public void disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetOAuthGrantStatusMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getDisconnectOAuthMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Create or update an org-level BYOA OAuth app override for a resource.
+     * Allows an organization to use its own OAuth app credentials instead of
+     * the platform default. The handler clones the platform OAuthApp template
+     * (endpoint URLs, scopes) and applies the org-provided client credentials.
+     * Idempotent: if an override already exists for this resource + org, the
+     * existing OAuthApp is updated with the new credentials.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * This is an org-admin operation — setting credentials that affect all users
+     * in the org who connect to this resource.
+     * Errors:
+     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+     *   (BYOA requires a platform template to clone from)
+     * - NOT_FOUND: Resource does not exist
+     * </pre>
+     */
+    public void setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getSetOrgOAuthAppMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Remove an org-level BYOA override for a resource.
+     * Deletes the OAuthAppOverride binding and the OAuthApp resource that
+     * was created for it. After this, the resolution chain falls back to
+     * the platform default.
+     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * will fail on next token refresh — those users will need to
+     * re-authenticate using the platform default or a new org override.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
+     * Errors:
+     * - NOT_FOUND: No override exists for this resource + org
+     * </pre>
+     */
+    public void deleteOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getDeleteOrgOAuthAppMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -979,20 +1139,68 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
+     * Disconnect the authenticated user's OAuth connection for a resource.
+     * Tears down the user's personal OAuth connection by deleting the
+     * OAuthGrant and its associated managed environment (which holds the
+     * access and refresh tokens). The MCP server definition is unchanged —
+     * only the caller's credentials are removed.
+     * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * Uses the same permission as connect/initiateOAuthConnect — if you can
+     * establish a connection, you can tear it down.
      * </pre>
      */
-    public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetOAuthGrantStatusMethod(), getCallOptions(), request);
+          getChannel(), getDisconnectOAuthMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create or update an org-level BYOA OAuth app override for a resource.
+     * Allows an organization to use its own OAuth app credentials instead of
+     * the platform default. The handler clones the platform OAuthApp template
+     * (endpoint URLs, scopes) and applies the org-provided client credentials.
+     * Idempotent: if an override already exists for this resource + org, the
+     * existing OAuthApp is updated with the new credentials.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * This is an org-admin operation — setting credentials that affect all users
+     * in the org who connect to this resource.
+     * Errors:
+     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+     *   (BYOA requires a platform template to clone from)
+     * - NOT_FOUND: Resource does not exist
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getSetOrgOAuthAppMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Remove an org-level BYOA override for a resource.
+     * Deletes the OAuthAppOverride binding and the OAuthApp resource that
+     * was created for it. After this, the resolution chain falls back to
+     * the platform default.
+     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * will fail on next token refresh — those users will need to
+     * re-authenticate using the platform default or a new org override.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
+     * Errors:
+     * - NOT_FOUND: No override exists for this resource + org
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput deleteOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getDeleteOrgOAuthAppMethod(), getCallOptions(), request);
     }
   }
 
@@ -1185,20 +1393,68 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
+     * Disconnect the authenticated user's OAuth connection for a resource.
+     * Tears down the user's personal OAuth connection by deleting the
+     * OAuthGrant and its associated managed environment (which holds the
+     * access and refresh tokens). The MCP server definition is unchanged —
+     * only the caller's credentials are removed.
+     * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * Uses the same permission as connect/initiateOAuthConnect — if you can
+     * establish a connection, you can tear it down.
      * </pre>
      */
-    public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) {
+    public ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetOAuthGrantStatusMethod(), getCallOptions(), request);
+          getChannel(), getDisconnectOAuthMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create or update an org-level BYOA OAuth app override for a resource.
+     * Allows an organization to use its own OAuth app credentials instead of
+     * the platform default. The handler clones the platform OAuthApp template
+     * (endpoint URLs, scopes) and applies the org-provided client credentials.
+     * Idempotent: if an override already exists for this resource + org, the
+     * existing OAuthApp is updated with the new credentials.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * This is an org-admin operation — setting credentials that affect all users
+     * in the org who connect to this resource.
+     * Errors:
+     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+     *   (BYOA requires a platform template to clone from)
+     * - NOT_FOUND: Resource does not exist
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getSetOrgOAuthAppMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Remove an org-level BYOA override for a resource.
+     * Deletes the OAuthAppOverride binding and the OAuthApp resource that
+     * was created for it. After this, the resolution chain falls back to
+     * the platform default.
+     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * will fail on next token refresh — those users will need to
+     * re-authenticate using the platform default or a new org override.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
+     * Errors:
+     * - NOT_FOUND: No override exists for this resource + org
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput deleteOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getDeleteOrgOAuthAppMethod(), getCallOptions(), request);
     }
   }
 
@@ -1399,21 +1655,71 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
+     * Disconnect the authenticated user's OAuth connection for a resource.
+     * Tears down the user's personal OAuth connection by deleting the
+     * OAuthGrant and its associated managed environment (which holds the
+     * access and refresh tokens). The MCP server definition is unchanged —
+     * only the caller's credentials are removed.
+     * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * Uses the same permission as connect/initiateOAuthConnect — if you can
+     * establish a connection, you can tear it down.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getOAuthGrantStatus(
-        ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> disconnectOAuth(
+        ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetOAuthGrantStatusMethod(), getCallOptions()), request);
+          getChannel().newCall(getDisconnectOAuthMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Create or update an org-level BYOA OAuth app override for a resource.
+     * Allows an organization to use its own OAuth app credentials instead of
+     * the platform default. The handler clones the platform OAuthApp template
+     * (endpoint URLs, scopes) and applies the org-provided client credentials.
+     * Idempotent: if an override already exists for this resource + org, the
+     * existing OAuthApp is updated with the new credentials.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * This is an org-admin operation — setting credentials that affect all users
+     * in the org who connect to this resource.
+     * Errors:
+     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+     *   (BYOA requires a platform template to clone from)
+     * - NOT_FOUND: Resource does not exist
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> setOrgOAuthApp(
+        ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getSetOrgOAuthAppMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Remove an org-level BYOA override for a resource.
+     * Deletes the OAuthAppOverride binding and the OAuthApp resource that
+     * was created for it. After this, the resolution chain falls back to
+     * the platform default.
+     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * will fail on next token refresh — those users will need to
+     * re-authenticate using the platform default or a new org override.
+     * &#64;internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
+     * Errors:
+     * - NOT_FOUND: No override exists for this resource + org
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput> deleteOrgOAuthApp(
+        ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getDeleteOrgOAuthAppMethod(), getCallOptions()), request);
     }
   }
 
@@ -1425,7 +1731,9 @@ public final class McpServerCommandControllerGrpc {
   private static final int METHODID_CONNECT = 5;
   private static final int METHODID_INITIATE_OAUTH_CONNECT = 6;
   private static final int METHODID_COMPLETE_OAUTH_CONNECT = 7;
-  private static final int METHODID_GET_OAUTH_GRANT_STATUS = 8;
+  private static final int METHODID_DISCONNECT_OAUTH = 8;
+  private static final int METHODID_SET_ORG_OAUTH_APP = 9;
+  private static final int METHODID_DELETE_ORG_OAUTH_APP = 10;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1476,9 +1784,17 @@ public final class McpServerCommandControllerGrpc {
           serviceImpl.completeOAuthConnect((ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>) responseObserver);
           break;
-        case METHODID_GET_OAUTH_GRANT_STATUS:
-          serviceImpl.getOAuthGrantStatus((ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>) responseObserver);
+        case METHODID_DISCONNECT_OAUTH:
+          serviceImpl.disconnectOAuth((ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput>) responseObserver);
+          break;
+        case METHODID_SET_ORG_OAUTH_APP:
+          serviceImpl.setOrgOAuthApp((ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput>) responseObserver);
+          break;
+        case METHODID_DELETE_ORG_OAUTH_APP:
+          serviceImpl.deleteOrgOAuthApp((ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1555,12 +1871,26 @@ public final class McpServerCommandControllerGrpc {
               ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>(
                 service, METHODID_COMPLETE_OAUTH_CONNECT)))
         .addMethod(
-          getGetOAuthGrantStatusMethod(),
+          getDisconnectOAuthMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
-              ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>(
-                service, METHODID_GET_OAUTH_GRANT_STATUS)))
+              ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput,
+              ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput>(
+                service, METHODID_DISCONNECT_OAUTH)))
+        .addMethod(
+          getSetOrgOAuthAppMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput,
+              ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput>(
+                service, METHODID_SET_ORG_OAUTH_APP)))
+        .addMethod(
+          getDeleteOrgOAuthAppMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput,
+              ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput>(
+                service, METHODID_DELETE_ORG_OAUTH_APP)))
         .build();
   }
 
@@ -1617,7 +1947,9 @@ public final class McpServerCommandControllerGrpc {
               .addMethod(getConnectMethod())
               .addMethod(getInitiateOAuthConnectMethod())
               .addMethod(getCompleteOAuthConnectMethod())
-              .addMethod(getGetOAuthGrantStatusMethod())
+              .addMethod(getDisconnectOAuthMethod())
+              .addMethod(getSetOrgOAuthAppMethod())
+              .addMethod(getDeleteOrgOAuthAppMethod())
               .build();
         }
       }

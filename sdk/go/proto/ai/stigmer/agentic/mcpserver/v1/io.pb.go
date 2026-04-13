@@ -23,6 +23,80 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// OAuthConnectionHealth evaluates the health of an OAuth connection by
+// examining grant existence and token expiry metadata. Used in
+// GetOAuthGrantStatusOutput to give the frontend an actionable signal
+// beyond the binary "connected" boolean.
+//
+// The backend determines health from locally available metadata (grant
+// record + access_token_expires_at). It cannot detect server-side token
+// revocation without making an API call to the vendor, so HEALTHY means
+// "valid as far as we know" — not a guarantee the token will be accepted.
+type OAuthConnectionHealth int32
+
+const (
+	// Default / unset. Health has not been evaluated.
+	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_UNSPECIFIED OAuthConnectionHealth = 0
+	// The access token exists and is not expired (or does not expire).
+	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_HEALTHY OAuthConnectionHealth = 1
+	// The access token is expired and no refresh token is available.
+	// The user must re-authenticate via the OAuth flow.
+	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED OAuthConnectionHealth = 2
+	// The access token is expired but a refresh token is available.
+	// The backend will attempt automatic refresh at execution time.
+	// If the refresh token is itself expired, the refresh will fail and
+	// the user will need to re-authenticate.
+	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE OAuthConnectionHealth = 3
+	// No OAuth grant exists for this resource + org + user combination.
+	// The user has never connected or has disconnected.
+	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_NO_GRANT OAuthConnectionHealth = 4
+)
+
+// Enum value maps for OAuthConnectionHealth.
+var (
+	OAuthConnectionHealth_name = map[int32]string{
+		0: "OAUTH_CONNECTION_HEALTH_UNSPECIFIED",
+		1: "OAUTH_CONNECTION_HEALTH_HEALTHY",
+		2: "OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED",
+		3: "OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE",
+		4: "OAUTH_CONNECTION_HEALTH_NO_GRANT",
+	}
+	OAuthConnectionHealth_value = map[string]int32{
+		"OAUTH_CONNECTION_HEALTH_UNSPECIFIED":               0,
+		"OAUTH_CONNECTION_HEALTH_HEALTHY":                   1,
+		"OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED":             2,
+		"OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE": 3,
+		"OAUTH_CONNECTION_HEALTH_NO_GRANT":                  4,
+	}
+)
+
+func (x OAuthConnectionHealth) Enum() *OAuthConnectionHealth {
+	p := new(OAuthConnectionHealth)
+	*p = x
+	return p
+}
+
+func (x OAuthConnectionHealth) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (OAuthConnectionHealth) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_enumTypes[0].Descriptor()
+}
+
+func (OAuthConnectionHealth) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_mcpserver_v1_io_proto_enumTypes[0]
+}
+
+func (x OAuthConnectionHealth) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use OAuthConnectionHealth.Descriptor instead.
+func (OAuthConnectionHealth) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{0}
+}
+
 // McpServerId wraps an MCP server resource identifier.
 // Used as input for operations that require an MCP server ID.
 type McpServerId struct {
@@ -545,9 +619,14 @@ type GetOAuthGrantStatusOutput struct {
 	TargetEnvVar string `protobuf:"bytes,3,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Which auth method was used ("mcp_oauth" or "vendor_oauth").
 	// Empty if no grant exists.
-	AuthMethod    string `protobuf:"bytes,4,opt,name=auth_method,json=authMethod,proto3" json:"auth_method,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AuthMethod string `protobuf:"bytes,4,opt,name=auth_method,json=authMethod,proto3" json:"auth_method,omitempty"`
+	// Evaluated health of the OAuth connection.
+	// Provides an actionable signal beyond the binary "connected" field:
+	// the frontend can distinguish "healthy" from "expired but refreshable"
+	// from "expired and needs re-auth" from "never connected."
+	ConnectionHealth OAuthConnectionHealth `protobuf:"varint,5,opt,name=connection_health,json=connectionHealth,proto3,enum=ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth" json:"connection_health,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetOAuthGrantStatusOutput) Reset() {
@@ -608,6 +687,525 @@ func (x *GetOAuthGrantStatusOutput) GetAuthMethod() string {
 	return ""
 }
 
+func (x *GetOAuthGrantStatusOutput) GetConnectionHealth() OAuthConnectionHealth {
+	if x != nil {
+		return x.ConnectionHealth
+	}
+	return OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_UNSPECIFIED
+}
+
+// DisconnectOAuthInput tears down a user's OAuth connection for a resource.
+//
+// @internal
+// The handler:
+// 1. Finds the OAuthGrant for (caller, resource_id, org)
+// 2. Deletes the managed Environment that holds the tokens
+// 3. Deletes the OAuthGrant record
+//
+// After this, the user's access token and refresh token are gone. The
+// MCP server remains configured — only the user's personal OAuth connection
+// is removed. Other users' connections to the same resource are unaffected.
+//
+// Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
+// tuple, the handler returns disconnected=false without error. This
+// supports race conditions (concurrent disconnect calls), retries after
+// partial failures, and desired-state semantics ("ensure no connection").
+type DisconnectOAuthInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the resource to disconnect OAuth for.
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// Organization context. Must match the org used during the original
+	// OAuth connect flow (part of the OAuthGrant composite key).
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisconnectOAuthInput) Reset() {
+	*x = DisconnectOAuthInput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisconnectOAuthInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisconnectOAuthInput) ProtoMessage() {}
+
+func (x *DisconnectOAuthInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisconnectOAuthInput.ProtoReflect.Descriptor instead.
+func (*DisconnectOAuthInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DisconnectOAuthInput) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *DisconnectOAuthInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// DisconnectOAuthOutput reports the result of a disconnect request.
+type DisconnectOAuthOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether an active grant was found and deleted.
+	// true: grant and its managed environment were deleted.
+	// false: no grant existed for this resource + org + caller. The desired
+	// state (no OAuth connection) was already achieved. This is not an error.
+	Disconnected  bool `protobuf:"varint,1,opt,name=disconnected,proto3" json:"disconnected,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisconnectOAuthOutput) Reset() {
+	*x = DisconnectOAuthOutput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisconnectOAuthOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisconnectOAuthOutput) ProtoMessage() {}
+
+func (x *DisconnectOAuthOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisconnectOAuthOutput.ProtoReflect.Descriptor instead.
+func (*DisconnectOAuthOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DisconnectOAuthOutput) GetDisconnected() bool {
+	if x != nil {
+		return x.Disconnected
+	}
+	return false
+}
+
+// SetOrgOAuthAppInput creates or updates an org-level BYOA OAuth app
+// override for a resource.
+//
+// @internal
+// The handler:
+//  1. Looks up the platform-default OAuthApp via the resource's auth block
+//     to use as a template (authorization_url, token_url, scopes, etc.)
+//  2. Creates a new OAuthApp with the org-provided client_id + client_secret
+//     and the template's endpoint URLs and scopes
+//  3. Creates or updates an OAuthAppOverride binding
+//     (resource_id, resource_kind, org_id) → new OAuthApp ID
+//
+// If an override already exists for this resource + org, the handler
+// updates the existing OAuthApp's credentials and returns the same ID.
+//
+// After this, the resolution chain for this resource in this org will
+// return the org's OAuthApp instead of the platform default.
+//
+// Prerequisites:
+//   - The resource must exist and have an auth block with oauth_app_ref
+//     (BYOA requires a platform template to clone from)
+//   - The caller must have can_create_oauth_app permission in the org
+//
+// Errors:
+// - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+// - NOT_FOUND: Resource does not exist
+type SetOrgOAuthAppInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the resource to set the BYOA override for.
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// Organization that will own this override.
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	// OAuth client ID from the org's own app registration with the vendor.
+	ClientId string `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	// OAuth client secret from the org's own app registration with the vendor.
+	// Encrypted at rest, redacted in logs.
+	ClientSecret  string `protobuf:"bytes,4,opt,name=client_secret,json=clientSecret,proto3" json:"client_secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetOrgOAuthAppInput) Reset() {
+	*x = SetOrgOAuthAppInput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetOrgOAuthAppInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetOrgOAuthAppInput) ProtoMessage() {}
+
+func (x *SetOrgOAuthAppInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetOrgOAuthAppInput.ProtoReflect.Descriptor instead.
+func (*SetOrgOAuthAppInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *SetOrgOAuthAppInput) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *SetOrgOAuthAppInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *SetOrgOAuthAppInput) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
+func (x *SetOrgOAuthAppInput) GetClientSecret() string {
+	if x != nil {
+		return x.ClientSecret
+	}
+	return ""
+}
+
+// SetOrgOAuthAppOutput confirms the BYOA override was created or updated.
+type SetOrgOAuthAppOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the OAuthApp resource created (or updated)
+	// for this override. Can be used to inspect the full OAuthApp via
+	// OAuthAppQueryController.get.
+	OauthAppId    string `protobuf:"bytes,1,opt,name=oauth_app_id,json=oauthAppId,proto3" json:"oauth_app_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetOrgOAuthAppOutput) Reset() {
+	*x = SetOrgOAuthAppOutput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetOrgOAuthAppOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetOrgOAuthAppOutput) ProtoMessage() {}
+
+func (x *SetOrgOAuthAppOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetOrgOAuthAppOutput.ProtoReflect.Descriptor instead.
+func (*SetOrgOAuthAppOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *SetOrgOAuthAppOutput) GetOauthAppId() string {
+	if x != nil {
+		return x.OauthAppId
+	}
+	return ""
+}
+
+// GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.
+//
+// @internal
+// Returns override metadata without exposing secrets. The frontend uses
+// this to show "Using org credentials" vs. "Using platform credentials"
+// and to offer the option to remove the override.
+type GetOrgOAuthAppInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the resource to check for an override.
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// Organization context to check.
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrgOAuthAppInput) Reset() {
+	*x = GetOrgOAuthAppInput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrgOAuthAppInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrgOAuthAppInput) ProtoMessage() {}
+
+func (x *GetOrgOAuthAppInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrgOAuthAppInput.ProtoReflect.Descriptor instead.
+func (*GetOrgOAuthAppInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetOrgOAuthAppInput) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *GetOrgOAuthAppInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// GetOrgOAuthAppOutput returns the org's BYOA override status.
+type GetOrgOAuthAppOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether an OAuthAppOverride exists for this resource + org.
+	HasOverride bool `protobuf:"varint,1,opt,name=has_override,json=hasOverride,proto3" json:"has_override,omitempty"`
+	// System-generated ID of the override's OAuthApp.
+	// Empty when has_override is false.
+	OauthAppId string `protobuf:"bytes,2,opt,name=oauth_app_id,json=oauthAppId,proto3" json:"oauth_app_id,omitempty"`
+	// Client ID from the override's OAuthApp (non-secret, safe to display).
+	// Empty when has_override is false. Useful for UI display so the admin
+	// can verify which app registration is active.
+	ClientId      string `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrgOAuthAppOutput) Reset() {
+	*x = GetOrgOAuthAppOutput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrgOAuthAppOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrgOAuthAppOutput) ProtoMessage() {}
+
+func (x *GetOrgOAuthAppOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrgOAuthAppOutput.ProtoReflect.Descriptor instead.
+func (*GetOrgOAuthAppOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetOrgOAuthAppOutput) GetHasOverride() bool {
+	if x != nil {
+		return x.HasOverride
+	}
+	return false
+}
+
+func (x *GetOrgOAuthAppOutput) GetOauthAppId() string {
+	if x != nil {
+		return x.OauthAppId
+	}
+	return ""
+}
+
+func (x *GetOrgOAuthAppOutput) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
+// DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
+//
+// @internal
+// The handler:
+// 1. Finds the OAuthAppOverride for (resource_id, resource_kind, org)
+// 2. Deletes the OAuthApp resource created for this override
+// 3. Deletes the OAuthAppOverride binding
+//
+// After this, the resolution chain falls back to the platform default.
+// Existing user OAuthGrants that were issued using the org's OAuthApp
+// will fail on next refresh — those users will need to re-authenticate
+// using the platform default (or a new org override).
+//
+// Prerequisites:
+// - An override must exist for this resource + org
+//
+// Errors:
+// - NOT_FOUND: No override exists for this resource + org
+type DeleteOrgOAuthAppInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the resource to remove the override for.
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// Organization whose override should be removed.
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteOrgOAuthAppInput) Reset() {
+	*x = DeleteOrgOAuthAppInput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteOrgOAuthAppInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteOrgOAuthAppInput) ProtoMessage() {}
+
+func (x *DeleteOrgOAuthAppInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteOrgOAuthAppInput.ProtoReflect.Descriptor instead.
+func (*DeleteOrgOAuthAppInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *DeleteOrgOAuthAppInput) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *DeleteOrgOAuthAppInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// DeleteOrgOAuthAppOutput confirms the BYOA override was removed.
+type DeleteOrgOAuthAppOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the delete completed successfully.
+	Deleted       bool `protobuf:"varint,1,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteOrgOAuthAppOutput) Reset() {
+	*x = DeleteOrgOAuthAppOutput{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteOrgOAuthAppOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteOrgOAuthAppOutput) ProtoMessage() {}
+
+func (x *DeleteOrgOAuthAppOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteOrgOAuthAppOutput.ProtoReflect.Descriptor instead.
+func (*DeleteOrgOAuthAppOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *DeleteOrgOAuthAppOutput) GetDeleted() bool {
+	if x != nil {
+		return x.Deleted
+	}
+	return false
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
@@ -642,13 +1240,50 @@ const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"\x18GetOAuthGrantStatusInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12\x19\n" +
-	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xb7\x01\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x9c\x02\n" +
 	"\x19GetOAuthGrantStatusOutput\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x125\n" +
 	"\x17access_token_expires_at\x18\x02 \x01(\x03R\x14accessTokenExpiresAt\x12$\n" +
 	"\x0etarget_env_var\x18\x03 \x01(\tR\ftargetEnvVar\x12\x1f\n" +
 	"\vauth_method\x18\x04 \x01(\tR\n" +
-	"authMethodB\xa4\x02\n" +
+	"authMethod\x12c\n" +
+	"\x11connection_health\x18\x05 \x01(\x0e26.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealthR\x10connectionHealth\"Z\n" +
+	"\x14DisconnectOAuthInput\x12'\n" +
+	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"resourceId\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\";\n" +
+	"\x15DisconnectOAuthOutput\x12\"\n" +
+	"\fdisconnected\x18\x01 \x01(\bR\fdisconnected\"\xad\x01\n" +
+	"\x13SetOrgOAuthAppInput\x12'\n" +
+	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"resourceId\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tclient_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12,\n" +
+	"\rclient_secret\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fclientSecret\"8\n" +
+	"\x14SetOrgOAuthAppOutput\x12 \n" +
+	"\foauth_app_id\x18\x01 \x01(\tR\n" +
+	"oauthAppId\"Y\n" +
+	"\x13GetOrgOAuthAppInput\x12'\n" +
+	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"resourceId\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"x\n" +
+	"\x14GetOrgOAuthAppOutput\x12!\n" +
+	"\fhas_override\x18\x01 \x01(\bR\vhasOverride\x12 \n" +
+	"\foauth_app_id\x18\x02 \x01(\tR\n" +
+	"oauthAppId\x12\x1b\n" +
+	"\tclient_id\x18\x03 \x01(\tR\bclientId\"\\\n" +
+	"\x16DeleteOrgOAuthAppInput\x12'\n" +
+	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"resourceId\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"3\n" +
+	"\x17DeleteOrgOAuthAppOutput\x12\x18\n" +
+	"\adeleted\x18\x01 \x01(\bR\adeleted*\xed\x01\n" +
+	"\x15OAuthConnectionHealth\x12'\n" +
+	"#OAUTH_CONNECTION_HEALTH_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fOAUTH_CONNECTION_HEALTH_HEALTHY\x10\x01\x12)\n" +
+	"%OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED\x10\x02\x125\n" +
+	"1OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE\x10\x03\x12$\n" +
+	" OAUTH_CONNECTION_HEALTH_NO_GRANT\x10\x04B\xa4\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\aIoProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -663,27 +1298,38 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_mcpserver_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_goTypes = []any{
-	(*McpServerId)(nil),                // 0: ai.stigmer.agentic.mcpserver.v1.McpServerId
-	(*ConnectInput)(nil),               // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput
-	(*InitiateOAuthConnectInput)(nil),  // 2: ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput
-	(*InitiateOAuthConnectOutput)(nil), // 3: ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput
-	(*CompleteOAuthConnectInput)(nil),  // 4: ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput
-	(*CompleteOAuthConnectOutput)(nil), // 5: ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput
-	(*GetOAuthGrantStatusInput)(nil),   // 6: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput
-	(*GetOAuthGrantStatusOutput)(nil),  // 7: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
-	nil,                                // 8: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
-	(*v1.ExecutionValue)(nil),          // 9: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(OAuthConnectionHealth)(0),         // 0: ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth
+	(*McpServerId)(nil),                // 1: ai.stigmer.agentic.mcpserver.v1.McpServerId
+	(*ConnectInput)(nil),               // 2: ai.stigmer.agentic.mcpserver.v1.ConnectInput
+	(*InitiateOAuthConnectInput)(nil),  // 3: ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput
+	(*InitiateOAuthConnectOutput)(nil), // 4: ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput
+	(*CompleteOAuthConnectInput)(nil),  // 5: ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput
+	(*CompleteOAuthConnectOutput)(nil), // 6: ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput
+	(*GetOAuthGrantStatusInput)(nil),   // 7: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput
+	(*GetOAuthGrantStatusOutput)(nil),  // 8: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
+	(*DisconnectOAuthInput)(nil),       // 9: ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput
+	(*DisconnectOAuthOutput)(nil),      // 10: ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput
+	(*SetOrgOAuthAppInput)(nil),        // 11: ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput
+	(*SetOrgOAuthAppOutput)(nil),       // 12: ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput
+	(*GetOrgOAuthAppInput)(nil),        // 13: ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput
+	(*GetOrgOAuthAppOutput)(nil),       // 14: ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput
+	(*DeleteOrgOAuthAppInput)(nil),     // 15: ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput
+	(*DeleteOrgOAuthAppOutput)(nil),    // 16: ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput
+	nil,                                // 17: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
+	(*v1.ExecutionValue)(nil),          // 18: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_depIdxs = []int32{
-	8, // 0: ai.stigmer.agentic.mcpserver.v1.ConnectInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
-	9, // 1: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	17, // 0: ai.stigmer.agentic.mcpserver.v1.ConnectInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
+	0,  // 1: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.connection_health:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth
+	18, // 2: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	3,  // [3:3] is the sub-list for method output_type
+	3,  // [3:3] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_io_proto_init() }
@@ -696,13 +1342,14 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   9,
+			NumEnums:      1,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_mcpserver_v1_io_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_mcpserver_v1_io_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_mcpserver_v1_io_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_mcpserver_v1_io_proto = out.File

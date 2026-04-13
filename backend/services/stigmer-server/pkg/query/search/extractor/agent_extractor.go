@@ -76,6 +76,7 @@ func (e *AgentExtractor) ToSearchResult(resource proto.Message, score float32) *
 		Visibility:    meta.GetVisibility(),
 		Tags:          meta.GetTags(),
 		Score:         score,
+		IconUrl:       agent.GetSpec().GetIconUrl(),
 	}
 
 	// Extract audit timestamps

@@ -242,6 +242,19 @@ func (c *McpServerController) initiateVendorOAuth(
 		return nil, grpclib.NotFoundError("oauth_app", ref.GetSlug())
 	}
 
+	approvalStatus := oauthApp.GetSpec().GetVendorApprovalStatus()
+	if approvalStatus == oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_PENDING ||
+		approvalStatus == oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_REJECTED {
+		statusLabel := "pending approval"
+		if approvalStatus == oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_REJECTED {
+			statusLabel = "rejected"
+		}
+		return nil, grpclib.FailedPreconditionError(
+			"OAuth sign-in is unavailable: the platform's OAuth app for '%s' is %s by the vendor. "+
+				"Please enter a token manually instead.",
+			oauthApp.GetSpec().GetProvider(), statusLabel)
+	}
+
 	clientSecret := oauthApp.GetSpec().GetClientSecret()
 	if c.encryptionService != nil && c.encryptionService.IsEncrypted(clientSecret) {
 		decrypted, err := c.encryptionService.Decrypt(clientSecret)

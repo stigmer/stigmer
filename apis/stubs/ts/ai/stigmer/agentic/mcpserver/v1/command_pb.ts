@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { McpServerSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_api } from "./api_pb";
-import type { CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, ConnectInputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema } from "./io_pb";
+import type { CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, ConnectInputSchema, DeleteOrgOAuthAppInputSchema, DeleteOrgOAuthAppOutputSchema, DisconnectOAuthInputSchema, DisconnectOAuthOutputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, SetOrgOAuthAppInputSchema, SetOrgOAuthAppOutputSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_io } from "./io_pb";
 import type { ApiResourceDeleteInputSchema, UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/mcpserver/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2NvbW1hbmQucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEysQwKGk1jcFNlcnZlckNvbW1hbmRDb250cm9sbGVyEl8KBWFwcGx5EiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchJmCgZjcmVhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEpoBCgZ1cGRhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIjjCuBg0CAIQLCILbWV0YWRhdGEuaWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgbWNwIHNlcnZlchKmAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciI4wrgYNAgDECwiC3Jlc291cmNlX2lkKiF1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1jcCBzZXJ2ZXISugEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiQ8K4GD8IAhAsIgtyZXNvdXJjZV9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIHZpc2liaWxpdHkSpAEKB2Nvbm5lY3QSLS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIj7CuBg6CBYQLCINbWNwX3NlcnZlcl9pZColdW5hdXRob3JpemVkIHRvIGNvbm5lY3QgdG8gbWNwIHNlcnZlchLfAQoUaW5pdGlhdGVPQXV0aENvbm5lY3QSOi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkluaXRpYXRlT0F1dGhDb25uZWN0SW5wdXQaOy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkluaXRpYXRlT0F1dGhDb25uZWN0T3V0cHV0Ik7CuBhKCBYQLCINbWNwX3NlcnZlcl9pZCo1dW5hdXRob3JpemVkIHRvIGluaXRpYXRlIG9hdXRoIGNvbm5lY3QgZm9yIG1jcCBzZXJ2ZXIS3wEKFGNvbXBsZXRlT0F1dGhDb25uZWN0EjouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Db21wbGV0ZU9BdXRoQ29ubmVjdElucHV0GjsuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Db21wbGV0ZU9BdXRoQ29ubmVjdE91dHB1dCJOwrgYSggWECwiDW1jcF9zZXJ2ZXJfaWQqNXVuYXV0aG9yaXplZCB0byBjb21wbGV0ZSBvYXV0aCBjb25uZWN0IGZvciBtY3Agc2VydmVyEtUBChNnZXRPQXV0aEdyYW50U3RhdHVzEjkuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5HZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQaOi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkdldE9BdXRoR3JhbnRTdGF0dXNPdXRwdXQiR8K4GEMIARAsIgtyZXNvdXJjZV9pZCowdW5hdXRob3JpemVkIHRvIHZpZXcgb2F1dGggc3RhdHVzIGZvciBtY3Agc2VydmVyGgSg/yssYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2NvbW1hbmQucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEypg8KGk1jcFNlcnZlckNvbW1hbmRDb250cm9sbGVyEl8KBWFwcGx5EiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchJmCgZjcmVhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEpoBCgZ1cGRhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIjjCuBg0CAIQLCILbWV0YWRhdGEuaWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgbWNwIHNlcnZlchKmAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciI4wrgYNAgDECwiC3Jlc291cmNlX2lkKiF1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1jcCBzZXJ2ZXISugEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiQ8K4GD8IAhAsIgtyZXNvdXJjZV9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIHZpc2liaWxpdHkSpAEKB2Nvbm5lY3QSLS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIj7CuBg6CBYQLCINbWNwX3NlcnZlcl9pZColdW5hdXRob3JpemVkIHRvIGNvbm5lY3QgdG8gbWNwIHNlcnZlchLfAQoUaW5pdGlhdGVPQXV0aENvbm5lY3QSOi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkluaXRpYXRlT0F1dGhDb25uZWN0SW5wdXQaOy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkluaXRpYXRlT0F1dGhDb25uZWN0T3V0cHV0Ik7CuBhKCBYQLCINbWNwX3NlcnZlcl9pZCo1dW5hdXRob3JpemVkIHRvIGluaXRpYXRlIG9hdXRoIGNvbm5lY3QgZm9yIG1jcCBzZXJ2ZXIS3wEKFGNvbXBsZXRlT0F1dGhDb25uZWN0EjouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Db21wbGV0ZU9BdXRoQ29ubmVjdElucHV0GjsuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Db21wbGV0ZU9BdXRoQ29ubmVjdE91dHB1dCJOwrgYSggWECwiDW1jcF9zZXJ2ZXJfaWQqNXVuYXV0aG9yaXplZCB0byBjb21wbGV0ZSBvYXV0aCBjb25uZWN0IGZvciBtY3Agc2VydmVyEsgBCg9kaXNjb25uZWN0T0F1dGgSNS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2Nvbm5lY3RPQXV0aElucHV0GjYuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5EaXNjb25uZWN0T0F1dGhPdXRwdXQiRsK4GEIIFhAsIgtyZXNvdXJjZV9pZCovdW5hdXRob3JpemVkIHRvIGRpc2Nvbm5lY3Qgb2F1dGggZm9yIG1jcCBzZXJ2ZXISuAEKDnNldE9yZ09BdXRoQXBwEjQuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5TZXRPcmdPQXV0aEFwcElucHV0GjUuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5TZXRPcmdPQXV0aEFwcE91dHB1dCI5wrgYNQgXEB4iA29yZyoqdW5hdXRob3JpemVkIHRvIHNldCBvcmcgb2F1dGggYXBwIG92ZXJyaWRlEsQBChFkZWxldGVPcmdPQXV0aEFwcBI3LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuRGVsZXRlT3JnT0F1dGhBcHBJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuRGVsZXRlT3JnT0F1dGhBcHBPdXRwdXQiPMK4GDgIFxAeIgNvcmcqLXVuYXV0aG9yaXplZCB0byBkZWxldGUgb3JnIG9hdXRoIGFwcCBvdmVycmlkZRoEoP8rLGIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -217,24 +217,82 @@ export const McpServerCommandController: GenService<{
     output: typeof CompleteOAuthConnectOutputSchema;
   },
   /**
-   * Check whether the authenticated user has an active OAuth grant for
-   * an MCP server in the specified org.
+   * Disconnect the authenticated user's OAuth connection for a resource.
    *
-   * Returns grant metadata (connected status, token expiry, auth method)
-   * without exposing any secret token values. The frontend uses this to
-   * render the correct OAuth state in the MCP server detail page and
-   * session composer.
+   * Tears down the user's personal OAuth connection by deleting the
+   * OAuthGrant and its associated managed environment (which holds the
+   * access and refresh tokens). The MCP server definition is unchanged —
+   * only the caller's credentials are removed.
+   *
+   * Other users' connections to the same resource are unaffected.
+   *
+   * Idempotent: returns disconnected=true when a grant was deleted,
+   * disconnected=false when no grant existed. Never returns an error
+   * for a missing grant.
    *
    * @internal
-   * Authorization: Requires can_view permission on the mcp_server resource.
-   * The resource_id field contains the MCP server's system-generated ID.
+   * Authorization: Requires can_connect permission on the mcp_server resource.
+   * Uses the same permission as connect/initiateOAuthConnect — if you can
+   * establish a connection, you can tear it down.
    *
-   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.getOAuthGrantStatus
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.disconnectOAuth
    */
-  getOAuthGrantStatus: {
+  disconnectOAuth: {
     methodKind: "unary";
-    input: typeof GetOAuthGrantStatusInputSchema;
-    output: typeof GetOAuthGrantStatusOutputSchema;
+    input: typeof DisconnectOAuthInputSchema;
+    output: typeof DisconnectOAuthOutputSchema;
+  },
+  /**
+   * Create or update an org-level BYOA OAuth app override for a resource.
+   *
+   * Allows an organization to use its own OAuth app credentials instead of
+   * the platform default. The handler clones the platform OAuthApp template
+   * (endpoint URLs, scopes) and applies the org-provided client credentials.
+   *
+   * Idempotent: if an override already exists for this resource + org, the
+   * existing OAuthApp is updated with the new credentials.
+   *
+   * @internal
+   * Authorization: Requires can_create_oauth_app permission on the organization.
+   * This is an org-admin operation — setting credentials that affect all users
+   * in the org who connect to this resource.
+   *
+   * Errors:
+   * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+   *   (BYOA requires a platform template to clone from)
+   * - NOT_FOUND: Resource does not exist
+   *
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.setOrgOAuthApp
+   */
+  setOrgOAuthApp: {
+    methodKind: "unary";
+    input: typeof SetOrgOAuthAppInputSchema;
+    output: typeof SetOrgOAuthAppOutputSchema;
+  },
+  /**
+   * Remove an org-level BYOA override for a resource.
+   *
+   * Deletes the OAuthAppOverride binding and the OAuthApp resource that
+   * was created for it. After this, the resolution chain falls back to
+   * the platform default.
+   *
+   * Existing user OAuthGrants that were issued using the org's OAuthApp
+   * will fail on next token refresh — those users will need to
+   * re-authenticate using the platform default or a new org override.
+   *
+   * @internal
+   * Authorization: Requires can_create_oauth_app permission on the organization.
+   * Same gate as setOrgOAuthApp — org-admin authority for credential management.
+   *
+   * Errors:
+   * - NOT_FOUND: No override exists for this resource + org
+   *
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.deleteOrgOAuthApp
+   */
+  deleteOrgOAuthApp: {
+    methodKind: "unary";
+    input: typeof DeleteOrgOAuthAppInputSchema;
+    output: typeof DeleteOrgOAuthAppOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_mcpserver_v1_command, 0);

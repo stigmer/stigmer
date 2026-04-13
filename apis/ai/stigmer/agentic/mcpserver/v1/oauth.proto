@@ -77,3 +77,50 @@ message OAuthGrant {
   // maintain separate OAuth connections for a shared resource across orgs.
   string org_id = 11;
 }
+
+// OAuthAppOverride binds a specific OAuthApp to an API resource within an
+// organization, overriding the platform-default OAuthApp for that resource.
+//
+// @internal
+// Infrastructure-only. Not a public API resource — no kind, no apiVersion,
+// no CRUD RPCs. Stored in the backend's database, keyed by the composite
+// of (resource_id, resource_kind, org_id).
+//
+// This is the "Bring Your Own App" (BYOA) binding: it records that org Z
+// wants resource Y to use OAuthApp X instead of the platform default
+// referenced by McpServerAuth.oauth_app_ref.
+//
+// Separation of concerns:
+// - OAuthApp (credential resource): holds client_id, client_secret, and
+//   vendor endpoint URLs. Reusable — may be referenced by multiple overrides
+//   or MCP servers.
+// - OAuthAppOverride (binding document): maps (resource, org) to an OAuthApp.
+//   Analogous to OAuthGrant, which maps (user, resource, org) to token metadata.
+//
+// Resolution chain (evaluated at connect time and token refresh):
+//   1. OAuthAppOverride for (resource_id, resource_kind, org_id) — org override
+//   2. McpServerAuth.oauth_app_ref on the resource spec — platform default
+//   3. None — no OAuth app available (manual token or DCR only)
+//
+// The override is resource-agnostic: currently used for MCP servers, but the
+// composite key supports any API resource kind that needs BYOA (e.g., workflows).
+message OAuthAppOverride {
+  // System-generated ID (metadata.id) of the API resource this override
+  // applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+  string resource_id = 1;
+
+  // Kind of the API resource identified by resource_id (e.g., "mcp_server").
+  // Part of the composite key. Enables the same table to serve overrides
+  // for multiple resource types without collision.
+  string resource_kind = 2;
+
+  // Organization that owns this override. Part of the composite key.
+  // Different orgs can maintain independent BYOA overrides for the same
+  // shared (platform-scoped) resource.
+  string org_id = 3;
+
+  // ID of the OAuthApp resource that holds the org's client credentials.
+  // Created by the setOrgOAuthApp handler, which clones the platform
+  // OAuthApp template and applies the org-provided client_id + client_secret.
+  string oauth_app_id = 4;
+}
