@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { ResourceListView } from "@stigmer/react";
+import type { ResourceListLayout } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { PulseHighlight } from "../shared/PulseHighlight";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
@@ -16,6 +17,8 @@ interface ResourceListPageProps {
   readonly cursorTarget: string;
   /** Resource items to display in the list. */
   readonly items: readonly SearchResult[];
+  /** Layout mode for the resource list. @default "list" */
+  readonly layout?: ResourceListLayout;
   /** When true, the create button pulses to draw attention. */
   readonly highlightCreate?: boolean;
   /** When true, a flash highlight appears on the last item in the list. */
@@ -36,6 +39,7 @@ export function ResourceListPage({
   createLabel,
   cursorTarget,
   items,
+  layout,
   highlightCreate,
   showNewItem,
 }: ResourceListPageProps) {
@@ -54,7 +58,7 @@ export function ResourceListPage({
       </div>
 
       <div className="relative" style={{ zoom: DEMO_CONTENT_ZOOM }}>
-        <ResourceListView items={items} isLoading={false} />
+        <ResourceListView items={items} isLoading={false} layout={layout} />
         {showNewItem && <NewItemHighlight />}
       </div>
     </div>

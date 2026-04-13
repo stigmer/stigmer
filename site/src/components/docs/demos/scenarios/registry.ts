@@ -18,6 +18,7 @@ import { QuickstartTour } from "./quickstart-tour";
 import { FirstSkillTour } from "./first-skill-tour";
 import { ConnectToolsTour } from "./connect-tools-tour";
 import { CreateAgentTour } from "./create-agent-tour";
+import { MarketplaceConnectTour } from "./marketplace-connect-tour";
 
 /**
  * Maps scenario directory names to their React components.
@@ -47,6 +48,7 @@ export const SCENARIO_REGISTRY: Record<string, ComponentType> = {
   "first-skill-tour": FirstSkillTour,
   "connect-tools-tour": ConnectToolsTour,
   "create-agent-tour": CreateAgentTour,
+  "marketplace-connect-tour": MarketplaceConnectTour,
 };
 
 export const PLAYBACK_SCENARIO_IDS = Object.keys(SCENARIO_REGISTRY);

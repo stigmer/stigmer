@@ -69,8 +69,44 @@ When starting a new session:
 
 **Created**: 2026-04-13
 **Current Task**: T02 — Marketplace and connect guides + demos
-**Status**: Ready to start T02
-**Last Session**: 2026-04-13 — Side-track: OAuth Apps settings page + BYOA dialog fix
+**Status**: T02 COMPLETE
+**Last Session**: 2026-04-13 — Completed T02
+
+## Session Progress (2026-04-13, session 3 — T02)
+
+- Created `docs/guides/integrations/connect-from-marketplace.mdx` — how-to
+  guide with hero demo, browse section, connect section, auth patterns table,
+  wire-to-agent YAML, and cross-links to T03/T04 guides
+- Built `marketplace-connect-tour` demo scenario (6-step playback):
+  grid browse → select PostgreSQL → detail view → connect → tools → policies
+- Fixture data drawn from real seedpack entries (9 servers: GitHub, Slack,
+  PostgreSQL, Playwright, Fetch, Sentry, Stripe, Figma, Notion)
+- Full McpServer fixture for PostgreSQL with stdio transport, env vars,
+  5 discovered tools, and `execute_sql` approval policy
+- Extended `ResourceListPage` view with optional `layout` prop to support
+  grid layout (production-consistent card grid)
+- Fixed MDX comment syntax in `overview.mdx` (`<!-- -->` → `{/* */}`)
+- Registered demo in `index.ts`, `mdx.tsx`, and `registry.ts`
+- Build verified: `yarn build` passes
+
+### Files created
+
+| File | Purpose |
+|------|---------|
+| `docs/guides/integrations/connect-from-marketplace.mdx` | How-to guide page |
+| `site/src/components/docs/demos/scenarios/marketplace-connect-tour/index.tsx` | Demo component |
+| `site/src/components/docs/demos/scenarios/marketplace-connect-tour/steps.ts` | Fixtures + step data |
+| `_projects/2026-04/20260413.02.mcp-integration-docs/tasks/T02_0_plan.md` | Task plan file |
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `site/src/components/docs/demos/views/ResourceListPage.tsx` | Added `layout` prop |
+| `site/src/components/docs/index.ts` | Export `DemoMarketplaceConnectTour` |
+| `site/src/components/mdx.tsx` | Register in MDX component map |
+| `site/src/components/docs/demos/scenarios/registry.ts` | Register for video export |
+| `docs/guides/integrations/overview.mdx` | Fix HTML comments to MDX comments |
 
 ## Session Progress (2026-04-13, session 2 — side-track)
 
@@ -87,7 +123,7 @@ Side-track from the docs project to address UX gaps found during BYOA testing:
 - Committed: `ad229c983` on `feat/mcp-integration-docs`
 - Changelog: `_changelog/2026-04/2026-04-13-184626-oauth-apps-settings-page.md`
 
-### Files created/modified in this session
+### Files created/modified in session 2
 
 | File | Change |
 |------|--------|
@@ -132,18 +168,32 @@ Side-track from the docs project to address UX gaps found during BYOA testing:
 - **YAML convention preserved**: `env_spec.data` is the established convention
   across all docs; proto field `env` maps to this in YAML representation
 
+## Key Decisions (T02)
+
+- **One demo, not two**: Combined `marketplace-browse` and `credential-management`
+  into a single `marketplace-connect-tour` — the browse and connect steps are
+  one user journey; credential management is T03/T04 territory
+- **Grid layout for demo**: Uses `layout="grid"` matching the recent production
+  change (card grid for MCP Servers and Agents)
+- **PostgreSQL as the connect example**: Familiar to developers, simple env-var
+  auth (no OAuth complexity), stdio transport — relatable without being trivial
+- **Seedpack as public catalog deferred**: Real seedpack data used in fixtures
+  for authenticity; a live public catalog page is a separate initiative
+- **MDX comment syntax fix**: `overview.mdx` from T01 used HTML comments
+  (`<!-- -->`); MDX requires `{/* */}` — fixed during build verification
+
 ## Next Steps
 
-1. Start T02: Marketplace and connect guides + demos
-2. Write `docs/guides/integrations/connect-from-marketplace.mdx`
-3. Build `marketplace-browse` and `credential-management` demo scenarios
+1. Start T03: OAuth for tools guide + hero demo
+2. Write `docs/guides/integrations/oauth-for-tools.mdx`
+3. Build `oauth-connect-flow` demo (hero demo with OAuth redirect flow)
 
 ## Task Map
 
 | Task | Title | Status |
 |------|-------|--------|
 | T01 | Concepts expansion + nav setup | COMPLETE |
-| T02 | Marketplace and connect guides + demos | Not started |
+| T02 | Marketplace and connect guides + demos | COMPLETE |
 | T03 | OAuth for tools guide + hero demo | Not started |
 | T04 | BYOA guide + demo | Not started |
 | T05 | Architecture transparency page | Not started |

@@ -63,7 +63,7 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 ### Progress Tracking
 - [x] Project initialized
 - [x] T01: Concepts expansion + nav setup
-- [ ] T02: Marketplace and connect guides + demos
+- [x] T02: Marketplace and connect guides + demos
 - [ ] T03: OAuth for tools guide + hero demo
 - [ ] T04: BYOA guide + demo
 - [ ] T05: Architecture transparency page
