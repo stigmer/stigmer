@@ -18,7 +18,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 | Task | Scope | Repo | Status | Depends on |
 |------|-------|------|--------|------------|
-| **T01** | Proto: messages, RPCs, enums, stubs | stigmer | NOT STARTED | — |
+| **T01** | Proto: messages, RPCs, enums, stubs | stigmer | DONE | — |
 | **T02** | Backend: disconnect + grant health | stigmer-cloud | NOT STARTED | T01 |
 | **T03** | Backend: harden refresh + vendor gate + error UX | stigmer-cloud | NOT STARTED | T01 |
 | **T04** | Backend: BYOA infrastructure (repo, resolution, enricher) | stigmer-cloud | NOT STARTED | T01 |
@@ -67,10 +67,11 @@ The full architecture plan with 10-gap analysis, resolution chain design, and do
 ```
 
 ### Key Proto Files (stigmer)
-- `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto` — McpServerAuth + McpServerSpec
-- `apis/ai/stigmer/agentic/mcpserver/v1/oauth.proto` — OAuthGrant + (new) OAuthAppOverride
-- `apis/ai/stigmer/agentic/mcpserver/v1/io.proto` — RPC I/O messages
-- `apis/ai/stigmer/agentic/mcpserver/v1/command.proto` — RPCs
+- `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto` — McpServerAuth (user intent only) + McpServerSpec
+- `apis/ai/stigmer/agentic/mcpserver/v1/status.proto` — OAuthStatus + OAuthAppSource + McpServerStatus
+- `apis/ai/stigmer/agentic/mcpserver/v1/oauth.proto` — OAuthGrant + OAuthAppOverride
+- `apis/ai/stigmer/agentic/mcpserver/v1/io.proto` — OAuthConnectionHealth + RPC I/O messages
+- `apis/ai/stigmer/agentic/mcpserver/v1/command.proto` — RPCs (13 total, 4 new)
 - `apis/ai/stigmer/iam/oauthapp/v1/spec.proto` — OAuthAppSpec + VendorApprovalStatus
 
 ### Key Backend Files (stigmer-cloud)
@@ -105,8 +106,33 @@ When starting a new session:
 4. [ ] Review any design decisions in `design-decisions/`
 5. [ ] Continue with the next task
 
+## Session Progress (2026-04-13)
+
+### T01 Completed
+- Defined all new proto types: OAuthAppOverride, OAuthConnectionHealth, OAuthAppSource, OAuthStatus
+- Added 4 new RPCs: disconnectOAuth, setOrgOAuthApp, getOrgOAuthApp, deleteOrgOAuthApp
+- Added 7 new I/O messages for disconnect and BYOA operations
+- Corrected spec/status violation: moved 4 read-only fields from McpServerAuth to OAuthStatus
+- Updated frontend consumers (useMcpServerCredentials.ts, McpServerPicker.tsx)
+- Updated backend enricher (McpServerVendorApprovalEnricher.java)
+- Regenerated all stubs in both repos
+- Committed: stigmer `32c8b932f`, stigmer-cloud `a7fa27fc`
+
+### Key Design Decisions Made
+1. All new RPCs use `resource_id` (not `mcp_server_id`) — resource-agnostic pattern
+2. BYOA set/delete authorized via `can_create_oauth_app` on `organization`
+3. OAuthAppOverride is a separate binding document (not fields on OAuthApp)
+4. Read-only enrichment fields belong in status, not spec
+
 ## Current Status
 
 **Created**: 2026-04-13 11:03
-**Current Task**: T01 (Proto Layer)
-**Status**: Planning — task plans created, pending review and execution
+**Current Task**: T02 (Backend: disconnect + grant health)
+**Status**: T01 complete. T02, T03, T04 can proceed in parallel.
+
+## Next Steps
+
+1. Pick T02, T03, or T04 (all unblocked, can run in parallel)
+2. T02: Implement disconnect handler + grant health evaluation in stigmer-cloud
+3. T03: Harden token refresh + vendor approval backend enforcement + error UX
+4. T04: Build OAuthAppOverride repo, OAuthAppResolutionService, enricher integration
