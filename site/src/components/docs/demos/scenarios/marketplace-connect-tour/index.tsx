@@ -15,6 +15,10 @@ import { ResourceListPage } from "../../views/ResourceListPage";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
+import {
+  type StepInteractions,
+  useStepInteractions,
+} from "../../engine/useStepInteractions";
 import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   type MarketplaceConnectStep,
@@ -104,6 +108,19 @@ function renderGridStep(step: MarketplaceConnectStep) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Mid-step interactions
+// ---------------------------------------------------------------------------
+
+const INTERACTIONS: StepInteractions = {
+  2: [
+    { atPercent: 0.4, type: "scroll-to", target: "capabilities-bottom" },
+  ],
+  4: [
+    { atPercent: 0.3, type: "scroll-to", target: "capabilities-bottom" },
+  ],
+};
+
 export function MarketplaceConnectTour() {
   const narrationManifest = useNarrationManifest(
     "marketplace-connect-tour",
@@ -122,10 +139,24 @@ export function MarketplaceConnectTour() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [stepIndex, setStepIndex] = useState(0);
 
-  const handleStepChange = useCallback((step: MarketplaceConnectStep) => {
-    setCursorTarget(cursorTargetFor(step));
-  }, []);
+  const handleStepChange = useCallback(
+    (step: MarketplaceConnectStep, index: number) => {
+      setCursorTarget(cursorTargetFor(step));
+      setStepIndex(index);
+    },
+    [],
+  );
+
+  useStepInteractions({
+    stepIndex,
+    interactions: INTERACTIONS,
+    narrationManifest,
+    containerRef,
+    setCursorTarget,
+    steps: marketplaceConnectSteps,
+  });
 
   return (
     <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
@@ -161,6 +192,7 @@ export function MarketplaceConnectTour() {
                       slug={DEMO_SLUG}
                       defaultCapabilityTab={defaultTabFor(step)}
                     />
+                    <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
               </AppShell>

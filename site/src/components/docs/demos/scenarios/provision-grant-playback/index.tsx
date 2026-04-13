@@ -4,6 +4,10 @@ import { useCallback, useRef, useState } from "react";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
+import {
+  type StepInteractions,
+  useStepInteractions,
+} from "../../engine/useStepInteractions";
 import { BrowserView } from "../../views/BrowserView";
 import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { TerminalView } from "../../views/TerminalView";
@@ -53,31 +57,31 @@ function SignupPage() {
       <div className="w-52 rounded-lg border border-border bg-card p-3 shadow-sm">
         <div className="mb-2 text-center">
           <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
-            <span className="text-[9px] font-bold text-primary">A</span>
+            <span className="text-xs font-bold text-primary">A</span>
           </div>
-          <h3 className="text-[10px] font-semibold text-foreground">
+          <h3 className="text-sm font-semibold text-foreground">
             Acme Cloud
           </h3>
-          <p className="text-[8px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Create your account
           </p>
         </div>
 
         <div className="space-y-1.5">
           <div>
-            <label className="text-[8px] text-muted-foreground">Name</label>
-            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground">
+            <label className="text-xs text-muted-foreground">Name</label>
+            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-foreground">
               Jane Doe
             </div>
           </div>
           <div>
-            <label className="text-[8px] text-muted-foreground">Email</label>
-            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground">
+            <label className="text-xs text-muted-foreground">Email</label>
+            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-foreground">
               jane@acme.com
             </div>
           </div>
           <div className="relative" data-cursor-target="signup-btn">
-            <div className="rounded-md bg-primary py-0.5 text-center text-[9px] font-medium text-primary-foreground">
+            <div className="rounded-md bg-primary py-0.5 text-center text-xs font-medium text-primary-foreground">
               Create account
             </div>
             <PulseHighlight />
@@ -174,14 +178,30 @@ function renderStep(step: ProvisionGrantStep) {
  * NOT_FOUND → create federated account → account created →
  * grant IAM Policy → onboarding complete.
  */
+const INTERACTIONS: StepInteractions = {};
+
 export function ProvisionGrantPlayback() {
   const narrationManifest = useNarrationManifest("provision-grant-playback");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [stepIndex, setStepIndex] = useState(0);
 
-  const handleStepChange = useCallback((step: ProvisionGrantStep) => {
-    setCursorTarget(cursorTargetFor(step));
-  }, []);
+  const handleStepChange = useCallback(
+    (step: ProvisionGrantStep, index: number) => {
+      setCursorTarget(cursorTargetFor(step));
+      setStepIndex(index);
+    },
+    [],
+  );
+
+  useStepInteractions({
+    stepIndex,
+    interactions: INTERACTIONS,
+    narrationManifest,
+    containerRef,
+    setCursorTarget,
+    steps: provisionGrantSteps,
+  });
 
   return (
     <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>

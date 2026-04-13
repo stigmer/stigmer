@@ -68,9 +68,59 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-13
-**Current Task**: T07 — SDK reference polish
-**Status**: T07 COMPLETE
-**Last Session**: 2026-04-13 — T07 SDK reference polish
+**Current Task**: T09 — Demo visual consistency and enforcement
+**Status**: T09 COMPLETE
+**Last Session**: 2026-04-13 — Demo visual consistency, step interactions, and enforcement
+
+## Session Progress (2026-04-13, session 10 — T09)
+
+- **Fixed BYOA dialog visual fidelity**: Rewrote `ByoaDialogOverlay` as
+  `ByoaDialogCard` using standard Tailwind typography (`text-sm`, `text-xs`)
+  instead of hardcoded pixel sizes. Dialog steps now render the real
+  `McpServerDetailView` behind a semi-transparent overlay, matching
+  production `<dialog>` behavior.
+- **Added step interactions to 7 demos**: Wired `useStepInteractions` with
+  `scroll-to` and `set-cursor` actions in `byoa-setup`,
+  `marketplace-connect-tour`, `oauth-connect-flow`,
+  `federation-overview-tour`, `multi-tenant-setup-playback`,
+  `provision-grant-playback`, `skill-creation-tour`.
+- **Fixed pixel font sizes across 11 scenarios**: Replaced ~76 occurrences
+  of `text-[7-11px]` with Tailwind scale (`text-xs`, `text-sm`) in
+  authentication-flow, federation-overview, multi-tenant, provision-grant,
+  register-idp, sso-login, agent-creation, api-key-setup,
+  mcp-server-creation, quickstart-tour, skill-creation.
+- **Updated document writer role**: Added "Visual consistency checklist"
+  and "Step interaction coverage (mandatory)" sections with concrete
+  self-check gates.
+- **Created validation script**: `site/scripts/validate-demos.ts` checks
+  token compliance, interaction coverage, and manifest alignment.
+  Registered in `package.json` and `Makefile`. All 25 demos pass.
+- Build verified: `yarn build` passes
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `_roles/002_document_writer.md` | Visual consistency checklist + step interaction mandate |
+| `site/scripts/validate-demos.ts` | New validation script |
+| `site/package.json` | `validate-demos` script |
+| `site/Makefile` | `validate-demos` target |
+| `site/.../byoa-setup/index.tsx` | Dialog rewrite + step interactions |
+| `site/.../byoa-setup/steps.ts` | Server data on dialog steps |
+| `site/.../marketplace-connect-tour/index.tsx` | Step interactions |
+| `site/.../oauth-connect-flow/index.tsx` | Step interactions + typography fix |
+| 11 other scenario `index.tsx` files | Pixel font → Tailwind scale + interaction wiring |
+
+### Key decisions
+
+- **`text-[11px]` → `text-sm`, everything else → `text-xs`**: Visual hierarchy
+  maintained through font-weight and color rather than sub-pixel size gradations.
+- **Empty interaction maps for federation/multi-tenant/provision-grant/skill**:
+  Hook wired upfront so adding interactions later is frictionless. These demos
+  use non-scrollable single-surface views where scroll-to is less applicable.
+- **Validation script scans `index.tsx` only**: Shared views (`BrowserView`,
+  `ManagementShell`) have their own zoom tokens; content inside them is
+  scenario-specific and belongs in the scenario file.
 
 ## Session Progress (2026-04-13, session 9 — T07)
 
@@ -455,6 +505,7 @@ entries were already in place from T01–T04.
 | T06 | Tutorial refresh + cross-link bridge + demo audit | COMPLETE (rescoped) |
 | T07 | SDK reference polish | COMPLETE |
 | T08 | Custom integration OAuth setup guide | Deferred |
+| T09 | Demo visual consistency and enforcement | COMPLETE |
 
 ## Quick Commands
 

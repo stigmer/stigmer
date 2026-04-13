@@ -212,8 +212,8 @@ export const HAS_ORG_OVERRIDE = create(GetOrgOAuthAppOutputSchema, {
 export type ByoaSetupStep =
   | { view: "detail-blocked"; server: McpServer; grant: GetOAuthGrantStatusOutput; orgApp: GetOrgOAuthAppOutput }
   | { view: "click-byoa-cta"; server: McpServer; grant: GetOAuthGrantStatusOutput; orgApp: GetOrgOAuthAppOutput }
-  | { view: "byoa-dialog" }
-  | { view: "click-save" }
+  | { view: "byoa-dialog"; server: McpServer; grant: GetOAuthGrantStatusOutput; orgApp: GetOrgOAuthAppOutput }
+  | { view: "click-save"; server: McpServer; grant: GetOAuthGrantStatusOutput; orgApp: GetOrgOAuthAppOutput }
   | { view: "detail-org-app"; server: McpServer; grant: GetOAuthGrantStatusOutput; orgApp: GetOrgOAuthAppOutput }
   | { view: "detail-connected"; server: McpServer; grant: GetOAuthGrantStatusOutput; orgApp: GetOrgOAuthAppOutput };
 
@@ -251,14 +251,24 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
   },
   {
     delayMs: 2500,
-    data: { view: "byoa-dialog" },
+    data: {
+      view: "byoa-dialog",
+      server: blockedServer,
+      grant: NO_GRANT,
+      orgApp: NO_ORG_OVERRIDE,
+    },
     caption: "Enter your Slack app's client ID and secret",
     narration:
       "Register an OAuth app with Slack, then enter your client credentials here. Stigmer clones the endpoint URLs and scopes from the platform template — you only provide the client ID and secret.",
   },
   {
     delayMs: 3500,
-    data: { view: "click-save" },
+    data: {
+      view: "click-save",
+      server: blockedServer,
+      grant: NO_GRANT,
+      orgApp: NO_ORG_OVERRIDE,
+    },
     caption: "Save to override the platform app for your Organization",
   },
   {
