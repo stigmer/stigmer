@@ -20,7 +20,7 @@ Drop this file into your conversation to quickly resume work on this project.
 |------|-------|------|--------|------------|
 | **T01** | Proto: messages, RPCs, enums, stubs | stigmer | DONE | — |
 | **T02** | Backend: disconnect + grant health | stigmer-cloud | NOT STARTED | T01 |
-| **T03** | Backend: harden refresh + vendor gate + error UX | stigmer-cloud | NOT STARTED | T01 |
+| **T03** | Backend: harden refresh + vendor gate + error UX | stigmer-cloud | DONE | T01 |
 | **T04** | Backend: BYOA infrastructure (repo, resolution, enricher) | stigmer-cloud | NOT STARTED | T01 |
 | **T05** | Backend: BYOA handlers + resolution chain integration | stigmer-cloud | NOT STARTED | T04 |
 | **T06** | Frontend: disconnect + health + error UX | stigmer | NOT STARTED | T02, T03 |
@@ -118,21 +118,29 @@ When starting a new session:
 - Regenerated all stubs in both repos
 - Committed: stigmer `32c8b932f`, stigmer-cloud `a7fa27fc`
 
+### T03 Completed
+- GAP 4: Execution-path OAuth refresh is now a hard failure — `McpOAuthException` propagates from `refreshIfExpired` instead of being swallowed, preventing agents from running with expired tokens that pass key-presence validation
+- GAP 8: Vendor approval enforcement at the backend — `initiateOAuthConnect` rejects requests when `VendorApprovalStatus` is PENDING or REJECTED
+- GAP 9: Connect workflow errors are layered — `WorkflowFailedException` extracts root cause from Temporal chain, `WorkflowServiceException` maps to UNAVAILABLE, generic catch uses INTERNAL instead of incorrect DEADLINE_EXCEEDED
+- 3 files changed, 68 insertions, 11 deletions
+- Committed: stigmer-cloud `22cc3ca5`
+
 ### Key Design Decisions Made
 1. All new RPCs use `resource_id` (not `mcp_server_id`) — resource-agnostic pattern
 2. BYOA set/delete authorized via `can_create_oauth_app` on `organization`
 3. OAuthAppOverride is a separate binding document (not fields on OAuthApp)
 4. Read-only enrichment fields belong in status, not spec
+5. Vendor gate error message says "enter a token manually" (not "use BYOA") — BYOA doesn't exist yet, message will be updated when T05/T07 ship
 
 ## Current Status
 
 **Created**: 2026-04-13 11:03
-**Current Task**: T02 (Backend: disconnect + grant health)
-**Status**: T01 complete. T02, T03, T04 can proceed in parallel.
+**Current Task**: T02 or T04 (next to pick)
+**Status**: T01, T03 complete. T02 and T04 can proceed in parallel.
 
 ## Next Steps
 
-1. Pick T02, T03, or T04 (all unblocked, can run in parallel)
-2. T02: Implement disconnect handler + grant health evaluation in stigmer-cloud
-3. T03: Harden token refresh + vendor approval backend enforcement + error UX
-4. T04: Build OAuthAppOverride repo, OAuthAppResolutionService, enricher integration
+1. Pick T02 or T04 (both unblocked, can run in parallel)
+2. T02: Implement disconnect handler + grant health evaluation in stigmer-cloud (unblocks T06)
+3. T04: Build OAuthAppOverride repo, OAuthAppResolutionService, enricher integration (unblocks T05 -> T07)
+4. T02 is recommended next — smallest remaining backend task, clears T06 dependency
