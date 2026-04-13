@@ -19,7 +19,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | Task | Scope | Repo | Status | Depends on |
 |------|-------|------|--------|------------|
 | **T01** | Proto: messages, RPCs, enums, stubs | stigmer | DONE | — |
-| **T02** | Backend: disconnect + grant health | stigmer-cloud | NOT STARTED | T01 |
+| **T02** | Backend: disconnect + grant health | stigmer-cloud | DONE | T01 |
 | **T03** | Backend: harden refresh + vendor gate + error UX | stigmer-cloud | DONE | T01 |
 | **T04** | Backend: BYOA infrastructure (repo, resolution, enricher) | stigmer-cloud | NOT STARTED | T01 |
 | **T05** | Backend: BYOA handlers + resolution chain integration | stigmer-cloud | NOT STARTED | T04 |
@@ -125,22 +125,31 @@ When starting a new session:
 - 3 files changed, 68 insertions, 11 deletions
 - Committed: stigmer-cloud `22cc3ca5`
 
+### T02 Completed
+- GAP 2: Disconnect handler with idempotent desired-state semantics — `McpServerDisconnectOAuthHandler` deletes managed environment (secrets first) then grant, returns `disconnected: false` without error when no grant exists
+- GAP 3: Grant health evaluation — `LookupGrant` now returns `OAuthConnectionHealth` (HEALTHY / TOKEN_EXPIRED_REFRESHABLE / TOKEN_EXPIRED / NO_GRANT) using the same 60-second buffer as `OAuthTokenRefreshService`
+- Added `deleteOnBehalfOf` to `EnvironmentCommandGrpcRepo` and `deleteManagedEnvironment` to `ManagedEnvironmentService`
+- Updated proto comments in `io.proto` and `command.proto` to reflect idempotent disconnect semantics
+- 5 backend files changed (1 new), 17 regenerated stub files across both repos
+- Committed: stigmer `597ce01a7`, stigmer-cloud `efc03ef9`
+
 ### Key Design Decisions Made
 1. All new RPCs use `resource_id` (not `mcp_server_id`) — resource-agnostic pattern
 2. BYOA set/delete authorized via `can_create_oauth_app` on `organization`
 3. OAuthAppOverride is a separate binding document (not fields on OAuthApp)
 4. Read-only enrichment fields belong in status, not spec
 5. Vendor gate error message says "enter a token manually" (not "use BYOA") — BYOA doesn't exist yet, message will be updated when T05/T07 ship
+6. Disconnect is idempotent (desired-state) — no error for missing grants, aligns with Stigmer's declarative platform DNA
 
 ## Current Status
 
 **Created**: 2026-04-13 11:03
-**Current Task**: T02 or T04 (next to pick)
-**Status**: T01, T03 complete. T02 and T04 can proceed in parallel.
+**Current Task**: T04 or T06 (next to pick)
+**Status**: T01, T02, T03 complete. T04 and T06 can proceed in parallel.
 
 ## Next Steps
 
-1. Pick T02 or T04 (both unblocked, can run in parallel)
-2. T02: Implement disconnect handler + grant health evaluation in stigmer-cloud (unblocks T06)
-3. T04: Build OAuthAppOverride repo, OAuthAppResolutionService, enricher integration (unblocks T05 -> T07)
-4. T02 is recommended next — smallest remaining backend task, clears T06 dependency
+1. Pick T04 or T06 (both unblocked, can run in parallel)
+2. T04: Build OAuthAppOverride repo, OAuthAppResolutionService, enricher integration (unblocks T05 -> T07)
+3. T06: Frontend disconnect + health + error UX (unblocked by T02 + T03)
+4. T04 recommended next — continues backend momentum, builds BYOA infrastructure that unblocks T05 → T07

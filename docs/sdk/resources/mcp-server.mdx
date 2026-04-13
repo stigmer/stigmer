@@ -774,6 +774,8 @@ Tears down the user's personal OAuth connection by deleting the OAuthGrant and i
 
 Other users' connections to the same resource are unaffected.
 
+Idempotent: returns disconnected=true when a grant was deleted, disconnected=false when no grant existed. Never returns an error for a missing grant.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -1122,11 +1124,11 @@ DisconnectOAuthInput tears down a user's OAuth connection for a resource.
 
 ### DisconnectOAuthOutput
 
-DisconnectOAuthOutput confirms that the OAuth connection was torn down.
+DisconnectOAuthOutput reports the result of a disconnect request.
 
 <TypeTable
   type={{
-    disconnected: { type: "boolean", description: "Whether the disconnect completed successfully." },
+    disconnected: { type: "boolean", description: "Whether an active grant was found and deleted." },
   }}
 />
 

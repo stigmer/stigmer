@@ -246,13 +246,14 @@ export const McpServerCommandController: GenService<{
    *
    * Other users' connections to the same resource are unaffected.
    *
+   * Idempotent: returns disconnected=true when a grant was deleted,
+   * disconnected=false when no grant existed. Never returns an error
+   * for a missing grant.
+   *
    * @internal
    * Authorization: Requires can_connect permission on the mcp_server resource.
    * Uses the same permission as connect/initiateOAuthConnect — if you can
    * establish a connection, you can tear it down.
-   *
-   * Errors:
-   * - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
    *
    * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.disconnectOAuth
    */

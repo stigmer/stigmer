@@ -706,12 +706,10 @@ func (x *GetOAuthGrantStatusOutput) GetConnectionHealth() OAuthConnectionHealth 
 // MCP server remains configured — only the user's personal OAuth connection
 // is removed. Other users' connections to the same resource are unaffected.
 //
-// Prerequisites:
-// - The resource must exist
-// - The caller must have an active OAuthGrant for this resource + org
-//
-// Errors:
-// - NOT_FOUND: No grant exists for this resource + org + caller
+// Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
+// tuple, the handler returns disconnected=false without error. This
+// supports race conditions (concurrent disconnect calls), retries after
+// partial failures, and desired-state semantics ("ensure no connection").
 type DisconnectOAuthInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the resource to disconnect OAuth for.
@@ -767,12 +765,13 @@ func (x *DisconnectOAuthInput) GetOrg() string {
 	return ""
 }
 
-// DisconnectOAuthOutput confirms that the OAuth connection was torn down.
+// DisconnectOAuthOutput reports the result of a disconnect request.
 type DisconnectOAuthOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether the disconnect completed successfully.
-	// true: grant deleted, managed environment deleted.
-	// false should not normally occur — errors are returned as RPC status.
+	// Whether an active grant was found and deleted.
+	// true: grant and its managed environment were deleted.
+	// false: no grant existed for this resource + org + caller. The desired
+	// state (no OAuth connection) was already achieved. This is not an error.
 	Disconnected  bool `protobuf:"varint,1,opt,name=disconnected,proto3" json:"disconnected,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

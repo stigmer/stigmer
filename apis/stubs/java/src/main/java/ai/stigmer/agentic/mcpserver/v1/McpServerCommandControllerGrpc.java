@@ -685,12 +685,13 @@ public final class McpServerCommandControllerGrpc {
      * access and refresh tokens). The MCP server definition is unchanged —
      * only the caller's credentials are removed.
      * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
      * Authorization: Requires can_connect permission on the mcp_server resource.
      * Uses the same permission as connect/initiateOAuthConnect — if you can
      * establish a connection, you can tear it down.
-     * Errors:
-     * - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
      * </pre>
      */
     default void disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request,
@@ -1003,12 +1004,13 @@ public final class McpServerCommandControllerGrpc {
      * access and refresh tokens). The MCP server definition is unchanged —
      * only the caller's credentials are removed.
      * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
      * Authorization: Requires can_connect permission on the mcp_server resource.
      * Uses the same permission as connect/initiateOAuthConnect — if you can
      * establish a connection, you can tear it down.
-     * Errors:
-     * - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
      * </pre>
      */
     public void disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request,
@@ -1295,12 +1297,13 @@ public final class McpServerCommandControllerGrpc {
      * access and refresh tokens). The MCP server definition is unchanged —
      * only the caller's credentials are removed.
      * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
      * Authorization: Requires can_connect permission on the mcp_server resource.
      * Uses the same permission as connect/initiateOAuthConnect — if you can
      * establish a connection, you can tear it down.
-     * Errors:
-     * - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) throws io.grpc.StatusException {
@@ -1583,12 +1586,13 @@ public final class McpServerCommandControllerGrpc {
      * access and refresh tokens). The MCP server definition is unchanged —
      * only the caller's credentials are removed.
      * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
      * Authorization: Requires can_connect permission on the mcp_server resource.
      * Uses the same permission as connect/initiateOAuthConnect — if you can
      * establish a connection, you can tear it down.
-     * Errors:
-     * - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) {
@@ -1880,12 +1884,13 @@ public final class McpServerCommandControllerGrpc {
      * access and refresh tokens). The MCP server definition is unchanged —
      * only the caller's credentials are removed.
      * Other users' connections to the same resource are unaffected.
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      * &#64;internal
      * Authorization: Requires can_connect permission on the mcp_server resource.
      * Uses the same permission as connect/initiateOAuthConnect — if you can
      * establish a connection, you can tear it down.
-     * Errors:
-     * - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> disconnectOAuth(

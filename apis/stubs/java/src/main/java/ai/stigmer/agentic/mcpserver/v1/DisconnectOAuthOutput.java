@@ -7,7 +7,7 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 /**
  * <pre>
- * DisconnectOAuthOutput confirms that the OAuth connection was torn down.
+ * DisconnectOAuthOutput reports the result of a disconnect request.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput}
@@ -56,9 +56,10 @@ private static final long serialVersionUID = 0L;
   private boolean disconnected_ = false;
   /**
    * <pre>
-   * Whether the disconnect completed successfully.
-   * true: grant deleted, managed environment deleted.
-   * false should not normally occur — errors are returned as RPC status.
+   * Whether an active grant was found and deleted.
+   * true: grant and its managed environment were deleted.
+   * false: no grant existed for this resource + org + caller. The desired
+   * state (no OAuth connection) was already achieved. This is not an error.
    * </pre>
    *
    * <code>bool disconnected = 1 [json_name = "disconnected"];</code>
@@ -229,7 +230,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * DisconnectOAuthOutput confirms that the OAuth connection was torn down.
+   * DisconnectOAuthOutput reports the result of a disconnect request.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput}
@@ -370,9 +371,10 @@ private static final long serialVersionUID = 0L;
     private boolean disconnected_ ;
     /**
      * <pre>
-     * Whether the disconnect completed successfully.
-     * true: grant deleted, managed environment deleted.
-     * false should not normally occur — errors are returned as RPC status.
+     * Whether an active grant was found and deleted.
+     * true: grant and its managed environment were deleted.
+     * false: no grant existed for this resource + org + caller. The desired
+     * state (no OAuth connection) was already achieved. This is not an error.
      * </pre>
      *
      * <code>bool disconnected = 1 [json_name = "disconnected"];</code>
@@ -384,9 +386,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the disconnect completed successfully.
-     * true: grant deleted, managed environment deleted.
-     * false should not normally occur — errors are returned as RPC status.
+     * Whether an active grant was found and deleted.
+     * true: grant and its managed environment were deleted.
+     * false: no grant existed for this resource + org + caller. The desired
+     * state (no OAuth connection) was already achieved. This is not an error.
      * </pre>
      *
      * <code>bool disconnected = 1 [json_name = "disconnected"];</code>
@@ -402,9 +405,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the disconnect completed successfully.
-     * true: grant deleted, managed environment deleted.
-     * false should not normally occur — errors are returned as RPC status.
+     * Whether an active grant was found and deleted.
+     * true: grant and its managed environment were deleted.
+     * false: no grant existed for this resource + org + caller. The desired
+     * state (no OAuth connection) was already achieved. This is not an error.
      * </pre>
      *
      * <code>bool disconnected = 1 [json_name = "disconnected"];</code>

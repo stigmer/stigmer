@@ -19,12 +19,10 @@ package ai.stigmer.agentic.mcpserver.v1;
  * MCP server remains configured — only the user's personal OAuth connection
  * is removed. Other users' connections to the same resource are unaffected.
  *
- * Prerequisites:
- * - The resource must exist
- * - The caller must have an active OAuthGrant for this resource + org
- *
- * Errors:
- * - NOT_FOUND: No grant exists for this resource + org + caller
+ * Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
+ * tuple, the handler returns disconnected=false without error. This
+ * supports race conditions (concurrent disconnect calls), retries after
+ * partial failures, and desired-state semantics ("ensure no connection").
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput}
@@ -347,12 +345,10 @@ private static final long serialVersionUID = 0L;
    * MCP server remains configured — only the user's personal OAuth connection
    * is removed. Other users' connections to the same resource are unaffected.
    *
-   * Prerequisites:
-   * - The resource must exist
-   * - The caller must have an active OAuthGrant for this resource + org
-   *
-   * Errors:
-   * - NOT_FOUND: No grant exists for this resource + org + caller
+   * Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
+   * tuple, the handler returns disconnected=false without error. This
+   * supports race conditions (concurrent disconnect calls), retries after
+   * partial failures, and desired-state semantics ("ensure no connection").
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput}

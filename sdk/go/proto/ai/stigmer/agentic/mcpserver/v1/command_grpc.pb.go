@@ -189,13 +189,14 @@ type McpServerCommandControllerClient interface {
 	//
 	// Other users' connections to the same resource are unaffected.
 	//
+	// Idempotent: returns disconnected=true when a grant was deleted,
+	// disconnected=false when no grant existed. Never returns an error
+	// for a missing grant.
+	//
 	// @internal
 	// Authorization: Requires can_connect permission on the mcp_server resource.
 	// Uses the same permission as connect/initiateOAuthConnect — if you can
 	// establish a connection, you can tear it down.
-	//
-	// Errors:
-	// - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
 	DisconnectOAuth(ctx context.Context, in *DisconnectOAuthInput, opts ...grpc.CallOption) (*DisconnectOAuthOutput, error)
 	// Create or update an org-level BYOA OAuth app override for a resource.
 	//
@@ -538,13 +539,14 @@ type McpServerCommandControllerServer interface {
 	//
 	// Other users' connections to the same resource are unaffected.
 	//
+	// Idempotent: returns disconnected=true when a grant was deleted,
+	// disconnected=false when no grant existed. Never returns an error
+	// for a missing grant.
+	//
 	// @internal
 	// Authorization: Requires can_connect permission on the mcp_server resource.
 	// Uses the same permission as connect/initiateOAuthConnect — if you can
 	// establish a connection, you can tear it down.
-	//
-	// Errors:
-	// - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
 	DisconnectOAuth(context.Context, *DisconnectOAuthInput) (*DisconnectOAuthOutput, error)
 	// Create or update an org-level BYOA OAuth app override for a resource.
 	//

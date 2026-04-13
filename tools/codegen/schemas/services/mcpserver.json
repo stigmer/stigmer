@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput",
           "outputType": "DisconnectOAuthOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput",
-          "description": "Disconnect the authenticated user's OAuth connection for a resource.\n\n Tears down the user's personal OAuth connection by deleting the\n OAuthGrant and its associated managed environment (which holds the\n access and refresh tokens). The MCP server definition is unchanged —\n only the caller's credentials are removed.\n\n Other users' connections to the same resource are unaffected.\n\n @internal\n Authorization: Requires can_connect permission on the mcp_server resource.\n Uses the same permission as connect/initiateOAuthConnect — if you can\n establish a connection, you can tear it down.\n\n Errors:\n - NOT_FOUND: No OAuthGrant exists for this resource + org + caller"
+          "description": "Disconnect the authenticated user's OAuth connection for a resource.\n\n Tears down the user's personal OAuth connection by deleting the\n OAuthGrant and its associated managed environment (which holds the\n access and refresh tokens). The MCP server definition is unchanged —\n only the caller's credentials are removed.\n\n Other users' connections to the same resource are unaffected.\n\n Idempotent: returns disconnected=true when a grant was deleted,\n disconnected=false when no grant existed. Never returns an error\n for a missing grant.\n\n @internal\n Authorization: Requires can_connect permission on the mcp_server resource.\n Uses the same permission as connect/initiateOAuthConnect — if you can\n establish a connection, you can tear it down."
         },
         {
           "name": "SetOrgOAuthApp",
@@ -496,7 +496,7 @@
     },
     {
       "name": "DisconnectOAuthInput",
-      "description": "DisconnectOAuthInput tears down a user's OAuth connection for a resource.\n\n @internal\n The handler:\n 1. Finds the OAuthGrant for (caller, resource_id, org)\n 2. Deletes the managed Environment that holds the tokens\n 3. Deletes the OAuthGrant record\n\n After this, the user's access token and refresh token are gone. The\n MCP server remains configured — only the user's personal OAuth connection\n is removed. Other users' connections to the same resource are unaffected.\n\n Prerequisites:\n - The resource must exist\n - The caller must have an active OAuthGrant for this resource + org\n\n Errors:\n - NOT_FOUND: No grant exists for this resource + org + caller",
+      "description": "DisconnectOAuthInput tears down a user's OAuth connection for a resource.\n\n @internal\n The handler:\n 1. Finds the OAuthGrant for (caller, resource_id, org)\n 2. Deletes the managed Environment that holds the tokens\n 3. Deletes the OAuthGrant record\n\n After this, the user's access token and refresh token are gone. The\n MCP server remains configured — only the user's personal OAuth connection\n is removed. Other users' connections to the same resource are unaffected.\n\n Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)\n tuple, the handler returns disconnected=false without error. This\n supports race conditions (concurrent disconnect calls), retries after\n partial failures, and desired-state semantics (\"ensure no connection\").",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput",
       "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
       "fields": [
@@ -530,7 +530,7 @@
     },
     {
       "name": "DisconnectOAuthOutput",
-      "description": "DisconnectOAuthOutput confirms that the OAuth connection was torn down.",
+      "description": "DisconnectOAuthOutput reports the result of a disconnect request.",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput",
       "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
       "fields": [
@@ -541,7 +541,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether the disconnect completed successfully.\n true: grant deleted, managed environment deleted.\n false should not normally occur — errors are returned as RPC status.",
+          "description": "Whether an active grant was found and deleted.\n true: grant and its managed environment were deleted.\n false: no grant existed for this resource + org + caller. The desired\n state (no OAuth connection) was already achieved. This is not an error.",
           "required": false
         }
       ]
