@@ -66,6 +66,30 @@ func (s *ManagedEnvironmentService) CreateManagedEnvironment(
 	return envID, nil
 }
 
+// DeleteManagedEnvironment deletes a managed environment and all its secrets.
+// The environment pipeline handles cleanup of encryption keys, labels, and
+// search index entries.
+//
+// Non-fatal callers should catch errors — the environment may already be
+// deleted (e.g., concurrent disconnect calls or partial failure retries).
+func (s *ManagedEnvironmentService) DeleteManagedEnvironment(
+	ctx context.Context,
+	environmentID string,
+) error {
+	_, err := s.environmentClient.Delete(ctx, &apiresource.ApiResourceDeleteInput{
+		ResourceId: environmentID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete managed environment %s: %w", environmentID, err)
+	}
+
+	log.Info().
+		Str("environment_id", environmentID).
+		Msg("Deleted managed environment")
+
+	return nil
+}
+
 // UpdateSecrets writes secret variables into a managed environment.
 // Values are passed as plaintext — the environment pipeline encrypts them.
 func (s *ManagedEnvironmentService) UpdateSecrets(

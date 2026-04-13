@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/envmerge"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
@@ -157,9 +158,12 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	// (added at runtime, not declared on the agent) also get their OAuth
 	// tokens injected.
 	mergedMcpUsages := mergeAgentAndSessionMcpUsages(agentResource, sess)
-	filtered = s.injectMcpOAuthFromManagedEnvironment(
+	filtered, oauthErr := s.injectMcpOAuthFromManagedEnvironment(
 		ctx.Context(), filtered, mergedMcpUsages, executionOrg, executionID,
 	)
+	if oauthErr != nil {
+		return grpclib.FailedPreconditionError("%v", oauthErr)
+	}
 
 	// 6.9 Validate that all required (non-optional) declared env vars are
 	// present after merging, filtering, and all injections. Missing required
@@ -352,20 +356,22 @@ func mergeAgentAndSessionMcpUsages(
 //  2. If the target env var is missing from filtered: perform inline refresh,
 //     then read the token from the grant's managed environment
 //
-// Non-fatal: failures are logged and left for downstream validation to catch.
+// Token refresh failures are fatal — an expired token that cannot be refreshed
+// must prevent execution rather than letting the agent run with a stale token
+// that will fail with an opaque 401 from the MCP server.
 func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 	ctx context.Context,
 	filtered map[string]*executioncontextv1.ExecutionValue,
 	mcpServerUsages []*agentv1.McpServerUsage,
 	executionOrg string,
 	executionID string,
-) map[string]*executioncontextv1.ExecutionValue {
+) (map[string]*executioncontextv1.ExecutionValue, error) {
 	if s.oauthGrantStore == nil || s.managedEnvService == nil || s.store == nil {
-		return filtered
+		return filtered, nil
 	}
 
 	if len(mcpServerUsages) == 0 {
-		return filtered
+		return filtered, nil
 	}
 
 	injected := false
@@ -416,13 +422,12 @@ func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 			continue
 		}
 
-		// Inline pre-flight refresh if expired.
+		// Inline pre-flight refresh if expired. Refresh failures are fatal —
+		// an expired token must not be silently injected into the execution.
 		refreshResult, refreshErr := inlineRefreshIfExpired(ctx, grant, s.managedEnvService, managedEnvID)
 		if refreshErr != nil {
-			log.Warn().Err(refreshErr).
-				Str("mcp_server_id", mcpServerID).
-				Str("execution_id", executionID).
-				Msg("Inline OAuth token refresh failed (non-fatal)")
+			return nil, fmt.Errorf(
+				"OAuth token refresh failed for MCP server '%s': %w", mcpServerID, refreshErr)
 		}
 		if refreshResult != nil && refreshResult.Refreshed {
 			grant.AccessTokenExpiresAt = refreshResult.NewExpiresAt
@@ -465,7 +470,7 @@ func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 			Msg("Injected OAuth token from managed environment")
 	}
 
-	return filtered
+	return filtered, nil
 }
 
 // inlineRefreshIfExpired reads the refresh token from the managed environment
