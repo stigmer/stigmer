@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck clean preview generate-narration remotion-studio remotion-hello render-videos render-video
+.PHONY: deps dev build start lint typecheck clean preview generate-narration validate-demos remotion-studio remotion-hello render-videos render-video
 
 PORT ?= 3000
 
@@ -35,6 +35,10 @@ typecheck:
 # Generate narration audio from scenario step definitions
 generate-narration: deps
 	yarn generate-narration
+
+# Validate demo scenarios for token compliance, interaction coverage, and manifest alignment
+validate-demos: deps
+	yarn validate-demos
 
 # Render all demo scenarios as MP4 videos via Remotion
 # (requires narration audio in public/demos/ — run generate-narration first)

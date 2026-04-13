@@ -18,6 +18,10 @@ import { AppShell } from "../../views/AppShell";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
+import {
+  type StepInteractions,
+  useStepInteractions,
+} from "../../engine/useStepInteractions";
 import { PulseHighlight } from "../../shared/PulseHighlight";
 import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
@@ -25,9 +29,6 @@ import {
   byoaSetupSteps,
   DEMO_ORG,
   DEMO_SLUG,
-  NO_GRANT,
-  NO_ORG_OVERRIDE,
-  HAS_ORG_OVERRIDE,
 } from "./steps";
 
 // ---------------------------------------------------------------------------
@@ -90,88 +91,80 @@ function slideDirectionFor(
 }
 
 // ---------------------------------------------------------------------------
-// BYOA dialog overlay (hand-built to match production <dialog>)
+// BYOA dialog card (authored at normal scale — DEMO_CONTENT_ZOOM handles sizing)
 // ---------------------------------------------------------------------------
 
-function ByoaDialogOverlay({ filled }: { readonly filled: boolean }) {
+function ByoaDialogCard({ filled }: { readonly filled: boolean }) {
   return (
-    <div className="relative flex h-full items-center justify-center">
-      {/* Dimmed detail view behind the dialog */}
-      <div className="absolute inset-0 bg-background/60" />
+    <div className="w-80 rounded-lg border border-border bg-card p-5 shadow-lg">
+      <h3 className="mb-3 text-sm font-semibold text-foreground">
+        Use your own OAuth app
+      </h3>
 
-      {/* Dialog card */}
-      <div className="relative z-10 w-72 rounded-lg border border-border bg-card p-4 shadow-lg">
-        <h3 className="mb-3 text-[11px] font-semibold text-foreground">
-          Use your own OAuth app
-        </h3>
+      <div className="space-y-1.5">
+        <p className="text-xs text-foreground">
+          Register an OAuth app with{" "}
+          <span className="font-medium">Slack</span> and enter your
+          credentials below.
+        </p>
+        <a
+          href="https://api.slack.com/authentication/oauth-v2"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-primary underline decoration-primary/40 underline-offset-2"
+        >
+          Slack OAuth app registration
+          <ExternalLinkIcon />
+        </a>
+      </div>
 
-        <div className="space-y-1.5">
-          <p className="text-[9px] text-foreground">
-            Register an OAuth app with{" "}
-            <span className="font-medium">Slack</span> and enter your
-            credentials below.
-          </p>
-          <a
-            href="https://api.slack.com/authentication/oauth-v2"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-0.5 text-[8px] text-primary underline decoration-primary/40 underline-offset-2"
-          >
-            Slack OAuth app registration
-            <ExternalLinkIcon />
-          </a>
-        </div>
-
-        {/* Fields */}
-        <div className="mt-3 flex flex-col gap-2.5">
-          <div className="flex flex-col gap-1">
-            <label className="text-[8px] font-medium text-foreground">
-              Client ID
-            </label>
-            <div className="rounded-md border border-input bg-background px-2 py-1.5 text-[9px] text-foreground">
-              {filled ? (
-                "7892341056.apps"
-              ) : (
-                <span className="text-muted-foreground">
-                  e.g. 1234567890abcdef
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[8px] font-medium text-foreground">
-              Client Secret
-            </label>
-            <div className="rounded-md border border-input bg-background px-2 py-1.5 text-[9px] text-foreground">
-              {filled ? (
-                "••••••••••••••••"
-              ) : (
-                <span className="text-muted-foreground">
-                  Your client secret
-                </span>
-              )}
-            </div>
+      <div className="mt-4 flex flex-col gap-3" data-cursor-target="byoa-client-id">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-foreground">
+            Client ID
+          </label>
+          <div className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground">
+            {filled ? (
+              "7892341056.apps"
+            ) : (
+              <span className="text-muted-foreground">
+                e.g. 1234567890abcdef
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="mt-4 flex items-center justify-end gap-2">
+        <div className="flex flex-col gap-1" data-cursor-target="byoa-client-secret">
+          <label className="text-xs font-medium text-foreground">
+            Client Secret
+          </label>
+          <div className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground">
+            {filled ? (
+              "••••••••••••••••"
+            ) : (
+              <span className="text-muted-foreground">
+                Your client secret
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          className="rounded-md px-3 py-1.5 text-xs text-muted-foreground"
+        >
+          Cancel
+        </button>
+        <div className="relative" data-cursor-target="byoa-save-button">
           <button
             type="button"
-            className="rounded-md px-2.5 py-1 text-[9px] text-muted-foreground"
+            className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
           >
-            Cancel
+            Save
           </button>
-          <div className="relative" data-cursor-target="byoa-save-button">
-            <button
-              type="button"
-              className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-[9px] font-medium text-primary-foreground"
-            >
-              Save
-            </button>
-            {filled && <PulseHighlight />}
-          </div>
+          {filled && <PulseHighlight />}
         </div>
       </div>
     </div>
@@ -181,7 +174,7 @@ function ByoaDialogOverlay({ filled }: { readonly filled: boolean }) {
 function ExternalLinkIcon() {
   return (
     <svg
-      className="h-2.5 w-2.5 shrink-0"
+      className="h-3.5 w-3.5 shrink-0"
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
@@ -196,6 +189,27 @@ function ExternalLinkIcon() {
     </svg>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Mid-step interactions
+// ---------------------------------------------------------------------------
+
+const INTERACTIONS: StepInteractions = {
+  0: [
+    { atPercent: 0.4, type: "scroll-to", target: "capabilities-bottom" },
+  ],
+  2: [
+    { atPercent: 0.4, type: "set-cursor", target: "byoa-client-id" },
+    { atPercent: 0.65, type: "set-cursor", target: "byoa-client-secret" },
+    { atPercent: 0.9, type: "clear-cursor" },
+  ],
+  4: [
+    { atPercent: 0.3, type: "scroll-to", target: "capabilities-bottom" },
+  ],
+  5: [
+    { atPercent: 0.35, type: "scroll-to", target: "capabilities-bottom" },
+  ],
+};
 
 // ---------------------------------------------------------------------------
 // Exported component
@@ -216,11 +230,9 @@ export function ByoaSetup() {
     const map = new Map<string, ReturnType<typeof buildClient>>();
     for (const step of byoaSetupSteps) {
       const data = step.data;
-      if ("server" in data) {
-        const key = `${data.server.metadata?.id ?? ""}:${data.grant.connected}:${data.orgApp.hasOverride}`;
-        if (!map.has(key)) {
-          map.set(key, buildClient(data.server, data.grant, data.orgApp));
-        }
+      const key = `${data.server.metadata?.id ?? ""}:${data.grant.connected}:${data.orgApp.hasOverride}`;
+      if (!map.has(key)) {
+        map.set(key, buildClient(data.server, data.grant, data.orgApp));
       }
     }
     return map;
@@ -228,10 +240,24 @@ export function ByoaSetup() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [stepIndex, setStepIndex] = useState(0);
 
-  const handleStepChange = useCallback((step: ByoaSetupStep) => {
-    setCursorTarget(cursorTargetFor(step));
-  }, []);
+  const handleStepChange = useCallback(
+    (step: ByoaSetupStep, index: number) => {
+      setCursorTarget(cursorTargetFor(step));
+      setStepIndex(index);
+    },
+    [],
+  );
+
+  useStepInteractions({
+    stepIndex,
+    interactions: INTERACTIONS,
+    narrationManifest,
+    containerRef,
+    setCursorTarget,
+    steps: byoaSetupSteps,
+  });
 
   return (
     <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
@@ -241,22 +267,44 @@ export function ByoaSetup() {
         onStepChange={handleStepChange}
       >
         {(step) => {
-          if (step.view === "byoa-dialog" || step.view === "click-save") {
-            return (
-              <AppShell
-                activeNav="library"
-                contentKey="byoa-dialog"
-                slideDirection={slideDirectionFor(step)}
-              >
-                <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
-                  <ByoaDialogOverlay filled={step.view === "click-save"} />
-                </div>
-              </AppShell>
-            );
-          }
-
           const key = `${step.server.metadata?.id ?? ""}:${step.grant.connected}:${step.orgApp.hasOverride}`;
           const client = clientMap.get(key)!;
+
+          if (step.view === "byoa-dialog" || step.view === "click-save") {
+            return (
+              <StigmerProvider key={`dialog-${key}`} client={client}>
+                <AppShell
+                  activeNav="library"
+                  contentKey="byoa-dialog"
+                  slideDirection={slideDirectionFor(step)}
+                >
+                  <div className="relative h-full">
+                    {/* Real detail view behind the dialog */}
+                    <div
+                      className="h-full overflow-y-auto"
+                      style={{ zoom: DEMO_CONTENT_ZOOM }}
+                    >
+                      <div className="p-4">
+                        <McpServerDetailView
+                          org={DEMO_ORG}
+                          slug={DEMO_SLUG}
+                          defaultCapabilityTab="tools"
+                        />
+                      </div>
+                    </div>
+                    {/* Dimmed overlay + dialog card */}
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+                      <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
+                        <ByoaDialogCard
+                          filled={step.view === "click-save"}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </AppShell>
+              </StigmerProvider>
+            );
+          }
 
           return (
             <StigmerProvider key={key} client={client}>
@@ -276,6 +324,7 @@ export function ByoaSetup() {
                       slug={DEMO_SLUG}
                       defaultCapabilityTab="tools"
                     />
+                    <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
               </AppShell>

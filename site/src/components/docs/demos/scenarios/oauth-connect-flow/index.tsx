@@ -17,6 +17,10 @@ import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
 import {
+  type StepInteractions,
+  useStepInteractions,
+} from "../../engine/useStepInteractions";
+import {
   DEMO_BROWSER_ZOOM,
   DEMO_CONTENT_ZOOM,
   DEMO_PLAYER_CLASSES,
@@ -98,11 +102,11 @@ function slideDirectionFor(
 function GitHubAuthorizePage() {
   return (
     <div className="flex h-full items-center justify-center bg-gradient-to-b from-background to-muted/30">
-      <div className="w-64 rounded-lg border border-border bg-card p-4 shadow-sm">
-        <div className="mb-3 text-center">
-          <div className="mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-foreground">
+      <div className="w-72 rounded-lg border border-border bg-card p-5 shadow-sm">
+        <div className="mb-4 text-center">
+          <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-foreground">
             <svg
-              className="h-4 w-4 text-background"
+              className="h-5 w-5 text-background"
               viewBox="0 0 16 16"
               fill="currentColor"
               aria-hidden="true"
@@ -110,27 +114,25 @@ function GitHubAuthorizePage() {
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
             </svg>
           </div>
-          <h3 className="text-[11px] font-semibold text-foreground">
+          <h3 className="text-sm font-semibold text-foreground">
             Authorize Stigmer
           </h3>
-          <p className="mt-0.5 text-[8px] text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Stigmer by stigmer wants to access your account
           </p>
         </div>
 
-        {/* Scopes */}
-        <div className="mb-3 space-y-1.5">
+        <div className="mb-4 space-y-1.5">
           <ScopeItem icon="repo" label="Repositories" access="Read and write" />
           <ScopeItem icon="org" label="Organizations" access="Read access" />
           <ScopeItem icon="user" label="Profile" access="Read access" />
         </div>
 
-        {/* Authorize CTA */}
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <div className="relative" data-cursor-target="authorize-btn">
             <button
               type="button"
-              className="w-full rounded-md bg-emerald-600 py-1.5 text-center text-[9px] font-medium text-white"
+              className="w-full rounded-md bg-emerald-600 py-1.5 text-center text-xs font-medium text-white"
             >
               Authorize stigmer
             </button>
@@ -138,13 +140,13 @@ function GitHubAuthorizePage() {
           </div>
           <button
             type="button"
-            className="w-full rounded-md border border-border bg-background py-1 text-center text-[9px] font-medium text-foreground"
+            className="w-full rounded-md border border-border bg-background py-1.5 text-center text-xs font-medium text-foreground"
           >
             Cancel
           </button>
         </div>
 
-        <p className="mt-2 text-center text-[7px] text-muted-foreground">
+        <p className="mt-3 text-center text-xs text-muted-foreground">
           Authorizing will redirect to{" "}
           <span className="font-medium text-foreground">app.stigmer.ai</span>
         </p>
@@ -163,15 +165,15 @@ function ScopeItem({
   access: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1">
+    <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5">
       <span className="flex h-4 w-4 items-center justify-center text-muted-foreground">
         {icon === "repo" && <RepoIcon />}
         {icon === "org" && <OrgIcon />}
         {icon === "user" && <UserIcon />}
       </span>
       <div className="flex-1">
-        <span className="text-[9px] font-medium text-foreground">{label}</span>
-        <span className="ml-1 text-[8px] text-muted-foreground">
+        <span className="text-xs font-medium text-foreground">{label}</span>
+        <span className="ml-1 text-xs text-muted-foreground">
           — {access}
         </span>
       </div>
@@ -208,6 +210,19 @@ function UserIcon() {
 }
 
 // ---------------------------------------------------------------------------
+// Mid-step interactions
+// ---------------------------------------------------------------------------
+
+const INTERACTIONS: StepInteractions = {
+  0: [
+    { atPercent: 0.4, type: "scroll-to", target: "capabilities-bottom" },
+  ],
+  3: [
+    { atPercent: 0.35, type: "scroll-to", target: "capabilities-bottom" },
+  ],
+};
+
+// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -238,10 +253,24 @@ export function OAuthConnectFlow() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [stepIndex, setStepIndex] = useState(0);
 
-  const handleStepChange = useCallback((step: OAuthConnectStep) => {
-    setCursorTarget(cursorTargetFor(step));
-  }, []);
+  const handleStepChange = useCallback(
+    (step: OAuthConnectStep, index: number) => {
+      setCursorTarget(cursorTargetFor(step));
+      setStepIndex(index);
+    },
+    [],
+  );
+
+  useStepInteractions({
+    stepIndex,
+    interactions: INTERACTIONS,
+    narrationManifest,
+    containerRef,
+    setCursorTarget,
+    steps: oauthConnectSteps,
+  });
 
   return (
     <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
@@ -285,6 +314,7 @@ export function OAuthConnectFlow() {
                       slug={DEMO_SLUG}
                       defaultCapabilityTab={defaultTabFor(step)}
                     />
+                    <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
               </AppShell>

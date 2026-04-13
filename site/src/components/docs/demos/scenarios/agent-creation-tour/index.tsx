@@ -132,7 +132,7 @@ function renderStep(step: AgentCreationStep) {
       return (
         <AppShell highlightNav="library" contentKey={contentKey}>
           <div className="flex h-full items-center justify-center p-4">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Start a new session
             </p>
           </div>

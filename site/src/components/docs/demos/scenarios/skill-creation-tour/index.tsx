@@ -14,6 +14,10 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
+import {
+  type StepInteractions,
+  useStepInteractions,
+} from "../../engine/useStepInteractions";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";
@@ -133,7 +137,7 @@ function renderStep(step: GuidedTourStep) {
           slideDirection={slide}
         >
           <div className="flex h-full items-center justify-center p-4">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Start a new session
             </p>
           </div>
@@ -271,15 +275,31 @@ function renderStep(step: GuidedTourStep) {
  * 2. **Slide transitions** — content slides left/right on navigation
  * 3. **Animated cursor** — pointer moves to click targets with ripple
  */
+const INTERACTIONS: StepInteractions = {};
+
 export function SkillCreationTour() {
   const client = useMemo(() => createDemoClient(demoScenario), []);
   const narrationManifest = useNarrationManifest("skill-creation-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [stepIndex, setStepIndex] = useState(0);
 
-  const handleStepChange = useCallback((step: GuidedTourStep) => {
-    setCursorTarget(cursorTargetFor(step));
-  }, []);
+  const handleStepChange = useCallback(
+    (step: GuidedTourStep, index: number) => {
+      setCursorTarget(cursorTargetFor(step));
+      setStepIndex(index);
+    },
+    [],
+  );
+
+  useStepInteractions({
+    stepIndex,
+    interactions: INTERACTIONS,
+    narrationManifest,
+    containerRef,
+    setCursorTarget,
+    steps: skillCreationTourSteps,
+  });
 
   return (
     <StigmerProvider client={client}>

@@ -12,6 +12,7 @@
     "build": "tsx scripts/generate-images.ts && next build && tsx scripts/generate-llms-txt.ts",
     "generate-llms": "tsx scripts/generate-llms-txt.ts",
     "generate-narration": "tsx scripts/generate-narration.ts",
+    "validate-demos": "tsx scripts/validate-demos.ts",
     "render-videos": "tsx scripts/render-videos.ts",
     "generate-react-sdk-docs": "tsx scripts/generate-react-sdk-docs/index.ts",
     "remotion:studio": "remotion studio video/index.ts",

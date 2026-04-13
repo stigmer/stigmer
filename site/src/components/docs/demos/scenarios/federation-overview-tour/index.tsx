@@ -6,6 +6,10 @@ import { ProviderPicker } from "@stigmer/react";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
+import {
+  type StepInteractions,
+  useStepInteractions,
+} from "../../engine/useStepInteractions";
 import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { BrowserView } from "../../views/BrowserView";
 import { ManagementShell } from "../../views/ManagementShell";
@@ -85,18 +89,18 @@ function renderStep(step: OverviewTourStep) {
                 <Check className="h-3.5 w-3.5 text-emerald-500" />
               </div>
               <div>
-                <h3 className="text-[10px] font-semibold text-foreground">
+                <h3 className="text-sm font-semibold text-foreground">
                   Welcome, Jane!
                 </h3>
-                <p className="text-[8px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Authenticated via Auth0
                 </p>
               </div>
               <div className="rounded-md border border-border bg-muted/50 p-1.5 text-left">
-                <p className="mb-0.5 text-[7px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-0.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   JWT issued
                 </p>
-                <div className="font-mono text-[7px] text-muted-foreground">
+                <div className="font-mono text-xs text-muted-foreground">
                   <span className="text-primary">&quot;sub&quot;</span>
                   {": "}
                   <span>&quot;auth0|jane_doe_123&quot;</span>
@@ -143,14 +147,30 @@ function renderStep(step: OverviewTourStep) {
  * ProviderPicker) → provision account (code) → grant access
  * (code) → user login → authorized API call.
  */
+const INTERACTIONS: StepInteractions = {};
+
 export function FederationOverviewTour() {
   const narrationManifest = useNarrationManifest("federation-overview-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [stepIndex, setStepIndex] = useState(0);
 
-  const handleStepChange = useCallback((_step: OverviewTourStep) => {
-    setCursorTarget(undefined);
-  }, []);
+  const handleStepChange = useCallback(
+    (_step: OverviewTourStep, index: number) => {
+      setCursorTarget(undefined);
+      setStepIndex(index);
+    },
+    [],
+  );
+
+  useStepInteractions({
+    stepIndex,
+    interactions: INTERACTIONS,
+    narrationManifest,
+    containerRef,
+    setCursorTarget,
+    steps: overviewTourSteps,
+  });
 
   return (
     <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
