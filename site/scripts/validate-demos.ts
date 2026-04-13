@@ -15,7 +15,6 @@
 
 import * as fs from "fs/promises";
 import * as path from "path";
-import { pathToFileURL } from "url";
 
 const SCENARIOS_DIR = path.join(
   process.cwd(),

@@ -280,7 +280,7 @@ function ConnectDialogContent({
         <div className="mb-4">
           <ErrorMessage
             error={activeError}
-            onRetry={() => {
+            retry={() => {
               clearConnectError();
               oauth.clearError();
               setPhase("credentials");

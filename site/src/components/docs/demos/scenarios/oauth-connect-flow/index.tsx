@@ -31,7 +31,6 @@ import {
   oauthConnectSteps,
   DEMO_ORG,
   DEMO_SLUG,
-  NO_GRANT,
   NO_ORG_OVERRIDE,
 } from "./steps";
 
