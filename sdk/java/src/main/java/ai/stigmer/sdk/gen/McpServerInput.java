@@ -10,7 +10,6 @@ import ai.stigmer.agentic.mcpserver.v1.McpServerSpec;
 import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
-import ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus;
 
 /** Input for creating/updating a McpServer. */
 public final class McpServerInput {
@@ -307,8 +306,6 @@ public final class McpServerInput {
         private final String targetEnvVar;
         private final String tokenLifetimeHint;
         private final java.util.List<String> scopeHints;
-        private final VendorApprovalStatus vendorApprovalStatus;
-        private final String vendorApprovalDocsUrl;
         private final String discoveryUrl;
 
         private McpServerAuthInput(Builder builder) {
@@ -316,8 +313,6 @@ public final class McpServerInput {
             this.targetEnvVar = builder.targetEnvVar;
             this.tokenLifetimeHint = builder.tokenLifetimeHint;
             this.scopeHints = builder.scopeHints;
-            this.vendorApprovalStatus = builder.vendorApprovalStatus;
-            this.vendorApprovalDocsUrl = builder.vendorApprovalDocsUrl;
             this.discoveryUrl = builder.discoveryUrl;
         }
 
@@ -335,12 +330,6 @@ public final class McpServerInput {
             if (this.scopeHints != null) {
                 builder.addAllScopeHints(this.scopeHints);
             }
-            if (this.vendorApprovalStatus != null) {
-                builder.setVendorApprovalStatus(this.vendorApprovalStatus);
-            }
-            if (this.vendorApprovalDocsUrl != null) {
-                builder.setVendorApprovalDocsUrl(this.vendorApprovalDocsUrl);
-            }
             if (this.discoveryUrl != null) {
                 builder.setDiscoveryUrl(this.discoveryUrl);
             }
@@ -354,8 +343,6 @@ public final class McpServerInput {
             private String targetEnvVar;
             private String tokenLifetimeHint;
             private java.util.List<String> scopeHints;
-            private VendorApprovalStatus vendorApprovalStatus;
-            private String vendorApprovalDocsUrl;
             private String discoveryUrl;
 
             private Builder() {}
@@ -364,8 +351,6 @@ public final class McpServerInput {
             public Builder targetEnvVar(String targetEnvVar) { this.targetEnvVar = targetEnvVar; return this; }
             public Builder tokenLifetimeHint(String tokenLifetimeHint) { this.tokenLifetimeHint = tokenLifetimeHint; return this; }
             public Builder scopeHints(java.util.List<String> scopeHints) { this.scopeHints = scopeHints; return this; }
-            public Builder vendorApprovalStatus(VendorApprovalStatus vendorApprovalStatus) { this.vendorApprovalStatus = vendorApprovalStatus; return this; }
-            public Builder vendorApprovalDocsUrl(String vendorApprovalDocsUrl) { this.vendorApprovalDocsUrl = vendorApprovalDocsUrl; return this; }
             public Builder discoveryUrl(String discoveryUrl) { this.discoveryUrl = discoveryUrl; return this; }
 
             public McpServerAuthInput build() { return new McpServerAuthInput(this); }

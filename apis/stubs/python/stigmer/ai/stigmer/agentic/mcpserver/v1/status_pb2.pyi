@@ -2,6 +2,7 @@ import datetime
 
 from ai.stigmer.agentic.mcpserver.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
+from ai.stigmer.iam.oauthapp.v1 import spec_pb2 as _spec_pb2_1
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
@@ -18,23 +19,36 @@ class ValidationState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     validation_state_unspecified: _ClassVar[ValidationState]
     valid: _ClassVar[ValidationState]
     invalid: _ClassVar[ValidationState]
+
+class OAuthAppSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    OAUTH_APP_SOURCE_UNSPECIFIED: _ClassVar[OAuthAppSource]
+    OAUTH_APP_SOURCE_PLATFORM: _ClassVar[OAuthAppSource]
+    OAUTH_APP_SOURCE_ORG_OVERRIDE: _ClassVar[OAuthAppSource]
+    OAUTH_APP_SOURCE_NONE: _ClassVar[OAuthAppSource]
 validation_state_unspecified: ValidationState
 valid: ValidationState
 invalid: ValidationState
+OAUTH_APP_SOURCE_UNSPECIFIED: OAuthAppSource
+OAUTH_APP_SOURCE_PLATFORM: OAuthAppSource
+OAUTH_APP_SOURCE_ORG_OVERRIDE: OAuthAppSource
+OAUTH_APP_SOURCE_NONE: OAuthAppSource
 
 class McpServerStatus(_message.Message):
-    __slots__ = ("validation_state", "validation_message", "discovered_capabilities", "tool_approvals", "audit")
+    __slots__ = ("validation_state", "validation_message", "discovered_capabilities", "tool_approvals", "oauth_status", "audit")
     VALIDATION_STATE_FIELD_NUMBER: _ClassVar[int]
     VALIDATION_MESSAGE_FIELD_NUMBER: _ClassVar[int]
     DISCOVERED_CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
     TOOL_APPROVALS_FIELD_NUMBER: _ClassVar[int]
+    OAUTH_STATUS_FIELD_NUMBER: _ClassVar[int]
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     validation_state: ValidationState
     validation_message: str
     discovered_capabilities: DiscoveredCapabilities
     tool_approvals: _containers.RepeatedCompositeFieldContainer[_spec_pb2.ToolApprovalPolicy]
+    oauth_status: OAuthStatus
     audit: _status_pb2.ApiResourceAudit
-    def __init__(self, validation_state: _Optional[_Union[ValidationState, str]] = ..., validation_message: _Optional[str] = ..., discovered_capabilities: _Optional[_Union[DiscoveredCapabilities, _Mapping]] = ..., tool_approvals: _Optional[_Iterable[_Union[_spec_pb2.ToolApprovalPolicy, _Mapping]]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
+    def __init__(self, validation_state: _Optional[_Union[ValidationState, str]] = ..., validation_message: _Optional[str] = ..., discovered_capabilities: _Optional[_Union[DiscoveredCapabilities, _Mapping]] = ..., tool_approvals: _Optional[_Iterable[_Union[_spec_pb2.ToolApprovalPolicy, _Mapping]]] = ..., oauth_status: _Optional[_Union[OAuthStatus, _Mapping]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
 
 class DiscoveredCapabilities(_message.Message):
     __slots__ = ("tools", "resource_templates", "last_discovered_at")
@@ -67,3 +81,15 @@ class DiscoveredResourceTemplate(_message.Message):
     description: str
     mime_type: str
     def __init__(self, uri_template: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., mime_type: _Optional[str] = ...) -> None: ...
+
+class OAuthStatus(_message.Message):
+    __slots__ = ("vendor_approval_status", "vendor_approval_docs_url", "effective_oauth_source", "effective_oauth_app_id")
+    VENDOR_APPROVAL_STATUS_FIELD_NUMBER: _ClassVar[int]
+    VENDOR_APPROVAL_DOCS_URL_FIELD_NUMBER: _ClassVar[int]
+    EFFECTIVE_OAUTH_SOURCE_FIELD_NUMBER: _ClassVar[int]
+    EFFECTIVE_OAUTH_APP_ID_FIELD_NUMBER: _ClassVar[int]
+    vendor_approval_status: _spec_pb2_1.VendorApprovalStatus
+    vendor_approval_docs_url: str
+    effective_oauth_source: OAuthAppSource
+    effective_oauth_app_id: str
+    def __init__(self, vendor_approval_status: _Optional[_Union[_spec_pb2_1.VendorApprovalStatus, str]] = ..., vendor_approval_docs_url: _Optional[str] = ..., effective_oauth_source: _Optional[_Union[OAuthAppSource, str]] = ..., effective_oauth_app_id: _Optional[str] = ...) -> None: ...

@@ -71,6 +71,46 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_mcpserver_v1_GetOAuthGrantStatusOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppOutput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -109,16 +149,43 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "_hint\030\003 \001(\tR\021tokenLifetimeHint\"^\n\030GetOAu" +
       "thGrantStatusInput\022\'\n\013resource_id\030\001 \001(\tB" +
       "\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020" +
-      "\001R\003org\"\267\001\n\031GetOAuthGrantStatusOutput\022\034\n\t" +
+      "\001R\003org\"\234\002\n\031GetOAuthGrantStatusOutput\022\034\n\t" +
       "connected\030\001 \001(\010R\tconnected\0225\n\027access_tok" +
       "en_expires_at\030\002 \001(\003R\024accessTokenExpiresA" +
       "t\022$\n\016target_env_var\030\003 \001(\tR\014targetEnvVar\022" +
-      "\037\n\013auth_method\030\004 \001(\tR\nauthMethodB\252\001B\007IoP" +
-      "rotoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpse" +
-      "rver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V" +
-      "1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBM" +
-      "etadata\352\002#Ai::Stigmer::Agentic::Mcpserve" +
-      "r::V1b\006proto3"
+      "\037\n\013auth_method\030\004 \001(\tR\nauthMethod\022c\n\021conn" +
+      "ection_health\030\005 \001(\01626.ai.stigmer.agentic" +
+      ".mcpserver.v1.OAuthConnectionHealthR\020con" +
+      "nectionHealth\"Z\n\024DisconnectOAuthInput\022\'\n" +
+      "\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\031" +
+      "\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\";\n\025DisconnectO" +
+      "AuthOutput\022\"\n\014disconnected\030\001 \001(\010R\014discon" +
+      "nected\"\255\001\n\023SetOrgOAuthAppInput\022\'\n\013resour" +
+      "ce_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002" +
+      " \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tclient_id\030\003 \001(\tB\007\272" +
+      "H\004r\002\020\001R\010clientId\022,\n\rclient_secret\030\004 \001(\tB" +
+      "\007\272H\004r\002\020\001R\014clientSecret\"8\n\024SetOrgOAuthApp" +
+      "Output\022 \n\014oauth_app_id\030\001 \001(\tR\noauthAppId" +
+      "\"Y\n\023GetOrgOAuthAppInput\022\'\n\013resource_id\030\001" +
+      " \001(\tB\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002 \001(\tB\007\272" +
+      "H\004r\002\020\001R\003org\"x\n\024GetOrgOAuthAppOutput\022!\n\014h" +
+      "as_override\030\001 \001(\010R\013hasOverride\022 \n\014oauth_" +
+      "app_id\030\002 \001(\tR\noauthAppId\022\033\n\tclient_id\030\003 " +
+      "\001(\tR\010clientId\"\\\n\026DeleteOrgOAuthAppInput\022" +
+      "\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId" +
+      "\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\"3\n\027DeleteOrg" +
+      "OAuthAppOutput\022\030\n\007deleted\030\001 \001(\010R\007deleted" +
+      "*\355\001\n\025OAuthConnectionHealth\022\'\n#OAUTH_CONN" +
+      "ECTION_HEALTH_UNSPECIFIED\020\000\022#\n\037OAUTH_CON" +
+      "NECTION_HEALTH_HEALTHY\020\001\022)\n%OAUTH_CONNEC" +
+      "TION_HEALTH_TOKEN_EXPIRED\020\002\0225\n1OAUTH_CON" +
+      "NECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE" +
+      "\020\003\022$\n OAUTH_CONNECTION_HEALTH_NO_GRANT\020\004" +
+      "B\252\001B\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agent" +
+      "ic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcp" +
+      "server\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver" +
+      "\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::" +
+      "Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -179,7 +246,55 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_GetOAuthGrantStatusOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_GetOAuthGrantStatusOutput_descriptor,
-        new java.lang.String[] { "Connected", "AccessTokenExpiresAt", "TargetEnvVar", "AuthMethod", });
+        new java.lang.String[] { "Connected", "AccessTokenExpiresAt", "TargetEnvVar", "AuthMethod", "ConnectionHealth", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthInput_descriptor =
+      getDescriptor().getMessageType(8);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthInput_descriptor,
+        new java.lang.String[] { "ResourceId", "Org", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthOutput_descriptor =
+      getDescriptor().getMessageType(9);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthOutput_descriptor,
+        new java.lang.String[] { "Disconnected", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppInput_descriptor =
+      getDescriptor().getMessageType(10);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppInput_descriptor,
+        new java.lang.String[] { "ResourceId", "Org", "ClientId", "ClientSecret", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppOutput_descriptor =
+      getDescriptor().getMessageType(11);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_SetOrgOAuthAppOutput_descriptor,
+        new java.lang.String[] { "OauthAppId", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppInput_descriptor =
+      getDescriptor().getMessageType(12);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppInput_descriptor,
+        new java.lang.String[] { "ResourceId", "Org", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppOutput_descriptor =
+      getDescriptor().getMessageType(13);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_GetOrgOAuthAppOutput_descriptor,
+        new java.lang.String[] { "HasOverride", "OauthAppId", "ClientId", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppInput_descriptor =
+      getDescriptor().getMessageType(14);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppInput_descriptor,
+        new java.lang.String[] { "ResourceId", "Org", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppOutput_descriptor =
+      getDescriptor().getMessageType(15);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_DeleteOrgOAuthAppOutput_descriptor,
+        new java.lang.String[] { "Deleted", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

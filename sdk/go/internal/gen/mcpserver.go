@@ -10,7 +10,6 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
-	oauthappv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
@@ -76,6 +75,26 @@ func (m *McpServerClient) CompleteOAuthConnect(ctx context.Context, input *mcpse
 
 func (m *McpServerClient) GetOAuthGrantStatus(ctx context.Context, input *mcpserverv1.GetOAuthGrantStatusInput) (*mcpserverv1.GetOAuthGrantStatusOutput, error) {
 	resp, err := m.command.GetOAuthGrantStatus(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (m *McpServerClient) DisconnectOAuth(ctx context.Context, input *mcpserverv1.DisconnectOAuthInput) (*mcpserverv1.DisconnectOAuthOutput, error) {
+	resp, err := m.command.DisconnectOAuth(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (m *McpServerClient) SetOrgOAuthApp(ctx context.Context, input *mcpserverv1.SetOrgOAuthAppInput) (*mcpserverv1.SetOrgOAuthAppOutput, error) {
+	resp, err := m.command.SetOrgOAuthApp(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (m *McpServerClient) GetOrgOAuthApp(ctx context.Context, input *mcpserverv1.GetOrgOAuthAppInput) (*mcpserverv1.GetOrgOAuthAppOutput, error) {
+	resp, err := m.command.GetOrgOAuthApp(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (m *McpServerClient) DeleteOrgOAuthApp(ctx context.Context, input *mcpserverv1.DeleteOrgOAuthAppInput) (*mcpserverv1.DeleteOrgOAuthAppOutput, error) {
+	resp, err := m.command.DeleteOrgOAuthApp(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -153,13 +172,11 @@ type ToolApprovalPolicyInput struct {
 
 // McpServerAuthInput is the SDK input type for McpServerAuth.
 type McpServerAuthInput struct {
-	OauthAppRef           ResourceRef
-	TargetEnvVar          string
-	TokenLifetimeHint     string
-	ScopeHints            []string
-	VendorApprovalStatus  oauthappv1.VendorApprovalStatus
-	VendorApprovalDocsUrl string
-	DiscoveryUrl          string
+	OauthAppRef       ResourceRef
+	TargetEnvVar      string
+	TokenLifetimeHint string
+	ScopeHints        []string
+	DiscoveryUrl      string
 }
 
 func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
@@ -222,12 +239,10 @@ func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 
 func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
 	return &mcpserverv1.McpServerAuth{
-		OauthAppRef:           i.OauthAppRef.toProto(),
-		TargetEnvVar:          i.TargetEnvVar,
-		TokenLifetimeHint:     i.TokenLifetimeHint,
-		ScopeHints:            i.ScopeHints,
-		VendorApprovalStatus:  i.VendorApprovalStatus,
-		VendorApprovalDocsUrl: i.VendorApprovalDocsUrl,
-		DiscoveryUrl:          i.DiscoveryUrl,
+		OauthAppRef:       i.OauthAppRef.toProto(),
+		TargetEnvVar:      i.TargetEnvVar,
+		TokenLifetimeHint: i.TokenLifetimeHint,
+		ScopeHints:        i.ScopeHints,
+		DiscoveryUrl:      i.DiscoveryUrl,
 	}
 }

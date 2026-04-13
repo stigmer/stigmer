@@ -8,14 +8,13 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, DisconnectOAuthInputSchema, DisconnectOAuthOutputSchema, SetOrgOAuthAppInputSchema, SetOrgOAuthAppOutputSchema, GetOrgOAuthAppInputSchema, GetOrgOAuthAppOutputSchema, DeleteOrgOAuthAppInputSchema, DeleteOrgOAuthAppOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput, type DisconnectOAuthInput, type DisconnectOAuthOutput, type SetOrgOAuthAppInput, type SetOrgOAuthAppOutput, type GetOrgOAuthAppInput, type GetOrgOAuthAppOutput, type DeleteOrgOAuthAppInput, type DeleteOrgOAuthAppOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
-import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
@@ -86,6 +85,30 @@ export class McpServerClient {
   async getOAuthGrantStatus(input: GetOAuthGrantStatusInput): Promise<GetOAuthGrantStatusOutput> {
     try {
       return await this.command.getOAuthGrantStatus(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async disconnectOAuth(input: DisconnectOAuthInput): Promise<DisconnectOAuthOutput> {
+    try {
+      return await this.command.disconnectOAuth(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async setOrgOAuthApp(input: SetOrgOAuthAppInput): Promise<SetOrgOAuthAppOutput> {
+    try {
+      return await this.command.setOrgOAuthApp(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getOrgOAuthApp(input: GetOrgOAuthAppInput): Promise<GetOrgOAuthAppOutput> {
+    try {
+      return await this.command.getOrgOAuthApp(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async deleteOrgOAuthApp(input: DeleteOrgOAuthAppInput): Promise<DeleteOrgOAuthAppOutput> {
+    try {
+      return await this.command.deleteOrgOAuthApp(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -172,8 +195,6 @@ export interface McpServerAuthInput {
   targetEnvVar?: string;
   tokenLifetimeHint?: string;
   scopeHints?: string[];
-  vendorApprovalStatus?: VendorApprovalStatus;
-  vendorApprovalDocsUrl?: string;
   discoveryUrl?: string;
 }
 
@@ -215,8 +236,6 @@ function buildMcpServerAuthProto(input: McpServerAuthInput) {
   if (input.targetEnvVar !== undefined) msg.targetEnvVar = input.targetEnvVar;
   if (input.tokenLifetimeHint !== undefined) msg.tokenLifetimeHint = input.tokenLifetimeHint;
   if (input.scopeHints) msg.scopeHints = input.scopeHints;
-  if (input.vendorApprovalStatus !== undefined) msg.vendorApprovalStatus = input.vendorApprovalStatus;
-  if (input.vendorApprovalDocsUrl !== undefined) msg.vendorApprovalDocsUrl = input.vendorApprovalDocsUrl;
   if (input.discoveryUrl !== undefined) msg.discoveryUrl = input.discoveryUrl;
   return msg;
 }

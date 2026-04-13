@@ -197,6 +197,111 @@ func (x *OAuthGrant) GetOrgId() string {
 	return ""
 }
 
+// OAuthAppOverride binds a specific OAuthApp to an API resource within an
+// organization, overriding the platform-default OAuthApp for that resource.
+//
+// @internal
+// Infrastructure-only. Not a public API resource — no kind, no apiVersion,
+// no CRUD RPCs. Stored in the backend's database, keyed by the composite
+// of (resource_id, resource_kind, org_id).
+//
+// This is the "Bring Your Own App" (BYOA) binding: it records that org Z
+// wants resource Y to use OAuthApp X instead of the platform default
+// referenced by McpServerAuth.oauth_app_ref.
+//
+// Separation of concerns:
+//   - OAuthApp (credential resource): holds client_id, client_secret, and
+//     vendor endpoint URLs. Reusable — may be referenced by multiple overrides
+//     or MCP servers.
+//   - OAuthAppOverride (binding document): maps (resource, org) to an OAuthApp.
+//     Analogous to OAuthGrant, which maps (user, resource, org) to token metadata.
+//
+// Resolution chain (evaluated at connect time and token refresh):
+//  1. OAuthAppOverride for (resource_id, resource_kind, org_id) — org override
+//  2. McpServerAuth.oauth_app_ref on the resource spec — platform default
+//  3. None — no OAuth app available (manual token or DCR only)
+//
+// The override is resource-agnostic: currently used for MCP servers, but the
+// composite key supports any API resource kind that needs BYOA (e.g., workflows).
+type OAuthAppOverride struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID (metadata.id) of the API resource this override
+	// applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// Kind of the API resource identified by resource_id (e.g., "mcp_server").
+	// Part of the composite key. Enables the same table to serve overrides
+	// for multiple resource types without collision.
+	ResourceKind string `protobuf:"bytes,2,opt,name=resource_kind,json=resourceKind,proto3" json:"resource_kind,omitempty"`
+	// Organization that owns this override. Part of the composite key.
+	// Different orgs can maintain independent BYOA overrides for the same
+	// shared (platform-scoped) resource.
+	OrgId string `protobuf:"bytes,3,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// ID of the OAuthApp resource that holds the org's client credentials.
+	// Created by the setOrgOAuthApp handler, which clones the platform
+	// OAuthApp template and applies the org-provided client_id + client_secret.
+	OauthAppId    string `protobuf:"bytes,4,opt,name=oauth_app_id,json=oauthAppId,proto3" json:"oauth_app_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OAuthAppOverride) Reset() {
+	*x = OAuthAppOverride{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OAuthAppOverride) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OAuthAppOverride) ProtoMessage() {}
+
+func (x *OAuthAppOverride) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OAuthAppOverride.ProtoReflect.Descriptor instead.
+func (*OAuthAppOverride) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *OAuthAppOverride) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *OAuthAppOverride) GetResourceKind() string {
+	if x != nil {
+		return x.ResourceKind
+	}
+	return ""
+}
+
+func (x *OAuthAppOverride) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *OAuthAppOverride) GetOauthAppId() string {
+	if x != nil {
+		return x.OauthAppId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_oauth_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
@@ -217,7 +322,14 @@ const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentId\x12#\n" +
 	"\rresource_kind\x18\n" +
 	" \x01(\tR\fresourceKind\x12\x15\n" +
-	"\x06org_id\x18\v \x01(\tR\x05orgIdB\xab\x02\n" +
+	"\x06org_id\x18\v \x01(\tR\x05orgId\"\x91\x01\n" +
+	"\x10OAuthAppOverride\x12\x1f\n" +
+	"\vresource_id\x18\x01 \x01(\tR\n" +
+	"resourceId\x12#\n" +
+	"\rresource_kind\x18\x02 \x01(\tR\fresourceKind\x12\x15\n" +
+	"\x06org_id\x18\x03 \x01(\tR\x05orgId\x12 \n" +
+	"\foauth_app_id\x18\x04 \x01(\tR\n" +
+	"oauthAppIdB\xab\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\n" +
 	"OauthProtoP\x01ZWgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
@@ -233,9 +345,10 @@ func file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_goTypes = []any{
-	(*OAuthGrant)(nil), // 0: ai.stigmer.agentic.mcpserver.v1.OAuthGrant
+	(*OAuthGrant)(nil),       // 0: ai.stigmer.agentic.mcpserver.v1.OAuthGrant
+	(*OAuthAppOverride)(nil), // 1: ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride
 }
 var file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -256,7 +369,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
