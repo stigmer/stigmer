@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "web-automation"
 spec:
   description: "Playwright MCP server for browser automation, web testing, page navigation, element interaction, and screenshot capture."
+  icon_url: "https://playwright.dev/img/playwright-logo.svg"
   repository_url: "https://github.com/microsoft/playwright-mcp"
   github_stars: 30578
   tags:

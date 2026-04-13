@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/system: "true"
 spec:
   description: Creates new MCP servers using the agentic.stigmer.ai/v1 McpServer YAML format. Use this agent when you need to create, scaffold, configure, or review McpServer YAML definitions for the Stigmer platform.
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
   instructions: |
     You are an MCP server creation assistant that produces valid, production-quality
     McpServer YAML files conforming to the agentic.stigmer.ai/v1 API specification.

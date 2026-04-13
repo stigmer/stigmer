@@ -477,7 +477,7 @@ function DefaultResourceRow({
 
   return (
     <div className="flex items-start gap-3">
-      <KindIcon kind={item.kind} />
+      <RowIcon kind={item.kind} iconUrl={item.iconUrl} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium text-foreground">
@@ -535,7 +535,7 @@ function DefaultResourceCard({
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
       <div className="flex items-start gap-3">
-        <ResourceIcon kind={item.kind} />
+        <ResourceIcon kind={item.kind} iconUrl={item.iconUrl} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-semibold text-foreground">
@@ -560,12 +560,52 @@ function DefaultResourceCard({
   );
 }
 
-function ResourceIcon({ kind }: { readonly kind: ApiResourceKind }) {
+function ResourceIcon({
+  kind,
+  iconUrl,
+}: {
+  readonly kind: ApiResourceKind;
+  readonly iconUrl?: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-      <KindIcon kind={kind} size="lg" />
+      {iconUrl && !imgError ? (
+        <img
+          src={iconUrl}
+          alt=""
+          className="size-6 rounded object-contain"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <KindIcon kind={kind} size="lg" />
+      )}
     </span>
   );
+}
+
+function RowIcon({
+  kind,
+  iconUrl,
+}: {
+  readonly kind: ApiResourceKind;
+  readonly iconUrl?: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+
+  if (iconUrl && !imgError) {
+    return (
+      <img
+        src={iconUrl}
+        alt=""
+        className="mt-0.5 h-4 w-4 shrink-0 rounded-sm object-contain"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return <KindIcon kind={kind} />;
 }
 
 function VisibilityBadge() {

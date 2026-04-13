@@ -49,7 +49,7 @@ class SearchResponse(_message.Message):
     def __init__(self, entries: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., counts_by_kind: _Optional[_Mapping[str, int]] = ..., total_count: _Optional[int] = ..., total_pages: _Optional[int] = ...) -> None: ...
 
 class SearchResult(_message.Message):
-    __slots__ = ("kind", "id", "name", "slug", "qualified_slug", "org", "description", "visibility", "tags", "created_at", "updated_at", "score")
+    __slots__ = ("kind", "id", "name", "slug", "qualified_slug", "org", "description", "visibility", "tags", "created_at", "updated_at", "score", "icon_url")
     KIND_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -62,6 +62,7 @@ class SearchResult(_message.Message):
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
     SCORE_FIELD_NUMBER: _ClassVar[int]
+    ICON_URL_FIELD_NUMBER: _ClassVar[int]
     kind: _api_resource_kind_pb2.ApiResourceKind
     id: str
     name: str
@@ -74,4 +75,5 @@ class SearchResult(_message.Message):
     created_at: _timestamp_pb2.Timestamp
     updated_at: _timestamp_pb2.Timestamp
     score: float
-    def __init__(self, kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., id: _Optional[str] = ..., name: _Optional[str] = ..., slug: _Optional[str] = ..., qualified_slug: _Optional[str] = ..., org: _Optional[str] = ..., description: _Optional[str] = ..., visibility: _Optional[_Union[_enum_pb2.ApiResourceVisibility, str]] = ..., tags: _Optional[_Iterable[str]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., score: _Optional[float] = ...) -> None: ...
+    icon_url: str
+    def __init__(self, kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., id: _Optional[str] = ..., name: _Optional[str] = ..., slug: _Optional[str] = ..., qualified_slug: _Optional[str] = ..., org: _Optional[str] = ..., description: _Optional[str] = ..., visibility: _Optional[_Union[_enum_pb2.ApiResourceVisibility, str]] = ..., tags: _Optional[_Iterable[str]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., score: _Optional[float] = ..., icon_url: _Optional[str] = ...) -> None: ...

@@ -68,6 +68,7 @@ func (e *McpServerExtractor) ToSearchResult(resource proto.Message, score float3
 		Visibility:    meta.GetVisibility(),
 		Tags:          meta.GetTags(),
 		Score:         score,
+		IconUrl:       mcp.GetSpec().GetIconUrl(),
 	}
 
 	// Extract audit timestamps

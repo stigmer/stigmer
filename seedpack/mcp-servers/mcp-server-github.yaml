@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "developer-tools"
 spec:
   description: "GitHub MCP server for repository management, code search, issue and PR workflows, branch operations, and team collaboration."
+  icon_url: "https://github.githubassets.com/favicons/favicon.svg"
   repository_url: "https://github.com/github/github-mcp-server"
   github_stars: 28600
   tags:
