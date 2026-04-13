@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { EnvVarInput } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { OAuthAppSource } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { diffEnv } from "../environment/diffEnv";
@@ -121,6 +122,38 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly vendorApprovalDocsUrl: string | null;
   /**
+   * `true` when the platform OAuth app's vendor approval is PENDING or
+   * REJECTED — i.e., the platform sign-in flow is blocked. Covers both
+   * statuses since the user-facing behavior is the same: sign-in is
+   * disabled and BYOA / manual entry are the available alternatives.
+   *
+   * See also {@link isVendorApprovalPending} which only checks PENDING.
+   */
+  readonly isVendorApprovalBlocked: boolean;
+  /**
+   * Where the effective OAuth app was resolved from for the caller's org.
+   *
+   * Enriched at query time by the backend — no additional RPC needed.
+   * `UNSPECIFIED` when `authMode` is `"manual"` or enrichment has not
+   * been performed yet.
+   */
+  readonly effectiveOAuthSource: OAuthAppSource;
+  /**
+   * `true` when an org-level BYOA override is active for this server.
+   * Derived from `effectiveOAuthSource === OAUTH_APP_SOURCE_ORG_OVERRIDE`.
+   */
+  readonly isOrgOAuthApp: boolean;
+  /**
+   * `true` when the BYOA option is relevant for this server: the server
+   * uses vendor OAuth (`authMode === "oauth"` with an `oauth_app_ref`)
+   * and no org override is currently active.
+   *
+   * When `true`, the UI should offer "Use your own OAuth app" as either
+   * a primary action (when vendor approval is blocked) or a secondary
+   * link (when vendor approval is granted).
+   */
+  readonly canBringOwnApp: boolean;
+  /**
    * When `true`, the user has opted to bypass OAuth and enter the
    * `target_env_var` token manually. In this state:
    *
@@ -222,7 +255,20 @@ export function useMcpServerCredentials(
   const isVendorApprovalPending =
     authMode === "oauth" &&
     oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.PENDING;
+  const isVendorApprovalBlocked =
+    authMode === "oauth" &&
+    (oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.PENDING ||
+      oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.REJECTED);
   const vendorApprovalDocsUrl = oauthStatus?.vendorApprovalDocsUrl || null;
+
+  const effectiveOAuthSource =
+    oauthStatus?.effectiveOauthSource ??
+    OAuthAppSource.OAUTH_APP_SOURCE_UNSPECIFIED;
+  const isOrgOAuthApp =
+    effectiveOAuthSource === OAuthAppSource.OAUTH_APP_SOURCE_ORG_OVERRIDE;
+  const hasOAuthAppRef = Boolean(auth?.oauthAppRef?.slug);
+  const canBringOwnApp =
+    authMode === "oauth" && hasOAuthAppRef && !isOrgOAuthApp;
 
   const grantStatus = useOAuthGrantStatus(
     authMode === "oauth" ? (mcpServer?.metadata?.id ?? null) : null,
@@ -284,7 +330,11 @@ export function useMcpServerCredentials(
     accessTokenExpiresAt: grantStatus.accessTokenExpiresAt,
     tokenLifetimeHint,
     isVendorApprovalPending,
+    isVendorApprovalBlocked,
     vendorApprovalDocsUrl,
+    effectiveOAuthSource,
+    isOrgOAuthApp,
+    canBringOwnApp,
     missingVariables,
     isReady,
     isLoading: personalEnv.isLoading || grantStatus.isLoading,

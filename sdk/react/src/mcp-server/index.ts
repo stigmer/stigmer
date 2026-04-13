@@ -25,6 +25,12 @@ export type { UseOAuthGrantStatusReturn } from "./useOAuthGrantStatus";
 export { useDisconnectOAuth } from "./useDisconnectOAuth";
 export type { UseDisconnectOAuthReturn } from "./useDisconnectOAuth";
 
+export { useOrgOAuthApp } from "./useOrgOAuthApp";
+export type { UseOrgOAuthAppReturn } from "./useOrgOAuthApp";
+
+export { OAuthAppForm } from "./OAuthAppForm";
+export type { OAuthAppFormProps } from "./OAuthAppForm";
+
 export { McpServerPicker } from "./McpServerPicker";
 export type {
   McpServerPickerProps,
