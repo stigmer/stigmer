@@ -11,6 +11,7 @@ import ai.stigmer.sdk.gen.IamPolicyClient;
 import ai.stigmer.sdk.gen.IdentityAccountClient;
 import ai.stigmer.sdk.gen.IdentityProviderClient;
 import ai.stigmer.sdk.gen.McpServerClient;
+import ai.stigmer.sdk.gen.OAuthAppClient;
 import ai.stigmer.sdk.gen.OrganizationClient;
 import ai.stigmer.sdk.gen.ProjectClient;
 import ai.stigmer.sdk.gen.SessionClient;
@@ -76,6 +77,7 @@ public final class StigmerClient implements AutoCloseable {
     public IdentityAccountClient identityAccounts() { return generated.identityAccount; }
     public IdentityProviderClient identityProviders() { return generated.identityProvider; }
     public McpServerClient mcpServers() { return generated.mcpServer; }
+    public OAuthAppClient oauthApps() { return generated.oauthapp; }
     public OrganizationClient organizations() { return generated.organization; }
     public ProjectClient projects() { return generated.project; }
     public SessionClient sessions() { return generated.session; }

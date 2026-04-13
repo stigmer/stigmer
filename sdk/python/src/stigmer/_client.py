@@ -16,6 +16,7 @@ from ._gen._iampolicy import IamPolicyClient
 from ._gen._identityaccount import IdentityAccountClient
 from ._gen._identityprovider import IdentityProviderClient
 from ._gen._mcpserver import McpServerClient
+from ._gen._oauthapp import OAuthAppClient
 from ._gen._organization import OrganizationClient
 from ._gen._project import ProjectClient
 from ._gen._session import SessionClient
@@ -57,6 +58,7 @@ class StigmerClient:
     identity_accounts: IdentityAccountClient
     identity_providers: IdentityProviderClient
     mcp_servers: McpServerClient
+    oauthapps: OAuthAppClient
     organizations: OrganizationClient
     projects: ProjectClient
     sessions: SessionClient
@@ -96,6 +98,7 @@ class StigmerClient:
         self.identity_accounts = gen.identity_accounts
         self.identity_providers = gen.identity_providers
         self.mcp_servers = gen.mcp_servers
+        self.oauthapps = gen.oauthapps
         self.organizations = gen.organizations
         self.projects = gen.projects
         self.sessions = gen.sessions

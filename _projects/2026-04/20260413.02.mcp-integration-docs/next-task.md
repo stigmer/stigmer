@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-13
-**Current Task**: T03 — OAuth for tools guide + hero demo
-**Status**: T03 COMPLETE
-**Last Session**: 2026-04-13 — Completed T03
+**Current Task**: T04 — BYOA guide + hero demo
+**Status**: T04 COMPLETE
+**Last Session**: 2026-04-13 — Completed T04
 
 ## Session Progress (2026-04-13, session 3 — T02)
 
@@ -219,11 +219,51 @@ Side-track from the docs project to address UX gaps found during BYOA testing:
 | `site/src/components/mdx.tsx` | Register in MDX component map |
 | `site/src/components/docs/demos/scenarios/registry.ts` | Register for video export |
 
+## Session Progress (2026-04-13, session 5 — T04)
+
+- Created `docs/guides/integrations/bring-your-own-oauth.mdx` — how-to guide
+  with hero demo, two BYOA scenarios (vendor approval blocked, tighter control),
+  step-by-step setup, what-changes section, remove-and-revert with grant
+  breakage warning, cross-link to T05 architecture page
+- Built `byoa-setup` demo scenario (6-step playback):
+  Slack detail (vendor approval pending, sign-in disabled) → cursor clicks
+  "Use your own OAuth app" → BYOA dialog overlay with OAuthAppForm → cursor
+  clicks Save → detail showing "Using your OAuth app" → connected with tools
+- Slack McpServer fixture built from real seedpack entry (vendor OAuth, HTTP
+  transport, 4 scope hints, 5 discovered tools, 2 approval policies)
+- BYOA dialog overlay: hand-built dialog card within AppShell matching
+  production `<dialog>` visual — renders form fields, vendor docs link,
+  pre-filled state with cursor target on Save
+- Three fixture variants: blocked (PENDING + PLATFORM), org-app (APPROVED +
+  ORG_OVERRIDE), connected (APPROVED + ORG_OVERRIDE + tools)
+- Added `data-cursor-target="byoa-cta-button"` to ConnectBar's amber banner
+  BYOA button in `McpServerDetailView.tsx`
+- Registered demo in `index.ts`, `mdx.tsx`, and `registry.ts`
+- Build verified: `yarn build` passes
+
+### Files created
+
+| File | Purpose |
+|------|---------|
+| `docs/guides/integrations/bring-your-own-oauth.mdx` | How-to guide page |
+| `site/src/components/docs/demos/scenarios/byoa-setup/index.tsx` | Demo component |
+| `site/src/components/docs/demos/scenarios/byoa-setup/steps.ts` | Fixtures + step data |
+| `_projects/2026-04/20260413.02.mcp-integration-docs/tasks/T04_0_plan.md` | Task plan file |
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `sdk/react/src/mcp-server/McpServerDetailView.tsx` | Added `data-cursor-target` on BYOA CTA button |
+| `site/src/components/docs/index.ts` | Export `DemoByoaSetup` |
+| `site/src/components/mdx.tsx` | Register in MDX component map |
+| `site/src/components/docs/demos/scenarios/registry.ts` | Register for video export |
+
 ## Next Steps
 
-1. Start T04: BYOA guide + demo
-2. Write `docs/guides/integrations/bring-your-own-oauth.mdx`
-3. Build `byoa-setup` demo (BYOA flow with org-level OAuth app override)
+1. Start T05: Architecture transparency page
+2. Write `docs/guides/integrations/oauth-architecture.mdx`
+3. Build mermaid diagrams for resolution chain, token lifecycle, credential storage
 
 ## Task Map
 
@@ -232,7 +272,7 @@ Side-track from the docs project to address UX gaps found during BYOA testing:
 | T01 | Concepts expansion + nav setup | COMPLETE |
 | T02 | Marketplace and connect guides + demos | COMPLETE |
 | T03 | OAuth for tools guide + hero demo | COMPLETE |
-| T04 | BYOA guide + demo | Not started |
+| T04 | BYOA guide + demo | COMPLETE |
 | T05 | Architecture transparency page | Not started |
 | T06 | Tutorial completion + demo updates | Not started |
 | T07 | SDK reference polish | Not started |
