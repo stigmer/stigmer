@@ -242,6 +242,6 @@ All 10 identified architectural gaps are addressed:
 
 ## Follow-up Items
 
-1. **`useMcpServerSetup` / picker wiring**: Config panel accepts BYOA props but the picker's orchestrator doesn't wire them yet — natural follow-up
+1. ~~**`useMcpServerSetup` / picker wiring**~~: **Resolved** (2026-04-13) — After analysis, BYOA setup is an admin task that belongs on the detail page (already fully wired). The picker silently benefits from BYOA via the backend resolution chain. The actual bug was `isVendorApprovalBlocked` not being passed (REJECTED status ignored) — fixed in `ad1403adb`.
 2. **Provider name resolution**: `OAuthAppForm` uses MCP server name as provider name; a dedicated `provider` field on `OAuthStatus` would be cleaner
-3. **`VendorApprovalStatus.REJECTED` end-to-end test**: Frontend now handles REJECTED but no seedpack server has this status — verify when one does
+3. ~~**`VendorApprovalStatus.REJECTED` end-to-end test**~~: **Partially resolved** (2026-04-13) — Picker now handles REJECTED via `isVendorApprovalBlocked`. Full end-to-end test still blocked on no seedpack server having REJECTED status.
