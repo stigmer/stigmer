@@ -70,9 +70,37 @@ When starting a new session:
 **Created**: 2026-04-13
 **Current Task**: T02 — Marketplace and connect guides + demos
 **Status**: Ready to start T02
-**Last Session**: 2026-04-13 — Completed T01
+**Last Session**: 2026-04-13 — Side-track: OAuth Apps settings page + BYOA dialog fix
 
-## Session Progress (2026-04-13)
+## Session Progress (2026-04-13, session 2 — side-track)
+
+Side-track from the docs project to address UX gaps found during BYOA testing:
+
+- **BYOA dialog fix**: Added `m-auto` to the native `<dialog>` in
+  `McpServerDetailView.tsx` — Tailwind v4 preflight strips `margin: auto`,
+  causing the dialog to render in the top-left corner instead of centered
+- **OAuth Apps settings page**: New `@stigmer/react` module (`oauth-app/`)
+  with `useOAuthAppList` data hook and `OAuthAppListPanel` styled component.
+  New Console route at `/settings/oauth-apps` under Configuration group.
+  Read-only list of org-level BYOA OAuth apps.
+- No backend changes required — used existing IAM `OAuthApp.listByOrg` API
+- Committed: `ad229c983` on `feat/mcp-integration-docs`
+- Changelog: `_changelog/2026-04/2026-04-13-184626-oauth-apps-settings-page.md`
+
+### Files created/modified in this session
+
+| File | Change |
+|------|--------|
+| `sdk/react/src/mcp-server/McpServerDetailView.tsx` | Bug fix: `m-auto` on BYOA `<dialog>` |
+| `sdk/react/src/oauth-app/useOAuthAppList.ts` | New data hook |
+| `sdk/react/src/oauth-app/OAuthAppListPanel.tsx` | New styled component |
+| `sdk/react/src/oauth-app/index.ts` | New module barrel |
+| `sdk/react/src/index.ts` | Root barrel re-exports (in parallel commit `92cf04596`) |
+| `client-apps/web/src/app/settings/oauth-apps/page.tsx` | New route page |
+| `client-apps/web/src/components/settings/OAuthAppsSection.tsx` | New settings section |
+| `client-apps/web/src/components/layout/settings-nav.ts` | Nav item + description update |
+
+## Session Progress (2026-04-13, session 1 — T01)
 
 - Expanded `docs/concepts/tools.mdx` (163 -> 257 lines) with 3 new sections
   (tool library, connecting a tool, authentication) and 2 updated sections
@@ -87,6 +115,14 @@ When starting a new session:
 
 ## Key Decisions
 
+- **BYOA dialog: `m-auto` not global CSS**: Fixed the specific `<dialog>`
+  element rather than adding a global CSS rule for all dialogs — scoped fix
+  is safer for the SDK component library
+- **OAuth Apps page: read-only list, not CRUD**: Creation is inherently
+  per-MCP-server (backend clones from template); settings page is a
+  visibility surface only. Creation/editing stays on MCP server detail pages.
+- **No backend changes**: Used existing `listByOrg` IAM API. A future
+  `listOrgOAuthAppOverrides` RPC could add MCP server association context.
 - **IA document update dropped**: the live `meta.json` files are the source of
   truth; adding one entry to a stale 778-line planning document creates false
   confidence
