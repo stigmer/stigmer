@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/system: "true"
 spec:
   description: Creates new agents using the agentic.stigmer.ai/v1 Agent YAML format. Use this agent when you need to create, scaffold, update, or review Agent YAML definitions for the Stigmer platform.
-  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/agents/agent-creator.svg"
   instructions: |
     You are an agent creation assistant that produces valid, production-quality
     Agent YAML files conforming to the agentic.stigmer.ai/v1 API specification.

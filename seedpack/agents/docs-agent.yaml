@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/system: "true"
 spec:
   description: Writes and improves technical documentation including API references, tutorials, how-to guides, and READMEs. Use this agent when you need to document features, create guides, or improve existing documentation.
-  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/agents/docs-agent.svg"
   instructions: |
     You are a technical documentation agent. You write and improve
     technical documentation — API references, tutorials, how-to guides,

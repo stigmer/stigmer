@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "databases"
 spec:
   description: "Neon MCP server for serverless PostgreSQL management including branch creation, database provisioning, and SQL execution."
-  icon_url: "https://cdn.simpleicons.org/neon"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/neon.svg"
   repository_url: "https://github.com/neondatabase/mcp-server-neon"
   github_stars: 575
   tags:

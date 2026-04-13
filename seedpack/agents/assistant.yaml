@@ -8,7 +8,7 @@ metadata:
     stigmer.ai/default-agent: "true"
 spec:
   description: General-purpose AI assistant.
-  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/agents/assistant.svg"
   instructions: |
     You are a general-purpose AI assistant. Help users accomplish
     whatever they need using the tools available to you.

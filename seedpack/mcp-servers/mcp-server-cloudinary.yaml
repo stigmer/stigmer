@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "developer-tools"
 spec:
   description: "Cloudinary MCP server for managing digital assets, uploading images and videos, applying transformations, and optimizing media delivery."
-  icon_url: "https://cdn.simpleicons.org/cloudinary"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/cloudinary.svg"
   repository_url: "https://github.com/cloudinary/mcp-servers"
   github_stars: 8
   tags:

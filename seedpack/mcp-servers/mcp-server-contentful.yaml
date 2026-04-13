@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "developer-tools"
 spec:
   description: "Contentful MCP server for content entry management, asset operations, content model configuration, and space administration."
-  icon_url: "https://cdn.simpleicons.org/contentful"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/contentful.svg"
   repository_url: "https://github.com/contentful/contentful-mcp-server"
   github_stars: 0
   tags:

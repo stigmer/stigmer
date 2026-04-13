@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "productivity"
 spec:
   description: "monday.com MCP server for board management, item tracking, workflow automation, and team collaboration."
-  icon_url: "https://cdn.simpleicons.org/monday"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/mondaydotcom.svg"
   repository_url: "https://github.com/mondaycom/mcp"
   github_stars: 387
   tags:
