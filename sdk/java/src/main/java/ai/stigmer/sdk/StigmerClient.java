@@ -1,24 +1,6 @@
 package ai.stigmer.sdk;
 
-import ai.stigmer.sdk.gen.AgentClient;
-import ai.stigmer.sdk.gen.AgentExecutionClient;
-import ai.stigmer.sdk.gen.AgentInstanceClient;
-import ai.stigmer.sdk.gen.ApiKeyClient;
-import ai.stigmer.sdk.gen.EnvironmentClient;
-import ai.stigmer.sdk.gen.ExecutionContextClient;
 import ai.stigmer.sdk.gen.GeneratedClient;
-import ai.stigmer.sdk.gen.IamPolicyClient;
-import ai.stigmer.sdk.gen.IdentityAccountClient;
-import ai.stigmer.sdk.gen.IdentityProviderClient;
-import ai.stigmer.sdk.gen.McpServerClient;
-import ai.stigmer.sdk.gen.OAuthAppClient;
-import ai.stigmer.sdk.gen.OrganizationClient;
-import ai.stigmer.sdk.gen.ProjectClient;
-import ai.stigmer.sdk.gen.SessionClient;
-import ai.stigmer.sdk.gen.SkillClient;
-import ai.stigmer.sdk.gen.WorkflowClient;
-import ai.stigmer.sdk.gen.WorkflowExecutionClient;
-import ai.stigmer.sdk.gen.WorkflowInstanceClient;
 import ai.stigmer.sdk.internal.transport.StigmerChannel;
 import io.grpc.ManagedChannel;
 
@@ -28,9 +10,17 @@ import java.util.concurrent.TimeUnit;
 /**
  * Top-level Stigmer API client.
  *
- * <p>Provides typed access to all Stigmer platform resources via sub-client
- * accessor methods. Create one with the builder and use try-with-resources
- * to ensure the underlying gRPC connection is closed.
+ * <p>Extends the code-generated {@link GeneratedClient} so every resource
+ * sub-client (agents, sessions, mcpServers, oauthApps, …) is inherited
+ * automatically — new resource clients added by codegen appear on this
+ * class without manual wiring.
+ *
+ * <p>On top of the generated resource clients, {@code StigmerClient} adds:
+ * <ul>
+ *   <li>Configuration and gRPC channel setup</li>
+ *   <li>Cross-resource {@link #search()} client</li>
+ *   <li>{@link #github()} OAuth integration client</li>
+ * </ul>
  *
  * <pre>{@code
  * try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
@@ -42,20 +32,18 @@ import java.util.concurrent.TimeUnit;
  * }
  * }</pre>
  */
-public final class StigmerClient implements AutoCloseable {
+public final class StigmerClient extends GeneratedClient implements AutoCloseable {
 
     private static final String DEFAULT_TARGET = "api.stigmer.ai:443";
     private static final long SHUTDOWN_TIMEOUT_SECONDS = 5;
 
     private final ManagedChannel channel;
-    private final GeneratedClient generated;
     private final SearchClient search;
     private final GitHubClient github;
 
-    private StigmerClient(Builder builder) {
-        this.channel = StigmerChannel.create(new StigmerChannel.Config(
-                builder.baseUrl, builder.apiKey, builder.insecure));
-        this.generated = new GeneratedClient(channel);
+    private StigmerClient(ManagedChannel channel) {
+        super(channel);
+        this.channel = channel;
         this.search = new SearchClient(channel);
         this.github = new GitHubClient(channel);
     }
@@ -65,33 +53,10 @@ public final class StigmerClient implements AutoCloseable {
         return new Builder(apiKey);
     }
 
-    // -- Resource sub-client accessors ----------------------------------------
-
-    public AgentClient agents() { return generated.agent; }
-    public AgentExecutionClient agentExecutions() { return generated.agentExecution; }
-    public AgentInstanceClient agentInstances() { return generated.agentInstance; }
-    public ApiKeyClient apiKeys() { return generated.apiKey; }
-    public EnvironmentClient environments() { return generated.environment; }
-    public ExecutionContextClient executionContexts() { return generated.executionContext; }
-    public IamPolicyClient iamPolicies() { return generated.iamPolicy; }
-    public IdentityAccountClient identityAccounts() { return generated.identityAccount; }
-    public IdentityProviderClient identityProviders() { return generated.identityProvider; }
-    public McpServerClient mcpServers() { return generated.mcpServer; }
-    public OAuthAppClient oauthApps() { return generated.oauthapp; }
-    public OrganizationClient organizations() { return generated.organization; }
-    public ProjectClient projects() { return generated.project; }
-    public SessionClient sessions() { return generated.session; }
-    public SkillClient skills() { return generated.skill; }
-    public WorkflowClient workflows() { return generated.workflow; }
-    public WorkflowExecutionClient workflowExecutions() { return generated.workflowExecution; }
-    public WorkflowInstanceClient workflowInstances() { return generated.workflowInstance; }
-
-    // -- Search ---------------------------------------------------------------
+    // -- Extra clients (not code-generated) ------------------------------------
 
     /** Returns the cross-resource search client. */
     public SearchClient search() { return search; }
-
-    // -- GitHub ---------------------------------------------------------------
 
     /** Returns the GitHub OAuth integration client. */
     public GitHubClient github() { return github; }
@@ -148,7 +113,9 @@ public final class StigmerClient implements AutoCloseable {
 
         /** Builds the {@link StigmerClient}. */
         public StigmerClient build() {
-            return new StigmerClient(this);
+            ManagedChannel channel = StigmerChannel.create(new StigmerChannel.Config(
+                    baseUrl, apiKey, insecure));
+            return new StigmerClient(channel);
         }
     }
 }
