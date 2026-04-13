@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { getUserMessage, isRetryableError } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type {
   DiscoveredTool,
   DiscoveredResourceTemplate,
@@ -17,6 +19,7 @@ import { useMcpServerConnect } from "./useMcpServerConnect";
 import { useMcpServerCredentials } from "./useMcpServerCredentials";
 import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
 import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect";
+import { useDisconnectOAuth } from "./useDisconnectOAuth";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
@@ -124,6 +127,7 @@ export function McpServerDetailView({
   const credentials = useMcpServerCredentials(activeOrg ?? org, mcpServer ?? null);
   const connection = useMcpServerConnect();
   const oauth = useMcpServerOAuthConnect();
+  const disconnectOAuth = useDisconnectOAuth();
 
   const [showCredentialForm, setShowCredentialForm] = useState(defaultShowCredentialForm);
   const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>(defaultCapabilityTab);
@@ -205,6 +209,17 @@ export function McpServerDetailView({
     },
     [credentials, mcpServer, connection, refetch],
   );
+
+  const handleDisconnect = useCallback(async () => {
+    if (!mcpServer?.metadata?.id) return;
+    try {
+      await disconnectOAuth.disconnect(mcpServer.metadata.id, activeOrg ?? org);
+      credentials.refetch();
+      refetch();
+    } catch {
+      // error state is managed by the disconnect hook
+    }
+  }, [mcpServer, disconnectOAuth, credentials, refetch, activeOrg, org]);
 
   const spec = mcpServer?.spec;
   const status = mcpServer?.status;
@@ -294,6 +309,13 @@ export function McpServerDetailView({
           oauthPhase={oauth.phase}
           authMode={credentials.authMode}
           isOAuthConnected={credentials.isOAuthConnected}
+          connectionHealth={credentials.connectionHealth}
+          canDisconnect={credentials.canDisconnect}
+          onDisconnect={handleDisconnect}
+          isDisconnecting={disconnectOAuth.isDisconnecting}
+          disconnectError={disconnectOAuth.error}
+          onClearDisconnectError={disconnectOAuth.clearError}
+          serverName={mcpServer?.metadata?.name ?? slug}
           accessTokenExpiresAt={credentials.accessTokenExpiresAt}
           tokenLifetimeHint={credentials.tokenLifetimeHint}
           isVendorApprovalPending={credentials.isVendorApprovalPending}
@@ -362,6 +384,73 @@ export function McpServerDetailView({
 // ConnectBar — single entry point for capability discovery
 // ---------------------------------------------------------------------------
 
+/** Maps an OAuthConnectionHealth enum to pill display properties. */
+function healthPillProps(
+  health: OAuthConnectionHealth,
+  isVendorApprovalPending: boolean,
+): { pillClass: string; dotClass: string; label: string } {
+  if (isVendorApprovalPending) {
+    return {
+      pillClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      dotClass: "bg-amber-500",
+      label: "Pending approval",
+    };
+  }
+  switch (health) {
+    case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY:
+      return {
+        pillClass: "bg-success/10 text-success",
+        dotClass: "bg-success",
+        label: "Connected",
+      };
+    case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE:
+      return {
+        pillClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+        dotClass: "bg-amber-500",
+        label: "Token expired",
+      };
+    case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED:
+      return {
+        pillClass: "bg-destructive/10 text-destructive",
+        dotClass: "bg-destructive",
+        label: "Re-auth needed",
+      };
+    default:
+      return {
+        pillClass: "bg-muted text-muted-foreground",
+        dotClass: "bg-muted-foreground",
+        label: "Not connected",
+      };
+  }
+}
+
+/** Health-aware status detail text shown alongside the pill. */
+function healthStatusText(
+  health: OAuthConnectionHealth,
+  accessTokenExpiresAt: bigint,
+  tokenLifetimeHint: string | null,
+): string {
+  switch (health) {
+    case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY: {
+      const expiryLabel = formatTokenExpiry(accessTokenExpiresAt);
+      if (expiryLabel) return `Tokens refresh automatically \u00B7 ${expiryLabel}`;
+      const hint =
+        tokenLifetimeHint && tokenLifetimeHint !== "never"
+          ? ` \u00B7 Session lasts ~${tokenLifetimeHint}`
+          : "";
+      return `Tokens refresh automatically${hint}`;
+    }
+    case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE:
+      return "Will refresh automatically on next use";
+    case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED:
+      return "Token expired \u2014 sign in again to reconnect";
+    default:
+      return "Not connected yet";
+  }
+}
+
+type DisconnectPhase = "idle" | "confirming" | "disconnecting";
+
 function ConnectBar({
   isConnecting,
   connectionError,
@@ -374,6 +463,13 @@ function ConnectBar({
   oauthPhase,
   authMode,
   isOAuthConnected,
+  connectionHealth,
+  canDisconnect,
+  onDisconnect,
+  isDisconnecting,
+  disconnectError,
+  onClearDisconnectError,
+  serverName,
   accessTokenExpiresAt,
   tokenLifetimeHint,
   isVendorApprovalPending,
@@ -393,6 +489,13 @@ function ConnectBar({
   readonly oauthPhase: OAuthConnectPhase;
   readonly authMode: "manual" | "oauth";
   readonly isOAuthConnected: boolean;
+  readonly connectionHealth: OAuthConnectionHealth;
+  readonly canDisconnect: boolean;
+  readonly onDisconnect: () => Promise<void>;
+  readonly isDisconnecting: boolean;
+  readonly disconnectError: Error | null;
+  readonly onClearDisconnectError: () => void;
+  readonly serverName: string;
   readonly accessTokenExpiresAt: bigint;
   readonly tokenLifetimeHint: string | null;
   readonly isVendorApprovalPending: boolean;
@@ -401,6 +504,8 @@ function ConnectBar({
   readonly onManualOverride: () => void;
   readonly onBackToOAuth: () => void;
 }) {
+  const [disconnectPhase, setDisconnectPhase] = useState<DisconnectPhase>("idle");
+
   const isOAuthBusy =
     oauthPhase === "initiating" ||
     oauthPhase === "awaiting-callback" ||
@@ -410,36 +515,110 @@ function ConnectBar({
   const showOAuthPrimary =
     authMode === "oauth" && !isOAuthConnected && !manualOverride;
 
+  const needsReAuth =
+    connectionHealth === OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
+
   const oauthSignInDisabled = isVendorApprovalPending && showOAuthPrimary;
+
+  const anyBusy = isConnecting || isOAuthBusy || isDisconnecting;
 
   const buttonLabel = (() => {
     if (isOAuthBusy) return oauthPhaseLabel(oauthPhase);
     if (isConnecting) return "Connecting...";
-    if (showOAuthPrimary) return "Sign in to connect";
+    if (showOAuthPrimary || needsReAuth) return "Sign in to connect";
     if (hasDiscoveredTools) return "Reconnect";
     return "Connect";
   })();
 
   const buttonIcon = (() => {
     if (isOAuthBusy || isConnecting) return <Spinner />;
-    if (showOAuthPrimary) return <OAuthIcon className="size-3.5" />;
+    if (showOAuthPrimary || needsReAuth) return <OAuthIcon className="size-3.5" />;
     if (hasDiscoveredTools) return <RefreshIcon className="size-3.5" />;
     return <ConnectIcon className="size-3.5" />;
   })();
 
   const statusText = (() => {
     if (authMode === "oauth" && isOAuthConnected) {
-      const expiryLabel = formatTokenExpiry(accessTokenExpiresAt);
-      if (expiryLabel) return `Tokens refresh automatically \u00B7 ${expiryLabel}`;
-      const hint = tokenLifetimeHint && tokenLifetimeHint !== "never"
-        ? ` \u00B7 Session lasts ~${tokenLifetimeHint}`
-        : "";
-      return `Tokens refresh automatically${hint}`;
+      return healthStatusText(connectionHealth, accessTokenExpiresAt, tokenLifetimeHint);
     }
     if (manualOverride) return "Entering token manually";
     if (hasDiscoveredTools) return formatConnectionSummary(toolCount, policyCount);
     return "Not connected yet";
   })();
+
+  const pill = healthPillProps(connectionHealth, isVendorApprovalPending && !isOAuthConnected);
+
+  const showDisconnectLink =
+    canDisconnect && !anyBusy && !manualOverride && disconnectPhase === "idle";
+
+  // Inline disconnect confirmation replaces the main bar content
+  if (disconnectPhase === "confirming" || disconnectPhase === "disconnecting") {
+    return (
+      <div className="flex flex-col">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <WarningIcon className="size-3.5 shrink-0 text-destructive" />
+          <p className="flex-1 text-xs text-foreground">
+            Remove OAuth credentials for <span className="font-medium">{serverName}</span>?
+            You can reconnect at any time.
+          </p>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              disabled={isDisconnecting}
+              onClick={async () => {
+                setDisconnectPhase("disconnecting");
+                try {
+                  await onDisconnect();
+                  setDisconnectPhase("idle");
+                } catch {
+                  setDisconnectPhase("confirming");
+                }
+              }}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
+                "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {isDisconnecting && <Spinner />}
+              Disconnect
+            </button>
+            <button
+              type="button"
+              disabled={isDisconnecting}
+              onClick={() => {
+                setDisconnectPhase("idle");
+                onClearDisconnectError();
+              }}
+              className={cn(
+                "inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium",
+                "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+        {disconnectError && (
+          <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2">
+            <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+            <p className="flex-1 text-xs text-destructive">
+              {getUserMessage(disconnectError)}
+            </p>
+            <button
+              type="button"
+              onClick={onClearDisconnectError}
+              className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
+              aria-label="Dismiss error"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">
@@ -449,39 +628,37 @@ function ConnectBar({
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                isOAuthConnected
-                  ? "bg-success/10 text-success"
-                  : oauthSignInDisabled
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                    : "bg-muted text-muted-foreground",
+                pill.pillClass,
               )}
             >
               <span
-                className={cn(
-                  "size-1.5 rounded-full",
-                  isOAuthConnected
-                    ? "bg-success"
-                    : oauthSignInDisabled
-                      ? "bg-amber-500"
-                      : "bg-muted-foreground",
-                )}
+                className={cn("size-1.5 rounded-full", pill.dotClass)}
                 aria-hidden="true"
               />
-              {isOAuthConnected ? "Connected" : oauthSignInDisabled ? "Pending approval" : "Not connected"}
+              {pill.label}
             </span>
           )}
           <span className="text-xs text-muted-foreground">
             {oauthSignInDisabled ? "OAuth sign-in is pending vendor approval" : statusText}
           </span>
+          {showDisconnectLink && (
+            <button
+              type="button"
+              onClick={() => setDisconnectPhase("confirming")}
+              className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            >
+              Disconnect
+            </button>
+          )}
         </div>
         <button
           type="button"
           onClick={onConnect}
-          disabled={isConnecting || isOAuthBusy || credentialsLoading || oauthSignInDisabled}
+          disabled={anyBusy || credentialsLoading || oauthSignInDisabled}
           data-cursor-target="connect-button"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-            showOAuthPrimary
+            showOAuthPrimary || needsReAuth
               ? "bg-primary text-primary-foreground hover:bg-primary-hover"
               : "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
             "disabled:pointer-events-none disabled:opacity-50",
@@ -540,19 +717,36 @@ function ConnectBar({
       )}
 
       {connectionError && (
-        <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2">
+        <div
+          className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2"
+          role="alert"
+        >
           <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
           <p className="flex-1 text-xs text-destructive">
-            {connectionError.message}
+            {getUserMessage(connectionError)}
           </p>
-          <button
-            type="button"
-            onClick={onClearConnectionError}
-            className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
-            aria-label="Dismiss error"
-          >
-            Dismiss
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {isRetryableError(connectionError) && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClearConnectionError();
+                  onConnect();
+                }}
+                className="text-xs font-medium text-destructive underline underline-offset-2 hover:no-underline"
+              >
+                Try again
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClearConnectionError}
+              className="text-xs text-destructive/70 hover:text-destructive"
+              aria-label="Dismiss error"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
     </div>

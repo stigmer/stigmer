@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { EnvVarInput } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { diffEnv } from "../environment/diffEnv";
@@ -41,6 +42,20 @@ export interface UseMcpServerCredentialsReturn {
    * environment key presence. Always `false` when `authMode` is `"manual"`.
    */
   readonly isOAuthConnected: boolean;
+  /**
+   * Health of the OAuth connection for this server.
+   *
+   * Provides a four-state signal beyond the binary `isOAuthConnected`:
+   * healthy, expired-but-refreshable, expired (re-auth needed), or no
+   * grant. `UNSPECIFIED` when `authMode` is `"manual"` or the status
+   * has not been fetched yet.
+   */
+  readonly connectionHealth: OAuthConnectionHealth;
+  /**
+   * `true` when the user can disconnect (i.e., an OAuth grant exists).
+   * Always `false` when `authMode` is `"manual"` or no grant is present.
+   */
+  readonly canDisconnect: boolean;
   /**
    * When the OAuth access token expires (Unix timestamp seconds).
    * `BigInt(0)` when no grant exists, `authMode` is `"manual"`, or the token
@@ -264,6 +279,8 @@ export function useMcpServerCredentials(
     authMode,
     oauthTargetEnvVar,
     isOAuthConnected,
+    connectionHealth: grantStatus.connectionHealth,
+    canDisconnect: isOAuthConnected,
     accessTokenExpiresAt: grantStatus.accessTokenExpiresAt,
     tokenLifetimeHint,
     isVendorApprovalPending,
