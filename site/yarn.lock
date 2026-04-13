@@ -2746,16 +2746,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=afff70&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=bcb579&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:^2.5.1"
-  checksum: 10c0/925bbe049867342ac01d953f21e6c70c7e1413277b382079daf0e4fc9be059981cbe68851440dc8bf35c979b90aa3e248fae208e2f18790ecff95f70565b2561
+  checksum: 10c0/88aa5966fbdb229151642706f414b3ae7c8c81a8a99dbf1d566b0d18a818a1cad8b868aa7cd9eb424cc51aff8d7fe1e10d8a6636a1876c3c5fd0befc115faa80
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=fef54a&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=90d4f4&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/theme": "npm:*"
     react-markdown: "npm:^10.1.0"
@@ -2771,20 +2771,20 @@ __metadata:
   peerDependenciesMeta:
     "@base-ui/react":
       optional: true
-  checksum: 10c0/f0ee4f9646b89d55b496047497aa1fb7676911e6722462b73dac7dc2b6e5b0c161fce0c2b1a59ada26416dad8f8b82cafb4aecaf8e6a53e52b60e7c5d13a1971
+  checksum: 10c0/f130b102818ca8353a7731112b6be7555fdfa6f8db9c0053c80e956c07326e56a727d572a8e7b9dee2aa0d2b77ddd919a6b8d133523e6fd2c0abbff2405ecc04
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=56c195&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=15aeb3&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
   peerDependencies:
     "@bufbuild/protobuf": ^2.0.0
     "@stigmer/protos": "*"
-  checksum: 10c0/a752d072c2fc9348a98097684df0e71cb5a8442430fd3d45f924a2d5f6cc9f74d7cbd65dc257b93fae17a40e983de17bfb5518c6ef166544b78c050b62ce43ce
+  checksum: 10c0/14e86dd75af453f56c7b8941e7667a84706897025dca623c9a5815a37b4fe82f7020f7ca54a170c79c0789f77f5753fd821a87f23f48dfc766510717a3678c13
   languageName: node
   linkType: hard
 
