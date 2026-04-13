@@ -151,6 +151,7 @@ function renderStep(step: AgentCreationStep) {
             createLabel="Add Agent"
             cursorTarget="create-agent"
             items={EXISTING_AGENTS}
+            layout="grid"
           />
         </AppShell>
       );
@@ -163,6 +164,7 @@ function renderStep(step: AgentCreationStep) {
             createLabel="Add Agent"
             cursorTarget="create-agent"
             items={EXISTING_AGENTS}
+            layout="grid"
             highlightCreate
           />
         </AppShell>
@@ -244,6 +246,7 @@ function renderStep(step: AgentCreationStep) {
             createLabel="Add Agent"
             cursorTarget="create-agent"
             items={ALL_AGENTS}
+            layout="grid"
             showNewItem
           />
         </AppShell>

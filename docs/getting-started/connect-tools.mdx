@@ -34,6 +34,15 @@ and an external system — an API, a database, an internal service. Stigmer
 connects to any server that speaks the
 [Model Context Protocol](https://modelcontextprotocol.io/).
 
+<Callout type="info">
+  Stigmer includes a curated library of pre-built MCP servers for GitHub,
+  PostgreSQL, Slack, and dozens more. If you want to connect an existing server
+  rather than create one, see the [marketplace
+  guide](/docs/guides/integrations/connect-from-marketplace). This tutorial
+  walks through creating one from scratch so you understand how MCP server
+  definitions work.
+</Callout>
+
 <Steps>
 <Step>
 
@@ -430,3 +439,26 @@ has no personality — it uses a generic prompt for every interaction.
 
 In the next guide, you'll bundle all of this into a reusable Agent with its own
 name, role, and instructions — then reference it with a single line.
+
+## Going deeper
+
+<Cards>
+  <Card
+    href="/docs/guides/integrations/connect-from-marketplace"
+    title="Connect from the marketplace"
+  >
+    Browse the curated library and connect pre-built servers without creating a
+    definition from scratch.
+  </Card>
+  <Card
+    href="/docs/guides/integrations/oauth-for-tools"
+    title="OAuth for tools"
+  >
+    Set up OAuth-authenticated tool connections for services like GitHub, Slack,
+    and Figma.
+  </Card>
+  <Card href="/docs/concepts/tools" title="Tools concept">
+    How tool discovery, approval policies, and sandbox isolation work under the
+    hood.
+  </Card>
+</Cards>
