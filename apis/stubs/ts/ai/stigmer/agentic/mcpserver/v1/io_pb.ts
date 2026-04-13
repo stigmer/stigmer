@@ -2,8 +2,8 @@
 // @generated from file ai/stigmer/agentic/mcpserver/v1/io.proto (package ai.stigmer.agentic.mcpserver.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ExecutionValue } from "../../executioncontext/v1/spec_pb";
 import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executioncontext/v1/spec_pb";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiggIKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkSFAoDb3JnGAMgASgJQge6SARyAhABGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAEiUAoZSW5pdGlhdGVPQXV0aENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIm0KGkluaXRpYXRlT0F1dGhDb25uZWN0T3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEg4KBnNjb3BlcxgDIAMoCRIVCg1wcm92aWRlcl9uYW1lGAQgASgJIncKGUNvbXBsZXRlT0F1dGhDb25uZWN0SW5wdXQSHQoNbWNwX3NlcnZlcl9pZBgBIAEoCUIGukgDyAEBEiMKEmF1dGhvcml6YXRpb25fY29kZRgCIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgDIAEoCUIHukgEcgIQASJkChpDb21wbGV0ZU9BdXRoQ29ubmVjdE91dHB1dBIRCgljb25uZWN0ZWQYASABKAgSFgoOdGFyZ2V0X2Vudl92YXIYAiABKAkSGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCSJNChhHZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEifAoZR2V0T0F1dGhHcmFudFN0YXR1c091dHB1dBIRCgljb25uZWN0ZWQYASABKAgSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAiABKAMSFgoOdGFyZ2V0X2Vudl92YXIYAyABKAkSEwoLYXV0aF9tZXRob2QYBCABKAliBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiggIKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkSFAoDb3JnGAMgASgJQge6SARyAhABGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAEiUAoZSW5pdGlhdGVPQXV0aENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIm0KGkluaXRpYXRlT0F1dGhDb25uZWN0T3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEg4KBnNjb3BlcxgDIAMoCRIVCg1wcm92aWRlcl9uYW1lGAQgASgJIncKGUNvbXBsZXRlT0F1dGhDb25uZWN0SW5wdXQSHQoNbWNwX3NlcnZlcl9pZBgBIAEoCUIGukgDyAEBEiMKEmF1dGhvcml6YXRpb25fY29kZRgCIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgDIAEoCUIHukgEcgIQASJkChpDb21wbGV0ZU9BdXRoQ29ubmVjdE91dHB1dBIRCgljb25uZWN0ZWQYASABKAgSFgoOdGFyZ2V0X2Vudl92YXIYAiABKAkSGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCSJNChhHZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEizwEKGUdldE9BdXRoR3JhbnRTdGF0dXNPdXRwdXQSEQoJY29ubmVjdGVkGAEgASgIEh8KF2FjY2Vzc190b2tlbl9leHBpcmVzX2F0GAIgASgDEhYKDnRhcmdldF9lbnZfdmFyGAMgASgJEhMKC2F1dGhfbWV0aG9kGAQgASgJElEKEWNvbm5lY3Rpb25faGVhbHRoGAUgASgOMjYuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5PQXV0aENvbm5lY3Rpb25IZWFsdGgiSQoURGlzY29ubmVjdE9BdXRoSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEiLQoVRGlzY29ubmVjdE9BdXRoT3V0cHV0EhQKDGRpc2Nvbm5lY3RlZBgBIAEoCCKEAQoTU2V0T3JnT0F1dGhBcHBJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQARIaCgljbGllbnRfaWQYAyABKAlCB7pIBHICEAESHgoNY2xpZW50X3NlY3JldBgEIAEoCUIHukgEcgIQASIsChRTZXRPcmdPQXV0aEFwcE91dHB1dBIUCgxvYXV0aF9hcHBfaWQYASABKAkiSAoTR2V0T3JnT0F1dGhBcHBJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQASJVChRHZXRPcmdPQXV0aEFwcE91dHB1dBIUCgxoYXNfb3ZlcnJpZGUYASABKAgSFAoMb2F1dGhfYXBwX2lkGAIgASgJEhEKCWNsaWVudF9pZBgDIAEoCSJLChZEZWxldGVPcmdPQXV0aEFwcElucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIioKF0RlbGV0ZU9yZ09BdXRoQXBwT3V0cHV0Eg8KB2RlbGV0ZWQYASABKAgq7QEKFU9BdXRoQ29ubmVjdGlvbkhlYWx0aBInCiNPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9VTlNQRUNJRklFRBAAEiMKH09BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX0hFQUxUSFkQARIpCiVPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9UT0tFTl9FWFBJUkVEEAISNQoxT0FVVEhfQ09OTkVDVElPTl9IRUFMVEhfVE9LRU5fRVhQSVJFRF9SRUZSRVNIQUJMRRADEiQKIE9BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX05PX0dSQU5UEARiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
 
 /**
  * McpServerId wraps an MCP server resource identifier.
@@ -363,6 +363,16 @@ export type GetOAuthGrantStatusOutput = Message<"ai.stigmer.agentic.mcpserver.v1
    * @generated from field: string auth_method = 4;
    */
   authMethod: string;
+
+  /**
+   * Evaluated health of the OAuth connection.
+   * Provides an actionable signal beyond the binary "connected" field:
+   * the frontend can distinguish "healthy" from "expired but refreshable"
+   * from "expired and needs re-auth" from "never connected."
+   *
+   * @generated from field: ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth connection_health = 5;
+   */
+  connectionHealth: OAuthConnectionHealth;
 };
 
 /**
@@ -371,4 +381,362 @@ export type GetOAuthGrantStatusOutput = Message<"ai.stigmer.agentic.mcpserver.v1
  */
 export const GetOAuthGrantStatusOutputSchema: GenMessage<GetOAuthGrantStatusOutput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 7);
+
+/**
+ * DisconnectOAuthInput tears down a user's OAuth connection for a resource.
+ *
+ * @internal
+ * The handler:
+ * 1. Finds the OAuthGrant for (caller, resource_id, org)
+ * 2. Deletes the managed Environment that holds the tokens
+ * 3. Deletes the OAuthGrant record
+ *
+ * After this, the user's access token and refresh token are gone. The
+ * MCP server remains configured — only the user's personal OAuth connection
+ * is removed. Other users' connections to the same resource are unaffected.
+ *
+ * Prerequisites:
+ * - The resource must exist
+ * - The caller must have an active OAuthGrant for this resource + org
+ *
+ * Errors:
+ * - NOT_FOUND: No grant exists for this resource + org + caller
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput
+ */
+export type DisconnectOAuthInput = Message<"ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput"> & {
+  /**
+   * System-generated ID of the resource to disconnect OAuth for.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * Organization context. Must match the org used during the original
+   * OAuth connect flow (part of the OAuthGrant composite key).
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput.
+ * Use `create(DisconnectOAuthInputSchema)` to create a new message.
+ */
+export const DisconnectOAuthInputSchema: GenMessage<DisconnectOAuthInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 8);
+
+/**
+ * DisconnectOAuthOutput confirms that the OAuth connection was torn down.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput
+ */
+export type DisconnectOAuthOutput = Message<"ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput"> & {
+  /**
+   * Whether the disconnect completed successfully.
+   * true: grant deleted, managed environment deleted.
+   * false should not normally occur — errors are returned as RPC status.
+   *
+   * @generated from field: bool disconnected = 1;
+   */
+  disconnected: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput.
+ * Use `create(DisconnectOAuthOutputSchema)` to create a new message.
+ */
+export const DisconnectOAuthOutputSchema: GenMessage<DisconnectOAuthOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 9);
+
+/**
+ * SetOrgOAuthAppInput creates or updates an org-level BYOA OAuth app
+ * override for a resource.
+ *
+ * @internal
+ * The handler:
+ * 1. Looks up the platform-default OAuthApp via the resource's auth block
+ *    to use as a template (authorization_url, token_url, scopes, etc.)
+ * 2. Creates a new OAuthApp with the org-provided client_id + client_secret
+ *    and the template's endpoint URLs and scopes
+ * 3. Creates or updates an OAuthAppOverride binding
+ *    (resource_id, resource_kind, org_id) → new OAuthApp ID
+ *
+ * If an override already exists for this resource + org, the handler
+ * updates the existing OAuthApp's credentials and returns the same ID.
+ *
+ * After this, the resolution chain for this resource in this org will
+ * return the org's OAuthApp instead of the platform default.
+ *
+ * Prerequisites:
+ * - The resource must exist and have an auth block with oauth_app_ref
+ *   (BYOA requires a platform template to clone from)
+ * - The caller must have can_create_oauth_app permission in the org
+ *
+ * Errors:
+ * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+ * - NOT_FOUND: Resource does not exist
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput
+ */
+export type SetOrgOAuthAppInput = Message<"ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput"> & {
+  /**
+   * System-generated ID of the resource to set the BYOA override for.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * Organization that will own this override.
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
+
+  /**
+   * OAuth client ID from the org's own app registration with the vendor.
+   *
+   * @generated from field: string client_id = 3;
+   */
+  clientId: string;
+
+  /**
+   * OAuth client secret from the org's own app registration with the vendor.
+   * Encrypted at rest, redacted in logs.
+   *
+   * @generated from field: string client_secret = 4;
+   */
+  clientSecret: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput.
+ * Use `create(SetOrgOAuthAppInputSchema)` to create a new message.
+ */
+export const SetOrgOAuthAppInputSchema: GenMessage<SetOrgOAuthAppInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 10);
+
+/**
+ * SetOrgOAuthAppOutput confirms the BYOA override was created or updated.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput
+ */
+export type SetOrgOAuthAppOutput = Message<"ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput"> & {
+  /**
+   * System-generated ID of the OAuthApp resource created (or updated)
+   * for this override. Can be used to inspect the full OAuthApp via
+   * OAuthAppQueryController.get.
+   *
+   * @generated from field: string oauth_app_id = 1;
+   */
+  oauthAppId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput.
+ * Use `create(SetOrgOAuthAppOutputSchema)` to create a new message.
+ */
+export const SetOrgOAuthAppOutputSchema: GenMessage<SetOrgOAuthAppOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 11);
+
+/**
+ * GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.
+ *
+ * @internal
+ * Returns override metadata without exposing secrets. The frontend uses
+ * this to show "Using org credentials" vs. "Using platform credentials"
+ * and to offer the option to remove the override.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput
+ */
+export type GetOrgOAuthAppInput = Message<"ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput"> & {
+  /**
+   * System-generated ID of the resource to check for an override.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * Organization context to check.
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput.
+ * Use `create(GetOrgOAuthAppInputSchema)` to create a new message.
+ */
+export const GetOrgOAuthAppInputSchema: GenMessage<GetOrgOAuthAppInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 12);
+
+/**
+ * GetOrgOAuthAppOutput returns the org's BYOA override status.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput
+ */
+export type GetOrgOAuthAppOutput = Message<"ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput"> & {
+  /**
+   * Whether an OAuthAppOverride exists for this resource + org.
+   *
+   * @generated from field: bool has_override = 1;
+   */
+  hasOverride: boolean;
+
+  /**
+   * System-generated ID of the override's OAuthApp.
+   * Empty when has_override is false.
+   *
+   * @generated from field: string oauth_app_id = 2;
+   */
+  oauthAppId: string;
+
+  /**
+   * Client ID from the override's OAuthApp (non-secret, safe to display).
+   * Empty when has_override is false. Useful for UI display so the admin
+   * can verify which app registration is active.
+   *
+   * @generated from field: string client_id = 3;
+   */
+  clientId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput.
+ * Use `create(GetOrgOAuthAppOutputSchema)` to create a new message.
+ */
+export const GetOrgOAuthAppOutputSchema: GenMessage<GetOrgOAuthAppOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 13);
+
+/**
+ * DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
+ *
+ * @internal
+ * The handler:
+ * 1. Finds the OAuthAppOverride for (resource_id, resource_kind, org)
+ * 2. Deletes the OAuthApp resource created for this override
+ * 3. Deletes the OAuthAppOverride binding
+ *
+ * After this, the resolution chain falls back to the platform default.
+ * Existing user OAuthGrants that were issued using the org's OAuthApp
+ * will fail on next refresh — those users will need to re-authenticate
+ * using the platform default (or a new org override).
+ *
+ * Prerequisites:
+ * - An override must exist for this resource + org
+ *
+ * Errors:
+ * - NOT_FOUND: No override exists for this resource + org
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput
+ */
+export type DeleteOrgOAuthAppInput = Message<"ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput"> & {
+  /**
+   * System-generated ID of the resource to remove the override for.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * Organization whose override should be removed.
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput.
+ * Use `create(DeleteOrgOAuthAppInputSchema)` to create a new message.
+ */
+export const DeleteOrgOAuthAppInputSchema: GenMessage<DeleteOrgOAuthAppInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 14);
+
+/**
+ * DeleteOrgOAuthAppOutput confirms the BYOA override was removed.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput
+ */
+export type DeleteOrgOAuthAppOutput = Message<"ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput"> & {
+  /**
+   * Whether the delete completed successfully.
+   *
+   * @generated from field: bool deleted = 1;
+   */
+  deleted: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput.
+ * Use `create(DeleteOrgOAuthAppOutputSchema)` to create a new message.
+ */
+export const DeleteOrgOAuthAppOutputSchema: GenMessage<DeleteOrgOAuthAppOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 15);
+
+/**
+ * OAuthConnectionHealth evaluates the health of an OAuth connection by
+ * examining grant existence and token expiry metadata. Used in
+ * GetOAuthGrantStatusOutput to give the frontend an actionable signal
+ * beyond the binary "connected" boolean.
+ *
+ * The backend determines health from locally available metadata (grant
+ * record + access_token_expires_at). It cannot detect server-side token
+ * revocation without making an API call to the vendor, so HEALTHY means
+ * "valid as far as we know" — not a guarantee the token will be accepted.
+ *
+ * @generated from enum ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth
+ */
+export enum OAuthConnectionHealth {
+  /**
+   * Default / unset. Health has not been evaluated.
+   *
+   * @generated from enum value: OAUTH_CONNECTION_HEALTH_UNSPECIFIED = 0;
+   */
+  OAUTH_CONNECTION_HEALTH_UNSPECIFIED = 0,
+
+  /**
+   * The access token exists and is not expired (or does not expire).
+   *
+   * @generated from enum value: OAUTH_CONNECTION_HEALTH_HEALTHY = 1;
+   */
+  OAUTH_CONNECTION_HEALTH_HEALTHY = 1,
+
+  /**
+   * The access token is expired and no refresh token is available.
+   * The user must re-authenticate via the OAuth flow.
+   *
+   * @generated from enum value: OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED = 2;
+   */
+  OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED = 2,
+
+  /**
+   * The access token is expired but a refresh token is available.
+   * The backend will attempt automatic refresh at execution time.
+   * If the refresh token is itself expired, the refresh will fail and
+   * the user will need to re-authenticate.
+   *
+   * @generated from enum value: OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE = 3;
+   */
+  OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE = 3,
+
+  /**
+   * No OAuth grant exists for this resource + org + user combination.
+   * The user has never connected or has disconnected.
+   *
+   * @generated from enum value: OAUTH_CONNECTION_HEALTH_NO_GRANT = 4;
+   */
+  OAUTH_CONNECTION_HEALTH_NO_GRANT = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth.
+ */
+export const OAuthConnectionHealthSchema: GenEnum<OAuthConnectionHealth> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 0);
 

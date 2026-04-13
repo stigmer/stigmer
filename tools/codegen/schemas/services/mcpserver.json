@@ -78,6 +78,38 @@
           "outputType": "GetOAuthGrantStatusOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput",
           "description": "Check whether the authenticated user has an active OAuth grant for\n an MCP server in the specified org.\n\n Returns grant metadata (connected status, token expiry, auth method)\n without exposing any secret token values. The frontend uses this to\n render the correct OAuth state in the MCP server detail page and\n session composer.\n\n @internal\n Authorization: Requires can_view permission on the mcp_server resource.\n The resource_id field contains the MCP server's system-generated ID."
+        },
+        {
+          "name": "DisconnectOAuth",
+          "inputType": "DisconnectOAuthInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput",
+          "outputType": "DisconnectOAuthOutput",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput",
+          "description": "Disconnect the authenticated user's OAuth connection for a resource.\n\n Tears down the user's personal OAuth connection by deleting the\n OAuthGrant and its associated managed environment (which holds the\n access and refresh tokens). The MCP server definition is unchanged —\n only the caller's credentials are removed.\n\n Other users' connections to the same resource are unaffected.\n\n @internal\n Authorization: Requires can_connect permission on the mcp_server resource.\n Uses the same permission as connect/initiateOAuthConnect — if you can\n establish a connection, you can tear it down.\n\n Errors:\n - NOT_FOUND: No OAuthGrant exists for this resource + org + caller"
+        },
+        {
+          "name": "SetOrgOAuthApp",
+          "inputType": "SetOrgOAuthAppInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput",
+          "outputType": "SetOrgOAuthAppOutput",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput",
+          "description": "Create or update an org-level BYOA OAuth app override for a resource.\n\n Allows an organization to use its own OAuth app credentials instead of\n the platform default. The handler clones the platform OAuthApp template\n (endpoint URLs, scopes) and applies the org-provided client credentials.\n\n Idempotent: if an override already exists for this resource + org, the\n existing OAuthApp is updated with the new credentials.\n\n @internal\n Authorization: Requires can_create_oauth_app permission on the organization.\n This is an org-admin operation — setting credentials that affect all users\n in the org who connect to this resource.\n\n Errors:\n - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref\n   (BYOA requires a platform template to clone from)\n - NOT_FOUND: Resource does not exist"
+        },
+        {
+          "name": "GetOrgOAuthApp",
+          "inputType": "GetOrgOAuthAppInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput",
+          "outputType": "GetOrgOAuthAppOutput",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput",
+          "description": "Query whether an org has a BYOA override for a resource.\n\n Returns override metadata (existence, OAuthApp ID, client_id) without\n exposing secrets. The frontend uses this to show which credential\n source is active and to offer override management options to org admins.\n\n @internal\n Authorization: Requires can_view permission on the mcp_server resource.\n Any user who can view the MCP server can check whether their org has\n an override — no secrets are exposed."
+        },
+        {
+          "name": "DeleteOrgOAuthApp",
+          "inputType": "DeleteOrgOAuthAppInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput",
+          "outputType": "DeleteOrgOAuthAppOutput",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput",
+          "description": "Remove an org-level BYOA override for a resource.\n\n Deletes the OAuthAppOverride binding and the OAuthApp resource that\n was created for it. After this, the resolution chain falls back to\n the platform default.\n\n Existing user OAuthGrants that were issued using the org's OAuthApp\n will fail on next token refresh — those users will need to\n re-authenticate using the platform default or a new org override.\n\n @internal\n Authorization: Requires can_create_oauth_app permission on the organization.\n Same gate as setOrgOAuthApp — org-admin authority for credential management.\n\n Errors:\n - NOT_FOUND: No override exists for this resource + org"
         }
       ]
     },
@@ -442,6 +474,277 @@
           },
           "description": "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\").\n Empty if no grant exists.",
           "required": false
+        },
+        {
+          "name": "ConnectionHealth",
+          "jsonName": "connectionHealth",
+          "protoField": "connection_health",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth",
+            "enumValues": [
+              "OAUTH_CONNECTION_HEALTH_HEALTHY",
+              "OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED",
+              "OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE",
+              "OAUTH_CONNECTION_HEALTH_NO_GRANT"
+            ]
+          },
+          "description": "Evaluated health of the OAuth connection.\n Provides an actionable signal beyond the binary \"connected\" field:\n the frontend can distinguish \"healthy\" from \"expired but refreshable\"\n from \"expired and needs re-auth\" from \"never connected.\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DisconnectOAuthInput",
+      "description": "DisconnectOAuthInput tears down a user's OAuth connection for a resource.\n\n @internal\n The handler:\n 1. Finds the OAuthGrant for (caller, resource_id, org)\n 2. Deletes the managed Environment that holds the tokens\n 3. Deletes the OAuthGrant record\n\n After this, the user's access token and refresh token are gone. The\n MCP server remains configured — only the user's personal OAuth connection\n is removed. Other users' connections to the same resource are unaffected.\n\n Prerequisites:\n - The resource must exist\n - The caller must have an active OAuthGrant for this resource + org\n\n Errors:\n - NOT_FOUND: No grant exists for this resource + org + caller",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the resource to disconnect OAuth for.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization context. Must match the org used during the original\n OAuth connect flow (part of the OAuthGrant composite key).",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "DisconnectOAuthOutput",
+      "description": "DisconnectOAuthOutput confirms that the OAuth connection was torn down.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "Disconnected",
+          "jsonName": "disconnected",
+          "protoField": "disconnected",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the disconnect completed successfully.\n true: grant deleted, managed environment deleted.\n false should not normally occur — errors are returned as RPC status.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SetOrgOAuthAppInput",
+      "description": "SetOrgOAuthAppInput creates or updates an org-level BYOA OAuth app\n override for a resource.\n\n @internal\n The handler:\n 1. Looks up the platform-default OAuthApp via the resource's auth block\n    to use as a template (authorization_url, token_url, scopes, etc.)\n 2. Creates a new OAuthApp with the org-provided client_id + client_secret\n    and the template's endpoint URLs and scopes\n 3. Creates or updates an OAuthAppOverride binding\n    (resource_id, resource_kind, org_id) → new OAuthApp ID\n\n If an override already exists for this resource + org, the handler\n updates the existing OAuthApp's credentials and returns the same ID.\n\n After this, the resolution chain for this resource in this org will\n return the org's OAuthApp instead of the platform default.\n\n Prerequisites:\n - The resource must exist and have an auth block with oauth_app_ref\n   (BYOA requires a platform template to clone from)\n - The caller must have can_create_oauth_app permission in the org\n\n Errors:\n - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref\n - NOT_FOUND: Resource does not exist",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the resource to set the BYOA override for.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that will own this override.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ClientId",
+          "jsonName": "clientId",
+          "protoField": "client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "OAuth client ID from the org's own app registration with the vendor.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ClientSecret",
+          "jsonName": "clientSecret",
+          "protoField": "client_secret",
+          "type": {
+            "kind": "string"
+          },
+          "description": "OAuth client secret from the org's own app registration with the vendor.\n Encrypted at rest, redacted in logs.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetOrgOAuthAppOutput",
+      "description": "SetOrgOAuthAppOutput confirms the BYOA override was created or updated.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "OauthAppId",
+          "jsonName": "oauthAppId",
+          "protoField": "oauth_app_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the OAuthApp resource created (or updated)\n for this override. Can be used to inspect the full OAuthApp via\n OAuthAppQueryController.get.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetOrgOAuthAppInput",
+      "description": "GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.\n\n @internal\n Returns override metadata without exposing secrets. The frontend uses\n this to show \"Using org credentials\" vs. \"Using platform credentials\"\n and to offer the option to remove the override.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the resource to check for an override.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization context to check.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetOrgOAuthAppOutput",
+      "description": "GetOrgOAuthAppOutput returns the org's BYOA override status.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "HasOverride",
+          "jsonName": "hasOverride",
+          "protoField": "has_override",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether an OAuthAppOverride exists for this resource + org.",
+          "required": false
+        },
+        {
+          "name": "OauthAppId",
+          "jsonName": "oauthAppId",
+          "protoField": "oauth_app_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the override's OAuthApp.\n Empty when has_override is false.",
+          "required": false
+        },
+        {
+          "name": "ClientId",
+          "jsonName": "clientId",
+          "protoField": "client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Client ID from the override's OAuthApp (non-secret, safe to display).\n Empty when has_override is false. Useful for UI display so the admin\n can verify which app registration is active.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DeleteOrgOAuthAppInput",
+      "description": "DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.\n\n @internal\n The handler:\n 1. Finds the OAuthAppOverride for (resource_id, resource_kind, org)\n 2. Deletes the OAuthApp resource created for this override\n 3. Deletes the OAuthAppOverride binding\n\n After this, the resolution chain falls back to the platform default.\n Existing user OAuthGrants that were issued using the org's OAuthApp\n will fail on next refresh — those users will need to re-authenticate\n using the platform default (or a new org override).\n\n Prerequisites:\n - An override must exist for this resource + org\n\n Errors:\n - NOT_FOUND: No override exists for this resource + org",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the resource to remove the override for.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization whose override should be removed.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeleteOrgOAuthAppOutput",
+      "description": "DeleteOrgOAuthAppOutput confirms the BYOA override was removed.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
+      "fields": [
+        {
+          "name": "Deleted",
+          "jsonName": "deleted",
+          "protoField": "deleted",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the delete completed successfully.",
+          "required": false
         }
       ]
     },
@@ -546,6 +849,33 @@
           "name": "visibility_public",
           "number": 2,
           "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    },
+    {
+      "name": "OAuthConnectionHealth",
+      "description": "OAuthConnectionHealth evaluates the health of an OAuth connection by\n examining grant existence and token expiry metadata. Used in\n GetOAuthGrantStatusOutput to give the frontend an actionable signal\n beyond the binary \"connected\" boolean.\n\n The backend determines health from locally available metadata (grant\n record + access_token_expires_at). It cannot detect server-side token\n revocation without making an API call to the vendor, so HEALTHY means\n \"valid as far as we know\" — not a guarantee the token will be accepted.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth",
+      "values": [
+        {
+          "name": "OAUTH_CONNECTION_HEALTH_HEALTHY",
+          "number": 1,
+          "description": "The access token exists and is not expired (or does not expire)."
+        },
+        {
+          "name": "OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED",
+          "number": 2,
+          "description": "The access token is expired and no refresh token is available.\n The user must re-authenticate via the OAuth flow."
+        },
+        {
+          "name": "OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE",
+          "number": 3,
+          "description": "The access token is expired but a refresh token is available.\n The backend will attempt automatic refresh at execution time.\n If the refresh token is itself expired, the refresh will fail and\n the user will need to re-authenticate."
+        },
+        {
+          "name": "OAUTH_CONNECTION_HEALTH_NO_GRANT",
+          "number": 4,
+          "description": "No OAuth grant exists for this resource + org + user combination.\n The user has never connected or has disconnected."
         }
       ]
     },
@@ -699,12 +1029,34 @@
           "description": "The vendor rejected the OAuth app. Sign-in is disabled."
         }
       ]
+    },
+    {
+      "name": "OAuthAppSource",
+      "description": "OAuthAppSource identifies where the effective OAuth app for an MCP server\n was resolved from. Populated at query time by the backend enricher to tell\n the frontend which credential source is active for the current org context.\n\n Used in OAuthStatus.effective_oauth_source (read-only, not persisted).",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.OAuthAppSource",
+      "values": [
+        {
+          "name": "OAUTH_APP_SOURCE_PLATFORM",
+          "number": 1,
+          "description": "The platform-default OAuthApp is in use (McpServerAuth.oauth_app_ref)."
+        },
+        {
+          "name": "OAUTH_APP_SOURCE_ORG_OVERRIDE",
+          "number": 2,
+          "description": "An org-level BYOA override is in use (OAuthAppOverride binding)."
+        },
+        {
+          "name": "OAUTH_APP_SOURCE_NONE",
+          "number": 3,
+          "description": "No OAuthApp is available. The MCP server either uses DCR (mcp_oauth)\n or has no auth block at all."
+        }
+      ]
     }
   ],
   "resourceDescription": "McpServer represents a reusable MCP (Model Context Protocol) server configuration.\n\n @internal\n Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:\n - Can be referenced by multiple agents (reusability)\n - Has proper access control via FGA (authorization)\n - Can be discovered in the marketplace (discoverability)\n - Belongs to an organization with PUBLIC/PRIVATE visibility\n\n Lifecycle:\n 1. Create McpServer definition (this resource) with server type and env requirements\n 2. Reference in Agent via mcp_server_usages\n 3. Create AgentInstance with environment_ref providing actual secrets\n 4. Agent runner resolves McpServer, gets secrets from Environment, starts server",
   "statusType": {
     "name": "McpServerStatus",
-    "description": "McpServerStatus represents the system-managed state of an MCP server definition.\n\n @internal\n Tracks three concerns:\n 1. Structural validation — whether the definition is valid and can be used by agents.\n 2. Discovered capabilities — the tools and resource templates the MCP server\n    actually provides. Populated by:\n      a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)\n      b. The connect RPC — the backend delegates to the agent-runner via a Temporal\n         workflow, which connects to the MCP server and enumerates tools/resources.\n 3. Tool approval policies — system-generated by a lightweight LLM classifier during\n    the connect flow. Manual overrides live in McpServerSpec.pinned_tool_approvals.",
+    "description": "McpServerStatus represents the system-managed state of an MCP server definition.\n\n @internal\n Tracks four concerns:\n 1. Structural validation — whether the definition is valid and can be used by agents.\n 2. Discovered capabilities — the tools and resource templates the MCP server\n    actually provides. Populated by:\n      a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)\n      b. The connect RPC — the backend delegates to the agent-runner via a Temporal\n         workflow, which connects to the MCP server and enumerates tools/resources.\n 3. Tool approval policies — system-generated by a lightweight LLM classifier during\n    the connect flow. Manual overrides live in McpServerSpec.pinned_tool_approvals.\n 4. OAuth enrichment — vendor approval status and BYOA resolution chain results,\n    populated by the backend enricher at query time. Never persisted.",
     "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerStatus",
     "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
     "fields": [
@@ -756,6 +1108,17 @@
           }
         },
         "description": "System-generated tool approval policies.\n\n @internal\n Produced by a lightweight LLM classifier during the connect flow.\n Overwritten on each reconnect. Never manually edited — use\n McpServerSpec.pinned_tool_approvals for manual overrides.\n\n Policy chain (lowest to highest priority):\n 1. McpServerStatus.tool_approvals (this field) - System-generated defaults\n 2. McpServerSpec.pinned_tool_approvals - Manual overrides\n 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization\n 4. AgentExecution.auto_approve_all - Runtime bypass",
+        "required": false
+      },
+      {
+        "name": "OauthStatus",
+        "jsonName": "oauthStatus",
+        "protoField": "oauth_status",
+        "type": {
+          "kind": "message",
+          "messageType": "OAuthStatus"
+        },
+        "description": "OAuth-related enrichment state, populated at query time by the backend.\n Contains vendor approval status (resolved from the referenced OAuthApp)\n and BYOA resolution chain results (which OAuthApp is effective for the\n caller's org context). None of these fields are persisted.",
         "required": false
       },
       {
@@ -1018,6 +1381,66 @@
             "kind": "struct"
           },
           "description": "JSON Schema describing the tool's input parameters.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "OAuthStatus",
+      "description": "OAuthStatus holds system-derived OAuth enrichment state for an MCP server.\n\n @internal\n All fields are read-only, populated by the backend enricher at query time.\n None are persisted on the McpServer document — they are computed fresh on\n every get/getByReference response.\n\n Two categories of enrichment:\n 1. Vendor approval (fields 1-2): Resolved from the referenced OAuthApp\n    resource. Tells the frontend whether the sign-in button should be\n    enabled and provides a BYOA documentation link when approval is pending.\n 2. BYOA resolution (fields 3-4): Computed from the OAuth app resolution\n    chain. Tells the frontend which credential source is active for the\n    caller's org context and its OAuthApp ID.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.OAuthStatus",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "VendorApprovalStatus",
+          "jsonName": "vendorApprovalStatus",
+          "protoField": "vendor_approval_status",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus",
+            "enumValues": [
+              "VENDOR_APPROVAL_STATUS_PENDING",
+              "VENDOR_APPROVAL_STATUS_APPROVED",
+              "VENDOR_APPROVAL_STATUS_REJECTED"
+            ]
+          },
+          "description": "Vendor marketplace/app-review approval status for this MCP server's\n OAuth app. Resolved from the referenced OAuthApp at query time.\n When the platform OAuthApp is pending vendor approval, the frontend\n gates the sign-in button and shows a BYOA alternative.",
+          "required": false
+        },
+        {
+          "name": "VendorApprovalDocsUrl",
+          "jsonName": "vendorApprovalDocsUrl",
+          "protoField": "vendor_approval_docs_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Documentation URL for users who want to bring their own OAuth app\n credentials while the platform's OAuth app is pending vendor approval.\n Resolved from the referenced OAuthApp at query time.\n Empty when the OAuthApp has no documentation link or is already approved.",
+          "required": false
+        },
+        {
+          "name": "EffectiveOauthSource",
+          "jsonName": "effectiveOauthSource",
+          "protoField": "effective_oauth_source",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.mcpserver.v1.OAuthAppSource",
+            "enumValues": [
+              "OAUTH_APP_SOURCE_PLATFORM",
+              "OAUTH_APP_SOURCE_ORG_OVERRIDE",
+              "OAUTH_APP_SOURCE_NONE"
+            ]
+          },
+          "description": "Where the effective OAuth app was resolved from for the caller's org.\n Computed from the resolution chain:\n   1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE\n   2. McpServerAuth.oauth_app_ref → PLATFORM\n   3. Neither exists → NONE",
+          "required": false
+        },
+        {
+          "name": "EffectiveOauthAppId",
+          "jsonName": "effectiveOauthAppId",
+          "protoField": "effective_oauth_app_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID (metadata.id) of the OAuthApp that the resolution\n chain selected. Empty when effective_oauth_source is NONE.",
           "required": false
         }
       ]

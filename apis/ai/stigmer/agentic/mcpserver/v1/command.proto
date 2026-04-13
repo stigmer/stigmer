@@ -197,4 +197,92 @@ service McpServerCommandController {
     option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view oauth status for mcp server";
   }
+
+  // Disconnect the authenticated user's OAuth connection for a resource.
+  //
+  // Tears down the user's personal OAuth connection by deleting the
+  // OAuthGrant and its associated managed environment (which holds the
+  // access and refresh tokens). The MCP server definition is unchanged —
+  // only the caller's credentials are removed.
+  //
+  // Other users' connections to the same resource are unaffected.
+  //
+  // @internal
+  // Authorization: Requires can_connect permission on the mcp_server resource.
+  // Uses the same permission as connect/initiateOAuthConnect — if you can
+  // establish a connection, you can tear it down.
+  //
+  // Errors:
+  // - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
+  rpc disconnectOAuth(DisconnectOAuthInput) returns (DisconnectOAuthOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_connect;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to disconnect oauth for mcp server";
+  }
+
+  // Create or update an org-level BYOA OAuth app override for a resource.
+  //
+  // Allows an organization to use its own OAuth app credentials instead of
+  // the platform default. The handler clones the platform OAuthApp template
+  // (endpoint URLs, scopes) and applies the org-provided client credentials.
+  //
+  // Idempotent: if an override already exists for this resource + org, the
+  // existing OAuthApp is updated with the new credentials.
+  //
+  // @internal
+  // Authorization: Requires can_create_oauth_app permission on the organization.
+  // This is an org-admin operation — setting credentials that affect all users
+  // in the org who connect to this resource.
+  //
+  // Errors:
+  // - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+  //   (BYOA requires a platform template to clone from)
+  // - NOT_FOUND: Resource does not exist
+  rpc setOrgOAuthApp(SetOrgOAuthAppInput) returns (SetOrgOAuthAppOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_oauth_app;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to set org oauth app override";
+  }
+
+  // Query whether an org has a BYOA override for a resource.
+  //
+  // Returns override metadata (existence, OAuthApp ID, client_id) without
+  // exposing secrets. The frontend uses this to show which credential
+  // source is active and to offer override management options to org admins.
+  //
+  // @internal
+  // Authorization: Requires can_view permission on the mcp_server resource.
+  // Any user who can view the MCP server can check whether their org has
+  // an override — no secrets are exposed.
+  rpc getOrgOAuthApp(GetOrgOAuthAppInput) returns (GetOrgOAuthAppOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view org oauth app override";
+  }
+
+  // Remove an org-level BYOA override for a resource.
+  //
+  // Deletes the OAuthAppOverride binding and the OAuthApp resource that
+  // was created for it. After this, the resolution chain falls back to
+  // the platform default.
+  //
+  // Existing user OAuthGrants that were issued using the org's OAuthApp
+  // will fail on next token refresh — those users will need to
+  // re-authenticate using the platform default or a new org override.
+  //
+  // @internal
+  // Authorization: Requires can_create_oauth_app permission on the organization.
+  // Same gate as setOrgOAuthApp — org-admin authority for credential management.
+  //
+  // Errors:
+  // - NOT_FOUND: No override exists for this resource + org
+  rpc deleteOrgOAuthApp(DeleteOrgOAuthAppInput) returns (DeleteOrgOAuthAppOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_oauth_app;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete org oauth app override";
+  }
 }

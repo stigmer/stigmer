@@ -71,6 +71,26 @@ class McpServerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.FromString,
                 _registered_method=True)
+        self.disconnectOAuth = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/disconnectOAuth',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DisconnectOAuthInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DisconnectOAuthOutput.FromString,
+                _registered_method=True)
+        self.setOrgOAuthApp = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/setOrgOAuthApp',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.SetOrgOAuthAppInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.SetOrgOAuthAppOutput.FromString,
+                _registered_method=True)
+        self.getOrgOAuthApp = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/getOrgOAuthApp',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppOutput.FromString,
+                _registered_method=True)
+        self.deleteOrgOAuthApp = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/deleteOrgOAuthApp',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DeleteOrgOAuthAppInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DeleteOrgOAuthAppOutput.FromString,
+                _registered_method=True)
 
 
 class McpServerCommandControllerServicer(object):
@@ -261,6 +281,90 @@ class McpServerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def disconnectOAuth(self, request, context):
+        """Disconnect the authenticated user's OAuth connection for a resource.
+
+        Tears down the user's personal OAuth connection by deleting the
+        OAuthGrant and its associated managed environment (which holds the
+        access and refresh tokens). The MCP server definition is unchanged —
+        only the caller's credentials are removed.
+
+        Other users' connections to the same resource are unaffected.
+
+        @internal
+        Authorization: Requires can_connect permission on the mcp_server resource.
+        Uses the same permission as connect/initiateOAuthConnect — if you can
+        establish a connection, you can tear it down.
+
+        Errors:
+        - NOT_FOUND: No OAuthGrant exists for this resource + org + caller
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def setOrgOAuthApp(self, request, context):
+        """Create or update an org-level BYOA OAuth app override for a resource.
+
+        Allows an organization to use its own OAuth app credentials instead of
+        the platform default. The handler clones the platform OAuthApp template
+        (endpoint URLs, scopes) and applies the org-provided client credentials.
+
+        Idempotent: if an override already exists for this resource + org, the
+        existing OAuthApp is updated with the new credentials.
+
+        @internal
+        Authorization: Requires can_create_oauth_app permission on the organization.
+        This is an org-admin operation — setting credentials that affect all users
+        in the org who connect to this resource.
+
+        Errors:
+        - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+        (BYOA requires a platform template to clone from)
+        - NOT_FOUND: Resource does not exist
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getOrgOAuthApp(self, request, context):
+        """Query whether an org has a BYOA override for a resource.
+
+        Returns override metadata (existence, OAuthApp ID, client_id) without
+        exposing secrets. The frontend uses this to show which credential
+        source is active and to offer override management options to org admins.
+
+        @internal
+        Authorization: Requires can_view permission on the mcp_server resource.
+        Any user who can view the MCP server can check whether their org has
+        an override — no secrets are exposed.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def deleteOrgOAuthApp(self, request, context):
+        """Remove an org-level BYOA override for a resource.
+
+        Deletes the OAuthAppOverride binding and the OAuthApp resource that
+        was created for it. After this, the resolution chain falls back to
+        the platform default.
+
+        Existing user OAuthGrants that were issued using the org's OAuthApp
+        will fail on next token refresh — those users will need to
+        re-authenticate using the platform default or a new org override.
+
+        @internal
+        Authorization: Requires can_create_oauth_app permission on the organization.
+        Same gate as setOrgOAuthApp — org-admin authority for credential management.
+
+        Errors:
+        - NOT_FOUND: No override exists for this resource + org
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_McpServerCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -308,6 +412,26 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
                     servicer.getOAuthGrantStatus,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.SerializeToString,
+            ),
+            'disconnectOAuth': grpc.unary_unary_rpc_method_handler(
+                    servicer.disconnectOAuth,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DisconnectOAuthInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DisconnectOAuthOutput.SerializeToString,
+            ),
+            'setOrgOAuthApp': grpc.unary_unary_rpc_method_handler(
+                    servicer.setOrgOAuthApp,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.SetOrgOAuthAppInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.SetOrgOAuthAppOutput.SerializeToString,
+            ),
+            'getOrgOAuthApp': grpc.unary_unary_rpc_method_handler(
+                    servicer.getOrgOAuthApp,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppOutput.SerializeToString,
+            ),
+            'deleteOrgOAuthApp': grpc.unary_unary_rpc_method_handler(
+                    servicer.deleteOrgOAuthApp,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DeleteOrgOAuthAppInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DeleteOrgOAuthAppOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -563,6 +687,114 @@ class McpServerCommandController(object):
             '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/getOAuthGrantStatus',
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def disconnectOAuth(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/disconnectOAuth',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DisconnectOAuthInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DisconnectOAuthOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def setOrgOAuthApp(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/setOrgOAuthApp',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.SetOrgOAuthAppInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.SetOrgOAuthAppOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getOrgOAuthApp(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/getOrgOAuthApp',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def deleteOrgOAuthApp(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/deleteOrgOAuthApp',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DeleteOrgOAuthAppInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.DeleteOrgOAuthAppOutput.FromString,
             options,
             channel_credentials,
             insecure,

@@ -203,10 +203,11 @@ export function useMcpServerCredentials(
   const oauthTargetEnvVar = auth?.targetEnvVar || null;
   const tokenLifetimeHint = auth?.tokenLifetimeHint || null;
 
+  const oauthStatus = mcpServer?.status?.oauthStatus;
   const isVendorApprovalPending =
     authMode === "oauth" &&
-    auth?.vendorApprovalStatus === VendorApprovalStatus.PENDING;
-  const vendorApprovalDocsUrl = auth?.vendorApprovalDocsUrl || null;
+    oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.PENDING;
+  const vendorApprovalDocsUrl = oauthStatus?.vendorApprovalDocsUrl || null;
 
   const grantStatus = useOAuthGrantStatus(
     authMode === "oauth" ? (mcpServer?.metadata?.id ?? null) : null,

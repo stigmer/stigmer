@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/oauth.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_oauth: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL29hdXRoLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIpsCCgpPQXV0aEdyYW50EhsKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAkSEwoLcmVzb3VyY2VfaWQYAiABKAkSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMSEQoJY2xpZW50X2lkGAQgASgJEhMKC2F1dGhfbWV0aG9kGAUgASgJEhYKDnRva2VuX2VuZHBvaW50GAYgASgJEhwKFGFjY2Vzc190b2tlbl9lbnZfdmFyGAcgASgJEh0KFXJlZnJlc2hfdG9rZW5fZW52X3ZhchgIIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgJIAEoCRIVCg1yZXNvdXJjZV9raW5kGAogASgJEg4KBm9yZ19pZBgLIAEoCWIGcHJvdG8z");
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL29hdXRoLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIpsCCgpPQXV0aEdyYW50EhsKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAkSEwoLcmVzb3VyY2VfaWQYAiABKAkSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMSEQoJY2xpZW50X2lkGAQgASgJEhMKC2F1dGhfbWV0aG9kGAUgASgJEhYKDnRva2VuX2VuZHBvaW50GAYgASgJEhwKFGFjY2Vzc190b2tlbl9lbnZfdmFyGAcgASgJEh0KFXJlZnJlc2hfdG9rZW5fZW52X3ZhchgIIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgJIAEoCRIVCg1yZXNvdXJjZV9raW5kGAogASgJEg4KBm9yZ19pZBgLIAEoCSJkChBPQXV0aEFwcE92ZXJyaWRlEhMKC3Jlc291cmNlX2lkGAEgASgJEhUKDXJlc291cmNlX2tpbmQYAiABKAkSDgoGb3JnX2lkGAMgASgJEhQKDG9hdXRoX2FwcF9pZBgEIAEoCWIGcHJvdG8z");
 
 /**
  * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
@@ -142,4 +142,78 @@ export type OAuthGrant = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthGrant"> &
  */
 export const OAuthGrantSchema: GenMessage<OAuthGrant> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_oauth, 0);
+
+/**
+ * OAuthAppOverride binds a specific OAuthApp to an API resource within an
+ * organization, overriding the platform-default OAuthApp for that resource.
+ *
+ * @internal
+ * Infrastructure-only. Not a public API resource — no kind, no apiVersion,
+ * no CRUD RPCs. Stored in the backend's database, keyed by the composite
+ * of (resource_id, resource_kind, org_id).
+ *
+ * This is the "Bring Your Own App" (BYOA) binding: it records that org Z
+ * wants resource Y to use OAuthApp X instead of the platform default
+ * referenced by McpServerAuth.oauth_app_ref.
+ *
+ * Separation of concerns:
+ * - OAuthApp (credential resource): holds client_id, client_secret, and
+ *   vendor endpoint URLs. Reusable — may be referenced by multiple overrides
+ *   or MCP servers.
+ * - OAuthAppOverride (binding document): maps (resource, org) to an OAuthApp.
+ *   Analogous to OAuthGrant, which maps (user, resource, org) to token metadata.
+ *
+ * Resolution chain (evaluated at connect time and token refresh):
+ *   1. OAuthAppOverride for (resource_id, resource_kind, org_id) — org override
+ *   2. McpServerAuth.oauth_app_ref on the resource spec — platform default
+ *   3. None — no OAuth app available (manual token or DCR only)
+ *
+ * The override is resource-agnostic: currently used for MCP servers, but the
+ * composite key supports any API resource kind that needs BYOA (e.g., workflows).
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride
+ */
+export type OAuthAppOverride = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride"> & {
+  /**
+   * System-generated ID (metadata.id) of the API resource this override
+   * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+   * Part of the composite key. Enables the same table to serve overrides
+   * for multiple resource types without collision.
+   *
+   * @generated from field: string resource_kind = 2;
+   */
+  resourceKind: string;
+
+  /**
+   * Organization that owns this override. Part of the composite key.
+   * Different orgs can maintain independent BYOA overrides for the same
+   * shared (platform-scoped) resource.
+   *
+   * @generated from field: string org_id = 3;
+   */
+  orgId: string;
+
+  /**
+   * ID of the OAuthApp resource that holds the org's client credentials.
+   * Created by the setOrgOAuthApp handler, which clones the platform
+   * OAuthApp template and applies the org-provided client_id + client_secret.
+   *
+   * @generated from field: string oauth_app_id = 4;
+   */
+  oauthAppId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride.
+ * Use `create(OAuthAppOverrideSchema)` to create a new message.
+ */
+export const OAuthAppOverrideSchema: GenMessage<OAuthAppOverride> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_oauth, 1);
 

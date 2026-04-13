@@ -63,6 +63,7 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get an MCP server by its unique identifier. |
 | [`getByReference`](#getbyreference) | Get an MCP server by reference (scope + org + slug). |
 | [`getOAuthGrantStatus`](#getoauthgrantstatus) | Check whether the authenticated user has an active OAuth grant for an MCP server in the specified org. |
+| [`getOrgOAuthApp`](#getorgoauthapp) | Query whether an org has a BYOA override for a resource. |
 | [`apply`](#apply) | Create or update an MCP server resource. |
 | [`create`](#create) | Create an MCP server resource. |
 | [`update`](#update) | Update an existing MCP server resource. |
@@ -70,7 +71,10 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`delete`](#delete) | Delete an MCP server resource. |
 | [`completeOAuthConnect`](#completeoauthconnect) | Complete the OAuth authorization flow by exchanging the authorization code for tokens. |
 | [`connect`](#connect) | Connect to an MCP server: discover its tools and classify approval policies. |
+| [`deleteOrgOAuthApp`](#deleteorgoauthapp) | Remove an org-level BYOA override for a resource. |
+| [`disconnectOAuth`](#disconnectoauth) | Disconnect the authenticated user's OAuth connection for a resource. |
 | [`initiateOAuthConnect`](#initiateoauthconnect) | Start the OAuth authorization flow for an MCP server. |
+| [`setOrgOAuthApp`](#setorgoauthapp) | Create or update an org-level BYOA OAuth app override for a resource. |
 
 ### get
 
@@ -204,6 +208,51 @@ GetOAuthGrantStatusOutput getOAuthGrantStatusOutput = client.mcpServers().getOAu
 **Parameters**: [`GetOAuthGrantStatusInput`](#getoauthgrantstatusinput)
 
 **Returns**: [`GetOAuthGrantStatusOutput`](#getoauthgrantstatusoutput)
+
+### getOrgOAuthApp
+
+Query whether an org has a BYOA override for a resource.
+
+Returns override metadata (existence, OAuthApp ID, client_id) without exposing secrets. The frontend uses this to show which credential source is active and to offer override management options to org admins.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const getOrgOAuthAppOutput = await stigmer.mcpServer.getOrgOAuthApp({
+  resourceId: "...",
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+getOrgOAuthAppOutput, err := client.McpServer.GetOrgOAuthApp(ctx, &stigmer.GetOrgOAuthAppInput{
+  ResourceId: "...",
+  Org:        "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+get_org_o_auth_app_output = client.mcp_servers.get_org_o_auth_app(GetOrgOAuthAppInput(
+    resource_id="...",
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+GetOrgOAuthAppOutput getOrgOAuthAppOutput = client.mcpServers().getOrgOAuthApp(GetOrgOAuthAppInput.builder()
+    .resourceId("...")
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetOrgOAuthAppInput`](#getorgoauthappinput)
+
+**Returns**: [`GetOrgOAuthAppOutput`](#getorgoauthappoutput)
 
 ### apply
 
@@ -670,6 +719,100 @@ McpServer mcpServer = client.mcpServers().connect(ConnectInput.builder()
 
 **Returns**: [`McpServer`](#mcpserver)
 
+### deleteOrgOAuthApp
+
+Remove an org-level BYOA override for a resource.
+
+Deletes the OAuthAppOverride binding and the OAuthApp resource that was created for it. After this, the resolution chain falls back to the platform default.
+
+Existing user OAuthGrants that were issued using the org's OAuthApp will fail on next token refresh — those users will need to re-authenticate using the platform default or a new org override.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const deleteOrgOAuthAppOutput = await stigmer.mcpServer.deleteOrgOAuthApp({
+  resourceId: "...",
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+deleteOrgOAuthAppOutput, err := client.McpServer.DeleteOrgOAuthApp(ctx, &stigmer.DeleteOrgOAuthAppInput{
+  ResourceId: "...",
+  Org:        "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+delete_org_o_auth_app_output = client.mcp_servers.delete_org_o_auth_app(DeleteOrgOAuthAppInput(
+    resource_id="...",
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+DeleteOrgOAuthAppOutput deleteOrgOAuthAppOutput = client.mcpServers().deleteOrgOAuthApp(DeleteOrgOAuthAppInput.builder()
+    .resourceId("...")
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`DeleteOrgOAuthAppInput`](#deleteorgoauthappinput)
+
+**Returns**: [`DeleteOrgOAuthAppOutput`](#deleteorgoauthappoutput)
+
+### disconnectOAuth
+
+Disconnect the authenticated user's OAuth connection for a resource.
+
+Tears down the user's personal OAuth connection by deleting the OAuthGrant and its associated managed environment (which holds the access and refresh tokens). The MCP server definition is unchanged — only the caller's credentials are removed.
+
+Other users' connections to the same resource are unaffected.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const disconnectOAuthOutput = await stigmer.mcpServer.disconnectOAuth({
+  resourceId: "...",
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+disconnectOAuthOutput, err := client.McpServer.DisconnectOAuth(ctx, &stigmer.DisconnectOAuthInput{
+  ResourceId: "...",
+  Org:        "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+disconnect_o_auth_output = client.mcp_servers.disconnect_o_auth(DisconnectOAuthInput(
+    resource_id="...",
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+DisconnectOAuthOutput disconnectOAuthOutput = client.mcpServers().disconnectOAuth(DisconnectOAuthInput.builder()
+    .resourceId("...")
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`DisconnectOAuthInput`](#disconnectoauthinput)
+
+**Returns**: [`DisconnectOAuthOutput`](#disconnectoauthoutput)
+
 ### initiateOAuthConnect
 
 Start the OAuth authorization flow for an MCP server.
@@ -714,6 +857,61 @@ InitiateOAuthConnectOutput initiateOAuthConnectOutput = client.mcpServers().init
 **Parameters**: [`InitiateOAuthConnectInput`](#initiateoauthconnectinput)
 
 **Returns**: [`InitiateOAuthConnectOutput`](#initiateoauthconnectoutput)
+
+### setOrgOAuthApp
+
+Create or update an org-level BYOA OAuth app override for a resource.
+
+Allows an organization to use its own OAuth app credentials instead of the platform default. The handler clones the platform OAuthApp template (endpoint URLs, scopes) and applies the org-provided client credentials.
+
+Idempotent: if an override already exists for this resource + org, the existing OAuthApp is updated with the new credentials.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const setOrgOAuthAppOutput = await stigmer.mcpServer.setOrgOAuthApp({
+  resourceId: "...",
+  org: "...",
+  clientId: "...",
+  clientSecret: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+setOrgOAuthAppOutput, err := client.McpServer.SetOrgOAuthApp(ctx, &stigmer.SetOrgOAuthAppInput{
+  ResourceId:   "...",
+  Org:          "...",
+  ClientId:     "...",
+  ClientSecret: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+set_org_o_auth_app_output = client.mcp_servers.set_org_o_auth_app(SetOrgOAuthAppInput(
+    resource_id="...",
+    org="...",
+    client_id="...",
+    client_secret="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SetOrgOAuthAppOutput setOrgOAuthAppOutput = client.mcpServers().setOrgOAuthApp(SetOrgOAuthAppInput.builder()
+    .resourceId("...")
+    .org("...")
+    .clientId("...")
+    .clientSecret("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`SetOrgOAuthAppInput`](#setorgoauthappinput)
+
+**Returns**: [`SetOrgOAuthAppOutput`](#setorgoauthappoutput)
 
 ## Types
 
@@ -798,8 +996,6 @@ McpServerAuth configures automated credential acquisition via OAuth.
     targetEnvVar: { type: "string", description: "The env var where the acquired access token is stored." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
     scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
-    vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Read-only.", typeDescriptionLink: "#vendorapprovalstatus" },
-    vendorApprovalDocsUrl: { type: "string", description: "Read-only." },
     discoveryUrl: { type: "string", description: "Optional URL for OAuth authorization server discovery on stdio servers." },
   }}
 />
@@ -909,6 +1105,95 @@ GetOAuthGrantStatusOutput returns the current OAuth grant status.
     accessTokenExpiresAt: { type: "number", description: "When the access token expires (Unix timestamp seconds)." },
     targetEnvVar: { type: "string", description: "The env var name where the access token is stored." },
     authMethod: { type: "string", description: "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\")." },
+    connectionHealth: { type: "OAuthConnectionHealth", description: "Evaluated health of the OAuth connection.", typeDescriptionLink: "#oauthconnectionhealth" },
+  }}
+/>
+
+### DisconnectOAuthInput
+
+DisconnectOAuthInput tears down a user's OAuth connection for a resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "System-generated ID of the resource to disconnect OAuth for.", required: true },
+    org: { type: "string", description: "Organization context." },
+  }}
+/>
+
+### DisconnectOAuthOutput
+
+DisconnectOAuthOutput confirms that the OAuth connection was torn down.
+
+<TypeTable
+  type={{
+    disconnected: { type: "boolean", description: "Whether the disconnect completed successfully." },
+  }}
+/>
+
+### SetOrgOAuthAppInput
+
+SetOrgOAuthAppInput creates or updates an org-level BYOA OAuth app override for a resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "System-generated ID of the resource to set the BYOA override for.", required: true },
+    org: { type: "string", description: "Organization that will own this override." },
+    clientId: { type: "string", description: "OAuth client ID from the org's own app registration with the vendor." },
+    clientSecret: { type: "string", description: "OAuth client secret from the org's own app registration with the vendor." },
+  }}
+/>
+
+### SetOrgOAuthAppOutput
+
+SetOrgOAuthAppOutput confirms the BYOA override was created or updated.
+
+<TypeTable
+  type={{
+    oauthAppId: { type: "string", description: "System-generated ID of the OAuthApp resource created (or updated) for this override." },
+  }}
+/>
+
+### GetOrgOAuthAppInput
+
+GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "System-generated ID of the resource to check for an override.", required: true },
+    org: { type: "string", description: "Organization context to check." },
+  }}
+/>
+
+### GetOrgOAuthAppOutput
+
+GetOrgOAuthAppOutput returns the org's BYOA override status.
+
+<TypeTable
+  type={{
+    hasOverride: { type: "boolean", description: "Whether an OAuthAppOverride exists for this resource + org." },
+    oauthAppId: { type: "string", description: "System-generated ID of the override's OAuthApp." },
+    clientId: { type: "string", description: "Client ID from the override's OAuthApp (non-secret, safe to display)." },
+  }}
+/>
+
+### DeleteOrgOAuthAppInput
+
+DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "System-generated ID of the resource to remove the override for.", required: true },
+    org: { type: "string", description: "Organization whose override should be removed." },
+  }}
+/>
+
+### DeleteOrgOAuthAppOutput
+
+DeleteOrgOAuthAppOutput confirms the BYOA override was removed.
+
+<TypeTable
+  type={{
+    deleted: { type: "boolean", description: "Whether the delete completed successfully." },
   }}
 />
 
@@ -936,6 +1221,7 @@ McpServerStatus represents the system-managed state of an MCP server definition.
     validationMessage: { type: "string", description: "Human-readable validation message." },
     discoveredCapabilities: { type: "DiscoveredCapabilities", description: "Tools and resource templates discovered from the MCP server.", typeDescriptionLink: "#discoveredcapabilities" },
     toolApprovals: { type: "ToolApprovalPolicy[]", description: "System-generated tool approval policies.", typeDescriptionLink: "#toolapprovalpolicy" },
+    oauthStatus: { type: "OAuthStatus", description: "OAuth-related enrichment state, populated at query time by the backend.", typeDescriptionLink: "#oauthstatus" },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />
@@ -977,6 +1263,19 @@ DiscoveredTool describes a single tool reported by an MCP server.
   }}
 />
 
+### OAuthStatus
+
+OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
+
+<TypeTable
+  type={{
+    vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Vendor marketplace/app-review approval status for this MCP server's OAuth app.", typeDescriptionLink: "#vendorapprovalstatus" },
+    vendorApprovalDocsUrl: { type: "string", description: "Documentation URL for users who want to bring their own OAuth app credentials while the platform's OAuth app is pending vendor approval." },
+    effectiveOauthSource: { type: "OAuthAppSource", description: "Where the effective OAuth app was resolved from for the caller's org.", typeDescriptionLink: "#oauthappsource" },
+    effectiveOauthAppId: { type: "string", description: "System-generated ID (metadata.id) of the OAuthApp that the resolution chain selected." },
+  }}
+/>
+
 ### ToolApprovalPolicy
 
 ToolApprovalPolicy defines approval requirements for a specific tool.
@@ -987,6 +1286,17 @@ ToolApprovalPolicy defines approval requirements for a specific tool.
     message: { type: "string", description: "Human-readable message shown to user when approval is requested." },
   }}
 />
+
+### OAuthConnectionHealth
+
+OAuthConnectionHealth evaluates the health of an OAuth connection by examining grant existence and token expiry metadata.
+
+| Value | Description |
+|-------|-------------|
+| `OAUTH_CONNECTION_HEALTH_HEALTHY` | The access token exists and is not expired (or does not expire). |
+| `OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED` | The access token is expired and no refresh token is available. |
+| `OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE` | The access token is expired but a refresh token is available. |
+| `OAUTH_CONNECTION_HEALTH_NO_GRANT` | No OAuth grant exists for this resource + org + user combination. |
 
 ### ValidationState
 
@@ -1006,4 +1316,14 @@ Lifecycle status of an OAuthApp's vendor marketplace approval.
 | `VENDOR_APPROVAL_STATUS_PENDING` | The OAuth app has been submitted to the vendor for review and is awaiting approval. |
 | `VENDOR_APPROVAL_STATUS_APPROVED` | The vendor has approved the OAuth app. |
 | `VENDOR_APPROVAL_STATUS_REJECTED` | The vendor rejected the OAuth app. |
+
+### OAuthAppSource
+
+OAuthAppSource identifies where the effective OAuth app for an MCP server was resolved from.
+
+| Value | Description |
+|-------|-------------|
+| `OAUTH_APP_SOURCE_PLATFORM` | The platform-default OAuthApp is in use (McpServerAuth.oauth_app_ref). |
+| `OAUTH_APP_SOURCE_ORG_OVERRIDE` | An org-level BYOA override is in use (OAuthAppOverride binding). |
+| `OAUTH_APP_SOURCE_NONE` | No OAuthApp is available. |
 
