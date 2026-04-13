@@ -2755,7 +2755,7 @@ __metadata:
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=90d4f4&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=c4cf30&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/theme": "npm:*"
     react-markdown: "npm:^10.1.0"
@@ -2771,7 +2771,7 @@ __metadata:
   peerDependenciesMeta:
     "@base-ui/react":
       optional: true
-  checksum: 10c0/f130b102818ca8353a7731112b6be7555fdfa6f8db9c0053c80e956c07326e56a727d572a8e7b9dee2aa0d2b77ddd919a6b8d133523e6fd2c0abbff2405ecc04
+  checksum: 10c0/205b8ca0627ebd7bc9727dfa8af84c1763ba764473de7157a670a29806ce72509f9d5d0bd5d9622591df42b8597763cb08081def068261fbae5d1f6b157b8128
   languageName: node
   linkType: hard
 

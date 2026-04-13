@@ -238,6 +238,14 @@ export const fixtures = {
     /** Hooks: `useUpdateVisibility` (when kind is McpServer) */
     updateVisibility: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(McpServerCommandController, "updateVisibility", handler),
+
+    /** Hooks: `useOAuthGrantStatus` */
+    getOAuthGrantStatus: (handler: UnaryFixtureHandler): FixtureSpec =>
+      unarySpec(McpServerQueryController, "getOAuthGrantStatus", handler),
+
+    /** Hooks: `useOrgOAuthApp` */
+    getOrgOAuthApp: (handler: UnaryFixtureHandler): FixtureSpec =>
+      unarySpec(McpServerQueryController, "getOrgOAuthApp", handler),
   },
 
   // ---- Environment ----
