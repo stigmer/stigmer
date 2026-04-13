@@ -395,12 +395,10 @@ export const GetOAuthGrantStatusOutputSchema: GenMessage<GetOAuthGrantStatusOutp
  * MCP server remains configured — only the user's personal OAuth connection
  * is removed. Other users' connections to the same resource are unaffected.
  *
- * Prerequisites:
- * - The resource must exist
- * - The caller must have an active OAuthGrant for this resource + org
- *
- * Errors:
- * - NOT_FOUND: No grant exists for this resource + org + caller
+ * Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
+ * tuple, the handler returns disconnected=false without error. This
+ * supports race conditions (concurrent disconnect calls), retries after
+ * partial failures, and desired-state semantics ("ensure no connection").
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput
  */
@@ -429,15 +427,16 @@ export const DisconnectOAuthInputSchema: GenMessage<DisconnectOAuthInput> = /*@_
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 8);
 
 /**
- * DisconnectOAuthOutput confirms that the OAuth connection was torn down.
+ * DisconnectOAuthOutput reports the result of a disconnect request.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput
  */
 export type DisconnectOAuthOutput = Message<"ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput"> & {
   /**
-   * Whether the disconnect completed successfully.
-   * true: grant deleted, managed environment deleted.
-   * false should not normally occur — errors are returned as RPC status.
+   * Whether an active grant was found and deleted.
+   * true: grant and its managed environment were deleted.
+   * false: no grant existed for this resource + org + caller. The desired
+   * state (no OAuth connection) was already achieved. This is not an error.
    *
    * @generated from field: bool disconnected = 1;
    */

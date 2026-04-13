@@ -12,9 +12,10 @@ public interface DisconnectOAuthOutputOrBuilder extends
 
   /**
    * <pre>
-   * Whether the disconnect completed successfully.
-   * true: grant deleted, managed environment deleted.
-   * false should not normally occur — errors are returned as RPC status.
+   * Whether an active grant was found and deleted.
+   * true: grant and its managed environment were deleted.
+   * false: no grant existed for this resource + org + caller. The desired
+   * state (no OAuth connection) was already achieved. This is not an error.
    * </pre>
    *
    * <code>bool disconnected = 1 [json_name = "disconnected"];</code>
