@@ -8,6 +8,7 @@ import { useLibraryNavigation } from "@/contexts/library-navigation";
 import {
   useMcpServerList,
   ResourceListView,
+  McpServerConnectDialog,
   type ResourceListScope,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
@@ -20,6 +21,11 @@ function readPersistedScope(): ResourceListScope {
   return stored === "all" ? "all" : "org";
 }
 
+interface ConnectTarget {
+  readonly org: string;
+  readonly slug: string;
+}
+
 export function McpServerListPage() {
   const org = useActiveOrgSlug();
   const { navigateToDetail } = useLibraryNavigation();
@@ -27,6 +33,7 @@ export function McpServerListPage() {
   const [scope, setScope] = useState<ResourceListScope>(readPersistedScope);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [connectTarget, setConnectTarget] = useState<ConnectTarget | null>(null);
 
   const { mcpServers, totalCount, totalPages, currentPage, isLoading, error, refetch } =
     useMcpServerList(org || null, { scope, query, page });
@@ -75,9 +82,9 @@ export function McpServerListPage() {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              navigateToDetail("mcp-servers", item.org, item.slug);
+              setConnectTarget({ org: item.org, slug: item.slug });
             }}
-            aria-label={`Open ${item.name || item.slug}`}
+            aria-label={`Connect ${item.name || item.slug}`}
             className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Plus className="size-4" aria-hidden="true" />
@@ -87,6 +94,14 @@ export function McpServerListPage() {
         emptyTitle="No MCP servers found"
         onRetry={refetch}
         aria-label="MCP server list"
+      />
+
+      <McpServerConnectDialog
+        org={connectTarget?.org ?? ""}
+        slug={connectTarget?.slug ?? ""}
+        activeOrg={org}
+        open={connectTarget !== null}
+        onClose={() => setConnectTarget(null)}
       />
     </>
   );

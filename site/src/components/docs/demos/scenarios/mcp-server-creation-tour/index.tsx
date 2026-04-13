@@ -139,7 +139,7 @@ function renderStep(step: McpCreationStep) {
       return (
         <AppShell highlightNav="library" contentKey={contentKey}>
           <div className="flex h-full items-center justify-center p-4">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Start a new session
             </p>
           </div>
@@ -158,6 +158,7 @@ function renderStep(step: McpCreationStep) {
             createLabel="Add MCP Server"
             cursorTarget="create-mcp-server"
             items={EXISTING_SERVERS}
+            layout="grid"
           />
         </AppShell>
       );
@@ -170,6 +171,7 @@ function renderStep(step: McpCreationStep) {
             createLabel="Add MCP Server"
             cursorTarget="create-mcp-server"
             items={EXISTING_SERVERS}
+            layout="grid"
             highlightCreate
           />
         </AppShell>
@@ -251,6 +253,7 @@ function renderStep(step: McpCreationStep) {
             createLabel="Add MCP Server"
             cursorTarget="create-mcp-server"
             items={ALL_SERVERS}
+            layout="grid"
             showNewItem
           />
         </AppShell>

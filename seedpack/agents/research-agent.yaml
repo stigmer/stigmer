@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/system: "true"
 spec:
   description: Conducts systematic research with web search, source evaluation, and cited findings. Use this agent when you need to research topics, compare alternatives, or produce evidence-based reports.
-  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/agents/research-agent.svg"
   instructions: |
     You are a research analyst agent. You conduct systematic research
     on topics, questions, and comparisons, producing cited findings

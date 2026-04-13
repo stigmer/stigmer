@@ -65,22 +65,22 @@
     },
     {
       "slug": "iam-policy",
-      "title": "iam-policy",
-      "description": "",
+      "title": "IAM Policy",
+      "description": "Hooks and components for access control bindings, role assignment, and org membership.",
       "hooks": 8,
       "components": 3
     },
     {
       "slug": "identity-provider",
-      "title": "identity-provider",
-      "description": "",
+      "title": "Identity Provider",
+      "description": "Hooks and components for federated identity provider setup and management.",
       "hooks": 6,
       "components": 6
     },
     {
       "slug": "invitation",
-      "title": "invitation",
-      "description": "",
+      "title": "Invitation",
+      "description": "Hooks and components for invite link creation, listing, and redemption.",
       "hooks": 5,
       "components": 3
     },
@@ -96,7 +96,7 @@
       "title": "MCP Server",
       "description": "Hooks and components for MCP server connections, setup, credentials, and tool management.",
       "hooks": 10,
-      "components": 5
+      "components": 6
     },
     {
       "slug": "models",
@@ -104,6 +104,13 @@
       "description": "Hooks and components for model registry data and selector.",
       "hooks": 1,
       "components": 1
+    },
+    {
+      "slug": "oauth-app",
+      "title": "OAuth App",
+      "description": "Hooks and components for OAuth app creation, listing, editing, and deletion.",
+      "hooks": 4,
+      "components": 3
     },
     {
       "slug": "organization",
@@ -128,8 +135,8 @@
     },
     {
       "slug": "usage",
-      "title": "usage",
-      "description": "",
+      "title": "Usage",
+      "description": "Hooks and components for organization-level usage reporting and cost breakdown.",
       "hooks": 1,
       "components": 1
     },

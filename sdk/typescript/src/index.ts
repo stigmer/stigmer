@@ -119,6 +119,10 @@ export {
   type IdentityProviderInput,
 } from "./gen/identityprovider";
 export {
+  OAuthAppClient,
+  type OAuthAppInput,
+} from "./gen/oauthapp";
+export {
   McpServerClient,
   type McpServerInput,
   type StdioServerConfigInput,

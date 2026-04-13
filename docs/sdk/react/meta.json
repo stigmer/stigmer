@@ -17,6 +17,7 @@
     "library",
     "mcp-server",
     "models",
+    "oauth-app",
     "organization",
     "session",
     "skill",

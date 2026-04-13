@@ -1,0 +1,126 @@
+---
+title: Bring Your Own OAuth App
+description:
+  Replace the platform's OAuth app with your Organization's own registration for
+  vendor-approval-blocked servers, tighter scope control, or custom branding.
+---
+
+import { DemoByoaSetup } from "@/components/docs";
+
+Some OAuth-protected MCP servers use a platform-level OAuth app that Stigmer
+maintains. When that app is pending vendor approval — or when your Organization
+needs control over scopes, branding, or data residency — you can override it
+with your own app registration. Stigmer calls this **Bring Your Own OAuth App
+(BYOA)**.
+
+<Callout type="info">
+  This guide assumes you've read the [OAuth for
+  tools](/docs/guides/integrations/oauth-for-tools) guide. BYOA overrides the
+  OAuth app used during the connect flow — it does not change how the flow
+  itself works.
+</Callout>
+
+<DemoByoaSetup />
+
+## When to bring your own app
+
+Two scenarios call for BYOA:
+
+1. **Vendor approval is pending.** Vendors like Slack and Figma require
+   third-party OAuth apps to pass a marketplace review before end users can
+   authorize them. While the platform's app is waiting for approval, the sign-in
+   button is not available. BYOA lets you unblock your Organization immediately
+   by using an app you've already registered with the vendor.
+
+2. **You need tighter control.** Your Organization may require narrower scopes,
+   a branded authorization page, or credentials stored under your own vendor
+   account. BYOA gives you that control without forking the MCP server
+   definition.
+
+BYOA applies only to MCP servers that use **vendor OAuth** — servers with an
+`auth.oauth_app_ref` in their definition. Servers that use MCP Authorization
+(automatic discovery via DCR) or plain Environment variables are not affected.
+
+## Set up your own OAuth app
+
+1. **Register an app with the vendor.** Go to the vendor's developer portal (for
+   example, [Slack's OAuth app page](https://api.slack.com/apps)) and create a
+   new app. Use the same redirect URI and scopes that the platform's app uses —
+   Stigmer clones this configuration from the platform template, so your app's
+   endpoints and scopes must be compatible.
+
+2. **Open the MCP server detail view.** In the Library, find the server you want
+   to override (for example, Slack).
+
+3. **Click "Use your own OAuth app."** If vendor approval is pending, the amber
+   banner at the top of the connection section shows this button. If approval is
+   not blocked, the link appears in the secondary row below the connect button.
+
+4. **Enter your credentials.** In the dialog, paste the **Client ID** and
+   **Client Secret** from the vendor's developer portal. These are the only
+   values you provide — Stigmer clones the authorization URL, token URL, and
+   scope configuration from the platform's OAuth app template.
+
+5. **Save.** Stigmer creates an Organization-level OAuth app with your
+   credentials and binds it as the override for this server. The detail view
+   updates to show **"Using your OAuth app"** and the sign-in button becomes
+   active.
+
+You can now sign in using the standard OAuth flow described in the
+[OAuth for tools](/docs/guides/integrations/oauth-for-tools#connect-an-oauth-protected-tool)
+guide. The only difference is that the authorization page shows your app's name
+and branding instead of the platform's.
+
+## What changes after setup
+
+Once a BYOA override is active, three things change in the detail view:
+
+- **status text** — The connection section shows **"Using your OAuth app"**
+  alongside the token health indicator.
+- **Sign-in button** — The label changes to **"Sign in with your app"** to
+  confirm which credentials are in use.
+- **Resolution** — Stigmer resolves the OAuth app for this server by checking
+  your Organization's override first, then falling back to the platform default.
+  This resolution happens at connect time and on every token refresh.
+
+Other users in your Organization see the same override. When they connect to
+this server, they authorize through your app — not the platform's.
+
+## Remove a custom app
+
+To revert to the platform's OAuth app:
+
+1. Open the MCP server detail view.
+2. Click **"Remove custom app"** in the connection section.
+3. Confirm the removal.
+
+After removal, Stigmer falls back to the platform default for new connections
+and token refreshes.
+
+<Callout type="warn">
+  Existing users who authorized through your custom app will need to
+  re-authorize. Their tokens were issued by your app's client credentials — when
+  the override is removed, the next token refresh will fail because the platform
+  app has different credentials. Each affected user will see a **Re-auth
+  needed** state and can reconnect with a single click.
+</Callout>
+
+## Manage OAuth apps from Settings
+
+Every OAuth app your Organization creates — whether through the BYOA dialog
+above or independently — appears in **Settings > Configuration > OAuth Apps**.
+From there you can view, edit, or delete any app.
+
+You can also create OAuth apps directly from Settings. The BYOA dialog on an MCP
+server detail page clones endpoint URLs and scopes from the platform template
+and binds the result to that server. The Settings page gives you the full form —
+authorization URL, token URL, scopes, and all optional fields — so you can
+register credentials for custom MCP servers that have no platform template to
+clone from. Reference the app by slug in your server definition's
+`auth.oauth_app_ref` field.
+
+## What's next
+
+For a deeper look at how Stigmer resolves OAuth apps, stores credentials, and
+manages the token lifecycle across platform and Organization overrides, see
+[OAuth architecture](/docs/guides/integrations/oauth-architecture).

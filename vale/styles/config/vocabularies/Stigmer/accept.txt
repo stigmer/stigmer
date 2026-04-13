@@ -103,3 +103,6 @@ signup
 onboarding
 sequenceDiagram
 yourPlatform
+Figma
+Daytona
+uvx

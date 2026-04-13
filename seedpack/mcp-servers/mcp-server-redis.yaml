@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "databases"
 spec:
   description: "Redis MCP server for key-value operations, data structure manipulation, search, and server management."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/redis.svg"
   repository_url: "https://github.com/redis/mcp-redis"
   github_stars: 477
   tags:

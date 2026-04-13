@@ -34,18 +34,18 @@ function AuthDashboardPage() {
     <div className="flex h-full flex-col overflow-y-auto bg-gradient-to-b from-background to-muted/30 p-4">
       <div className="mb-3 flex items-center gap-2">
         <Shield className="h-4 w-4 text-primary" />
-        <h3 className="text-[11px] font-semibold text-foreground">
+        <h3 className="text-sm font-semibold text-foreground">
           Auth0 — API Settings
         </h3>
       </div>
 
       <div className="mb-2.5 rounded-md border border-border bg-card p-2">
         <div className="mb-1 flex items-center gap-1.5">
-          <span className="text-[9px] font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             API Name
           </span>
         </div>
-        <div className="rounded bg-muted px-2 py-1 font-mono text-[9px] text-foreground">
+        <div className="rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
           Stigmer Platform API
         </div>
       </div>
@@ -71,7 +71,7 @@ function AuthDashboardPage() {
       </div>
 
       <div className="mt-4 rounded-md border border-border bg-muted/30 p-2">
-        <p className="text-[9px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Copy these three values into your Stigmer Identity Provider
           configuration.
         </p>
@@ -93,11 +93,11 @@ function SettingsRow({
     <div className="rounded-md border border-border bg-card p-2">
       <div className="mb-1 flex items-center gap-1.5">
         {icon}
-        <span className="text-[9px] font-medium text-muted-foreground">
+        <span className="text-xs font-medium text-muted-foreground">
           {label}
         </span>
       </div>
-      <div className="rounded bg-muted px-2 py-1 font-mono text-[9px] text-foreground">
+      <div className="rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
         {value}
       </div>
     </div>

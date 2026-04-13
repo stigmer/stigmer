@@ -1602,7 +1602,7 @@ func generateJavaClientFile(outputDir string, resources []resourceGenInfo) error
 
 	var body bytes.Buffer
 	body.WriteString("/** Aggregate client with all resource-specific sub-clients. */\n")
-	body.WriteString("public final class GeneratedClient {\n")
+	body.WriteString("public class GeneratedClient {\n")
 
 	for _, r := range resources {
 		fieldName := tsClientFieldName(r.resource)

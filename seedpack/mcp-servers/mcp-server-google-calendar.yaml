@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "scheduling"
 spec:
   description: "Google Calendar MCP server for creating, reading, updating, and managing calendar events and schedules."
-  icon_url: "https://cdn.simpleicons.org/googlecalendar"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/googlecalendar.svg"
   repository_url: "https://github.com/nspady/google-calendar-mcp"
   github_stars: 1083
   tags:

@@ -35,6 +35,23 @@ The tool call appears in the conversation with its name and result. The Agent
 then uses that data to answer the customer's question with specific, real
 information instead of a generic response.
 
+## The tool library
+
+Stigmer includes a curated library of MCP servers for common integrations —
+GitHub, Slack, PostgreSQL, filesystem access, web search, and dozens more. Each
+server in the library includes a description, category tags, and a link to its
+source repository so you can inspect the implementation before connecting it.
+
+The library covers both transport types: stdio servers distributed as npm or
+Python packages (launched via `npx` or `uvx`) and HTTP servers accessible over
+the network. You browse the library, pick a server, and connect it — Stigmer
+handles discovery and configuration.
+
+You can also define your own MCP servers for internal or proprietary systems.
+The library is a starting point, not a constraint. Any server that speaks the
+Model Context Protocol works with Stigmer, whether it's in the library or
+custom-built for your Organization.
+
 ## MCP Server resource
 
 An MCP Server is a Stigmer resource that defines a tool connection. It describes
@@ -75,12 +92,31 @@ MCP Servers support two transport modes:
 | **stdio** | The tool server runs as a local process | `command` and `args` — Stigmer launches and communicates via stdin/stdout |
 | **HTTP**  | The tool server is a remote service     | `url`, optional `headers` and `query_params` with `${VAR}` substitution   |
 
-### Environment variables
+### Environment declarations
 
 The `env_spec` declares what the MCP Server needs at runtime — API keys, service
 URLs, configuration values. These are _schemas_, not values. The actual values
 come from [Environments](/docs/concepts/environments) attached to the Agent
 Instance at deployment time.
+
+Each declaration can be marked as `optional`. By default, every declared
+variable is required — the execution pipeline rejects a run if a required
+variable is missing. Optional variables let the MCP Server operate without that
+value.
+
+At runtime, variable values come from multiple sources that merge in priority
+order:
+
+| Source                          | What it provides                                   | Priority |
+| ------------------------------- | -------------------------------------------------- | -------- |
+| **OAuth managed Environment**   | Access tokens acquired through OAuth connect flows | Highest  |
+| **Personal Environment**        | API keys and credentials the user enters manually  |          |
+| **Agent Instance Environments** | Shared configuration attached at deployment time   | Lowest   |
+
+When the same variable appears in multiple sources, the higher-priority value
+wins. This layering means an OAuth-managed token takes precedence over a
+manually entered key, and both take precedence over shared deployment
+configuration.
 
 This separation means the MCP Server definition is portable. The same
 `order-management-api` works in development (pointing to a test API) and
@@ -116,6 +152,58 @@ Agents. Each Agent can enable a different subset of tools — a read-only Agent
 might only get `get_order` and `list_orders`, while a full-access Agent also
 gets `process_return`.
 
+## Connecting a tool
+
+An MCP Server definition describes _what_ a tool server is. Connecting it tells
+Stigmer _what it can do_.
+
+When you connect an MCP Server, Stigmer performs three steps in a single action:
+
+1. **Discovers tools** — connects to the live server and enumerates every tool
+   and resource template it exposes
+2. **Classifies approval policies** — a lightweight LLM evaluates each tool's
+   name, description, and input schema to determine whether it should run
+   automatically or require human approval
+3. **Stores the results** — discovered tools and their approval classifications
+   are saved on the MCP Server's status, ready for any Agent that references it
+
+Read-only tools like `get_order` and `list_orders` are classified for automatic
+approval. Tools with side effects — `process_return`, `delete_repository`,
+`send_email` — are flagged for human approval. You don't need to manually tag
+each tool; the classifier handles the initial assessment.
+
+The classification produces two tiers of approval policies. **Pinned approvals**
+are set by the server owner in the MCP Server definition and never change on
+reconnect — these are the `pinned_tool_approvals` in the YAML example above.
+**Classified approvals** are regenerated each time you connect, so new tools get
+classified automatically. Pinned policies always take precedence over classified
+ones.
+
+## Authentication for tools
+
+Some tools need credentials to access the systems behind them. Stigmer supports
+three authentication patterns, each suited to a different type of integration:
+
+| Pattern                   | When it applies                                                               | How it works                                                                                              |
+| ------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Environment variables** | The tool uses API keys or tokens                                              | You declare the variable in `env_spec` and provide the value through an Environment                       |
+| **Automatic OAuth (DCR)** | The server implements the MCP Authorization spec                              | Stigmer discovers the authorization server, registers a client automatically, and handles the OAuth flow  |
+| **Vendor OAuth**          | The server requires credentials from a specific vendor (Slack, GitHub, Figma) | Stigmer uses a pre-registered OAuthApp with the vendor's client credentials to run the authorization flow |
+
+In both OAuth patterns, the acquired access token is stored in a system-managed
+Environment and refreshed automatically before each execution. If a token
+expires and cannot be refreshed, the user re-authenticates from the MCP Server's
+connect page.
+
+Organizations that need to use their own OAuth app credentials — instead of the
+platform defaults — can set up a Bring Your Own App (BYOA) override at the
+Organization level. This replaces the platform's client credentials with the
+Organization's own, while keeping the same endpoint configuration and token
+lifecycle.
+
+For a deeper look at OAuth patterns and configuration, see the
+[integration guides](/docs/guides/integrations/overview).
+
 ## Tool discovery
 
 When an Agent runs, Stigmer connects to the referenced MCP Servers and discovers
@@ -130,7 +218,7 @@ call based on the user's request. You don't need to tell the Agent "when the
 user asks about an order, call `get_order`" — the LLM figures that out from the
 tool's description.
 
-## Tool isolation
+## Sandbox isolation
 
 Tool calls run in a controlled sandbox:
 
@@ -139,6 +227,12 @@ Tool calls run in a controlled sandbox:
 - **Isolated execution** — Each tool call runs in its own sandbox
 - **Result capture** — Tool outputs are captured and returned to the Agent as
   structured data
+
+For stdio-based MCP servers, Stigmer runs the tool server process inside a
+Daytona sandbox container — not on the Agent Runner pod. A misbehaving tool
+server cannot affect the Agent runtime, other tool servers, or the host system.
+HTTP-based MCP servers are isolated by design — Stigmer connects to them as a
+network client, so the tool server runs in its own infrastructure.
 
 This sandboxing means the Agent can't bypass the tool server's logic or directly
 access the underlying system. It can only use the tools as the MCP Server

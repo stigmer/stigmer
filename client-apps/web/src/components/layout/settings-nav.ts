@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import {
+  AppWindow,
   BarChart3,
   Box,
   Building2,
@@ -41,10 +42,11 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
   {
     label: "Configuration",
     description:
-      "API keys and environment variables for your agents and workflows.",
+      "API keys, environment variables, and OAuth app credentials for your integrations.",
     items: [
       { href: "/settings/api-keys", label: "API Keys", icon: KeyRound },
       { href: "/settings/environments", label: "Environments", icon: Box },
+      { href: "/settings/oauth-apps", label: "OAuth Apps", icon: AppWindow },
     ],
   },
   {

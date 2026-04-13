@@ -166,12 +166,12 @@ function SsoLoginPage() {
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto mb-1.5 flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10">
-            <span className="text-[10px] font-bold text-primary">S</span>
+            <span className="text-xs font-bold text-primary">S</span>
           </div>
-          <h3 className="text-[11px] font-semibold text-foreground">
+          <h3 className="text-sm font-semibold text-foreground">
             Sign in to Stigmer
           </h3>
-          <p className="text-[8px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Signing in to{" "}
             <span className="font-medium text-foreground">acme</span>
           </p>
@@ -181,7 +181,7 @@ function SsoLoginPage() {
         <div className="relative" data-cursor-target="sso-sign-in-btn">
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[9px] font-medium text-primary-foreground"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
           >
             <Shield className="h-3 w-3" />
             Sign in with Acme SSO
@@ -190,7 +190,7 @@ function SsoLoginPage() {
         </div>
 
         {/* Change org link */}
-        <p className="text-center text-[8px] text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground">
           Not your organization?{" "}
           <span className="text-primary">Change</span>
         </p>
@@ -198,14 +198,14 @@ function SsoLoginPage() {
         {/* Divider */}
         <div className="flex items-center gap-2">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-[8px] text-muted-foreground">or</span>
+          <span className="text-xs text-muted-foreground">or</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
         {/* Email fallback */}
         <button
           type="button"
-          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-center text-[9px] font-medium text-foreground"
+          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-center text-xs font-medium text-foreground"
         >
           Sign in with email
         </button>
@@ -224,32 +224,32 @@ function ExternalIdpLogin() {
       <div className="w-52 rounded-lg border border-border bg-card p-3 shadow-sm">
         <div className="mb-2 text-center">
           <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-md bg-orange-500/10">
-            <span className="text-[9px] font-bold text-orange-600">A</span>
+            <span className="text-xs font-bold text-orange-600">A</span>
           </div>
-          <h3 className="text-[10px] font-semibold text-foreground">
+          <h3 className="text-sm font-semibold text-foreground">
             Acme Identity
           </h3>
-          <p className="text-[8px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Sign in to continue to Stigmer
           </p>
         </div>
 
         <div className="space-y-1.5">
           <div>
-            <label className="text-[8px] text-muted-foreground">Email</label>
-            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground">
+            <label className="text-xs text-muted-foreground">Email</label>
+            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-foreground">
               jane@acme.com
             </div>
           </div>
           <div>
-            <label className="text-[8px] text-muted-foreground">
+            <label className="text-xs text-muted-foreground">
               Password
             </label>
-            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-muted-foreground">
+            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground">
               ••••••••••
             </div>
           </div>
-          <div className="rounded-md bg-orange-600 py-0.5 text-center text-[9px] font-medium text-white">
+          <div className="rounded-md bg-orange-600 py-0.5 text-center text-xs font-medium text-white">
             Sign in
           </div>
         </div>
@@ -270,10 +270,10 @@ function ConsoleWelcome() {
           <Check className="h-4 w-4 text-emerald-500" />
         </div>
         <div>
-          <h3 className="text-[11px] font-semibold text-foreground">
+          <h3 className="text-sm font-semibold text-foreground">
             Welcome, Jane!
           </h3>
-          <p className="text-[8px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Authenticated via Acme SSO
           </p>
         </div>
@@ -281,22 +281,22 @@ function ConsoleWelcome() {
         <div className="rounded-md border border-border bg-muted/50 p-2 text-left">
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[8px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Organization
               </span>
-              <span className="font-mono text-[8px] text-foreground">
+              <span className="font-mono text-xs text-foreground">
                 acme
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[8px] text-muted-foreground">Role</span>
-              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[7px] font-medium text-emerald-600">
+              <span className="text-xs text-muted-foreground">Role</span>
+              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-xs font-medium text-emerald-600">
                 viewer
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[8px] text-muted-foreground">Account</span>
-              <span className="text-[8px] text-foreground">
+              <span className="text-xs text-muted-foreground">Account</span>
+              <span className="text-xs text-foreground">
                 Created on first login
               </span>
             </div>

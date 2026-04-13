@@ -7,30 +7,19 @@ import {
   type StigmerConfig,
   type TokenProvider,
 } from "./config";
-import type { AgentClient } from "./gen/agent";
-import type { AgentExecutionClient } from "./gen/agentexecution";
-import type { AgentInstanceClient } from "./gen/agentinstance";
-import type { ApiKeyClient } from "./gen/apikey";
-import type { EnvironmentClient } from "./gen/environment";
-import type { ExecutionContextClient } from "./gen/executioncontext";
-import type { IamPolicyClient } from "./gen/iampolicy";
-import type { IdentityAccountClient } from "./gen/identityaccount";
-import type { IdentityProviderClient } from "./gen/identityprovider";
-import type { InvitationClient } from "./gen/invitation";
-import type { McpServerClient } from "./gen/mcpserver";
-import type { OrganizationClient } from "./gen/organization";
-import type { ProjectClient } from "./gen/project";
-import type { SessionClient } from "./gen/session";
-import type { SkillClient } from "./gen/skill";
-import type { WorkflowClient } from "./gen/workflow";
-import type { WorkflowExecutionClient } from "./gen/workflowexecution";
-import type { WorkflowInstanceClient } from "./gen/workflowinstance";
 
 /**
  * Top-level Stigmer API client.
  *
- * Provides typed access to all Stigmer platform resources and a cross-resource
- * search client. Create one with `new Stigmer({ ... })`.
+ * Extends the code-generated {@link GeneratedClient} so every resource
+ * sub-client (agent, session, mcpServer, oauthapp, …) is inherited
+ * automatically — new resource clients added by codegen appear on this
+ * class without manual wiring.
+ *
+ * On top of the generated resource clients, `Stigmer` adds:
+ * - Configuration and transport setup ({@link StigmerConfig})
+ * - Cross-resource {@link search} client
+ * - {@link github} OAuth integration client
  *
  * @example
  * ```typescript
@@ -42,7 +31,7 @@ import type { WorkflowInstanceClient } from "./gen/workflowinstance";
  * const agent = await stigmer.agent.get("agent-id");
  * ```
  */
-export class Stigmer {
+export class Stigmer extends GeneratedClient {
   /**
    * Base URL of the connected Stigmer API server.
    *
@@ -52,24 +41,6 @@ export class Stigmer {
    */
   readonly baseUrl: string;
 
-  readonly agent: AgentClient;
-  readonly agentExecution: AgentExecutionClient;
-  readonly agentInstance: AgentInstanceClient;
-  readonly apiKey: ApiKeyClient;
-  readonly environment: EnvironmentClient;
-  readonly executionContext: ExecutionContextClient;
-  readonly iamPolicy: IamPolicyClient;
-  readonly identityAccount: IdentityAccountClient;
-  readonly identityProvider: IdentityProviderClient;
-  readonly invitation: InvitationClient;
-  readonly mcpServer: McpServerClient;
-  readonly organization: OrganizationClient;
-  readonly project: ProjectClient;
-  readonly session: SessionClient;
-  readonly skill: SkillClient;
-  readonly workflow: WorkflowClient;
-  readonly workflowExecution: WorkflowExecutionClient;
-  readonly workflowInstance: WorkflowInstanceClient;
   readonly search: SearchClient;
   readonly github: GitHubClient;
 
@@ -78,32 +49,14 @@ export class Stigmer {
   constructor(config: StigmerConfig) {
     validateConfig(config);
 
+    const transport = createStigmerTransport(config);
+    super(transport);
+
     this.baseUrl = config.baseUrl;
     this._tokenProvider = config.apiKey
       ? () => config.apiKey!
       : config.getAccessToken!;
 
-    const transport = createStigmerTransport(config);
-    const client = new GeneratedClient(transport);
-
-    this.agent = client.agent;
-    this.agentExecution = client.agentExecution;
-    this.agentInstance = client.agentInstance;
-    this.apiKey = client.apiKey;
-    this.environment = client.environment;
-    this.executionContext = client.executionContext;
-    this.iamPolicy = client.iamPolicy;
-    this.identityAccount = client.identityAccount;
-    this.identityProvider = client.identityProvider;
-    this.invitation = client.invitation;
-    this.mcpServer = client.mcpServer;
-    this.organization = client.organization;
-    this.project = client.project;
-    this.session = client.session;
-    this.skill = client.skill;
-    this.workflow = client.workflow;
-    this.workflowExecution = client.workflowExecution;
-    this.workflowInstance = client.workflowInstance;
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);
   }
