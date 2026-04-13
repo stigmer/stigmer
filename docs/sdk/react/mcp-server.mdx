@@ -655,6 +655,48 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 
+### McpServerConnectDialog
+
+Modal dialog for connecting to an MCP server.
+
+Fetches the server, determines whether credentials or OAuth are
+needed, and walks the user through the connect flow — all without
+navigating away from the current page.
+
+Uses the native `<dialog>` element for accessibility (focus trap,
+Escape to close, backdrop click).
+
+Built on existing hooks: [`useMcpServer`](#usemcpserver),
+[`useMcpServerCredentials`](#usemcpservercredentials), [`useMcpServerOAuthConnect`](#usemcpserveroauthconnect),
+and [`useMcpServerConnect`](#usemcpserverconnect).
+
+**Props** — `McpServerConnectDialogProps`
+
+<TypeTable
+  type={{
+    activeOrg: { type: "string", description: "The authenticated user's active organization slug. Used for credential storage — tokens are stored in the user's personal environment within this org. Falls back to `org` when omitted." },
+    className: { type: "string", description: "Additional CSS classes for the dialog element." },
+    onClose: { type: "() => void", description: "Called when the dialog should close (backdrop click, cancel, or success).", required: true },
+    onConnected: { type: "(serverName: string) => void", description: "Called after a successful connect with the server name." },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+    org: { type: "string", description: "Organization slug that owns the MCP server.", required: true },
+    slug: { type: "string", description: "MCP server slug.", required: true },
+  }}
+/>
+
+```tsx
+const [connectTarget, setConnectTarget] = useState<{ org: string; slug: string } | null>(null);
+
+<McpServerConnectDialog
+  org={connectTarget?.org ?? ""}
+  slug={connectTarget?.slug ?? ""}
+  open={connectTarget !== null}
+  onClose={() => setConnectTarget(null)}
+  onConnected={(name) => toast(`Connected to ${name}`)}
+/>
+```
+
+
 ### McpServerDetailView
 
 Detail view for an MCP Server integration.

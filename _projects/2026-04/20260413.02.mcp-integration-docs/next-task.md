@@ -68,9 +68,64 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-13
-**Current Task**: T06 — Tutorial refresh + cross-link bridge + demo audit
-**Status**: T06 COMPLETE
-**Last Session**: 2026-04-13 — T06 tutorial refresh
+**Current Task**: T07 — SDK reference polish
+**Status**: T07 COMPLETE
+**Last Session**: 2026-04-13 — T07 SDK reference polish
+
+## Session Progress (2026-04-13, session 9 — T07)
+
+- **Completed `DOMAIN_META`**: Added 5 missing entries to the hand-maintained
+  map in `site/scripts/generate-react-sdk-docs/parser.ts` for `oauth-app`,
+  `iam-policy`, `identity-provider`, `invitation`, and `usage`. These domains
+  were rendering with slug-case titles and empty descriptions. Regenerated all
+  React SDK docs — MDX files, `meta.json`, and `react-sdk-summary.json` now
+  show proper titles and descriptions for all 22 domains.
+- **Created OAuthApp `overview.md`**: New file at
+  `apis/ai/stigmer/iam/oauthapp/docs/overview.md` with 3-sentence description
+  and representative Slack YAML example. Regenerated resource docs — the
+  generated `o-auth-app.mdx` now opens with the proper overview instead of a
+  generic fallback.
+- **Refreshed McpServer `overview.md`**: Added one sentence acknowledging the
+  `auth` block and OAuthApp reference. Kept existing stdio YAML (one
+  representative example per convention).
+- **Proto comment review**: Reviewed all RPC, message, and field comments across
+  `mcpserver/v1/*.proto` and `oauthapp/v1/*.proto`. All comments follow the
+  `@internal` separation convention correctly. Zero changes needed.
+- Build verified: `make gen-react-sdk-docs`, `make gen-proto-sdk-docs`, and
+  `yarn build` all pass.
+
+### Files created
+
+| File | Purpose |
+|------|---------|
+| `apis/ai/stigmer/iam/oauthapp/docs/overview.md` | OAuthApp resource overview |
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `site/scripts/generate-react-sdk-docs/parser.ts` | 5 new `DOMAIN_META` entries |
+| `apis/ai/stigmer/agentic/mcpserver/docs/overview.md` | Added sentence about `auth` block |
+| `docs/sdk/react/*.mdx` (5 files) | Regenerated with proper titles/descriptions |
+| `docs/sdk/react/meta.json` | Regenerated |
+| `site/src/data/react-sdk-summary.json` | Regenerated with proper titles/descriptions |
+| `docs/sdk/resources/o-auth-app.mdx` | Regenerated with new overview |
+
+### Key decisions
+
+- **Option A for McpServer overview**: Added one sentence mentioning OAuth auth
+  rather than replacing the YAML example with an HTTP+OAuth variant. The overview
+  convention calls for one representative YAML; the OAuth story is covered in
+  depth by the T03-T05 how-to guides.
+- **No proto comment changes**: All comments reviewed and found clean. The OAuth
+  feature work was done with the SDK docs conventions already in mind.
+
+### Out-of-scope finding
+
+- **"O Auth App" display name**: The proto SDK docs generator derives display
+  names from proto type names by splitting on camelCase boundaries, producing
+  "O Auth App" instead of "OAuth App". This is a codegen logic issue in
+  `sdk_docs.go`, not a documentation content task. Noted for future work.
 
 ## Session Progress (2026-04-13, session 8 — T06)
 
@@ -385,8 +440,8 @@ entries were already in place from T01–T04.
 
 ## Next Steps
 
-1. Start T07: SDK reference polish
-2. Future: T08 — Custom integration OAuth setup guide (deferred, "MCP server authors" audience)
+1. Future: T08 — Custom integration OAuth setup guide (deferred, "MCP server authors" audience)
+2. Future: Fix "O Auth App" display name in proto SDK docs codegen (`sdk_docs.go`)
 
 ## Task Map
 
@@ -398,7 +453,7 @@ entries were already in place from T01–T04.
 | T04 | BYOA guide + demo | COMPLETE (amended: Settings CRUD) |
 | T05 | Architecture transparency page | COMPLETE |
 | T06 | Tutorial refresh + cross-link bridge + demo audit | COMPLETE (rescoped) |
-| T07 | SDK reference polish | Not started |
+| T07 | SDK reference polish | COMPLETE |
 | T08 | Custom integration OAuth setup guide | Deferred |
 
 ## Quick Commands

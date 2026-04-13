@@ -122,6 +122,31 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Components for structured error display and troubleshooting guidance.",
   },
+  "oauth-app": {
+    title: "OAuth App",
+    description:
+      "Hooks and components for OAuth app creation, listing, editing, and deletion.",
+  },
+  "iam-policy": {
+    title: "IAM Policy",
+    description:
+      "Hooks and components for access control bindings, role assignment, and org membership.",
+  },
+  "identity-provider": {
+    title: "Identity Provider",
+    description:
+      "Hooks and components for federated identity provider setup and management.",
+  },
+  invitation: {
+    title: "Invitation",
+    description:
+      "Hooks and components for invite link creation, listing, and redemption.",
+  },
+  usage: {
+    title: "Usage",
+    description:
+      "Hooks and components for organization-level usage reporting and cost breakdown.",
+  },
 };
 
 // Proto qualified-name → docs/sdk/resources/ slug
