@@ -79,12 +79,6 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_o_auth_grant_status(self, input: io_pb2.GetOAuthGrantStatusInput) -> io_pb2.GetOAuthGrantStatusOutput:
-        try:
-            return self._command.getOAuthGrantStatus(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def disconnect_o_auth(self, input: io_pb2.DisconnectOAuthInput) -> io_pb2.DisconnectOAuthOutput:
         try:
             return self._command.disconnectOAuth(input)
@@ -94,12 +88,6 @@ class McpServerClient:
     def set_org_o_auth_app(self, input: io_pb2.SetOrgOAuthAppInput) -> io_pb2.SetOrgOAuthAppOutput:
         try:
             return self._command.setOrgOAuthApp(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def get_org_o_auth_app(self, input: io_pb2.GetOrgOAuthAppInput) -> io_pb2.GetOrgOAuthAppOutput:
-        try:
-            return self._command.getOrgOAuthApp(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -120,6 +108,18 @@ class McpServerClient:
             proto = ref._to_proto()
             proto.kind = api_resource_kind_pb2.mcp_server
             return self._query.getByReference(proto)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_o_auth_grant_status(self, input: io_pb2.GetOAuthGrantStatusInput) -> io_pb2.GetOAuthGrantStatusOutput:
+        try:
+            return self._query.getOAuthGrantStatus(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_org_o_auth_app(self, input: io_pb2.GetOrgOAuthAppInput) -> io_pb2.GetOrgOAuthAppOutput:
+        try:
+            return self._query.getOrgOAuthApp(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

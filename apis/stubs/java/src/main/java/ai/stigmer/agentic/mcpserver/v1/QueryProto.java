@@ -38,33 +38,47 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/agentic/mcpserver/v1/query." +
       "proto\022\037ai.stigmer.agentic.mcpserver.v1\032)" +
       "ai/stigmer/agentic/mcpserver/v1/api.prot" +
-      "o\032\'ai/stigmer/commons/apiresource/io.pro" +
-      "to\0328ai/stigmer/commons/apiresource/rpc_s" +
-      "ervice_options.proto\032+ai/stigmer/commons" +
-      "/rpc/method_options.proto2\257\002\n\030McpServerQ" +
-      "ueryController\022\222\001\n\003get\022-.ai.stigmer.comm" +
-      "ons.apiresource.ApiResourceId\032*.ai.stigm" +
-      "er.agentic.mcpserver.v1.McpServer\"0\302\270\030,\010" +
-      "\001\020,\"\005value*\037unauthorized to view mcp ser" +
-      "ver\022x\n\016getByReference\0224.ai.stigmer.commo" +
-      "ns.apiresource.ApiResourceReference\032*.ai" +
-      ".stigmer.agentic.mcpserver.v1.McpServer\"" +
-      "\004\320\270\030\001\032\004\240\377+,B\255\001B\nQueryProtoP\001\242\002\004ASAM\252\002\037Ai" +
-      ".Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigm" +
-      "er\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Age" +
-      "ntic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stig" +
-      "mer::Agentic::Mcpserver::V1b\006proto3"
+      "o\032(ai/stigmer/agentic/mcpserver/v1/io.pr" +
+      "oto\032\'ai/stigmer/commons/apiresource/io.p" +
+      "roto\0328ai/stigmer/commons/apiresource/rpc" +
+      "_service_options.proto\032+ai/stigmer/commo" +
+      "ns/rpc/method_options.proto2\313\005\n\030McpServe" +
+      "rQueryController\022\222\001\n\003get\022-.ai.stigmer.co" +
+      "mmons.apiresource.ApiResourceId\032*.ai.sti" +
+      "gmer.agentic.mcpserver.v1.McpServer\"0\302\270\030" +
+      ",\010\001\020,\"\005value*\037unauthorized to view mcp s" +
+      "erver\022x\n\016getByReference\0224.ai.stigmer.com" +
+      "mons.apiresource.ApiResourceReference\032*." +
+      "ai.stigmer.agentic.mcpserver.v1.McpServe" +
+      "r\"\004\320\270\030\001\022\325\001\n\023getOAuthGrantStatus\0229.ai.sti" +
+      "gmer.agentic.mcpserver.v1.GetOAuthGrantS" +
+      "tatusInput\032:.ai.stigmer.agentic.mcpserve" +
+      "r.v1.GetOAuthGrantStatusOutput\"G\302\270\030C\010\001\020," +
+      "\"\013resource_id*0unauthorized to view oaut" +
+      "h status for mcp server\022\301\001\n\016getOrgOAuthA" +
+      "pp\0224.ai.stigmer.agentic.mcpserver.v1.Get" +
+      "OrgOAuthAppInput\0325.ai.stigmer.agentic.mc" +
+      "pserver.v1.GetOrgOAuthAppOutput\"B\302\270\030>\010\001\020" +
+      ",\"\013resource_id*+unauthorized to view org" +
+      " oauth app override\032\004\240\377+,B\255\001B\nQueryProto" +
+      "P\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver" +
+      ".V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+" +
+      "Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetad" +
+      "ata\352\002#Ai::Stigmer::Agentic::Mcpserver::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.mcpserver.v1.ApiProto.getDescriptor(),
+          ai.stigmer.agentic.mcpserver.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.mcpserver.v1.ApiProto.getDescriptor();
+    ai.stigmer.agentic.mcpserver.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();

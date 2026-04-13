@@ -97,12 +97,6 @@ public final class McpServerClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public GetOAuthGrantStatusOutput getOAuthGrantStatus(GetOAuthGrantStatusInput input) {
-        try {
-            return command.getOAuthGrantStatus(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
     public DisconnectOAuthOutput disconnectOAuth(DisconnectOAuthInput input) {
         try {
             return command.disconnectOAuth(input);
@@ -112,12 +106,6 @@ public final class McpServerClient {
     public SetOrgOAuthAppOutput setOrgOAuthApp(SetOrgOAuthAppInput input) {
         try {
             return command.setOrgOAuthApp(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public GetOrgOAuthAppOutput getOrgOAuthApp(GetOrgOAuthAppInput input) {
-        try {
-            return command.getOrgOAuthApp(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -136,6 +124,18 @@ public final class McpServerClient {
     public McpServer getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.mcp_server).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetOAuthGrantStatusOutput getOAuthGrantStatus(GetOAuthGrantStatusInput input) {
+        try {
+            return query.getOAuthGrantStatus(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetOrgOAuthAppOutput getOrgOAuthApp(GetOrgOAuthAppInput input) {
+        try {
+            return query.getOrgOAuthApp(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

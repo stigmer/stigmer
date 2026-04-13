@@ -73,11 +73,6 @@ func (m *McpServerClient) CompleteOAuthConnect(ctx context.Context, input *mcpse
 	return resp, wrapErr(err)
 }
 
-func (m *McpServerClient) GetOAuthGrantStatus(ctx context.Context, input *mcpserverv1.GetOAuthGrantStatusInput) (*mcpserverv1.GetOAuthGrantStatusOutput, error) {
-	resp, err := m.command.GetOAuthGrantStatus(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (m *McpServerClient) DisconnectOAuth(ctx context.Context, input *mcpserverv1.DisconnectOAuthInput) (*mcpserverv1.DisconnectOAuthOutput, error) {
 	resp, err := m.command.DisconnectOAuth(ctx, input)
 	return resp, wrapErr(err)
@@ -85,11 +80,6 @@ func (m *McpServerClient) DisconnectOAuth(ctx context.Context, input *mcpserverv
 
 func (m *McpServerClient) SetOrgOAuthApp(ctx context.Context, input *mcpserverv1.SetOrgOAuthAppInput) (*mcpserverv1.SetOrgOAuthAppOutput, error) {
 	resp, err := m.command.SetOrgOAuthApp(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (m *McpServerClient) GetOrgOAuthApp(ctx context.Context, input *mcpserverv1.GetOrgOAuthAppInput) (*mcpserverv1.GetOrgOAuthAppOutput, error) {
-	resp, err := m.command.GetOrgOAuthApp(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -106,6 +96,16 @@ func (m *McpServerClient) Get(ctx context.Context, id string) (*mcpserverv1.McpS
 func (m *McpServerClient) GetByReference(ctx context.Context, ref ResourceRef) (*mcpserverv1.McpServer, error) {
 	ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
 	resp, err := m.query.GetByReference(ctx, ref.toProto())
+	return resp, wrapErr(err)
+}
+
+func (m *McpServerClient) GetOAuthGrantStatus(ctx context.Context, input *mcpserverv1.GetOAuthGrantStatusInput) (*mcpserverv1.GetOAuthGrantStatusOutput, error) {
+	resp, err := m.query.GetOAuthGrantStatus(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (m *McpServerClient) GetOrgOAuthApp(ctx context.Context, input *mcpserverv1.GetOrgOAuthAppInput) (*mcpserverv1.GetOrgOAuthAppOutput, error) {
+	resp, err := m.query.GetOrgOAuthApp(ctx, input)
 	return resp, wrapErr(err)
 }
 

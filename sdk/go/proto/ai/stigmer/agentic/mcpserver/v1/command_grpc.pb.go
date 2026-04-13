@@ -28,10 +28,8 @@ const (
 	McpServerCommandController_Connect_FullMethodName              = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect"
 	McpServerCommandController_InitiateOAuthConnect_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/initiateOAuthConnect"
 	McpServerCommandController_CompleteOAuthConnect_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/completeOAuthConnect"
-	McpServerCommandController_GetOAuthGrantStatus_FullMethodName  = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/getOAuthGrantStatus"
 	McpServerCommandController_DisconnectOAuth_FullMethodName      = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/disconnectOAuth"
 	McpServerCommandController_SetOrgOAuthApp_FullMethodName       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/setOrgOAuthApp"
-	McpServerCommandController_GetOrgOAuthApp_FullMethodName       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/getOrgOAuthApp"
 	McpServerCommandController_DeleteOrgOAuthApp_FullMethodName    = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/deleteOrgOAuthApp"
 )
 
@@ -168,18 +166,6 @@ type McpServerCommandControllerClient interface {
 	//
 	// Authorization: Requires can_connect permission on the mcp_server resource.
 	CompleteOAuthConnect(ctx context.Context, in *CompleteOAuthConnectInput, opts ...grpc.CallOption) (*CompleteOAuthConnectOutput, error)
-	// Check whether the authenticated user has an active OAuth grant for
-	// an MCP server in the specified org.
-	//
-	// Returns grant metadata (connected status, token expiry, auth method)
-	// without exposing any secret token values. The frontend uses this to
-	// render the correct OAuth state in the MCP server detail page and
-	// session composer.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// The resource_id field contains the MCP server's system-generated ID.
-	GetOAuthGrantStatus(ctx context.Context, in *GetOAuthGrantStatusInput, opts ...grpc.CallOption) (*GetOAuthGrantStatusOutput, error)
 	// Disconnect the authenticated user's OAuth connection for a resource.
 	//
 	// Tears down the user's personal OAuth connection by deleting the
@@ -217,17 +203,6 @@ type McpServerCommandControllerClient interface {
 	//     (BYOA requires a platform template to clone from)
 	//   - NOT_FOUND: Resource does not exist
 	SetOrgOAuthApp(ctx context.Context, in *SetOrgOAuthAppInput, opts ...grpc.CallOption) (*SetOrgOAuthAppOutput, error)
-	// Query whether an org has a BYOA override for a resource.
-	//
-	// Returns override metadata (existence, OAuthApp ID, client_id) without
-	// exposing secrets. The frontend uses this to show which credential
-	// source is active and to offer override management options to org admins.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// Any user who can view the MCP server can check whether their org has
-	// an override — no secrets are exposed.
-	GetOrgOAuthApp(ctx context.Context, in *GetOrgOAuthAppInput, opts ...grpc.CallOption) (*GetOrgOAuthAppOutput, error)
 	// Remove an org-level BYOA override for a resource.
 	//
 	// Deletes the OAuthAppOverride binding and the OAuthApp resource that
@@ -335,16 +310,6 @@ func (c *mcpServerCommandControllerClient) CompleteOAuthConnect(ctx context.Cont
 	return out, nil
 }
 
-func (c *mcpServerCommandControllerClient) GetOAuthGrantStatus(ctx context.Context, in *GetOAuthGrantStatusInput, opts ...grpc.CallOption) (*GetOAuthGrantStatusOutput, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetOAuthGrantStatusOutput)
-	err := c.cc.Invoke(ctx, McpServerCommandController_GetOAuthGrantStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *mcpServerCommandControllerClient) DisconnectOAuth(ctx context.Context, in *DisconnectOAuthInput, opts ...grpc.CallOption) (*DisconnectOAuthOutput, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DisconnectOAuthOutput)
@@ -359,16 +324,6 @@ func (c *mcpServerCommandControllerClient) SetOrgOAuthApp(ctx context.Context, i
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetOrgOAuthAppOutput)
 	err := c.cc.Invoke(ctx, McpServerCommandController_SetOrgOAuthApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mcpServerCommandControllerClient) GetOrgOAuthApp(ctx context.Context, in *GetOrgOAuthAppInput, opts ...grpc.CallOption) (*GetOrgOAuthAppOutput, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetOrgOAuthAppOutput)
-	err := c.cc.Invoke(ctx, McpServerCommandController_GetOrgOAuthApp_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -518,18 +473,6 @@ type McpServerCommandControllerServer interface {
 	//
 	// Authorization: Requires can_connect permission on the mcp_server resource.
 	CompleteOAuthConnect(context.Context, *CompleteOAuthConnectInput) (*CompleteOAuthConnectOutput, error)
-	// Check whether the authenticated user has an active OAuth grant for
-	// an MCP server in the specified org.
-	//
-	// Returns grant metadata (connected status, token expiry, auth method)
-	// without exposing any secret token values. The frontend uses this to
-	// render the correct OAuth state in the MCP server detail page and
-	// session composer.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// The resource_id field contains the MCP server's system-generated ID.
-	GetOAuthGrantStatus(context.Context, *GetOAuthGrantStatusInput) (*GetOAuthGrantStatusOutput, error)
 	// Disconnect the authenticated user's OAuth connection for a resource.
 	//
 	// Tears down the user's personal OAuth connection by deleting the
@@ -567,17 +510,6 @@ type McpServerCommandControllerServer interface {
 	//     (BYOA requires a platform template to clone from)
 	//   - NOT_FOUND: Resource does not exist
 	SetOrgOAuthApp(context.Context, *SetOrgOAuthAppInput) (*SetOrgOAuthAppOutput, error)
-	// Query whether an org has a BYOA override for a resource.
-	//
-	// Returns override metadata (existence, OAuthApp ID, client_id) without
-	// exposing secrets. The frontend uses this to show which credential
-	// source is active and to offer override management options to org admins.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// Any user who can view the MCP server can check whether their org has
-	// an override — no secrets are exposed.
-	GetOrgOAuthApp(context.Context, *GetOrgOAuthAppInput) (*GetOrgOAuthAppOutput, error)
 	// Remove an org-level BYOA override for a resource.
 	//
 	// Deletes the OAuthAppOverride binding and the OAuthApp resource that
@@ -628,17 +560,11 @@ func (UnimplementedMcpServerCommandControllerServer) InitiateOAuthConnect(contex
 func (UnimplementedMcpServerCommandControllerServer) CompleteOAuthConnect(context.Context, *CompleteOAuthConnectInput) (*CompleteOAuthConnectOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CompleteOAuthConnect not implemented")
 }
-func (UnimplementedMcpServerCommandControllerServer) GetOAuthGrantStatus(context.Context, *GetOAuthGrantStatusInput) (*GetOAuthGrantStatusOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetOAuthGrantStatus not implemented")
-}
 func (UnimplementedMcpServerCommandControllerServer) DisconnectOAuth(context.Context, *DisconnectOAuthInput) (*DisconnectOAuthOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DisconnectOAuth not implemented")
 }
 func (UnimplementedMcpServerCommandControllerServer) SetOrgOAuthApp(context.Context, *SetOrgOAuthAppInput) (*SetOrgOAuthAppOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetOrgOAuthApp not implemented")
-}
-func (UnimplementedMcpServerCommandControllerServer) GetOrgOAuthApp(context.Context, *GetOrgOAuthAppInput) (*GetOrgOAuthAppOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetOrgOAuthApp not implemented")
 }
 func (UnimplementedMcpServerCommandControllerServer) DeleteOrgOAuthApp(context.Context, *DeleteOrgOAuthAppInput) (*DeleteOrgOAuthAppOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrgOAuthApp not implemented")
@@ -807,24 +733,6 @@ func _McpServerCommandController_CompleteOAuthConnect_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _McpServerCommandController_GetOAuthGrantStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetOAuthGrantStatusInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(McpServerCommandControllerServer).GetOAuthGrantStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: McpServerCommandController_GetOAuthGrantStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerCommandControllerServer).GetOAuthGrantStatus(ctx, req.(*GetOAuthGrantStatusInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _McpServerCommandController_DisconnectOAuth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DisconnectOAuthInput)
 	if err := dec(in); err != nil {
@@ -857,24 +765,6 @@ func _McpServerCommandController_SetOrgOAuthApp_Handler(srv interface{}, ctx con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(McpServerCommandControllerServer).SetOrgOAuthApp(ctx, req.(*SetOrgOAuthAppInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _McpServerCommandController_GetOrgOAuthApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetOrgOAuthAppInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(McpServerCommandControllerServer).GetOrgOAuthApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: McpServerCommandController_GetOrgOAuthApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerCommandControllerServer).GetOrgOAuthApp(ctx, req.(*GetOrgOAuthAppInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -937,20 +827,12 @@ var McpServerCommandController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _McpServerCommandController_CompleteOAuthConnect_Handler,
 		},
 		{
-			MethodName: "getOAuthGrantStatus",
-			Handler:    _McpServerCommandController_GetOAuthGrantStatus_Handler,
-		},
-		{
 			MethodName: "disconnectOAuth",
 			Handler:    _McpServerCommandController_DisconnectOAuth_Handler,
 		},
 		{
 			MethodName: "setOrgOAuthApp",
 			Handler:    _McpServerCommandController_SetOrgOAuthApp_Handler,
-		},
-		{
-			MethodName: "getOrgOAuthApp",
-			Handler:    _McpServerCommandController_GetOrgOAuthApp_Handler,
 		},
 		{
 			MethodName: "deleteOrgOAuthApp",

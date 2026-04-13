@@ -20,8 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	McpServerQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/get"
-	McpServerQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getByReference"
+	McpServerQueryController_Get_FullMethodName                 = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/get"
+	McpServerQueryController_GetByReference_FullMethodName      = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getByReference"
+	McpServerQueryController_GetOAuthGrantStatus_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getOAuthGrantStatus"
+	McpServerQueryController_GetOrgOAuthApp_FullMethodName      = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getOrgOAuthApp"
 )
 
 // McpServerQueryControllerClient is the client API for McpServerQueryController service.
@@ -54,6 +56,29 @@ type McpServerQueryControllerClient interface {
 	// Authorization: Custom authorization in handler.
 	// The handler performs scope-aware authorization based on the reference.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*McpServer, error)
+	// Check whether the authenticated user has an active OAuth grant for
+	// an MCP server in the specified org.
+	//
+	// Returns grant metadata (connected status, token expiry, auth method)
+	// without exposing any secret token values. The frontend uses this to
+	// render the correct OAuth state in the MCP server detail page and
+	// session composer.
+	//
+	// @internal
+	// Authorization: Requires can_view permission on the mcp_server resource.
+	// The resource_id field contains the MCP server's system-generated ID.
+	GetOAuthGrantStatus(ctx context.Context, in *GetOAuthGrantStatusInput, opts ...grpc.CallOption) (*GetOAuthGrantStatusOutput, error)
+	// Query whether an org has a BYOA override for a resource.
+	//
+	// Returns override metadata (existence, OAuthApp ID, client_id) without
+	// exposing secrets. The frontend uses this to show which credential
+	// source is active and to offer override management options to org admins.
+	//
+	// @internal
+	// Authorization: Requires can_view permission on the mcp_server resource.
+	// Any user who can view the MCP server can check whether their org has
+	// an override — no secrets are exposed.
+	GetOrgOAuthApp(ctx context.Context, in *GetOrgOAuthAppInput, opts ...grpc.CallOption) (*GetOrgOAuthAppOutput, error)
 }
 
 type mcpServerQueryControllerClient struct {
@@ -78,6 +103,26 @@ func (c *mcpServerQueryControllerClient) GetByReference(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(McpServer)
 	err := c.cc.Invoke(ctx, McpServerQueryController_GetByReference_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpServerQueryControllerClient) GetOAuthGrantStatus(ctx context.Context, in *GetOAuthGrantStatusInput, opts ...grpc.CallOption) (*GetOAuthGrantStatusOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOAuthGrantStatusOutput)
+	err := c.cc.Invoke(ctx, McpServerQueryController_GetOAuthGrantStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpServerQueryControllerClient) GetOrgOAuthApp(ctx context.Context, in *GetOrgOAuthAppInput, opts ...grpc.CallOption) (*GetOrgOAuthAppOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrgOAuthAppOutput)
+	err := c.cc.Invoke(ctx, McpServerQueryController_GetOrgOAuthApp_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +159,29 @@ type McpServerQueryControllerServer interface {
 	// Authorization: Custom authorization in handler.
 	// The handler performs scope-aware authorization based on the reference.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*McpServer, error)
+	// Check whether the authenticated user has an active OAuth grant for
+	// an MCP server in the specified org.
+	//
+	// Returns grant metadata (connected status, token expiry, auth method)
+	// without exposing any secret token values. The frontend uses this to
+	// render the correct OAuth state in the MCP server detail page and
+	// session composer.
+	//
+	// @internal
+	// Authorization: Requires can_view permission on the mcp_server resource.
+	// The resource_id field contains the MCP server's system-generated ID.
+	GetOAuthGrantStatus(context.Context, *GetOAuthGrantStatusInput) (*GetOAuthGrantStatusOutput, error)
+	// Query whether an org has a BYOA override for a resource.
+	//
+	// Returns override metadata (existence, OAuthApp ID, client_id) without
+	// exposing secrets. The frontend uses this to show which credential
+	// source is active and to offer override management options to org admins.
+	//
+	// @internal
+	// Authorization: Requires can_view permission on the mcp_server resource.
+	// Any user who can view the MCP server can check whether their org has
+	// an override — no secrets are exposed.
+	GetOrgOAuthApp(context.Context, *GetOrgOAuthAppInput) (*GetOrgOAuthAppOutput, error)
 }
 
 // UnimplementedMcpServerQueryControllerServer should be embedded to have
@@ -128,6 +196,12 @@ func (UnimplementedMcpServerQueryControllerServer) Get(context.Context, *apireso
 }
 func (UnimplementedMcpServerQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*McpServer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedMcpServerQueryControllerServer) GetOAuthGrantStatus(context.Context, *GetOAuthGrantStatusInput) (*GetOAuthGrantStatusOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOAuthGrantStatus not implemented")
+}
+func (UnimplementedMcpServerQueryControllerServer) GetOrgOAuthApp(context.Context, *GetOrgOAuthAppInput) (*GetOrgOAuthAppOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrgOAuthApp not implemented")
 }
 func (UnimplementedMcpServerQueryControllerServer) testEmbeddedByValue() {}
 
@@ -185,6 +259,42 @@ func _McpServerQueryController_GetByReference_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpServerQueryController_GetOAuthGrantStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOAuthGrantStatusInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpServerQueryControllerServer).GetOAuthGrantStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpServerQueryController_GetOAuthGrantStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpServerQueryControllerServer).GetOAuthGrantStatus(ctx, req.(*GetOAuthGrantStatusInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpServerQueryController_GetOrgOAuthApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrgOAuthAppInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpServerQueryControllerServer).GetOrgOAuthApp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpServerQueryController_GetOrgOAuthApp_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpServerQueryControllerServer).GetOrgOAuthApp(ctx, req.(*GetOrgOAuthAppInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McpServerQueryController_ServiceDesc is the grpc.ServiceDesc for McpServerQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -199,6 +309,14 @@ var McpServerQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _McpServerQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "getOAuthGrantStatus",
+			Handler:    _McpServerQueryController_GetOAuthGrantStatus_Handler,
+		},
+		{
+			MethodName: "getOrgOAuthApp",
+			Handler:    _McpServerQueryController_GetOrgOAuthApp_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
