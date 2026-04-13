@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "developer-tools"
 spec:
   description: "Netlify MCP server for deploying sites, managing builds, configuring DNS, and accessing deployment logs."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/netlify.svg"
   repository_url: "https://github.com/netlify/netlify-mcp"
   github_stars: 39
   tags:

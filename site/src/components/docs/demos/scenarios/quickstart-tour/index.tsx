@@ -62,7 +62,7 @@ function ApiKeysPageChrome() {
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-xs font-semibold text-foreground">API Keys</h3>
-            <div className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+            <div className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
               <Plus className="h-2.5 w-2.5" />
               New API key
             </div>

@@ -50,6 +50,7 @@ from ._gen._mcpserver import (
     StdioServerConfigInput,
     ToolApprovalPolicyInput,
 )
+from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
 from ._gen._organization import OrganizationClient, OrganizationInput
 from ._gen._project import ProjectClient, ProjectInput
 from ._gen._session import (
@@ -120,6 +121,7 @@ __all__ = [
     "IdentityAccountClient",
     "IdentityProviderClient",
     "McpServerClient",
+    "OAuthAppClient",
     "OrganizationClient",
     "ProjectClient",
     "SessionClient",
@@ -152,6 +154,7 @@ __all__ = [
     "McpAccessInput",
     "McpServerInput",
     "McpServerUsageInput",
+    "OAuthAppInput",
     "OrganizationInput",
     "ProjectInput",
     "SessionInput",

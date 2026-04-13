@@ -537,14 +537,9 @@ function DefaultResourceCard({
       <div className="flex items-start gap-3">
         <ResourceIcon kind={item.kind} iconUrl={item.iconUrl} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-foreground">
-              {displayName}
-            </span>
-            {item.visibility === ApiResourceVisibility.visibility_public && (
-              <VisibilityBadge />
-            )}
-          </div>
+          <span className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
+            {displayName}
+          </span>
           <span className="mt-0.5 block text-xs text-muted-foreground">
             {item.org}
           </span>
@@ -555,6 +550,11 @@ function DefaultResourceCard({
         <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
           {item.description}
         </p>
+      )}
+      {item.visibility === ApiResourceVisibility.visibility_public && (
+        <div className="mt-auto">
+          <VisibilityBadge />
+        </div>
       )}
     </div>
   );

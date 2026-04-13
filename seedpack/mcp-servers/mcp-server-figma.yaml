@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "design"
 spec:
   description: "Figma MCP server for accessing design files, inspecting components, extracting design tokens, and navigating project structures."
-  icon_url: "https://static.figma.com/app/icon/1/favicon.svg"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/figma.svg"
   repository_url: "https://github.com/figma/mcp-server-guide"
   github_stars: 1060
   tags:

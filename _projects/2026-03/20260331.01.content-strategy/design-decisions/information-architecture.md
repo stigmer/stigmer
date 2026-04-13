@@ -5,7 +5,7 @@ how pages are organized, and how readers move through them. It is the source
 of truth for Phase 2 (sales site) and Phases 3–7 (documentation) of the
 content strategy project.
 
-**Status**: draft, pending review
+**Status**: superseded — the live `docs/**/meta.json` files are the source of truth for navigation structure. This document preserves the original planning rationale but no longer reflects the current site.
 **Created**: 2026-03-31
 **Depends on**: [Positioning document](positioning.md), [Vocabulary guide](../../../../docs/vocabulary.md), [Demo story narrative](demo-story.md), [Use case library](use-cases.md)
 **Scope**: Page inventory, navigation structure, sidebar hierarchy, CTA

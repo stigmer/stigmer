@@ -43,6 +43,20 @@ All demo layout values live in a single file: `site/src/components/docs/demos/sh
 
 When you create a new demo, import the appropriate token from this file. Never hardcode zoom values, container heights, or wrapper class strings. This keeps all demos visually consistent — one change to `tokens.ts` updates every demo on the site.
 
+### Visual consistency checklist
+
+This checklist is mandatory for every new demo and every demo revision. Violations create visual disconnect between demos — readers notice when one screen looks "zoomed out" relative to others.
+
+1. **No pixel-based font sizes in scenario code.** Never use `text-[Npx]` classes (e.g., `text-[8px]`, `text-[11px]`) inside demo scenario components. Use the Tailwind type scale (`text-xs`, `text-sm`, `text-base`) and let `DEMO_CONTENT_ZOOM` or `DEMO_BROWSER_ZOOM` handle the scaling. Pixel sizes compound with zoom tokens unpredictably and produce text that is noticeably smaller than surrounding SDK components.
+
+2. **No hardcoded zoom or width values.** Every `zoom` style must reference a token from `tokens.ts`. Every container class string must use `DEMO_PLAYER_CLASSES` or `DEMO_DETAIL_CLASSES`. If a new layout need arises, add a token — do not inline a magic number.
+
+3. **Dialog and overlay continuity.** When a demo shows a modal dialog or overlay, always render the underlying page content behind it. A dialog floating over a blank or dimmed-only background breaks the visual connection between the "before" and "during" states. The real product renders dialogs on top of the current view — the demo must do the same.
+
+4. **Hand-built UI parity check.** If a step uses hand-built JSX instead of a real SDK component (e.g., a mock OAuth dialog, an auth provider page), compare its rendered size against the SDK components in adjacent steps. The hand-built UI must look proportionally consistent. If it appears noticeably smaller or larger, the typography scale is wrong.
+
+Run `site/scripts/validate-demos.ts` after creating or revising a demo to catch token compliance violations automatically.
+
 ### Shell-level vs. content-level abstraction
 
 The demo framework has two layers with different abstraction rules:
@@ -125,7 +139,24 @@ Mid-step interactions use percentage-based timing (`atPercent: 0.0` to `1.0`) re
 
 **Video export**: mid-step interactions work in both browser playback and Remotion video export. The framework uses the Remotion time source for synchronous, frame-accurate firing in video. No additional wiring is needed — if it works in the browser, it works in the video.
 
-**Self-check**: read the narration for each step and ask: "Does the narration mention something the viewer cannot currently see?" If yes, add a `scroll-to` or `set-cursor` interaction timed to the relevant phrase.
+### Step interaction coverage (mandatory)
+
+Mid-step interactions are not optional polish — they are a required part of every narrated demo. A narrated step where the viewer cannot see the content being described is a broken step.
+
+**Hard rules:**
+
+1. Every narrated step that references UI content below the initial viewport MUST include a `scroll-to` interaction timed just before the narration reaches that content.
+2. Every narrated step that walks through a sequence of items (form fields, tool names, validation checks, configuration entries) SHOULD include `set-cursor` interactions that walk through each item in sync with the narration.
+3. Every demo with more than 4 narrated steps MUST wire `useStepInteractions` — even if the initial set of interactions is small. The hook is opt-in per scenario; wiring it upfront removes friction for adding interactions later.
+
+**Self-check (mandatory for every demo):**
+
+For each narrated step, answer these two questions:
+
+1. "Can the viewer see everything the narration mentions?" — If no, add a `scroll-to` interaction for the off-screen content.
+2. "Does the narration mention a sequence of items?" — If yes, add `set-cursor` interactions timed to each item in the sequence.
+
+This self-check is not a suggestion. It is a gate. Do not mark a demo as complete until every narrated step passes both questions.
 
 ### Narration for playback demos
 

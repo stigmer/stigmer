@@ -10,7 +10,7 @@ spec:
     Helps you respond to Slack mentions and messages. Finds conversations
     where you have been tagged, reads the thread context, and drafts
     replies for your approval before sending.
-  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/agents/slack-agent.svg"
   instructions: |
     You are a Slack response assistant. Your primary job is to help the
     user keep up with their Slack mentions and respond effectively.

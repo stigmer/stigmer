@@ -20,6 +20,9 @@ export { QuickstartTour as DemoQuickstartTour } from "./demos/scenarios/quicksta
 export { FirstSkillTour as DemoFirstSkillTour } from "./demos/scenarios/first-skill-tour";
 export { ConnectToolsTour as DemoConnectToolsTour } from "./demos/scenarios/connect-tools-tour";
 export { CreateAgentTour as DemoCreateAgentTour } from "./demos/scenarios/create-agent-tour";
+export { MarketplaceConnectTour as DemoMarketplaceConnectTour } from "./demos/scenarios/marketplace-connect-tour";
+export { OAuthConnectFlow as DemoOAuthConnectFlow } from "./demos/scenarios/oauth-connect-flow";
+export { ByoaSetup as DemoByoaSetup } from "./demos/scenarios/byoa-setup";
 export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";

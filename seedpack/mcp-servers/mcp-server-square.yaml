@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "payments"
 spec:
   description: "Square MCP server for payment processing, point-of-sale management, inventory tracking, and order operations."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/square.svg"
   repository_url: "https://github.com/square/square-mcp-server"
   github_stars: 95
   tags:

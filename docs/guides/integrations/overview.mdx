@@ -1,0 +1,64 @@
+---
+title: Tool integrations
+description:
+  Connect tools to your Agents through the Stigmer marketplace, configure
+  authentication with OAuth or API keys, and manage credentials at the
+  organization level.
+---
+
+Your Agents can interact with external systems through MCP Servers — tool
+connections that use the
+[Model Context Protocol](https://modelcontextprotocol.io/). This section covers
+the practical side: finding tools, connecting them, and setting up
+authentication.
+
+If you're new to how tools work in Stigmer, start with the
+[Tools concept page](/docs/concepts/tools) for the foundational model.
+
+## Guides in this section
+
+{/* vale off */}
+
+<Cards>
+  <Card
+    href="/docs/guides/integrations/connect-from-marketplace"
+    title="Connect from the marketplace"
+  >
+    Browse the tool library, connect an MCP server, and see its tools appear in
+    your Agent — all from the web console.
+  </Card>
+  <Card
+    href="/docs/guides/integrations/oauth-for-tools"
+    title="OAuth for tools"
+  >
+    Set up OAuth-authenticated tool connections. Covers both discovered (DCR)
+    and vendor-specific OAuth patterns.
+  </Card>
+  <Card
+    href="/docs/guides/integrations/bring-your-own-oauth"
+    title="Bring Your Own OAuth App"
+  >
+    Replace platform OAuth credentials with your Organization's own app
+    registration for tighter control over scopes and branding.
+  </Card>
+  <Card
+    href="/docs/guides/integrations/oauth-architecture"
+    title="OAuth architecture"
+  >
+    How Stigmer's OAuth infrastructure works — token lifecycle, credential
+    storage, and the resolution chain from platform to Organization to user.
+  </Card>
+</Cards>
+
+{/* vale on */}
+
+## Who these guides are for
+
+These guides are for **platform builders** adding tool access to their Agents.
+You should be comfortable with MCP Server resources and Environment
+declarations. If terms like `env_spec`, `mcp_server_usages`, or
+`pinned_tool_approvals` aren't familiar yet, the
+[Tools concept page](/docs/concepts/tools) covers them. If you haven't connected
+tools before, start with the
+[Connect your tools](/docs/getting-started/connect-tools) tutorial for a
+hands-on introduction.

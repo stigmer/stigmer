@@ -227,6 +227,7 @@ export {
   McpServerPicker,
   McpServerConfigPanel,
   McpServerDetailView,
+  McpServerConnectDialog,
   McpToolSelector,
   toServerKey,
 } from "./mcp-server";
@@ -249,6 +250,7 @@ export type {
   McpServerCredentialsProps,
   McpServerOAuthSignInProps,
   McpServerDetailViewProps,
+  McpServerConnectDialogProps,
   CapabilityTab,
   McpToolSelectorProps,
   UseMcpServerConnectReturn,
@@ -445,6 +447,26 @@ export type {
   CreateApiKeyFormProps,
   ApiKeyCreatedAlertProps,
 } from "./api-key";
+
+// OAuth App — data hooks, mutation hooks, and styled components for OAuth app management
+export {
+  useOAuthAppList,
+  useCreateOAuthApp,
+  useUpdateOAuthApp,
+  useDeleteOAuthApp,
+  OAuthAppListPanel,
+  CreateOAuthAppForm,
+  OAuthAppDetailPanel,
+} from "./oauth-app";
+export type {
+  UseOAuthAppListReturn,
+  UseCreateOAuthAppReturn,
+  UseUpdateOAuthAppReturn,
+  UseDeleteOAuthAppReturn,
+  OAuthAppListPanelProps,
+  CreateOAuthAppFormProps,
+  OAuthAppDetailPanelProps,
+} from "./oauth-app";
 
 // Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for IdP management and SSO discovery
 export {

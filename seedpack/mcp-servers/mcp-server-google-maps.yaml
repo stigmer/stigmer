@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "productivity"
 spec:
   description: "Google Maps MCP server for place search, route computation, weather lookups, and geospatial queries powered by Google Maps Platform."
-  icon_url: "https://cdn.simpleicons.org/googlemaps"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/googlemaps.svg"
   repository_url: ""
   github_stars: 0
   tags:

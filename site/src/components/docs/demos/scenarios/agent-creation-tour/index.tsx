@@ -132,7 +132,7 @@ function renderStep(step: AgentCreationStep) {
       return (
         <AppShell highlightNav="library" contentKey={contentKey}>
           <div className="flex h-full items-center justify-center p-4">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Start a new session
             </p>
           </div>
@@ -151,6 +151,7 @@ function renderStep(step: AgentCreationStep) {
             createLabel="Add Agent"
             cursorTarget="create-agent"
             items={EXISTING_AGENTS}
+            layout="grid"
           />
         </AppShell>
       );
@@ -163,6 +164,7 @@ function renderStep(step: AgentCreationStep) {
             createLabel="Add Agent"
             cursorTarget="create-agent"
             items={EXISTING_AGENTS}
+            layout="grid"
             highlightCreate
           />
         </AppShell>
@@ -244,6 +246,7 @@ function renderStep(step: AgentCreationStep) {
             createLabel="Add Agent"
             cursorTarget="create-agent"
             items={ALL_AGENTS}
+            layout="grid"
             showNewItem
           />
         </AppShell>

@@ -55,6 +55,7 @@ export function SkillListPage() {
       </div>
 
       <ResourceListView
+        layout="grid"
         items={skills}
         isLoading={isLoading}
         error={error}
