@@ -105,6 +105,20 @@ and token refreshes.
   needed** state and can reconnect with a single click.
 </Callout>
 
+## Manage OAuth apps from Settings
+
+Every OAuth app your Organization creates — whether through the BYOA dialog
+above or independently — appears in **Settings > Configuration > OAuth Apps**.
+From there you can view, edit, or delete any app.
+
+You can also create OAuth apps directly from Settings. The BYOA dialog on an MCP
+server detail page clones endpoint URLs and scopes from the platform template
+and binds the result to that server. The Settings page gives you the full form —
+authorization URL, token URL, scopes, and all optional fields — so you can
+register credentials for custom MCP servers that have no platform template to
+clone from. Reference the app by slug in your server definition's
+`auth.oauth_app_ref` field.
+
 ## What's next
 
 For a deeper look at how Stigmer resolves OAuth apps, stores credentials, and
