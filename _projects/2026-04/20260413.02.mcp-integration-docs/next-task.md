@@ -68,9 +68,37 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-13
-**Current Task**: T05 — Architecture transparency page
-**Status**: T05 COMPLETE
-**Last Session**: 2026-04-13 — Completed T05
+**Current Task**: T05 closure amendment — Settings CRUD acknowledgment
+**Status**: T05 COMPLETE (amendment applied)
+**Last Session**: 2026-04-13 — T05 closure amendment
+
+## Session Progress (2026-04-13, session 7 — T05 closure amendment)
+
+- Updated `docs/guides/integrations/bring-your-own-oauth.mdx` with a new
+  "Manage OAuth apps from Settings" section between "Remove a custom app"
+  and "What's next"
+- Acknowledges the OAuth App CRUD settings page
+  (`_changelog/2026-04/2026-04-13-195337-oauth-app-crud-settings.md`) as a
+  second entry point for creating org-level OAuth apps
+- Explains the distinction: BYOA dialog clones from a platform template and
+  binds to a server; Settings page gives the full form for custom servers
+- No demo added — standard settings CRUD does not warrant a ScenarioPlayer
+- No other pages changed — T03, T05, overview, and concepts are accurate as-is
+
+### Deferred: Custom integration OAuth guide
+
+The CRUD change primarily serves platform builders with custom MCP servers who
+need OAuth apps without a platform template. Fully documenting this journey
+(create OAuth app → write custom MCP server definition with `auth.oauth_app_ref`
+→ connect) requires content about custom MCP server definitions that doesn't
+exist yet. Recommended as a future task (T08 or new project) when the "MCP
+server authors" audience becomes a priority.
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `docs/guides/integrations/bring-your-own-oauth.mdx` | Added "Manage OAuth apps from Settings" section |
 
 ## Session Progress (2026-04-13, session 3 — T02)
 
@@ -319,6 +347,7 @@ entries were already in place from T01–T04.
 
 1. Start T06: Tutorial completion + demo updates
 2. Start T07: SDK reference polish
+3. Future: T08 — Custom integration OAuth setup guide (deferred, "MCP server authors" audience)
 
 ## Task Map
 
@@ -327,10 +356,11 @@ entries were already in place from T01–T04.
 | T01 | Concepts expansion + nav setup | COMPLETE |
 | T02 | Marketplace and connect guides + demos | COMPLETE |
 | T03 | OAuth for tools guide + hero demo | COMPLETE |
-| T04 | BYOA guide + demo | COMPLETE |
+| T04 | BYOA guide + demo | COMPLETE (amended: Settings CRUD) |
 | T05 | Architecture transparency page | COMPLETE |
 | T06 | Tutorial completion + demo updates | Not started |
 | T07 | SDK reference polish | Not started |
+| T08 | Custom integration OAuth setup guide | Deferred |
 
 ## Quick Commands
 
