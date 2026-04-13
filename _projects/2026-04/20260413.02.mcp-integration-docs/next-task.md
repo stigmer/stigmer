@@ -68,9 +68,45 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-13
-**Current Task**: T09 — Demo visual consistency and enforcement
-**Status**: T09 COMPLETE
-**Last Session**: 2026-04-13 — Demo visual consistency, step interactions, and enforcement
+**Current Task**: T10 — Fix "O Auth App" display name in codegen
+**Status**: T10 COMPLETE
+**Last Session**: 2026-04-13 — OAuth display name codegen fix
+
+## Session Progress (2026-04-13, session 11 — T10)
+
+- **Fixed `docDisplayName`**: Added `strings.ReplaceAll(name, "O Auth", "OAuth")`
+  to the post-processing replacements in `tools/codegen/generator/sdk_docs.go`.
+  The function's camelCase splitting treated `OAuthApp` as three words (`O`,
+  `Auth`, `App`). The fix merges them back into the compound word `OAuth`,
+  following the same pattern as the existing `Mcp`/`Api`/`Iam` replacements.
+- **Added unit tests**: Created `tools/codegen/generator/sdk_docs_test.go` with
+  table-driven tests for `docDisplayName` (9 cases) and `docSlug` (7 cases).
+  No tests existed previously for these functions.
+- **Regenerated proto SDK docs**: Ran `make gen-proto-sdk-docs`. Deleted stale
+  `docs/sdk/resources/o-auth-app.mdx`. New `oauth-app.mdx` has correct title,
+  slug, and example resource names.
+- Build verified: `yarn build` passes
+
+### Files created
+
+| File | Purpose |
+|------|---------|
+| `tools/codegen/generator/sdk_docs_test.go` | Unit tests for `docDisplayName` and `docSlug` |
+| `docs/sdk/resources/oauth-app.mdx` | Regenerated with correct "OAuth App" title |
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `tools/codegen/generator/sdk_docs.go` | Added `O Auth` → `OAuth` replacement |
+| `docs/sdk/resources/meta.json` | Slug changed from `o-auth-app` to `oauth-app` |
+| `docs/sdk/resources/mcp-server.mdx` | Regeneration picked up T07 overview.md update |
+
+### Files deleted
+
+| File | Reason |
+|------|--------|
+| `docs/sdk/resources/o-auth-app.mdx` | Stale file replaced by `oauth-app.mdx` |
 
 ## Session Progress (2026-04-13, session 10 — T09)
 
@@ -491,7 +527,6 @@ entries were already in place from T01–T04.
 ## Next Steps
 
 1. Future: T08 — Custom integration OAuth setup guide (deferred, "MCP server authors" audience)
-2. Future: Fix "O Auth App" display name in proto SDK docs codegen (`sdk_docs.go`)
 
 ## Task Map
 
@@ -506,6 +541,7 @@ entries were already in place from T01–T04.
 | T07 | SDK reference polish | COMPLETE |
 | T08 | Custom integration OAuth setup guide | Deferred |
 | T09 | Demo visual consistency and enforcement | COMPLETE |
+| T10 | Fix "O Auth App" display name in codegen | COMPLETE |
 
 ## Quick Commands
 
