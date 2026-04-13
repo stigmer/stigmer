@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "payments"
 spec:
   description: "Stripe MCP server for payment processing, customer management, subscription operations, and financial data access."
-  icon_url: "https://cdn.simpleicons.org/stripe"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/stripe.svg"
   repository_url: "https://github.com/stripe/ai"
   github_stars: 1449
   tags:

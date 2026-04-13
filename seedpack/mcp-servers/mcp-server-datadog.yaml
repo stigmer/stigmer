@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "monitoring"
 spec:
   description: "Datadog MCP server for infrastructure monitoring, log analysis, APM traces, and observability dashboards."
-  icon_url: "https://cdn.simpleicons.org/datadog"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/datadog.svg"
   repository_url: ""
   github_stars: 0
   tags:

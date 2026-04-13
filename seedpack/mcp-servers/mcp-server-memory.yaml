@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "ai-reasoning"
 spec:
   description: "Memory MCP server providing a knowledge graph-based persistent memory system for storing and retrieving entities, relations, and observations across sessions."
-  icon_url: "https://cdn.simpleicons.org/databricks"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/databricks.svg"
   repository_url: "https://github.com/modelcontextprotocol/servers"
   github_stars: 83366
   tags:

@@ -7,7 +7,7 @@ metadata:
     stigmer.ai/category: "communication"
 spec:
   description: "Slack MCP server for searching channels, sending messages, managing canvases, and interacting with workspace data."
-  icon_url: "https://a.slack-edge.com/80588/marketing/img/icons/icon_slack_hash_colored.png"
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/slack.svg"
   repository_url: ""
   github_stars: 0
   tags:
