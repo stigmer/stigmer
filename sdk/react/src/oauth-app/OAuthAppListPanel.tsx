@@ -14,6 +14,12 @@ import { useOAuthAppList } from "./useOAuthAppList";
 export interface OAuthAppListPanelProps {
   /** Organization slug to list OAuth apps for. */
   readonly org: string;
+  /**
+   * Fired when the user wants to view/edit an OAuth app.
+   * When provided, rows become interactive with a pencil icon button.
+   * When absent, rows remain static (backward compatible).
+   */
+  readonly onEdit?: (app: OAuthApp) => void;
   /** Re-expose refetch so parents can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
   /** Additional CSS class names for the root container. */
@@ -21,15 +27,13 @@ export interface OAuthAppListPanelProps {
 }
 
 /**
- * Displays a read-only list of {@link OAuthApp} resources owned by an
+ * Displays a list of {@link OAuthApp} resources owned by an
  * organization.
  *
  * Each row shows the provider name, client ID (non-secret), and
- * creation date. These are the BYOA OAuth apps created through the
- * "Bring your own app" flow on MCP server detail pages.
- *
- * This is a visibility surface — creation and management of OAuth apps
- * happens in-context on MCP server detail pages.
+ * creation date. When `onEdit` is provided, rows include a pencil
+ * icon that fires the callback with the selected app — enabling
+ * navigation to a detail/edit view.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -37,9 +41,19 @@ export interface OAuthAppListPanelProps {
  * ```tsx
  * <OAuthAppListPanel org="acme" />
  * ```
+ *
+ * @example
+ * ```tsx
+ * <OAuthAppListPanel
+ *   org="acme"
+ *   onEdit={(app) => setFlow({ phase: "editing", oauthApp: app })}
+ *   onRefetchRef={(refetch) => { listRefetchRef.current = refetch; }}
+ * />
+ * ```
  */
 export function OAuthAppListPanel({
   org,
+  onEdit,
   onRefetchRef,
   className,
 }: OAuthAppListPanelProps) {
@@ -82,8 +96,7 @@ export function OAuthAppListPanel({
           className,
         )}
       >
-        No OAuth apps configured. You can bring your own OAuth app from any
-        MCP server&apos;s detail page.
+        No OAuth apps configured yet.
       </p>
     );
   }
@@ -95,7 +108,11 @@ export function OAuthAppListPanel({
       aria-label="OAuth apps"
     >
       {oauthApps.map((app) => (
-        <OAuthAppRow key={app.metadata?.id ?? ""} oauthApp={app} />
+        <OAuthAppRow
+          key={app.metadata?.id ?? ""}
+          oauthApp={app}
+          onEdit={onEdit ? () => onEdit(app) : undefined}
+        />
       ))}
     </div>
   );
@@ -105,7 +122,13 @@ export function OAuthAppListPanel({
 // OAuthAppRow (internal)
 // ---------------------------------------------------------------------------
 
-function OAuthAppRow({ oauthApp }: { oauthApp: OAuthApp }) {
+function OAuthAppRow({
+  oauthApp,
+  onEdit,
+}: {
+  oauthApp: OAuthApp;
+  onEdit?: () => void;
+}) {
   const provider = oauthApp.spec?.provider || "OAuth App";
   const clientId = oauthApp.spec?.clientId;
   const createdAt = oauthApp.status?.audit?.specAudit?.createdAt;
@@ -135,7 +158,44 @@ function OAuthAppRow({ oauthApp }: { oauthApp: OAuthApp }) {
           </span>
         )}
       </div>
+
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Edit ${provider}`}
+          className={cn(
+            "shrink-0 rounded p-1",
+            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "transition-colors",
+          )}
+        >
+          <PencilIcon />
+        </button>
+      )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Icons (edit action)
+// ---------------------------------------------------------------------------
+
+function PencilIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M11 2.5l2.5 2.5L5 13.5H2.5V11L11 2.5z" />
+    </svg>
   );
 }
 
