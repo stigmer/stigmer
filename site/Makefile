@@ -11,6 +11,7 @@ deps:
 
 # Start development server with hot reload
 dev: deps
+	rm -rf .next
 	yarn dev --port $(PORT)
 
 # Alias for dev
