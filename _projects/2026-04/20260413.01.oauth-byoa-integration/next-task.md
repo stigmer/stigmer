@@ -23,7 +23,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | **T03** | Backend: harden refresh + vendor gate + error UX | stigmer-cloud | DONE | T01 |
 | **T04** | Backend: BYOA infrastructure (repo, resolution, migration) | stigmer-cloud | DONE | T01 |
 | **T05** | Backend: BYOA handlers + resolution chain integration | stigmer-cloud | DONE | T04 |
-| **T06** | Frontend: disconnect + health + error UX | stigmer | NOT STARTED | T02, T03 |
+| **T06** | Frontend: disconnect + health + error UX | stigmer | DONE | T02, T03 |
 | **T07** | Frontend: BYOA experience | stigmer | NOT STARTED | T05, T06 |
 
 ### Dependency Graph
@@ -89,6 +89,7 @@ The full architecture plan with 10-gap analysis, resolution chain design, and do
 - `sdk/react/src/mcp-server/useMcpServerCredentials.ts`
 - `sdk/react/src/mcp-server/useMcpServerOAuthConnect.ts`
 - `sdk/react/src/mcp-server/useOAuthGrantStatus.ts`
+- `sdk/react/src/mcp-server/useDisconnectOAuth.ts` (new in T06)
 - `sdk/react/src/mcp-server/McpServerDetailView.tsx`
 - `sdk/react/src/mcp-server/McpServerConfigPanel.tsx`
 - `sdk/react/src/mcp-server/OAuthCallbackHandler.tsx`
@@ -183,13 +184,32 @@ When starting a new session:
 14. BYOA features classified as cloud-only — org-level overrides have no meaningful OSS equivalent
 15. Go OSS parity limited to core features (disconnect, health, refresh hardening, vendor gate, error UX)
 
+### T06 Completed
+- New `useDisconnectOAuth` behavior hook wrapping `disconnectOAuth` RPC (mutation pattern: useState + useCallback + toError + rethrow)
+- Enhanced `useOAuthGrantStatus` with `connectionHealth: OAuthConnectionHealth` pass-through from backend
+- Enhanced `useMcpServerCredentials` with `connectionHealth` and `canDisconnect` derived state
+- Health-aware status pill in ConnectBar: four states (green HEALTHY, amber TOKEN_EXPIRED_REFRESHABLE, red TOKEN_EXPIRED, muted NO_GRANT) replacing binary Connected/Not connected
+- Health-aware status dot in InlineOAuthSignIn: same four states at compact density
+- Inline disconnect confirmation in both ConnectBar and InlineOAuthSignIn following RevokeConfirmation pattern (no modal)
+- Enhanced error strips: `getUserMessage()` for human-readable messages, "Try again" button when `isRetryableError()` is true
+- Extracted `healthPillProps()` and `inlineHealthProps()` helpers to avoid deepening ternary nesting
+- All new props on `McpServerOAuthSignInProps` are optional — backward compatible with `McpServerPicker`
+- Exported `useDisconnectOAuth` + `UseDisconnectOAuthReturn` from barrel
+- 8 files changed, 629 insertions, 68 deletions
+- Committed: stigmer `80f47733c`
+
+### Key Design Decisions Made (Session 6)
+16. Disconnect uses inline confirmation (not modal) — matches `RevokeConfirmation` pattern, no portal/z-index issues for SDK embedders, proportionate to reversible action
+17. Error display uses `getUserMessage()` + `isRetryableError()` from `@stigmer/sdk` rather than full `ErrorMessage` component — compact density matching vendor-approval banner pattern
+18. Health pill uses extracted helper functions (`healthPillProps`, `inlineHealthProps`) instead of nested ternaries — cleaner, easier to extend for T07 BYOA states
+19. `McpServerConfigPanel` stays presentational — disconnect state management wired through optional props from parent, not internal hooks
+
 ## Current Status
 
 **Created**: 2026-04-13 11:03
-**Current Task**: T06 (next to pick)
-**Status**: T01, T02, T03, T04, T05 complete. T06 is unblocked.
+**Current Task**: T07 (next to pick)
+**Status**: T01–T06 complete. T07 is unblocked (last task).
 
 ## Next Steps
 
-1. T06: Frontend disconnect + health + error UX (unblocked by T02 + T03)
-2. T07: Frontend BYOA experience (unblocked by T05 + T06)
+1. T07: Frontend BYOA experience (unblocked by T05 + T06) — final task
