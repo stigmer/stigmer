@@ -20,6 +20,8 @@ import { useMcpServerCredentials } from "./useMcpServerCredentials";
 import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
 import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect";
 import { useDisconnectOAuth } from "./useDisconnectOAuth";
+import { useOrgOAuthApp } from "./useOrgOAuthApp";
+import { OAuthAppForm } from "./OAuthAppForm";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
@@ -128,9 +130,15 @@ export function McpServerDetailView({
   const connection = useMcpServerConnect();
   const oauth = useMcpServerOAuthConnect();
   const disconnectOAuth = useDisconnectOAuth();
+  const orgOAuthApp = useOrgOAuthApp(
+    mcpServer?.metadata?.id ?? null,
+    activeOrg ?? org,
+  );
 
   const [showCredentialForm, setShowCredentialForm] = useState(defaultShowCredentialForm);
+  const [showByoaForm, setShowByoaForm] = useState(false);
   const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>(defaultCapabilityTab);
+  const byoaDialogRef = useRef<HTMLDialogElement>(null);
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -220,6 +228,44 @@ export function McpServerDetailView({
       // error state is managed by the disconnect hook
     }
   }, [mcpServer, disconnectOAuth, credentials, refetch, activeOrg, org]);
+
+  // BYOA dialog lifecycle — native <dialog> toggle
+  useEffect(() => {
+    const dialog = byoaDialogRef.current;
+    if (!dialog) return;
+    if (showByoaForm && !dialog.open) {
+      dialog.showModal();
+    } else if (!showByoaForm && dialog.open) {
+      dialog.close();
+    }
+  }, [showByoaForm]);
+
+  const handleByoaDialogCancel = useCallback(
+    (e: React.SyntheticEvent) => {
+      e.preventDefault();
+      setShowByoaForm(false);
+      orgOAuthApp.clearErrors();
+    },
+    [orgOAuthApp],
+  );
+
+  const handleByoaSubmit = useCallback(
+    async (clientId: string, clientSecret: string) => {
+      await orgOAuthApp.setOrgOAuthApp(clientId, clientSecret);
+      setShowByoaForm(false);
+      orgOAuthApp.refetch();
+      credentials.refetch();
+      refetch();
+    },
+    [orgOAuthApp, credentials, refetch],
+  );
+
+  const handleRemoveOrgApp = useCallback(async () => {
+    await orgOAuthApp.deleteOrgOAuthApp();
+    orgOAuthApp.refetch();
+    credentials.refetch();
+    refetch();
+  }, [orgOAuthApp, credentials, refetch]);
 
   const spec = mcpServer?.spec;
   const status = mcpServer?.status;
@@ -319,7 +365,15 @@ export function McpServerDetailView({
           accessTokenExpiresAt={credentials.accessTokenExpiresAt}
           tokenLifetimeHint={credentials.tokenLifetimeHint}
           isVendorApprovalPending={credentials.isVendorApprovalPending}
+          isVendorApprovalBlocked={credentials.isVendorApprovalBlocked}
           vendorApprovalDocsUrl={credentials.vendorApprovalDocsUrl}
+          canBringOwnApp={credentials.canBringOwnApp}
+          isOrgOAuthApp={credentials.isOrgOAuthApp}
+          onBringOwnApp={() => setShowByoaForm(true)}
+          onRemoveOrgApp={handleRemoveOrgApp}
+          isRemovingOrgApp={orgOAuthApp.isDeleting}
+          removeOrgAppError={orgOAuthApp.deleteError}
+          onClearRemoveOrgAppError={orgOAuthApp.clearErrors}
           manualOverride={credentials.manualOverride}
           onManualOverride={() => {
             credentials.setManualOverride(true);
@@ -349,6 +403,31 @@ export function McpServerDetailView({
           </div>
         )}
       </Section>
+
+      {/* BYOA dialog — native <dialog> for zero-dependency modal behavior */}
+      <dialog
+        ref={byoaDialogRef}
+        onCancel={handleByoaDialogCancel}
+        className={cn(
+          "w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-lg",
+          "backdrop:bg-black/50",
+        )}
+      >
+        <h3 className="mb-4 text-base font-semibold text-foreground">
+          Use your own OAuth app
+        </h3>
+        <OAuthAppForm
+          providerName={mcpServer?.metadata?.name ?? slug}
+          vendorDocsUrl={credentials.vendorApprovalDocsUrl}
+          onSubmit={handleByoaSubmit}
+          onCancel={() => {
+            setShowByoaForm(false);
+            orgOAuthApp.clearErrors();
+          }}
+          isSubmitting={orgOAuthApp.isSetting}
+          error={orgOAuthApp.setError}
+        />
+      </dialog>
 
       <Section title="Capabilities">
         <Tabs
@@ -451,6 +530,8 @@ function healthStatusText(
 
 type DisconnectPhase = "idle" | "confirming" | "disconnecting";
 
+type RemoveOrgAppPhase = "idle" | "confirming" | "removing";
+
 function ConnectBar({
   isConnecting,
   connectionError,
@@ -473,7 +554,15 @@ function ConnectBar({
   accessTokenExpiresAt,
   tokenLifetimeHint,
   isVendorApprovalPending,
+  isVendorApprovalBlocked,
   vendorApprovalDocsUrl,
+  canBringOwnApp,
+  isOrgOAuthApp,
+  onBringOwnApp,
+  onRemoveOrgApp,
+  isRemovingOrgApp,
+  removeOrgAppError,
+  onClearRemoveOrgAppError,
   manualOverride,
   onManualOverride,
   onBackToOAuth,
@@ -499,12 +588,21 @@ function ConnectBar({
   readonly accessTokenExpiresAt: bigint;
   readonly tokenLifetimeHint: string | null;
   readonly isVendorApprovalPending: boolean;
+  readonly isVendorApprovalBlocked: boolean;
   readonly vendorApprovalDocsUrl: string | null;
+  readonly canBringOwnApp: boolean;
+  readonly isOrgOAuthApp: boolean;
+  readonly onBringOwnApp: () => void;
+  readonly onRemoveOrgApp: () => Promise<void>;
+  readonly isRemovingOrgApp: boolean;
+  readonly removeOrgAppError: Error | null;
+  readonly onClearRemoveOrgAppError: () => void;
   readonly manualOverride: boolean;
   readonly onManualOverride: () => void;
   readonly onBackToOAuth: () => void;
 }) {
   const [disconnectPhase, setDisconnectPhase] = useState<DisconnectPhase>("idle");
+  const [removeOrgAppPhase, setRemoveOrgAppPhase] = useState<RemoveOrgAppPhase>("idle");
 
   const isOAuthBusy =
     oauthPhase === "initiating" ||
@@ -518,13 +616,15 @@ function ConnectBar({
   const needsReAuth =
     connectionHealth === OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
 
-  const oauthSignInDisabled = isVendorApprovalPending && showOAuthPrimary;
+  const oauthSignInDisabled =
+    isVendorApprovalBlocked && showOAuthPrimary && !isOrgOAuthApp;
 
-  const anyBusy = isConnecting || isOAuthBusy || isDisconnecting;
+  const anyBusy = isConnecting || isOAuthBusy || isDisconnecting || isRemovingOrgApp;
 
   const buttonLabel = (() => {
     if (isOAuthBusy) return oauthPhaseLabel(oauthPhase);
     if (isConnecting) return "Connecting...";
+    if (isOrgOAuthApp && showOAuthPrimary) return "Sign in with your app";
     if (showOAuthPrimary || needsReAuth) return "Sign in to connect";
     if (hasDiscoveredTools) return "Reconnect";
     return "Connect";
@@ -539,8 +639,10 @@ function ConnectBar({
 
   const statusText = (() => {
     if (authMode === "oauth" && isOAuthConnected) {
-      return healthStatusText(connectionHealth, accessTokenExpiresAt, tokenLifetimeHint);
+      const base = healthStatusText(connectionHealth, accessTokenExpiresAt, tokenLifetimeHint);
+      return isOrgOAuthApp ? `${base} \u00B7 Using your OAuth app` : base;
     }
+    if (isOrgOAuthApp && showOAuthPrimary) return "Using your OAuth app";
     if (manualOverride) return "Entering token manually";
     if (hasDiscoveredTools) return formatConnectionSummary(toolCount, policyCount);
     return "Not connected yet";
@@ -550,6 +652,9 @@ function ConnectBar({
 
   const showDisconnectLink =
     canDisconnect && !anyBusy && !manualOverride && disconnectPhase === "idle";
+
+  const showRemoveOrgAppLink =
+    isOrgOAuthApp && !anyBusy && removeOrgAppPhase === "idle";
 
   // Inline disconnect confirmation replaces the main bar content
   if (disconnectPhase === "confirming" || disconnectPhase === "disconnecting") {
@@ -620,6 +725,76 @@ function ConnectBar({
     );
   }
 
+  // Inline "remove custom app" confirmation
+  if (removeOrgAppPhase === "confirming" || removeOrgAppPhase === "removing") {
+    return (
+      <div className="flex flex-col">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <WarningIcon className="size-3.5 shrink-0 text-destructive" />
+          <p className="flex-1 text-xs text-foreground">
+            Remove your custom OAuth app for{" "}
+            <span className="font-medium">{serverName}</span>? The server
+            will revert to the platform&apos;s OAuth app.
+          </p>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              disabled={isRemovingOrgApp}
+              onClick={async () => {
+                setRemoveOrgAppPhase("removing");
+                try {
+                  await onRemoveOrgApp();
+                  setRemoveOrgAppPhase("idle");
+                } catch {
+                  setRemoveOrgAppPhase("confirming");
+                }
+              }}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
+                "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {isRemovingOrgApp && <Spinner />}
+              Remove
+            </button>
+            <button
+              type="button"
+              disabled={isRemovingOrgApp}
+              onClick={() => {
+                setRemoveOrgAppPhase("idle");
+                onClearRemoveOrgAppError();
+              }}
+              className={cn(
+                "inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium",
+                "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+        {removeOrgAppError && (
+          <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2">
+            <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+            <p className="flex-1 text-xs text-destructive">
+              {getUserMessage(removeOrgAppError)}
+            </p>
+            <button
+              type="button"
+              onClick={onClearRemoveOrgAppError}
+              className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
+              aria-label="Dismiss error"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-3 py-2">
@@ -650,6 +825,15 @@ function ConnectBar({
               Disconnect
             </button>
           )}
+          {showRemoveOrgAppLink && (
+            <button
+              type="button"
+              onClick={() => setRemoveOrgAppPhase("confirming")}
+              className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            >
+              Remove custom app
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -669,16 +853,27 @@ function ConnectBar({
         </button>
       </div>
 
-      {/* Vendor approval pending banner with docs link */}
+      {/* Vendor approval blocked banner with BYOA CTA */}
       {oauthSignInDisabled && (
         <div className="flex items-start gap-2 border-t border-amber-500/20 bg-amber-500/5 px-3 py-2">
           <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="flex-1 text-xs text-amber-700 dark:text-amber-300">
             <p>
               The platform&apos;s OAuth app is awaiting vendor approval.
-              You can still connect by entering your own token manually.
+              {canBringOwnApp
+                ? " You can use your own OAuth app or enter a token manually."
+                : " You can still connect by entering your own token manually."}
             </p>
-            {vendorApprovalDocsUrl && (
+            {canBringOwnApp && (
+              <button
+                type="button"
+                onClick={onBringOwnApp}
+                className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
+              >
+                Use your own OAuth app
+              </button>
+            )}
+            {vendorApprovalDocsUrl && !canBringOwnApp && (
               <a
                 href={vendorApprovalDocsUrl}
                 target="_blank"
@@ -693,9 +888,9 @@ function ConnectBar({
         </div>
       )}
 
-      {/* Secondary action: switch between OAuth and manual token entry */}
+      {/* Secondary actions: manual entry, BYOA, back to OAuth */}
       {authMode === "oauth" && !isOAuthConnected && !isOAuthBusy && !isConnecting && (
-        <div className="border-t border-border px-3 py-1.5">
+        <div className="flex items-center gap-3 border-t border-border px-3 py-1.5">
           {manualOverride ? (
             <button
               type="button"
@@ -705,13 +900,24 @@ function ConnectBar({
               {isVendorApprovalPending ? "Back to OAuth status" : "Sign in with OAuth instead"}
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={onManualOverride}
-              className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
-            >
-              Enter token manually
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={onManualOverride}
+                className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+              >
+                Enter token manually
+              </button>
+              {canBringOwnApp && !isVendorApprovalBlocked && (
+                <button
+                  type="button"
+                  onClick={onBringOwnApp}
+                  className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+                >
+                  Use your own OAuth app
+                </button>
+              )}
+            </>
           )}
         </div>
       )}

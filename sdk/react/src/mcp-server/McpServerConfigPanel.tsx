@@ -101,10 +101,37 @@ export interface McpServerOAuthSignInProps {
    */
   readonly isVendorApprovalPending?: boolean;
   /**
+   * `true` when the platform OAuth app's vendor approval is PENDING
+   * or REJECTED — the platform sign-in flow is blocked. Covers both
+   * statuses. When omitted, falls back to `isVendorApprovalPending`.
+   */
+  readonly isVendorApprovalBlocked?: boolean;
+  /**
    * Documentation URL for bringing your own OAuth token.
    * Shown as a help link when `isVendorApprovalPending` is `true`.
    */
   readonly vendorApprovalDocsUrl?: string | null;
+  /**
+   * `true` when the BYOA (Bring Your Own App) option is relevant:
+   * the server uses vendor OAuth and no org override exists.
+   */
+  readonly canBringOwnApp?: boolean;
+  /**
+   * `true` when an org-level BYOA override is active.
+   */
+  readonly isOrgOAuthApp?: boolean;
+  /**
+   * Open the BYOA form. The parent is responsible for rendering the
+   * form/dialog and handling the mutation.
+   */
+  readonly onBringOwnApp?: () => void;
+  /**
+   * Remove the org's BYOA override. The parent is responsible for
+   * refreshing state after the promise resolves.
+   */
+  readonly onRemoveOrgApp?: () => Promise<void>;
+  /** `true` while a remove-org-app operation is in flight. */
+  readonly isRemovingOrgApp?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -306,7 +333,13 @@ export function McpServerConfigPanel({
           error={oauthSignIn.error}
           onClearError={oauthSignIn.onClearError}
           isVendorApprovalPending={oauthSignIn.isVendorApprovalPending}
+          isVendorApprovalBlocked={oauthSignIn.isVendorApprovalBlocked}
           vendorApprovalDocsUrl={oauthSignIn.vendorApprovalDocsUrl}
+          canBringOwnApp={oauthSignIn.canBringOwnApp}
+          isOrgOAuthApp={oauthSignIn.isOrgOAuthApp}
+          onBringOwnApp={oauthSignIn.onBringOwnApp}
+          onRemoveOrgApp={oauthSignIn.onRemoveOrgApp}
+          isRemovingOrgApp={oauthSignIn.isRemovingOrgApp}
           onSwitchToManual={onSwitchToManual}
         />
       )}
@@ -405,6 +438,7 @@ function inlineHealthProps(
 }
 
 type InlineDisconnectPhase = "idle" | "confirming" | "disconnecting";
+type InlineRemoveOrgAppPhase = "idle" | "confirming" | "removing";
 
 function InlineOAuthSignIn({
   serverName,
@@ -419,7 +453,13 @@ function InlineOAuthSignIn({
   error,
   onClearError,
   isVendorApprovalPending,
+  isVendorApprovalBlocked,
   vendorApprovalDocsUrl,
+  canBringOwnApp,
+  isOrgOAuthApp,
+  onBringOwnApp,
+  onRemoveOrgApp,
+  isRemovingOrgApp,
   onSwitchToManual,
 }: {
   readonly serverName: string;
@@ -434,10 +474,19 @@ function InlineOAuthSignIn({
   readonly error: Error | null;
   readonly onClearError: () => void;
   readonly isVendorApprovalPending?: boolean;
+  readonly isVendorApprovalBlocked?: boolean;
   readonly vendorApprovalDocsUrl?: string | null;
+  readonly canBringOwnApp?: boolean;
+  readonly isOrgOAuthApp?: boolean;
+  readonly onBringOwnApp?: () => void;
+  readonly onRemoveOrgApp?: () => Promise<void>;
+  readonly isRemovingOrgApp?: boolean;
   readonly onSwitchToManual?: () => void;
 }) {
   const [disconnectPhase, setDisconnectPhase] = useState<InlineDisconnectPhase>("idle");
+  const [removeOrgAppPhase, setRemoveOrgAppPhase] = useState<InlineRemoveOrgAppPhase>("idle");
+
+  const blocked = isVendorApprovalBlocked ?? isVendorApprovalPending;
 
   const isBusy =
     phase === "initiating" ||
@@ -445,8 +494,8 @@ function InlineOAuthSignIn({
     phase === "completing" ||
     phase === "connecting";
 
-  const signInDisabled = isBusy || !!isVendorApprovalPending;
-  const anyBusy = isBusy || !!isDisconnecting;
+  const signInDisabled = isBusy || (!!blocked && !isOrgOAuthApp);
+  const anyBusy = isBusy || !!isDisconnecting || !!isRemovingOrgApp;
 
   const needsReAuth =
     connectionHealth === OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
@@ -454,11 +503,14 @@ function InlineOAuthSignIn({
   const status = inlineHealthProps(
     connectionHealth,
     isConnected,
-    !!isVendorApprovalPending,
+    !!isVendorApprovalPending && !isOrgOAuthApp,
   );
 
   const showDisconnectLink =
     isConnected && onDisconnect && !anyBusy && disconnectPhase === "idle";
+
+  const showRemoveOrgAppLink =
+    isOrgOAuthApp && onRemoveOrgApp && !anyBusy && removeOrgAppPhase === "idle";
 
   // Inline disconnect confirmation
   if (disconnectPhase === "confirming" || disconnectPhase === "disconnecting") {
@@ -522,6 +574,54 @@ function InlineOAuthSignIn({
     );
   }
 
+  // Inline "remove custom app" confirmation
+  if (removeOrgAppPhase === "confirming" || removeOrgAppPhase === "removing") {
+    return (
+      <div className="space-y-1.5">
+        <p className="text-[0.65rem] text-foreground">
+          Remove your custom OAuth app? The server will revert to the
+          platform&apos;s app.
+        </p>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={!!isRemovingOrgApp}
+            onClick={async () => {
+              if (!onRemoveOrgApp) return;
+              setRemoveOrgAppPhase("removing");
+              try {
+                await onRemoveOrgApp();
+                setRemoveOrgAppPhase("idle");
+              } catch {
+                setRemoveOrgAppPhase("confirming");
+              }
+            }}
+            className={cn(
+              "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
+              "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              "disabled:pointer-events-none disabled:opacity-50",
+            )}
+          >
+            {isRemovingOrgApp && <InlineSpinner />}
+            Remove
+          </button>
+          <button
+            type="button"
+            disabled={!!isRemovingOrgApp}
+            onClick={() => setRemoveOrgAppPhase("idle")}
+            className={cn(
+              "inline-flex items-center rounded px-2 py-0.5 text-[0.65rem] font-medium",
+              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "disabled:pointer-events-none disabled:opacity-50",
+            )}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -538,6 +638,11 @@ function InlineOAuthSignIn({
             />
             {status.label}
           </span>
+          {isOrgOAuthApp && isConnected && (
+            <span className="text-[0.6rem] text-muted-foreground">
+              Your app
+            </span>
+          )}
           {showDisconnectLink && (
             <button
               type="button"
@@ -545,6 +650,15 @@ function InlineOAuthSignIn({
               className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
             >
               Disconnect
+            </button>
+          )}
+          {showRemoveOrgAppLink && (
+            <button
+              type="button"
+              onClick={() => setRemoveOrgAppPhase("confirming")}
+              className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            >
+              Remove custom app
             </button>
           )}
         </div>
@@ -562,6 +676,8 @@ function InlineOAuthSignIn({
         >
           {isBusy ? (
             <InlineSpinner />
+          ) : isOrgOAuthApp && !isConnected ? (
+            "Sign in with your app"
           ) : isConnected && !needsReAuth ? (
             "Re-authenticate"
           ) : needsReAuth ? (
@@ -571,10 +687,26 @@ function InlineOAuthSignIn({
           )}
         </button>
       </div>
-      {isVendorApprovalPending && !isConnected && (
+
+      {/* Vendor approval blocked message with BYOA CTA */}
+      {blocked && !isConnected && !isOrgOAuthApp && (
         <div className="text-[0.65rem] text-amber-700 dark:text-amber-300">
-          <p>OAuth sign-in is pending vendor approval.</p>
-          {vendorApprovalDocsUrl && (
+          <p>
+            OAuth sign-in is pending vendor approval.
+            {canBringOwnApp && onBringOwnApp
+              ? " You can use your own OAuth app or enter a token manually."
+              : ""}
+          </p>
+          {canBringOwnApp && onBringOwnApp && (
+            <button
+              type="button"
+              onClick={onBringOwnApp}
+              className="mt-1 inline-flex items-center gap-1 rounded bg-amber-600 px-2 py-0.5 text-[0.6rem] font-medium text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
+            >
+              Use your own OAuth app
+            </button>
+          )}
+          {vendorApprovalDocsUrl && !canBringOwnApp && (
             <a
               href={vendorApprovalDocsUrl}
               target="_blank"
@@ -586,6 +718,14 @@ function InlineOAuthSignIn({
           )}
         </div>
       )}
+
+      {/* Org override indicator when not connected */}
+      {isOrgOAuthApp && !isConnected && (
+        <span className="text-[0.6rem] text-muted-foreground">
+          Using your OAuth app
+        </span>
+      )}
+
       {error && (
         <div className="flex items-start gap-1.5 text-[0.65rem] text-destructive" role="alert">
           <span className="flex-1">{getUserMessage(error)}</span>
@@ -612,14 +752,29 @@ function InlineOAuthSignIn({
           </div>
         </div>
       )}
-      {onSwitchToManual && !isConnected && !isBusy && (
-        <button
-          type="button"
-          onClick={onSwitchToManual}
-          className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
-        >
-          Enter token manually
-        </button>
+
+      {/* Secondary actions: manual entry, BYOA */}
+      {!isConnected && !isBusy && (
+        <div className="flex items-center gap-2">
+          {onSwitchToManual && (
+            <button
+              type="button"
+              onClick={onSwitchToManual}
+              className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            >
+              Enter token manually
+            </button>
+          )}
+          {canBringOwnApp && onBringOwnApp && !blocked && (
+            <button
+              type="button"
+              onClick={onBringOwnApp}
+              className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            >
+              Use your own OAuth app
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
