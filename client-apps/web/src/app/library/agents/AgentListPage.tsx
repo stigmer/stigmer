@@ -55,6 +55,7 @@ export function AgentListPage() {
       </div>
 
       <ResourceListView
+        layout="grid"
         items={agents}
         isLoading={isLoading}
         error={error}

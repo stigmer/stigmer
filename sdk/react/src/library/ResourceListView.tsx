@@ -10,7 +10,11 @@ import type { ResourceListScope } from "../search";
 
 const DEBOUNCE_MS = 300;
 const SKELETON_COUNT = 5;
+const GRID_SKELETON_COUNT = 6;
 const MAX_VISIBLE_TAGS = 3;
+
+/** Layout mode for {@link ResourceListView}. */
+export type ResourceListLayout = "list" | "grid";
 
 /** Props for {@link ResourceListView}. */
 export interface ResourceListViewProps {
@@ -54,11 +58,34 @@ export interface ResourceListViewProps {
    */
   readonly onPageChange?: (page: number) => void;
   /**
+   * Visual layout for items.
+   *
+   * - `"list"` (default) — vertical single-column rows
+   * - `"grid"` — responsive multi-column card grid
+   *   (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`)
+   *
+   * When `layout` is `"grid"` and no `renderItem` is provided, the built-in
+   * {@link DefaultResourceCard} is used instead of {@link DefaultResourceRow}.
+   *
+   * @default "list"
+   */
+  readonly layout?: ResourceListLayout;
+  /**
    * Custom renderer for list items. Receives the `SearchResult` and its
    * index. Falls back to a built-in row showing name, org, description,
    * visibility badge, and tags.
    */
   readonly renderItem?: (item: SearchResult, index: number) => React.ReactNode;
+  /**
+   * Renders an action element (e.g. a button) for each item.
+   *
+   * In grid mode the action is placed in the card's top-right corner.
+   * In list mode it is appended after the row content.
+   *
+   * The consumer is responsible for calling `e.stopPropagation()` if
+   * the action should not also trigger `onItemClick`.
+   */
+  readonly renderItemAction?: (item: SearchResult) => React.ReactNode;
   /**
    * Called when a list item is clicked or activated via keyboard (Enter/Space).
    * Providing this makes items interactive with hover/focus styles and
@@ -80,19 +107,28 @@ export interface ResourceListViewProps {
 }
 
 /**
- * Paginated, searchable list view for browsing Stigmer resources.
+ * Paginated, searchable view for browsing Stigmer resources.
  *
- * Renders the standard Library list chrome: a toolbar with optional
- * search input and scope toggle, a list of resource rows with
- * loading/error/empty states, and optional pagination controls.
+ * Supports two layout modes:
+ *
+ * - **`"list"`** (default) — vertical single-column rows, same as
+ *   before. Each row shows a kind icon, name, org, description, and tags.
+ * - **`"grid"`** — responsive multi-column card grid
+ *   (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`). Each card shows a
+ *   large icon container, name, org, description, and an optional
+ *   action slot in the top-right corner.
+ *
+ * Both modes share the same toolbar (search, scope toggle), pagination,
+ * loading/error/empty states, and keyboard navigation (grid mode adds
+ * ArrowLeft/Right and column-aware Up/Down).
  *
  * The component is controlled — the parent owns data and filter state.
  * Search debouncing (300ms) is managed internally so the parent only
  * receives debounced query values via {@link ResourceListViewProps.onSearchChange}.
  *
  * Only `items` and `isLoading` are required. Search, scope toggle,
- * pagination, and custom row rendering activate progressively when
- * their corresponding props are provided.
+ * pagination, layout mode, and custom row rendering activate
+ * progressively when their corresponding props are provided.
  *
  * When the debounced search query or scope changes, the component
  * automatically resets the page to 1 via `onPageChange` to prevent
@@ -102,6 +138,22 @@ export interface ResourceListViewProps {
  * ```tsx
  * // Minimal — plain list with loading indicator
  * <ResourceListView items={agents} isLoading={isLoading} />
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Grid layout with action button
+ * <ResourceListView
+ *   layout="grid"
+ *   items={mcpServers}
+ *   isLoading={isLoading}
+ *   onItemClick={(item) => navigate(item.slug)}
+ *   renderItemAction={(item) => (
+ *     <button onClick={(e) => { e.stopPropagation(); connect(item); }}>
+ *       <PlusIcon />
+ *     </button>
+ *   )}
+ * />
  * ```
  *
  * @example
@@ -146,7 +198,9 @@ export function ResourceListView({
   scope,
   onScopeChange,
   onPageChange,
+  layout = "list",
   renderItem,
+  renderItemAction,
   onItemClick,
   emptyIcon,
   emptyTitle = "No resources found",
@@ -155,6 +209,7 @@ export function ResourceListView({
   className,
   "aria-label": ariaLabel = "Resource list",
 }: ResourceListViewProps) {
+  const isGrid = layout === "grid";
   const showToolbar =
     !!onSearchChange || (scope !== undefined && !!onScopeChange);
   const showPagination = !!onPageChange && totalPages > 1;
@@ -198,8 +253,46 @@ export function ResourceListView({
 
   // --- Keyboard navigation for interactive items ----------------------
   // Implements roving tabindex: only the focused item has tabIndex 0,
-  // all others have -1. Arrow Up/Down moves focus between rows.
+  // all others have -1. Arrow keys move focus between items.
+  // In list mode: Up/Down. In grid mode: all four arrow keys with
+  // column-aware wrapping.
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const gridColumnsRef = useRef(1);
+
+  const moveFocus = useCallback(
+    (from: HTMLDivElement, toIndex: number) => {
+      const clamped = Math.max(0, Math.min(toIndex, items.length - 1));
+      const el = itemRefs.current[clamped];
+      if (el && el !== from) {
+        from.tabIndex = -1;
+        el.tabIndex = 0;
+        el.focus();
+      }
+    },
+    [items.length],
+  );
+
+  const detectGridColumns = useCallback(() => {
+    if (!isGrid) return 1;
+    const first = itemRefs.current[0];
+    const second = itemRefs.current[1];
+    if (!first || !second) return 1;
+    const firstRect = first.getBoundingClientRect();
+    const secondRect = second.getBoundingClientRect();
+    if (Math.abs(firstRect.top - secondRect.top) < 4) {
+      let cols = 1;
+      for (let i = 1; i < itemRefs.current.length; i++) {
+        const r = itemRefs.current[i]?.getBoundingClientRect();
+        if (r && Math.abs(r.top - firstRect.top) < 4) {
+          cols++;
+        } else {
+          break;
+        }
+      }
+      return cols;
+    }
+    return 1;
+  }, [isGrid]);
 
   const handleItemKeyDown = useCallback(
     (
@@ -210,31 +303,41 @@ export function ResourceListView({
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         onItemClick?.(item);
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        const next = Math.min(index + 1, items.length - 1);
-        if (next !== index) {
-          e.currentTarget.tabIndex = -1;
-          const el = itemRefs.current[next];
-          if (el) {
-            el.tabIndex = 0;
-            el.focus();
-          }
-        }
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        const prev = Math.max(index - 1, 0);
-        if (prev !== index) {
-          e.currentTarget.tabIndex = -1;
-          const el = itemRefs.current[prev];
-          if (el) {
-            el.tabIndex = 0;
-            el.focus();
-          }
-        }
+        return;
       }
+
+      const cols = isGrid ? detectGridColumns() : 1;
+      gridColumnsRef.current = cols;
+      let target = index;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          target = isGrid ? Math.min(index + cols, items.length - 1) : Math.min(index + 1, items.length - 1);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          target = isGrid ? Math.max(index - cols, 0) : Math.max(index - 1, 0);
+          break;
+        case "ArrowRight":
+          if (isGrid) {
+            e.preventDefault();
+            target = Math.min(index + 1, items.length - 1);
+          }
+          break;
+        case "ArrowLeft":
+          if (isGrid) {
+            e.preventDefault();
+            target = Math.max(index - 1, 0);
+          }
+          break;
+        default:
+          return;
+      }
+
+      if (target !== index) moveFocus(e.currentTarget, target);
     },
-    [onItemClick, items.length],
+    [onItemClick, items.length, isGrid, detectGridColumns, moveFocus],
   );
 
   // --- Content resolution ---------------------------------------------
@@ -270,7 +373,7 @@ export function ResourceListView({
         </div>
       )}
 
-      {showSkeletons && <SkeletonRows />}
+      {showSkeletons && (isGrid ? <SkeletonCards /> : <SkeletonRows />)}
 
       {showError && <ErrorState message={error!} onRetry={onRetry} />}
 
@@ -288,17 +391,19 @@ export function ResourceListView({
           aria-label={ariaLabel}
           aria-busy={isLoading || undefined}
           className={cn(
-            "flex flex-col",
+            isGrid
+              ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+              : "flex flex-col",
             isLoading &&
               "pointer-events-none opacity-60 transition-opacity",
           )}
         >
           {items.map((item, index) => {
-            const content = renderItem ? (
-              renderItem(item, index)
-            ) : (
-              <DefaultResourceRow item={item} />
-            );
+            const content = renderItem
+              ? renderItem(item, index)
+              : isGrid
+                ? <DefaultResourceCard item={item} action={renderItemAction?.(item)} />
+                : <DefaultResourceRow item={item} action={renderItemAction?.(item)} />;
 
             return (
               <div key={item.id || `resource-${index}`} role="listitem">
@@ -312,15 +417,32 @@ export function ResourceListView({
                     onClick={() => onItemClick!(item)}
                     onKeyDown={(e) => handleItemKeyDown(e, index, item)}
                     className={cn(
-                      "group rounded-lg px-3 py-2.5 transition-colors",
-                      "cursor-pointer hover:bg-accent/50",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                      "group transition-colors",
+                      isGrid
+                        ? [
+                            "flex h-full rounded-lg border border-border bg-card p-4",
+                            "cursor-pointer hover:border-primary/40 hover:bg-accent/30",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          ]
+                        : [
+                            "rounded-lg px-3 py-2.5",
+                            "cursor-pointer hover:bg-accent/50",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                          ],
                     )}
                   >
                     {content}
                   </div>
                 ) : (
-                  <div className="px-3 py-2.5">{content}</div>
+                  <div
+                    className={cn(
+                      isGrid
+                        ? "flex h-full rounded-lg border border-border bg-card p-4"
+                        : "px-3 py-2.5",
+                    )}
+                  >
+                    {content}
+                  </div>
                 )}
               </div>
             );
@@ -344,7 +466,13 @@ export function ResourceListView({
 // Internal components
 // ---------------------------------------------------------------------------
 
-function DefaultResourceRow({ item }: { readonly item: SearchResult }) {
+function DefaultResourceRow({
+  item,
+  action,
+}: {
+  readonly item: SearchResult;
+  readonly action?: React.ReactNode;
+}) {
   const displayName = item.name || item.slug;
 
   return (
@@ -356,9 +484,7 @@ function DefaultResourceRow({ item }: { readonly item: SearchResult }) {
             {displayName}
           </span>
           {item.visibility === ApiResourceVisibility.visibility_public && (
-            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Public
-            </span>
+            <VisibilityBadge />
           )}
         </div>
         <div className="mt-0.5 flex items-start gap-1.5 text-xs text-muted-foreground">
@@ -392,12 +518,74 @@ function DefaultResourceRow({ item }: { readonly item: SearchResult }) {
           </div>
         )}
       </div>
+      {action && <div className="ml-auto shrink-0">{action}</div>}
     </div>
   );
 }
 
-function KindIcon({ kind }: { readonly kind: ApiResourceKind }) {
-  const cls = "mt-0.5 h-4 w-4 shrink-0 text-muted-foreground";
+function DefaultResourceCard({
+  item,
+  action,
+}: {
+  readonly item: SearchResult;
+  readonly action?: React.ReactNode;
+}) {
+  const displayName = item.name || item.slug;
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-3">
+      <div className="flex items-start gap-3">
+        <ResourceIcon kind={item.kind} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-semibold text-foreground">
+              {displayName}
+            </span>
+            {item.visibility === ApiResourceVisibility.visibility_public && (
+              <VisibilityBadge />
+            )}
+          </div>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            {item.org}
+          </span>
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+      {item.description && (
+        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+          {item.description}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ResourceIcon({ kind }: { readonly kind: ApiResourceKind }) {
+  return (
+    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+      <KindIcon kind={kind} size="lg" />
+    </span>
+  );
+}
+
+function VisibilityBadge() {
+  return (
+    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+      Public
+    </span>
+  );
+}
+
+function KindIcon({
+  kind,
+  size = "sm",
+}: {
+  readonly kind: ApiResourceKind;
+  readonly size?: "sm" | "lg";
+}) {
+  const cls = size === "lg"
+    ? "h-5 w-5 shrink-0 text-muted-foreground"
+    : "mt-0.5 h-4 w-4 shrink-0 text-muted-foreground";
 
   switch (kind) {
     case ApiResourceKind.agent:
@@ -434,6 +622,35 @@ function SkeletonRows() {
               className="h-3 animate-pulse rounded bg-muted"
               style={{ width: `${widths[i] + 25}%` }}
             />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SkeletonCards() {
+  return (
+    <div
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      aria-busy="true"
+    >
+      {Array.from({ length: GRID_SKELETON_COUNT }, (_, i) => (
+        <div
+          key={i}
+          className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
+          aria-hidden="true"
+        >
+          <div className="flex items-start gap-3">
+            <div className="size-10 shrink-0 animate-pulse rounded-lg bg-muted" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-3/5 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-2/5 animate-pulse rounded bg-muted" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <div className="h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
           </div>
         </div>
       ))}
