@@ -527,6 +527,7 @@ export {
 export type {
   ScopeToggleProps,
   ResourceListViewProps,
+  ResourceListLayout,
   ResourceCountCardProps,
   ResourceListScope,
   StigmerResourceKind,
