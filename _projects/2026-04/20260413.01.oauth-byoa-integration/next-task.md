@@ -22,7 +22,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | **T02** | Backend: disconnect + grant health | stigmer-cloud | DONE | T01 |
 | **T03** | Backend: harden refresh + vendor gate + error UX | stigmer-cloud | DONE | T01 |
 | **T04** | Backend: BYOA infrastructure (repo, resolution, migration) | stigmer-cloud | DONE | T01 |
-| **T05** | Backend: BYOA handlers + resolution chain integration | stigmer-cloud | NOT STARTED | T04 |
+| **T05** | Backend: BYOA handlers + resolution chain integration | stigmer-cloud | DONE | T04 |
 | **T06** | Frontend: disconnect + health + error UX | stigmer | NOT STARTED | T02, T03 |
 | **T07** | Frontend: BYOA experience | stigmer | NOT STARTED | T05, T06 |
 
@@ -158,15 +158,38 @@ When starting a new session:
 9. Authorization stays on mcp_server resource (not organization) for getOrgOAuthApp — prevents info leaks about resources the caller can't see
 10. Defensive fallthrough in resolution chain — deleted override OAuthApp logs warning and falls through to platform default
 
+### T05 Completed
+- 3 new Java handlers: McpServerSetOrgOAuthAppHandler (composite create/update OAuthApp + override binding), McpServerGetOrgOAuthAppHandler (query override status), McpServerDeleteOrgOAuthAppHandler (delete OAuthApp + override)
+- Wired OAuthAppResolutionService into McpServerInitiateOAuthConnectHandler — replaced direct slug lookup with resolution chain (org override → platform default → DCR)
+- Wired OAuthAppResolutionService into OAuthTokenRefreshService — replaced private resolveClientSecret with resolution chain + clientId mismatch detection
+- Architecture decisions: direct OAuthAppRepo.save() for BYOA OAuthApp (no FGA, internal resource), no proactive grant cleanup on delete (clientId mismatch detection instead), always re-clone from platform template on re-set
+- Committed: stigmer-cloud `2b0c8f83`
+
+### Go OSS Parity Fixes (T02/T03 dual implementation)
+- Identified 5 core-classification parity gaps in Go backend during T05 work
+- Edition classification: BYOA features (T04/T05) classified as cloud-only; core OAuth fixes (T02/T03) implemented in Go
+- Fix 1: disconnectOAuth handler with idempotent desired-state semantics + environment Delete prereqs
+- Fix 2: OAuthConnectionHealth evaluation in getOAuthGrantStatus (same 60s buffer as RefreshTokenIfExpired)
+- Fix 3: Hard failure for execution-path OAuth refresh (was soft/non-fatal)
+- Fix 4: Vendor approval gate enforcement in initiateOAuthConnect
+- Fix 5: Layered Temporal error handling in connect workflow (replaced DeadlineExceeded catch-all)
+- All Go tests pass (5 packages, 0 failures)
+- Committed: stigmer `4aa82ac61`
+
+### Key Design Decisions Made (Session 5)
+11. BYOA OAuthApp is internal infrastructure — created via direct OAuthAppRepo.save(), no FGA tuples needed
+12. No proactive grant cleanup on override deletion — clientId mismatch detection provides clear re-auth message
+13. Always re-clone endpoint URLs from platform template on setOrgOAuthApp re-invocation
+14. BYOA features classified as cloud-only — org-level overrides have no meaningful OSS equivalent
+15. Go OSS parity limited to core features (disconnect, health, refresh hardening, vendor gate, error UX)
+
 ## Current Status
 
 **Created**: 2026-04-13 11:03
-**Current Task**: T05 or T06 (next to pick)
-**Status**: T01, T02, T03, T04 complete. T05 and T06 can proceed in parallel.
+**Current Task**: T06 (next to pick)
+**Status**: T01, T02, T03, T04, T05 complete. T06 is unblocked.
 
 ## Next Steps
 
-1. Pick T05 or T06 (both unblocked, can run in parallel)
-2. T05: BYOA handlers (setOrgOAuthApp, getOrgOAuthApp, deleteOrgOAuthApp) + token refresh integration with OAuthAppResolutionService (unblocks T07)
-3. T06: Frontend disconnect + health + error UX (unblocked by T02 + T03)
-4. T05 recommended next — continues backend momentum, completes BYOA handler chain that unblocks T07
+1. T06: Frontend disconnect + health + error UX (unblocked by T02 + T03)
+2. T07: Frontend BYOA experience (unblocked by T05 + T06)
