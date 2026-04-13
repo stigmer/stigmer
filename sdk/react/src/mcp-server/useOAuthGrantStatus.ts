@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import {
+  OAuthConnectionHealth,
+  GetOAuthGrantStatusInputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
@@ -19,6 +22,14 @@ export interface UseOAuthGrantStatusReturn {
   readonly targetEnvVar: string;
   /** Auth method used (`"mcp_oauth"` or `"vendor_oauth"`), or empty string. */
   readonly authMethod: string;
+  /**
+   * Health of the OAuth connection, as evaluated by the backend.
+   *
+   * Gives the frontend an actionable signal beyond the binary `connected`
+   * boolean: healthy, expired-but-refreshable, expired (re-auth needed),
+   * or no grant at all. `UNSPECIFIED` when the status has not been fetched.
+   */
+  readonly connectionHealth: OAuthConnectionHealth;
   /** `true` while the grant status is being fetched. */
   readonly isLoading: boolean;
   /** Error from the last failed request, or `null` when healthy. */
@@ -34,6 +45,7 @@ const IDLE: UseOAuthGrantStatusReturn = {
   accessTokenExpiresAt: BIGINT_ZERO,
   targetEnvVar: "",
   authMethod: "",
+  connectionHealth: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_UNSPECIFIED,
   isLoading: false,
   error: null,
   refetch: () => {},
@@ -67,6 +79,9 @@ export function useOAuthGrantStatus(
   const [accessTokenExpiresAt, setAccessTokenExpiresAt] = useState(BIGINT_ZERO);
   const [targetEnvVar, setTargetEnvVar] = useState("");
   const [authMethod, setAuthMethod] = useState("");
+  const [connectionHealth, setConnectionHealth] = useState(
+    OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_UNSPECIFIED,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
@@ -79,6 +94,7 @@ export function useOAuthGrantStatus(
       setAccessTokenExpiresAt(BIGINT_ZERO);
       setTargetEnvVar("");
       setAuthMethod("");
+      setConnectionHealth(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_UNSPECIFIED);
       setIsLoading(false);
       setError(null);
       return;
@@ -97,6 +113,7 @@ export function useOAuthGrantStatus(
           setAccessTokenExpiresAt(result.accessTokenExpiresAt);
           setTargetEnvVar(result.targetEnvVar);
           setAuthMethod(result.authMethod);
+          setConnectionHealth(result.connectionHealth);
           setIsLoading(false);
         },
         (err) => {
@@ -118,6 +135,7 @@ export function useOAuthGrantStatus(
     accessTokenExpiresAt,
     targetEnvVar,
     authMethod,
+    connectionHealth,
     isLoading,
     error,
     refetch,

@@ -222,6 +222,7 @@ export {
   useMcpServerOAuthConnect,
   useMcpServerCredentials,
   useOAuthGrantStatus,
+  useDisconnectOAuth,
   OAuthCallbackHandler,
   McpServerPicker,
   McpServerConfigPanel,
@@ -257,6 +258,7 @@ export type {
   OAuthCallbackParams,
   UseMcpServerCredentialsReturn,
   UseOAuthGrantStatusReturn,
+  UseDisconnectOAuthReturn,
   McpServerAuthMode,
 } from "./mcp-server";
 
