@@ -5,13 +5,21 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput;
 import ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput;
 import ai.stigmer.agentic.mcpserver.v1.ConnectInput;
+import ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput;
+import ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput;
+import ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput;
+import ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput;
 import ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput;
 import ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput;
+import ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput;
+import ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput;
 import ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectInput;
 import ai.stigmer.agentic.mcpserver.v1.InitiateOAuthConnectOutput;
 import ai.stigmer.agentic.mcpserver.v1.McpServer;
 import ai.stigmer.agentic.mcpserver.v1.McpServerCommandControllerGrpc;
 import ai.stigmer.agentic.mcpserver.v1.McpServerQueryControllerGrpc;
+import ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput;
+import ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
@@ -89,9 +97,21 @@ public final class McpServerClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public GetOAuthGrantStatusOutput getOAuthGrantStatus(GetOAuthGrantStatusInput input) {
+    public DisconnectOAuthOutput disconnectOAuth(DisconnectOAuthInput input) {
         try {
-            return command.getOAuthGrantStatus(input);
+            return command.disconnectOAuth(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SetOrgOAuthAppOutput setOrgOAuthApp(SetOrgOAuthAppInput input) {
+        try {
+            return command.setOrgOAuthApp(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public DeleteOrgOAuthAppOutput deleteOrgOAuthApp(DeleteOrgOAuthAppInput input) {
+        try {
+            return command.deleteOrgOAuthApp(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -104,6 +124,18 @@ public final class McpServerClient {
     public McpServer getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.mcp_server).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetOAuthGrantStatusOutput getOAuthGrantStatus(GetOAuthGrantStatusInput input) {
+        try {
+            return query.getOAuthGrantStatus(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetOrgOAuthAppOutput getOrgOAuthApp(GetOrgOAuthAppInput input) {
+        try {
+            return query.getOrgOAuthApp(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

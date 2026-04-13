@@ -5,7 +5,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 import "ai/stigmer/agentic/environment/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
-import "ai/stigmer/iam/oauthapp/v1/spec.proto";
 import "buf/validate/validate.proto";
 
 // McpServerSpec defines the configurable properties of an MCP server.
@@ -299,17 +298,10 @@ message McpServerAuth {
   // For vendor OAuth: informational (scopes are defined on the OAuthApp).
   repeated string scope_hints = 4;
 
-  // Read-only. Resolved from the referenced OAuthApp at query time.
-  // Indicates whether the vendor has approved this OAuth app for public use.
-  // Not persisted on the McpServer — populated by the backend when serving
-  // MCP server data so the frontend can gate the sign-in button without
-  // a separate OAuthApp fetch.
-  ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 5;
-
-  // Read-only. Resolved from the referenced OAuthApp at query time.
-  // Documentation URL for users who want to bring their own OAuth
-  // credentials while the platform's OAuth app is pending vendor approval.
-  string vendor_approval_docs_url = 6;
+  // Fields 5, 6, 8, 9 moved to OAuthStatus in status.proto.
+  // These were read-only, query-time-enriched fields that belong in status
+  // (system-observed state), not spec (user-declared intent).
+  reserved 5, 6, 8, 9;
 
   // Optional URL for OAuth authorization server discovery on stdio servers.
   //

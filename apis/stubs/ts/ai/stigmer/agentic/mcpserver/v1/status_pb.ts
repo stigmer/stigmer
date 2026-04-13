@@ -8,6 +8,8 @@ import type { ToolApprovalPolicy } from "./spec_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_spec } from "./spec_pb";
 import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb";
+import type { VendorApprovalStatus } from "../../../iam/oauthapp/v1/spec_pb";
+import { file_ai_stigmer_iam_oauthapp_v1_spec } from "../../../iam/oauthapp/v1/spec_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_struct, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
@@ -16,13 +18,13 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3N0YXR1cy5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MSLhAgoPTWNwU2VydmVyU3RhdHVzEkoKEHZhbGlkYXRpb25fc3RhdGUYASABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlZhbGlkYXRpb25TdGF0ZRIaChJ2YWxpZGF0aW9uX21lc3NhZ2UYAiABKAkSWAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAyABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSSwoOdG9vbF9hcHByb3ZhbHMYBCADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0IukBChZEaXNjb3ZlcmVkQ2FwYWJpbGl0aWVzEj4KBXRvb2xzGAEgAygLMi8uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5EaXNjb3ZlcmVkVG9vbBJXChJyZXNvdXJjZV90ZW1wbGF0ZXMYAiADKAsyOy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRSZXNvdXJjZVRlbXBsYXRlEjYKEmxhc3RfZGlzY292ZXJlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiYgoORGlzY292ZXJlZFRvb2wSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRItCgxpbnB1dF9zY2hlbWEYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0ImgKGkRpc2NvdmVyZWRSZXNvdXJjZVRlbXBsYXRlEhQKDHVyaV90ZW1wbGF0ZRgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhEKCW1pbWVfdHlwZRgEIAEoCSpLCg9WYWxpZGF0aW9uU3RhdGUSIAocdmFsaWRhdGlvbl9zdGF0ZV91bnNwZWNpZmllZBAAEgkKBXZhbGlkEAESCwoHaW52YWxpZBACYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_spec, file_ai_stigmer_commons_apiresource_status, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3N0YXR1cy5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MSKlAwoPTWNwU2VydmVyU3RhdHVzEkoKEHZhbGlkYXRpb25fc3RhdGUYASABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlZhbGlkYXRpb25TdGF0ZRIaChJ2YWxpZGF0aW9uX21lc3NhZ2UYAiABKAkSWAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAyABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSSwoOdG9vbF9hcHByb3ZhbHMYBCADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRJCCgxvYXV0aF9zdGF0dXMYBSABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk9BdXRoU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQi6QEKFkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSPgoFdG9vbHMYASADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRUb29sElcKEnJlc291cmNlX3RlbXBsYXRlcxgCIAMoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuRGlzY292ZXJlZFJlc291cmNlVGVtcGxhdGUSNgoSbGFzdF9kaXNjb3ZlcmVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJiCg5EaXNjb3ZlcmVkVG9vbBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEi0KDGlucHV0X3NjaGVtYRgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QiaAoaRGlzY292ZXJlZFJlc291cmNlVGVtcGxhdGUSFAoMdXJpX3RlbXBsYXRlGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEQoJbWltZV90eXBlGAQgASgJIvIBCgtPQXV0aFN0YXR1cxJQChZ2ZW5kb3JfYXBwcm92YWxfc3RhdHVzGAEgASgOMjAuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuVmVuZG9yQXBwcm92YWxTdGF0dXMSIAoYdmVuZG9yX2FwcHJvdmFsX2RvY3NfdXJsGAIgASgJEk8KFmVmZmVjdGl2ZV9vYXV0aF9zb3VyY2UYAyABKA4yLy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk9BdXRoQXBwU291cmNlEh4KFmVmZmVjdGl2ZV9vYXV0aF9hcHBfaWQYBCABKAkqSwoPVmFsaWRhdGlvblN0YXRlEiAKHHZhbGlkYXRpb25fc3RhdGVfdW5zcGVjaWZpZWQQABIJCgV2YWxpZBABEgsKB2ludmFsaWQQAiqPAQoOT0F1dGhBcHBTb3VyY2USIAocT0FVVEhfQVBQX1NPVVJDRV9VTlNQRUNJRklFRBAAEh0KGU9BVVRIX0FQUF9TT1VSQ0VfUExBVEZPUk0QARIhCh1PQVVUSF9BUFBfU09VUkNFX09SR19PVkVSUklERRACEhkKFU9BVVRIX0FQUF9TT1VSQ0VfTk9ORRADYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_spec, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_oauthapp_v1_spec, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * McpServerStatus represents the system-managed state of an MCP server definition.
  *
  * @internal
- * Tracks three concerns:
+ * Tracks four concerns:
  * 1. Structural validation — whether the definition is valid and can be used by agents.
  * 2. Discovered capabilities — the tools and resource templates the MCP server
  *    actually provides. Populated by:
@@ -31,6 +33,8 @@ export const file_ai_stigmer_agentic_mcpserver_v1_status: GenFile = /*@__PURE__*
  *         workflow, which connects to the MCP server and enumerates tools/resources.
  * 3. Tool approval policies — system-generated by a lightweight LLM classifier during
  *    the connect flow. Manual overrides live in McpServerSpec.pinned_tool_approvals.
+ * 4. OAuth enrichment — vendor approval status and BYOA resolution chain results,
+ *    populated by the backend enricher at query time. Never persisted.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServerStatus
  */
@@ -81,6 +85,16 @@ export type McpServerStatus = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer
    * @generated from field: repeated ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4;
    */
   toolApprovals: ToolApprovalPolicy[];
+
+  /**
+   * OAuth-related enrichment state, populated at query time by the backend.
+   * Contains vendor approval status (resolved from the referenced OAuthApp)
+   * and BYOA resolution chain results (which OAuthApp is effective for the
+   * caller's org context). None of these fields are persisted.
+   *
+   * @generated from field: ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5;
+   */
+  oauthStatus?: OAuthStatus;
 
   /**
    * Standard audit information (created_at, updated_at, created_by, etc.)
@@ -235,6 +249,72 @@ export const DiscoveredResourceTemplateSchema: GenMessage<DiscoveredResourceTemp
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 3);
 
 /**
+ * OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
+ *
+ * @internal
+ * All fields are read-only, populated by the backend enricher at query time.
+ * None are persisted on the McpServer document — they are computed fresh on
+ * every get/getByReference response.
+ *
+ * Two categories of enrichment:
+ * 1. Vendor approval (fields 1-2): Resolved from the referenced OAuthApp
+ *    resource. Tells the frontend whether the sign-in button should be
+ *    enabled and provides a BYOA documentation link when approval is pending.
+ * 2. BYOA resolution (fields 3-4): Computed from the OAuth app resolution
+ *    chain. Tells the frontend which credential source is active for the
+ *    caller's org context and its OAuthApp ID.
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.OAuthStatus
+ */
+export type OAuthStatus = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthStatus"> & {
+  /**
+   * Vendor marketplace/app-review approval status for this MCP server's
+   * OAuth app. Resolved from the referenced OAuthApp at query time.
+   * When the platform OAuthApp is pending vendor approval, the frontend
+   * gates the sign-in button and shows a BYOA alternative.
+   *
+   * @generated from field: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1;
+   */
+  vendorApprovalStatus: VendorApprovalStatus;
+
+  /**
+   * Documentation URL for users who want to bring their own OAuth app
+   * credentials while the platform's OAuth app is pending vendor approval.
+   * Resolved from the referenced OAuthApp at query time.
+   * Empty when the OAuthApp has no documentation link or is already approved.
+   *
+   * @generated from field: string vendor_approval_docs_url = 2;
+   */
+  vendorApprovalDocsUrl: string;
+
+  /**
+   * Where the effective OAuth app was resolved from for the caller's org.
+   * Computed from the resolution chain:
+   *   1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
+   *   2. McpServerAuth.oauth_app_ref → PLATFORM
+   *   3. Neither exists → NONE
+   *
+   * @generated from field: ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3;
+   */
+  effectiveOauthSource: OAuthAppSource;
+
+  /**
+   * System-generated ID (metadata.id) of the OAuthApp that the resolution
+   * chain selected. Empty when effective_oauth_source is NONE.
+   *
+   * @generated from field: string effective_oauth_app_id = 4;
+   */
+  effectiveOauthAppId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.OAuthStatus.
+ * Use `create(OAuthStatusSchema)` to create a new message.
+ */
+export const OAuthStatusSchema: GenMessage<OAuthStatus> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 4);
+
+/**
  * ValidationState represents the structural validity of an MCP server definition.
  * This is NOT runtime health — it only indicates whether the definition is valid.
  *
@@ -273,4 +353,50 @@ export enum ValidationState {
  */
 export const ValidationStateSchema: GenEnum<ValidationState> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 0);
+
+/**
+ * OAuthAppSource identifies where the effective OAuth app for an MCP server
+ * was resolved from. Populated at query time by the backend enricher to tell
+ * the frontend which credential source is active for the current org context.
+ *
+ * Used in OAuthStatus.effective_oauth_source (read-only, not persisted).
+ *
+ * @generated from enum ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
+ */
+export enum OAuthAppSource {
+  /**
+   * Default / unset. The resolution chain has not been evaluated yet.
+   *
+   * @generated from enum value: OAUTH_APP_SOURCE_UNSPECIFIED = 0;
+   */
+  OAUTH_APP_SOURCE_UNSPECIFIED = 0,
+
+  /**
+   * The platform-default OAuthApp is in use (McpServerAuth.oauth_app_ref).
+   *
+   * @generated from enum value: OAUTH_APP_SOURCE_PLATFORM = 1;
+   */
+  OAUTH_APP_SOURCE_PLATFORM = 1,
+
+  /**
+   * An org-level BYOA override is in use (OAuthAppOverride binding).
+   *
+   * @generated from enum value: OAUTH_APP_SOURCE_ORG_OVERRIDE = 2;
+   */
+  OAUTH_APP_SOURCE_ORG_OVERRIDE = 2,
+
+  /**
+   * No OAuthApp is available. The MCP server either uses DCR (mcp_oauth)
+   * or has no auth block at all.
+   *
+   * @generated from enum value: OAUTH_APP_SOURCE_NONE = 3;
+   */
+  OAUTH_APP_SOURCE_NONE = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.mcpserver.v1.OAuthAppSource.
+ */
+export const OAuthAppSourceSchema: GenEnum<OAuthAppSource> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_mcpserver_v1_status, 1);
 

@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "cloud-infrastructure"
 spec:
   description: "AWS Lambda MCP server for invoking Lambda functions, listing deployments, and managing serverless workloads."
+  icon_url: "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"
   repository_url: "https://github.com/awslabs/mcp"
   github_stars: 8732
   tags:

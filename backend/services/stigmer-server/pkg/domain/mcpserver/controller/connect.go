@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
@@ -15,7 +17,9 @@ import (
 	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/temporal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -453,9 +457,25 @@ func (c *McpServerController) executeConnectWorkflow(
 			Str("workflow_id", workflowID).
 			Str("mcp_server_id", mcpServerID).
 			Msg("MCP connect workflow failed")
-		return nil, status.Errorf(codes.DeadlineExceeded,
-			"connect did not complete: %v", err,
-		)
+
+		var appErr *temporal.ApplicationError
+		var timeoutErr *temporal.TimeoutError
+		var notFoundErr *serviceerror.NotFound
+
+		switch {
+		case errors.As(err, &appErr):
+			return nil, status.Errorf(codes.Internal,
+				"connect failed for MCP server '%s': %s", mcpServerID, appErr.Message())
+		case errors.As(err, &timeoutErr):
+			return nil, status.Errorf(codes.DeadlineExceeded,
+				"connect did not complete within timeout for MCP server '%s'", mcpServerID)
+		case errors.As(err, &notFoundErr):
+			return nil, grpclib.UnavailableError(
+				"connect service temporarily unavailable for MCP server '%s'", mcpServerID)
+		default:
+			return nil, status.Errorf(codes.Internal,
+				"connect failed for MCP server '%s': %v", mcpServerID, err)
+		}
 	}
 
 	return &result, nil

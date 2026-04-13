@@ -77,7 +77,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "indEntryR\014countsByKind\022\037\n\013total_count\030\003 " +
       "\001(\005R\ntotalCount\022\037\n\013total_pages\030\004 \001(\005R\nto" +
       "talPages\032?\n\021CountsByKindEntry\022\020\n\003key\030\001 \001" +
-      "(\tR\003key\022\024\n\005value\030\002 \001(\005R\005value:\0028\001\"\355\003\n\014Se" +
+      "(\tR\003key\022\024\n\005value\030\002 \001(\005R\005value:\0028\001\"\210\004\n\014Se" +
       "archResult\022S\n\004kind\030\001 \001(\0162?.ai.stigmer.co" +
       "mmons.apiresource.apiresourcekind.ApiRes" +
       "ourceKindR\004kind\022\016\n\002id\030\002 \001(\tR\002id\022\022\n\004name\030" +
@@ -90,10 +90,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "_at\030\n \001(\0132\032.google.protobuf.TimestampR\tc" +
       "reatedAt\0229\n\nupdated_at\030\013 \001(\0132\032.google.pr" +
       "otobuf.TimestampR\tupdatedAt\022\024\n\005score\030\014 \001" +
-      "(\002R\005scoreB|B\007IoProtoP\001\242\002\003ASS\252\002\024Ai.Stigme" +
-      "r.Search.V1\312\002\024Ai\\Stigmer\\Search\\V1\342\002 Ai\\" +
-      "Stigmer\\Search\\V1\\GPBMetadata\352\002\027Ai::Stig" +
-      "mer::Search::V1b\006proto3"
+      "(\002R\005score\022\031\n\010icon_url\030\r \001(\tR\007iconUrlB|B\007" +
+      "IoProtoP\001\242\002\003ASS\252\002\024Ai.Stigmer.Search.V1\312\002" +
+      "\024Ai\\Stigmer\\Search\\V1\342\002 Ai\\Stigmer\\Searc" +
+      "h\\V1\\GPBMetadata\352\002\027Ai::Stigmer::Search::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -127,7 +128,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_search_v1_SearchResult_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_search_v1_SearchResult_descriptor,
-        new java.lang.String[] { "Kind", "Id", "Name", "Slug", "QualifiedSlug", "Org", "Description", "Visibility", "Tags", "CreatedAt", "UpdatedAt", "Score", });
+        new java.lang.String[] { "Kind", "Id", "Name", "Slug", "QualifiedSlug", "Org", "Description", "Visibility", "Tags", "CreatedAt", "UpdatedAt", "Score", "IconUrl", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor();
     ai.stigmer.commons.apiresource.EnumProto.getDescriptor();

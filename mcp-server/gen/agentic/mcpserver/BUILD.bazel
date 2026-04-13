@@ -11,6 +11,5 @@ go_library(
         "//mcp-server/proto/ai/stigmer/agentic/mcpserver/v1:mcpserver",
         "//mcp-server/proto/ai/stigmer/commons/apiresource",
         "//mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//mcp-server/proto/ai/stigmer/iam/oauthapp/v1:oauthapp",
     ],
 )

@@ -274,19 +274,28 @@ const { count, isLoading } = useAgentCount("acme");
 
 ### ResourceListView
 
-Paginated, searchable list view for browsing Stigmer resources.
+Paginated, searchable view for browsing Stigmer resources.
 
-Renders the standard Library list chrome: a toolbar with optional
-search input and scope toggle, a list of resource rows with
-loading/error/empty states, and optional pagination controls.
+Supports two layout modes:
+
+- **`"list"`** (default) — vertical single-column rows, same as
+  before. Each row shows a kind icon, name, org, description, and tags.
+- **`"grid"`** — responsive multi-column card grid
+  (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`). Each card shows a
+  large icon container, name, org, description, and an optional
+  action slot in the top-right corner.
+
+Both modes share the same toolbar (search, scope toggle), pagination,
+loading/error/empty states, and keyboard navigation (grid mode adds
+ArrowLeft/Right and column-aware Up/Down).
 
 The component is controlled — the parent owns data and filter state.
 Search debouncing (300ms) is managed internally so the parent only
 receives debounced query values via `ResourceListViewProps.onSearchChange`.
 
 Only `items` and `isLoading` are required. Search, scope toggle,
-pagination, and custom row rendering activate progressively when
-their corresponding props are provided.
+pagination, layout mode, and custom row rendering activate
+progressively when their corresponding props are provided.
 
 When the debounced search query or scope changes, the component
 automatically resets the page to 1 via `onPageChange` to prevent
@@ -308,12 +317,14 @@ stale pagination after filter changes.
     initialSearch: { type: "string", description: "Initial value for the search input, read only on mount (e.g. from URL params)." },
     isLoading: { type: "boolean", description: "Whether data is currently being fetched.", required: true },
     items: { type: "readonly SearchResult[]", description: "Resource entries to display.", required: true },
+    layout: { type: "ResourceListLayout", description: "Visual layout for items.  - `\"list\"` (default) — vertical single-column rows - `\"grid\"` — responsive multi-column card grid   (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`)  When `layout` is `\"grid\"` and no `renderItem` is provided, the built-in DefaultResourceCard is used instead of DefaultResourceRow.", typeDescriptionLink: "#resourcelistlayout" },
     onItemClick: { type: "(item: SearchResult) => void", description: "Called when a list item is clicked or activated via keyboard (Enter/Space). Providing this makes items interactive with hover/focus styles and keyboard navigation (Arrow Up/Down)." },
     onPageChange: { type: "(page: number) => void", description: "Called when the user navigates to a different page. Pagination controls appear when this is provided and `totalPages > 1`. Also called with `1` automatically when the search query or scope changes." },
     onRetry: { type: "() => void", description: "Called when the user clicks \"Retry\" after an error." },
     onScopeChange: { type: "(scope: ResourceListScope) => void", description: "Called when the user toggles the scope. Also resets the page to 1 via `onPageChange`." },
     onSearchChange: { type: "(query: string) => void", description: "Called with the debounced search query (300ms delay) when the user types. Providing this prop enables the search input in the toolbar.  The component manages the raw input value internally and only calls this handler with the debounced value, so the parent does not need to implement debouncing." },
     renderItem: { type: "(item: SearchResult, index: number) => ReactNode", description: "Custom renderer for list items. Receives the `SearchResult` and its index. Falls back to a built-in row showing name, org, description, visibility badge, and tags." },
+    renderItemAction: { type: "(item: SearchResult) => ReactNode", description: "Renders an action element (e.g. a button) for each item.  In grid mode the action is placed in the card's top-right corner. In list mode it is appended after the row content.  The consumer is responsible for calling `e.stopPropagation()` if the action should not also trigger `onItemClick`." },
     scope: { type: "ResourceListScope", description: "The currently active resource scope. Providing both `scope` and `onScopeChange` enables the ScopeToggle in the toolbar.", typeDescriptionLink: "#resourcelistscope" },
     searchPlaceholder: { type: "string", description: "Placeholder text for the search input." },
     totalCount: { type: "number", description: "Total number of results across all pages. Shown in the pagination bar when provided." },
@@ -324,6 +335,21 @@ stale pagination after filter changes.
 ```tsx
 // Minimal — plain list with loading indicator
 <ResourceListView items={agents} isLoading={isLoading} />
+```
+
+```tsx
+// Grid layout with action button
+<ResourceListView
+  layout="grid"
+  items={mcpServers}
+  isLoading={isLoading}
+  onItemClick={(item) => navigate(item.slug)}
+  renderItemAction={(item) => (
+    <button onClick={(e) => { e.stopPropagation(); connect(item); }}>
+      <PlusIcon />
+    </button>
+  )}
+/>
 ```
 
 ```tsx
@@ -582,6 +608,11 @@ and pushes it as a skill — no ZIP download reaches the browser.
     tag: { type: "string", description: "Optional version tag (e.g., `\"stable\"`, `\"v1.0\"`)." },
   }}
 />
+
+
+### ResourceListLayout
+
+Layout mode for [`ResourceListView`](#resourcelistview).
 
 
 ### ResourceListScope

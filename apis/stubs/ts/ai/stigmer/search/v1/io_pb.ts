@@ -19,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/search/v1/io.proto.
  */
 export const file_ai_stigmer_search_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch1haS9zdGlnbWVyL3NlYXJjaC92MS9pby5wcm90bxIUYWkuc3RpZ21lci5zZWFyY2gudjEilQIKDVNlYXJjaFJlcXVlc3QSXQoFa2luZHMYASADKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZEINukgKkgEHIgWCAQIQARIXCgVxdWVyeRgCIAEoCUIIukgFcgMY9AMSKgoDb3JnGAMgASgJQh26SBpyGBg/MhReJHxeW2Etel1bYS16MC05LV0qJBIWCg5leGNsdWRlX3B1YmxpYxgEIAEoCBIuCgRwYWdlGAUgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxIYChBjcm9zc19vcmdfcHVibGljGAYgASgIIvQBCg5TZWFyY2hSZXNwb25zZRIzCgdlbnRyaWVzGAEgAygLMiIuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzdWx0Ek4KDmNvdW50c19ieV9raW5kGAIgAygLMjYuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzcG9uc2UuQ291bnRzQnlLaW5kRW50cnkSEwoLdG90YWxfY291bnQYAyABKAUSEwoLdG90YWxfcGFnZXMYBCABKAUaMwoRQ291bnRzQnlLaW5kRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgFOgI4ASKHAwoMU2VhcmNoUmVzdWx0Ek0KBGtpbmQYASABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZBIKCgJpZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSFgoOcXVhbGlmaWVkX3NsdWcYBSABKAkSCwoDb3JnGAYgASgJEhMKC2Rlc2NyaXB0aW9uGAcgASgJEkkKCnZpc2liaWxpdHkYCCABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5EgwKBHRhZ3MYCSADKAkSLgoKY3JlYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFc2NvcmUYDCABKAJiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("Ch1haS9zdGlnbWVyL3NlYXJjaC92MS9pby5wcm90bxIUYWkuc3RpZ21lci5zZWFyY2gudjEilQIKDVNlYXJjaFJlcXVlc3QSXQoFa2luZHMYASADKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZEINukgKkgEHIgWCAQIQARIXCgVxdWVyeRgCIAEoCUIIukgFcgMY9AMSKgoDb3JnGAMgASgJQh26SBpyGBg/MhReJHxeW2Etel1bYS16MC05LV0qJBIWCg5leGNsdWRlX3B1YmxpYxgEIAEoCBIuCgRwYWdlGAUgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxIYChBjcm9zc19vcmdfcHVibGljGAYgASgIIvQBCg5TZWFyY2hSZXNwb25zZRIzCgdlbnRyaWVzGAEgAygLMiIuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzdWx0Ek4KDmNvdW50c19ieV9raW5kGAIgAygLMjYuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzcG9uc2UuQ291bnRzQnlLaW5kRW50cnkSEwoLdG90YWxfY291bnQYAyABKAUSEwoLdG90YWxfcGFnZXMYBCABKAUaMwoRQ291bnRzQnlLaW5kRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgFOgI4ASKZAwoMU2VhcmNoUmVzdWx0Ek0KBGtpbmQYASABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZBIKCgJpZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSFgoOcXVhbGlmaWVkX3NsdWcYBSABKAkSCwoDb3JnGAYgASgJEhMKC2Rlc2NyaXB0aW9uGAcgASgJEkkKCnZpc2liaWxpdHkYCCABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5EgwKBHRhZ3MYCSADKAkSLgoKY3JlYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFc2NvcmUYDCABKAISEAoIaWNvbl91cmwYDSABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * SearchRequest specifies criteria for searching API resources.
@@ -212,7 +212,7 @@ export const SearchResponseSchema: GenMessage<SearchResponse> = /*@__PURE__*/
  *
  * Contains only the fields needed for search result display:
  * - Identity: kind, id, slug, org
- * - Display: name, description, tags
+ * - Display: name, description, icon_url, tags
  * - Metadata: visibility, timestamps, relevance score
  *
  * This is not the full resource. To get the complete resource, call the
@@ -363,6 +363,18 @@ export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
    * @generated from field: float score = 12;
    */
   score: number;
+
+  /**
+   * Icon URL for display in search result cards and listings.
+   *
+   * Populated from the resource's spec.icon_url when available.
+   * Empty for resource types that don't support icons (e.g., skills).
+   *
+   * Must be a publicly accessible URL (SVG, PNG, or JPEG).
+   *
+   * @generated from field: string icon_url = 13;
+   */
+  iconUrl: string;
 };
 
 /**

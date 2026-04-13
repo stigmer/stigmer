@@ -5,6 +5,37 @@ package ai.stigmer.agentic.mcpserver.v1;
 import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
 import "buf/validate/validate.proto";
 
+// OAuthConnectionHealth evaluates the health of an OAuth connection by
+// examining grant existence and token expiry metadata. Used in
+// GetOAuthGrantStatusOutput to give the frontend an actionable signal
+// beyond the binary "connected" boolean.
+//
+// The backend determines health from locally available metadata (grant
+// record + access_token_expires_at). It cannot detect server-side token
+// revocation without making an API call to the vendor, so HEALTHY means
+// "valid as far as we know" — not a guarantee the token will be accepted.
+enum OAuthConnectionHealth {
+  // Default / unset. Health has not been evaluated.
+  OAUTH_CONNECTION_HEALTH_UNSPECIFIED = 0;
+
+  // The access token exists and is not expired (or does not expire).
+  OAUTH_CONNECTION_HEALTH_HEALTHY = 1;
+
+  // The access token is expired and no refresh token is available.
+  // The user must re-authenticate via the OAuth flow.
+  OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED = 2;
+
+  // The access token is expired but a refresh token is available.
+  // The backend will attempt automatic refresh at execution time.
+  // If the refresh token is itself expired, the refresh will fail and
+  // the user will need to re-authenticate.
+  OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE = 3;
+
+  // No OAuth grant exists for this resource + org + user combination.
+  // The user has never connected or has disconnected.
+  OAUTH_CONNECTION_HEALTH_NO_GRANT = 4;
+}
+
 // McpServerId wraps an MCP server resource identifier.
 // Used as input for operations that require an MCP server ID.
 message McpServerId {
@@ -184,4 +215,154 @@ message GetOAuthGrantStatusOutput {
   // Which auth method was used ("mcp_oauth" or "vendor_oauth").
   // Empty if no grant exists.
   string auth_method = 4;
+
+  // Evaluated health of the OAuth connection.
+  // Provides an actionable signal beyond the binary "connected" field:
+  // the frontend can distinguish "healthy" from "expired but refreshable"
+  // from "expired and needs re-auth" from "never connected."
+  OAuthConnectionHealth connection_health = 5;
+}
+
+// DisconnectOAuthInput tears down a user's OAuth connection for a resource.
+//
+// @internal
+// The handler:
+// 1. Finds the OAuthGrant for (caller, resource_id, org)
+// 2. Deletes the managed Environment that holds the tokens
+// 3. Deletes the OAuthGrant record
+//
+// After this, the user's access token and refresh token are gone. The
+// MCP server remains configured — only the user's personal OAuth connection
+// is removed. Other users' connections to the same resource are unaffected.
+//
+// Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
+// tuple, the handler returns disconnected=false without error. This
+// supports race conditions (concurrent disconnect calls), retries after
+// partial failures, and desired-state semantics ("ensure no connection").
+message DisconnectOAuthInput {
+  // System-generated ID of the resource to disconnect OAuth for.
+  string resource_id = 1 [(buf.validate.field).required = true];
+
+  // Organization context. Must match the org used during the original
+  // OAuth connect flow (part of the OAuthGrant composite key).
+  string org = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// DisconnectOAuthOutput reports the result of a disconnect request.
+message DisconnectOAuthOutput {
+  // Whether an active grant was found and deleted.
+  // true: grant and its managed environment were deleted.
+  // false: no grant existed for this resource + org + caller. The desired
+  // state (no OAuth connection) was already achieved. This is not an error.
+  bool disconnected = 1;
+}
+
+// SetOrgOAuthAppInput creates or updates an org-level BYOA OAuth app
+// override for a resource.
+//
+// @internal
+// The handler:
+// 1. Looks up the platform-default OAuthApp via the resource's auth block
+//    to use as a template (authorization_url, token_url, scopes, etc.)
+// 2. Creates a new OAuthApp with the org-provided client_id + client_secret
+//    and the template's endpoint URLs and scopes
+// 3. Creates or updates an OAuthAppOverride binding
+//    (resource_id, resource_kind, org_id) → new OAuthApp ID
+//
+// If an override already exists for this resource + org, the handler
+// updates the existing OAuthApp's credentials and returns the same ID.
+//
+// After this, the resolution chain for this resource in this org will
+// return the org's OAuthApp instead of the platform default.
+//
+// Prerequisites:
+// - The resource must exist and have an auth block with oauth_app_ref
+//   (BYOA requires a platform template to clone from)
+// - The caller must have can_create_oauth_app permission in the org
+//
+// Errors:
+// - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+// - NOT_FOUND: Resource does not exist
+message SetOrgOAuthAppInput {
+  // System-generated ID of the resource to set the BYOA override for.
+  string resource_id = 1 [(buf.validate.field).required = true];
+
+  // Organization that will own this override.
+  string org = 2 [(buf.validate.field).string.min_len = 1];
+
+  // OAuth client ID from the org's own app registration with the vendor.
+  string client_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // OAuth client secret from the org's own app registration with the vendor.
+  // Encrypted at rest, redacted in logs.
+  string client_secret = 4 [(buf.validate.field).string.min_len = 1];
+}
+
+// SetOrgOAuthAppOutput confirms the BYOA override was created or updated.
+message SetOrgOAuthAppOutput {
+  // System-generated ID of the OAuthApp resource created (or updated)
+  // for this override. Can be used to inspect the full OAuthApp via
+  // OAuthAppQueryController.get.
+  string oauth_app_id = 1;
+}
+
+// GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.
+//
+// @internal
+// Returns override metadata without exposing secrets. The frontend uses
+// this to show "Using org credentials" vs. "Using platform credentials"
+// and to offer the option to remove the override.
+message GetOrgOAuthAppInput {
+  // System-generated ID of the resource to check for an override.
+  string resource_id = 1 [(buf.validate.field).required = true];
+
+  // Organization context to check.
+  string org = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetOrgOAuthAppOutput returns the org's BYOA override status.
+message GetOrgOAuthAppOutput {
+  // Whether an OAuthAppOverride exists for this resource + org.
+  bool has_override = 1;
+
+  // System-generated ID of the override's OAuthApp.
+  // Empty when has_override is false.
+  string oauth_app_id = 2;
+
+  // Client ID from the override's OAuthApp (non-secret, safe to display).
+  // Empty when has_override is false. Useful for UI display so the admin
+  // can verify which app registration is active.
+  string client_id = 3;
+}
+
+// DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
+//
+// @internal
+// The handler:
+// 1. Finds the OAuthAppOverride for (resource_id, resource_kind, org)
+// 2. Deletes the OAuthApp resource created for this override
+// 3. Deletes the OAuthAppOverride binding
+//
+// After this, the resolution chain falls back to the platform default.
+// Existing user OAuthGrants that were issued using the org's OAuthApp
+// will fail on next refresh — those users will need to re-authenticate
+// using the platform default (or a new org override).
+//
+// Prerequisites:
+// - An override must exist for this resource + org
+//
+// Errors:
+// - NOT_FOUND: No override exists for this resource + org
+message DeleteOrgOAuthAppInput {
+  // System-generated ID of the resource to remove the override for.
+  string resource_id = 1 [(buf.validate.field).required = true];
+
+  // Organization whose override should be removed.
+  string org = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// DeleteOrgOAuthAppOutput confirms the BYOA override was removed.
+message DeleteOrgOAuthAppOutput {
+  // Whether the delete completed successfully.
+  bool deleted = 1;
 }

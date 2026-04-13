@@ -201,6 +201,32 @@ func (c *Client) Create(ctx context.Context, env *environmentv1.Environment) (*e
 	return created, nil
 }
 
+// Delete deletes an environment resource by ID.
+//
+// Use case: Removing a managed OAuth environment when a user disconnects
+// their OAuth connection. The environment pipeline handles cleanup of
+// secrets, labels, and search index entries.
+func (c *Client) Delete(ctx context.Context, input *apiresource.ApiResourceDeleteInput) (*environmentv1.Environment, error) {
+	log.Debug().
+		Str("resource_id", input.GetResourceId()).
+		Msg("Deleting environment via in-process gRPC")
+
+	deleted, err := c.commandClient.Delete(ctx, input)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("resource_id", input.GetResourceId()).
+			Msg("Failed to delete environment")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("resource_id", input.GetResourceId()).
+		Msg("Successfully deleted environment")
+
+	return deleted, nil
+}
+
 // Close closes the underlying gRPC connection.
 func (c *Client) Close() error {
 	if c.conn != nil {

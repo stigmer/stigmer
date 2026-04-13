@@ -46,6 +46,11 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoveredResourceTemplate_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthStatus_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthStatus_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -59,17 +64,20 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       ".proto\022\037ai.stigmer.agentic.mcpserver.v1\032" +
       "*ai/stigmer/agentic/mcpserver/v1/spec.pr" +
       "oto\032+ai/stigmer/commons/apiresource/stat" +
-      "us.proto\032\034google/protobuf/struct.proto\032\037" +
-      "google/protobuf/timestamp.proto\"\263\003\n\017McpS" +
-      "erverStatus\022[\n\020validation_state\030\001 \001(\01620." +
-      "ai.stigmer.agentic.mcpserver.v1.Validati" +
-      "onStateR\017validationState\022-\n\022validation_m" +
-      "essage\030\002 \001(\tR\021validationMessage\022p\n\027disco" +
-      "vered_capabilities\030\003 \001(\01327.ai.stigmer.ag" +
-      "entic.mcpserver.v1.DiscoveredCapabilitie" +
-      "sR\026discoveredCapabilities\022Z\n\016tool_approv" +
-      "als\030\004 \003(\01323.ai.stigmer.agentic.mcpserver" +
-      ".v1.ToolApprovalPolicyR\rtoolApprovals\022F\n" +
+      "us.proto\032%ai/stigmer/iam/oauthapp/v1/spe" +
+      "c.proto\032\034google/protobuf/struct.proto\032\037g" +
+      "oogle/protobuf/timestamp.proto\"\204\004\n\017McpSe" +
+      "rverStatus\022[\n\020validation_state\030\001 \001(\01620.a" +
+      "i.stigmer.agentic.mcpserver.v1.Validatio" +
+      "nStateR\017validationState\022-\n\022validation_me" +
+      "ssage\030\002 \001(\tR\021validationMessage\022p\n\027discov" +
+      "ered_capabilities\030\003 \001(\01327.ai.stigmer.age" +
+      "ntic.mcpserver.v1.DiscoveredCapabilities" +
+      "R\026discoveredCapabilities\022Z\n\016tool_approva" +
+      "ls\030\004 \003(\01323.ai.stigmer.agentic.mcpserver." +
+      "v1.ToolApprovalPolicyR\rtoolApprovals\022O\n\014" +
+      "oauth_status\030\005 \001(\0132,.ai.stigmer.agentic." +
+      "mcpserver.v1.OAuthStatusR\013oauthStatus\022F\n" +
       "\005audit\030c \001(\01320.ai.stigmer.commons.apires" +
       "ource.ApiResourceAuditR\005audit\"\225\002\n\026Discov" +
       "eredCapabilities\022E\n\005tools\030\001 \003(\0132/.ai.sti" +
@@ -85,20 +93,33 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "ma\"\222\001\n\032DiscoveredResourceTemplate\022!\n\014uri" +
       "_template\030\001 \001(\tR\013uriTemplate\022\022\n\004name\030\002 \001" +
       "(\tR\004name\022 \n\013description\030\003 \001(\tR\013descripti" +
-      "on\022\033\n\tmime_type\030\004 \001(\tR\010mimeType*K\n\017Valid" +
-      "ationState\022 \n\034validation_state_unspecifi" +
-      "ed\020\000\022\t\n\005valid\020\001\022\013\n\007invalid\020\002B\256\001B\013StatusP" +
-      "rotoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpse" +
-      "rver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V" +
-      "1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBM" +
-      "etadata\352\002#Ai::Stigmer::Agentic::Mcpserve" +
-      "r::V1b\006proto3"
+      "on\022\033\n\tmime_type\030\004 \001(\tR\010mimeType\"\312\002\n\013OAut" +
+      "hStatus\022f\n\026vendor_approval_status\030\001 \001(\0162" +
+      "0.ai.stigmer.iam.oauthapp.v1.VendorAppro" +
+      "valStatusR\024vendorApprovalStatus\0227\n\030vendo" +
+      "r_approval_docs_url\030\002 \001(\tR\025vendorApprova" +
+      "lDocsUrl\022e\n\026effective_oauth_source\030\003 \001(\016" +
+      "2/.ai.stigmer.agentic.mcpserver.v1.OAuth" +
+      "AppSourceR\024effectiveOauthSource\0223\n\026effec" +
+      "tive_oauth_app_id\030\004 \001(\tR\023effectiveOauthA" +
+      "ppId*K\n\017ValidationState\022 \n\034validation_st" +
+      "ate_unspecified\020\000\022\t\n\005valid\020\001\022\013\n\007invalid\020" +
+      "\002*\217\001\n\016OAuthAppSource\022 \n\034OAUTH_APP_SOURCE" +
+      "_UNSPECIFIED\020\000\022\035\n\031OAUTH_APP_SOURCE_PLATF" +
+      "ORM\020\001\022!\n\035OAUTH_APP_SOURCE_ORG_OVERRIDE\020\002" +
+      "\022\031\n\025OAUTH_APP_SOURCE_NONE\020\003B\256\001B\013StatusPr" +
+      "otoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpser" +
+      "ver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1" +
+      "\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMe" +
+      "tadata\352\002#Ai::Stigmer::Agentic::Mcpserver" +
+      "::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.mcpserver.v1.SpecProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
+          ai.stigmer.iam.oauthapp.v1.SpecProto.getDescriptor(),
           com.google.protobuf.StructProto.getDescriptor(),
           com.google.protobuf.TimestampProto.getDescriptor(),
         });
@@ -107,7 +128,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerStatus_descriptor,
-        new java.lang.String[] { "ValidationState", "ValidationMessage", "DiscoveredCapabilities", "ToolApprovals", "Audit", });
+        new java.lang.String[] { "ValidationState", "ValidationMessage", "DiscoveredCapabilities", "ToolApprovals", "OauthStatus", "Audit", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoveredCapabilities_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoveredCapabilities_fieldAccessorTable = new
@@ -126,9 +147,16 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoveredResourceTemplate_descriptor,
         new java.lang.String[] { "UriTemplate", "Name", "Description", "MimeType", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthStatus_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthStatus_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthStatus_descriptor,
+        new java.lang.String[] { "VendorApprovalStatus", "VendorApprovalDocsUrl", "EffectiveOauthSource", "EffectiveOauthAppId", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.mcpserver.v1.SpecProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
+    ai.stigmer.iam.oauthapp.v1.SpecProto.getDescriptor();
     com.google.protobuf.StructProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();
   }

@@ -194,6 +194,42 @@ public interface McpServerStatusOrBuilder extends
 
   /**
    * <pre>
+   * OAuth-related enrichment state, populated at query time by the backend.
+   * Contains vendor approval status (resolved from the referenced OAuthApp)
+   * and BYOA resolution chain results (which OAuthApp is effective for the
+   * caller's org context). None of these fields are persisted.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
+   * @return Whether the oauthStatus field is set.
+   */
+  boolean hasOauthStatus();
+  /**
+   * <pre>
+   * OAuth-related enrichment state, populated at query time by the backend.
+   * Contains vendor approval status (resolved from the referenced OAuthApp)
+   * and BYOA resolution chain results (which OAuthApp is effective for the
+   * caller's org context). None of these fields are persisted.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
+   * @return The oauthStatus.
+   */
+  ai.stigmer.agentic.mcpserver.v1.OAuthStatus getOauthStatus();
+  /**
+   * <pre>
+   * OAuth-related enrichment state, populated at query time by the backend.
+   * Contains vendor approval status (resolved from the referenced OAuthApp)
+   * and BYOA resolution chain results (which OAuthApp is effective for the
+   * caller's org context). None of these fields are persisted.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
+   */
+  ai.stigmer.agentic.mcpserver.v1.OAuthStatusOrBuilder getOauthStatusOrBuilder();
+
+  /**
+   * <pre>
    * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *

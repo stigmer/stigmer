@@ -6,7 +6,7 @@
 import { McpServer } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
-import { CompleteOAuthConnectInput, CompleteOAuthConnectOutput, ConnectInput, GetOAuthGrantStatusInput, GetOAuthGrantStatusOutput, InitiateOAuthConnectInput, InitiateOAuthConnectOutput } from "./io_pb.js";
+import { CompleteOAuthConnectInput, CompleteOAuthConnectOutput, ConnectInput, DeleteOrgOAuthAppInput, DeleteOrgOAuthAppOutput, DisconnectOAuthInput, DisconnectOAuthOutput, InitiateOAuthConnectInput, InitiateOAuthConnectOutput, SetOrgOAuthAppInput, SetOrgOAuthAppOutput } from "./io_pb.js";
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -216,24 +216,84 @@ export const McpServerCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
+     * Disconnect the authenticated user's OAuth connection for a resource.
      *
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
+     * Tears down the user's personal OAuth connection by deleting the
+     * OAuthGrant and its associated managed environment (which holds the
+     * access and refresh tokens). The MCP server definition is unchanged —
+     * only the caller's credentials are removed.
+     *
+     * Other users' connections to the same resource are unaffected.
+     *
+     * Idempotent: returns disconnected=true when a grant was deleted,
+     * disconnected=false when no grant existed. Never returns an error
+     * for a missing grant.
      *
      * @internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
+     * Authorization: Requires can_connect permission on the mcp_server resource.
+     * Uses the same permission as connect/initiateOAuthConnect — if you can
+     * establish a connection, you can tear it down.
      *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.getOAuthGrantStatus
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.disconnectOAuth
      */
-    getOAuthGrantStatus: {
-      name: "getOAuthGrantStatus",
-      I: GetOAuthGrantStatusInput,
-      O: GetOAuthGrantStatusOutput,
+    disconnectOAuth: {
+      name: "disconnectOAuth",
+      I: DisconnectOAuthInput,
+      O: DisconnectOAuthOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Create or update an org-level BYOA OAuth app override for a resource.
+     *
+     * Allows an organization to use its own OAuth app credentials instead of
+     * the platform default. The handler clones the platform OAuthApp template
+     * (endpoint URLs, scopes) and applies the org-provided client credentials.
+     *
+     * Idempotent: if an override already exists for this resource + org, the
+     * existing OAuthApp is updated with the new credentials.
+     *
+     * @internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * This is an org-admin operation — setting credentials that affect all users
+     * in the org who connect to this resource.
+     *
+     * Errors:
+     * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
+     *   (BYOA requires a platform template to clone from)
+     * - NOT_FOUND: Resource does not exist
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.setOrgOAuthApp
+     */
+    setOrgOAuthApp: {
+      name: "setOrgOAuthApp",
+      I: SetOrgOAuthAppInput,
+      O: SetOrgOAuthAppOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Remove an org-level BYOA override for a resource.
+     *
+     * Deletes the OAuthAppOverride binding and the OAuthApp resource that
+     * was created for it. After this, the resolution chain falls back to
+     * the platform default.
+     *
+     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * will fail on next token refresh — those users will need to
+     * re-authenticate using the platform default or a new org override.
+     *
+     * @internal
+     * Authorization: Requires can_create_oauth_app permission on the organization.
+     * Same gate as setOrgOAuthApp — org-admin authority for credential management.
+     *
+     * Errors:
+     * - NOT_FOUND: No override exists for this resource + org
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.deleteOrgOAuthApp
+     */
+    deleteOrgOAuthApp: {
+      name: "deleteOrgOAuthApp",
+      I: DeleteOrgOAuthAppInput,
+      O: DeleteOrgOAuthAppOutput,
       kind: MethodKind.Unary,
     },
   }

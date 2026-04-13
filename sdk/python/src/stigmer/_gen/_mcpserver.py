@@ -79,9 +79,21 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_o_auth_grant_status(self, input: io_pb2.GetOAuthGrantStatusInput) -> io_pb2.GetOAuthGrantStatusOutput:
+    def disconnect_o_auth(self, input: io_pb2.DisconnectOAuthInput) -> io_pb2.DisconnectOAuthOutput:
         try:
-            return self._command.getOAuthGrantStatus(input)
+            return self._command.disconnectOAuth(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def set_org_o_auth_app(self, input: io_pb2.SetOrgOAuthAppInput) -> io_pb2.SetOrgOAuthAppOutput:
+        try:
+            return self._command.setOrgOAuthApp(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def delete_org_o_auth_app(self, input: io_pb2.DeleteOrgOAuthAppInput) -> io_pb2.DeleteOrgOAuthAppOutput:
+        try:
+            return self._command.deleteOrgOAuthApp(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -96,6 +108,18 @@ class McpServerClient:
             proto = ref._to_proto()
             proto.kind = api_resource_kind_pb2.mcp_server
             return self._query.getByReference(proto)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_o_auth_grant_status(self, input: io_pb2.GetOAuthGrantStatusInput) -> io_pb2.GetOAuthGrantStatusOutput:
+        try:
+            return self._query.getOAuthGrantStatus(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_org_o_auth_app(self, input: io_pb2.GetOrgOAuthAppInput) -> io_pb2.GetOrgOAuthAppOutput:
+        try:
+            return self._query.getOrgOAuthApp(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -239,16 +263,12 @@ class McpServerAuthInput:
     target_env_var: str = ""
     token_lifetime_hint: str = ""
     scope_hints: list[str] = field(default_factory=list)
-    vendor_approval_status: int = 0
-    vendor_approval_docs_url: str = ""
     discovery_url: str = ""
 
     def _to_proto(self) -> spec_pb2.McpServerAuth:
         msg = spec_pb2.McpServerAuth(
             target_env_var=self.target_env_var,
             token_lifetime_hint=self.token_lifetime_hint,
-            vendor_approval_status=self.vendor_approval_status,
-            vendor_approval_docs_url=self.vendor_approval_docs_url,
             discovery_url=self.discovery_url,
         )
         if self.oauth_app_ref is not None:

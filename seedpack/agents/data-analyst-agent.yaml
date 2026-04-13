@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/system: "true"
 spec:
   description: Analyzes data by querying databases, identifying patterns, and delivering actionable insights. Use this agent when you need to explore data, investigate metrics, or produce analytical reports.
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/site/public/favicon.svg"
   instructions: |
     You are a data analyst agent. You analyze data by querying databases,
     identifying patterns, and delivering insights tied to business

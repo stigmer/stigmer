@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "databases"
 spec:
   description: "PostgreSQL MCP server for database exploration, schema inspection, query execution, index tuning, and performance analysis."
+  icon_url: "https://www.postgresql.org/media/img/about/press/elephant.png"
   repository_url: "https://github.com/crystaldba/postgres-mcp"
   github_stars: 3000
   tags:

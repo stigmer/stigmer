@@ -283,7 +283,7 @@ func (x *SearchResponse) GetTotalPages() int32 {
 //
 // Contains only the fields needed for search result display:
 // - Identity: kind, id, slug, org
-// - Display: name, description, tags
+// - Display: name, description, icon_url, tags
 // - Metadata: visibility, timestamps, relevance score
 //
 // This is not the full resource. To get the complete resource, call the
@@ -372,7 +372,14 @@ type SearchResult struct {
 	// - Without query (list mode): Always 1.0
 	//
 	// Used for sorting when a search query is provided.
-	Score         float32 `protobuf:"fixed32,12,opt,name=score,proto3" json:"score,omitempty"`
+	Score float32 `protobuf:"fixed32,12,opt,name=score,proto3" json:"score,omitempty"`
+	// Icon URL for display in search result cards and listings.
+	//
+	// Populated from the resource's spec.icon_url when available.
+	// Empty for resource types that don't support icons (e.g., skills).
+	//
+	// Must be a publicly accessible URL (SVG, PNG, or JPEG).
+	IconUrl       string `protobuf:"bytes,13,opt,name=icon_url,json=iconUrl,proto3" json:"icon_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -491,6 +498,13 @@ func (x *SearchResult) GetScore() float32 {
 	return 0
 }
 
+func (x *SearchResult) GetIconUrl() string {
+	if x != nil {
+		return x.IconUrl
+	}
+	return ""
+}
+
 var File_ai_stigmer_search_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_search_v1_io_proto_rawDesc = "" +
@@ -513,7 +527,7 @@ const file_ai_stigmer_search_v1_io_proto_rawDesc = "" +
 	"totalPages\x1a?\n" +
 	"\x11CountsByKindEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\xed\x03\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\x88\x04\n" +
 	"\fSearchResult\x12S\n" +
 	"\x04kind\x18\x01 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n" +
@@ -531,7 +545,8 @@ const file_ai_stigmer_search_v1_io_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x14\n" +
-	"\x05score\x18\f \x01(\x02R\x05scoreB\xe1\x01\n" +
+	"\x05score\x18\f \x01(\x02R\x05score\x12\x19\n" +
+	"\bicon_url\x18\r \x01(\tR\aiconUrlB\xe1\x01\n" +
 	"\x18com.ai.stigmer.search.v1B\aIoProtoP\x01ZIgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/search/v1;searchv1\xa2\x02\x03ASS\xaa\x02\x14Ai.Stigmer.Search.V1\xca\x02\x14Ai\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17Ai::Stigmer::Search::V1b\x06proto3"
 
 var (

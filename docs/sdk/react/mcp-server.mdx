@@ -7,6 +7,41 @@ description: Hooks and components for MCP server connections, setup, credentials
 
 ## Hooks
 
+### useDisconnectOAuth
+
+Behavior hook that wraps `mcpServer.disconnectOAuth()` with loading
+and error state.
+
+Removes the user's OAuth grant and associated managed environment
+for a given MCP server resource. After a successful disconnect the
+UI should revert to the "Not connected" state — call `refetch()` on
+the credentials / grant status hooks to reflect the change.
+
+**Signature**
+
+```tsx
+function useDisconnectOAuth(): UseDisconnectOAuthReturn
+```
+
+**Returns** — `UseDisconnectOAuthReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    disconnect: { type: "(resourceId: string, org: string) => Promise<boolean>", description: "Disconnect the current user's OAuth grant for an MCP server.  Deletes the managed environment (secrets first) and then the grant document. The operation is idempotent — disconnecting when no grant exists returns `false` without error.  Resolves with `true` when a grant was removed, `false` when no grant existed. Callers should `refetch()` grant status and credentials after a successful disconnect." },
+    error: { type: "Error | null", description: "Error from the last failed disconnect, or `null` when healthy." },
+    isDisconnecting: { type: "boolean", description: "`true` while the disconnect request is in flight." },
+  }}
+/>
+
+```tsx
+const { disconnect, isDisconnecting, error } = useDisconnectOAuth();
+
+await disconnect(mcpServerId, org);
+credentials.refetch(); // refresh grant status + env
+```
+
+
 ### useMcpServer
 
 Data hook that fetches a single MCP Server by organization and slug.
@@ -213,11 +248,17 @@ function useMcpServerCredentials(org: string | null, mcpServer: McpServer | null
   type={{
     accessTokenExpiresAt: { type: "bigint", description: "When the OAuth access token expires (Unix timestamp seconds). `BigInt(0)` when no grant exists, `authMode` is `\"manual\"`, or the token does not expire. Useful for showing actual expiry in the UI." },
     authMode: { type: "McpServerAuthMode", description: "Credential acquisition mode derived from `spec.auth`.  - `\"manual\"` when `spec.auth` is absent: all env vars are user-entered. - `\"oauth\"` when `spec.auth` is present: the `target_env_var` is   acquired via OAuth. Check missingVariables for any   additional manual vars that are also needed (mixed mode).", typeDescriptionLink: "#mcpserverauthmode" },
+    canBringOwnApp: { type: "boolean", description: "`true` when the BYOA option is relevant for this server: the server uses vendor OAuth (`authMode === \"oauth\"` with an `oauth_app_ref`) and no org override is currently active.  When `true`, the UI should offer \"Use your own OAuth app\" as either a primary action (when vendor approval is blocked) or a secondary link (when vendor approval is granted)." },
+    canDisconnect: { type: "boolean", description: "`true` when the user can disconnect (i.e., an OAuth grant exists). Always `false` when `authMode` is `\"manual\"` or no grant is present." },
+    connectionHealth: { type: "OAuthConnectionHealth", description: "Health of the OAuth connection for this server.  Provides a four-state signal beyond the binary `isOAuthConnected`: healthy, expired-but-refreshable, expired (re-auth needed), or no grant. `UNSPECIFIED` when `authMode` is `\"manual\"` or the status has not been fetched yet." },
+    effectiveOAuthSource: { type: "OAuthAppSource", description: "Where the effective OAuth app was resolved from for the caller's org.  Enriched at query time by the backend — no additional RPC needed. `UNSPECIFIED` when `authMode` is `\"manual\"` or enrichment has not been performed yet." },
     error: { type: "Error | null", description: "Error from the personal environment or grant status fetch, or `null`." },
     isLoading: { type: "boolean", description: "`true` while the personal environment or grant status is being fetched." },
     isOAuthConnected: { type: "boolean", description: "`true` when the user has an active OAuth grant for this server. Derived from the `getOAuthGrantStatus` API, not from personal environment key presence. Always `false` when `authMode` is `\"manual\"`." },
+    isOrgOAuthApp: { type: "boolean", description: "`true` when an org-level BYOA override is active for this server. Derived from `effectiveOAuthSource === OAUTH_APP_SOURCE_ORG_OVERRIDE`." },
     isReady: { type: "boolean", description: "`true` when all required (non-optional) credentials are available — both OAuth-managed and manual variables. For OAuth servers this means the OAuth grant is connected AND any additional required manual vars are present in the personal environment.  Servers whose env vars are all optional are always ready." },
     isSaving: { type: "boolean", description: "`true` while a save operation is in flight." },
+    isVendorApprovalBlocked: { type: "boolean", description: "`true` when the platform OAuth app's vendor approval is PENDING or REJECTED — i.e., the platform sign-in flow is blocked. Covers both statuses since the user-facing behavior is the same: sign-in is disabled and BYOA / manual entry are the available alternatives.  See also isVendorApprovalPending which only checks PENDING." },
     isVendorApprovalPending: { type: "boolean", description: "`true` when the referenced OAuthApp's vendor approval is still pending. When pending, the platform-managed OAuth sign-in flow is unavailable and the sign-in button should be disabled. Users can still connect via manual token entry (manual override)." },
     manualOverride: { type: "boolean", description: "When `true`, the user has opted to bypass OAuth and enter the `target_env_var` token manually. In this state:  - missingVariables includes the OAuth-managed variable - isReady no longer requires an active OAuth grant  Only meaningful when `authMode` is `\"oauth\"`. Has no effect on manual-only servers." },
     missingVariables: { type: "EnvVarFormVariable[]", description: "Required variables (non-optional) missing from the user's personal environment. Empty when all required variables are present, the server has no `env` declarations, or all declarations are optional.  When `authMode` is `\"oauth\"`, the OAuth-managed `target_env_var` is excluded from this list — it is acquired via the OAuth flow, not via a manual form. Only additional non-OAuth required vars appear here.  Optional env vars are never included — they are discoverable in the read-only EnvSection but do not block connect.  Suitable as direct input to EnvVarForm." },
@@ -523,6 +564,7 @@ function useOAuthGrantStatus(resourceId: string | null, org: string | null): Use
     accessTokenExpiresAt: { type: "bigint", description: "When the access token expires (Unix timestamp seconds). `BigInt(0)` when no grant exists or the token does not expire." },
     authMethod: { type: "string", description: "Auth method used (`\"mcp_oauth\"` or `\"vendor_oauth\"`), or empty string." },
     connected: { type: "boolean", description: "Whether the user has an active OAuth grant for this resource + org." },
+    connectionHealth: { type: "OAuthConnectionHealth", description: "Health of the OAuth connection, as evaluated by the backend.  Gives the frontend an actionable signal beyond the binary `connected` boolean: healthy, expired-but-refreshable, expired (re-auth needed), or no grant at all. `UNSPECIFIED` when the status has not been fetched." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the grant status is being fetched." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the grant status." },
@@ -851,10 +893,21 @@ is rendered above the credentials form.
 
 <TypeTable
   type={{
+    canBringOwnApp: { type: "boolean", description: "`true` when the BYOA (Bring Your Own App) option is relevant: the server uses vendor OAuth and no org override exists." },
+    connectionHealth: { type: "OAuthConnectionHealth", description: "Health of the OAuth connection. Drives the status dot color and label beyond the binary `isConnected` boolean." },
+    disconnectError: { type: "Error | null", description: "Error from the most recent failed disconnect, or `null`." },
     error: { type: "Error | null", description: "Error from the most recent failed OAuth attempt, or `null`.", required: true },
     isConnected: { type: "boolean", description: "`true` when the OAuth token already exists in the personal environment.", required: true },
+    isDisconnecting: { type: "boolean", description: "`true` while a disconnect operation is in flight." },
+    isOrgOAuthApp: { type: "boolean", description: "`true` when an org-level BYOA override is active." },
+    isRemovingOrgApp: { type: "boolean", description: "`true` while a remove-org-app operation is in flight." },
+    isVendorApprovalBlocked: { type: "boolean", description: "`true` when the platform OAuth app's vendor approval is PENDING or REJECTED — the platform sign-in flow is blocked. Covers both statuses. When omitted, falls back to `isVendorApprovalPending`." },
     isVendorApprovalPending: { type: "boolean", description: "`true` when the platform's OAuth app is pending vendor approval. Disables the sign-in button and shows an informational message." },
+    onBringOwnApp: { type: "() => void", description: "Open the BYOA form. The parent is responsible for rendering the form/dialog and handling the mutation." },
+    onClearDisconnectError: { type: "() => void", description: "Clear the disconnect error state." },
     onClearError: { type: "() => void", description: "Clear the OAuth error state.", required: true },
+    onDisconnect: { type: "() => Promise<void>", description: "Called to disconnect the OAuth grant. When provided and the user is connected, a \"Disconnect\" link is shown. The parent is responsible for refreshing credentials after the promise resolves." },
+    onRemoveOrgApp: { type: "() => Promise<void>", description: "Remove the org's BYOA override. The parent is responsible for refreshing state after the promise resolves." },
     onSignIn: { type: "() => void", description: "Initiates the OAuth popup flow. Must be called from a click handler.", required: true },
     phase: { type: "OAuthConnectPhase", description: "Current phase of the OAuth flow.", required: true, typeDescriptionLink: "#oauthconnectphase" },
     vendorApprovalDocsUrl: { type: "string | null", description: "Documentation URL for bringing your own OAuth token. Shown as a help link when `isVendorApprovalPending` is `true`." },
