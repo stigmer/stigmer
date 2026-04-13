@@ -1367,6 +1367,7 @@ func docDisplayName(protoResType string) string {
 		result = append(result, r)
 	}
 	name := string(result)
+	name = strings.ReplaceAll(name, "O Auth", "OAuth")
 	name = strings.ReplaceAll(name, "Mcp ", "MCP ")
 	name = strings.ReplaceAll(name, "Api ", "API ")
 	name = strings.ReplaceAll(name, "Iam ", "IAM ")
