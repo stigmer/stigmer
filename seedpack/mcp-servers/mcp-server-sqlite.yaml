@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "databases"
 spec:
   description: "SQLite MCP server for database queries, schema inspection, and CRUD operations on local SQLite files."
+  icon_url: "https://cdn.simpleicons.org/sqlite"
   repository_url: "https://github.com/jparkerweb/mcp-sqlite"
   github_stars: 93
   tags:

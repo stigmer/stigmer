@@ -82,3 +82,6 @@ export type {
   UseMcpServerCredentialsReturn,
   McpServerAuthMode,
 } from "./useMcpServerCredentials";
+
+export { McpServerConnectDialog } from "./McpServerConnectDialog";
+export type { McpServerConnectDialogProps } from "./McpServerConnectDialog";

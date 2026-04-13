@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "monitoring"
 spec:
   description: "PagerDuty MCP server for incident management, on-call schedules, alerting, escalation policies, and service health monitoring."
+  icon_url: "https://cdn.simpleicons.org/pagerduty"
   repository_url: "https://github.com/PagerDuty/pagerduty-mcp-server"
   github_stars: 58
   tags:

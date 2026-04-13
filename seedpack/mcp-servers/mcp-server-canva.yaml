@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "design"
 spec:
   description: "Canva MCP server for creating designs, managing templates, uploading assets, and generating visual content."
+  icon_url: "https://cdn.simpleicons.org/canva"
   repository_url: ""
   github_stars: 0
   tags:

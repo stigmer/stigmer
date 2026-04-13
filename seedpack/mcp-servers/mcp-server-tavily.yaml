@@ -7,6 +7,7 @@ metadata:
     stigmer.ai/category: "search"
 spec:
   description: "Tavily MCP server for AI-optimized web search, content extraction, and research with structured results."
+  icon_url: "https://cdn.simpleicons.org/tavily"
   repository_url: "https://github.com/tavily-ai/tavily-mcp"
   github_stars: 1692
   tags:
