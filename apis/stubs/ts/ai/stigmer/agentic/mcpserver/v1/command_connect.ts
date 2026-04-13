@@ -6,7 +6,7 @@
 import { McpServer } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
-import { CompleteOAuthConnectInput, CompleteOAuthConnectOutput, ConnectInput, DeleteOrgOAuthAppInput, DeleteOrgOAuthAppOutput, DisconnectOAuthInput, DisconnectOAuthOutput, GetOAuthGrantStatusInput, GetOAuthGrantStatusOutput, GetOrgOAuthAppInput, GetOrgOAuthAppOutput, InitiateOAuthConnectInput, InitiateOAuthConnectOutput, SetOrgOAuthAppInput, SetOrgOAuthAppOutput } from "./io_pb.js";
+import { CompleteOAuthConnectInput, CompleteOAuthConnectOutput, ConnectInput, DeleteOrgOAuthAppInput, DeleteOrgOAuthAppOutput, DisconnectOAuthInput, DisconnectOAuthOutput, InitiateOAuthConnectInput, InitiateOAuthConnectOutput, SetOrgOAuthAppInput, SetOrgOAuthAppOutput } from "./io_pb.js";
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -216,27 +216,6 @@ export const McpServerCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     *
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
-     *
-     * @internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
-     *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.getOAuthGrantStatus
-     */
-    getOAuthGrantStatus: {
-      name: "getOAuthGrantStatus",
-      I: GetOAuthGrantStatusInput,
-      O: GetOAuthGrantStatusOutput,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Disconnect the authenticated user's OAuth connection for a resource.
      *
      * Tears down the user's personal OAuth connection by deleting the
@@ -289,26 +268,6 @@ export const McpServerCommandController = {
       name: "setOrgOAuthApp",
       I: SetOrgOAuthAppInput,
       O: SetOrgOAuthAppOutput,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Query whether an org has a BYOA override for a resource.
-     *
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     *
-     * @internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
-     *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.getOrgOAuthApp
-     */
-    getOrgOAuthApp: {
-      name: "getOrgOAuthApp",
-      I: GetOrgOAuthAppInput,
-      O: GetOrgOAuthAppOutput,
       kind: MethodKind.Unary,
     },
     /**

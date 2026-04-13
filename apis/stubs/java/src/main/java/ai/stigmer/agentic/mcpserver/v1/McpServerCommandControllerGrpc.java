@@ -270,37 +270,6 @@ public final class McpServerCommandControllerGrpc {
     return getCompleteOAuthConnectMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
-      ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getOAuthGrantStatus",
-      requestType = ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput.class,
-      responseType = ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
-      ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput, ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getGetOAuthGrantStatusMethod;
-    if ((getGetOAuthGrantStatusMethod = McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod) == null) {
-      synchronized (McpServerCommandControllerGrpc.class) {
-        if ((getGetOAuthGrantStatusMethod = McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod) == null) {
-          McpServerCommandControllerGrpc.getGetOAuthGrantStatusMethod = getGetOAuthGrantStatusMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput, ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOAuthGrantStatus"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.getDefaultInstance()))
-              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("getOAuthGrantStatus"))
-              .build();
-        }
-      }
-    }
-    return getGetOAuthGrantStatusMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput,
       ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> getDisconnectOAuthMethod;
 
@@ -361,37 +330,6 @@ public final class McpServerCommandControllerGrpc {
       }
     }
     return getSetOrgOAuthAppMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput,
-      ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getGetOrgOAuthAppMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getOrgOAuthApp",
-      requestType = ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput.class,
-      responseType = ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput,
-      ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getGetOrgOAuthAppMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput, ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getGetOrgOAuthAppMethod;
-    if ((getGetOrgOAuthAppMethod = McpServerCommandControllerGrpc.getGetOrgOAuthAppMethod) == null) {
-      synchronized (McpServerCommandControllerGrpc.class) {
-        if ((getGetOrgOAuthAppMethod = McpServerCommandControllerGrpc.getGetOrgOAuthAppMethod) == null) {
-          McpServerCommandControllerGrpc.getGetOrgOAuthAppMethod = getGetOrgOAuthAppMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput, ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOrgOAuthApp"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput.getDefaultInstance()))
-              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("getOrgOAuthApp"))
-              .build();
-        }
-      }
-    }
-    return getGetOrgOAuthAppMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput,
@@ -661,24 +599,6 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
-     * </pre>
-     */
-    default void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOAuthGrantStatusMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
      * Tears down the user's personal OAuth connection by deleting the
      * OAuthGrant and its associated managed environment (which holds the
@@ -720,23 +640,6 @@ public final class McpServerCommandControllerGrpc {
     default void setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSetOrgOAuthAppMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
-     * </pre>
-     */
-    default void getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOrgOAuthAppMethod(), responseObserver);
     }
 
     /**
@@ -979,25 +882,6 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
-     * </pre>
-     */
-    public void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetOAuthGrantStatusMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
      * Tears down the user's personal OAuth connection by deleting the
      * OAuthGrant and its associated managed environment (which holds the
@@ -1041,24 +925,6 @@ public final class McpServerCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getSetOrgOAuthAppMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
-     * </pre>
-     */
-    public void getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetOrgOAuthAppMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -1273,24 +1139,6 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
-     * </pre>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetOAuthGrantStatusMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
      * Tears down the user's personal OAuth connection by deleting the
      * OAuthGrant and its associated managed environment (which holds the
@@ -1332,23 +1180,6 @@ public final class McpServerCommandControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getSetOrgOAuthAppMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
-     * </pre>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetOrgOAuthAppMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1562,24 +1393,6 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
-     * </pre>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetOAuthGrantStatusMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
      * Tears down the user's personal OAuth connection by deleting the
      * OAuthGrant and its associated managed environment (which holds the
@@ -1621,23 +1434,6 @@ public final class McpServerCommandControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput setOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getSetOrgOAuthAppMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
-     * </pre>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetOrgOAuthAppMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1859,25 +1655,6 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
-     * without exposing any secret token values. The frontend uses this to
-     * render the correct OAuth state in the MCP server detail page and
-     * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getOAuthGrantStatus(
-        ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetOAuthGrantStatusMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
      * Tears down the user's personal OAuth connection by deleting the
      * OAuthGrant and its associated managed environment (which holds the
@@ -1925,24 +1702,6 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getOrgOAuthApp(
-        ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetOrgOAuthAppMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Remove an org-level BYOA override for a resource.
      * Deletes the OAuthAppOverride binding and the OAuthApp resource that
      * was created for it. After this, the resolution chain falls back to
@@ -1972,11 +1731,9 @@ public final class McpServerCommandControllerGrpc {
   private static final int METHODID_CONNECT = 5;
   private static final int METHODID_INITIATE_OAUTH_CONNECT = 6;
   private static final int METHODID_COMPLETE_OAUTH_CONNECT = 7;
-  private static final int METHODID_GET_OAUTH_GRANT_STATUS = 8;
-  private static final int METHODID_DISCONNECT_OAUTH = 9;
-  private static final int METHODID_SET_ORG_OAUTH_APP = 10;
-  private static final int METHODID_GET_ORG_OAUTH_APP = 11;
-  private static final int METHODID_DELETE_ORG_OAUTH_APP = 12;
+  private static final int METHODID_DISCONNECT_OAUTH = 8;
+  private static final int METHODID_SET_ORG_OAUTH_APP = 9;
+  private static final int METHODID_DELETE_ORG_OAUTH_APP = 10;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -2027,10 +1784,6 @@ public final class McpServerCommandControllerGrpc {
           serviceImpl.completeOAuthConnect((ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>) responseObserver);
           break;
-        case METHODID_GET_OAUTH_GRANT_STATUS:
-          serviceImpl.getOAuthGrantStatus((ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>) responseObserver);
-          break;
         case METHODID_DISCONNECT_OAUTH:
           serviceImpl.disconnectOAuth((ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput>) responseObserver);
@@ -2038,10 +1791,6 @@ public final class McpServerCommandControllerGrpc {
         case METHODID_SET_ORG_OAUTH_APP:
           serviceImpl.setOrgOAuthApp((ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput>) responseObserver);
-          break;
-        case METHODID_GET_ORG_OAUTH_APP:
-          serviceImpl.getOrgOAuthApp((ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput>) responseObserver);
           break;
         case METHODID_DELETE_ORG_OAUTH_APP:
           serviceImpl.deleteOrgOAuthApp((ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput) request,
@@ -2122,13 +1871,6 @@ public final class McpServerCommandControllerGrpc {
               ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput>(
                 service, METHODID_COMPLETE_OAUTH_CONNECT)))
         .addMethod(
-          getGetOAuthGrantStatusMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
-              ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>(
-                service, METHODID_GET_OAUTH_GRANT_STATUS)))
-        .addMethod(
           getDisconnectOAuthMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
@@ -2142,13 +1884,6 @@ public final class McpServerCommandControllerGrpc {
               ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput,
               ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput>(
                 service, METHODID_SET_ORG_OAUTH_APP)))
-        .addMethod(
-          getGetOrgOAuthAppMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput,
-              ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput>(
-                service, METHODID_GET_ORG_OAUTH_APP)))
         .addMethod(
           getDeleteOrgOAuthAppMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -2212,10 +1947,8 @@ public final class McpServerCommandControllerGrpc {
               .addMethod(getConnectMethod())
               .addMethod(getInitiateOAuthConnectMethod())
               .addMethod(getCompleteOAuthConnectMethod())
-              .addMethod(getGetOAuthGrantStatusMethod())
               .addMethod(getDisconnectOAuthMethod())
               .addMethod(getSetOrgOAuthAppMethod())
-              .addMethod(getGetOrgOAuthAppMethod())
               .addMethod(getDeleteOrgOAuthAppMethod())
               .build();
         }

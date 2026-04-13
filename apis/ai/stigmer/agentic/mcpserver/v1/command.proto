@@ -180,24 +180,6 @@ service McpServerCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to complete oauth connect for mcp server";
   }
 
-  // Check whether the authenticated user has an active OAuth grant for
-  // an MCP server in the specified org.
-  //
-  // Returns grant metadata (connected status, token expiry, auth method)
-  // without exposing any secret token values. The frontend uses this to
-  // render the correct OAuth state in the MCP server detail page and
-  // session composer.
-  //
-  // @internal
-  // Authorization: Requires can_view permission on the mcp_server resource.
-  // The resource_id field contains the MCP server's system-generated ID.
-  rpc getOAuthGrantStatus(GetOAuthGrantStatusInput) returns (GetOAuthGrantStatusOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
-    option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view oauth status for mcp server";
-  }
-
   // Disconnect the authenticated user's OAuth connection for a resource.
   //
   // Tears down the user's personal OAuth connection by deleting the
@@ -245,23 +227,6 @@ service McpServerCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_create_oauth_app;
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to set org oauth app override";
-  }
-
-  // Query whether an org has a BYOA override for a resource.
-  //
-  // Returns override metadata (existence, OAuthApp ID, client_id) without
-  // exposing secrets. The frontend uses this to show which credential
-  // source is active and to offer override management options to org admins.
-  //
-  // @internal
-  // Authorization: Requires can_view permission on the mcp_server resource.
-  // Any user who can view the MCP server can check whether their org has
-  // an override — no secrets are exposed.
-  rpc getOrgOAuthApp(GetOrgOAuthAppInput) returns (GetOrgOAuthAppOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
-    option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view org oauth app override";
   }
 
   // Remove an org-level BYOA override for a resource.

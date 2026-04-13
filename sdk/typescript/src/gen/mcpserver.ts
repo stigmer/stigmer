@@ -8,7 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, DisconnectOAuthInputSchema, DisconnectOAuthOutputSchema, SetOrgOAuthAppInputSchema, SetOrgOAuthAppOutputSchema, GetOrgOAuthAppInputSchema, GetOrgOAuthAppOutputSchema, DeleteOrgOAuthAppInputSchema, DeleteOrgOAuthAppOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput, type DisconnectOAuthInput, type DisconnectOAuthOutput, type SetOrgOAuthAppInput, type SetOrgOAuthAppOutput, type GetOrgOAuthAppInput, type GetOrgOAuthAppOutput, type DeleteOrgOAuthAppInput, type DeleteOrgOAuthAppOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, DisconnectOAuthInputSchema, DisconnectOAuthOutputSchema, SetOrgOAuthAppInputSchema, SetOrgOAuthAppOutputSchema, DeleteOrgOAuthAppInputSchema, DeleteOrgOAuthAppOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, GetOrgOAuthAppInputSchema, GetOrgOAuthAppOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type DisconnectOAuthInput, type DisconnectOAuthOutput, type SetOrgOAuthAppInput, type SetOrgOAuthAppOutput, type DeleteOrgOAuthAppInput, type DeleteOrgOAuthAppOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput, type GetOrgOAuthAppInput, type GetOrgOAuthAppOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -82,12 +82,6 @@ export class McpServerClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getOAuthGrantStatus(input: GetOAuthGrantStatusInput): Promise<GetOAuthGrantStatusOutput> {
-    try {
-      return await this.command.getOAuthGrantStatus(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
   async disconnectOAuth(input: DisconnectOAuthInput): Promise<DisconnectOAuthOutput> {
     try {
       return await this.command.disconnectOAuth(input);
@@ -97,12 +91,6 @@ export class McpServerClient {
   async setOrgOAuthApp(input: SetOrgOAuthAppInput): Promise<SetOrgOAuthAppOutput> {
     try {
       return await this.command.setOrgOAuthApp(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async getOrgOAuthApp(input: GetOrgOAuthAppInput): Promise<GetOrgOAuthAppOutput> {
-    try {
-      return await this.command.getOrgOAuthApp(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -121,6 +109,18 @@ export class McpServerClient {
   async getByReference(ref: ResourceRef): Promise<McpServer> {
     try {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.mcp_server }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getOAuthGrantStatus(input: GetOAuthGrantStatusInput): Promise<GetOAuthGrantStatusOutput> {
+    try {
+      return await this.query.getOAuthGrantStatus(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getOrgOAuthApp(input: GetOrgOAuthAppInput): Promise<GetOrgOAuthAppOutput> {
+    try {
+      return await this.query.getOrgOAuthApp(input);
     } catch (e) { throw wrapError(e); }
   }
 

@@ -1086,31 +1086,6 @@ CompleteOAuthConnectOutput confirms that tokens were successfully acquired and s
   }}
 />
 
-### GetOAuthGrantStatusInput
-
-GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
-
-<TypeTable
-  type={{
-    resourceId: { type: "string", description: "System-generated ID of the resource to check grant status for.", required: true },
-    org: { type: "string", description: "Organization context." },
-  }}
-/>
-
-### GetOAuthGrantStatusOutput
-
-GetOAuthGrantStatusOutput returns the current OAuth grant status.
-
-<TypeTable
-  type={{
-    connected: { type: "boolean", description: "Whether the user has an active OAuth grant for this resource + org." },
-    accessTokenExpiresAt: { type: "number", description: "When the access token expires (Unix timestamp seconds)." },
-    targetEnvVar: { type: "string", description: "The env var name where the access token is stored." },
-    authMethod: { type: "string", description: "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\")." },
-    connectionHealth: { type: "OAuthConnectionHealth", description: "Evaluated health of the OAuth connection.", typeDescriptionLink: "#oauthconnectionhealth" },
-  }}
-/>
-
 ### DisconnectOAuthInput
 
 DisconnectOAuthInput tears down a user's OAuth connection for a resource.
@@ -1155,6 +1130,52 @@ SetOrgOAuthAppOutput confirms the BYOA override was created or updated.
   }}
 />
 
+### DeleteOrgOAuthAppInput
+
+DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "System-generated ID of the resource to remove the override for.", required: true },
+    org: { type: "string", description: "Organization whose override should be removed." },
+  }}
+/>
+
+### DeleteOrgOAuthAppOutput
+
+DeleteOrgOAuthAppOutput confirms the BYOA override was removed.
+
+<TypeTable
+  type={{
+    deleted: { type: "boolean", description: "Whether the delete completed successfully." },
+  }}
+/>
+
+### GetOAuthGrantStatusInput
+
+GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "System-generated ID of the resource to check grant status for.", required: true },
+    org: { type: "string", description: "Organization context." },
+  }}
+/>
+
+### GetOAuthGrantStatusOutput
+
+GetOAuthGrantStatusOutput returns the current OAuth grant status.
+
+<TypeTable
+  type={{
+    connected: { type: "boolean", description: "Whether the user has an active OAuth grant for this resource + org." },
+    accessTokenExpiresAt: { type: "number", description: "When the access token expires (Unix timestamp seconds)." },
+    targetEnvVar: { type: "string", description: "The env var name where the access token is stored." },
+    authMethod: { type: "string", description: "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\")." },
+    connectionHealth: { type: "OAuthConnectionHealth", description: "Evaluated health of the OAuth connection.", typeDescriptionLink: "#oauthconnectionhealth" },
+  }}
+/>
+
 ### GetOrgOAuthAppInput
 
 GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.
@@ -1175,27 +1196,6 @@ GetOrgOAuthAppOutput returns the org's BYOA override status.
     hasOverride: { type: "boolean", description: "Whether an OAuthAppOverride exists for this resource + org." },
     oauthAppId: { type: "string", description: "System-generated ID of the override's OAuthApp." },
     clientId: { type: "string", description: "Client ID from the override's OAuthApp (non-secret, safe to display)." },
-  }}
-/>
-
-### DeleteOrgOAuthAppInput
-
-DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
-
-<TypeTable
-  type={{
-    resourceId: { type: "string", description: "System-generated ID of the resource to remove the override for.", required: true },
-    org: { type: "string", description: "Organization whose override should be removed." },
-  }}
-/>
-
-### DeleteOrgOAuthAppOutput
-
-DeleteOrgOAuthAppOutput confirms the BYOA override was removed.
-
-<TypeTable
-  type={{
-    deleted: { type: "boolean", description: "Whether the delete completed successfully." },
   }}
 />
 
