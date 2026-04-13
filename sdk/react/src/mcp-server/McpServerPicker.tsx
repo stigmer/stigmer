@@ -13,6 +13,7 @@ import { cn } from "@stigmer/theme";
 import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import type { EnvVarFormSubmitOptions } from "../environment/EnvVarForm";
 import { useMcpServerSearch } from "./useMcpServerSearch";
 import { useScrollShadows } from "../internal/useScrollShadows";
@@ -418,7 +419,12 @@ export function McpServerPicker({
 
     const oauthStatus = entry.mcpServer.status?.oauthStatus;
     const isVendorApprovalPending =
-      hasOAuth && oauthStatus?.vendorApprovalStatus === 1; // VendorApprovalStatus.PENDING
+      hasOAuth &&
+      oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.PENDING;
+    const isVendorApprovalBlocked =
+      hasOAuth &&
+      (oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.PENDING ||
+        oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.REJECTED);
 
     const oauthSignInProps =
       hasOAuth && !isManualOverride
@@ -440,6 +446,7 @@ export function McpServerPicker({
             error: oauth.error,
             onClearError: oauth.clearError,
             isVendorApprovalPending,
+            isVendorApprovalBlocked,
             vendorApprovalDocsUrl: oauthStatus?.vendorApprovalDocsUrl || null,
           }
         : undefined;
