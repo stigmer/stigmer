@@ -21,7 +21,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | **T01** | Proto: messages, RPCs, enums, stubs | stigmer | DONE | — |
 | **T02** | Backend: disconnect + grant health | stigmer-cloud | DONE | T01 |
 | **T03** | Backend: harden refresh + vendor gate + error UX | stigmer-cloud | DONE | T01 |
-| **T04** | Backend: BYOA infrastructure (repo, resolution, enricher) | stigmer-cloud | NOT STARTED | T01 |
+| **T04** | Backend: BYOA infrastructure (repo, resolution, migration) | stigmer-cloud | DONE | T01 |
 | **T05** | Backend: BYOA handlers + resolution chain integration | stigmer-cloud | NOT STARTED | T04 |
 | **T06** | Frontend: disconnect + health + error UX | stigmer | NOT STARTED | T02, T03 |
 | **T07** | Frontend: BYOA experience | stigmer | NOT STARTED | T05, T06 |
@@ -141,15 +141,32 @@ When starting a new session:
 5. Vendor gate error message says "enter a token manually" (not "use BYOA") — BYOA doesn't exist yet, message will be updated when T05/T07 ship
 6. Disconnect is idempotent (desired-state) — no error for missing grants, aligns with Stigmer's declarative platform DNA
 
+### T04 Completed
+- Proto correction: moved getOAuthGrantStatus and getOrgOAuthApp from McpServerCommandController to McpServerQueryController (read-only queries belong on query surface)
+- OAuthAppOverrideDocument: plain @Data POJO following OAuthGrantDocument pattern
+- OAuthAppOverrideRepo: MongoTemplate-based with find/upsert/delete by composite key (resourceId, resourceKind, orgId)
+- OAuthAppResolutionService: two-step resolution chain (org override → platform default → none) with documented OAuthAppRepo cross-domain access, defensive fallthrough for deleted overrides
+- U20260413 Mongock migration: oauth_app_override collection with unique compound index
+- Updated McpServerGetOAuthGrantStatusHandler @RequestRoute to query controller
+- Regenerated all stubs in both repos
+- Architecture decision: no enricher needed — getOrgOAuthApp RPC (explicit org param) serves frontend BYOA resolution need; frontend composes effective source from three calls
+- Committed: stigmer `7894f2130`, stigmer-cloud `0dea473a`
+
+### Key Design Decisions Made (Session 4)
+7. Query RPCs belong on query controller — getOAuthGrantStatus and getOrgOAuthApp are read-only with can_view authorization, not commands
+8. No enricher needed for BYOA — get pipeline has no caller org context; existing getOrgOAuthApp RPC serves the same purpose
+9. Authorization stays on mcp_server resource (not organization) for getOrgOAuthApp — prevents info leaks about resources the caller can't see
+10. Defensive fallthrough in resolution chain — deleted override OAuthApp logs warning and falls through to platform default
+
 ## Current Status
 
 **Created**: 2026-04-13 11:03
-**Current Task**: T04 or T06 (next to pick)
-**Status**: T01, T02, T03 complete. T04 and T06 can proceed in parallel.
+**Current Task**: T05 or T06 (next to pick)
+**Status**: T01, T02, T03, T04 complete. T05 and T06 can proceed in parallel.
 
 ## Next Steps
 
-1. Pick T04 or T06 (both unblocked, can run in parallel)
-2. T04: Build OAuthAppOverride repo, OAuthAppResolutionService, enricher integration (unblocks T05 -> T07)
+1. Pick T05 or T06 (both unblocked, can run in parallel)
+2. T05: BYOA handlers (setOrgOAuthApp, getOrgOAuthApp, deleteOrgOAuthApp) + token refresh integration with OAuthAppResolutionService (unblocks T07)
 3. T06: Frontend disconnect + health + error UX (unblocked by T02 + T03)
-4. T04 recommended next — continues backend momentum, builds BYOA infrastructure that unblocks T05 → T07
+4. T05 recommended next — continues backend momentum, completes BYOA handler chain that unblocks T07
