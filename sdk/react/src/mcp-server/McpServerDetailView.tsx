@@ -868,6 +868,7 @@ function ConnectBar({
               <button
                 type="button"
                 onClick={onBringOwnApp}
+                data-cursor-target="byoa-cta-button"
                 className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
               >
                 Use your own OAuth app

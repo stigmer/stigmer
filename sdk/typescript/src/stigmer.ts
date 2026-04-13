@@ -18,6 +18,7 @@ import type { IdentityAccountClient } from "./gen/identityaccount";
 import type { IdentityProviderClient } from "./gen/identityprovider";
 import type { InvitationClient } from "./gen/invitation";
 import type { McpServerClient } from "./gen/mcpserver";
+import type { OAuthAppClient } from "./gen/oauthapp";
 import type { OrganizationClient } from "./gen/organization";
 import type { ProjectClient } from "./gen/project";
 import type { SessionClient } from "./gen/session";
@@ -63,6 +64,7 @@ export class Stigmer {
   readonly identityProvider: IdentityProviderClient;
   readonly invitation: InvitationClient;
   readonly mcpServer: McpServerClient;
+  readonly oauthapp: OAuthAppClient;
   readonly organization: OrganizationClient;
   readonly project: ProjectClient;
   readonly session: SessionClient;
@@ -97,6 +99,7 @@ export class Stigmer {
     this.identityProvider = client.identityProvider;
     this.invitation = client.invitation;
     this.mcpServer = client.mcpServer;
+    this.oauthapp = client.oauthapp;
     this.organization = client.organization;
     this.project = client.project;
     this.session = client.session;
