@@ -31,6 +31,18 @@ export const DEMO_BROWSER_ZOOM = 0.9;
 export const DEMO_SHELL_HEIGHT = 380;
 
 /**
+ * Minimum shell height for very short viewports (e.g. iPad in split
+ * view). Below this threshold the sidebar content clips. Used as
+ * the floor in `clamp(DEMO_SHELL_HEIGHT_MIN, 55vh, DEMO_SHELL_HEIGHT)`.
+ *
+ * On desktop, `55vh` exceeds DEMO_SHELL_HEIGHT so the clamp resolves
+ * to the canonical 380px. On shorter viewports, it shrinks gracefully
+ * down to this floor. The `--demo-shell-height` CSS variable override
+ * for video export takes precedence over the entire clamp expression.
+ */
+export const DEMO_SHELL_HEIGHT_MIN = 320;
+
+/**
  * Default height for BrowserView shells.
  *
  * Taller than DEMO_SHELL_HEIGHT because browser mockups display

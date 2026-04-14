@@ -12,7 +12,10 @@ import {
   Search,
   Settings,
 } from "lucide-react";
-import { DEMO_SHELL_HEIGHT } from "../shared/tokens";
+import {
+  DEMO_SHELL_HEIGHT,
+  DEMO_SHELL_HEIGHT_MIN,
+} from "../shared/tokens";
 
 export interface FileTreeEntry {
   readonly name: string;
@@ -67,7 +70,9 @@ export function CodeEditorView({
   return (
     <div
       className="flex flex-col overflow-hidden rounded-lg border border-border"
-      style={{ height: `var(--demo-shell-height, ${DEMO_SHELL_HEIGHT}px)` }}
+      style={{
+        height: `var(--demo-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
+      }}
     >
       {/* Title bar */}
       {fileTree && (

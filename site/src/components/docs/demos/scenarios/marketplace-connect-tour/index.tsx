@@ -172,14 +172,14 @@ export function MarketplaceConnectTour() {
 
           const client = clientMap.get(step.server)!;
           return (
-            <StigmerProvider
-              key={componentKeyFor(step)}
-              client={client}
+            <AppShell
+              activeNav="library"
+              contentKey={contentKeyFor(step)}
+              slideDirection={slideDirectionFor(step)}
             >
-              <AppShell
-                activeNav="library"
-                contentKey={contentKeyFor(step)}
-                slideDirection={slideDirectionFor(step)}
+              <StigmerProvider
+                key={componentKeyFor(step)}
+                client={client}
               >
                 <div
                   data-scroll-container
@@ -195,8 +195,8 @@ export function MarketplaceConnectTour() {
                     <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
-              </AppShell>
-            </StigmerProvider>
+              </StigmerProvider>
+            </AppShell>
           );
         }}
       </ScenarioPlayer>

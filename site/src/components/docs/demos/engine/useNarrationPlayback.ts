@@ -13,6 +13,12 @@ interface UseNarrationPlaybackOptions {
   /** Initial muted state (default true). Set false for video export. */
   initialMuted?: boolean;
   /**
+   * Playback speed multiplier (default 1). Applied to the audio
+   * element's native playbackRate so narration stays in sync with
+   * the accelerated step timers.
+   */
+  playbackRate?: number;
+  /**
    * Fired when the current narration clip finishes playing (via the
    * HTMLMediaElement `ended` event). ScenarioPlayer uses this to drive
    * step advancement instead of a duration-based timeout.
@@ -45,11 +51,15 @@ function safePlay(audio: HTMLAudioElement): void {
 
 /**
  * Load and play a narration clip on the given audio element.
- * Sets the source, loads the resource, and initiates playback.
+ * Sets the source, loads the resource, applies the playback rate,
+ * and initiates playback. The rate must be set after load() because
+ * load() resets playbackRate to defaultPlaybackRate per the HTML spec.
  */
-function playClip(audio: HTMLAudioElement, src: string): void {
+function playClip(audio: HTMLAudioElement, src: string, rate = 1): void {
   audio.src = src;
+  audio.defaultPlaybackRate = rate;
   audio.load();
+  audio.playbackRate = rate;
   safePlay(audio);
 }
 
@@ -97,6 +107,7 @@ export function useNarrationPlayback({
   stepIndex,
   playing,
   initialMuted = true,
+  playbackRate = 1,
   onClipEnded,
 }: UseNarrationPlaybackOptions): UseNarrationPlaybackResult {
   const [muted, setMuted] = useState(initialMuted);
@@ -112,6 +123,10 @@ export function useNarrationPlayback({
   // Stable ref for the callback so the ended listener never goes stale.
   const onClipEndedRef = useRef(onClipEnded);
   onClipEndedRef.current = onClipEnded;
+
+  // Keep playbackRate in a ref so playClip always applies the latest rate.
+  const playbackRateRef = useRef(playbackRate);
+  playbackRateRef.current = playbackRate;
 
   // Resolve the narration entry for the current step.
   const entry = manifest?.steps[stepIndex] ?? null;
@@ -153,7 +168,7 @@ export function useNarrationPlayback({
       return;
     }
 
-    playClip(audio, entrySrc);
+    playClip(audio, entrySrc, playbackRateRef.current);
   }, [stepIndex, entrySrc, manifest]);
 
   // -----------------------------------------------------------------------
@@ -172,7 +187,7 @@ export function useNarrationPlayback({
       if (audio.src) {
         safePlay(audio);
       } else {
-        playClip(audio, entrySrc);
+        playClip(audio, entrySrc, playbackRateRef.current);
       }
     }
   }, [playing, entrySrc, manifest]);
@@ -194,13 +209,28 @@ export function useNarrationPlayback({
           prefetchedRef.current = true;
         }
         if (entrySrc) {
-          playClip(audio, entrySrc);
+          playClip(audio, entrySrc, playbackRateRef.current);
         }
       }
 
       return next;
     });
   }, [entrySrc, manifest]);
+
+  // -----------------------------------------------------------------------
+  // Sync audio playbackRate with the speed multiplier.
+  //
+  // `defaultPlaybackRate` controls the rate that `load()` resets to
+  // (per the HTML spec, load() sets playbackRate = defaultPlaybackRate).
+  // Without this, every `playClip` call resets the rate to 1x because
+  // it calls audio.load() which clobbers playbackRate.
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.defaultPlaybackRate = playbackRate;
+    audio.playbackRate = playbackRate;
+  }, [playbackRate]);
 
   // -----------------------------------------------------------------------
   // Cleanup on unmount

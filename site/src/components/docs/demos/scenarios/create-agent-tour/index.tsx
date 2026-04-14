@@ -101,22 +101,22 @@ export function CreateAgentTour() {
           switch (step.view) {
             case "agent-creator-typing":
               return (
-                <StigmerProvider client={conversationClient}>
-                  <AppShell activeNav="new-session" contentKey="creator">
+                <AppShell activeNav="new-session" contentKey="creator">
+                  <StigmerProvider client={conversationClient}>
                     <ComposerView
                       typingMessage="I want to create a customer support agent. It should use the return-policy skill and the order-management-api MCP server."
                     />
-                  </AppShell>
-                </StigmerProvider>
+                  </StigmerProvider>
+                </AppShell>
               );
 
             case "agent-created":
               return (
-                <StigmerProvider client={conversationClient}>
-                  <AppShell activeNav="new-session" contentKey="created">
+                <AppShell activeNav="new-session" contentKey="created">
+                  <StigmerProvider client={conversationClient}>
                     <ComposerView execution={step.execution} />
-                  </AppShell>
-                </StigmerProvider>
+                  </StigmerProvider>
+                </AppShell>
               );
 
             case "agent-config":

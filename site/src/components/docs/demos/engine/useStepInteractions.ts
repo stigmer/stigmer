@@ -54,6 +54,12 @@ export interface UseStepInteractionsOptions<T> {
   setCursorTarget: (target: string | undefined) => void;
   /** The full steps array (used for fallback duration from delayMs). */
   steps: readonly ScenarioStep<T>[];
+  /**
+   * Playback speed multiplier (default 1). Browser-path timeouts are
+   * divided by this value so interactions fire proportionally earlier
+   * at higher speeds.
+   */
+  playbackRate?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +100,7 @@ export function useStepInteractions<T>({
   containerRef,
   setCursorTarget,
   steps,
+  playbackRate = 1,
 }: UseStepInteractionsOptions<T>): void {
   const timeSource = useTimeSource();
   const firedRef = useRef<Set<string>>(new Set());
@@ -143,10 +150,11 @@ export function useStepInteractions<T>({
     if (!actions || actions.length === 0) return;
 
     const duration = getStepDurationMs(stepIndex, narrationManifest, steps);
+    const rate = Math.max(playbackRate, 0.25);
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     for (const action of actions) {
-      const fireAt = action.atPercent * duration;
+      const fireAt = (action.atPercent * duration) / rate;
       const timer = setTimeout(() => {
         executeAction(action, containerRef, setCursorTarget, false);
       }, fireAt);
@@ -164,6 +172,7 @@ export function useStepInteractions<T>({
     containerRef,
     setCursorTarget,
     steps,
+    playbackRate,
   ]);
 }
 

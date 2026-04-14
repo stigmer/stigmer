@@ -116,11 +116,11 @@ export function ConnectPlayback() {
         onStepChange={handleStepChange}
       >
         {(step) => (
-          <StigmerProvider
-            key={componentKeyFor(step)}
-            client={clientMap.get(step.server)!}
-          >
-            <AppShell activeNav="library" contentKey="mcp-detail">
+          <AppShell activeNav="library" contentKey="mcp-detail">
+            <StigmerProvider
+              key={componentKeyFor(step)}
+              client={clientMap.get(step.server)!}
+            >
               <div
                 data-scroll-container
                 className="h-full overflow-y-auto"
@@ -140,8 +140,8 @@ export function ConnectPlayback() {
                   />
                 </div>
               </div>
-            </AppShell>
-          </StigmerProvider>
+            </StigmerProvider>
+          </AppShell>
         )}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />

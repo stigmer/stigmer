@@ -2,7 +2,10 @@
 
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
-import { DEMO_SHELL_HEIGHT } from "../shared/tokens";
+import {
+  DEMO_SHELL_HEIGHT,
+  DEMO_SHELL_HEIGHT_MIN,
+} from "../shared/tokens";
 
 export interface TerminalLine {
   readonly type: "prompt" | "output" | "error" | "success" | "blank";
@@ -42,7 +45,9 @@ export function TerminalView({
   return (
     <div
       className="flex flex-col overflow-hidden rounded-lg border border-[#3a3a3a]"
-      style={{ height: `var(--demo-shell-height, ${DEMO_SHELL_HEIGHT}px)` }}
+      style={{
+        height: `var(--demo-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
+      }}
     >
       {/* Title bar */}
       <div className="flex items-center bg-[#323232] px-3 py-1.5">

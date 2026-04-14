@@ -44,6 +44,11 @@ interface ScenarioPlayerProps<T> {
    * provided, enables audio playback and shows a mute/unmute toggle.
    */
   narrationManifest?: NarrationManifest;
+  /**
+   * Show a speed selector (1x / 1.5x / 2x) in the control bar.
+   * Defaults to true — set to false to suppress on a specific demo.
+   */
+  showSpeedControl?: boolean;
 }
 
 type PlaybackState = "idle" | "playing" | "paused";
@@ -86,12 +91,16 @@ const CONTROLS_HIDE_DELAY_MS = 3_000;
  *
  * Respects `prefers-reduced-motion` by skipping directly to the final step.
  */
+const SPEED_OPTIONS = [0.5, 1, 1.5, 2] as const;
+type SpeedOption = (typeof SPEED_OPTIONS)[number];
+
 export function ScenarioPlayer<T>({
   steps,
   children,
   className,
   onStepChange,
   narrationManifest,
+  showSpeedControl = true,
 }: ScenarioPlayerProps<T>) {
   const prefersReducedMotion = useReducedMotion();
   const { isVideoExport, hideControls, initialMuted: videoExportMuted } = useVideoExport();
@@ -104,6 +113,7 @@ export function ScenarioPlayer<T>({
   const [playbackState, setPlaybackState] = useState<PlaybackState>(
     isVideoExport ? "playing" : "idle",
   );
+  const [playbackRate, setPlaybackRate] = useState(1);
   const playing = playbackState === "playing";
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +140,7 @@ export function ScenarioPlayer<T>({
     stepIndex,
     playing,
     initialMuted: effectiveInitialMuted,
+    playbackRate,
     onClipEnded: handleClipEnded,
   });
 
@@ -145,10 +156,22 @@ export function ScenarioPlayer<T>({
   stepTimelineRef.current = stepTimeline;
 
   // -----------------------------------------------------------------------
-  // Step advancement (unchanged timing logic, no IntersectionObserver)
+  // Step advancement — timer delays are divided by playbackRate so
+  // steps advance proportionally faster. Audio playbackRate is handled
+  // by useNarrationPlayback, so clip "ended" events also fire sooner.
+  //
+  // Rate is read from a ref (not the dependency array) so that changing
+  // speed mid-step does NOT restart timers. The audio rate changes
+  // immediately via useNarrationPlayback, and the next step's timer
+  // will pick up the new rate when it schedules.
   // -----------------------------------------------------------------------
+  const rateRef = useRef(Math.max(playbackRate, 0.25));
+  rateRef.current = Math.max(playbackRate, 0.25);
+
   useEffect(() => {
     if (timeSource || !playing || prefersReducedMotion) return;
+
+    const r = rateRef.current;
 
     if (stepIndex >= lastIndex) {
       const finalNarrationMs =
@@ -161,7 +184,7 @@ export function ScenarioPlayer<T>({
         const safety = setTimeout(() => {
           pendingAdvanceRef.current = null;
           setPlaybackState("paused");
-        }, finalNarrationMs + 2000);
+        }, (finalNarrationMs + 2000) / r);
         return () => {
           clearTimeout(safety);
           pendingAdvanceRef.current = null;
@@ -173,7 +196,7 @@ export function ScenarioPlayer<T>({
     }
 
     const nextIndex = stepIndex + 1;
-    const baseDelay = steps[nextIndex].delayMs;
+    const baseDelay = steps[nextIndex].delayMs / r;
     const narrationDuration =
       !muted && narrationManifest
         ? (narrationManifest.steps[stepIndex]?.durationMs ?? 0)
@@ -207,7 +230,7 @@ export function ScenarioPlayer<T>({
 
       const safetyTimer = setTimeout(
         advance,
-        Math.max(baseDelay, narrationDuration) + 2000,
+        (Math.max(steps[nextIndex].delayMs, narrationDuration) + 2000) / r,
       );
 
       return () => {
@@ -286,6 +309,26 @@ export function ScenarioPlayer<T>({
     togglePlay();
   }, [playbackState, togglePlay]);
 
+  const [speedMenuOpen, setSpeedMenuOpen] = useState(false);
+  const speedMenuRef = useRef<HTMLDivElement>(null);
+
+  const selectSpeed = useCallback((speed: SpeedOption) => {
+    setPlaybackRate(speed);
+    setSpeedMenuOpen(false);
+  }, []);
+
+  // Close speed menu on outside click
+  useEffect(() => {
+    if (!speedMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (speedMenuRef.current && !speedMenuRef.current.contains(e.target as Node)) {
+        setSpeedMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [speedMenuOpen]);
+
   // -----------------------------------------------------------------------
   // Smooth progress bar (RAF-driven, 60fps direct DOM updates)
   // -----------------------------------------------------------------------
@@ -306,7 +349,7 @@ export function ScenarioPlayer<T>({
   const tickFnRef = useRef<() => void>(undefined);
   tickFnRef.current = () => {
     const now = performance.now();
-    stepElapsedRef.current += now - lastTickRef.current;
+    stepElapsedRef.current += (now - lastTickRef.current) * rateRef.current;
     lastTickRef.current = now;
 
     const tl = stepTimelineRef.current;
@@ -526,6 +569,58 @@ export function ScenarioPlayer<T>({
                   >
                     {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
                   </button>
+                )}
+
+                {showSpeedControl && (
+                  <div ref={speedMenuRef} className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSpeedMenuOpen((prev) => !prev);
+                      }}
+                      className="flex h-6 min-w-[2rem] items-center justify-center rounded px-1 text-[11px] font-medium tabular-nums text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label={`Playback speed: ${playbackRate}x`}
+                      aria-haspopup="true"
+                      aria-expanded={speedMenuOpen}
+                    >
+                      {playbackRate}x
+                    </button>
+
+                    <AnimatePresence>
+                      {speedMenuOpen && (
+                        <motion.div
+                          className="absolute bottom-full right-0 mb-1.5 rounded-md border border-border bg-card py-1 shadow-lg"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          transition={{ duration: 0.12, ease: "easeOut" }}
+                          role="menu"
+                          aria-label="Playback speed"
+                        >
+                          {SPEED_OPTIONS.map((speed) => (
+                            <button
+                              key={speed}
+                              role="menuitem"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                selectSpeed(speed);
+                              }}
+                              className={`flex w-full items-center justify-between gap-3 px-3 py-1 text-[11px] tabular-nums transition-colors hover:bg-accent ${
+                                speed === playbackRate
+                                  ? "font-semibold text-foreground"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              <span>{speed}x</span>
+                              {speed === playbackRate && (
+                                <span className="text-[10px] text-primary">●</span>
+                              )}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
               </div>
             </motion.div>
