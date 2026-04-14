@@ -154,6 +154,7 @@ export interface SearchResultOverrides {
   readonly slug?: string;
   readonly kind?: ApiResourceKind;
   readonly description?: string;
+  readonly iconUrl?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -465,6 +466,7 @@ export const samples = {
       org: o?.org ?? "demo",
       description: o?.description ?? "A sample resource for demo purposes.",
       score: 1.0,
+      iconUrl: o?.iconUrl ?? "",
     });
   },
 } as const;
