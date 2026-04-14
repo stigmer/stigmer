@@ -140,7 +140,7 @@ export function ScenarioPlayer<T>({
   // Both are disabled in video export mode (Remotion renders one scenario
   // at a time with no viewport scrolling).
   // -----------------------------------------------------------------------
-  const coordinatorRef = useRef<{ id: string; unregister: () => void }>();
+  const coordinatorRef = useRef<{ id: string; unregister: () => void } | null>(null);
 
   useEffect(() => {
     if (isVideoExport) return;
