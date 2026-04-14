@@ -17,8 +17,12 @@ import {
 
 const COPIED_FEEDBACK_MS = 2000;
 
-/** Props for {@link ArtifactPreviewModal}. */
-export interface ArtifactPreviewModalProps {
+// ---------------------------------------------------------------------------
+// ArtifactPreviewContent — standalone content component
+// ---------------------------------------------------------------------------
+
+/** Props for {@link ArtifactPreviewContent}. */
+export interface ArtifactPreviewContentProps {
   /** The execution artifact to preview. */
   readonly artifact: ExecutionArtifact;
   /** ID of the execution that produced this artifact. */
@@ -33,9 +37,7 @@ export interface ArtifactPreviewModalProps {
    * - `false` — CTA renders as a disabled secondary button
    */
   readonly isTerminal: boolean;
-  /** Controls modal visibility. `true` opens the dialog via `showModal()`. */
-  readonly open: boolean;
-  /** Called when the modal should close (Escape key or close button). */
+  /** Called when the close button is clicked. */
   readonly onClose: () => void;
   /**
    * Called after a resource is successfully applied or a skill package
@@ -43,19 +45,20 @@ export interface ArtifactPreviewModalProps {
    * as showing a toast or navigating to the Library.
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
-  /** Additional CSS classes for the dialog element. */
+  /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
 
 /**
- * Full preview modal for execution artifacts with content display,
- * Stigmer resource detection, and Apply/Push CTA.
+ * Artifact preview content with detection pipeline and Apply/Push CTA.
  *
- * Uses the native `<dialog>` element for zero-dependency modal behavior:
- * focus trap via `showModal()`, top-layer promotion, Escape key handling,
- * and `::backdrop` overlay — with no dependency on `@base-ui/react`.
+ * Renders the header (name, size, detection badge, close button),
+ * content body (file content or directory listing), and action bar
+ * (copy, download, Apply/Push). The parent is responsible for rendering
+ * it inside a `<dialog>`, modal, sheet, overlay, or inline context as
+ * needed.
  *
- * Internally orchestrates the same detection pipeline as {@link ArtifactCard}:
+ * Orchestrates the same detection pipeline as {@link ArtifactCard}:
  *
  * - **FILE artifacts**: Fetches text content via {@link useArtifactContent},
  *   renders via {@link ArtifactContentRenderer} (markdown, YAML, JSON, or
@@ -66,74 +69,46 @@ export interface ArtifactPreviewModalProps {
  *   `artifact.entries` and detects skill packages via
  *   {@link useDetectSkillPackage}.
  *
- * Actions: Copy content to clipboard (file artifacts only), Download
- * artifact, and Apply/Push (when a Stigmer resource is detected).
+ * Content fetching begins immediately on mount. Unmounting the component
+ * resets all internal state (detection, apply result, clipboard). For
+ * gated rendering (e.g. only when a dialog is open), conditionally
+ * mount this component rather than passing an `active` flag.
  *
  * @example
  * ```tsx
- * const [previewArtifact, setPreviewArtifact] =
- *   useState<ExecutionArtifact | null>(null);
- *
- * {previewArtifact && (
- *   <ArtifactPreviewModal
- *     artifact={previewArtifact}
- *     executionId={execution.id}
- *     org={activeOrg}
- *     isTerminal={isTerminalPhase(execution.status?.phase)}
- *     open
- *     onClose={() => setPreviewArtifact(null)}
- *     onApplied={(result) => toast(`${result.kind} applied`)}
- *   />
- * )}
+ * // Inside a dialog, modal, or overlay:
+ * <ArtifactPreviewContent
+ *   artifact={artifact}
+ *   executionId={execution.id}
+ *   org={activeOrg}
+ *   isTerminal={isTerminalPhase(execution.status?.phase)}
+ *   onClose={() => setOpen(false)}
+ *   onApplied={(result) => toast(`${result.kind} applied`)}
+ * />
  * ```
  *
+ * @see {@link ArtifactPreviewModal} — wraps this component in a native `<dialog>`
  * @see {@link ArtifactCard} — compact card that triggers preview via `onPreview`
  * @see {@link useArtifactContent} — content-fetching hook (headless alternative)
  * @see {@link useDetectStigmerResource} — YAML resource detection (headless)
  * @see {@link useDetectSkillPackage} — skill package detection (headless)
  * @see {@link useApplyResource} — apply/push behavior hook (headless)
  */
-export function ArtifactPreviewModal({
+export function ArtifactPreviewContent({
   artifact,
   executionId,
   org,
   isTerminal,
-  open,
   onClose,
   onApplied,
   className,
-}: ArtifactPreviewModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  // ---------------------------------------------------------------------------
-  // Native <dialog> lifecycle
-  // ---------------------------------------------------------------------------
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  const handleCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onClose();
-    },
-    [onClose],
-  );
-
-  // ---------------------------------------------------------------------------
-  // Detection orchestration (gated on `open` to skip fetching when hidden)
-  // ---------------------------------------------------------------------------
-
+}: ArtifactPreviewContentProps) {
   const isDirectory = artifact.kind === ExecutionArtifactKind.DIRECTORY;
-  const canFetchContent = open && !isDirectory && isTextArtifact(artifact);
+  const canFetchContent = !isDirectory && isTextArtifact(artifact);
+
+  // ---------------------------------------------------------------------------
+  // Detection orchestration
+  // ---------------------------------------------------------------------------
 
   const {
     content,
@@ -154,8 +129,8 @@ export function ArtifactPreviewModal({
 
   const { detection: skillDetection, isLoading: isSkillLoading } =
     useDetectSkillPackage(
-      isDirectory && open ? artifact : null,
-      isDirectory && open ? executionId : null,
+      isDirectory ? artifact : null,
+      isDirectory ? executionId : null,
     );
 
   // ---------------------------------------------------------------------------
@@ -223,13 +198,6 @@ export function ArtifactPreviewModal({
     onApplied,
   ]);
 
-  useEffect(() => {
-    if (!open) {
-      setApplyResult(null);
-      clearError();
-    }
-  }, [open, clearError]);
-
   // ---------------------------------------------------------------------------
   // Copy to clipboard
   // ---------------------------------------------------------------------------
@@ -244,10 +212,6 @@ export function ArtifactPreviewModal({
     });
   }, [content]);
 
-  useEffect(() => {
-    if (!open) setCopied(false);
-  }, [open]);
-
   let ctaLabel: string | null = null;
   if (yamlDetection.detected) {
     ctaLabel = `Apply to ${org}`;
@@ -260,6 +224,159 @@ export function ArtifactPreviewModal({
   // ---------------------------------------------------------------------------
 
   return (
+    <div className={cn("flex max-h-[80vh] flex-col", className)}>
+      <ContentHeader
+        artifact={artifact}
+        isDirectory={isDirectory}
+        detectionLabel={detectionLabel}
+        isDetecting={isDetecting}
+        onClose={onClose}
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto border-t border-border">
+        {isDirectory ? (
+          <DirectoryContentView
+            artifact={artifact}
+            skillDetection={skillDetection}
+          />
+        ) : (
+          <FileContentStateView
+            artifact={artifact}
+            content={content}
+            contentType={contentType}
+            isLoading={isContentLoading}
+            error={contentError}
+            isTruncated={isTruncated}
+          />
+        )}
+      </div>
+
+      <ActionBar
+        artifact={artifact}
+        isDirectory={isDirectory}
+        hasContent={content !== null}
+        copied={copied}
+        onCopy={handleCopy}
+        isDetected={isDetected}
+        ctaLabel={ctaLabel}
+        isTerminal={isTerminal}
+        isApplying={isApplying}
+        applyResult={applyResult}
+        applyError={applyError}
+        onApply={handleApply}
+      />
+
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {copied && "Content copied to clipboard"}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ArtifactPreviewModal — thin <dialog> shell
+// ---------------------------------------------------------------------------
+
+/** Props for {@link ArtifactPreviewModal}. */
+export interface ArtifactPreviewModalProps {
+  /** The execution artifact to preview. */
+  readonly artifact: ExecutionArtifact;
+  /** ID of the execution that produced this artifact. */
+  readonly executionId: string;
+  /** Organization slug for the "Apply to [org]" / "Push Skill to [org]" CTA. */
+  readonly org: string;
+  /**
+   * Whether the execution is in a terminal phase (completed, failed,
+   * cancelled, terminated). Controls Apply/Push CTA availability:
+   *
+   * - `true` — CTA renders as an enabled primary button
+   * - `false` — CTA renders as a disabled secondary button
+   */
+  readonly isTerminal: boolean;
+  /** Controls modal visibility. `true` opens the dialog via `showModal()`. */
+  readonly open: boolean;
+  /** Called when the modal should close (Escape key or close button). */
+  readonly onClose: () => void;
+  /**
+   * Called after a resource is successfully applied or a skill package
+   * is pushed. The consumer can use this for post-apply behavior such
+   * as showing a toast or navigating to the Library.
+   */
+  readonly onApplied?: (result: ApplyResourceResult) => void;
+  /** Additional CSS classes for the dialog element. */
+  readonly className?: string;
+}
+
+/**
+ * Full preview modal for execution artifacts using a native `<dialog>`.
+ *
+ * Thin shell around {@link ArtifactPreviewContent} that adds
+ * `showModal()` / `close()` lifecycle, `::backdrop` overlay, focus
+ * trap, and Escape key handling — with no dependency on
+ * `@base-ui/react`.
+ *
+ * The content component is conditionally mounted when `open` is true,
+ * so all internal state (detection, apply result, clipboard) resets
+ * automatically when the dialog closes.
+ *
+ * @example
+ * ```tsx
+ * const [previewArtifact, setPreviewArtifact] =
+ *   useState<ExecutionArtifact | null>(null);
+ *
+ * {previewArtifact && (
+ *   <ArtifactPreviewModal
+ *     artifact={previewArtifact}
+ *     executionId={execution.id}
+ *     org={activeOrg}
+ *     isTerminal={isTerminalPhase(execution.status?.phase)}
+ *     open
+ *     onClose={() => setPreviewArtifact(null)}
+ *     onApplied={(result) => toast(`${result.kind} applied`)}
+ *   />
+ * )}
+ * ```
+ *
+ * @see {@link ArtifactPreviewContent} — the content component (use directly for non-dialog contexts)
+ * @see {@link ArtifactCard} — compact card that triggers preview via `onPreview`
+ */
+export function ArtifactPreviewModal({
+  artifact,
+  executionId,
+  org,
+  isTerminal,
+  open,
+  onClose,
+  onApplied,
+  className,
+}: ArtifactPreviewModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+
+  const handleCancel = useCallback(
+    (e: React.SyntheticEvent) => {
+      e.preventDefault();
+      onClose();
+    },
+    [onClose],
+  );
+
+  return (
     <dialog
       ref={dialogRef}
       onCancel={handleCancel}
@@ -270,57 +387,16 @@ export function ArtifactPreviewModal({
         className,
       )}
     >
-      <div className="flex max-h-[80vh] flex-col">
-        <ModalHeader
+      {open && (
+        <ArtifactPreviewContent
           artifact={artifact}
-          isDirectory={isDirectory}
-          detectionLabel={detectionLabel}
-          isDetecting={isDetecting}
-          onClose={onClose}
-        />
-
-        <div className="min-h-0 flex-1 overflow-y-auto border-t border-border">
-          {isDirectory ? (
-            <DirectoryContentView
-              artifact={artifact}
-              skillDetection={skillDetection}
-            />
-          ) : (
-            <FileContentStateView
-              artifact={artifact}
-              content={content}
-              contentType={contentType}
-              isLoading={isContentLoading}
-              error={contentError}
-              isTruncated={isTruncated}
-            />
-          )}
-        </div>
-
-        <ActionBar
-          artifact={artifact}
-          isDirectory={isDirectory}
-          hasContent={content !== null}
-          copied={copied}
-          onCopy={handleCopy}
-          isDetected={isDetected}
-          ctaLabel={ctaLabel}
+          executionId={executionId}
+          org={org}
           isTerminal={isTerminal}
-          isApplying={isApplying}
-          applyResult={applyResult}
-          applyError={applyError}
-          onApply={handleApply}
+          onClose={onClose}
+          onApplied={onApplied}
         />
-
-        <div
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className="sr-only"
-        >
-          {copied && "Content copied to clipboard"}
-        </div>
-      </div>
+      )}
     </dialog>
   );
 }
@@ -333,10 +409,10 @@ const FOCUS_RING_CLASSES =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm";
 
 // ---------------------------------------------------------------------------
-// ModalHeader (internal)
+// ContentHeader (internal)
 // ---------------------------------------------------------------------------
 
-function ModalHeader({
+function ContentHeader({
   artifact,
   isDirectory,
   detectionLabel,
@@ -603,12 +679,14 @@ function ActionBar({
             </button>
           </span>
         ) : isDetected && ctaLabel ? (
-          <ApplyButton
-            label={ctaLabel}
-            isTerminal={isTerminal}
-            isApplying={isApplying}
-            onApply={onApply}
-          />
+          <span data-cursor-target="apply-resource-button">
+            <ApplyButton
+              label={ctaLabel}
+              isTerminal={isTerminal}
+              isApplying={isApplying}
+              onApply={onApply}
+            />
+          </span>
         ) : null}
       </div>
     </div>
