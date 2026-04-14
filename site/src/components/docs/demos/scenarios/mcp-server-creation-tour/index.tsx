@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider } from "@stigmer/react";
+import { ArtifactPreviewContent, StigmerProvider } from "@stigmer/react";
 import {
   createDemoClient,
   fixtures,
@@ -10,22 +10,29 @@ import {
 } from "@stigmer/react/demo";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
 import { AppShell } from "../../views/AppShell";
-import { ComposerView, type ArtifactMeta } from "../../views/ComposerView";
+import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_ORG } from "../../engine/shared";
 import {
   type McpCreationStep,
   mcpCreationTourSteps,
   MCP_SERVER_YAML,
 } from "./steps";
 
+const noop = () => {};
 const MCP_SERVER_CREATOR_REF = { org: "demo-org", slug: "mcp-server-creator" };
+
+function firstArtifact(execution: AgentExecution) {
+  return execution.status!.artifacts[0];
+}
 
 const EXISTING_SERVERS = [
   samples.searchResult({
@@ -55,18 +62,6 @@ const ALL_SERVERS = [
       "REST API for order lookup, inventory, and return processing.",
   }),
 ];
-
-const MCP_SERVER_ARTIFACT_META: ArtifactMeta = {
-  icon: "file",
-  name: "order-management-api",
-  label: "MCP Server",
-  title: "Order Management API",
-  description:
-    "REST API for order lookup, inventory checks, and return processing.",
-  fileName: "mcp-server.yaml",
-  contentType: "text/yaml",
-  pushLabel: "Apply MCP Server to acme",
-};
 
 const yamlBytes = new TextEncoder().encode(MCP_SERVER_YAML);
 
@@ -124,7 +119,7 @@ function cursorTargetFor(step: McpCreationStep): string | undefined {
     case "artifact-click":
       return "artifact-widget";
     case "apply-mcp-server":
-      return "push-button";
+      return "apply-resource-button";
     default:
       return undefined;
   }
@@ -211,20 +206,6 @@ function renderStep(step: McpCreationStep) {
       );
 
     case "artifact-preview":
-      return (
-        <AppShell
-          activeNav="library"
-          contentKey={contentKey}
-          aside={renderWidgetsSidebar(step.execution)}
-        >
-          <ComposerView
-            execution={step.execution}
-            artifactContent={step.artifactContent}
-            artifactMeta={MCP_SERVER_ARTIFACT_META}
-          />
-        </AppShell>
-      );
-
     case "apply-mcp-server":
       return (
         <AppShell
@@ -232,12 +213,24 @@ function renderStep(step: McpCreationStep) {
           contentKey={contentKey}
           aside={renderWidgetsSidebar(step.execution)}
         >
-          <ComposerView
-            execution={step.execution}
-            artifactContent={MCP_SERVER_YAML}
-            artifactMeta={MCP_SERVER_ARTIFACT_META}
-            pushState="ready"
-          />
+          <div className="relative h-full">
+            <div className="h-full overflow-hidden">
+              <ComposerView execution={step.execution} />
+            </div>
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+              <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
+                <div className="w-[36rem] rounded-lg border border-border bg-background shadow-lg">
+                  <ArtifactPreviewContent
+                    artifact={firstArtifact(step.execution)}
+                    executionId={step.execution.metadata!.id}
+                    org={DEMO_ORG}
+                    isTerminal
+                    onClose={noop}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </AppShell>
       );
 

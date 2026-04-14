@@ -28,11 +28,7 @@ export type McpCreationStep =
   | { view: "composer-ready" }
   | { view: "conversation"; execution: AgentExecution }
   | { view: "artifact-click"; execution: AgentExecution }
-  | {
-      view: "artifact-preview";
-      execution: AgentExecution;
-      artifactContent: string;
-    }
+  | { view: "artifact-preview"; execution: AgentExecution }
   | { view: "apply-mcp-server"; execution: AgentExecution }
   | { view: "library-complete" };
 
@@ -158,11 +154,7 @@ export const mcpCreationTourSteps: ScenarioStep<McpCreationStep>[] = [
   },
   {
     delayMs: 1500,
-    data: {
-      view: "artifact-preview",
-      execution: finalExecution,
-      artifactContent: MCP_SERVER_YAML,
-    },
+    data: { view: "artifact-preview", execution: finalExecution },
     caption: "Review the configuration",
   },
   {

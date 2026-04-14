@@ -32,7 +32,7 @@ export type GuidedTourStep =
   | { view: "composer-ready" }
   | { view: "conversation"; execution: AgentExecution }
   | { view: "artifact-click"; execution: AgentExecution }
-  | { view: "artifact-preview"; execution: AgentExecution; artifactContent: string }
+  | { view: "artifact-preview"; execution: AgentExecution }
   | { view: "push-skill"; execution: AgentExecution }
   | { view: "library-complete" };
 
@@ -146,7 +146,7 @@ export const skillCreationTourSteps: ScenarioStep<GuidedTourStep>[] = [
   { delayMs: 2000, data: { view: "artifact-click", execution: finalExecution }, caption: "Click to preview" },
   {
     delayMs: 1500,
-    data: { view: "artifact-preview", execution: finalExecution, artifactContent: SKILL_MD_PREVIEW },
+    data: { view: "artifact-preview", execution: finalExecution },
     caption: "Review the Skill",
     narration: "This is the Skill file — plain text that's easy to read and update.",
   },

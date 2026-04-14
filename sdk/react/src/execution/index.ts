@@ -114,8 +114,8 @@ export type { ArtifactCardProps } from "./ArtifactCard";
 export { ArtifactContentRenderer } from "./ArtifactContentRenderer";
 export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer";
 
-export { ArtifactPreviewModal } from "./ArtifactPreviewModal";
-export type { ArtifactPreviewModalProps } from "./ArtifactPreviewModal";
+export { ArtifactPreviewContent, ArtifactPreviewModal } from "./ArtifactPreviewModal";
+export type { ArtifactPreviewContentProps, ArtifactPreviewModalProps } from "./ArtifactPreviewModal";
 
 export { ArtifactsWidget } from "./ArtifactsWidget";
 export type { ArtifactsWidgetProps } from "./ArtifactsWidget";
