@@ -1,6 +1,6 @@
 "use client";
 
-import { type RefObject, useEffect, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTimeSource } from "./TimeSource";
 import { scrollTargetIntoView } from "./scroll-utils";
@@ -31,6 +31,28 @@ const CLICK_DELAY_MS = 450;
 const RETRY_INTERVAL_MS = 80;
 const MAX_RETRIES = 12;
 const SCROLL_SETTLE_MS = 400;
+const RESIZE_DEBOUNCE_MS = 100;
+
+/**
+ * Compute cursor position relative to the container, accounting for
+ * CSS zoom on ancestors. `getBoundingClientRect` returns viewport
+ * coordinates (post-zoom), but `position: absolute` inside a
+ * CSS-zoomed container uses pre-zoom coordinates. Dividing by the
+ * effective zoom converts viewport offsets back to CSS space.
+ */
+function computeCursorPosition(
+  container: HTMLElement,
+  el: Element,
+): Position {
+  const cRect = container.getBoundingClientRect();
+  const eRect = el.getBoundingClientRect();
+  const zoom = cRect.width / container.offsetWidth || 1;
+
+  return {
+    x: (eRect.left - cRect.left + eRect.width / 2) / zoom,
+    y: (eRect.top - cRect.top + eRect.height / 2) / zoom,
+  };
+}
 
 /**
  * Animated cursor overlay for guided-tour demos.
@@ -93,11 +115,6 @@ export function Cursor({ target, containerRef }: CursorProps) {
   // Runs when `target` changes — not every frame. The effect checks
   // for the TimeSource context but does not depend on it so the
   // unstable context reference does not cause per-frame re-runs.
-  //
-  // getBoundingClientRect returns viewport coordinates (post-zoom),
-  // but position:absolute inside a CSS-zoomed container uses CSS
-  // coordinates (pre-zoom). We divide by the effective zoom to
-  // convert viewport offsets back to the container's CSS space.
   // ---------------------------------------------------------------------------
   const isVideoRef = useRef(false);
   isVideoRef.current = timeSource != null;
@@ -116,14 +133,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
     const el = container.querySelector(`[data-cursor-target="${target}"]`);
     if (!el) return;
 
-    const cRect = container.getBoundingClientRect();
-    const eRect = el.getBoundingClientRect();
-    const zoom = cRect.width / container.offsetWidth || 1;
-
-    setPos({
-      x: (eRect.left - cRect.left + eRect.width / 2) / zoom,
-      y: (eRect.top - cRect.top + eRect.height / 2) / zoom,
-    });
+    setPos(computeCursorPosition(container, el));
   }, [target, containerRef]);
 
   // ---------------------------------------------------------------------------
@@ -174,13 +184,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
           requestAnimationFrame(() => {
             if (cancelled) return;
 
-            const cRect = container.getBoundingClientRect();
-            const eRect = el.getBoundingClientRect();
-
-            setPos({
-              x: eRect.left - cRect.left + eRect.width / 2,
-              y: eRect.top - cRect.top + eRect.height / 2,
-            });
+            setPos(computeCursorPosition(container, el));
 
             clickTimerRef.current = setTimeout(() => {
               if (!cancelled) setBrowserClicking(true);
@@ -209,6 +213,40 @@ export function Cursor({ target, containerRef }: CursorProps) {
       clearTimeout(settleTimerRef.current);
     };
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Recompute position when the container resizes (viewport change,
+  // orientation flip, dynamic layout shift). Debounced to avoid jitter
+  // from rapid resize events. Skipped in video-export mode where the
+  // composition size is fixed.
+  // ---------------------------------------------------------------------------
+  const recomputeOnResize = useCallback(() => {
+    const container = containerRef.current;
+    if (!container || !target) return;
+    const el = container.querySelector(
+      `[data-cursor-target="${target}"]`,
+    );
+    if (!el) return;
+    setPos(computeCursorPosition(container, el));
+  }, [target, containerRef]);
+
+  useEffect(() => {
+    if (isVideoRef.current) return;
+    const container = containerRef.current;
+    if (!container || !target) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(recomputeOnResize, RESIZE_DEBOUNCE_MS);
+    });
+    ro.observe(container);
+
+    return () => {
+      clearTimeout(debounceTimer);
+      ro.disconnect();
+    };
+  }, [target, containerRef, recomputeOnResize]);
 
   return (
     <AnimatePresence>

@@ -272,14 +272,13 @@ export function ByoaSetup() {
 
           if (step.view === "byoa-dialog" || step.view === "click-save") {
             return (
-              <StigmerProvider key={`dialog-${key}`} client={client}>
-                <AppShell
-                  activeNav="library"
-                  contentKey="byoa-dialog"
-                  slideDirection={slideDirectionFor(step)}
-                >
+              <AppShell
+                activeNav="library"
+                contentKey="byoa-dialog"
+                slideDirection={slideDirectionFor(step)}
+              >
+                <StigmerProvider key={`dialog-${key}`} client={client}>
                   <div className="relative h-full">
-                    {/* Real detail view behind the dialog */}
                     <div
                       className="h-full overflow-y-auto"
                       style={{ zoom: DEMO_CONTENT_ZOOM }}
@@ -292,7 +291,6 @@ export function ByoaSetup() {
                         />
                       </div>
                     </div>
-                    {/* Dimmed overlay + dialog card */}
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
                       <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
                         <ByoaDialogCard
@@ -301,18 +299,18 @@ export function ByoaSetup() {
                       </div>
                     </div>
                   </div>
-                </AppShell>
-              </StigmerProvider>
+                </StigmerProvider>
+              </AppShell>
             );
           }
 
           return (
-            <StigmerProvider key={key} client={client}>
-              <AppShell
-                activeNav="library"
-                contentKey={contentKeyFor(step)}
-                slideDirection={slideDirectionFor(step)}
-              >
+            <AppShell
+              activeNav="library"
+              contentKey={contentKeyFor(step)}
+              slideDirection={slideDirectionFor(step)}
+            >
+              <StigmerProvider key={key} client={client}>
                 <div
                   data-scroll-container
                   className="h-full overflow-y-auto"
@@ -327,8 +325,8 @@ export function ByoaSetup() {
                     <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
-              </AppShell>
-            </StigmerProvider>
+              </StigmerProvider>
+            </AppShell>
           );
         }}
       </ScenarioPlayer>

@@ -68,11 +68,11 @@ function renderMcpDetailStep(
   clientMap: Map<McpServer, ReturnType<typeof buildClient>>,
 ) {
   return (
-    <StigmerProvider
-      key={componentKeyFor(step)}
-      client={clientMap.get(step.server)!}
-    >
-      <AppShell activeNav="library" contentKey="mcp-detail">
+    <AppShell activeNav="library" contentKey="mcp-detail">
+      <StigmerProvider
+        key={componentKeyFor(step)}
+        client={clientMap.get(step.server)!}
+      >
         <div
           data-scroll-container
           className="h-full overflow-y-auto"
@@ -84,12 +84,11 @@ function renderMcpDetailStep(
               slug={DEMO_SLUG}
               defaultCapabilityTab="policies"
             />
-            {/* Sentinel for scroll-to interactions — tools & policies are at the bottom */}
             <div data-scroll-target="capabilities-bottom" />
           </div>
         </div>
-      </AppShell>
-    </StigmerProvider>
+      </StigmerProvider>
+    </AppShell>
   );
 }
 
@@ -184,31 +183,31 @@ export function ConnectToolsTour() {
 
             case "approval-card":
               return (
-                <StigmerProvider client={conversationClient}>
-                  <AppShell
-                    activeNav="new-session"
-                    contentKey="approval"
-                    aside={renderWidgetsSidebar(step.execution)}
-                  >
+                <AppShell
+                  activeNav="new-session"
+                  contentKey="approval"
+                  aside={renderWidgetsSidebar(step.execution)}
+                >
+                  <StigmerProvider client={conversationClient}>
                     <ComposerView
                       execution={step.execution}
                       onApprovalSubmit={noop}
                     />
-                  </AppShell>
-                </StigmerProvider>
+                  </StigmerProvider>
+                </AppShell>
               );
 
             case "approved":
               return (
-                <StigmerProvider client={conversationClient}>
-                  <AppShell
-                    activeNav="new-session"
-                    contentKey="approved"
-                    aside={renderWidgetsSidebar(step.execution)}
-                  >
+                <AppShell
+                  activeNav="new-session"
+                  contentKey="approved"
+                  aside={renderWidgetsSidebar(step.execution)}
+                >
+                  <StigmerProvider client={conversationClient}>
                     <ComposerView execution={step.execution} />
-                  </AppShell>
-                </StigmerProvider>
+                  </StigmerProvider>
+                </AppShell>
               );
           }
         }}

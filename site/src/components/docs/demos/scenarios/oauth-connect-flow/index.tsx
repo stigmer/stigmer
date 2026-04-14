@@ -296,12 +296,12 @@ export function OAuthConnectFlow() {
           const client = clientMap.get(key)!;
 
           return (
-            <StigmerProvider key={key} client={client}>
-              <AppShell
-                activeNav="library"
-                contentKey={contentKeyFor(step)}
-                slideDirection={slideDirectionFor(step)}
-              >
+            <AppShell
+              activeNav="library"
+              contentKey={contentKeyFor(step)}
+              slideDirection={slideDirectionFor(step)}
+            >
+              <StigmerProvider key={key} client={client}>
                 <div
                   data-scroll-container
                   className="h-full overflow-y-auto"
@@ -316,8 +316,8 @@ export function OAuthConnectFlow() {
                     <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
-              </AppShell>
-            </StigmerProvider>
+              </StigmerProvider>
+            </AppShell>
           );
         }}
       </ScenarioPlayer>

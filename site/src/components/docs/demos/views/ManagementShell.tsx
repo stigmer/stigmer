@@ -14,7 +14,10 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { DEMO_SHELL_HEIGHT } from "../shared/tokens";
+import {
+  DEMO_SHELL_HEIGHT,
+  DEMO_SHELL_HEIGHT_MIN,
+} from "../shared/tokens";
 
 export type ManagementNavId =
   | "org-profile"
@@ -103,7 +106,9 @@ export function ManagementShell({
   return (
     <div
       className="flex overflow-hidden rounded-lg border border-border bg-card"
-      style={{ height: `var(--demo-shell-height, ${DEMO_SHELL_HEIGHT}px)` }}
+      style={{
+        height: `var(--demo-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
+      }}
     >
       {/* Management sidebar — real-app layout scaled via zoom */}
       <nav

@@ -12,7 +12,10 @@ import {
   User,
 } from "lucide-react";
 import { PulseHighlight } from "../shared/PulseHighlight";
-import { DEMO_SHELL_HEIGHT } from "../shared/tokens";
+import {
+  DEMO_SHELL_HEIGHT,
+  DEMO_SHELL_HEIGHT_MIN,
+} from "../shared/tokens";
 
 export type NavId = "new-session" | "library";
 
@@ -71,8 +74,10 @@ export function AppShell({
     slideDirection === "forward" ? 24 : slideDirection === "backward" ? -24 : 0;
   return (
     <div
-      className="flex overflow-hidden rounded-lg border border-border bg-card"
-      style={{ height: `var(--demo-shell-height, ${DEMO_SHELL_HEIGHT}px)` }}
+      className="stgm flex overflow-hidden rounded-lg border border-border bg-card"
+      style={{
+        height: `var(--demo-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
+      }}
     >
       {/* Nav sidebar */}
       <nav

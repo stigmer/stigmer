@@ -18,7 +18,10 @@
     "remotion:studio": "remotion studio video/index.ts",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:demos": "playwright test --project=desktop --project=ipad",
+    "test:demos:desktop": "playwright test --project=desktop",
+    "test:demos:ipad": "playwright test --project=ipad"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
@@ -48,6 +51,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@next/bundle-analyzer": "^16.1.6",
+    "@playwright/test": "^1.59.1",
     "@remotion/bundler": "^4.0.443",
     "@remotion/cli": "^4.0.443",
     "@remotion/renderer": "^4.0.443",
