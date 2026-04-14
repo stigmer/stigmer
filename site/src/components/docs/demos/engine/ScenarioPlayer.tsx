@@ -8,6 +8,7 @@ import { useNarrationPlayback } from "./useNarrationPlayback";
 import { useTimeSource } from "./TimeSource";
 import { useVideoExport } from "./VideoExportContext";
 import { computeStepTimeline } from "./timeline";
+import * as PlaybackCoordinator from "./PlaybackCoordinator";
 
 /**
  * A single step in a scenario timeline.
@@ -81,6 +82,13 @@ const CONTROLS_HIDE_DELAY_MS = 3_000;
  * playhead. Transport controls (play/pause, volume) auto-hide after
  * 3 seconds and reappear on mouse movement.
  *
+ * Only one ScenarioPlayer can play at a time. Starting playback on one
+ * demo pauses every other demo on the page via a module-level
+ * coordinator ({@link PlaybackCoordinator}). A playing demo also
+ * auto-pauses when less than 50% of its container is visible in the
+ * viewport (IntersectionObserver, threshold 0.5). Both features are
+ * disabled in video export mode.
+ *
  * Audio plays unmuted by default when the user clicks play — the
  * click gesture satisfies browser autoplay policy.
  *
@@ -126,6 +134,36 @@ export function ScenarioPlayer<T>({
 
   const playbackStateRef = useRef(playbackState);
   playbackStateRef.current = playbackState;
+
+  // -----------------------------------------------------------------------
+  // Single-active-player coordination + viewport auto-pause.
+  // Both are disabled in video export mode (Remotion renders one scenario
+  // at a time with no viewport scrolling).
+  // -----------------------------------------------------------------------
+  const coordinatorRef = useRef<{ id: string; unregister: () => void }>();
+
+  useEffect(() => {
+    if (isVideoExport) return;
+    coordinatorRef.current = PlaybackCoordinator.register(() => {
+      setPlaybackState((prev) => (prev === "playing" ? "paused" : prev));
+    });
+    return () => coordinatorRef.current?.unregister();
+  }, [isVideoExport]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || isVideoExport) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          setPlaybackState((prev) => (prev === "playing" ? "paused" : prev));
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isVideoExport]);
 
   const pendingAdvanceRef = useRef<(() => void) | null>(null);
 
@@ -293,6 +331,9 @@ export function ScenarioPlayer<T>({
   const handlePlay = useCallback(() => {
     if (stepIndex >= lastIndex) setStepIndex(0);
     setPlaybackState("playing");
+    if (coordinatorRef.current) {
+      PlaybackCoordinator.notifyPlaying(coordinatorRef.current.id);
+    }
   }, [stepIndex, lastIndex]);
 
   const handlePause = useCallback(() => {
