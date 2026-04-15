@@ -1,0 +1,26 @@
+// Provider
+export { InkStigmerProvider, type InkStigmerProviderProps } from "./provider.js";
+
+// Transport
+export {
+  createNodeClient,
+  createNodeTransport,
+  type NodeClientConfig,
+} from "./transport.js";
+
+// Markdown
+export { renderMarkdown } from "./markdown.js";
+
+// Components
+export { MessageEntry, type MessageEntryProps } from "./components/MessageEntry.js";
+export { MessageThread, type MessageThreadProps } from "./components/MessageThread.js";
+export { ToolCallItem, type ToolCallItemProps } from "./components/ToolCallItem.js";
+export { ToolCallGroup, type ToolCallGroupProps } from "./components/ToolCallGroup.js";
+export { ApprovalPrompt, type ApprovalPromptProps } from "./components/ApprovalPrompt.js";
+export { ExecutionProgress, type ExecutionProgressProps } from "./components/ExecutionProgress.js";
+export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInput.js";
+export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";
+
+// Composed views
+export { SessionView, type SessionViewProps } from "./app/SessionView.js";
+export { SessionApp, type SessionAppProps } from "./app/SessionApp.js";

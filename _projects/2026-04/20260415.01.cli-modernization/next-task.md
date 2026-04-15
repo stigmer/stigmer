@@ -21,7 +21,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | Generic ApplyHandler framework + CI guards | COMPLETE |
 | T02 | Close all apply gaps (6 new resource kinds) | COMPLETE |
 | T03 | Replace discover with connect, slug audit, MCP OAuth | COMPLETE |
-| T04 | @stigmer/ink package and run/resume rewrite | PENDING |
+| T04 | @stigmer/ink package and run/resume rewrite | COMPLETE (Phase 1: SDK package) |
 
 ## Essential Files to Review
 
@@ -106,45 +106,49 @@ When starting a new session:
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
 6. [ ] Continue with the next task or complete the current one
 
-## Session Progress (2026-04-15, Session 3)
+## Session Progress (2026-04-15, Session 4)
 
-- Completed T03: Replace `discover` with `connect`, slug audit, MCP OAuth
-- Removed env_resolver.go and all well-known var auto-injection (~750 lines deleted)
-- Renamed `discover` -> `connect` across 4 files, 15 symbols, all callers
-- Updated all `<name-or-id>` help text to `<slug-or-id>` in get, delete, run, connect
-- Implemented MCP OAuth CLI flow via web-console-assisted approach (new `oauth.go`)
-- Key architectural decisions: no proto changes, no frontend changes, web-console-assisted OAuth, two-channel credential model (OAuth + manual)
+- Completed T04 Phase 1: `@stigmer/ink` SDK package
+- Added `customTransport` support to `@stigmer/sdk` (non-breaking)
+- Built 8 Ink terminal components (MessageEntry, MessageThread, ToolCallGroup, ToolCallItem, ApprovalPrompt, ExecutionProgress, FollowUpInput, UsageWidget)
+- Built InkStigmerProvider, Node transport factory, terminal markdown renderer
+- Built SessionView, SessionApp composition components
+- Built standalone CLI entry point (`bin/stigmer-ink.tsx`)
+- Registered in workspace, build pipeline, and publish pipeline (fully automated via existing CI)
+- 28 tests passing, build clean, dry-run publish verified (36.6 kB package)
+- Decision: Go CLI integration (run/resume/draft) deferred to Phase 2 after validating SDK package
 
 ## Next Steps
 
-1. Begin T04: @stigmer/ink package and run/resume rewrite
-2. Read the T04 plan: `tasks/T04_0_plan.md`
-3. Validate web console route structure for OAuth flow (`/{org}/mcp-servers/{slug}`)
+1. Manual E2E test: `npx @stigmer/ink --session <id> --org <slug>` against a real backend
+2. Verify `useExecutionStream` server-streaming RPC works over `connect-node` transport
+3. Evaluate Go CLI integration (Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
+4. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
 
 ## Context for Resume
 
-- `discover` command is fully deleted — `connect` is the only entry point
-- `env_resolver.go` is gone — no more auto-injection of credentials from external tools
-- OAuth flow uses web-console-assisted approach (no proto change, no frontend change)
-- Console URL resolved via: `STIGMER_CONSOLE_URL` env > local `localhost:8234` > cloud `app.stigmer.ai`
-- `--env` escape hatch: explicit env overrides bypass the OAuth check entirely
-- Pre-existing `TestRenderProtoJSON` failure in `pkg/display/proto_test.go` is unrelated to T03
-- Future enhancement: Direct-to-auth-URL flow via `OAuthCallbackHandler` standalone mode
+- `@stigmer/ink` is a complete SDK package at `sdk/ink/` — builds, tests, publishes
+- `customTransport` on `StigmerConfig` allows any Node.js consumer to bypass the browser transport
+- `DeploymentModeContext` was added to `@stigmer/react` barrel exports (non-breaking)
+- Ink 7.0.0 used (requires React >=19.2.0), marked@^15 for marked-terminal compatibility
+- `dom` is in Ink tsconfig.json lib because `@stigmer/react`'s barrel re-exports DOM components — Ink itself uses no DOM APIs
+- Go CLI rendering layer is ~37K lines of well-tested Go code — significant effort to replace
+- Phase 2 (Go CLI integration) intentionally deferred: build SDK first, validate, then decide
 
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: T04 (@stigmer/ink package and run/resume rewrite)
-**Status**: PENDING
-**Last Session**: 2026-04-15 — Completed T03 (connect rename, slug audit, env_resolver removal, MCP OAuth)
+**Current Task**: T04 Phase 2 (Go CLI integration — deferred, evaluate after SDK validation)
+**Status**: Phase 1 COMPLETE, Phase 2 PENDING
+**Last Session**: 2026-04-15 — Completed T04 Phase 1 (@stigmer/ink SDK package)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T04" - Resume the current task
+- "Test @stigmer/ink E2E" - Manual testing against real backend
+- "Evaluate Go CLI integration" - Phase 2 decision
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 
 ---
 

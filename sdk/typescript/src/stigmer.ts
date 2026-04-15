@@ -49,13 +49,13 @@ export class Stigmer extends GeneratedClient {
   constructor(config: StigmerConfig) {
     validateConfig(config);
 
-    const transport = createStigmerTransport(config);
+    const transport = config.customTransport ?? createStigmerTransport(config);
     super(transport);
 
     this.baseUrl = config.baseUrl;
     this._tokenProvider = config.apiKey
       ? () => config.apiKey!
-      : config.getAccessToken!;
+      : config.getAccessToken ?? (() => null);
 
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);

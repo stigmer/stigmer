@@ -6,7 +6,11 @@ export { StigmerContext } from "./context";
 export { useStigmer } from "./hooks";
 
 // Deployment mode and resource availability
-export { useDeploymentMode, useResourceAvailable } from "./deployment-mode";
+export {
+  DeploymentModeContext,
+  useDeploymentMode,
+  useResourceAvailable,
+} from "./deployment-mode";
 export { type DeploymentMode, isResourceAvailable, ApiResourceKind } from "@stigmer/sdk";
 export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/CloudFeatureNotice";
 
