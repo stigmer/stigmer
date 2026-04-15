@@ -11,7 +11,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Goal**: Make the CLI a first-class citizen: every apply-able resource works, CI prevents regressions, connect replaces discover with proper OAuth, and run/resume uses shared React SDK components via Ink for terminal rendering.
 
 **Tech Stack**: Go/Cobra (CLI), TypeScript/React/Ink (SDK), Protobuf (APIs), Bubble Tea/Lip Gloss (current TUI)
-**Components**: client-apps/cli, sdk/ink (new), sdk/react, sdk/typescript, apis/stubs/go
+**Components**: client-apps/cli, sdk/go, sdk/ink (new), sdk/react, sdk/typescript
 **Timeline**: 1 month (4 tasks/phases)
 
 ## Task Overview
@@ -22,6 +22,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Close all apply gaps (6 new resource kinds) | COMPLETE |
 | T03 | Replace discover with connect, slug audit, MCP OAuth | COMPLETE |
 | T04 | @stigmer/ink package and run/resume rewrite | COMPLETE (Phase 1: SDK package) |
+| T05 | CLI Go SDK refactor — SDK-first architecture | COMPLETE |
 
 ## Essential Files to Review
 
@@ -127,34 +128,46 @@ When starting a new session:
   3. **Missing entry point**: Renamed `src/bin/` → `src/cli/` to avoid root `.gitignore` `bin/` collision (file was never committed)
 - All 28 unit tests still pass after fixes
 
+## Session Progress (2026-04-15, Session 6)
+
+- **CLI Go SDK refactor COMPLETE**: CLI now consumes `sdk/go` for connection/auth/transport
+- **Go SDK enhanced**: `NewClient(...opts)` with `WithAPIKey`, `WithToken`, `WithInsecure`, `WithKeepaliveParams`, `Connect(ctx)`, `Conn()`
+- **Proto imports migrated**: All ~170 CLI files switched from `apis/stubs/go` to `sdk/go/proto`
+- **Backend decoupled**: Removed CLI's Go-level dependency on `stigmer-server` and `workflow-runner` (BusyBox pattern removed)
+- **Protobuf conflict resolved**: Dual proto registration panic fixed by eliminating `apis/stubs/go` from CLI's dependency tree
+- **New CLI packages**: `internal/cli/kindmeta` (proto metadata), `internal/cli/mcpdiscovery` (MCP discovery using SDK types)
+- **Daemon updated**: Now launches standalone `stigmer-server` / `stigmer-workflow-runner` binaries instead of self-executing
+- All tests pass, binary runs clean
+
 ## Next Steps
 
-1. Evaluate Go CLI integration (Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
-2. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
+1. Update release pipeline to build and ship separate `stigmer-server` and `stigmer-workflow-runner` binaries alongside the CLI
+2. Gradually replace `client.Conn()` + raw stub patterns with SDK sub-client methods (e.g., `client.Session.Get()` instead of `NewSessionQueryControllerClient(conn).Get()`)
+3. Evaluate Go CLI Ink integration (T04 Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
+4. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
 
 ## Context for Resume
 
+- CLI uses `stigmer.NewClient(opts...)` from `sdk/go` for all connection management
+- CLI uses `sdk/go/proto/...` for all proto types (NOT `apis/stubs/go`)
+- CLI no longer embeds stigmer-server/workflow-runner (separate binaries needed for local mode)
+- `client.Conn()` provides raw `grpc.ClientConnInterface` for transitional raw stub access
 - `@stigmer/ink` is E2E validated — works against live Stigmer API
-- CLI entry point is at `sdk/ink/src/cli/stigmer-ink.tsx` (renamed from `src/bin/`)
-- Transport uses `createGrpcWebTransport` from `@connectrpc/connect-node` (matches server protocol)
-- Non-TTY environments work: synthetic stdin + `isRawModeSupported` check in FollowUpInput
-- `customTransport` on `StigmerConfig` allows any Node.js consumer to bypass the browser transport
-- Ink 7.0.0 used (requires React >=19.2.0), marked@^15 for marked-terminal compatibility
 - Go CLI rendering layer is ~37K lines of well-tested Go code — significant effort to replace
-- Phase 2 (Go CLI integration) intentionally deferred: SDK validated, now decide
 
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: T04 Phase 2 (Go CLI integration — evaluate after SDK validation)
-**Status**: Phase 1 COMPLETE + E2E VALIDATED, Phase 2 PENDING
-**Last Session**: 2026-04-15 (Session 5) — E2E validation and 3 bugfixes
+**Current Task**: Release pipeline update (ship separate server/runner binaries)
+**Status**: T05 COMPLETE, release pipeline update PENDING
+**Last Session**: 2026-04-15 (Session 6) — CLI Go SDK refactor
 
 ## Quick Commands
 
 After loading context:
-- "Evaluate Go CLI integration" - Phase 2 decision
-- "Move createNodeTransport to @stigmer/sdk" - Transport refactor
+- "Update release pipeline" - Ship separate binaries for local mode
+- "Replace raw stubs with SDK sub-clients" - Incremental migration
+- "Evaluate Go CLI integration" - T04 Phase 2 decision
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

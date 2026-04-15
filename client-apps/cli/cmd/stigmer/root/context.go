@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
+	orgv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -111,18 +111,19 @@ func handleContextSet(orgSlug string, format clioutput.OutputFormat) {
 	}
 
 	// Validate that the organization exists on the server.
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		clierr.Handle(err)
 		return
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client := orgv1.NewOrganizationQueryControllerClient(conn)
-	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	orgClient := orgv1.NewOrganizationQueryControllerClient(conn)
+	resp, err := orgClient.FindMyOrganizations(ctx, &emptypb.Empty{})
 	if err != nil {
 		climsg.Error("Failed to query organizations: %v", err)
 		clierr.Handle(err)

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
+	orgv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/browser"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -318,12 +318,13 @@ func displayLLMStatus(provider, model string, localCfg *config.LocalBackendConfi
 // servers. Runs synchronously after daemon start so tool metadata is
 // immediately available. Failures are logged but do not block success.
 func runBootstrapDiscovery(cfg *config.Config) {
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		climsg.Warning("Skipping MCP discovery: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn()
 
 	orgID := cfg.ResolveContextOrganization()
 	if orgID == "" {
@@ -357,18 +358,19 @@ func autoSetOrgContext(cfg *config.Config) {
 		return
 	}
 
-	conn, err := backend.NewConnection()
+	stigmerClient, err := backend.NewStigmerClient()
 	if err != nil {
 		climsg.Warning("Skipping org context auto-detection: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer stigmerClient.Close()
+	conn := stigmerClient.Conn()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client := orgv1.NewOrganizationQueryControllerClient(conn)
-	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	orgClient := orgv1.NewOrganizationQueryControllerClient(conn)
+	resp, err := orgClient.FindMyOrganizations(ctx, &emptypb.Empty{})
 	if err != nil {
 		climsg.Warning("Failed to detect organizations: %v", err)
 		return

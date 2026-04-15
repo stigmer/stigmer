@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -136,11 +136,12 @@ func executeDelete(opts deleteOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn().(*grpc.ClientConn)
 
 	dctx := &deleteContext{
 		ref:       opts.Reference,
@@ -171,11 +172,12 @@ func executeDeleteOrganization(opts deleteOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn().(*grpc.ClientConn)
 
 	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
 	confirmer := clioutput.NewConfirmer(opts.Force, os.Stderr)

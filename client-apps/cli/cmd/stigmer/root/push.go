@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -187,11 +187,12 @@ func pushSkill(opts pushOptions) error {
 	// Step 4: Connect to backend
 	climsg.Info("Connecting to backend...")
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn().(*grpc.ClientConn)
 
 	climsg.Success("✓ Connected to backend")
 	fmt.Println()

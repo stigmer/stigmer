@@ -6,9 +6,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -151,10 +151,11 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 	}
 
 	sp.Update("Connecting...")
-	conn, orgID, err := connectToBackend(flags.OrgOverride)
+	client, orgID, err := connectToBackend(flags.OrgOverride)
 	if err != nil {
 		return nil, err
 	}
+	conn := client.Conn().(*grpc.ClientConn)
 
 	if _, ok := runtimeEnv["STIGMER_ORG_ID"]; !ok && orgID != "" {
 		runtimeEnv["STIGMER_ORG_ID"] = &executioncontextv1.ExecutionValue{
@@ -169,7 +170,7 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 		localRoots := localWorkspaceRoots(workspaceEntries)
 		res, err := processor.ProcessFiles(flags.AttachFlags, localRoots)
 		if err != nil {
-			conn.Close()
+			_ = client.Close()
 			return nil, errors.Wrap(err, "failed to process attachments")
 		}
 		attachResult = *res

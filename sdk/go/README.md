@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-    client, err := stigmer.NewClient("sk_live_your_api_key")
+    client, err := stigmer.NewClient(stigmer.WithAPIKey("sk_live_your_api_key"))
     if err != nil {
         log.Fatal(err)
     }
@@ -31,7 +31,7 @@ func main() {
     ctx := context.Background()
 
     // Create an agent
-    agent, err := client.Agents.Create(ctx, &stigmer.CreateAgentInput{
+    agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
         Name:         "my-agent",
         Org:          "my-org",
         Instructions: "You are a helpful coding assistant.",
@@ -42,8 +42,8 @@ func main() {
     fmt.Printf("Created: %s\n", agent.GetMetadata().GetId())
 
     // Run an execution
-    exec, err := client.Executions.Create(ctx, &stigmer.CreateExecutionInput{
-        AgentID: agent.GetMetadata().GetId(),
+    exec, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
+        AgentId: agent.GetMetadata().GetId(),
         Message: "Hello, what can you help me with?",
     })
     if err != nil {
@@ -57,29 +57,29 @@ func main() {
 
 The client provides sub-clients for each resource type:
 
-| Sub-client         | Resource        | Operations |
-|--------------------|-----------------|------------|
-| `client.Agents`    | Agent           | Get, GetByReference, Create, Update, Apply, Delete, List |
-| `client.Skills`    | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
-| `client.McpServers`| MCP Server      | Get, GetByReference, Create, Update, Apply, Delete, List |
-| `client.Sessions`  | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent |
-| `client.Executions`| AgentExecution  | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
-| `client.Search`    | Cross-resource  | Query |
+| Sub-client              | Resource        | Operations |
+|-------------------------|-----------------|------------|
+| `client.Agent`          | Agent           | Get, GetByReference, Create, Update, Apply, Delete, List |
+| `client.Skill`          | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
+| `client.McpServer`      | MCP Server      | Get, GetByReference, Create, Update, Apply, Delete, List |
+| `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent |
+| `client.AgentExecution` | AgentExecution  | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
+| `client.Search`         | Cross-resource  | Query |
 
 ## Configuration
 
 ```go
-// Default endpoint (api.stigmer.ai:443)
-client, _ := stigmer.NewClient("sk_live_...")
+// API key authentication (default endpoint api.stigmer.ai:443)
+client, _ := stigmer.NewClient(stigmer.WithAPIKey("sk_live_..."))
+
+// Token authentication (from interactive login)
+client, _ := stigmer.NewClient(stigmer.WithToken(loginToken))
 
 // Custom endpoint
-client, _ := stigmer.NewClient("sk_live_...", stigmer.WithBaseURL("localhost:9090"))
+client, _ := stigmer.NewClient(stigmer.WithAPIKey("sk_live_..."), stigmer.WithBaseURL("localhost:9090"))
 
-// Local development (no TLS)
-client, _ := stigmer.NewClient("sk_live_...",
-    stigmer.WithBaseURL("localhost:9090"),
-    stigmer.WithInsecure(),
-)
+// Local development (no TLS, no credentials required)
+client, _ := stigmer.NewClient(stigmer.WithBaseURL("localhost:7234"), stigmer.WithInsecure())
 ```
 
 ## Error Handling
@@ -87,7 +87,7 @@ client, _ := stigmer.NewClient("sk_live_...",
 All methods return `*stigmer.Error` for API errors, wrapping gRPC status codes:
 
 ```go
-agent, err := client.Agents.Get(ctx, "id")
+agent, err := client.Agent.Get(ctx, "id")
 if stigmer.IsNotFound(err) {
     // handle not found
 }
@@ -101,7 +101,7 @@ if stigmer.IsPermissionDenied(err) {
 Subscribe to real-time execution updates:
 
 ```go
-stream, err := client.Executions.Subscribe(ctx, "execution-id")
+stream, err := client.AgentExecution.Subscribe(ctx, "execution-id")
 for {
     exec, err := stream.Recv()
     if err == io.EOF {
@@ -113,7 +113,7 @@ for {
 
 ## Types
 
-- **Input types** (`CreateAgentInput`, `CreateExecutionInput`, etc.) are SDK types that flatten proto construction.
+- **Input types** (`AgentInput`, `AgentExecutionInput`, etc.) are SDK types that flatten proto construction.
 - **Response types** are proto types directly (e.g., `*agentv1.Agent`). Access fields via generated getters.
 - **Search/List results** use `*stigmer.ListResult` (for SearchService-backed lists) or the native list response types.
 

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 )
 
 // parseWorkspaceSource converts --workspace, --branch, and --commit flags

@@ -7,24 +7,28 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 // Config holds the settings needed to establish a gRPC connection.
 type Config struct {
-	Target      string
-	APIKey      string
-	Insecure    bool
-	DialOptions []grpc.DialOption
+	Target          string
+	BearerToken     string
+	Insecure        bool
+	KeepaliveParams *keepalive.ClientParameters
+	DialOptions     []grpc.DialOption
 }
 
 // Dial creates a gRPC client connection using the given config.
 // The returned connection is lazily established (non-blocking by default).
+// Use [grpc.ClientConn.Connect] followed by state checks to eagerly verify
+// connectivity when needed.
 func Dial(cfg Config) (*grpc.ClientConn, error) {
 	if cfg.Target == "" {
 		return nil, fmt.Errorf("stigmer: target URL is required")
 	}
 
-	opts := make([]grpc.DialOption, 0, len(cfg.DialOptions)+3)
+	opts := make([]grpc.DialOption, 0, len(cfg.DialOptions)+4)
 
 	if cfg.Insecure {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -32,11 +36,15 @@ func Dial(cfg Config) (*grpc.ClientConn, error) {
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	}
 
-	if cfg.APIKey != "" {
+	if cfg.BearerToken != "" {
 		opts = append(opts,
-			grpc.WithUnaryInterceptor(unaryAuthInterceptor(cfg.APIKey)),
-			grpc.WithStreamInterceptor(streamAuthInterceptor(cfg.APIKey)),
+			grpc.WithUnaryInterceptor(unaryAuthInterceptor(cfg.BearerToken)),
+			grpc.WithStreamInterceptor(streamAuthInterceptor(cfg.BearerToken)),
 		)
+	}
+
+	if cfg.KeepaliveParams != nil {
+		opts = append(opts, grpc.WithKeepaliveParams(*cfg.KeepaliveParams))
 	}
 
 	opts = append(opts, cfg.DialOptions...)

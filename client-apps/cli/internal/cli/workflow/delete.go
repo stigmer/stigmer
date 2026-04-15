@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
 	"google.golang.org/grpc"
 )
 

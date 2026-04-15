@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	identityaccountv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1"
+	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1"
 )
 
 // tokenAuth implements grpc.PerRPCCredentials for bearer token authentication.

@@ -404,6 +404,21 @@ func RunDaemonProcess() error {
 	return nil
 }
 
+// findSiblingBinary looks for a binary in the same directory as the CLI executable,
+// falling back to PATH lookup. This supports both development (binaries in the
+// workspace) and release (binaries shipped alongside the CLI).
+func findSiblingBinary(cliBin, name string) (string, error) {
+	sibling := filepath.Join(filepath.Dir(cliBin), name)
+	if _, err := os.Stat(sibling); err == nil {
+		return sibling, nil
+	}
+	path, err := exec.LookPath(name)
+	if err != nil {
+		return "", fmt.Errorf("%s not found next to %s or in PATH", name, cliBin)
+	}
+	return path, nil
+}
+
 // buildComponents constructs the list of managed components in startup order.
 func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedComponent {
 	pythonBin := os.Getenv("STIGMER_AGENT_RUNNER_PYTHON_BIN")
@@ -415,7 +430,11 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedCom
 			pidFile: filepath.Join(dataDir, StigmerServerPIDFileName),
 			state:   &ComponentState{},
 			startFn: func() (*exec.Cmd, error) {
-				return startChildProcess(cliBin, []string{"internal-server"}, logDir, "stigmer-server", os.Environ())
+				bin, err := findSiblingBinary(cliBin, "stigmer-server")
+				if err != nil {
+					return nil, err
+				}
+				return startChildProcess(bin, nil, logDir, "stigmer-server", os.Environ())
 			},
 		},
 		{
@@ -423,8 +442,12 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedCom
 			pidFile: filepath.Join(dataDir, WorkflowRunnerPIDFileName),
 			state:   &ComponentState{},
 			startFn: func() (*exec.Cmd, error) {
+				bin, err := findSiblingBinary(cliBin, "stigmer-workflow-runner")
+				if err != nil {
+					return nil, err
+				}
 				env := buildWorkflowRunnerEnv(grpcPort)
-				return startChildProcess(cliBin, []string{"internal-workflow-runner"}, logDir, "workflow-runner", env)
+				return startChildProcess(bin, nil, logDir, "workflow-runner", env)
 			},
 		},
 		{

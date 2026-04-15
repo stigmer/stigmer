@@ -84,8 +84,6 @@ func init() {
 	rootCmd.AddCommand(withGroup(root.NewVersionCommand(), "config"))
 
 	// Hidden internal commands (no group needed)
-	rootCmd.AddCommand(root.NewInternalServerCommand())
-	rootCmd.AddCommand(root.NewInternalWorkflowRunnerCommand())
 	rootCmd.AddCommand(root.NewInternalDaemonCommand())
 }
 

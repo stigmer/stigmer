@@ -8,7 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -59,14 +59,15 @@ func executeUsageSession(sessionID, outputFormat string) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn()
 
-	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	report, err := client.GetSessionUsageReport(context.Background(), &agentexecutionv1.GetSessionUsageReportInput{
+	queryClient := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
+	report, err := queryClient.GetSessionUsageReport(context.Background(), &agentexecutionv1.GetSessionUsageReportInput{
 		SessionId: sessionID,
 	})
 	if err != nil {

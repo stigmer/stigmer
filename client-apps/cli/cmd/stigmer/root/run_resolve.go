@@ -7,22 +7,23 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	"google.golang.org/grpc"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
-	"google.golang.org/grpc"
 )
 
-// connectToBackend connects to the backend and returns the connection and organization ID.
+// connectToBackend creates a Stigmer SDK client and returns it with the organization ID.
 // For local backend, it ensures the daemon is running before connecting and
 // retries transient connection failures with backoff.
-func connectToBackend(orgOverride string) (*grpc.ClientConn, string, error) {
+func connectToBackend(orgOverride string) (*stigmer.Client, string, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		climsg.Error("Failed to load configuration: %s", err)
@@ -48,11 +49,11 @@ func connectToBackend(orgOverride string) (*grpc.ClientConn, string, error) {
 	const maxAttempts = 3
 	const retryDelay = 2 * time.Second
 
-	var conn *grpc.ClientConn
+	var client *stigmer.Client
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		conn, err = backend.NewConnection()
+		client, err = backend.NewStigmerClient()
 		if err == nil {
-			return conn, orgID, nil
+			return client, orgID, nil
 		}
 		if attempt < maxAttempts {
 			log.Debug().Err(err).Int("attempt", attempt).Msg("Connection failed, retrying")
@@ -91,7 +92,7 @@ func printOrgNotSetError() {
 //   - "agt_xxx": Agent ID (direct lookup)
 //   - "org/slug": Explicit organization and slug
 //   - "slug": Uses orgID as the organization context
-func resolveAgent(ref string, orgID string, conn *grpc.ClientConn) (*agentv1.Agent, error) {
+func resolveAgent(ref string, orgID string, conn grpc.ClientConnInterface) (*agentv1.Agent, error) {
 	client := agentv1.NewAgentQueryControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -130,7 +131,7 @@ func resolveAgent(ref string, orgID string, conn *grpc.ClientConn) (*agentv1.Age
 //   - "wf_xxx": Workflow ID (direct lookup)
 //   - "org/slug": Explicit organization and slug
 //   - "slug": Uses orgID as the organization context
-func resolveWorkflow(ref string, orgID string, conn *grpc.ClientConn) (*workflowv1.Workflow, error) {
+func resolveWorkflow(ref string, orgID string, conn grpc.ClientConnInterface) (*workflowv1.Workflow, error) {
 	client := workflowv1.NewWorkflowQueryControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

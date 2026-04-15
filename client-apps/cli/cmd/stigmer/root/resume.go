@@ -120,12 +120,13 @@ func launchSessionPicker(initQuery, orgOverride string, verbose bool, outputMode
 	sp := spinner.New(os.Stderr)
 	sp.Start("Connecting...")
 
-	conn, _, err := connectToBackend(orgOverride)
+	client, _, err := connectToBackend(orgOverride)
 	if err != nil {
 		sp.Stop()
 		return err
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn()
 
 	sp.Stop()
 

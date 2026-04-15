@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 	"google.golang.org/grpc"
 )
 

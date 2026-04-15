@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	apikeyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/apikey/v1"
+	apikeyv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/apikey/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -112,11 +112,12 @@ without exposing the token to the backend in plaintext.`,
 }
 
 func runApiKeyCreate(name string, neverExpires bool, expiresIn string) error {
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn()
 
 	created, err := apikey.Create(&apikey.CreateOptions{
 		Name:         name,
@@ -136,17 +137,18 @@ func runApiKeyFingerprint(rawKey string) error {
 	hash := sha256.Sum256([]byte(rawKey))
 	hashHex := fmt.Sprintf("%x", hash)
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn()
 
-	client := apikeyv1.NewApiKeyQueryControllerClient(conn)
+	apiKeyClient := apikeyv1.NewApiKeyQueryControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	key, err := client.GetByKeyHash(ctx, &apikeyv1.ApiKeyHash{Value: hashHex})
+	key, err := apiKeyClient.GetByKeyHash(ctx, &apikeyv1.ApiKeyHash{Value: hashHex})
 	if err != nil {
 		return errors.Wrap(err, "failed to look up API key by hash")
 	}

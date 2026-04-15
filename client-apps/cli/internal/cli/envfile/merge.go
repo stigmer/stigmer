@@ -1,7 +1,7 @@
 package envfile
 
 import (
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
 )
 
 // MergeEnvSources merges multiple environment sources with precedence.

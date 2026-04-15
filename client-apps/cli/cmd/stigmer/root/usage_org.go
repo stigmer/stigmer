@@ -8,7 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -75,14 +75,15 @@ func executeUsageOrg(orgOverride, fromDate, toDate, outputFormat string) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn()
 
-	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	report, err := client.GetOrgUsageReport(context.Background(), &agentexecutionv1.GetOrgUsageReportInput{
+	queryClient := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
+	report, err := queryClient.GetOrgUsageReport(context.Background(), &agentexecutionv1.GetOrgUsageReportInput{
 		OrgId:    orgID,
 		FromDate: fromDate,
 		ToDate:   toDate,

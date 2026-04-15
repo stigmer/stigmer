@@ -12,6 +12,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
+	"google.golang.org/grpc"
 )
 
 func isDeleteExecutionType(typeArg string) bool {
@@ -41,11 +42,12 @@ func executeCancelExecution(opts deleteOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn().(*grpc.ClientConn)
 
 	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
 
