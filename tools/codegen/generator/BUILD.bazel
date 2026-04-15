@@ -33,6 +33,7 @@ go_test(
         "conversion_test.go",
         "integration_test.go",
         "main_test.go",
+        "sdk_docs_test.go",
     ],
     embed = [":generator_lib"],
 )

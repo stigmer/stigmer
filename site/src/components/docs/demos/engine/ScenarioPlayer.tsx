@@ -121,7 +121,12 @@ export function ScenarioPlayer<T>({
   const [playbackState, setPlaybackState] = useState<PlaybackState>(
     isVideoExport ? "playing" : "idle",
   );
-  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackRate, setPlaybackRate] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const param = new URLSearchParams(window.location.search).get("__test_speed");
+    const parsed = param ? Number(param) : NaN;
+    return parsed > 0 && parsed <= 16 ? parsed : 1;
+  });
   const playing = playbackState === "playing";
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -485,6 +490,9 @@ export function ScenarioPlayer<T>({
     <div
       ref={containerRef}
       className={className}
+      data-demo-step={stepIndex}
+      data-demo-state={playbackState}
+      data-demo-total-steps={steps.length}
       onMouseMove={showControlBar ? revealControls : undefined}
     >
       {/* Content area — click toggles play/pause after poster is dismissed */}

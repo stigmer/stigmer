@@ -6,14 +6,15 @@
     "sdk/typescript",
     "sdk/theme",
     "sdk/react",
+    "sdk/ink",
     "client-apps/web",
     "tools/eslint-plugin-stigmer"
   ],
   "scripts": {
     "prepare": "husky",
-    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react",
-    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react",
-    "test": "npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme"
+    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react && npm run build -w @stigmer/ink",
+    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react && npm run clean -w @stigmer/ink",
+    "test": "npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme && npm run test -w @stigmer/ink"
   },
   "lint-staged": {
     "docs/**/*.{md,mdx}": [

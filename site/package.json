@@ -19,9 +19,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:demos": "playwright test --project=desktop --project=ipad",
-    "test:demos:desktop": "playwright test --project=desktop",
-    "test:demos:ipad": "playwright test --project=ipad"
+    "test:demos": "playwright test --project=desktop",
+    "test:demos:visibility": "playwright test e2e/demos/demo-visibility.spec.ts --project=desktop --project=ipad",
+    "test:demos:all-viewports": "playwright test --project=desktop --project=ipad",
+    "test:demos:update-snapshots": "playwright test e2e/demos/demo-visibility.spec.ts --project=desktop --project=ipad --update-snapshots"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",

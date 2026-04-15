@@ -130,6 +130,12 @@ func TestVerbSupport_TypesForVerb(t *testing.T) {
 				apiresourcekind.ApiResourceKind_workflow,
 				apiresourcekind.ApiResourceKind_mcp_server,
 				apiresourcekind.ApiResourceKind_project,
+				apiresourcekind.ApiResourceKind_identity_provider,
+				apiresourcekind.ApiResourceKind_oauth_app,
+				apiresourcekind.ApiResourceKind_environment,
+				apiresourcekind.ApiResourceKind_agent_instance,
+				apiresourcekind.ApiResourceKind_workflow_instance,
+				apiresourcekind.ApiResourceKind_session,
 			},
 		},
 	}
@@ -156,22 +162,35 @@ func TestVerbSupport_TypesForVerb(t *testing.T) {
 	}
 }
 
-// TestVerbSupport_UniversalVerbs validates that get, list, and delete
-// are supported by all CLI-relevant types.
+// TestVerbSupport_UniversalVerbs validates that get and delete are
+// supported by all CLI-relevant types, and list by all except
+// WorkflowInstance (which only has getByWorkflow, not a generic list RPC).
 func TestVerbSupport_UniversalVerbs(t *testing.T) {
 	reg := types.DefaultRegistry()
 	allTypes := reg.All()
 
-	universalVerbs := []types.Verb{types.VerbGet, types.VerbList, types.VerbDelete}
-
 	for _, info := range allTypes {
-		for _, verb := range universalVerbs {
-			t.Run(info.Name+"_"+verb.String(), func(t *testing.T) {
-				if !info.SupportsVerb(verb) {
-					t.Errorf("%s should support %s (universal verb)", info.Name, verb)
+		t.Run(info.Name+"_get", func(t *testing.T) {
+			if !info.SupportsVerb(types.VerbGet) {
+				t.Errorf("%s should support get", info.Name)
+			}
+		})
+		t.Run(info.Name+"_delete", func(t *testing.T) {
+			if !info.SupportsVerb(types.VerbDelete) {
+				t.Errorf("%s should support delete", info.Name)
+			}
+		})
+		t.Run(info.Name+"_list", func(t *testing.T) {
+			if info.ProtoKind == apiresourcekind.ApiResourceKind_workflow_instance {
+				if info.SupportsVerb(types.VerbList) {
+					t.Errorf("WorkflowInstance should NOT support list (no generic list RPC)")
 				}
-			})
-		}
+				return
+			}
+			if !info.SupportsVerb(types.VerbList) {
+				t.Errorf("%s should support list", info.Name)
+			}
+		})
 	}
 }
 

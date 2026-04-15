@@ -1,7 +1,6 @@
 package root
 
 import (
-	"strings"
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -10,6 +9,10 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,12 +57,13 @@ func TestBuildResourceReference_McpServerKind(t *testing.T) {
 }
 
 // =============================================================================
-// buildOrganizationApplyResult
+// Organization handler: BuildApplyResult / BuildDryRunResult
 // =============================================================================
 
-func TestBuildOrganizationApplyResult_Created(t *testing.T) {
+func TestOrganizationHandler_BuildApplyResult_Created(t *testing.T) {
+	h := organization.NewApplyHandler()
 	result := newTestOrganizationApplyResult(true)
-	cr := buildOrganizationApplyResult(result)
+	cr := h.BuildApplyResult(result.Organization, result.Created)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	assert.Contains(t, cr.Message, "created")
@@ -68,26 +72,24 @@ func TestBuildOrganizationApplyResult_Created(t *testing.T) {
 	requireSectionField(t, cr, "Resource Details", "ID", "org-001")
 }
 
-func TestBuildOrganizationApplyResult_Updated(t *testing.T) {
+func TestOrganizationHandler_BuildApplyResult_Updated(t *testing.T) {
+	h := organization.NewApplyHandler()
 	result := newTestOrganizationApplyResult(false)
-	cr := buildOrganizationApplyResult(result)
+	cr := h.BuildApplyResult(result.Organization, result.Created)
 
 	assert.Contains(t, cr.Message, "updated")
 	assert.NotContains(t, cr.Message, "created")
 }
 
-// =============================================================================
-// buildOrganizationDryRunResult
-// =============================================================================
-
-func TestBuildOrganizationDryRunResult_BasicFields(t *testing.T) {
+func TestOrganizationHandler_BuildDryRunResult_BasicFields(t *testing.T) {
+	h := organization.NewApplyHandler()
 	org := &organizationv1.Organization{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "Test Org"},
 		Spec: &organizationv1.OrganizationSpec{
 			Description: "A test organization",
 		},
 	}
-	cr := buildOrganizationDryRunResult(org)
+	cr := h.BuildDryRunResult(org)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	assert.Contains(t, cr.Message, "Test Org")
@@ -95,54 +97,26 @@ func TestBuildOrganizationDryRunResult_BasicFields(t *testing.T) {
 	requireSectionField(t, cr, "Organization Preview", "Description", "A test organization")
 }
 
-func TestBuildOrganizationDryRunResult_EmptySpec(t *testing.T) {
+func TestOrganizationHandler_BuildDryRunResult_EmptySpec(t *testing.T) {
+	h := organization.NewApplyHandler()
 	org := &organizationv1.Organization{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "Minimal Org"},
 		Spec:     &organizationv1.OrganizationSpec{},
 	}
-	cr := buildOrganizationDryRunResult(org)
+	cr := h.BuildDryRunResult(org)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	requireSectionField(t, cr, "Organization Preview", "Name", "Minimal Org")
 }
 
 // =============================================================================
-// truncateForDisplay
+// Agent handler: BuildApplyResult / BuildDryRunResult
 // =============================================================================
 
-func TestTruncateForDisplay_WithinLimit(t *testing.T) {
-	assert.Equal(t, "short", truncateForDisplay("short", 100))
-}
-
-func TestTruncateForDisplay_AtExactLimit(t *testing.T) {
-	s := "12345"
-	assert.Equal(t, "12345", truncateForDisplay(s, 5))
-}
-
-func TestTruncateForDisplay_OverLimit(t *testing.T) {
-	s := "This is a long string that exceeds the limit"
-	result := truncateForDisplay(s, 20)
-	assert.Equal(t, 20, len(result))
-	assert.True(t, strings.HasSuffix(result, "..."))
-}
-
-func TestTruncateForDisplay_MaxLenThreeOrLess(t *testing.T) {
-	assert.Equal(t, "...", truncateForDisplay("hello", 3))
-	assert.Equal(t, "...", truncateForDisplay("hello", 2))
-	assert.Equal(t, "...", truncateForDisplay("hello", 1))
-}
-
-func TestTruncateForDisplay_EmptyString(t *testing.T) {
-	assert.Equal(t, "", truncateForDisplay("", 10))
-}
-
-// =============================================================================
-// buildAgentApplyResult
-// =============================================================================
-
-func TestBuildAgentApplyResult_Created(t *testing.T) {
+func TestAgentHandler_BuildApplyResult_Created(t *testing.T) {
+	h := agent.NewApplyHandler()
 	result := newTestAgentApplyResult(true)
-	cr := buildAgentApplyResult(result)
+	cr := h.BuildApplyResult(result.Agent, result.Created)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	assert.Contains(t, cr.Message, "created")
@@ -151,19 +125,17 @@ func TestBuildAgentApplyResult_Created(t *testing.T) {
 	requireSectionField(t, cr, "Resource Details", "ID", "agt-001")
 }
 
-func TestBuildAgentApplyResult_Updated(t *testing.T) {
+func TestAgentHandler_BuildApplyResult_Updated(t *testing.T) {
+	h := agent.NewApplyHandler()
 	result := newTestAgentApplyResult(false)
-	cr := buildAgentApplyResult(result)
+	cr := h.BuildApplyResult(result.Agent, result.Created)
 
 	assert.Contains(t, cr.Message, "updated")
 	assert.NotContains(t, cr.Message, "created")
 }
 
-// =============================================================================
-// buildAgentDryRunResult
-// =============================================================================
-
-func TestBuildAgentDryRunResult_BasicFields(t *testing.T) {
+func TestAgentHandler_BuildDryRunResult_BasicFields(t *testing.T) {
+	h := agent.NewApplyHandler()
 	a := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "test-agent"},
 		Spec: &agentv1.AgentSpec{
@@ -171,7 +143,7 @@ func TestBuildAgentDryRunResult_BasicFields(t *testing.T) {
 			Instructions: "Do things",
 		},
 	}
-	cr := buildAgentDryRunResult(a)
+	cr := h.BuildDryRunResult(a)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	assert.Contains(t, cr.Message, "test-agent")
@@ -179,7 +151,8 @@ func TestBuildAgentDryRunResult_BasicFields(t *testing.T) {
 	requireSectionField(t, cr, "Agent Preview", "Description", "A test agent")
 }
 
-func TestBuildAgentDryRunResult_WithMcpServersAndSkills(t *testing.T) {
+func TestAgentHandler_BuildDryRunResult_WithMcpServersAndSkills(t *testing.T) {
+	h := agent.NewApplyHandler()
 	a := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "rich-agent"},
 		Spec: &agentv1.AgentSpec{
@@ -195,31 +168,33 @@ func TestBuildAgentDryRunResult_WithMcpServersAndSkills(t *testing.T) {
 			},
 		},
 	}
-	cr := buildAgentDryRunResult(a)
+	cr := h.BuildDryRunResult(a)
 
 	requireSectionField(t, cr, "Agent Preview", "MCP Servers", "2")
 	requireSectionField(t, cr, "Agent Preview", "Skills", "1")
 	requireSectionField(t, cr, "Agent Preview", "Sub-agents", "1")
 }
 
-func TestBuildAgentDryRunResult_EmptySpec(t *testing.T) {
+func TestAgentHandler_BuildDryRunResult_EmptySpec(t *testing.T) {
+	h := agent.NewApplyHandler()
 	a := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "minimal-agent"},
 		Spec:     &agentv1.AgentSpec{},
 	}
-	cr := buildAgentDryRunResult(a)
+	cr := h.BuildDryRunResult(a)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	requireSectionField(t, cr, "Agent Preview", "Name", "minimal-agent")
 }
 
 // =============================================================================
-// buildWorkflowApplyResult
+// Workflow handler: BuildApplyResult / BuildDryRunResult
 // =============================================================================
 
-func TestBuildWorkflowApplyResult_Created(t *testing.T) {
+func TestWorkflowHandler_BuildApplyResult_Created(t *testing.T) {
+	h := workflow.NewApplyHandler()
 	result := newTestWorkflowApplyResult(true)
-	cr := buildWorkflowApplyResult(result)
+	cr := h.BuildApplyResult(result.Workflow, result.Created)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	assert.Contains(t, cr.Message, "created")
@@ -227,18 +202,16 @@ func TestBuildWorkflowApplyResult_Created(t *testing.T) {
 	requireSectionField(t, cr, "Resource Details", "Slug", "deploy-pipeline")
 }
 
-func TestBuildWorkflowApplyResult_Updated(t *testing.T) {
+func TestWorkflowHandler_BuildApplyResult_Updated(t *testing.T) {
+	h := workflow.NewApplyHandler()
 	result := newTestWorkflowApplyResult(false)
-	cr := buildWorkflowApplyResult(result)
+	cr := h.BuildApplyResult(result.Workflow, result.Created)
 
 	assert.Contains(t, cr.Message, "updated")
 }
 
-// =============================================================================
-// buildWorkflowDryRunResult
-// =============================================================================
-
-func TestBuildWorkflowDryRunResult_FullSpec(t *testing.T) {
+func TestWorkflowHandler_BuildDryRunResult_FullSpec(t *testing.T) {
+	h := workflow.NewApplyHandler()
 	wf := &workflowv1.Workflow{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "deploy"},
 		Spec: &workflowv1.WorkflowSpec{
@@ -250,7 +223,7 @@ func TestBuildWorkflowDryRunResult_FullSpec(t *testing.T) {
 			Document: &workflowv1.WorkflowDocument{Version: "2.0.0"},
 		},
 	}
-	cr := buildWorkflowDryRunResult(wf)
+	cr := h.BuildDryRunResult(wf)
 
 	assert.Contains(t, cr.Message, "deploy")
 	requireSectionField(t, cr, "Workflow Preview", "Name", "deploy")
@@ -258,42 +231,42 @@ func TestBuildWorkflowDryRunResult_FullSpec(t *testing.T) {
 	requireSectionField(t, cr, "Workflow Preview", "Version", "2.0.0")
 }
 
-func TestBuildWorkflowDryRunResult_MinimalSpec(t *testing.T) {
+func TestWorkflowHandler_BuildDryRunResult_MinimalSpec(t *testing.T) {
+	h := workflow.NewApplyHandler()
 	wf := &workflowv1.Workflow{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "simple"},
 		Spec:     &workflowv1.WorkflowSpec{},
 	}
-	cr := buildWorkflowDryRunResult(wf)
+	cr := h.BuildDryRunResult(wf)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	requireSectionField(t, cr, "Workflow Preview", "Name", "simple")
 }
 
 // =============================================================================
-// buildMcpServerApplyResult
+// MCP Server handler: BuildApplyResult / BuildDryRunResult
 // =============================================================================
 
-func TestBuildMcpServerApplyResult_Created(t *testing.T) {
+func TestMcpServerHandler_BuildApplyResult_Created(t *testing.T) {
+	h := mcpserver.NewApplyHandler()
 	result := newTestMcpServerApplyResult(true)
-	cr := buildMcpServerApplyResult(result)
+	cr := h.BuildApplyResult(result.McpServer, result.Created)
 
 	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
 	assert.Contains(t, cr.Message, "created")
 	requireSectionField(t, cr, "Resource Details", "Name", "github-server")
 }
 
-func TestBuildMcpServerApplyResult_Updated(t *testing.T) {
+func TestMcpServerHandler_BuildApplyResult_Updated(t *testing.T) {
+	h := mcpserver.NewApplyHandler()
 	result := newTestMcpServerApplyResult(false)
-	cr := buildMcpServerApplyResult(result)
+	cr := h.BuildApplyResult(result.McpServer, result.Created)
 
 	assert.Contains(t, cr.Message, "updated")
 }
 
-// =============================================================================
-// buildMcpServerDryRunResult
-// =============================================================================
-
-func TestBuildMcpServerDryRunResult_StdioType(t *testing.T) {
+func TestMcpServerHandler_BuildDryRunResult_StdioType(t *testing.T) {
+	h := mcpserver.NewApplyHandler()
 	mcp := &mcpserverv1.McpServer{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "github"},
 		Spec: &mcpserverv1.McpServerSpec{
@@ -307,14 +280,15 @@ func TestBuildMcpServerDryRunResult_StdioType(t *testing.T) {
 			},
 		},
 	}
-	cr := buildMcpServerDryRunResult(mcp)
+	cr := h.BuildDryRunResult(mcp)
 
 	requireSectionField(t, cr, "MCP Server Preview", "Type", "stdio")
 	requireSectionField(t, cr, "MCP Server Preview", "Command", "npx")
 	requireSectionField(t, cr, "MCP Server Preview", "Description", "GitHub server")
 }
 
-func TestBuildMcpServerDryRunResult_HttpType(t *testing.T) {
+func TestMcpServerHandler_BuildDryRunResult_HttpType(t *testing.T) {
+	h := mcpserver.NewApplyHandler()
 	mcp := &mcpserverv1.McpServer{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "remote-mcp"},
 		Spec: &mcpserverv1.McpServerSpec{
@@ -325,13 +299,14 @@ func TestBuildMcpServerDryRunResult_HttpType(t *testing.T) {
 			},
 		},
 	}
-	cr := buildMcpServerDryRunResult(mcp)
+	cr := h.BuildDryRunResult(mcp)
 
 	requireSectionField(t, cr, "MCP Server Preview", "Type", "http")
 	requireSectionField(t, cr, "MCP Server Preview", "URL", "https://mcp.example.com/v1")
 }
 
-func TestBuildMcpServerDryRunResult_WithTags(t *testing.T) {
+func TestMcpServerHandler_BuildDryRunResult_WithTags(t *testing.T) {
+	h := mcpserver.NewApplyHandler()
 	mcp := &mcpserverv1.McpServer{
 		Metadata: &apiresource.ApiResourceMetadata{Name: "tagged"},
 		Spec: &mcpserverv1.McpServerSpec{
@@ -341,11 +316,39 @@ func TestBuildMcpServerDryRunResult_WithTags(t *testing.T) {
 			},
 		},
 	}
-	cr := buildMcpServerDryRunResult(mcp)
+	cr := h.BuildDryRunResult(mcp)
 
 	found := findSectionField(cr, "MCP Server Preview", "Tags")
 	require.NotEmpty(t, found, "Tags field should be present")
 	assert.Contains(t, found, "cloud")
+}
+
+// =============================================================================
+// newApplyHandlerRegistry
+// =============================================================================
+
+func TestNewApplyHandlerRegistry_RegistersAllKinds(t *testing.T) {
+	reg := newApplyHandlerRegistry()
+
+	expected := []apiresourcekind.ApiResourceKind{
+		apiresourcekind.ApiResourceKind_organization,
+		apiresourcekind.ApiResourceKind_agent,
+		apiresourcekind.ApiResourceKind_workflow,
+		apiresourcekind.ApiResourceKind_mcp_server,
+	}
+
+	for _, kind := range expected {
+		handler, ok := reg.Get(kind)
+		assert.True(t, ok, "handler should be registered for %s", kind)
+		assert.Equal(t, kind, handler.Kind())
+	}
+}
+
+func TestNewApplyHandlerRegistry_UnknownKindNotFound(t *testing.T) {
+	reg := newApplyHandlerRegistry()
+
+	_, ok := reg.Get(apiresourcekind.ApiResourceKind_skill)
+	assert.False(t, ok, "skill should not have an apply handler")
 }
 
 // =============================================================================

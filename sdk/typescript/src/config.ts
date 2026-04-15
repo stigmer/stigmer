@@ -1,3 +1,5 @@
+import type { Transport } from "@connectrpc/connect";
+
 /**
  * Token provider callback for dynamic authentication.
  * Called per-request, allowing token refresh and auth state changes.
@@ -8,9 +10,13 @@ export type TokenProvider = () => Promise<string | null> | string | null;
 /**
  * Configuration for the Stigmer SDK client.
  *
- * Exactly one of `apiKey` or `getAccessToken` must be provided:
- * - `apiKey`: Static API key for server-to-server usage.
- * - `getAccessToken`: Dynamic token provider for browser or rotating credentials.
+ * Authentication: exactly one of `apiKey` or `getAccessToken` must be
+ * provided (unless `customTransport` handles auth independently).
+ *
+ * Transport: by default the SDK creates a browser-oriented transport
+ * using `@connectrpc/connect-web`. Pass `customTransport` to use a
+ * pre-built transport — for example, `@connectrpc/connect-node` for
+ * server-side or CLI usage.
  */
 export interface StigmerConfig {
   /** Base URL of the Stigmer API server (e.g., "https://api.stigmer.ai"). */
@@ -34,9 +40,38 @@ export interface StigmerConfig {
    * - `"grpc-web"` (default): gRPC-Web binary protocol. Compact, battle-tested.
    * - `"connect"`: Connect protocol over HTTP/JSON. Easier to debug with standard HTTP tooling.
    *
-   * Both protocols are supported by the Stigmer server.
+   * Both protocols are supported by the Stigmer server. Ignored when
+   * `customTransport` is provided.
    */
   readonly transport?: "grpc-web" | "connect";
+
+  /**
+   * Pre-built ConnectRPC transport.
+   *
+   * When provided, the SDK uses this transport directly instead of
+   * creating one from `baseUrl`, `transport`, and the auth fields.
+   * This enables non-browser environments (Node.js CLIs, edge runtimes)
+   * to supply a transport with native HTTP/2 support via
+   * `@connectrpc/connect-node` or any other ConnectRPC transport.
+   *
+   * The caller is responsible for configuring auth interceptors on the
+   * custom transport; the SDK's built-in auth interceptor is bypassed.
+   *
+   * @example
+   * ```typescript
+   * import { createConnectTransport } from "@connectrpc/connect-node";
+   * import { Stigmer } from "@stigmer/sdk";
+   *
+   * const stigmer = new Stigmer({
+   *   baseUrl: "https://api.stigmer.ai",
+   *   customTransport: createConnectTransport({
+   *     baseUrl: "https://api.stigmer.ai",
+   *     httpVersion: "2",
+   *   }),
+   * });
+   * ```
+   */
+  readonly customTransport?: Transport;
 }
 
 /**
@@ -45,6 +80,12 @@ export interface StigmerConfig {
 export function validateConfig(config: StigmerConfig): void {
   if (!config.baseUrl) {
     throw new Error("stigmer: baseUrl is required");
+  }
+
+  // When a custom transport is supplied, auth fields are optional — the
+  // caller is responsible for wiring auth interceptors on the transport.
+  if (config.customTransport) {
+    return;
   }
 
   const hasApiKey = typeof config.apiKey === "string" && config.apiKey.length > 0;

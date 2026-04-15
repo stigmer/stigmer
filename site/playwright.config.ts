@@ -12,6 +12,12 @@ export default defineConfig({
   reporter: "html",
   timeout: 60_000,
 
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+    },
+  },
+
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",

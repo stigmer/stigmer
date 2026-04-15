@@ -5,14 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 )
@@ -54,7 +51,7 @@ func NewRunCommand() *cobra.Command {
 	var opts runOptions
 
 	cmd := &cobra.Command{
-		Use:   "run [agent-ref | <type> <name-or-id>]",
+		Use:   "run [agent-ref | <type> <slug-or-id>]",
 		Short: "Execute an agent or workflow",
 		Long: `Execute an agent or workflow by reference, or browse agents interactively.
 
@@ -62,13 +59,13 @@ USAGE FORMS:
 
   stigmer run                         Browse and select an agent interactively
   stigmer run <agent-ref>             Resolve agent by slug, org/slug, or ID
-  stigmer run <type> <name-or-id>     Explicit type + reference (backward-compatible)
+  stigmer run <type> <slug-or-id>     Explicit type + reference (backward-compatible)
 
 The single-argument form resolves agents by default. If the reference does
 not match an agent exactly, an interactive search picker is shown.
 
 For workflows, use the explicit two-argument form:
-  stigmer run workflow <name-or-id>
+  stigmer run workflow <slug-or-id>
 
 To resume a session, use the dedicated resume command:
   stigmer resume <session-id>
@@ -231,42 +228,6 @@ func executeRun(opts runOptions, outputMode OutputMode) error {
 	return routeRun(info, opts.Reference, opts.DownloadDir, prep, sp)
 }
 
-// resolveAndMergeAutoEnv loads the CLI config, resolves well-known
-// credentials, and merges them with the user-provided env. Auto-resolved
-// values are the lowest priority: user-provided values always win.
-func resolveAndMergeAutoEnv(userEnv envfile.EnvMap) (envfile.EnvMap, error) {
-	return resolveAndMergeAutoEnvScoped(userEnv, nil)
-}
-
-// resolveAndMergeAutoEnvScoped loads the CLI config and resolves only the
-// well-known credentials that appear in requiredVars. When requiredVars is
-// nil, all well-known vars are resolved (same as resolveAndMergeAutoEnv).
-// Auto-resolved values are the lowest priority: user-provided values always win.
-func resolveAndMergeAutoEnvScoped(userEnv envfile.EnvMap, requiredVars map[string]bool) (envfile.EnvMap, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-
-	var autoEnv envfile.EnvMap
-	if requiredVars != nil {
-		autoEnv = mcpserver.ResolveWellKnownEnvScoped(cfg, requiredVars)
-	} else {
-		autoEnv = mcpserver.ResolveWellKnownEnv(cfg)
-	}
-	if len(autoEnv) == 0 {
-		return userEnv, nil
-	}
-
-	var names []string
-	for name := range autoEnv {
-		names = append(names, name)
-	}
-	log.Debug().Strs("vars", names).Msg("auto-resolved credentials for MCP servers")
-
-	return envfile.MergeEnvSources(autoEnv, userEnv), nil
-}
-
 // routeRun routes to the appropriate handler based on resource kind.
 // The spinner is active on entry — each branch is responsible for updating
 // or stopping it as appropriate.
@@ -281,16 +242,10 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 			return err
 		}
 
-		runtimeEnv, err := applyAutoEnvForAgent(prep.RuntimeEnv, agent)
-		if err != nil {
-			log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
-			runtimeEnv = prep.RuntimeEnv
-		}
-
 		return executeResolvedAgent(resolvedAgentExecInput{
 			Agent:            agent,
 			Message:          prep.Message,
-			RuntimeEnv:       runtimeEnv,
+			RuntimeEnv:       prep.RuntimeEnv,
 			AttachResult:     &prep.AttachResult,
 			WorkspaceEntries: prep.WorkspaceEntries,
 			Model:            prep.Model,
@@ -308,11 +263,6 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 		sp.Stop()
 		if len(prep.WorkspaceEntries) > 0 {
 			return fmt.Errorf("--workspace is not supported for workflows (workspace is an agent-level concept)")
-		}
-		if autoEnv, err := resolveAndMergeAutoEnv(prep.RuntimeEnv); err != nil {
-			log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
-		} else {
-			prep.RuntimeEnv = autoEnv
 		}
 		return runWorkflow(ref, prep)
 

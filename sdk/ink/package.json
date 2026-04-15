@@ -1,0 +1,79 @@
+{
+  "name": "@stigmer/ink",
+  "version": "0.0.0-dev",
+  "description": "Ink (React for terminals) components for rendering Stigmer agent sessions in the terminal",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "stigmer-ink": "./src/bin/stigmer-ink.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "stigmer",
+    "ink",
+    "terminal",
+    "cli",
+    "react",
+    "ai-agents",
+    "tui"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "bin": {
+      "stigmer-ink": "./dist/bin/stigmer-ink.js"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "sdk/ink"
+  },
+  "dependencies": {
+    "@connectrpc/connect-node": "^2.1.1",
+    "@stigmer/react": "*",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "marked": "^15.0.7",
+    "marked-terminal": "^7.3.0"
+  },
+  "peerDependencies": {
+    "@bufbuild/protobuf": "^2.0.0",
+    "@stigmer/protos": "*",
+    "@stigmer/sdk": "*",
+    "ink": "^7.0.0",
+    "react": ">=19.0.0"
+  },
+  "devDependencies": {
+    "ink": "^7.0.0",
+    "ink-testing-library": "^4.0.0",
+    "react": "^19.0.0",
+    "vitest": "^3.2.4"
+  }
+}

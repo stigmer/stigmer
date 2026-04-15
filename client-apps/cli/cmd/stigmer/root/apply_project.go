@@ -295,17 +295,11 @@ func discoverAppliedMcpServersSDK(servers []*mcpserverv1.McpServer, conn *grpc.C
 		return
 	}
 
-	cfg, err := config.Load()
-	if err != nil {
-		return
-	}
-
 	climsg.Info("Discovering capabilities for %d applied MCP server(s)...", len(servers))
 
 	for _, server := range servers {
-		skipMsg, discoverErr := mcpserver.DiscoverOne(context.Background(), &mcpserver.DiscoverOneOptions{
+		skipMsg, discoverErr := mcpserver.ConnectOne(context.Background(), &mcpserver.ConnectOneOptions{
 			Conn:    conn,
-			Cfg:     cfg,
 			Server:  server,
 			Timeout: 30 * time.Second,
 		})

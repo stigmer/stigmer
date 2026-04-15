@@ -3,7 +3,6 @@
 package project
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"buf.build/go/protovalidate"
 	"github.com/pkg/errors"
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/yamlutil"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
@@ -111,7 +111,7 @@ func parseContent(content []byte, filePath string) (*projectv1.Project, error) {
 			return nil, errors.Wrapf(err, "failed to parse YAML from %s", filePath)
 		}
 
-		jsonBytes, err = yamlMapToJSON(intermediate)
+		jsonBytes, err = yamlutil.MapToJSON(intermediate)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to convert YAML to JSON from %s", filePath)
 		}
@@ -133,38 +133,4 @@ func parseContent(content []byte, filePath string) (*projectv1.Project, error) {
 	}
 
 	return project, nil
-}
-
-// yamlMapToJSON converts a YAML map to JSON bytes.
-func yamlMapToJSON(m map[string]interface{}) ([]byte, error) {
-	converted := convertYAMLValue(m)
-	return json.Marshal(converted)
-}
-
-// convertYAMLValue recursively converts YAML values to JSON-compatible values.
-func convertYAMLValue(v interface{}) interface{} {
-	switch val := v.(type) {
-	case map[string]interface{}:
-		result := make(map[string]interface{})
-		for k, v := range val {
-			result[k] = convertYAMLValue(v)
-		}
-		return result
-	case map[interface{}]interface{}:
-		// YAML sometimes produces map[interface{}]interface{}
-		result := make(map[string]interface{})
-		for k, v := range val {
-			keyStr := fmt.Sprintf("%v", k)
-			result[keyStr] = convertYAMLValue(v)
-		}
-		return result
-	case []interface{}:
-		result := make([]interface{}, len(val))
-		for i, v := range val {
-			result[i] = convertYAMLValue(v)
-		}
-		return result
-	default:
-		return val
-	}
 }

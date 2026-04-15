@@ -83,6 +83,42 @@ var verbSupport = map[apiresourcekind.ApiResourceKind]map[Verb]bool{
 		VerbDelete:   true, // Maps to cancel operation
 		VerbDownload: true,
 	},
+	apiresourcekind.ApiResourceKind_identity_provider: {
+		VerbApply:  true,
+		VerbGet:    true,
+		VerbList:   true,
+		VerbDelete: true,
+	},
+	apiresourcekind.ApiResourceKind_oauth_app: {
+		VerbApply:  true,
+		VerbGet:    true,
+		VerbList:   true,
+		VerbDelete: true,
+	},
+	apiresourcekind.ApiResourceKind_environment: {
+		VerbApply:  true,
+		VerbGet:    true,
+		VerbList:   true,
+		VerbDelete: true,
+	},
+	apiresourcekind.ApiResourceKind_agent_instance: {
+		VerbApply:  true,
+		VerbGet:    true,
+		VerbList:   true,
+		VerbDelete: true,
+	},
+	apiresourcekind.ApiResourceKind_workflow_instance: {
+		VerbApply:  true,
+		VerbGet:    true,
+		VerbDelete: true,
+		// No VerbList: proto has getByWorkflow (requires workflow_id), not a generic list RPC
+	},
+	apiresourcekind.ApiResourceKind_session: {
+		VerbApply:  true,
+		VerbGet:    true,
+		VerbList:   true,
+		VerbDelete: true,
+	},
 }
 
 // GetVerbSupport returns the verb support map for a kind.

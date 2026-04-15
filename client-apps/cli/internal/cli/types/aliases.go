@@ -34,10 +34,21 @@ func GenerateAliases(name, displayName, idPrefix string) []string {
 	addAlias(name)                  // "McpServer"
 
 	// From display_name: "MCP Server"
+	// For single-word display names, add lowercase and uppercase as aliases.
+	// For multi-word display names, add the first word only when it differs
+	// from the lowercased name (avoids "Agent Instance" stealing "agent"
+	// from "Agent", while still allowing "MCP Server" to register "mcp").
 	words := strings.Fields(displayName)
-	if len(words) > 0 {
-		addAlias(strings.ToLower(words[0])) // "mcp"
-		addAlias(strings.ToUpper(words[0])) // "MCP"
+	if len(words) == 1 {
+		addAlias(strings.ToLower(words[0]))
+		addAlias(strings.ToUpper(words[0]))
+	} else if len(words) > 1 {
+		firstWord := strings.ToLower(words[0])
+		lowerName := strings.ToLower(name)
+		if !strings.HasPrefix(lowerName, firstWord) || firstWord == lowerName {
+			addAlias(firstWord)
+			addAlias(strings.ToUpper(words[0]))
+		}
 	}
 
 	// From id_prefix: "mcp"
