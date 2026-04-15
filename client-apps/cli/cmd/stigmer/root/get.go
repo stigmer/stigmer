@@ -29,9 +29,9 @@ func NewGetCommand() *cobra.Command {
 	var outputFormat string
 
 	cmd := &cobra.Command{
-		Use:   "get <type> <name-or-id>",
+		Use:   "get <type> <slug-or-id>",
 		Short: "Get a resource by type and reference",
-		Long: `Get a resource by type and name or ID.
+		Long: `Get a resource by type and slug or ID.
 
 The type can be specified using any alias:
   - organization, org, organizations

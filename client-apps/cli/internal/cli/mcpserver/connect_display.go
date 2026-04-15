@@ -7,8 +7,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
-// DisplayDiscoverResult prints the discovery outcome to the terminal.
-func DisplayDiscoverResult(result *DiscoverResult) {
+// DisplayConnectResult prints the connect outcome to the terminal.
+func DisplayConnectResult(result *ConnectResult) {
 	fmt.Println()
 	climsg.Info("MCP Server: %s/%s", result.McpServer.Metadata.Org, result.McpServer.Metadata.Name)
 	displayTransportType(result.McpServer)

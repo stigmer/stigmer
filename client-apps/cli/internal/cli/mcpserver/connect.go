@@ -15,8 +15,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// DiscoverOptions configures an MCP server capability discovery run.
-type DiscoverOptions struct {
+// ConnectOptions configures an MCP server capability discovery run.
+type ConnectOptions struct {
 	Conn    grpc.ClientConnInterface
 	Cfg     *config.Config
 	OrgID   string
@@ -25,26 +25,28 @@ type DiscoverOptions struct {
 	DryRun  bool
 
 	// EnvOverrides supplies KEY=VALUE pairs from --env flags.
-	// These take highest priority over OS env and well-known var resolution.
+	// These take priority over OS environment variables.
 	EnvOverrides []string
 }
 
-// DiscoverResult holds the outcome of a discovery run.
-type DiscoverResult struct {
+// ConnectResult holds the outcome of a connect + discovery run.
+type ConnectResult struct {
 	McpServer    *mcpserverv1.McpServer
 	Capabilities *mcpserverv1.DiscoveredCapabilities
 	Updated      *mcpserverv1.McpServer // nil when DryRun is true
 }
 
-// Discover resolves credentials locally and delegates MCP discovery to the
-// backend via the Connect RPC. The backend creates an ephemeral
-// ExecutionContext, starts a Temporal workflow on the agent-runner to connect
-// to the MCP server, and returns the updated McpServer with discovered
-// capabilities and tool approval policies.
+// Connect delegates MCP discovery to the backend via the Connect RPC. The
+// backend creates an ephemeral ExecutionContext, starts a Temporal workflow
+// on the agent-runner to connect to the MCP server, and returns the updated
+// McpServer with discovered capabilities and tool approval policies.
+//
+// Environment variables are resolved from two sources (lowest to highest
+// priority): OS environment variables, then explicit --env flag overrides.
 //
 // For DryRun, local discovery is performed instead (capabilities are not
 // persisted to the backend).
-func Discover(ctx context.Context, opts *DiscoverOptions) (*DiscoverResult, error) {
+func Connect(ctx context.Context, opts *ConnectOptions) (*ConnectResult, error) {
 	if opts.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
@@ -56,10 +58,22 @@ func Discover(ctx context.Context, opts *DiscoverOptions) (*DiscoverResult, erro
 		return nil, err
 	}
 
-	result := &DiscoverResult{McpServer: server}
+	result := &ConnectResult{McpServer: server}
+
+	if !opts.DryRun && CheckOAuthRequired(server) && len(opts.EnvOverrides) == 0 {
+		hasGrant, err := CheckOAuthGrantExists(ctx, opts.Conn, server.Metadata.GetId(), opts.OrgID)
+		if err != nil {
+			return nil, err
+		}
+		if !hasGrant {
+			if err := RunOAuthFlow(ctx, opts.Conn, server, opts.OrgID, opts.Cfg); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	if !opts.DryRun {
-		runtimeEnv := buildRuntimeEnv(server, opts.Cfg, opts.EnvOverrides)
+		runtimeEnv := buildRuntimeEnv(server, opts.EnvOverrides)
 		updated, err := callConnect(ctx, opts.Conn, server.Metadata.Id, runtimeEnv)
 		if err != nil {
 			return nil, err
@@ -77,17 +91,18 @@ func Discover(ctx context.Context, opts *DiscoverOptions) (*DiscoverResult, erro
 	return result, nil
 }
 
-// DiscoverServer resolves credentials and calls the Connect RPC for an
-// already-fetched MCP server. Used by the bootstrap auto-discovery flow
-// and post-apply discovery which already have the McpServer proto in hand.
-func DiscoverServer(ctx context.Context, conn grpc.ClientConnInterface, server *mcpserverv1.McpServer, cfg *config.Config, timeout time.Duration) error {
+// ConnectServer calls the Connect RPC for an already-fetched MCP server.
+// Used by the bootstrap auto-connect flow and post-apply connect which
+// already have the McpServer proto in hand. Environment variables are
+// resolved from the OS environment only.
+func ConnectServer(ctx context.Context, conn grpc.ClientConnInterface, server *mcpserverv1.McpServer, timeout time.Duration) error {
 	if timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
 
-	runtimeEnv := buildRuntimeEnv(server, cfg, nil)
+	runtimeEnv := buildRuntimeEnv(server, nil)
 	_, err := callConnect(ctx, conn, server.Metadata.Id, runtimeEnv)
 	return err
 }
@@ -114,20 +129,14 @@ func callConnect(
 }
 
 // buildRuntimeEnv constructs the runtime_env map for the Connect RPC from
-// three sources (lowest to highest priority):
-//  1. Well-known vars resolved from CLI config (credential stores, gh CLI, etc.)
-//  2. OS environment variables
-//  3. Explicit --env flag overrides
-//
-// Only keys declared in the MCP server's env are included (plus any
-// extra keys from envOverrides).
+// two sources (lowest to highest priority):
+//  1. OS environment variables (for keys declared in the MCP server's env)
+//  2. Explicit --env flag overrides
 func buildRuntimeEnv(
 	server *mcpserverv1.McpServer,
-	cfg *config.Config,
 	envOverrides []string,
 ) map[string]*executioncontextv1.ExecutionValue {
 	envDecls := server.GetSpec().GetEnv()
-
 	overrideMap := parseEnvOverrides(envOverrides)
 
 	allKeys := make(map[string]bool, len(envDecls)+len(overrideMap))
@@ -143,16 +152,6 @@ func buildRuntimeEnv(
 	}
 
 	result := make(map[string]*executioncontextv1.ExecutionValue, len(allKeys))
-
-	declaredVars := make(map[string]bool, len(envDecls))
-	for k := range envDecls {
-		declaredVars[k] = true
-	}
-	if cfg != nil {
-		for k, v := range ResolveWellKnownEnvScoped(cfg, declaredVars) {
-			result[k] = v
-		}
-	}
 
 	for key, decl := range envDecls {
 		if val := os.Getenv(key); val != "" {

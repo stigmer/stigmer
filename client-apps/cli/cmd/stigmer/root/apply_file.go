@@ -305,9 +305,8 @@ func discoverAppliedMcpServers(fctx *fileApplyContext) {
 	climsg.Info("Discovering capabilities for %d applied MCP server(s)...", len(fctx.appliedMcpServers))
 
 	for _, server := range fctx.appliedMcpServers {
-		skipMsg, err := mcpserver.DiscoverOne(context.Background(), &mcpserver.DiscoverOneOptions{
+		skipMsg, err := mcpserver.ConnectOne(context.Background(), &mcpserver.ConnectOneOptions{
 			Conn:    fctx.conn,
-			Cfg:     fctx.cfg,
 			Server:  server,
 			Timeout: 30 * time.Second,
 		})

@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -77,13 +76,6 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		displayDraftAgentNotFoundError(cfg.AgentName, systemAgentOrg)
 		return errors.Wrapf(err, "%s agent not found", cfg.AgentName)
 	}
-
-	runtimeEnv, err := applyAutoEnvForAgent(prep.RuntimeEnv, agent)
-	if err != nil {
-		log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
-		runtimeEnv = prep.RuntimeEnv
-	}
-	prep.RuntimeEnv = runtimeEnv
 
 	sp.Stop()
 

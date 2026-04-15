@@ -86,15 +86,10 @@ func executeRunByAgentID(agentID string, opts runOptions, outputMode OutputMode)
 		return err
 	}
 
-	runtimeEnv, err := applyAutoEnvForAgent(prep.RuntimeEnv, agent)
-	if err != nil {
-		runtimeEnv = prep.RuntimeEnv
-	}
-
 	return executeResolvedAgent(resolvedAgentExecInput{
 		Agent:            agent,
 		Message:          prep.Message,
-		RuntimeEnv:       runtimeEnv,
+		RuntimeEnv:       prep.RuntimeEnv,
 		AttachResult:     &prep.AttachResult,
 		WorkspaceEntries: prep.WorkspaceEntries,
 		Model:            prep.Model,
@@ -127,14 +122,10 @@ func executeRunWithFallback(value string, opts runOptions, outputMode OutputMode
 	sp.Update("Resolving agent...")
 	agent, resolveErr := resolveAgent(value, prep.OrgID, prep.Conn)
 	if resolveErr == nil {
-		runtimeEnv, err := applyAutoEnvForAgent(prep.RuntimeEnv, agent)
-		if err != nil {
-			runtimeEnv = prep.RuntimeEnv
-		}
 		return executeResolvedAgent(resolvedAgentExecInput{
 			Agent:            agent,
 			Message:          prep.Message,
-			RuntimeEnv:       runtimeEnv,
+			RuntimeEnv:       prep.RuntimeEnv,
 			AttachResult:     &prep.AttachResult,
 			WorkspaceEntries: prep.WorkspaceEntries,
 			Model:            prep.Model,
@@ -216,15 +207,10 @@ func launchAgentPickerAndRun(initQuery string, opts runOptions, prep *preparedAg
 		return fmt.Errorf("failed to fetch selected agent: %w", err)
 	}
 
-	runtimeEnv, envErr := applyAutoEnvForAgent(prep.RuntimeEnv, agent)
-	if envErr != nil {
-		runtimeEnv = prep.RuntimeEnv
-	}
-
 	return executeResolvedAgent(resolvedAgentExecInput{
 		Agent:            agent,
 		Message:          prep.Message,
-		RuntimeEnv:       runtimeEnv,
+		RuntimeEnv:       prep.RuntimeEnv,
 		AttachResult:     &prep.AttachResult,
 		WorkspaceEntries: prep.WorkspaceEntries,
 		Model:            prep.Model,
