@@ -90,3 +90,26 @@ func (i *ApiKeyInput) toProto() *apikeyv1.ApiKey {
 	resource.Spec.NeverExpires = i.NeverExpires
 	return resource
 }
+
+// ApiKeyInputFromProto creates a ApiKeyInput from a proto ApiKey resource.
+func ApiKeyInputFromProto(p *apikeyv1.ApiKey) *ApiKeyInput {
+	if p == nil {
+		return &ApiKeyInput{}
+	}
+	input := &ApiKeyInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.KeyHash = s.GetKeyHash()
+		input.Fingerprint = s.GetFingerprint()
+		if ts := s.GetExpiresAt(); ts != nil {
+			input.ExpiresAt = ts.AsTime().Format(time.RFC3339)
+		}
+		input.NeverExpires = s.GetNeverExpires()
+	}
+	return input
+}

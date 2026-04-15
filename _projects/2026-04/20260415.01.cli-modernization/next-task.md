@@ -23,6 +23,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T03 | Replace discover with connect, slug audit, MCP OAuth | COMPLETE |
 | T04 | @stigmer/ink package and run/resume rewrite | COMPLETE (Phase 1: SDK package) |
 | T05 | CLI Go SDK refactor — SDK-first architecture | COMPLETE |
+| T06 | SDK sub-client migration — eliminate raw gRPC stubs | COMPLETE |
 
 ## Essential Files to Review
 
@@ -149,36 +150,49 @@ When starting a new session:
 - **Release docs updated**: Stage 2 description, tarball contents table, checklists
 - **Decision**: Use `backend/services/workflow-runner/main.go` (lean Stigmer-specific entry point) not `cmd/zigflow` (full Cobra CLI)
 
+## Session Progress (2026-04-15, Session 8)
+
+- **SDK sub-client migration COMPLETE**: All 83 raw gRPC stub constructions replaced with SDK sub-client methods across 129 files (2,048 insertions / 1,656 deletions)
+- **FromProto codegen**: Extended code generator to produce `XxxInputFromProto` converters for all 19 resources
+- **ApplyHandler interface migrated**: `conn grpc.ClientConnInterface` → `client *stigmer.Client` across all 10 apply handlers
+- **All 14 domain packages migrated**: session, agent, organization, workflow, mcpserver, environment, project, skill, agentinstance, workflowinstance, apikey, execution, identityprovider, oauthapp
+- **Streaming + create migrated**: Subscribe, Create, SubmitApproval, UploadAttachment all use SDK methods
+- **Error handling updated**: `clierr.go` recognizes SDK `*stigmer.Error` alongside raw gRPC status errors
+- **Zero `.Conn()` calls remain** in CLI (was 27)
+- **Decision**: Keep single `Apply(*Input)` method — CLI uses `FromProto` converters like any other SDK consumer
+
 ## Next Steps
 
-1. Gradually replace `client.Conn()` + raw stub patterns with SDK sub-client methods (e.g., `client.Session.Get()` instead of `NewSessionQueryControllerClient(conn).Get()`)
-2. Evaluate Go CLI Ink integration (T04 Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
-3. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
+1. Evaluate Go CLI Ink integration (T04 Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
+2. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
+3. Consider deprecating/removing `Conn()` from `*stigmer.Client` if truly unused across all consumers
 
 ## Context for Resume
 
-- CLI uses `stigmer.NewClient(opts...)` from `sdk/go` for all connection management
-- CLI uses `sdk/go/proto/...` for all proto types (NOT `apis/stubs/go`)
+- CLI uses `*stigmer.Client` and SDK sub-clients for ALL API operations (no raw stubs)
+- CLI uses `stigmer.XxxInputFromProto(proto)` to convert parsed YAML protos to SDK Input types
+- CLI uses `sdk/go/proto/...` for proto types (NOT `apis/stubs/go`)
 - CLI no longer embeds stigmer-server/workflow-runner (separate binaries ship alongside)
-- `client.Conn()` provides raw `grpc.ClientConnInterface` for transitional raw stub access
+- `client.Conn()` exists on the SDK client but is unused by the CLI — candidate for deprecation
 - `@stigmer/ink` is E2E validated — works against live Stigmer API
 - Go CLI rendering layer is ~37K lines of well-tested Go code — significant effort to replace
 - Release pipeline ships 3 binaries per platform (stigmer, stigmer-server, stigmer-workflow-runner)
 - OAuth client credentials are injected into stigmer-server via ldflags (not CLI)
+- `auth/whoami.go` and `daemon/daemon.go` maintain independent gRPC connections (out of scope)
 
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: SDK sub-client migration (incremental)
-**Status**: Release pipeline COMPLETE, SDK sub-client migration PENDING
-**Last Session**: 2026-04-15 (Session 7) — Release pipeline update
+**Current Task**: SDK sub-client migration COMPLETE
+**Status**: All planned tasks COMPLETE
+**Last Session**: 2026-04-15 (Session 8) — SDK sub-client migration
 
 ## Quick Commands
 
 After loading context:
-- "Update release pipeline" - Ship separate binaries for local mode
-- "Replace raw stubs with SDK sub-clients" - Incremental migration
-- "Evaluate Go CLI integration" - T04 Phase 2 decision
+- "Evaluate Go CLI Ink integration" - T04 Phase 2 decision
+- "Move createNodeTransport to SDK" - SDK architecture cleanup
+- "Deprecate Conn() on Client" - Final SDK cleanup
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

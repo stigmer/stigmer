@@ -6,13 +6,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	orgv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // NewContextCommand creates the context command for managing active CLI context.
@@ -110,20 +108,17 @@ func handleContextSet(orgSlug string, format clioutput.OutputFormat) {
 		return
 	}
 
-	// Validate that the organization exists on the server.
 	client, err := backend.NewStigmerClient()
 	if err != nil {
 		clierr.Handle(err)
 		return
 	}
 	defer client.Close()
-	conn := client.Conn()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	orgClient := orgv1.NewOrganizationQueryControllerClient(conn)
-	resp, err := orgClient.FindMyOrganizations(ctx, &emptypb.Empty{})
+	resp, err := client.Organization.FindMyOrganizations(ctx)
 	if err != nil {
 		climsg.Error("Failed to query organizations: %v", err)
 		clierr.Handle(err)

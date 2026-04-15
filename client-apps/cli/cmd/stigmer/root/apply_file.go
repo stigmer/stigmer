@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -42,7 +42,7 @@ type fileApplyOptions struct {
 
 // fileApplyContext bundles dependencies for per-resource apply handlers.
 type fileApplyContext struct {
-	conn     grpc.ClientConnInterface
+	client   *stigmer.Client
 	orgID    string
 	dryRun   bool
 	renderer clioutput.Renderer
@@ -141,8 +141,7 @@ func executeFileApply(opts fileApplyOptions) error {
 			return errors.Wrap(err, "failed to connect to backend")
 		}
 		defer client.Close()
-		conn := client.Conn()
-		fctx.conn = conn
+		fctx.client = client
 		fmt.Fprintf(os.Stderr, "Connected to backend\n\n")
 	}
 
@@ -263,7 +262,7 @@ func executeApply(handler applier.ApplyHandler, item applyItem, fctx *fileApplyC
 		return nil, nil
 	}
 
-	result, err := handler.Apply(context.Background(), fctx.conn, msg)
+	result, err := handler.Apply(context.Background(), fctx.client, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +306,7 @@ func discoverAppliedMcpServers(fctx *fileApplyContext) {
 
 	for _, server := range fctx.appliedMcpServers {
 		skipMsg, err := mcpserver.ConnectOne(context.Background(), &mcpserver.ConnectOneOptions{
-			Conn:    fctx.conn,
+			Client:  fctx.client,
 			Server:  server,
 			Timeout: 30 * time.Second,
 		})

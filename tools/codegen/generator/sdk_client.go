@@ -96,6 +96,16 @@ type resourceGenInfo struct {
 	clientName  string
 	inputTypes  []string // all exported input/nested types (e.g., "AgentInput", "McpServerUsageInput")
 	streamTypes []string // all exported stream types (e.g., "SubscribeStream")
+	fromProto   *fromProtoFuncInfo
+}
+
+// fromProtoFuncInfo tracks the generated FromProto function for SDK root re-export.
+type fromProtoFuncInfo struct {
+	funcName   string // e.g., "AgentInputFromProto"
+	protoAlias string // e.g., "agentv1"
+	protoPath  string // e.g., "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	protoType  string // e.g., "Agent"
+	inputType  string // e.g., "AgentInput"
 }
 
 func runSDKClientGeneration(schemaDir, outputDir string) error {
@@ -180,6 +190,11 @@ func runSDKClientGeneration(schemaDir, outputDir string) error {
 		return fmt.Errorf("failed to generate types.go: %w", err)
 	}
 	fmt.Printf("   -> ../../types.go (sdk root)\n")
+
+	if err := generateSDKFromProtoFile(sdkRootDir, allResources); err != nil {
+		return fmt.Errorf("failed to generate from_proto.go: %w", err)
+	}
+	fmt.Printf("   -> ../../from_proto.go (sdk root)\n")
 
 	return nil
 }
@@ -481,6 +496,15 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	if specSchema != nil {
 		inputTypes := generateInputTypesV2(&buf, schema, cfg, specSchema, typeMap, alias, needsExecutionContext, globalEmitted)
 		genInfo.inputTypes = inputTypes
+
+		generateFromProto(&buf, schema, cfg, specSchema, specTypes, typeMap, alias, globalEmitted)
+		genInfo.fromProto = &fromProtoFuncInfo{
+			funcName:   cfg.inputPrefix + "InputFromProto",
+			protoAlias: alias,
+			protoPath:  importPath,
+			protoType:  cfg.protoResType,
+			inputType:  cfg.inputPrefix + "Input",
+		}
 	}
 
 	formatted, err := format.Source(buf.Bytes())
@@ -1024,6 +1048,266 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 }
 
 // =========================================================================
+// FromProto generation — reverse of toProto for CLI/infrastructure use
+// =========================================================================
+
+func generateFromProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, specSchema *TaskConfigSchema, specTypes []*TypeSchema, typeMap map[string]*TypeSchema, alias string, globalEmitted map[string]bool) {
+	if specSchema == nil {
+		return
+	}
+
+	inputName := cfg.inputPrefix + "Input"
+	funcName := inputName + "FromProto"
+
+	var specFields []*FieldSchema
+	for _, f := range specSchema.Fields {
+		if !metaFieldNames[f.Name] {
+			specFields = append(specFields, f)
+		}
+	}
+
+	oneofGroups := make(map[string][]*FieldSchema)
+	var regularFields []*FieldSchema
+	for _, f := range specFields {
+		if f.OneofGroup != "" {
+			oneofGroups[f.OneofGroup] = append(oneofGroups[f.OneofGroup], f)
+		} else {
+			regularFields = append(regularFields, f)
+		}
+	}
+
+	fmt.Fprintf(buf, "// %s creates a %s from a proto %s resource.\n", funcName, inputName, cfg.protoResType)
+	fmt.Fprintf(buf, "func %s(p *%s.%s) *%s {\n", funcName, alias, cfg.protoResType, inputName)
+	fmt.Fprintf(buf, "\tif p == nil {\n\t\treturn &%s{}\n\t}\n", inputName)
+	fmt.Fprintf(buf, "\tinput := &%s{}\n", inputName)
+
+	buf.WriteString("\tif m := p.GetMetadata(); m != nil {\n")
+	buf.WriteString("\t\tinput.Name = m.GetName()\n")
+	buf.WriteString("\t\tinput.Slug = m.GetSlug()\n")
+	buf.WriteString("\t\tinput.Org = m.GetOrg()\n")
+	buf.WriteString("\t\tinput.Labels = m.GetLabels()\n")
+	buf.WriteString("\t}\n")
+
+	buf.WriteString("\tif s := p.GetSpec(); s != nil {\n")
+	for _, f := range regularFields {
+		emitFromProtoField(buf, f, alias, typeMap)
+	}
+	for _, fields := range oneofGroups {
+		emitFromProtoOneof(buf, fields, alias, typeMap)
+	}
+	buf.WriteString("\t}\n")
+
+	buf.WriteString("\treturn input\n}\n\n")
+
+	emitted := make(map[string]bool)
+	for _, f := range specFields {
+		emitNestedFromProtoFunc(buf, f, alias, typeMap, emitted, globalEmitted)
+	}
+}
+
+func emitFromProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap map[string]*TypeSchema) {
+	getter := "Get" + goProtoFieldName(f.ProtoField) + "()"
+
+	switch {
+	case f.Type.Kind == "timestamp":
+		fmt.Fprintf(buf, "\t\tif ts := s.%s; ts != nil {\n", getter)
+		fmt.Fprintf(buf, "\t\t\tinput.%s = ts.AsTime().Format(time.RFC3339)\n", f.Name)
+		buf.WriteString("\t\t}\n")
+
+	case f.Type.Kind == "struct":
+		fmt.Fprintf(buf, "\t\tif sv := s.%s; sv != nil {\n", getter)
+		fmt.Fprintf(buf, "\t\t\tinput.%s = sv.AsMap()\n", f.Name)
+		buf.WriteString("\t\t}\n")
+
+	case f.Type.Kind == "string" || f.Type.Kind == "bool" || f.Type.Kind == "int32" ||
+		f.Type.Kind == "int64" || f.Type.Kind == "uint32" || f.Type.Kind == "float" ||
+		f.Type.Kind == "double" || f.Type.Kind == "bytes":
+		fmt.Fprintf(buf, "\t\tinput.%s = s.%s\n", f.Name, getter)
+
+	case f.Type.Kind == "message" && f.Type.MessageType == "EnvironmentSpec":
+		fmt.Fprintf(buf, "\t\tinput.%s = envSpecInputFromProto(s.%s)\n", f.Name, getter)
+
+	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
+		fmt.Fprintf(buf, "\t\tinput.%s = resourceRefFromProto(s.%s)\n", f.Name, getter)
+
+	case f.Type.Kind == "message":
+		converterName := lowerFirst(f.Type.MessageType) + "InputFromProto"
+		fmt.Fprintf(buf, "\t\tinput.%s = %s(s.%s)\n", f.Name, converterName, getter)
+
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "string":
+		fmt.Fprintf(buf, "\t\tinput.%s = s.%s\n", f.Name, getter)
+
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
+		elemMsg := f.Type.ElementType.MessageType
+		if elemMsg == "ApiResourceReference" {
+			fmt.Fprintf(buf, "\t\tfor _, r := range s.%s {\n", getter)
+			fmt.Fprintf(buf, "\t\t\tinput.%s = append(input.%s, resourceRefFromProto(r))\n", f.Name, f.Name)
+			buf.WriteString("\t\t}\n")
+		} else {
+			converterName := lowerFirst(elemMsg) + "InputFromProto"
+			fmt.Fprintf(buf, "\t\tfor _, item := range s.%s {\n", getter)
+			fmt.Fprintf(buf, "\t\t\tinput.%s = append(input.%s, %s(item))\n", f.Name, f.Name, converterName)
+			buf.WriteString("\t\t}\n")
+		}
+
+	case f.Type.Kind == "map":
+		if f.Type.ValueType != nil && f.Type.ValueType.Kind == "message" {
+			elemMsg := f.Type.ValueType.MessageType
+			switch elemMsg {
+			case "ExecutionValue":
+				fmt.Fprintf(buf, "\t\tif len(s.%s) > 0 {\n", getter)
+				fmt.Fprintf(buf, "\t\t\tinput.%s = make(map[string]EnvVarInput, len(s.%s))\n", f.Name, getter)
+				fmt.Fprintf(buf, "\t\t\tfor k, v := range s.%s {\n", getter)
+				fmt.Fprintf(buf, "\t\t\t\tinput.%s[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret()}\n", f.Name)
+				buf.WriteString("\t\t\t}\n\t\t}\n")
+			case "EnvironmentValue":
+				fmt.Fprintf(buf, "\t\tif len(s.%s) > 0 {\n", getter)
+				fmt.Fprintf(buf, "\t\t\tinput.%s = make(map[string]EnvVarInput, len(s.%s))\n", f.Name, getter)
+				fmt.Fprintf(buf, "\t\t\tfor k, v := range s.%s {\n", getter)
+				fmt.Fprintf(buf, "\t\t\t\tinput.%s[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret(), Description: v.GetDescription()}\n", f.Name)
+				buf.WriteString("\t\t\t}\n\t\t}\n")
+			default:
+				converterName := lowerFirst(elemMsg) + "InputFromProto"
+				goType := elemMsg + "Input"
+				fmt.Fprintf(buf, "\t\tif len(s.%s) > 0 {\n", getter)
+				fmt.Fprintf(buf, "\t\t\tinput.%s = make(map[string]*%s, len(s.%s))\n", f.Name, goType, getter)
+				fmt.Fprintf(buf, "\t\t\tfor k, v := range s.%s {\n", getter)
+				fmt.Fprintf(buf, "\t\t\t\tinput.%s[k] = %s(v)\n", f.Name, converterName)
+				buf.WriteString("\t\t\t}\n\t\t}\n")
+			}
+		} else {
+			fmt.Fprintf(buf, "\t\tinput.%s = s.%s\n", f.Name, getter)
+		}
+
+	default:
+		fmt.Fprintf(buf, "\t\tinput.%s = s.%s\n", f.Name, getter)
+	}
+}
+
+func emitFromProtoOneof(buf *bytes.Buffer, fields []*FieldSchema, alias string, typeMap map[string]*TypeSchema) {
+	for _, f := range fields {
+		protoField := goProtoFieldName(f.ProtoField)
+		msgType := f.Type.MessageType
+
+		ts, ok := typeMap[msgType]
+		if !ok {
+			continue
+		}
+
+		fmt.Fprintf(buf, "\t\tif ov := s.Get%s(); ov != nil {\n", protoField)
+		fmt.Fprintf(buf, "\t\t\tinput.%s = &%sInput{\n", f.Name, msgType)
+		for _, field := range ts.Fields {
+			pf := goProtoFieldName(field.ProtoField)
+			fmt.Fprintf(buf, "\t\t\t\t%s: ov.Get%s(),\n", field.Name, pf)
+		}
+		buf.WriteString("\t\t\t}\n\t\t}\n")
+	}
+}
+
+func emitNestedFromProtoFunc(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap map[string]*TypeSchema, emitted, globalEmitted map[string]bool) {
+	var msgName string
+	switch {
+	case f.Type.Kind == "message":
+		msgName = f.Type.MessageType
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
+		msgName = f.Type.ElementType.MessageType
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.Kind == "message":
+		msgName = f.Type.ValueType.MessageType
+	default:
+		return
+	}
+
+	if isSpecialType(msgName) {
+		return
+	}
+
+	fromProtoKey := msgName + "_fromProto"
+	if emitted[fromProtoKey] || globalEmitted[fromProtoKey] {
+		return
+	}
+	emitted[fromProtoKey] = true
+	globalEmitted[fromProtoKey] = true
+
+	ts, ok := typeMap[msgName]
+	if !ok {
+		return
+	}
+
+	inputName := msgName + "Input"
+	funcName := lowerFirst(msgName) + "InputFromProto"
+
+	protoAlias := alias
+	if ts.ProtoType != "" {
+		if derivedAlias := protoTypeToPackageAlias(ts.ProtoType); derivedAlias != "" {
+			protoAlias = derivedAlias
+		}
+	}
+
+	fmt.Fprintf(buf, "func %s(p *%s.%s) *%s {\n", funcName, protoAlias, msgName, inputName)
+	fmt.Fprintf(buf, "\tif p == nil {\n\t\treturn nil\n\t}\n")
+	fmt.Fprintf(buf, "\tinput := &%s{}\n", inputName)
+
+	for _, field := range ts.Fields {
+		pf := goProtoFieldName(field.ProtoField)
+		getter := "Get" + pf + "()"
+
+		switch {
+		case field.Type.Kind == "timestamp":
+			fmt.Fprintf(buf, "\tif ts := p.%s; ts != nil {\n", getter)
+			fmt.Fprintf(buf, "\t\tinput.%s = ts.AsTime().Format(time.RFC3339)\n", field.Name)
+			buf.WriteString("\t}\n")
+
+		case field.Type.Kind == "struct":
+			fmt.Fprintf(buf, "\tif sv := p.%s; sv != nil {\n", getter)
+			fmt.Fprintf(buf, "\t\tinput.%s = sv.AsMap()\n", field.Name)
+			buf.WriteString("\t}\n")
+
+		case field.Type.Kind == "message" && field.Type.MessageType == "ApiResourceReference":
+			fmt.Fprintf(buf, "\tinput.%s = resourceRefFromProto(p.%s)\n", field.Name, getter)
+
+		case field.Type.Kind == "message":
+			converter := lowerFirst(field.Type.MessageType) + "InputFromProto"
+			fmt.Fprintf(buf, "\tinput.%s = %s(p.%s)\n", field.Name, converter, getter)
+
+		case field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message":
+			elemMsg := field.Type.ElementType.MessageType
+			if elemMsg == "ApiResourceReference" {
+				fmt.Fprintf(buf, "\tfor _, r := range p.%s {\n", getter)
+				fmt.Fprintf(buf, "\t\tinput.%s = append(input.%s, resourceRefFromProto(r))\n", field.Name, field.Name)
+				buf.WriteString("\t}\n")
+			} else {
+				converter := lowerFirst(elemMsg) + "InputFromProto"
+				fmt.Fprintf(buf, "\tfor _, item := range p.%s {\n", getter)
+				fmt.Fprintf(buf, "\t\tinput.%s = append(input.%s, %s(item))\n", field.Name, field.Name, converter)
+				buf.WriteString("\t}\n")
+			}
+
+		case field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "string":
+			fmt.Fprintf(buf, "\tinput.%s = p.%s\n", field.Name, getter)
+
+		case field.Type.Kind == "map":
+			fmt.Fprintf(buf, "\tinput.%s = p.%s\n", field.Name, getter)
+
+		default:
+			fmt.Fprintf(buf, "\tinput.%s = p.%s\n", field.Name, getter)
+		}
+	}
+
+	buf.WriteString("\treturn input\n}\n\n")
+
+	for _, field := range ts.Fields {
+		emitNestedFromProtoFunc(buf, field, alias, typeMap, emitted, globalEmitted)
+	}
+}
+
+func lowerFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToLower(s[:1]) + s[1:]
+}
+
+// =========================================================================
 // Generated client.go (internal/gen/client.go)
 // =========================================================================
 
@@ -1121,6 +1405,53 @@ func generateSDKTypesFile(sdkRootDir string, resources []resourceGenInfo) error 
 		return fmt.Errorf("gofmt failed for types.go: %w\ngenerated:\n%s", err, buf.String())
 	}
 	return os.WriteFile(filepath.Join(sdkRootDir, "types.go"), formatted, 0644)
+}
+
+// =========================================================================
+// Generated from_proto.go (sdk root package)
+// =========================================================================
+
+func generateSDKFromProtoFile(sdkRootDir string, resources []resourceGenInfo) error {
+	var hasFromProto bool
+	for _, r := range resources {
+		if r.fromProto != nil {
+			hasFromProto = true
+			break
+		}
+	}
+	if !hasFromProto {
+		return nil
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString("// Code generated by stigmer-codegen. DO NOT EDIT.\n\n")
+	buf.WriteString("package stigmer\n\n")
+
+	buf.WriteString("import (\n")
+	buf.WriteString("\t\"github.com/stigmer/stigmer/sdk/go/internal/gen\"\n")
+	for _, r := range resources {
+		if r.fromProto != nil {
+			fmt.Fprintf(&buf, "\t%s %q\n", r.fromProto.protoAlias, r.fromProto.protoPath)
+		}
+	}
+	buf.WriteString(")\n\n")
+
+	for _, r := range resources {
+		if r.fromProto == nil {
+			continue
+		}
+		fp := r.fromProto
+		fmt.Fprintf(&buf, "// %s creates a %s from a proto %s resource.\n", fp.funcName, fp.inputType, fp.protoType)
+		fmt.Fprintf(&buf, "func %s(p *%s.%s) *%s {\n", fp.funcName, fp.protoAlias, fp.protoType, fp.inputType)
+		fmt.Fprintf(&buf, "\treturn gen.%s(p)\n", fp.funcName)
+		buf.WriteString("}\n\n")
+	}
+
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("gofmt failed for from_proto.go: %w\ngenerated:\n%s", err, buf.String())
+	}
+	return os.WriteFile(filepath.Join(sdkRootDir, "from_proto.go"), formatted, 0644)
 }
 
 // =========================================================================
@@ -1313,6 +1644,45 @@ func (e *EnvSpecInput) toProto() *environmentv1.EnvironmentSpec {
 		}
 	}
 	return spec
+}
+
+// ResourceRefFromProto creates a ResourceRef from a proto ApiResourceReference.
+func ResourceRefFromProto(r *apiresource.ApiResourceReference) ResourceRef {
+	if r == nil {
+		return ResourceRef{}
+	}
+	return ResourceRef{
+		Org:     r.GetOrg(),
+		Slug:    r.GetSlug(),
+		Version: r.GetVersion(),
+		Kind:    r.GetKind(),
+	}
+}
+
+func resourceRefFromProto(r *apiresource.ApiResourceReference) ResourceRef {
+	return ResourceRefFromProto(r)
+}
+
+// EnvSpecInputFromProto creates an EnvSpecInput from a proto EnvironmentSpec.
+func EnvSpecInputFromProto(s *environmentv1.EnvironmentSpec) *EnvSpecInput {
+	if s == nil {
+		return nil
+	}
+	input := &EnvSpecInput{
+		Variables: make(map[string]EnvVarInput, len(s.GetData())),
+	}
+	for k, v := range s.GetData() {
+		input.Variables[k] = EnvVarInput{
+			Value:       v.GetValue(),
+			IsSecret:    v.GetIsSecret(),
+			Description: v.GetDescription(),
+		}
+	}
+	return input
+}
+
+func envSpecInputFromProto(s *environmentv1.EnvironmentSpec) *EnvSpecInput {
+	return EnvSpecInputFromProto(s)
 }
 `)
 

@@ -80,10 +80,8 @@ func executeUsageOrg(orgOverride, fromDate, toDate, outputFormat string) error {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer client.Close()
-	conn := client.Conn()
 
-	queryClient := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	report, err := queryClient.GetOrgUsageReport(context.Background(), &agentexecutionv1.GetOrgUsageReportInput{
+	report, err := client.AgentExecution.GetOrgUsageReport(context.Background(), &agentexecutionv1.GetOrgUsageReportInput{
 		OrgId:    orgID,
 		FromDate: fromDate,
 		ToDate:   toDate,

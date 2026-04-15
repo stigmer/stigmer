@@ -11,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -23,14 +23,20 @@ const (
 	approvalRetryBaseDelay   = 1 * time.Second
 )
 
+// agentExecutionStream abstracts the Recv method shared by both the raw gRPC
+// subscribe stream and the SDK's AgentExecutionSubscribeStream wrapper.
+type agentExecutionStream interface {
+	Recv() (*agentexecutionv1.AgentExecution, error)
+}
+
 // streamToEventsConfig holds the dependencies for the gRPC-to-TUI bridge goroutine.
 type streamToEventsConfig struct {
 	executionID       string
 	sessionID         string
-	stream            agentexecutionv1.AgentExecutionQueryController_SubscribeClient
+	stream            agentExecutionStream
 	events            chan<- executiontui.Event
 	approvalResponses <-chan executiontui.ApprovalResponse
-	conn              *grpc.ClientConn
+	client            *stigmer.Client
 }
 
 // streamError wraps a raw error with a user-facing actionable message.
@@ -886,7 +892,7 @@ func emitAndWaitApproval(
 	// Submit the decision to the backend with retry for transient failures.
 	decision := mapApprovalResponseToDecision(resp)
 	err := retryWithBackoff(ctx, approvalRetryMaxAttempts, approvalRetryBaseDelay, func() error {
-		_, submitErr := submitAgentApproval(ctx, cfg.conn, cfg.executionID, info.toolCallID, decision)
+		_, submitErr := submitAgentApproval(ctx, cfg.client, cfg.executionID, info.toolCallID, decision)
 		return submitErr
 	})
 	if err != nil {

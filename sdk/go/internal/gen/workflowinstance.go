@@ -90,3 +90,25 @@ func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
 	}
 	return resource
 }
+
+// WorkflowInstanceInputFromProto creates a WorkflowInstanceInput from a proto WorkflowInstance resource.
+func WorkflowInstanceInputFromProto(p *workflowinstancev1.WorkflowInstance) *WorkflowInstanceInput {
+	if p == nil {
+		return &WorkflowInstanceInput{}
+	}
+	input := &WorkflowInstanceInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.WorkflowId = s.GetWorkflowId()
+		input.Description = s.GetDescription()
+		for _, r := range s.GetEnvironmentRefs() {
+			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+		}
+	}
+	return input
+}

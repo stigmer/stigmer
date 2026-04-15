@@ -129,10 +129,9 @@ func executeConnectMcpServer(opts connectMcpServerOptions) error {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer client.Close()
-	conn := client.Conn()
 
 	result, err := mcpserver.Connect(context.Background(), &mcpserver.ConnectOptions{
-		Conn:         conn,
+		Client:       client,
 		Cfg:          cfg,
 		OrgID:        orgID,
 		Ref:          opts.Reference,

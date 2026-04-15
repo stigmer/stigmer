@@ -85,3 +85,25 @@ func (i *ProjectInput) toProto() *projectv1.Project {
 	}
 	return resource
 }
+
+// ProjectInputFromProto creates a ProjectInput from a proto Project resource.
+func ProjectInputFromProto(p *projectv1.Project) *ProjectInput {
+	if p == nil {
+		return &ProjectInput{}
+	}
+	input := &ProjectInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.EntryPoint = s.GetEntryPoint()
+		input.Description = s.GetDescription()
+		for _, r := range s.GetMembers() {
+			input.Members = append(input.Members, resourceRefFromProto(r))
+		}
+	}
+	return input
+}

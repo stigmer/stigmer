@@ -11,7 +11,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
-	"google.golang.org/grpc"
 )
 
 // NewDownloadCommand creates the unified download command.
@@ -106,8 +105,6 @@ func executeDownload(opts downloadOptions) error {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer client.Close()
-	conn := client.Conn().(*grpc.ClientConn)
 
-	// Download execution artifacts
-	return downloadExecutionArtifacts(opts.Reference, opts, conn)
+	return downloadExecutionArtifacts(opts.Reference, opts, client)
 }

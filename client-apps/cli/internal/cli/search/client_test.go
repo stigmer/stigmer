@@ -1,12 +1,11 @@
 package search
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
@@ -86,6 +85,10 @@ func TestResult_HasMorePages(t *testing.T) {
 	}
 }
 
+// placeholder is a non-nil Client pointer used only to satisfy the "client is
+// required" validation in unit tests that never hit the network.
+var placeholder = &stigmer.Client{}
+
 func TestValidateOptions(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -94,15 +97,15 @@ func TestValidateOptions(t *testing.T) {
 		errMsg    string
 	}{
 		{
-			name:      "nil connection",
-			opts:      &Options{Conn: nil},
+			name:      "nil client",
+			opts:      &Options{Client: nil},
 			expectErr: true,
-			errMsg:    "connection is required",
+			errMsg:    "client is required",
 		},
 		{
 			name: "page size exceeds max",
 			opts: &Options{
-				Conn:     &mockConn{},
+				Client:   placeholder,
 				PageSize: 200,
 			},
 			expectErr: true,
@@ -111,7 +114,7 @@ func TestValidateOptions(t *testing.T) {
 		{
 			name: "valid options",
 			opts: &Options{
-				Conn:     &mockConn{},
+				Client:   placeholder,
 				PageSize: 50,
 			},
 			expectErr: false,
@@ -119,8 +122,8 @@ func TestValidateOptions(t *testing.T) {
 		{
 			name: "valid with kinds",
 			opts: &Options{
-				Conn:  &mockConn{},
-				Kinds: []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},
+				Client: placeholder,
+				Kinds:  []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},
 			},
 			expectErr: false,
 		},
@@ -139,7 +142,7 @@ func TestValidateOptions(t *testing.T) {
 	}
 }
 
-func TestBuildRequest(t *testing.T) {
+func TestBuildSearchParams(t *testing.T) {
 	tests := []struct {
 		name             string
 		opts             *Options
@@ -150,7 +153,7 @@ func TestBuildRequest(t *testing.T) {
 		{
 			name: "default pagination",
 			opts: &Options{
-				Conn: &mockConn{},
+				Client: placeholder,
 			},
 			expectedPage:     1,
 			expectedPageSize: DefaultPageSize,
@@ -159,7 +162,7 @@ func TestBuildRequest(t *testing.T) {
 		{
 			name: "custom pagination",
 			opts: &Options{
-				Conn:     &mockConn{},
+				Client:   placeholder,
 				Page:     3,
 				PageSize: 50,
 			},
@@ -170,8 +173,8 @@ func TestBuildRequest(t *testing.T) {
 		{
 			name: "with kinds",
 			opts: &Options{
-				Conn:  &mockConn{},
-				Kinds: []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent, apiresourcekind.ApiResourceKind_skill},
+				Client: placeholder,
+				Kinds:  []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent, apiresourcekind.ApiResourceKind_skill},
 			},
 			expectedPage:     1,
 			expectedPageSize: DefaultPageSize,
@@ -180,8 +183,8 @@ func TestBuildRequest(t *testing.T) {
 		{
 			name: "zero page defaults to 1",
 			opts: &Options{
-				Conn: &mockConn{},
-				Page: 0,
+				Client: placeholder,
+				Page:   0,
 			},
 			expectedPage:     1,
 			expectedPageSize: DefaultPageSize,
@@ -190,8 +193,8 @@ func TestBuildRequest(t *testing.T) {
 		{
 			name: "negative page defaults to 1",
 			opts: &Options{
-				Conn: &mockConn{},
-				Page: -5,
+				Client: placeholder,
+				Page:   -5,
 			},
 			expectedPage:     1,
 			expectedPageSize: DefaultPageSize,
@@ -200,9 +203,9 @@ func TestBuildRequest(t *testing.T) {
 		{
 			name: "with query and org",
 			opts: &Options{
-				Conn:  &mockConn{},
-				Query: "test query",
-				Org:   "acme",
+				Client: placeholder,
+				Query:  "test query",
+				Org:    "acme",
 			},
 			expectedPage:     1,
 			expectedPageSize: DefaultPageSize,
@@ -212,25 +215,14 @@ func TestBuildRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := buildRequest(tt.opts)
+			params := buildSearchParams(tt.opts)
 
-			assert.Equal(t, tt.expectedPage, req.Page.Num)
-			assert.Equal(t, tt.expectedPageSize, req.Page.Size)
-			assert.Len(t, req.Kinds, tt.expectedKinds)
-			assert.Equal(t, tt.opts.Query, req.Query)
-			assert.Equal(t, tt.opts.Org, req.Org)
-			assert.Equal(t, tt.opts.ExcludePublic, req.ExcludePublic)
+			assert.Equal(t, tt.expectedPage, params.Page.Num)
+			assert.Equal(t, tt.expectedPageSize, params.Page.Size)
+			assert.Len(t, params.Kinds, tt.expectedKinds)
+			assert.Equal(t, tt.opts.Query, params.Query)
+			assert.Equal(t, tt.opts.Org, params.Org)
+			assert.Equal(t, tt.opts.ExcludePublic, params.ExcludePublic)
 		})
 	}
-}
-
-// mockConn is a minimal mock for grpc.ClientConnInterface
-type mockConn struct{}
-
-func (m *mockConn) Invoke(ctx context.Context, method string, args any, reply any, opts ...grpc.CallOption) error {
-	return nil
-}
-
-func (m *mockConn) NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-	return nil, nil
 }

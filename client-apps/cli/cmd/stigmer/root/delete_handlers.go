@@ -15,7 +15,7 @@ import (
 )
 
 func deleteAgent(dctx *deleteContext) error {
-	agentRes, err := agent.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
+	agentRes, err := agent.GetFromBackend(dctx.client, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func deleteAgent(dctx *deleteContext) error {
 
 	result, err := agent.Delete(&agent.DeleteOptions{
 		AgentID: agentRes.Metadata.Id,
-		Conn:    dctx.conn,
+		Client:  dctx.client,
 	})
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func deleteAgent(dctx *deleteContext) error {
 }
 
 func deleteWorkflow(dctx *deleteContext) error {
-	workflowRes, err := workflow.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
+	workflowRes, err := workflow.GetFromBackend(dctx.client, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func deleteWorkflow(dctx *deleteContext) error {
 
 	result, err := workflow.Delete(&workflow.DeleteOptions{
 		WorkflowID: workflowRes.Metadata.Id,
-		Conn:       dctx.conn,
+		Client:     dctx.client,
 	})
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func deleteWorkflow(dctx *deleteContext) error {
 }
 
 func deleteMcpServer(dctx *deleteContext) error {
-	mcpRes, err := mcpserver.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
+	mcpRes, err := mcpserver.GetFromBackend(dctx.client, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func deleteMcpServer(dctx *deleteContext) error {
 	result, err := mcpserver.Delete(&mcpserver.DeleteOptions{
 		Reference: dctx.ref,
 		OrgID:     dctx.orgID,
-		Conn:      dctx.conn,
+		Client:    dctx.client,
 	})
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func deleteMcpServer(dctx *deleteContext) error {
 }
 
 func deleteProject(dctx *deleteContext) error {
-	projectRes, err := project.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
+	projectRes, err := project.GetFromBackend(dctx.client, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func deleteProject(dctx *deleteContext) error {
 
 	result, err := project.Delete(&project.DeleteOptions{
 		ProjectID: projectRes.Metadata.Id,
-		Conn:      dctx.conn,
+		Client:    dctx.client,
 	})
 	if err != nil {
 		return err
@@ -188,7 +188,7 @@ func deleteProject(dctx *deleteContext) error {
 }
 
 func deleteSkill(dctx *deleteContext) error {
-	skillRes, err := skill.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
+	skillRes, err := skill.GetFromBackend(dctx.client, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func deleteSkill(dctx *deleteContext) error {
 
 	result, err := skill.Delete(&skill.DeleteOptions{
 		SkillID: skillRes.Metadata.Id,
-		Conn:    dctx.conn,
+		Client:  dctx.client,
 	})
 	if err != nil {
 		return err
@@ -235,7 +235,7 @@ func deleteSkill(dctx *deleteContext) error {
 }
 
 func deleteApiKey(dctx *deleteContext) error {
-	keyRes, err := apikey.GetFromBackend(dctx.conn, dctx.ref)
+	keyRes, err := apikey.GetFromBackend(dctx.client, dctx.ref)
 	if err != nil {
 		return err
 	}
@@ -266,7 +266,7 @@ func deleteApiKey(dctx *deleteContext) error {
 
 	result, err := apikey.Delete(&apikey.DeleteOptions{
 		ApiKeyID: keyRes.GetMetadata().GetId(),
-		Conn:     dctx.conn,
+		Client:   dctx.client,
 	})
 	if err != nil {
 		return err

@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -39,7 +39,7 @@ func (h *applyHandler) Metadata(msg proto.Message) *apiresource.ApiResourceMetad
 	return msg.(*mcpserverv1.McpServer).Metadata
 }
 
-func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface, msg proto.Message) (*applier.ApplyResult, error) {
+func (h *applyHandler) Apply(ctx context.Context, client *stigmer.Client, msg proto.Message) (*applier.ApplyResult, error) {
 	mcp := msg.(*mcpserverv1.McpServer)
 
 	if mcp.Metadata == nil {
@@ -48,8 +48,7 @@ func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface,
 
 	isCreate := mcp.Metadata.Id == ""
 
-	client := mcpserverv1.NewMcpServerCommandControllerClient(conn)
-	result, err := client.Apply(ctx, mcp)
+	result, err := client.McpServer.Apply(ctx, stigmer.McpServerInputFromProto(mcp))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply MCP server")
 	}

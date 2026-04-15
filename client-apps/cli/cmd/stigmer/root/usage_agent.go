@@ -69,10 +69,8 @@ func executeUsageAgent(agentID, fromDate, toDate, outputFormat string) error {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer client.Close()
-	conn := client.Conn()
 
-	queryClient := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	report, err := queryClient.GetAgentUsageReport(context.Background(), &agentexecutionv1.GetAgentUsageReportInput{
+	report, err := client.AgentExecution.GetAgentUsageReport(context.Background(), &agentexecutionv1.GetAgentUsageReportInput{
 		AgentId:  agentID,
 		FromDate: fromDate,
 		ToDate:   toDate,

@@ -66,11 +66,11 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		return err
 	}
 	prep.OutputMode = resolveOutputMode(opts.outputModeFlags)
-	defer prep.Conn.Close()
+	defer prep.Client.Close()
 
 	sp.Update("Resolving agent...")
 	agentRef := systemAgentOrg + "/" + cfg.AgentName
-	agent, err := resolveAgent(agentRef, systemAgentOrg, prep.Conn)
+	agent, err := resolveAgent(agentRef, systemAgentOrg, prep.Client)
 	if err != nil {
 		sp.Stop()
 		displayDraftAgentNotFoundError(cfg.AgentName, systemAgentOrg)
@@ -108,7 +108,7 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		DefaultAction:    prep.DefaultAction,
 		Verbose:          prep.Verbose,
 		OutputMode:       prep.OutputMode,
-		Conn:             prep.Conn,
+		Client:           prep.Client,
 	}, sp)
 }
 

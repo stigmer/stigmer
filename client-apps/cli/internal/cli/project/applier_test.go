@@ -3,11 +3,16 @@ package project
 import (
 	"testing"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func stubApplyClient() *stigmer.Client {
+	return &stigmer.Client{}
+}
 
 // =============================================================================
 // ApplyOptions Validation Tests
@@ -24,7 +29,7 @@ func TestApply_NilOptions(t *testing.T) {
 func TestApply_NilProject(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: nil,
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 	}
 
 	result, err := Apply(opts)
@@ -40,14 +45,14 @@ func TestApply_NilConnection(t *testing.T) {
 			ApiVersion: "tenancy.stigmer.ai/v1",
 			Kind:       "Project",
 		},
-		Conn: nil,
+		Client: nil,
 	}
 
 	result, err := Apply(opts)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "connection is required")
+	assert.Contains(t, err.Error(), "client is required")
 }
 
 // =============================================================================
@@ -69,7 +74,7 @@ func TestApply_ValidationOrder(t *testing.T) {
 	t.Run("nil project checked second", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
 			Project: nil,
-			Conn:    &mockConn{},
+			Client: stubApplyClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "project is required")
@@ -78,10 +83,10 @@ func TestApply_ValidationOrder(t *testing.T) {
 	t.Run("nil connection checked third", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
 			Project: &projectv1.Project{},
-			Conn:    nil,
+			Client:  nil,
 		})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "connection is required")
+		assert.Contains(t, err.Error(), "client is required")
 	})
 }
 
@@ -103,7 +108,7 @@ func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Project: project,
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true, // Suppress output in tests
 	}
@@ -132,7 +137,7 @@ func TestApply_DryRun_PreservesProject(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Project: project,
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}
@@ -163,7 +168,7 @@ func TestApply_SetsOrgFromOptions_WhenMetadataNil(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: project,
 		OrgID:   "my-org",
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}
@@ -189,7 +194,7 @@ func TestApply_SetsOrgFromOptions_WhenOrgEmpty(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: project,
 		OrgID:   "my-org",
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}
@@ -214,7 +219,7 @@ func TestApply_PreservesExistingOrg_WhenOrgIDProvided(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: project,
 		OrgID:   "new-org",
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}
@@ -247,7 +252,7 @@ func TestApplyOptions_AllFields(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: project,
 		OrgID:   "test-org",
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 		Quiet:   true,
 		DryRun:  true,
 		Prune:   true,
@@ -255,7 +260,7 @@ func TestApplyOptions_AllFields(t *testing.T) {
 
 	assert.Equal(t, project, opts.Project)
 	assert.Equal(t, "test-org", opts.OrgID)
-	assert.NotNil(t, opts.Conn)
+	assert.NotNil(t, opts.Client)
 	assert.True(t, opts.Quiet)
 	assert.True(t, opts.DryRun)
 	assert.True(t, opts.Prune)
@@ -320,7 +325,7 @@ func TestApply_DetectsCreate_WhenNoExistingID(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Project: project,
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 		DryRun:  true, // Use dry-run to avoid RPC
 		Quiet:   true,
 	}
@@ -345,7 +350,7 @@ func TestApply_DetectsUpdate_WhenExistingID(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Project: project,
-		Conn:    &mockConn{},
+		Client: stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}

@@ -64,10 +64,8 @@ func executeUsageSession(sessionID, outputFormat string) error {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer client.Close()
-	conn := client.Conn()
 
-	queryClient := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	report, err := queryClient.GetSessionUsageReport(context.Background(), &agentexecutionv1.GetSessionUsageReportInput{
+	report, err := client.AgentExecution.GetSessionUsageReport(context.Background(), &agentexecutionv1.GetSessionUsageReportInput{
 		SessionId: sessionID,
 	})
 	if err != nil {

@@ -1,31 +1,11 @@
 package agent
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 )
-
-// =============================================================================
-// Mock gRPC Connection for Get Tests
-// =============================================================================
-
-// mockClientConn implements grpc.ClientConnInterface for testing.
-// This is a minimal mock that satisfies the interface without requiring
-// a real gRPC connection.
-type mockClientConn struct{}
-
-func (m *mockClientConn) Invoke(ctx context.Context, method string, args interface{}, reply interface{}, opts ...grpc.CallOption) error {
-	// This mock doesn't actually invoke anything - it's used for validation tests
-	return nil
-}
-
-func (m *mockClientConn) NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-	return nil, nil
-}
 
 // =============================================================================
 // Options Validation Tests
@@ -39,25 +19,25 @@ func TestGet_NilOptions(t *testing.T) {
 	assert.Contains(t, err.Error(), "get options cannot be nil")
 }
 
-func TestGet_NilConnection(t *testing.T) {
+func TestGet_NilClient(t *testing.T) {
 	opts := &GetOptions{
 		Reference: "my-agent",
 		OrgID:     testOrgID,
-		Conn:      nil,
+		Client:    nil,
 	}
 
 	result, err := Get(opts)
 
 	assert.Nil(t, result)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "gRPC connection cannot be nil")
+	assert.Contains(t, err.Error(), "client cannot be nil")
 }
 
 func TestGet_EmptyReference(t *testing.T) {
 	opts := &GetOptions{
 		Reference: "",
 		OrgID:     testOrgID,
-		Conn:      &mockClientConn{},
+		Client:    stubClient(),
 	}
 
 	result, err := Get(opts)
@@ -85,21 +65,21 @@ func TestGetOptions_ValidatesAllFields(t *testing.T) {
 			errContains: "get options cannot be nil",
 		},
 		{
-			name: "nil connection",
+			name: "nil client",
 			opts: &GetOptions{
 				Reference: "my-agent",
 				OrgID:     testOrgID,
-				Conn:      nil,
+				Client:    nil,
 			},
 			wantErr:     true,
-			errContains: "gRPC connection cannot be nil",
+			errContains: "client cannot be nil",
 		},
 		{
 			name: "empty reference",
 			opts: &GetOptions{
 				Reference: "",
 				OrgID:     testOrgID,
-				Conn:      &mockClientConn{},
+				Client:    stubClient(),
 			},
 			wantErr:     true,
 			errContains: "agent reference cannot be empty",
@@ -109,7 +89,7 @@ func TestGetOptions_ValidatesAllFields(t *testing.T) {
 			opts: &GetOptions{
 				Reference: "   ",
 				OrgID:     testOrgID,
-				Conn:      &mockClientConn{},
+				Client:    stubClient(),
 			},
 			wantErr:     true,
 			errContains: "invalid agent reference",
@@ -134,9 +114,7 @@ func TestGetOptions_ValidatesAllFields(t *testing.T) {
 // =============================================================================
 
 func TestGetFromBackend_InvalidReference_EmptyString(t *testing.T) {
-	conn := &mockClientConn{}
-
-	result, err := GetFromBackend(conn, testOrgID, "")
+	result, err := GetFromBackend(stubClient(), testOrgID, "")
 
 	assert.Nil(t, result)
 	require.Error(t, err)
@@ -144,11 +122,7 @@ func TestGetFromBackend_InvalidReference_EmptyString(t *testing.T) {
 }
 
 func TestGetFromBackend_InvalidReference_SlugOnlyWithoutOrg(t *testing.T) {
-	// When a slug-only reference is provided without a context org,
-	// the reference package should return an error
-	conn := &mockClientConn{}
-
-	result, err := GetFromBackend(conn, "", "my-agent")
+	result, err := GetFromBackend(stubClient(), "", "my-agent")
 
 	assert.Nil(t, result)
 	require.Error(t, err)
@@ -160,16 +134,15 @@ func TestGetFromBackend_InvalidReference_SlugOnlyWithoutOrg(t *testing.T) {
 // =============================================================================
 
 func TestGetOptions_StructFields(t *testing.T) {
-	// Verify the GetOptions struct has all expected fields
 	opts := GetOptions{
 		Reference: "test-reference",
 		OrgID:     testOrgID,
-		Conn:      &mockClientConn{},
+		Client:    stubClient(),
 	}
 
 	assert.Equal(t, "test-reference", opts.Reference)
 	assert.Equal(t, testOrgID, opts.OrgID)
-	assert.NotNil(t, opts.Conn)
+	assert.NotNil(t, opts.Client)
 }
 
 func TestGetOptions_DefaultValues(t *testing.T) {
@@ -177,7 +150,7 @@ func TestGetOptions_DefaultValues(t *testing.T) {
 
 	assert.Equal(t, "", opts.Reference)
 	assert.Equal(t, "", opts.OrgID)
-	assert.Nil(t, opts.Conn)
+	assert.Nil(t, opts.Client)
 }
 
 // =============================================================================
@@ -192,24 +165,6 @@ func TestGetFromBackend_ReferenceFormats(t *testing.T) {
 		wantErr     bool
 		errContains string
 	}{
-		{
-			name:    "resource ID format (agt_xxx)",
-			ref:     "agt_01h9abcdef123456789",
-			orgID:   "",
-			wantErr: false, // Valid format, will fail at gRPC level (not tested here)
-		},
-		{
-			name:    "org/slug format",
-			ref:     "stigmer/my-agent",
-			orgID:   "",
-			wantErr: false, // Valid format, will fail at gRPC level (not tested here)
-		},
-		{
-			name:    "slug-only with context org",
-			ref:     "my-agent",
-			orgID:   testOrgID,
-			wantErr: false, // Valid format, will fail at gRPC level (not tested here)
-		},
 		{
 			name:        "slug-only without context org",
 			ref:         "my-agent",
@@ -235,19 +190,12 @@ func TestGetFromBackend_ReferenceFormats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conn := &mockClientConn{}
-
-			// Note: For valid references, the call will proceed to the mock gRPC
-			// client which doesn't return real data. We're only testing the
-			// validation and reference parsing layer here.
-			_, err := GetFromBackend(conn, tt.orgID, tt.ref)
+			_, err := GetFromBackend(stubClient(), tt.orgID, tt.ref)
 
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)
 			}
-			// For non-error cases, we don't assert success because the mock
-			// gRPC client will return nil/error - we just verify no panic
 		})
 	}
 }

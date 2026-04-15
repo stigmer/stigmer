@@ -6,8 +6,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 //
 // Errors are logged at debug level since a missing subject is cosmetic —
 // the session continues to function without it.
-func pollSessionSubject(ctx context.Context, conn grpc.ClientConnInterface, sessionID string, ch chan<- string) {
+func pollSessionSubject(ctx context.Context, client *stigmer.Client, sessionID string, ch chan<- string) {
 	for attempt := 0; attempt < subjectPollMaxTries; attempt++ {
 		select {
 		case <-ctx.Done():
@@ -33,7 +33,7 @@ func pollSessionSubject(ctx context.Context, conn grpc.ClientConnInterface, sess
 		case <-time.After(subjectPollInterval):
 		}
 
-		ses, err := session.GetFromBackend(conn, sessionID)
+		ses, err := session.GetFromBackend(client, sessionID)
 		if err != nil {
 			log.Debug().Err(err).
 				Str("session_id", sessionID).
@@ -62,11 +62,11 @@ const recentSessionsFetchPageSize = 5
 // the current session, and sends up to maxRecentSessions entries on ch.
 // On any failure the channel is closed without sending — the header renders
 // gracefully without the recent sessions section.
-func fetchRecentSessions(conn grpc.ClientConnInterface, currentSessionID string, ch chan<- []recentSession) {
+func fetchRecentSessions(client *stigmer.Client, currentSessionID string, ch chan<- []recentSession) {
 	defer close(ch)
 
 	result, err := session.List(&session.ListOptions{
-		Conn:     conn,
+		Client:   client,
 		PageSize: recentSessionsFetchPageSize,
 	})
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
@@ -18,7 +19,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
-	"google.golang.org/grpc"
 )
 
 // streamAgentExecution subscribes to execution updates and renders them using
@@ -34,12 +34,10 @@ import (
 //
 // The returned execution is the last one that ran (which may be a follow-up
 // in inline mode, not the original).
-func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
-	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-
+func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, client *stigmer.Client, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 
-	stream, err := client.Subscribe(streamCtx, &agentexecutionv1.AgentExecutionId{Value: executionID})
+	subStream, err := client.AgentExecution.Subscribe(streamCtx, executionID)
 	if err != nil {
 		streamCancel()
 		return nil, errors.Wrap(err, "failed to subscribe to agent execution")
@@ -51,18 +49,18 @@ func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, execut
 	go streamToEvents(streamCtx, streamToEventsConfig{
 		executionID:       executionID,
 		sessionID:         sessionID,
-		stream:            stream,
+		stream:            subStream,
 		events:            events,
 		approvalResponses: approvalResponses,
-		conn:              conn,
+		client:            client,
 	})
 
 	switch outputMode {
 	case OutputJSON:
 		renderSessionHeader(statusW, headerInfo)
-		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, conn)
+		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, client)
 	default:
-		return streamAgentInline(streamCtx, streamCancel, sessionID, headerInfo, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots, dataW, statusW)
+		return streamAgentInline(streamCtx, streamCancel, sessionID, headerInfo, executionID, orgID, events, approvalResponses, prompter, defaultAction, client, workspaceRoots, dataW, statusW)
 	}
 }
 
@@ -76,10 +74,10 @@ func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, execut
 // is started before the first renderInline call and shut down on return.
 // When the status writer is not a terminal, the Program is skipped entirely
 // and all output falls back to direct writes.
-func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, client *stigmer.Client, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	var followUpFn executiontui.FollowUpFn
 	if sessionID != "" {
-		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
+		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, client)
 	}
 
 	var toggleExpandCh chan struct{}
@@ -110,13 +108,13 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 	var subjectUpdate chan string
 	if sessionID != "" && headerInfo.Subject == "" {
 		subjectUpdate = make(chan string, 1)
-		go pollSessionSubject(streamCtx, conn, sessionID, subjectUpdate)
+		go pollSessionSubject(streamCtx, client, sessionID, subjectUpdate)
 	}
 
 	var recentSessionsCh chan []recentSession
 	if !headerInfo.IsResumed && termctl.IsSupported(statusW) && sessionID != "" {
 		recentSessionsCh = make(chan []recentSession, 1)
-		go fetchRecentSessions(conn, sessionID, recentSessionsCh)
+		go fetchRecentSessions(client, sessionID, recentSessionsCh)
 	}
 
 	sbRoot, pfDir := sessionPaths(sessionID)
@@ -142,7 +140,7 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		interruptCh:       interruptCh,
 		followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
 		cancelExecFn: func() {
-			_, _ = execution.Cancel(conn, executionID)
+			_, _ = execution.Cancel(client, executionID)
 		},
 	}
 
@@ -151,7 +149,7 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 	stopInlineProgram(activeProgram)
 	streamCancel()
 
-	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, conn)
+	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, client)
 }
 
 // startInlineProgram creates and starts a managed Bubbletea Program in
@@ -200,7 +198,7 @@ func stopInlineProgram(mp *managedProgram) {
 }
 
 // streamAgentJSON renders events as newline-delimited JSON on stdout.
-func streamAgentJSON(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentJSON(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, defaultAction approval.Action, sdkClient *stigmer.Client) (*agentexecutionv1.AgentExecution, error) {
 	phase, exitErr := renderJSON(streamCtx, jsonRenderConfig{
 		events:            events,
 		approvalResponses: approvalResponses,
@@ -210,17 +208,17 @@ func streamAgentJSON(streamCtx context.Context, streamCancel context.CancelFunc,
 	})
 	streamCancel()
 
-	return streamAgentEpilogue(sessionID, executionID, phase, exitErr, conn)
+	return streamAgentEpilogue(sessionID, executionID, phase, exitErr, sdkClient)
 }
 
 // streamAgentEpilogue fetches the final execution and prints a summary.
 // Shared by the inline and JSON rendering paths.
-func streamAgentEpilogue(sessionID, executionID, phase, exitErr string, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentEpilogue(sessionID, executionID, phase, exitErr string, sdkClient *stigmer.Client) (*agentexecutionv1.AgentExecution, error) {
 	if exitErr != "" && phase == "" {
 		return nil, errors.New(exitErr)
 	}
 
-	finalExec, err := fetchFinalExecution(context.Background(), conn, executionID)
+	finalExec, err := fetchFinalExecution(context.Background(), sdkClient, executionID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch final execution state")
 	}
@@ -237,15 +235,13 @@ func streamAgentEpilogue(sessionID, executionID, phase, exitErr string, conn *gr
 // buildFollowUpFn creates a FollowUpFn closure that creates follow-up
 // executions within the given session. Each call creates a new execution,
 // subscribes to its gRPC stream, and launches a streamToEvents goroutine.
-func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.ClientConn) executiontui.FollowUpFn {
-	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-
+func buildFollowUpFn(ctx context.Context, sessionID, orgID string, client *stigmer.Client) executiontui.FollowUpFn {
 	return func(message string) (*executiontui.FollowUpResult, error) {
 		exec, err := createAgentExecution(CreateAgentExecutionInput{
 			SessionID: sessionID,
 			OrgID:     orgID,
 			Message:   message,
-			Conn:      conn,
+			Client:    client,
 		})
 		if err != nil {
 			return nil, err
@@ -253,7 +249,7 @@ func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.Cl
 
 		newExecID := exec.GetMetadata().GetId()
 
-		stream, err := client.Subscribe(ctx, &agentexecutionv1.AgentExecutionId{Value: newExecID})
+		subStream, err := client.AgentExecution.Subscribe(ctx, newExecID)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to subscribe to follow-up execution")
 		}
@@ -262,17 +258,17 @@ func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.Cl
 		approvalResponses := make(chan executiontui.ApprovalResponse, 1)
 
 		cancelFn := func() error {
-			_, err := execution.Cancel(conn, newExecID)
+			_, err := execution.Cancel(client, newExecID)
 			return err
 		}
 
 		go streamToEvents(ctx, streamToEventsConfig{
 			executionID:       newExecID,
 			sessionID:         sessionID,
-			stream:            stream,
+			stream:            subStream,
 			events:            events,
 			approvalResponses: approvalResponses,
-			conn:              conn,
+			client:            client,
 		})
 
 		return &executiontui.FollowUpResult{
@@ -286,9 +282,8 @@ func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.Cl
 
 // fetchFinalExecution retrieves the current execution state from the backend.
 // Called after the renderer exits to get the full proto for the summary display.
-func fetchFinalExecution(ctx context.Context, conn *grpc.ClientConn, executionID string) (*agentexecutionv1.AgentExecution, error) {
-	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	resp, err := client.Get(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
+func fetchFinalExecution(ctx context.Context, sdkClient *stigmer.Client, executionID string) (*agentexecutionv1.AgentExecution, error) {
+	resp, err := sdkClient.AgentExecution.Get(ctx, executionID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get agent execution")
 	}
@@ -305,16 +300,13 @@ func fetchFinalExecution(ctx context.Context, conn *grpc.ClientConn, executionID
 // The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
 // defaultAction is the --approve-default flag value; when set, non-TTY approvals
 // are auto-resolved without prompting.
-func streamWorkflowExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*workflowexecutionv1.WorkflowExecution, error) {
+func streamWorkflowExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, client *stigmer.Client) (*workflowexecutionv1.WorkflowExecution, error) {
 	climsg.Success("Streaming workflow execution logs")
 	fmt.Println()
 
-	// Create streaming client
-	client := workflowexecutionv1.NewWorkflowExecutionQueryControllerClient(conn)
 	ctx := context.Background()
 
-	// Subscribe to execution updates
-	stream, err := client.Subscribe(ctx, &workflowexecutionv1.SubscribeWorkflowExecutionRequest{
+	subStream, err := client.WorkflowExecution.Subscribe(ctx, &workflowexecutionv1.SubscribeWorkflowExecutionRequest{
 		ExecutionId: executionID,
 	})
 	if err != nil {
@@ -333,7 +325,7 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 
 	// Stream updates until execution completes
 	for {
-		execution, err := stream.Recv()
+		execution, err := subStream.Recv()
 		if err != nil {
 			sp.Stop()
 			if err == io.EOF {
@@ -360,7 +352,7 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 				continue
 			}
 			sp.Stop()
-			if err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pa, prompter, defaultAction); err != nil {
+			if err := handleWorkflowApprovalPrompt(ctx, client, executionID, pa, prompter, defaultAction); err != nil {
 				return nil, errors.Wrap(err, "workflow approval failed")
 			}
 			promptedToolCallIDs[pa.GetToolCallId()] = true

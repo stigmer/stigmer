@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,7 +38,7 @@ func (h *applyHandler) Metadata(msg proto.Message) *apiresource.ApiResourceMetad
 	return msg.(*organizationv1.Organization).Metadata
 }
 
-func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface, msg proto.Message) (*applier.ApplyResult, error) {
+func (h *applyHandler) Apply(ctx context.Context, client *stigmer.Client, msg proto.Message) (*applier.ApplyResult, error) {
 	org := msg.(*organizationv1.Organization)
 
 	if org.Metadata == nil {
@@ -47,8 +47,7 @@ func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface,
 
 	isCreate := org.Metadata.Id == ""
 
-	client := organizationv1.NewOrganizationCommandControllerClient(conn)
-	result, err := client.Apply(ctx, org)
+	result, err := client.Organization.Apply(ctx, stigmer.OrganizationInputFromProto(org))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply organization")
 	}

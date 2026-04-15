@@ -117,13 +117,11 @@ func runApiKeyCreate(name string, neverExpires bool, expiresIn string) error {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer client.Close()
-	conn := client.Conn()
-
 	created, err := apikey.Create(&apikey.CreateOptions{
 		Name:         name,
 		NeverExpires: neverExpires,
 		ExpiresIn:    expiresIn,
-		Conn:         conn,
+		Client:       client,
 	})
 	if err != nil {
 		return err
@@ -142,13 +140,11 @@ func runApiKeyFingerprint(rawKey string) error {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer client.Close()
-	conn := client.Conn()
 
-	apiKeyClient := apikeyv1.NewApiKeyQueryControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	key, err := apiKeyClient.GetByKeyHash(ctx, &apikeyv1.ApiKeyHash{Value: hashHex})
+	key, err := client.ApiKey.GetByKeyHash(ctx, &apikeyv1.ApiKeyHash{Value: hashHex})
 	if err != nil {
 		return errors.Wrap(err, "failed to look up API key by hash")
 	}

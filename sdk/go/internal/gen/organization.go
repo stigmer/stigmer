@@ -100,3 +100,26 @@ func (i *OrganizationInput) toProto() *organizationv1.Organization {
 	resource.Spec.IsPersonal = i.IsPersonal
 	return resource
 }
+
+// OrganizationInputFromProto creates a OrganizationInput from a proto Organization resource.
+func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInput {
+	if p == nil {
+		return &OrganizationInput{}
+	}
+	input := &OrganizationInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Description = s.GetDescription()
+		input.LogoUrl = s.GetLogoUrl()
+		input.ManagementMode = s.GetManagementMode()
+		input.IdentityProviderRef = resourceRefFromProto(s.GetIdentityProviderRef())
+		input.ExternalOrgId = s.GetExternalOrgId()
+		input.IsPersonal = s.GetIsPersonal()
+	}
+	return input
+}

@@ -5,8 +5,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -19,11 +19,9 @@ const (
 
 // ListOptions contains options for listing executions.
 type ListOptions struct {
-	// Conn is the gRPC connection to the backend. Required.
-	Conn grpc.ClientConnInterface
+	Client *stigmer.Client
 
 	// Phase filters executions by phase (optional).
-	// Use agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED for no filter.
 	Phase agentexecutionv1.ExecutionPhase
 
 	// Tags filters executions by tags (optional).
@@ -37,19 +35,14 @@ type ListOptions struct {
 }
 
 // List retrieves agent executions with optional filtering.
-// Unlike other resources, executions use their own dedicated list RPC,
-// not the unified SearchService.
-//
-// Returns the AgentExecutionList proto or an error with context.
 func List(opts *ListOptions) (*agentexecutionv1.AgentExecutionList, error) {
 	if opts == nil {
 		return nil, errors.New("list options cannot be nil")
 	}
-	if opts.Conn == nil {
-		return nil, errors.New("gRPC connection cannot be nil")
+	if opts.Client == nil {
+		return nil, errors.New("client cannot be nil")
 	}
 
-	// Apply defaults
 	pageSize := opts.PageSize
 	if pageSize <= 0 {
 		pageSize = DefaultPageSize
@@ -58,7 +51,6 @@ func List(opts *ListOptions) (*agentexecutionv1.AgentExecutionList, error) {
 		pageSize = MaxPageSize
 	}
 
-	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(opts.Conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
@@ -67,17 +59,15 @@ func List(opts *ListOptions) (*agentexecutionv1.AgentExecutionList, error) {
 		PageToken: opts.PageToken,
 	}
 
-	// Apply phase filter if specified
 	if opts.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
 		req.Phase = opts.Phase
 	}
 
-	// Apply tags filter if specified
 	if len(opts.Tags) > 0 {
 		req.Tags = opts.Tags
 	}
 
-	result, err := client.List(ctx, req)
+	result, err := opts.Client.AgentExecution.List(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list executions")
 	}
@@ -87,8 +77,7 @@ func List(opts *ListOptions) (*agentexecutionv1.AgentExecutionList, error) {
 
 // ListBySessionOptions contains options for listing executions in a session.
 type ListBySessionOptions struct {
-	// Conn is the gRPC connection to the backend. Required.
-	Conn grpc.ClientConnInterface
+	Client *stigmer.Client
 
 	// SessionID is the session to filter by. Required.
 	SessionID string
@@ -105,8 +94,8 @@ func ListBySession(opts *ListBySessionOptions) (*agentexecutionv1.AgentExecution
 	if opts == nil {
 		return nil, errors.New("list options cannot be nil")
 	}
-	if opts.Conn == nil {
-		return nil, errors.New("gRPC connection cannot be nil")
+	if opts.Client == nil {
+		return nil, errors.New("client cannot be nil")
 	}
 	if opts.SessionID == "" {
 		return nil, errors.New("session ID cannot be empty")
@@ -117,11 +106,10 @@ func ListBySession(opts *ListBySessionOptions) (*agentexecutionv1.AgentExecution
 		pageSize = DefaultPageSize
 	}
 
-	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(opts.Conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	result, err := client.ListBySession(ctx, &agentexecutionv1.ListAgentExecutionsBySessionRequest{
+	result, err := opts.Client.AgentExecution.ListBySession(ctx, &agentexecutionv1.ListAgentExecutionsBySessionRequest{
 		SessionId: opts.SessionID,
 		PageSize:  pageSize,
 		PageToken: opts.PageToken,

@@ -21,23 +21,23 @@ func TestDelete_NilOptions(t *testing.T) {
 	assert.Contains(t, err.Error(), "delete options cannot be nil")
 }
 
-func TestDelete_NilConnection(t *testing.T) {
+func TestDelete_NilClient(t *testing.T) {
 	opts := &DeleteOptions{
 		WorkflowID: testWorkflowID,
-		Conn:       nil,
+		Client:     nil,
 	}
 
 	result, err := Delete(opts)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "gRPC connection cannot be nil")
+	assert.Contains(t, err.Error(), "client cannot be nil")
 }
 
 func TestDelete_EmptyWorkflowID(t *testing.T) {
 	opts := &DeleteOptions{
 		WorkflowID: "",
-		Conn:       &mockConn{},
+		Client:     stubClient(),
 	}
 
 	result, err := Delete(opts)
@@ -52,9 +52,7 @@ func TestDelete_EmptyWorkflowID(t *testing.T) {
 // =============================================================================
 
 func TestDeleteFromBackend_EmptyWorkflowID(t *testing.T) {
-	conn := &mockConn{}
-
-	result, err := DeleteFromBackend(conn, "")
+	result, err := DeleteFromBackend(stubClient(), "")
 
 	require.Error(t, err)
 	assert.Nil(t, result)
@@ -66,7 +64,7 @@ func TestDeleteFromBackend_EmptyWorkflowID(t *testing.T) {
 // =============================================================================
 
 func TestDeleteResult_Structure(t *testing.T) {
-	workflow := &workflowv1.Workflow{
+	w := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
@@ -76,9 +74,7 @@ func TestDeleteResult_Structure(t *testing.T) {
 		},
 	}
 
-	result := &DeleteResult{
-		Workflow: workflow,
-	}
+	result := &DeleteResult{Workflow: w}
 
 	assert.NotNil(t, result.Workflow)
 	assert.Equal(t, testWorkflowID, result.Workflow.Metadata.Id)
@@ -87,11 +83,7 @@ func TestDeleteResult_Structure(t *testing.T) {
 }
 
 func TestDeleteResult_NilWorkflow(t *testing.T) {
-	// DeleteResult can hold nil workflow (edge case)
-	result := &DeleteResult{
-		Workflow: nil,
-	}
-
+	result := &DeleteResult{Workflow: nil}
 	assert.Nil(t, result.Workflow)
 }
 
@@ -100,48 +92,38 @@ func TestDeleteResult_NilWorkflow(t *testing.T) {
 // =============================================================================
 
 func TestDeleteOptions_ValidStructure(t *testing.T) {
-	conn := &mockConn{}
+	c := stubClient()
 	opts := &DeleteOptions{
 		WorkflowID: testWorkflowID,
-		Conn:       conn,
+		Client:     c,
 	}
 
 	assert.Equal(t, testWorkflowID, opts.WorkflowID)
-	assert.NotNil(t, opts.Conn)
+	assert.NotNil(t, opts.Client)
 }
 
 func TestDeleteOptions_DefaultValues(t *testing.T) {
 	opts := &DeleteOptions{}
 
 	assert.Equal(t, "", opts.WorkflowID)
-	assert.Nil(t, opts.Conn)
+	assert.Nil(t, opts.Client)
 }
 
 func TestDeleteOptions_WorkflowIDFormats(t *testing.T) {
-	// Test various valid workflow ID formats
 	testCases := []struct {
 		name       string
 		workflowID string
 	}{
-		{
-			name:       "underscore separator",
-			workflowID: "wfl_abc123",
-		},
-		{
-			name:       "hyphen separator",
-			workflowID: "wfl-abc123",
-		},
-		{
-			name:       "long ID",
-			workflowID: "wfl_01kewqjbtdy0w4d14bnhhy4yc2",
-		},
+		{name: "underscore separator", workflowID: "wfl_abc123"},
+		{name: "hyphen separator", workflowID: "wfl-abc123"},
+		{name: "long ID", workflowID: "wfl_01kewqjbtdy0w4d14bnhhy4yc2"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &DeleteOptions{
 				WorkflowID: tc.workflowID,
-				Conn:       &mockConn{},
+				Client:     stubClient(),
 			}
 			assert.Equal(t, tc.workflowID, opts.WorkflowID)
 		})
@@ -153,30 +135,25 @@ func TestDeleteOptions_WorkflowIDFormats(t *testing.T) {
 // =============================================================================
 
 func TestDelete_ValidationOrder(t *testing.T) {
-	// Verify validation happens in the correct order:
-	// 1. nil options check
-	// 2. nil connection check
-	// 3. empty workflow ID check
-
 	t.Run("nil options checked first", func(t *testing.T) {
 		_, err := Delete(nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "delete options cannot be nil")
 	})
 
-	t.Run("nil connection checked second", func(t *testing.T) {
+	t.Run("nil client checked second", func(t *testing.T) {
 		_, err := Delete(&DeleteOptions{
 			WorkflowID: testWorkflowID,
-			Conn:       nil,
+			Client:     nil,
 		})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "gRPC connection cannot be nil")
+		assert.Contains(t, err.Error(), "client cannot be nil")
 	})
 
 	t.Run("empty workflow ID checked third", func(t *testing.T) {
 		_, err := Delete(&DeleteOptions{
 			WorkflowID: "",
-			Conn:       &mockConn{},
+			Client:     stubClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "workflow ID cannot be empty")
@@ -188,16 +165,11 @@ func TestDelete_ValidationOrder(t *testing.T) {
 // =============================================================================
 
 func TestDeleteOptions_WhitespaceWorkflowID_Structure(t *testing.T) {
-	// Whitespace-only ID is technically not empty per validation
-	// This tests that the options struct accepts it
 	opts := &DeleteOptions{
 		WorkflowID: "   ",
-		Conn:       &mockConn{},
+		Client:     stubClient(),
 	}
 
-	// Verify the struct is created correctly
 	assert.Equal(t, "   ", opts.WorkflowID)
-	assert.NotNil(t, opts.Conn)
-	// Note: The actual RPC call would fail with whitespace ID
-	// but validation only checks for empty string
+	assert.NotNil(t, opts.Client)
 }

@@ -7,6 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
@@ -16,7 +17,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
-	"google.golang.org/grpc"
 )
 
 // executeRunSession handles the `stigmer resume ses-xxx` path.
@@ -31,9 +31,8 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 		return err
 	}
 	defer client.Close()
-	conn := client.Conn().(*grpc.ClientConn)
 
-	return openSession(sessionID, orgID, verbose, outputMode, conn, sp)
+	return openSession(sessionID, orgID, verbose, outputMode, client, sp)
 }
 
 // openSession re-opens an existing session by its ID.
@@ -44,9 +43,9 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 //     completed, allowing the user to continue
 //
 // The spinner is active on entry and stopped after session data is loaded.
-func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, sp *spinner.Spinner) error {
+func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, client *stigmer.Client, sp *spinner.Spinner) error {
 	sp.Update("Loading session...")
-	ses, err := session.GetFromBackend(conn, sessionID)
+	ses, err := session.GetFromBackend(client, sessionID)
 	if err != nil {
 		sp.Stop()
 		climsg.Error("Session not found: %s", sessionID)
@@ -55,7 +54,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 
 	sp.Update("Loading session history...")
 	execList, err := execution.ListBySession(&execution.ListBySessionOptions{
-		Conn:      conn,
+		Client:    client,
 		SessionID: sessionID,
 		PageSize:  execution.MaxPageSize,
 	})
@@ -98,11 +97,11 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		_, err := streamAgentExecution(sessionID, headerInfo, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn, wsRoots, os.Stdout, os.Stderr)
+		_, err := streamAgentExecution(sessionID, headerInfo, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, client, wsRoots, os.Stdout, os.Stderr)
 		return err
 
 	default:
-		return resumeSession(sessionID, headerInfo, orgID, entries, verbose, outputMode, conn, wsRoots)
+		return resumeSession(sessionID, headerInfo, orgID, entries, verbose, outputMode, client, wsRoots)
 	}
 }
 
@@ -111,8 +110,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 // same event stream (via snapshotToEvents), so noise suppression, lifecycle
 // badges, and duplicate filtering all apply automatically. The follow-up
 // prompt activates after all historical events are rendered.
-func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string) error {
-
+func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, client *stigmer.Client, workspaceRoots []string) error {
 	chronological := make([]*agentexecutionv1.AgentExecution, len(executions))
 	copy(chronological, executions)
 	slices.Reverse(chronological)
@@ -143,7 +141,7 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 
 	default:
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
+		followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, client)
 
 		var toggleExpandCh chan struct{}
 		var cancelCh chan struct{}
@@ -198,7 +196,7 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 		if exitErr != "" {
 			return errors.New(exitErr)
 		}
-		finalExec, err := fetchFinalExecution(context.Background(), conn, finalExecID)
+		finalExec, err := fetchFinalExecution(context.Background(), client, finalExecID)
 		if err != nil {
 			return errors.Wrap(err, "failed to fetch final execution state")
 		}

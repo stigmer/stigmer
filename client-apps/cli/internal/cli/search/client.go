@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 )
 
@@ -27,10 +26,10 @@ const (
 )
 
 // Options contains parameters for a search operation.
-// All fields are optional except Conn.
+// All fields are optional except Client.
 type Options struct {
-	// Conn is the gRPC connection to use. Required.
-	Conn grpc.ClientConnInterface
+	// Client is the Stigmer SDK client. Required.
+	Client *stigmer.Client
 
 	// Kinds specifies which resource types to search.
 	// Empty means search all kinds (discover mode).
@@ -86,30 +85,27 @@ func Search(opts *Options) (*Result, error) {
 		return nil, err
 	}
 
-	client := searchv1.NewSearchServiceClient(opts.Conn)
-
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	req := buildRequest(opts)
+	params := buildSearchParams(opts)
 
-	resp, err := client.Search(ctx, req)
+	resp, err := opts.Client.Search.Query(ctx, params)
 	if err != nil {
 		return nil, errors.Wrap(err, "search request failed")
 	}
 
 	return &Result{
-		Entries:      resp.GetEntries(),
-		CountsByKind: resp.GetCountsByKind(),
-		TotalCount:   resp.GetTotalCount(),
-		TotalPages:   resp.GetTotalPages(),
+		Entries:    resp.Entries,
+		TotalCount: resp.TotalCount,
+		TotalPages: resp.TotalPages,
 	}, nil
 }
 
 // validateOptions validates the search options.
 func validateOptions(opts *Options) error {
-	if opts.Conn == nil {
-		return errors.New("connection is required")
+	if opts.Client == nil {
+		return errors.New("client is required")
 	}
 
 	if opts.PageSize > MaxPageSize {
@@ -119,16 +115,8 @@ func validateOptions(opts *Options) error {
 	return nil
 }
 
-// buildRequest constructs the SearchRequest proto from options.
-func buildRequest(opts *Options) *searchv1.SearchRequest {
-	req := &searchv1.SearchRequest{
-		Kinds:         opts.Kinds,
-		Query:         opts.Query,
-		Org:           opts.Org,
-		ExcludePublic: opts.ExcludePublic,
-	}
-
-	// Set pagination with defaults
+// buildSearchParams constructs SearchParams from options.
+func buildSearchParams(opts *Options) *stigmer.SearchParams {
 	page := opts.Page
 	if page <= 0 {
 		page = 1
@@ -139,17 +127,18 @@ func buildRequest(opts *Options) *searchv1.SearchRequest {
 		pageSize = DefaultPageSize
 	}
 
-	req.Page = &rpc.PageInfo{
-		Num:  page,
-		Size: pageSize,
+	return &stigmer.SearchParams{
+		Kinds:         opts.Kinds,
+		Query:         opts.Query,
+		Org:           opts.Org,
+		ExcludePublic: opts.ExcludePublic,
+		Page:          &stigmer.Page{Num: page, Size: pageSize},
 	}
-
-	return req
 }
 
 // ListOptions is a convenience type for list operations (no query).
 type ListOptions struct {
-	Conn     grpc.ClientConnInterface
+	Client   *stigmer.Client
 	Kind     apiresourcekind.ApiResourceKind
 	Org      string
 	Page     int32
@@ -160,7 +149,7 @@ type ListOptions struct {
 // This is equivalent to Search with a single kind and no query.
 func List(opts *ListOptions) (*Result, error) {
 	return Search(&Options{
-		Conn:     opts.Conn,
+		Client:   opts.Client,
 		Kinds:    []apiresourcekind.ApiResourceKind{opts.Kind},
 		Query:    "",
 		Org:      opts.Org,

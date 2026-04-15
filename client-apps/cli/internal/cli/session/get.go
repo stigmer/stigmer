@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -36,18 +36,15 @@ func ResolvedSubject(subject string) string {
 }
 
 // GetFromBackend fetches a session from the backend by ID.
-func GetFromBackend(conn grpc.ClientConnInterface, sessionID string) (*sessionv1.Session, error) {
+func GetFromBackend(client *stigmer.Client, sessionID string) (*sessionv1.Session, error) {
 	if !reference.IsSessionID(sessionID) {
 		return nil, fmt.Errorf("invalid session ID format: %s (expected ses-xxx or ses_xxx)", sessionID)
 	}
 
-	client := sessionv1.NewSessionQueryControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	result, err := client.Get(ctx, &sessionv1.SessionId{
-		Value: sessionID,
-	})
+	result, err := client.Session.Get(ctx, sessionID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get session '%s'", sessionID)
 	}

@@ -148,3 +148,76 @@ func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry {
 func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource {
 	return &sessionv1.WorkspaceSource{}
 }
+
+// SessionInputFromProto creates a SessionInput from a proto Session resource.
+func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
+	if p == nil {
+		return &SessionInput{}
+	}
+	input := &SessionInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.AgentInstanceId = s.GetAgentInstanceId()
+		input.Subject = s.GetSubject()
+		input.ThreadId = s.GetThreadId()
+		input.SandboxId = s.GetSandboxId()
+		input.Metadata = s.GetMetadata()
+		for _, item := range s.GetWorkspaceEntries() {
+			input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
+		}
+		for _, item := range s.GetMcpServerUsages() {
+			input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
+		}
+		for _, r := range s.GetSkillRefs() {
+			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
+		}
+	}
+	return input
+}
+
+func workspaceEntryInputFromProto(p *sessionv1.WorkspaceEntry) *WorkspaceEntryInput {
+	if p == nil {
+		return nil
+	}
+	input := &WorkspaceEntryInput{}
+	input.Name = p.GetName()
+	input.Source = workspaceSourceInputFromProto(p.GetSource())
+	return input
+}
+
+func workspaceSourceInputFromProto(p *sessionv1.WorkspaceSource) *WorkspaceSourceInput {
+	if p == nil {
+		return nil
+	}
+	input := &WorkspaceSourceInput{}
+	input.GitRepo = gitRepoSourceInputFromProto(p.GetGitRepo())
+	input.LocalPath = localPathSourceInputFromProto(p.GetLocalPath())
+	return input
+}
+
+func gitRepoSourceInputFromProto(p *sessionv1.GitRepoSource) *GitRepoSourceInput {
+	if p == nil {
+		return nil
+	}
+	input := &GitRepoSourceInput{}
+	input.Url = p.GetUrl()
+	input.Branch = p.GetBranch()
+	input.Commit = p.GetCommit()
+	input.Depth = p.GetDepth()
+	input.WriteBackMode = p.GetWriteBackMode()
+	return input
+}
+
+func localPathSourceInputFromProto(p *sessionv1.LocalPathSource) *LocalPathSourceInput {
+	if p == nil {
+		return nil
+	}
+	input := &LocalPathSourceInput{}
+	input.Path = p.GetPath()
+	return input
+}

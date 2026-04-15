@@ -4,28 +4,22 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 )
 
 // VerifyExternalSkills checks if external skills exist in the backend.
 //
-// It queries the SkillQueryController.GetByReference() RPC for each skill
+// It queries the Skill SDK client's GetByReference method for each skill
 // and categorizes them as found or missing.
-func VerifyExternalSkills(conn grpc.ClientConnInterface, defaultOrgID string, refs []ExternalSkillRef) (*SkillVerificationResult, error) {
-	if conn == nil {
-		return nil, errors.New("connection is required for skill verification")
-	}
-
+func VerifyExternalSkills(client *stigmer.Client, defaultOrgID string, refs []ExternalSkillRef) (*SkillVerificationResult, error) {
 	if len(refs) == 0 {
 		return &SkillVerificationResult{}, nil
 	}
 
-	client := skillv1.NewSkillQueryControllerClient(conn)
+	if client == nil {
+		return nil, errors.New("client is required for skill verification")
+	}
+
 	result := &SkillVerificationResult{
 		Found:   make([]ExternalSkillRef, 0),
 		Missing: make([]ExternalSkillRef, 0),
@@ -53,10 +47,9 @@ func VerifyExternalSkills(conn grpc.ClientConnInterface, defaultOrgID string, re
 }
 
 // checkSkillExists queries the backend to check if a skill exists.
-func checkSkillExists(client skillv1.SkillQueryControllerClient, org, slug string) (bool, error) {
-	_, err := client.GetByReference(context.Background(), &apiresource.ApiResourceReference{
+func checkSkillExists(client *stigmer.Client, org, slug string) (bool, error) {
+	_, err := client.Skill.GetByReference(context.Background(), stigmer.ResourceRef{
 		Org:  org,
-		Kind: apiresourcekind.ApiResourceKind_skill,
 		Slug: slug,
 	})
 
@@ -64,13 +57,9 @@ func checkSkillExists(client skillv1.SkillQueryControllerClient, org, slug strin
 		return true, nil
 	}
 
-	// Check if it's a "not found" error (expected for missing skills)
-	if st, ok := status.FromError(err); ok {
-		if st.Code() == codes.NotFound {
-			return false, nil
-		}
+	if stigmer.IsNotFound(err) {
+		return false, nil
 	}
 
-	// Other errors are unexpected
 	return false, err
 }
