@@ -136,4 +136,3 @@ func parseContent(content []byte, filePath string) (*workflowv1.Workflow, error)
 
 	return workflow, nil
 }
-

@@ -134,4 +134,3 @@ func parseContent(content []byte, filePath string) (*projectv1.Project, error) {
 
 	return project, nil
 }
-

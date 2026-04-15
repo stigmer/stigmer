@@ -27,7 +27,7 @@ func init() {
 // LoadResult contains the result of loading an AgentInstance configuration.
 type LoadResult struct {
 	AgentInstance *agentinstancev1.AgentInstance
-	SourcePath   string
+	SourcePath    string
 }
 
 // LoadFromBytes loads an AgentInstance configuration from raw YAML/JSON bytes.
@@ -39,7 +39,7 @@ func LoadFromBytes(content []byte) (*LoadResult, error) {
 
 	return &LoadResult{
 		AgentInstance: ai,
-		SourcePath:   "memory",
+		SourcePath:    "memory",
 	}, nil
 }
 

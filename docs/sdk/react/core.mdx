@@ -157,6 +157,17 @@ Deployment mode of the Stigmer backend the client is connected to.
   All resources (including `cloud_only`) are available.
 
 
+### DeploymentModeContext
+
+React context for the current deployment mode.
+
+Separated from the provider to mirror the `StigmerContext` / `context.ts`
+pattern and avoid circular imports.
+
+Defaults to `"cloud"` so existing consumers who don't pass
+`deploymentMode` to `StigmerProvider` see all features enabled.
+
+
 ### isResourceAvailable
 
 Check whether a resource kind is available in the given deployment mode.
