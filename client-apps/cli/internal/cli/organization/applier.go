@@ -5,17 +5,17 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
 )
 
 // ApplyOptions contains options for applying an Organization configuration.
 type ApplyOptions struct {
 	Organization *organizationv1.Organization
 	OrgID        string
-	Conn         grpc.ClientConnInterface
+	Client       *stigmer.Client
 	Quiet        bool
 	DryRun       bool
 }
@@ -33,8 +33,8 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		return nil, fmt.Errorf("organization is required")
 	}
 
-	if opts.Conn == nil {
-		return nil, fmt.Errorf("connection is required")
+	if opts.Client == nil {
+		return nil, fmt.Errorf("client is required")
 	}
 
 	if opts.Organization.Metadata == nil {
@@ -66,8 +66,7 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		}
 	}
 
-	client := organizationv1.NewOrganizationCommandControllerClient(opts.Conn)
-	result, err := client.Apply(context.Background(), opts.Organization)
+	result, err := opts.Client.Organization.Apply(context.Background(), stigmer.OrganizationInputFromProto(opts.Organization))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply organization")
 	}

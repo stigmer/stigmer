@@ -223,7 +223,7 @@ func executeRun(opts runOptions, outputMode OutputMode) error {
 		return err
 	}
 	prep.OutputMode = outputMode
-	defer prep.Conn.Close()
+	defer prep.Client.Close()
 
 	return routeRun(info, opts.Reference, opts.DownloadDir, prep, sp)
 }
@@ -235,7 +235,7 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
 		sp.Update("Resolving agent...")
-		agent, err := resolveAgent(ref, prep.OrgID, prep.Conn)
+		agent, err := resolveAgent(ref, prep.OrgID, prep.Client)
 		if err != nil {
 			sp.Stop()
 			displayAgentNotFoundError(ref)
@@ -256,7 +256,7 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 			DefaultAction:    prep.DefaultAction,
 			Verbose:          prep.Verbose,
 			OutputMode:       prep.OutputMode,
-			Conn:             prep.Conn,
+			Client:           prep.Client,
 		}, sp)
 
 	case apiresourcekind.ApiResourceKind_workflow:

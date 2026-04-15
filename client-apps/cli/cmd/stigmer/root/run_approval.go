@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
 )
 
 // approvalSubmitTimeout is the timeout for approval submission RPCs.
@@ -45,13 +45,11 @@ func mapApprovalAction(action approval.Action) agentexecutionv1.ApprovalAction {
 // Returns the updated AgentExecution or an error with context.
 func submitAgentApproval(
 	ctx context.Context,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	executionID string,
 	toolCallID string,
 	decision *approval.Decision,
 ) (*agentexecutionv1.AgentExecution, error) {
-	client := agentexecutionv1.NewAgentExecutionCommandControllerClient(conn)
-
 	ctx, cancel := context.WithTimeout(ctx, approvalSubmitTimeout)
 	defer cancel()
 
@@ -62,7 +60,7 @@ func submitAgentApproval(
 		Comment:          decision.Comment,
 	}
 
-	resp, err := client.SubmitApproval(ctx, input)
+	resp, err := client.AgentExecution.SubmitApproval(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to submit agent approval for %s: %w", executionID, err)
 	}
@@ -85,13 +83,11 @@ func submitAgentApproval(
 // Returns the updated WorkflowExecution or an error with context.
 func submitWorkflowApproval(
 	ctx context.Context,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	executionID string,
 	toolCallID string,
 	decision *approval.Decision,
 ) (*workflowexecutionv1.WorkflowExecution, error) {
-	client := workflowexecutionv1.NewWorkflowExecutionCommandControllerClient(conn)
-
 	ctx, cancel := context.WithTimeout(ctx, approvalSubmitTimeout)
 	defer cancel()
 
@@ -102,7 +98,7 @@ func submitWorkflowApproval(
 		Comment:     decision.Comment,
 	}
 
-	resp, err := client.SubmitApproval(ctx, input)
+	resp, err := client.WorkflowExecution.SubmitApproval(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to submit workflow approval for %s: %w", executionID, err)
 	}

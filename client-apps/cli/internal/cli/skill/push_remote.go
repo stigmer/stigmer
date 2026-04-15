@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
 )
 
 // RemotePushOptions contains options for pushing from a remote git repository.
@@ -25,7 +25,7 @@ type RemotePushOptions struct {
 	IncludePatterns []string
 	NoGitignore     bool
 	Verbose         bool
-	Conn            *grpc.ClientConn
+	Client          *stigmer.Client
 }
 
 // PushRemote pushes a skill artifact from a remote git repository.
@@ -126,7 +126,7 @@ func cloneAndPush(opts RemotePushOptions) (*artifact.SkillArtifactResult, error)
 		Directory: skillDir,
 		OrgID:     opts.OrgID,
 		Tag:       opts.Tag,
-		Conn:      opts.Conn,
+		Client:    opts.Client,
 		Quiet:     false,
 		GitURL:    opts.GitURL,
 		GitRef:    opts.GitRef,

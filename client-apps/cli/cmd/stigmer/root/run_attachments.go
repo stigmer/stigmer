@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
 )
 
 // AttachmentResult holds the split results from processing --attach paths.
@@ -25,17 +25,22 @@ type AttachmentResult struct {
 	WorkspaceFileRefs []string
 }
 
+// attachmentUploader abstracts the UploadAttachment RPC for testability.
+type attachmentUploader interface {
+	UploadAttachment(ctx context.Context, input *agentexecutionv1.UploadAttachmentRequest) (*agentexecutionv1.UploadAttachmentResponse, error)
+}
+
 // AttachmentProcessor handles file attachments for the run command.
 // All files are uploaded via the uploadAttachment RPC and referenced by storage_key.
 // This ensures consistent behavior regardless of file size and avoids Temporal
 // payload limits (2MB).
 type AttachmentProcessor struct {
-	conn grpc.ClientConnInterface
+	uploader attachmentUploader
 }
 
 // NewAttachmentProcessor creates a new attachment processor.
-func NewAttachmentProcessor(conn grpc.ClientConnInterface) *AttachmentProcessor {
-	return &AttachmentProcessor{conn: conn}
+func NewAttachmentProcessor(client *stigmer.Client) *AttachmentProcessor {
+	return &AttachmentProcessor{uploader: client.AgentExecution}
 }
 
 // ProcessFiles converts file paths to Attachment protos or workspace file references.
@@ -211,11 +216,10 @@ func (p *AttachmentProcessor) uploadFile(path, filename, contentType string, siz
 
 // uploadBytes uploads raw bytes via the UploadAttachment RPC and returns an Attachment.
 func (p *AttachmentProcessor) uploadBytes(content []byte, filename, contentType string) (*agentexecutionv1.Attachment, error) {
-	client := agentexecutionv1.NewAgentExecutionCommandControllerClient(p.conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	resp, err := client.UploadAttachment(ctx, &agentexecutionv1.UploadAttachmentRequest{
+	resp, err := p.uploader.UploadAttachment(ctx, &agentexecutionv1.UploadAttachmentRequest{
 		Filename:    filename,
 		Content:     content,
 		ContentType: contentType,

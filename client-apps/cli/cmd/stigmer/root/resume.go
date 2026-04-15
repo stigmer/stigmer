@@ -126,11 +126,10 @@ func launchSessionPicker(initQuery, orgOverride string, verbose bool, outputMode
 		return err
 	}
 	defer client.Close()
-	conn := client.Conn()
 
 	sp.Stop()
 
-	searchFn := buildSessionSearchFn(conn)
+	searchFn := buildSessionSearchFn(client)
 	selected, err := picker.Pick(picker.Config{
 		Prompt:    "Select a session",
 		SearchFn:  searchFn,

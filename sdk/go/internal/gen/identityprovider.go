@@ -107,3 +107,28 @@ func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
 	resource.Spec.OidcClientId = i.OidcClientId
 	return resource
 }
+
+// IdentityProviderInputFromProto creates a IdentityProviderInput from a proto IdentityProvider resource.
+func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *IdentityProviderInput {
+	if p == nil {
+		return &IdentityProviderInput{}
+	}
+	input := &IdentityProviderInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.DisplayName = s.GetDisplayName()
+		input.JwksUri = s.GetJwksUri()
+		input.AllowedIssuers = s.GetAllowedIssuers()
+		input.ExpectedAudience = s.GetExpectedAudience()
+		input.RateLimitBudget = s.GetRateLimitBudget()
+		input.UserinfoEndpoint = s.GetUserinfoEndpoint()
+		input.IsSsoProvider = s.GetIsSsoProvider()
+		input.OidcClientId = s.GetOidcClientId()
+	}
+	return input
+}

@@ -129,3 +129,28 @@ func (i *IdentityAccountInput) toProto() *identityaccountv1.IdentityAccount {
 	}
 	return resource
 }
+
+// IdentityAccountInputFromProto creates a IdentityAccountInput from a proto IdentityAccount resource.
+func IdentityAccountInputFromProto(p *identityaccountv1.IdentityAccount) *IdentityAccountInput {
+	if p == nil {
+		return &IdentityAccountInput{}
+	}
+	input := &IdentityAccountInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.IdpId = s.GetIdpId()
+		input.Email = s.GetEmail()
+		input.FirstName = s.GetFirstName()
+		input.LastName = s.GetLastName()
+		input.PictureUrl = s.GetPictureUrl()
+		input.IsMachineAccount = s.GetIsMachineAccount()
+		input.ProvisioningMode = s.GetProvisioningMode()
+		input.IdentityProviderRef = resourceRefFromProto(s.GetIdentityProviderRef())
+	}
+	return input
+}

@@ -215,3 +215,101 @@ func (i *EnvVarDeclarationInput) toProto() *environmentv1.EnvVarDeclaration {
 		Optional:    i.Optional,
 	}
 }
+
+// AgentInputFromProto creates a AgentInput from a proto Agent resource.
+func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
+	if p == nil {
+		return &AgentInput{}
+	}
+	input := &AgentInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Description = s.GetDescription()
+		input.IconUrl = s.GetIconUrl()
+		input.Instructions = s.GetInstructions()
+		for _, item := range s.GetMcpServerUsages() {
+			input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
+		}
+		for _, r := range s.GetSkillRefs() {
+			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
+		}
+		for _, item := range s.GetSubAgents() {
+			input.SubAgents = append(input.SubAgents, subAgentInputFromProto(item))
+		}
+		if len(s.GetEnv()) > 0 {
+			input.Env = make(map[string]*EnvVarDeclarationInput, len(s.GetEnv()))
+			for k, v := range s.GetEnv() {
+				input.Env[k] = envVarDeclarationInputFromProto(v)
+			}
+		}
+	}
+	return input
+}
+
+func mcpServerUsageInputFromProto(p *agentv1.McpServerUsage) *McpServerUsageInput {
+	if p == nil {
+		return nil
+	}
+	input := &McpServerUsageInput{}
+	input.McpServerRef = resourceRefFromProto(p.GetMcpServerRef())
+	input.EnabledTools = p.GetEnabledTools()
+	for _, item := range p.GetToolApprovalOverrides() {
+		input.ToolApprovalOverrides = append(input.ToolApprovalOverrides, toolApprovalOverrideInputFromProto(item))
+	}
+	return input
+}
+
+func toolApprovalOverrideInputFromProto(p *agentv1.ToolApprovalOverride) *ToolApprovalOverrideInput {
+	if p == nil {
+		return nil
+	}
+	input := &ToolApprovalOverrideInput{}
+	input.ToolName = p.GetToolName()
+	input.RequiresApproval = p.GetRequiresApproval()
+	input.Message = p.GetMessage()
+	return input
+}
+
+func subAgentInputFromProto(p *agentv1.SubAgent) *SubAgentInput {
+	if p == nil {
+		return nil
+	}
+	input := &SubAgentInput{}
+	input.Name = p.GetName()
+	input.Description = p.GetDescription()
+	input.Instructions = p.GetInstructions()
+	for _, item := range p.GetMcpAccess() {
+		input.McpAccess = append(input.McpAccess, mcpAccessInputFromProto(item))
+	}
+	for _, r := range p.GetSkillRefs() {
+		input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
+	}
+	input.ModelOverride = p.GetModelOverride()
+	return input
+}
+
+func mcpAccessInputFromProto(p *agentv1.McpAccess) *McpAccessInput {
+	if p == nil {
+		return nil
+	}
+	input := &McpAccessInput{}
+	input.McpServer = p.GetMcpServer()
+	input.EnabledTools = p.GetEnabledTools()
+	return input
+}
+
+func envVarDeclarationInputFromProto(p *environmentv1.EnvVarDeclaration) *EnvVarDeclarationInput {
+	if p == nil {
+		return nil
+	}
+	input := &EnvVarDeclarationInput{}
+	input.IsSecret = p.GetIsSecret()
+	input.Description = p.GetDescription()
+	input.Optional = p.GetOptional()
+	return input
+}

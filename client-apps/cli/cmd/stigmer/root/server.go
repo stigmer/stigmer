@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	orgv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/browser"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -18,7 +17,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/setup"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // NewServerCommand creates the server command for daemon management
@@ -324,7 +322,6 @@ func runBootstrapDiscovery(cfg *config.Config) {
 		return
 	}
 	defer client.Close()
-	conn := client.Conn()
 
 	orgID := cfg.ResolveContextOrganization()
 	if orgID == "" {
@@ -333,7 +330,7 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 
 	result := mcpserver.ConnectAll(context.Background(), &mcpserver.ConnectAllOptions{
-		Conn:    conn,
+		Client:  client,
 		OrgID:   orgID,
 		Timeout: 30 * time.Second,
 	})
@@ -364,13 +361,11 @@ func autoSetOrgContext(cfg *config.Config) {
 		return
 	}
 	defer stigmerClient.Close()
-	conn := stigmerClient.Conn()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	orgClient := orgv1.NewOrganizationQueryControllerClient(conn)
-	resp, err := orgClient.FindMyOrganizations(ctx, &emptypb.Empty{})
+	resp, err := stigmerClient.Organization.FindMyOrganizations(ctx)
 	if err != nil {
 		climsg.Warning("Failed to detect organizations: %v", err)
 		return

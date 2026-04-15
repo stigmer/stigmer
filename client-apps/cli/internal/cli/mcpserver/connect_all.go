@@ -8,17 +8,13 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
-	"google.golang.org/grpc"
 )
 
 // ConnectAllOptions configures the bootstrap auto-connect flow.
 type ConnectAllOptions struct {
-	Conn    grpc.ClientConnInterface
+	Client  *stigmer.Client
 	OrgID   string
 	Timeout time.Duration
 }
@@ -42,7 +38,7 @@ type ConnectAllResult struct {
 func ConnectAll(ctx context.Context, opts *ConnectAllOptions) *ConnectAllResult {
 	result := &ConnectAllResult{}
 
-	servers, err := listMcpServers(ctx, opts.Conn, opts.OrgID)
+	servers, err := listMcpServers(ctx, opts.Client, opts.OrgID)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to list MCP servers for discovery")
 		return result
@@ -76,7 +72,7 @@ func ConnectAll(ctx context.Context, opts *ConnectAllOptions) *ConnectAllResult 
 
 		result.Attempted++
 
-		if err := ConnectServer(ctx, opts.Conn, server, opts.Timeout); err != nil {
+		if err := ConnectServer(ctx, opts.Client, server, opts.Timeout); err != nil {
 			log.Warn().
 				Err(err).
 				Str("mcp_server", server.Metadata.GetName()).
@@ -128,7 +124,7 @@ func ConnectOne(ctx context.Context, opts *ConnectOneOptions) (skipMessage strin
 		return FormatConnectSkipMessage(server.Metadata.GetName(), missing), nil
 	}
 
-	if err := ConnectServer(ctx, opts.Conn, server, opts.Timeout); err != nil {
+	if err := ConnectServer(ctx, opts.Client, server, opts.Timeout); err != nil {
 		return "", err
 	}
 
@@ -137,7 +133,7 @@ func ConnectOne(ctx context.Context, opts *ConnectOneOptions) (skipMessage strin
 
 // ConnectOneOptions configures a single-server post-apply connect.
 type ConnectOneOptions struct {
-	Conn    grpc.ClientConnInterface
+	Client  *stigmer.Client
 	Server  *mcpserverv1.McpServer
 	Timeout time.Duration
 }
@@ -154,31 +150,27 @@ func missingSecretEnvVars(server *mcpserverv1.McpServer) []string {
 	return missing
 }
 
-// listMcpServers fetches all MCP servers for the given org. Since there is no
-// dedicated List RPC, we use the search API to enumerate MCP server slugs and
-// then fetch each full McpServer proto via GetByReference.
-func listMcpServers(ctx context.Context, conn grpc.ClientConnInterface, orgID string) ([]*mcpserverv1.McpServer, error) {
-	searchClient := searchv1.NewSearchServiceClient(conn)
-	resp, err := searchClient.Search(ctx, &searchv1.SearchRequest{
-		Kinds: []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_mcp_server},
-		Org:   orgID,
-		Page:  &rpc.PageInfo{Num: 1, Size: 100},
+// listMcpServers fetches all MCP servers for the given org using the SDK's
+// search-based List method and then fetches each full McpServer proto via
+// GetByReference.
+func listMcpServers(ctx context.Context, client *stigmer.Client, orgID string) ([]*mcpserverv1.McpServer, error) {
+	listResult, err := client.McpServer.List(ctx, &stigmer.ListParams{
+		Org:  orgID,
+		Page: &stigmer.Page{Num: 1, Size: 100},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if len(resp.GetEntries()) == 0 {
+	if len(listResult.Entries) == 0 {
 		return nil, nil
 	}
 
-	queryClient := mcpserverv1.NewMcpServerQueryControllerClient(conn)
-	servers := make([]*mcpserverv1.McpServer, 0, len(resp.GetEntries()))
+	servers := make([]*mcpserverv1.McpServer, 0, len(listResult.Entries))
 
-	for _, entry := range resp.GetEntries() {
-		server, err := queryClient.GetByReference(ctx, &apiresource.ApiResourceReference{
+	for _, entry := range listResult.Entries {
+		server, err := client.McpServer.GetByReference(ctx, stigmer.ResourceRef{
 			Org:  orgID,
-			Kind: apiresourcekind.ApiResourceKind_mcp_server,
 			Slug: entry.GetSlug(),
 		})
 		if err != nil {

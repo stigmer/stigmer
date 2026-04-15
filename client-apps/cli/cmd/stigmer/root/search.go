@@ -143,11 +143,9 @@ func executeSearch(opts searchOptions) error {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer client.Close()
-	conn := client.Conn()
 
-	// Step 8: Execute search
 	result, err := search.Search(&search.Options{
-		Conn:          conn,
+		Client:        client,
 		Kinds:         []apiresourcekind.ApiResourceKind{info.ProtoKind},
 		Query:         opts.Query,
 		Org:           orgID,

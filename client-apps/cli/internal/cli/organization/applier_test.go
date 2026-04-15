@@ -3,11 +3,11 @@ package organization
 import (
 	"testing"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -16,8 +16,8 @@ const (
 	testOrgSlug = "test-org"
 )
 
-type mockConn struct {
-	grpc.ClientConnInterface
+func stubClient() *stigmer.Client {
+	return &stigmer.Client{}
 }
 
 func createTestOrganization() *organizationv1.Organization {
@@ -47,7 +47,7 @@ func createTestOrganizationWithID() *organizationv1.Organization {
 func TestApply_NilOrganization(t *testing.T) {
 	opts := &ApplyOptions{
 		Organization: nil,
-		Conn:         &mockConn{},
+		Client:       stubClient(),
 		OrgID:        testOrgID,
 	}
 
@@ -61,7 +61,7 @@ func TestApply_NilOrganization(t *testing.T) {
 func TestApply_NilConnection(t *testing.T) {
 	opts := &ApplyOptions{
 		Organization: createTestOrganization(),
-		Conn:         nil,
+		Client:       nil,
 		OrgID:        testOrgID,
 	}
 
@@ -69,14 +69,14 @@ func TestApply_NilConnection(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "connection is required")
+	assert.Contains(t, err.Error(), "client is required")
 }
 
 func TestApply_ValidationOrder(t *testing.T) {
 	t.Run("nil organization checked first", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
 			Organization: nil,
-			Conn:         &mockConn{},
+			Client:       stubClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "organization is required")
@@ -85,10 +85,10 @@ func TestApply_ValidationOrder(t *testing.T) {
 	t.Run("nil connection checked second", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
 			Organization: createTestOrganization(),
-			Conn:         nil,
+			Client:       nil,
 		})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "connection is required")
+		assert.Contains(t, err.Error(), "client is required")
 	})
 }
 
@@ -101,7 +101,7 @@ func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Organization: org,
-		Conn:         &mockConn{},
+		Client:       stubClient(),
 		OrgID:        testOrgID,
 		DryRun:       true,
 		Quiet:        true,
@@ -131,7 +131,7 @@ func TestApply_DryRun_PreservesOrganization(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Organization: org,
-		Conn:         &mockConn{},
+		Client:       stubClient(),
 		OrgID:        testOrgID,
 		DryRun:       true,
 		Quiet:        true,
@@ -149,7 +149,7 @@ func TestApply_DryRun_PreservesOrganization(t *testing.T) {
 func TestApply_DryRun_RequiresConnection(t *testing.T) {
 	opts := &ApplyOptions{
 		Organization: createTestOrganization(),
-		Conn:         nil,
+		Client:       nil,
 		OrgID:        testOrgID,
 		DryRun:       true,
 		Quiet:        true,
@@ -159,7 +159,7 @@ func TestApply_DryRun_RequiresConnection(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "connection is required")
+	assert.Contains(t, err.Error(), "client is required")
 }
 
 // =============================================================================
@@ -172,7 +172,7 @@ func TestApply_SetsOrgWhenEmpty(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Organization: org,
-		Conn:         &mockConn{},
+		Client:       stubClient(),
 		OrgID:        testOrgID,
 		DryRun:       true,
 		Quiet:        true,
@@ -192,7 +192,7 @@ func TestApply_PreservesExistingOrg(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Organization: org,
-		Conn:         &mockConn{},
+		Client:       stubClient(),
 		OrgID:        testOrgID,
 		DryRun:       true,
 		Quiet:        true,
@@ -217,7 +217,7 @@ func TestApply_CreatesMetadataWhenNil(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Organization: org,
-		Conn:         &mockConn{},
+		Client:       stubClient(),
 		OrgID:        testOrgID,
 		DryRun:       true,
 		Quiet:        true,
@@ -234,7 +234,7 @@ func TestApply_CreatesMetadataWhenNil(t *testing.T) {
 func TestApply_EmptyOrgID_StillValid(t *testing.T) {
 	opts := &ApplyOptions{
 		Organization: createTestOrganization(),
-		Conn:         &mockConn{},
+		Client:       stubClient(),
 		OrgID:        "",
 		DryRun:       true,
 		Quiet:        true,
@@ -257,14 +257,14 @@ func TestApplyOptions_AllFields(t *testing.T) {
 	opts := &ApplyOptions{
 		Organization: org,
 		OrgID:        testOrgID,
-		Conn:         &mockConn{},
+		Client:       stubClient(),
 		Quiet:        true,
 		DryRun:       true,
 	}
 
 	assert.Equal(t, org, opts.Organization)
 	assert.Equal(t, testOrgID, opts.OrgID)
-	assert.NotNil(t, opts.Conn)
+	assert.NotNil(t, opts.Client)
 	assert.True(t, opts.Quiet)
 	assert.True(t, opts.DryRun)
 }

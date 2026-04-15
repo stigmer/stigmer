@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -13,7 +14,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
 )
 
 // NewPushCommand creates the unified push command for pushing artifacts.
@@ -192,20 +192,17 @@ func pushSkill(opts pushOptions) error {
 		return err
 	}
 	defer client.Close()
-	conn := client.Conn().(*grpc.ClientConn)
-
 	climsg.Success("✓ Connected to backend")
 	fmt.Println()
 
-	// Step 5: Execute push based on mode
 	if opts.GitURL != "" {
-		return pushSkillRemote(opts, orgID, conn)
+		return pushSkillRemote(opts, orgID, client)
 	}
-	return pushSkillLocal(opts, orgID, conn)
+	return pushSkillLocal(opts, orgID, client)
 }
 
 // pushSkillLocal handles local directory push.
-func pushSkillLocal(opts pushOptions, orgID string, conn *grpc.ClientConn) error {
+func pushSkillLocal(opts pushOptions, orgID string, client *stigmer.Client) error {
 	// Resolve directory
 	directory := opts.Path
 	if directory == "" {
@@ -225,7 +222,7 @@ func pushSkillLocal(opts pushOptions, orgID string, conn *grpc.ClientConn) error
 		IncludePatterns: opts.IncludePatterns,
 		NoGitignore:     opts.NoGitignore,
 		Verbose:         opts.Verbose,
-		Conn:            conn,
+		Client:          client,
 	})
 	if err != nil {
 		return err
@@ -239,7 +236,7 @@ func pushSkillLocal(opts pushOptions, orgID string, conn *grpc.ClientConn) error
 }
 
 // pushSkillRemote handles remote git repository push.
-func pushSkillRemote(opts pushOptions, orgID string, conn *grpc.ClientConn) error {
+func pushSkillRemote(opts pushOptions, orgID string, client *stigmer.Client) error {
 	result, err := skill.PushRemote(skill.RemotePushOptions{
 		GitURL:          opts.GitURL,
 		GitRef:          opts.GitRef,
@@ -251,7 +248,7 @@ func pushSkillRemote(opts pushOptions, orgID string, conn *grpc.ClientConn) erro
 		IncludePatterns: opts.IncludePatterns,
 		NoGitignore:     opts.NoGitignore,
 		Verbose:         opts.Verbose,
-		Conn:            conn,
+		Client:          client,
 	})
 	if err != nil {
 		return err

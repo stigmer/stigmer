@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
-	"google.golang.org/grpc"
 )
 
 // needsAgentApprovalPrompt checks if we should show an interactive approval prompt
@@ -101,7 +101,7 @@ func countUnresolvedApprovals(
 // WAITING_FOR_APPROVAL (transient phase race condition).
 func handleToolCallApproval(
 	ctx context.Context,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	executionID string,
 	tc *agentexecutionv1.ToolCall,
 	pendingApproval *agentexecutionv1.PendingApproval,
@@ -111,12 +111,12 @@ func handleToolCallApproval(
 	// Prefer PendingApproval if available and matches this tool call (richer info
 	// with human-readable message, sanitized args preview, sub-agent context).
 	if pendingApproval != nil && pendingApproval.ToolCallId == tc.Id {
-		return handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction)
+		return handleAgentApprovalPrompt(ctx, client, executionID, pendingApproval, prompter, defaultAction)
 	}
 
 	// Construct synthetic PendingApproval from ToolCall fields.
 	syntheticPA := buildPendingApprovalFromToolCall(tc)
-	return handleAgentApprovalPrompt(ctx, conn, executionID, syntheticPA, prompter, defaultAction)
+	return handleAgentApprovalPrompt(ctx, client, executionID, syntheticPA, prompter, defaultAction)
 }
 
 // buildPendingApprovalFromToolCall constructs a PendingApproval message from
@@ -150,7 +150,7 @@ func buildPendingApprovalFromToolCall(tc *agentexecutionv1.ToolCall) *agentexecu
 // The caller should handle the error appropriately (e.g., exit the streaming loop).
 func handleAgentApprovalPrompt(
 	ctx context.Context,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	executionID string,
 	pendingApproval *agentexecutionv1.PendingApproval,
 	prompter approval.Prompter,
@@ -175,7 +175,7 @@ func handleAgentApprovalPrompt(
 	}
 
 	// Submit the approval decision
-	_, err = submitAgentApproval(ctx, conn, executionID, pendingApproval.ToolCallId, decision)
+	_, err = submitAgentApproval(ctx, client, executionID, pendingApproval.ToolCallId, decision)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func handleAgentApprovalPrompt(
 // Returns an error if the prompt is cancelled or the API submission fails.
 func handleWorkflowApprovalPrompt(
 	ctx context.Context,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	executionID string,
 	pendingApproval *agentexecutionv1.PendingApproval,
 	prompter approval.Prompter,
@@ -224,7 +224,7 @@ func handleWorkflowApprovalPrompt(
 	}
 
 	// Submit the approval decision via workflow API
-	_, err = submitWorkflowApproval(ctx, conn, executionID, pendingApproval.ToolCallId, decision)
+	_, err = submitWorkflowApproval(ctx, client, executionID, pendingApproval.ToolCallId, decision)
 	if err != nil {
 		return err
 	}
