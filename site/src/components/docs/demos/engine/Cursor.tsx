@@ -3,7 +3,7 @@
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTimeSource } from "./TimeSource";
-import { scrollTargetIntoView } from "./scroll-utils";
+import { findScrollParent, scrollTargetIntoView } from "./scroll-utils";
 
 interface CursorProps {
   /**
@@ -52,6 +52,22 @@ function computeCursorPosition(
     x: (eRect.left - cRect.left + eRect.width / 2) / zoom,
     y: (eRect.top - cRect.top + eRect.height / 2) / zoom,
   };
+}
+
+function warnIfTargetObscured(target: string, el: Element): void {
+  if (process.env.NODE_ENV !== "development") return;
+  const scrollParent = findScrollParent(el);
+  if (!scrollParent) return;
+  const pr = scrollParent.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
+  if (er.top < pr.top || er.bottom > pr.bottom) {
+    console.warn(
+      `[Cursor] Target "${target}" is not fully visible in its scroll container. ` +
+        `Add a scroll-to interaction before this step, or adjust the content layout.\n` +
+        `  target: top=${er.top.toFixed(0)} bottom=${er.bottom.toFixed(0)}\n` +
+        `  container: top=${pr.top.toFixed(0)} bottom=${pr.bottom.toFixed(0)}`,
+    );
+  }
 }
 
 /**
@@ -133,6 +149,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
     const el = container.querySelector(`[data-cursor-target="${target}"]`);
     if (!el) return;
 
+    warnIfTargetObscured(target, el);
     setPos(computeCursorPosition(container, el));
   }, [target, containerRef]);
 
@@ -184,6 +201,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
           requestAnimationFrame(() => {
             if (cancelled) return;
 
+            warnIfTargetObscured(target!, el);
             setPos(computeCursorPosition(container, el));
 
             clickTimerRef.current = setTimeout(() => {

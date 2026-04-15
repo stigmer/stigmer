@@ -8,8 +8,8 @@
  * 2. Verify the demo player renders and the play button is visible.
  * 3. Start playback, confirm poster disappears.
  * 4. At each step (observed via data-demo-step), wait for interactions
- *    to settle, then assert every data-scroll-target is visible inside
- *    its data-scroll-container.
+ *    to settle, then assert every data-scroll-target is fully contained
+ *    inside its data-scroll-container (not just intersecting).
  * 5. Verify playback completes without uncaught JS errors.
  *
  * Static detail views (no ScenarioPlayer) are tested with a simpler
@@ -77,10 +77,17 @@ interface ScrollTargetResult {
   reason: string;
 }
 
+/**
+ * Sub-pixel tolerance for containment checks. CSS zoom produces
+ * fractional pixel values that can push a rect 1-2px outside its
+ * parent even when the element is visually contained.
+ */
+const CONTAINMENT_TOLERANCE_PX = 2;
+
 async function checkScrollTargets(
   container: Locator,
 ): Promise<ScrollTargetResult[]> {
-  return container.evaluate((el) => {
+  return container.evaluate((el, tolerance) => {
     const targets = el.querySelectorAll("[data-scroll-target]");
     if (targets.length === 0) return [];
 
@@ -88,36 +95,23 @@ async function checkScrollTargets(
     for (const target of targets) {
       const targetId = target.getAttribute("data-scroll-target") ?? "unknown";
       const scrollParent = target.closest("[data-scroll-container]");
-
-      if (!scrollParent) {
-        const rect = target.getBoundingClientRect();
-        const inViewport =
-          rect.top < window.innerHeight &&
-          rect.bottom > 0 &&
-          rect.left < window.innerWidth &&
-          rect.right > 0;
-        results.push({
-          targetId,
-          visible: inViewport,
-          reason: inViewport ? "ok" : "out-of-viewport",
-        });
-        continue;
-      }
-
-      const cr = scrollParent.getBoundingClientRect();
+      const ref = scrollParent ?? el;
+      const cr = ref.getBoundingClientRect();
       const tr = target.getBoundingClientRect();
-      const visible =
-        tr.top < cr.bottom && tr.bottom > cr.top &&
-        tr.left < cr.right && tr.right > cr.left;
+      const contained =
+        tr.top >= cr.top - tolerance &&
+        tr.bottom <= cr.bottom + tolerance &&
+        tr.left >= cr.left - tolerance &&
+        tr.right <= cr.right + tolerance;
 
       results.push({
         targetId,
-        visible,
-        reason: visible ? "ok" : "below-fold",
+        visible: contained,
+        reason: contained ? "ok" : "not-fully-contained",
       });
     }
     return results;
-  });
+  }, CONTAINMENT_TOLERANCE_PX);
 }
 
 // ---------------------------------------------------------------------------
