@@ -11,6 +11,7 @@ import (
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -62,7 +63,9 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 		}
 	}
 
-	sortItemsByApplyOrder(items)
+	applier.SortByApplyOrder(items, func(item applyItem) apiresourcekind.ApiResourceKind {
+		return item.typeInfo.ProtoKind
+	})
 
 	climsg.Info("Found %d resource(s) in %d file(s), %d skill(s)",
 		len(items), len(resourceFiles), len(skillDirs))

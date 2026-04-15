@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -15,11 +14,15 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
@@ -38,10 +41,25 @@ type fileApplyContext struct {
 	dryRun   bool
 	renderer clioutput.Renderer
 	cfg      *config.Config
+	registry *applier.Registry
 
 	// appliedMcpServers collects MCP server protos that were successfully
 	// applied, so post-apply discovery can be triggered for each one.
 	appliedMcpServers []*mcpserverv1.McpServer
+}
+
+// newApplyHandlerRegistry builds the registry of all resource kinds that
+// support declarative file-based apply (stigmer apply -f).
+//
+// Registration is explicit — no init() magic. When a new kind gets an
+// ApplyHandler (T02), add its registration here.
+func newApplyHandlerRegistry() *applier.Registry {
+	reg := applier.NewRegistry()
+	reg.Register(organization.NewApplyHandler())
+	reg.Register(agent.NewApplyHandler())
+	reg.Register(workflow.NewApplyHandler())
+	reg.Register(mcpserver.NewApplyHandler())
+	return reg
 }
 
 func executeFileApply(opts fileApplyOptions) error {
@@ -67,11 +85,14 @@ func executeFileApply(opts fileApplyOptions) error {
 		return errors.New("no valid resources found in files")
 	}
 
-	sortItemsByApplyOrder(applyItems)
+	applier.SortByApplyOrder(applyItems, func(item applyItem) apiresourcekind.ApiResourceKind {
+		return item.typeInfo.ProtoKind
+	})
 
 	fctx := &fileApplyContext{
 		dryRun:   opts.DryRun,
 		renderer: renderer,
+		registry: newApplyHandlerRegistry(),
 	}
 
 	if !opts.DryRun {
@@ -130,40 +151,6 @@ type applyItem struct {
 	kind       string
 	typeInfo   *types.TypeInfo
 	rawContent []byte
-}
-
-// applyKindOrder defines the apply priority for resource kinds.
-// Resources are applied in ascending order of priority value so that
-// dependencies are created before the resources that reference them.
-//
-// Dependency graph for apply ordering:
-//
-//	Organization (0) ← MCP Server (1) ← Agent (2) ← Workflow (3)
-//	                    Skill is pushed in a separate phase before YAML
-//	                    resources and does not appear here.
-var applyKindOrder = map[apiresourcekind.ApiResourceKind]int{
-	apiresourcekind.ApiResourceKind_organization: 0,
-	apiresourcekind.ApiResourceKind_mcp_server:   1,
-	apiresourcekind.ApiResourceKind_agent:        2,
-	apiresourcekind.ApiResourceKind_workflow:     3,
-}
-
-// sortItemsByApplyOrder sorts applyItems so that dependency-providing kinds
-// (MCP servers) are applied before the kinds that consume them (agents,
-// workflows). Items of the same kind retain their original relative order
-// (stable sort).
-func sortItemsByApplyOrder(items []applyItem) {
-	sort.SliceStable(items, func(i, j int) bool {
-		pi, oki := applyKindOrder[items[i].typeInfo.ProtoKind]
-		pj, okj := applyKindOrder[items[j].typeInfo.ProtoKind]
-		if !oki {
-			pi = 99
-		}
-		if !okj {
-			pj = 99
-		}
-		return pi < pj
-	})
 }
 
 func resolveApplyFiles(path string) ([]string, error) {
@@ -230,18 +217,56 @@ func detectApplyItems(filePath string) ([]applyItem, error) {
 func applyResourceItem(item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourceReference, error) {
 	fmt.Fprintf(os.Stderr, "Applying %s from %s...\n", item.typeInfo.DisplayName, item.filePath)
 
-	switch item.typeInfo.ProtoKind {
-	case apiresourcekind.ApiResourceKind_organization:
-		return applyOrganization(item, fctx)
-	case apiresourcekind.ApiResourceKind_agent:
-		return applyAgent(item, fctx)
-	case apiresourcekind.ApiResourceKind_workflow:
-		return applyWorkflow(item, fctx)
-	case apiresourcekind.ApiResourceKind_mcp_server:
-		return applyMcpServer(item, fctx)
-	default:
+	handler, ok := fctx.registry.Get(item.typeInfo.ProtoKind)
+	if !ok {
 		return nil, fmt.Errorf("apply not implemented for %s", item.typeInfo.DisplayName)
 	}
+
+	return executeApply(handler, item, fctx)
+}
+
+// executeApply runs the generic apply pipeline for any resource kind:
+// load -> validate -> org handling -> dry-run branch -> apply -> display.
+func executeApply(handler applier.ApplyHandler, item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourceReference, error) {
+	msg, err := handler.LoadFromBytes(item.rawContent)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := handler.Validate(msg); err != nil {
+		return nil, errors.Wrapf(err, "%s validation failed", item.typeInfo.DisplayName)
+	}
+
+	meta := handler.Metadata(msg)
+	if meta != nil && fctx.orgID != "" {
+		warnOrgMismatch(item.typeInfo.DisplayName, meta, fctx.orgID)
+		if meta.Org == "" {
+			meta.Org = fctx.orgID
+		}
+	}
+
+	if fctx.dryRun {
+		fctx.renderer.Render(handler.BuildDryRunResult(msg))
+		return nil, nil
+	}
+
+	result, err := handler.Apply(context.Background(), fctx.conn, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	fctx.renderer.Render(handler.BuildApplyResult(result.Resource, result.Created))
+
+	// MCP servers need post-apply discovery; collect them for the batch
+	// pass that runs after all items are applied.
+	if handler.Kind() == apiresourcekind.ApiResourceKind_mcp_server {
+		if applied, ok := result.Resource.(*mcpserverv1.McpServer); ok {
+			fctx.appliedMcpServers = append(fctx.appliedMcpServers, applied)
+		}
+	}
+
+	resultMeta := handler.Metadata(result.Resource)
+	return buildResourceReference(resultMeta, handler.Kind()), nil
 }
 
 // requiresOrgContext returns true when the item set contains at least one
