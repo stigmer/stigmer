@@ -1,0 +1,247 @@
+---
+description: Action rule to manage the full GitHub issue lifecycle — triage new issues, resolve fixed issues with Discord notifications, and generate health reports. Fetches Discord credentials from Planton Cloud for cross-posting resolution messages.
+alwaysApply: false
+---
+
+# Rule: GitHub Issue Triage and Lifecycle
+
+Purpose: When triggered, manage GitHub issues across the Stigmer OSS repo — triage unlabeled issues, resolve fixed issues (closing on GitHub + notifying Discord), and report on issue health.
+
+This is an action rule. It uses the `gh` CLI for GitHub operations and the Discord REST API (via Planton MCP credentials) for cross-posting resolution messages.
+
+Usage: Invoke explicitly as `@github-issue-triage`.
+
+## Three Modes
+
+This rule operates in one of three modes depending on context:
+
+- **"triage issues"** or **"triage"** — Mode 1: classify and label untriaged issues
+- **"resolve issue #N"** or **"close issue #N"** — Mode 2: close an issue and notify Discord
+- **"github health"** or **"issue report"** — Mode 3: generate a health report of all open issues
+
+If the user's intent is ambiguous, ask which mode to run.
+
+---
+
+## Mode 1: Triage
+
+### Step 1: Find untriaged issues
+
+Run:
+```
+gh issue list --state open --json number,title,body,labels,author,createdAt
+```
+
+Filter for issues that have:
+- The `needs-triage` label, OR
+- No labels at all
+
+### Step 2: Classify each issue
+
+For each untriaged issue, read the title and body and suggest labels from the standard label set.
+
+**Type labels** (exactly one):
+- `bug` — something broken, unexpected behavior, errors
+- `enhancement` — new functionality, improvements
+- `question` — asking for help or clarification (rare on GitHub — questions should go to Discord)
+- `documentation` — docs improvement or gap
+
+**Component labels** (one or more):
+- `component: cli` — related to the `stigmer` CLI
+- `component: agent` — related to agent runtime (Python, LangGraph)
+- `component: backend` — related to stigmer-server or stigmer-service
+- `component: gateway` — related to the API gateway (CORS, routing, auth)
+- `component: iam` — related to identity, auth, identity providers, API keys
+- `component: sdk-react` — related to `@stigmer/react`
+- `component: sdk-go` — related to the Go SDK
+- `component: sdk-python` — related to the Python SDK
+- `component: workflow` — related to workflow engine
+
+**Priority labels** (exactly one):
+- `priority: high` — blocks users, data loss, security, or core functionality broken
+- `priority: medium` — impacts users but has a workaround
+- `priority: low` — nice to have, cosmetic, minor improvement
+
+**Source labels** (if applicable):
+- `community` — filed by a non-team member
+- `source: discord` — originated from a Discord conversation
+
+**Special labels** (if applicable):
+- `good first issue` — well-scoped, self-contained, good for new contributors
+- `help wanted` — team would welcome external contributions
+- `breaking-change` — introduces a breaking change
+
+### Step 3: Present and apply
+
+For each issue, present the suggested labels:
+
+```
+--- Issue #N: {title} ---
+Author: @{author}
+Current labels: {existing labels or "none"}
+
+Suggested labels:
+  Type: {bug/enhancement/question/documentation}
+  Component: {component labels}
+  Priority: {priority level}
+  Source: {community, source: discord, or none}
+  Special: {good first issue, help wanted, or none}
+
+Action: [Apply] [Edit] [Skip]
+```
+
+On approval, run:
+```
+gh issue edit {number} --add-label "{label1},{label2},{label3}"
+```
+
+If the issue had `needs-triage`, remove it:
+```
+gh issue edit {number} --remove-label "needs-triage"
+```
+
+---
+
+## Mode 2: Resolve
+
+### Step 1: Fetch issue details
+
+When the user says "resolve issue #N" or "close issue #N":
+
+```
+gh issue view {number} --json number,title,body,labels,author,state,comments
+```
+
+If the issue is already closed, report it and stop.
+
+### Step 2: Gather resolution context
+
+Ask the user (or infer from conversation context):
+- What fixed it? (PR link, commit, or description)
+- What version will it ship in? (if known)
+
+### Step 3: Find linked Discord message
+
+Fetch Discord credentials from Planton MCP:
+1. Call `get_secret_value` with `org: "stigmer"`, `group_name: "discord-bot"`, `entry_name: "prod.bot-token"`
+2. Call `get_secret_value` with `org: "stigmer"`, `group_name: "discord-bot"`, `entry_name: "prod.server-id"`
+
+Then scan recent Discord `#general` messages for the issue URL:
+```
+GET /channels/{general_channel_id}/messages?limit=100
+```
+
+Search message content for `github.com/stigmer/stigmer/issues/{number}`. If found, note the message ID and author for the resolution reply.
+
+### Step 4: Draft resolution messages
+
+**GitHub close comment:**
+> Fixed in {PR link or version}. {Brief description of what was done}.
+
+**Discord resolution message** (only if a linked Discord message was found):
+> Fixed! {Brief description}. Shipped in {version/PR}. Thanks @{reporter} for reporting this.
+
+Present both for approval:
+```
+--- Resolve Issue #{number}: {title} ---
+
+GitHub close comment:
+  {drafted comment}
+
+Discord resolution (reply to @{author}'s message in #general):
+  {drafted Discord message}
+
+Action: [Send Both] [GitHub Only] [Edit] [Skip]
+```
+
+### Step 5: Execute on approval
+
+1. Close the GitHub issue with the comment:
+   ```
+   gh issue close {number} --comment "{approved comment}"
+   ```
+
+2. If a Discord message was linked, post the resolution as a reply:
+   ```
+   POST /channels/{channel_id}/messages
+   {
+     "content": "{approved Discord message}",
+     "message_reference": {"message_id": "{original_message_id}"}
+   }
+   ```
+
+3. Add a checkmark reaction to the original Discord message:
+   ```
+   PUT /channels/{channel_id}/messages/{original_message_id}/reactions/%E2%9C%85/@me
+   ```
+
+4. If the issue had `status: in-progress`, remove it:
+   ```
+   gh issue edit {number} --remove-label "status: in-progress"
+   ```
+
+---
+
+## Mode 3: Health Report
+
+### Step 1: Fetch all open issues
+
+```
+gh issue list --state open --limit 100 --json number,title,labels,author,createdAt,updatedAt
+```
+
+### Step 2: Generate report
+
+```
+=== Stigmer GitHub Issue Health Report ===
+Date: {current date}
+Repo: stigmer/stigmer
+
+--- Summary ---
+Open issues: {count}
+Average age: {days}
+Oldest issue: #{number} ({title}) — {age} days
+
+--- By Priority ---
+High: {count} issues
+Medium: {count} issues
+Low: {count} issues
+Unlabeled priority: {count} issues
+
+--- By Component ---
+{component}: {count} issues
+...
+
+--- Needs Attention ---
+[STALE] #{number} {title} — no activity for {days} days
+[NO LABELS] #{number} {title} — needs triage
+[NO PRIORITY] #{number} {title} — has type/component but missing priority
+[IN PROGRESS > 7d] #{number} {title} — marked in-progress but no update in {days} days
+
+--- Closed This Week ---
+#{number} {title} — closed {relative_time}
+```
+
+---
+
+## Label Conventions
+
+When applying labels, follow these rules:
+
+- Every issue must have exactly **one type** label (`bug`, `enhancement`, `question`, `documentation`)
+- Every issue must have at least **one component** label
+- Every issue must have exactly **one priority** label
+- Add `community` if the author is not a team member (check GitHub org membership via `gh api orgs/stigmer/members/{author} --silent` — 204 means member, 404 means not)
+- Add `source: discord` if the issue body or conversation references Discord
+- Add `status: in-progress` when you start actively working on an issue; remove it when resolved
+- `needs-triage` is a temporary label — it must be removed once proper labels are applied
+
+## Important Notes
+
+- **Never close issues without user approval.** Always present the close comment and Discord message for review first.
+- **Never auto-label.** Always present suggested labels for review before applying.
+- **Credit the reporter.** Resolution messages on both GitHub and Discord should mention the original author.
+- **Link PRs to issues.** When closing with a PR reference, use the format "Fixed in #PR" so GitHub auto-links them.
+- **Discord credentials** are fetched from Planton MCP at runtime, same as the Discord community health rule. Never hardcode tokens.
+
+@docs/vocabulary.md
