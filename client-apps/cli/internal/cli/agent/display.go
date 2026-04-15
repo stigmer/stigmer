@@ -4,7 +4,7 @@ package agent
 import (
 	"fmt"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )

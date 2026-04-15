@@ -9,10 +9,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apply"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
@@ -69,11 +70,12 @@ func executeProjectApply(detectResult *project.DetectResult, opts projectApplyOp
 		return err
 	}
 
-	conn, err := connectAndEnsureDaemon(cfg)
+	client, err := connectAndEnsureDaemon(cfg)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn().(*grpc.ClientConn)
 
 	members, appliedServers, err := pushAndApplyResources(synthResult.Result, detectResult.ConfigDir, conn, orgID)
 	if err != nil {
@@ -121,8 +123,8 @@ func runSynthesis(projectDir, entryPoint string, runtime apply.Runtime, orgID st
 }
 
 // connectAndEnsureDaemon ensures the daemon is running (local mode) and
-// returns a gRPC connection. The caller is responsible for org resolution.
-func connectAndEnsureDaemon(cfg *config.Config) (*grpc.ClientConn, error) {
+// returns a Stigmer API client. The caller is responsible for org resolution.
+func connectAndEnsureDaemon(cfg *config.Config) (*stigmer.Client, error) {
 	if cfg.Backend.Type == config.BackendTypeLocal {
 		dataDir, err := config.GetDataDir()
 		if err != nil {
@@ -134,13 +136,13 @@ func connectAndEnsureDaemon(cfg *config.Config) (*grpc.ClientConn, error) {
 	}
 
 	climsg.Info("Connecting to backend...")
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to backend")
 	}
 	climsg.Info("Connected to backend")
 
-	return conn, nil
+	return client, nil
 }
 
 // pushAndApplyResources pushes skills and applies agents/workflows/MCP servers,

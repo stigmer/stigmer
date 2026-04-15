@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
 

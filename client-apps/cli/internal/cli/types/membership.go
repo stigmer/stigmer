@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // IsProjectMemberKind returns true if resources of this kind participate in

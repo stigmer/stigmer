@@ -6,7 +6,7 @@ package envfile
 import (
 	"strconv"
 
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
 )
 
 // EnvMap is a convenience type for environment variable maps.

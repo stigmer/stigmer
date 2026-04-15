@@ -23,7 +23,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//apis/stubs/go/ai/stigmer/commons/rpc",
         "//apis/stubs/go/ai/stigmer/search/v1:search",
-        "//backend/libs/go/mcpdiscovery",
+        "//client-apps/cli/internal/cli/mcpdiscovery:mcpdiscovery",
         "//client-apps/cli/internal/cli/applier",
         "//client-apps/cli/internal/cli/browser",
         "//client-apps/cli/internal/cli/config",
@@ -38,7 +38,6 @@ go_library(
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_protobuf//encoding/protojson",
         "@org_golang_google_protobuf//proto",
-        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )
 

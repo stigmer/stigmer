@@ -4,8 +4,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/kindmeta"
 )
 
 // Registry provides type information for CLI commands.
@@ -98,7 +98,7 @@ func buildRegistry() *registry {
 
 // buildTypeInfo creates TypeInfo from proto metadata for a kind.
 func buildTypeInfo(kind apiresourcekind.ApiResourceKind) *TypeInfo {
-	meta, err := apiresource.GetKindMeta(kind)
+	meta, err := kindmeta.GetMeta(kind)
 	if err != nil || meta == nil {
 		return nil
 	}

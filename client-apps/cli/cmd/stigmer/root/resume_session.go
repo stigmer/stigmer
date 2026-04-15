@@ -7,7 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
@@ -25,12 +25,13 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 	sp := spinner.New(os.Stderr)
 	sp.Start("Connecting...")
 
-	conn, orgID, err := connectToBackend(orgOverride)
+	client, orgID, err := connectToBackend(orgOverride)
 	if err != nil {
 		sp.Stop()
 		return err
 	}
-	defer conn.Close()
+	defer client.Close()
+	conn := client.Conn().(*grpc.ClientConn)
 
 	return openSession(sessionID, orgID, verbose, outputMode, conn, sp)
 }

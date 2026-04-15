@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )

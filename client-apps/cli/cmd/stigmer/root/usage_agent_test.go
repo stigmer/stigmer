@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 func TestRenderAgentUsageTable_BasicReport(t *testing.T) {

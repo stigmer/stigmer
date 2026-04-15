@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/backend/libs/go/mcpdiscovery"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpdiscovery"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ConnectOptions configures an MCP server capability discovery run.
@@ -195,6 +194,5 @@ func localDiscover(ctx context.Context, server *mcpserverv1.McpServer, envOverri
 	if err != nil {
 		return nil, errors.Wrapf(err, "discovery failed for MCP server '%s'", server.Metadata.Name)
 	}
-	caps.LastDiscoveredAt = timestamppb.Now()
 	return caps, nil
 }

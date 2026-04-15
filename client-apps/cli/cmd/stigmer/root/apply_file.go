@@ -11,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agentinstance"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
@@ -136,11 +136,12 @@ func executeFileApply(opts fileApplyOptions) error {
 		}
 
 		fmt.Fprintf(os.Stderr, "Connecting to backend...\n")
-		conn, err := backend.NewConnection()
+		client, err := backend.NewStigmerClient()
 		if err != nil {
 			return errors.Wrap(err, "failed to connect to backend")
 		}
-		defer conn.Close()
+		defer client.Close()
+		conn := client.Conn()
 		fctx.conn = conn
 		fmt.Fprintf(os.Stderr, "Connected to backend\n\n")
 	}

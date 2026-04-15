@@ -3,7 +3,7 @@ package applier
 import (
 	"sort"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // DefaultApplyOrder defines the apply priority for resource kinds.
