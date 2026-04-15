@@ -54,9 +54,10 @@ const TEST_SPEED = 4;
  * Time to wait after a step transition for mid-step interactions
  * (scroll-to, set-cursor) to fire and smooth scroll to settle.
  * At 4x speed, step durations are ~25% of normal, but smooth scroll
- * animation is constant (~300-500ms). 2s covers the worst case.
+ * animation is constant (~300-500ms). 1s covers the scroll settle
+ * while keeping total test time manageable for 12-step tours.
  */
-const INTERACTION_SETTLE_MS = 2_000;
+const INTERACTION_SETTLE_MS = 1_000;
 
 /**
  * Maximum wall-clock time for a full accelerated demo playback.

@@ -134,4 +134,3 @@ func parseContent(content []byte, filePath string) (*agentv1.Agent, error) {
 
 	return agent, nil
 }
-

@@ -350,7 +350,7 @@ interface DerivedTarget {
   type: "scroll-target" | "cursor-target";
 }
 
-interface DerivedStepContract {
+interface _DerivedStepContract {
   targets: DerivedTarget[];
   cursorMustAlign?: string;
 }

@@ -79,4 +79,3 @@ func parseContent(content []byte, filePath string) (*organizationv1.Organization
 
 	return org, nil
 }
-

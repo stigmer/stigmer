@@ -20,8 +20,8 @@ const (
 	// DefaultCloudConsoleURL is the well-known URL for the Stigmer Cloud web console.
 	DefaultCloudConsoleURL = "https://app.stigmer.ai"
 
-	oauthPollInterval = 3 * time.Second
-	oauthPollTimeout  = 5 * time.Minute
+	oauthPollInterval   = 3 * time.Second
+	oauthPollTimeout    = 5 * time.Minute
 	consoleProbeTimeout = 2 * time.Second
 )
 
