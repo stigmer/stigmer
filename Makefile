@@ -79,10 +79,12 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 # ─── Build ────────────────────────────────────
 
 .PHONY: build protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check
-build: ## Build the Stigmer CLI binary
+build: ## Build Stigmer CLI, server, and workflow-runner binaries
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
-	@echo "built: bin/stigmer"
+	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
+	cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner .
+	@echo "built: bin/stigmer, bin/stigmer-server, bin/stigmer-workflow-runner"
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -269,13 +271,17 @@ update-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
 DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner
 
 .PHONY: local
-local: ## Build + install CLI for local development
-	@rm -f $(HOME)/bin/stigmer /usr/local/bin/stigmer bin/stigmer 2>/dev/null || true
+local: ## Build + install CLI, server, and workflow-runner for local development
+	@rm -f $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server $(HOME)/bin/stigmer-workflow-runner 2>/dev/null || true
+	@rm -f /usr/local/bin/stigmer bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner 2>/dev/null || true
 	@$(MAKE) web-console-build
 	@mkdir -p bin $(HOME)/bin
 	@cd client-apps/cli && go build -tags 'embed_webconsole' -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
-	@cp bin/stigmer $(HOME)/bin/stigmer && chmod +x $(HOME)/bin/stigmer
-	@echo "cli: installed $(HOME)/bin/stigmer"
+	@cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
+	@cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner .
+	@cp bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner $(HOME)/bin/
+	@chmod +x $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server $(HOME)/bin/stigmer-workflow-runner
+	@echo "installed: $(HOME)/bin/stigmer, stigmer-server, stigmer-workflow-runner"
 	@stigmer --version 2>/dev/null || echo "cli: development build"
 	@echo ""
 	@echo "stigmer server will auto-detect API keys from your environment."
@@ -372,6 +378,7 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 .PHONY: clean
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
+	rm -rf backend/services/stigmer-server/bin/
 	rm -rf backend/services/workflow-runner/bin/
 	rm -rf client-apps/cli/embedded/agentrunner/source/
 	rm -rf client-apps/cli/embedded/webconsole/out/

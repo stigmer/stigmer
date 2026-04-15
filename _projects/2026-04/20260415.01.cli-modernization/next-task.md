@@ -139,28 +139,39 @@ When starting a new session:
 - **Daemon updated**: Now launches standalone `stigmer-server` / `stigmer-workflow-runner` binaries instead of self-executing
 - All tests pass, binary runs clean
 
+## Session Progress (2026-04-15, Session 7)
+
+- **Release pipeline COMPLETE**: `release.cli.yaml` now builds and ships `stigmer-server` and `stigmer-workflow-runner` alongside the CLI for all 3 platforms
+- **OAuth ldflags fixed**: Removed stale flags from CLI build, moved to `stigmer-server` build where they belong
+- **Tarballs include all 3 binaries**: `stigmer`, `stigmer-server`, `stigmer-workflow-runner`
+- **Homebrew formula updated**: Installs all 3 binaries
+- **Makefile updated**: `build` and `local` targets produce all 3 binaries
+- **Release docs updated**: Stage 2 description, tarball contents table, checklists
+- **Decision**: Use `backend/services/workflow-runner/main.go` (lean Stigmer-specific entry point) not `cmd/zigflow` (full Cobra CLI)
+
 ## Next Steps
 
-1. Update release pipeline to build and ship separate `stigmer-server` and `stigmer-workflow-runner` binaries alongside the CLI
-2. Gradually replace `client.Conn()` + raw stub patterns with SDK sub-client methods (e.g., `client.Session.Get()` instead of `NewSessionQueryControllerClient(conn).Get()`)
-3. Evaluate Go CLI Ink integration (T04 Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
-4. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
+1. Gradually replace `client.Conn()` + raw stub patterns with SDK sub-client methods (e.g., `client.Session.Get()` instead of `NewSessionQueryControllerClient(conn).Get()`)
+2. Evaluate Go CLI Ink integration (T04 Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
+3. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
 
 ## Context for Resume
 
 - CLI uses `stigmer.NewClient(opts...)` from `sdk/go` for all connection management
 - CLI uses `sdk/go/proto/...` for all proto types (NOT `apis/stubs/go`)
-- CLI no longer embeds stigmer-server/workflow-runner (separate binaries needed for local mode)
+- CLI no longer embeds stigmer-server/workflow-runner (separate binaries ship alongside)
 - `client.Conn()` provides raw `grpc.ClientConnInterface` for transitional raw stub access
 - `@stigmer/ink` is E2E validated — works against live Stigmer API
 - Go CLI rendering layer is ~37K lines of well-tested Go code — significant effort to replace
+- Release pipeline ships 3 binaries per platform (stigmer, stigmer-server, stigmer-workflow-runner)
+- OAuth client credentials are injected into stigmer-server via ldflags (not CLI)
 
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: Release pipeline update (ship separate server/runner binaries)
-**Status**: T05 COMPLETE, release pipeline update PENDING
-**Last Session**: 2026-04-15 (Session 6) — CLI Go SDK refactor
+**Current Task**: SDK sub-client migration (incremental)
+**Status**: Release pipeline COMPLETE, SDK sub-client migration PENDING
+**Last Session**: 2026-04-15 (Session 7) — Release pipeline update
 
 ## Quick Commands
 

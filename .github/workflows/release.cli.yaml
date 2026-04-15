@@ -232,31 +232,44 @@ jobs:
       - name: Build CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
-          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
-          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
         run: |
           cd client-apps/cli
           go build -tags 'embed_agentrunner embed_webconsole' \
             -ldflags="-s -w \
-              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION \
-              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
-              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" \
             -o ../../bin/stigmer .
 
-      - name: Verify binary
+      - name: Build stigmer-server
+        env:
+          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
+          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
+        run: |
+          cd backend/services/stigmer-server
+          go build -ldflags="-s -w \
+            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
+            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+            -o ../../../bin/stigmer-server ./cmd/server
+
+      - name: Build stigmer-workflow-runner
+        run: |
+          cd backend/services/workflow-runner
+          go build -ldflags="-s -w" \
+            -o ../../../bin/stigmer-workflow-runner .
+
+      - name: Verify binaries
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          file bin/stigmer
-          ls -lh bin/stigmer
+          file bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner
+          ls -lh bin/
           ./bin/stigmer --version || echo "Version: $VERSION"
 
-      - name: Package CLI
+      - name: Package
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd bin
-          tar -czf stigmer-$VERSION-darwin-arm64.tar.gz stigmer
+          tar -czf stigmer-$VERSION-darwin-arm64.tar.gz stigmer stigmer-server stigmer-workflow-runner
           shasum -a 256 stigmer-$VERSION-darwin-arm64.tar.gz > stigmer-$VERSION-darwin-arm64.tar.gz.sha256
 
       - name: Upload artifacts
@@ -305,31 +318,49 @@ jobs:
           GOARCH: amd64
           GOOS: darwin
           VERSION: ${{ needs.determine-version.outputs.version }}
-          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
-          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
         run: |
           cd client-apps/cli
           go build -tags 'embed_agentrunner embed_webconsole' \
             -ldflags="-s -w \
-              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION \
-              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
-              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" \
             -o ../../bin/stigmer .
 
-      - name: Verify binary
+      - name: Build stigmer-server (cross-compile to Intel)
+        env:
+          GOARCH: amd64
+          GOOS: darwin
+          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
+          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
+        run: |
+          cd backend/services/stigmer-server
+          go build -ldflags="-s -w \
+            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
+            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+            -o ../../../bin/stigmer-server ./cmd/server
+
+      - name: Build stigmer-workflow-runner (cross-compile to Intel)
+        env:
+          GOARCH: amd64
+          GOOS: darwin
+        run: |
+          cd backend/services/workflow-runner
+          go build -ldflags="-s -w" \
+            -o ../../../bin/stigmer-workflow-runner .
+
+      - name: Verify binaries
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          file bin/stigmer
-          ls -lh bin/stigmer
-          echo "Version: $VERSION (Intel binary, cannot run on ARM Mac)"
+          file bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner
+          ls -lh bin/
+          echo "Version: $VERSION (Intel binaries, cannot run on ARM Mac)"
 
-      - name: Package CLI
+      - name: Package
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd bin
-          tar -czf stigmer-$VERSION-darwin-amd64.tar.gz stigmer
+          tar -czf stigmer-$VERSION-darwin-amd64.tar.gz stigmer stigmer-server stigmer-workflow-runner
           shasum -a 256 stigmer-$VERSION-darwin-amd64.tar.gz > stigmer-$VERSION-darwin-amd64.tar.gz.sha256
 
       - name: Upload artifacts
@@ -376,31 +407,44 @@ jobs:
       - name: Build CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
-          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
-          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
         run: |
           cd client-apps/cli
           go build -tags 'embed_agentrunner embed_webconsole' \
             -ldflags="-s -w \
-              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION \
-              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
-              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" \
             -o ../../bin/stigmer .
 
-      - name: Verify binary
+      - name: Build stigmer-server
+        env:
+          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
+          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
+        run: |
+          cd backend/services/stigmer-server
+          go build -ldflags="-s -w \
+            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
+            -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+            -o ../../../bin/stigmer-server ./cmd/server
+
+      - name: Build stigmer-workflow-runner
+        run: |
+          cd backend/services/workflow-runner
+          go build -ldflags="-s -w" \
+            -o ../../../bin/stigmer-workflow-runner .
+
+      - name: Verify binaries
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          file bin/stigmer
-          ls -lh bin/stigmer
+          file bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner
+          ls -lh bin/
           ./bin/stigmer --version || echo "Version: $VERSION"
 
-      - name: Package CLI
+      - name: Package
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd bin
-          tar -czf stigmer-$VERSION-linux-amd64.tar.gz stigmer
+          tar -czf stigmer-$VERSION-linux-amd64.tar.gz stigmer stigmer-server stigmer-workflow-runner
           sha256sum stigmer-$VERSION-linux-amd64.tar.gz > stigmer-$VERSION-linux-amd64.tar.gz.sha256
 
       - name: Upload artifacts
@@ -489,7 +533,7 @@ jobs:
           Extract and install:
           \`\`\`bash
           tar -xzf stigmer-$VERSION-<platform>.tar.gz
-          sudo mv stigmer /usr/local/bin/
+          sudo mv stigmer stigmer-server stigmer-workflow-runner /usr/local/bin/
           \`\`\`
 
           ## What's New
@@ -592,6 +636,8 @@ jobs:
 
             def install
               bin.install "stigmer"
+              bin.install "stigmer-server"
+              bin.install "stigmer-workflow-runner"
             end
 
             def caveats
