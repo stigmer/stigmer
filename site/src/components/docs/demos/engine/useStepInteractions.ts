@@ -194,7 +194,15 @@ function executeAction(
       const el = container.querySelector(
         `[data-scroll-target="${action.target}"]`,
       );
-      if (!el) return;
+      if (!el) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[StepInteractions] scroll-to target "${action.target}" not found in DOM. ` +
+              `Ensure a [data-scroll-target="${action.target}"] element exists in the container.`,
+          );
+        }
+        return;
+      }
       if (isVideoExport) {
         scrollTargetIntoViewInstant(el);
       } else {
@@ -203,9 +211,24 @@ function executeAction(
       break;
     }
 
-    case "set-cursor":
+    case "set-cursor": {
+      if (process.env.NODE_ENV === "development" && action.target) {
+        const container = containerRef.current;
+        if (container) {
+          const el = container.querySelector(
+            `[data-cursor-target="${action.target}"]`,
+          );
+          if (!el) {
+            console.warn(
+              `[StepInteractions] set-cursor target "${action.target}" not found in DOM. ` +
+                `Ensure a [data-cursor-target="${action.target}"] element exists in the container.`,
+            );
+          }
+        }
+      }
       setCursorTarget(action.target);
       break;
+    }
 
     case "clear-cursor":
       setCursorTarget(undefined);

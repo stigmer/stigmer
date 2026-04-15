@@ -10,11 +10,14 @@
  * 3. At each contracted step (detected via data-demo-step), waits for
  *    mid-step interactions to settle, then asserts that declared target
  *    elements are visible inside the demo's scroll container.
- * 4. Takes a visual regression screenshot at each contracted step.
+ * 4. For steps with cursorMustAlign, verifies the cursor overlay is
+ *    positioned within tolerance of the target element's center.
+ * 5. Takes a visual regression screenshot at each contracted step.
  *
  * Visibility checks use page.evaluate with getBoundingClientRect
  * inside the page context. This avoids Playwright's known issues
- * with CSS `zoom` property (#21192, #7642).
+ * with CSS `zoom` property (#21192, #7642). Checks require full
+ * containment (target fully inside container), not just intersection.
  *
  * This suite complements demo.spec.ts (which auto-checks all scroll
  * targets) by additionally verifying specific cursor targets and
@@ -32,6 +35,7 @@ import { test, expect } from "@playwright/test";
 interface StepAssertion {
   targets: string[];
   scrollContainer?: string;
+  cursorMustAlign?: string;
 }
 
 interface ManifestEntry {
@@ -80,6 +84,26 @@ const INTERACTION_SETTLE_MS = 1_500;
 /** Maximum wall-clock time for a demo to reach a target step at 2x. */
 const STEP_TIMEOUT_MS = 45_000;
 
+/**
+ * Sub-pixel tolerance for containment checks. CSS zoom produces
+ * fractional pixel values that can push a rect 1-2px outside its
+ * parent even when the element is visually contained.
+ */
+const CONTAINMENT_TOLERANCE_PX = 2;
+
+/**
+ * Maximum distance in CSS pixels between the cursor overlay
+ * position and the target element's center. Accounts for spring
+ * animation overshoot and sub-pixel rounding from CSS zoom.
+ */
+const CURSOR_ALIGNMENT_TOLERANCE_PX = 25;
+
+/**
+ * Extra wait time after the interaction settle delay for the cursor
+ * spring animation to reach its target before checking alignment.
+ */
+const CURSOR_SETTLE_MS = 600;
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -87,7 +111,7 @@ const STEP_TIMEOUT_MS = 45_000;
 for (const fixture of fixtures) {
   const contract = fixture.visibilityContract!;
 
-  test.describe(`Demo: ${fixture.scenarioId}`, () => {
+  test.describe(`Demo: ${fixture.scenarioId} on ${fixture.pagePath}`, () => {
     const contractSteps = Object.entries(contract).map(
       ([stepStr, assertion]) => ({
         stepIndex: Number(stepStr),
@@ -105,48 +129,63 @@ for (const fixture of fixtures) {
       const pageUrl = `${fixture.pagePath}?__test_speed=${TEST_SPEED}`;
       await page.goto(pageUrl, { waitUntil: "networkidle" });
 
-      // Wait for the play button to appear
-      await page.waitForFunction(() => {
-        const buttons = document.querySelectorAll(
-          '[role="button"][aria-label="Play demo"]',
-        );
-        return buttons.length > 0;
-      }, undefined, { timeout: 15_000 });
+      const demoIdx = fixture.demoIndex;
 
-      // Click via JS to avoid actionability issues on some pages
-      for (let attempt = 0; attempt < 5; attempt++) {
-        await page.evaluate(() => {
-          const btn = document.querySelector(
-            '[role="button"][aria-label="Play demo"]',
-          ) as HTMLElement | null;
-          if (btn) {
-            btn.scrollIntoView({ block: "center", behavior: "instant" });
-            btn.click();
-          }
-        });
-        await page.waitForTimeout(1_000);
-        const gone = await page.evaluate(() => {
-          const btn = document.querySelector(
+      await page.waitForFunction(
+        (idx) => {
+          const buttons = document.querySelectorAll(
             '[role="button"][aria-label="Play demo"]',
           );
-          return !btn || (btn as HTMLElement).offsetParent === null;
-        });
-        if (gone) break;
+          return buttons.length > idx;
+        },
+        demoIdx,
+        { timeout: 15_000 },
+      );
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const clicked = await page.evaluate((idx) => {
+          const buttons = document.querySelectorAll(
+            '[role="button"][aria-label="Play demo"]',
+          );
+          const btn = buttons[idx] as HTMLElement | undefined;
+          if (!btn) return false;
+          btn.scrollIntoView({ block: "center", behavior: "instant" });
+          btn.click();
+          return true;
+        }, demoIdx);
+
+        if (!clicked) break;
+
+        await page.waitForTimeout(1_000);
+        const stillVisible = await page.evaluate((idx) => {
+          const buttons = document.querySelectorAll(
+            '[role="button"][aria-label="Play demo"]',
+          );
+          return buttons.length > idx &&
+            (buttons[idx] as HTMLElement).offsetParent !== null;
+        }, demoIdx);
+
+        if (!stillVisible) break;
       }
 
-      const demoContainer = page.locator("[data-demo-step]").first();
+      const demoContainers = page.locator("[data-demo-step]");
+      const containerCount = await demoContainers.count();
+      const demoContainer = containerCount > demoIdx
+        ? demoContainers.nth(demoIdx)
+        : demoContainers.first();
       await expect(demoContainer).toBeVisible();
 
       for (const step of contractSteps) {
         await page.waitForFunction(
-          ({ containerSelector, targetStep }) => {
-            const el = document.querySelector(containerSelector);
+          ({ containerIdx, targetStep }) => {
+            const containers = document.querySelectorAll("[data-demo-step]");
+            const el = containers[containerIdx] ?? containers[0];
             if (!el) return false;
             const current = Number(el.getAttribute("data-demo-step") ?? "-1");
             return current >= targetStep;
           },
           {
-            containerSelector: "[data-demo-step]",
+            containerIdx: demoIdx,
             targetStep: step.stepIndex,
           },
           { timeout: STEP_TIMEOUT_MS, polling: 200 },
@@ -154,12 +193,19 @@ for (const fixture of fixtures) {
 
         await page.waitForTimeout(INTERACTION_SETTLE_MS);
 
+        const currentStepAfterSettle = Number(
+          await demoContainer.getAttribute("data-demo-step") ?? "-1",
+        );
+        if (currentStepAfterSettle !== step.stepIndex) {
+          continue;
+        }
+
         const scrollSelector =
           step.scrollContainer ?? "[data-scroll-container]";
 
         for (const targetId of step.targets) {
           const isVisible = await demoContainer.evaluate(
-            (container, { targetId, scrollSelector }) => {
+            (container, { targetId, scrollSelector, tolerance }) => {
               const target =
                 container.querySelector(
                   `[data-scroll-target="${targetId}"]`,
@@ -171,27 +217,22 @@ for (const fixture of fixtures) {
               if (!target) return { found: false, visible: false, reason: "not-found" };
 
               const scrollParent = container.querySelector(scrollSelector);
-              if (!scrollParent) {
-                const rect = target.getBoundingClientRect();
-                const inViewport =
-                  rect.top < window.innerHeight &&
-                  rect.bottom > 0 &&
-                  rect.left < window.innerWidth &&
-                  rect.right > 0;
-                return { found: true, visible: inViewport, reason: inViewport ? "ok" : "out-of-viewport" };
-              }
-
-              const containerRect = scrollParent.getBoundingClientRect();
+              const ref = scrollParent ?? container;
+              const refRect = ref.getBoundingClientRect();
               const targetRect = target.getBoundingClientRect();
-              const visible =
-                targetRect.top < containerRect.bottom &&
-                targetRect.bottom > containerRect.top &&
-                targetRect.left < containerRect.right &&
-                targetRect.right > containerRect.left;
+              const contained =
+                targetRect.top >= refRect.top - tolerance &&
+                targetRect.bottom <= refRect.bottom + tolerance &&
+                targetRect.left >= refRect.left - tolerance &&
+                targetRect.right <= refRect.right + tolerance;
 
-              return { found: true, visible, reason: visible ? "ok" : "out-of-scroll-container" };
+              return {
+                found: true,
+                visible: contained,
+                reason: contained ? "ok" : "not-fully-contained",
+              };
             },
-            { targetId, scrollSelector },
+            { targetId, scrollSelector, tolerance: CONTAINMENT_TOLERANCE_PX },
           );
 
           expect(
@@ -201,9 +242,73 @@ for (const fixture of fixtures) {
 
           expect(
             isVisible.visible,
-            `Step ${step.stepIndex}: target "${targetId}" is not visible ` +
+            `Step ${step.stepIndex}: target "${targetId}" is not fully visible ` +
               `in scroll container (${isVisible.reason})`,
           ).toBe(true);
+        }
+
+        if (step.cursorMustAlign) {
+          await page.waitForTimeout(CURSOR_SETTLE_MS);
+
+          const alignment = await demoContainer.evaluate(
+            (container, { targetId, tolerance }) => {
+              const cursor = container.querySelector(
+                ".pointer-events-none.absolute.z-50",
+              ) as HTMLElement | null;
+              const target = container.querySelector(
+                `[data-cursor-target="${targetId}"]`,
+              );
+
+              if (!cursor || !target) {
+                return {
+                  found: false as const,
+                  reason: !cursor ? "cursor-not-found" : "target-not-found",
+                };
+              }
+
+              const transform = getComputedStyle(cursor).transform;
+              if (!transform || transform === "none") {
+                return { found: false as const, reason: "no-cursor-transform" };
+              }
+
+              const matrix = new DOMMatrix(transform);
+              const cx = matrix.m41;
+              const cy = matrix.m42;
+
+              const tRect = target.getBoundingClientRect();
+              const containerRect = container.getBoundingClientRect();
+              const zoom =
+                containerRect.width /
+                  (container as HTMLElement).offsetWidth || 1;
+              const targetCenterX =
+                (tRect.left - containerRect.left + tRect.width / 2) / zoom;
+              const targetCenterY =
+                (tRect.top - containerRect.top + tRect.height / 2) / zoom;
+
+              const dx = Math.abs(cx - targetCenterX);
+              const dy = Math.abs(cy - targetCenterY);
+
+              return {
+                found: true as const,
+                dx: Math.round(dx),
+                dy: Math.round(dy),
+                aligned: dx <= tolerance && dy <= tolerance,
+              };
+            },
+            {
+              targetId: step.cursorMustAlign,
+              tolerance: CURSOR_ALIGNMENT_TOLERANCE_PX,
+            },
+          );
+
+          if (alignment.found) {
+            expect(
+              alignment.aligned,
+              `Step ${step.stepIndex}: cursor is ${alignment.dx}px/${alignment.dy}px ` +
+                `from target "${step.cursorMustAlign}" center ` +
+                `(tolerance: ${CURSOR_ALIGNMENT_TOLERANCE_PX}px)`,
+            ).toBe(true);
+          }
         }
 
         await expect(demoContainer).toHaveScreenshot(
