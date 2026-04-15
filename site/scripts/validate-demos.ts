@@ -566,10 +566,11 @@ async function generateTestManifest(
       }
 
       const entry: DemoManifestEntry = { scenarioId, pagePath, demoIndex };
-      const merged = mergeContracts(
-        derivedContracts.get(scenarioId) ?? null,
-        manualContracts.get(scenarioId),
-      );
+      const manual = manualContracts.get(scenarioId);
+      const derived = demoIndex === 0
+        ? derivedContracts.get(scenarioId) ?? null
+        : null;
+      const merged = mergeContracts(derived, manual);
       if (merged) {
         entry.visibilityContract = merged;
       }

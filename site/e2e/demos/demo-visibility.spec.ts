@@ -172,6 +172,17 @@ for (const fixture of fixtures) {
         if (!stillVisible) break;
       }
 
+      // Wait for enough demo containers to exist for our demoIndex
+      if (demoIdx > 0) {
+        await page.waitForFunction(
+          (needed) => {
+            return document.querySelectorAll("[data-demo-step]").length > needed;
+          },
+          demoIdx,
+          { timeout: 15_000 },
+        );
+      }
+
       const demoContainers = page.locator("[data-demo-step]");
       const containerCount = await demoContainers.count();
       const demoContainer = containerCount > demoIdx
@@ -183,7 +194,7 @@ for (const fixture of fixtures) {
         await page.waitForFunction(
           ({ containerIdx, targetStep }) => {
             const containers = document.querySelectorAll("[data-demo-step]");
-            const el = containers[containerIdx] ?? containers[0];
+            const el = containers[containerIdx];
             if (!el) return false;
             const current = Number(el.getAttribute("data-demo-step") ?? "-1");
             return current >= targetStep;
