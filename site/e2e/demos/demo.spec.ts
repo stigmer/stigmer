@@ -58,8 +58,12 @@ const TEST_SPEED = 4;
  */
 const INTERACTION_SETTLE_MS = 2_000;
 
-/** Maximum wall-clock time for a full accelerated demo playback. */
-const PLAYBACK_TIMEOUT_MS = 45_000;
+/**
+ * Maximum wall-clock time for a full accelerated demo playback.
+ * Long tours (12+ steps) need ~30s for settle waits alone at 4x,
+ * plus narration time. 90s covers the worst case.
+ */
+const PLAYBACK_TIMEOUT_MS = 90_000;
 
 // ---------------------------------------------------------------------------
 // Helpers

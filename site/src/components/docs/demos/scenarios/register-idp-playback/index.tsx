@@ -184,7 +184,7 @@ function ConfigureContent() {
           hint="The aud claim value expected in JWTs from this provider"
         />
       </div>
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-2" data-scroll-target="continue-btn">
         <div className="relative" data-cursor-target="continue-btn">
           <button
             type="button"
@@ -323,6 +323,9 @@ const INTERACTIONS: StepInteractions = {
   0: [
     { atPercent: 0.55, type: "scroll-to", target: "audience-field" },
   ],
+  3: [
+    { atPercent: 0.3, type: "scroll-to", target: "continue-btn" },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -385,7 +388,9 @@ function renderStep(step: RegisterIdpStep) {
           contentKey="configure"
           slideDirection="forward"
         >
-          <ConfigureContent />
+          <div className="h-full overflow-y-auto" data-scroll-container>
+            <ConfigureContent />
+          </div>
         </ManagementShell>
       );
 

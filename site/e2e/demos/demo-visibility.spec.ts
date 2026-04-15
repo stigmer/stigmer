@@ -81,8 +81,12 @@ const TEST_SPEED = 2;
  */
 const INTERACTION_SETTLE_MS = 1_500;
 
-/** Maximum wall-clock time for a demo to reach a target step at 2x. */
-const STEP_TIMEOUT_MS = 45_000;
+/**
+ * Maximum wall-clock time for a demo to reach a target step at 2x.
+ * Long tours (12+ steps) with narration can take 60s+ to reach
+ * late steps. 120s covers the worst case.
+ */
+const STEP_TIMEOUT_MS = 120_000;
 
 /**
  * Sub-pixel tolerance for containment checks. CSS zoom produces
