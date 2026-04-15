@@ -8,7 +8,7 @@
 # ---- Build stage ----
 FROM golang:1.25-alpine AS builder
 
-RUN apk add --no-cache git
+ARG BUILD_VERSION=docker
 
 WORKDIR /build
 
@@ -22,7 +22,7 @@ COPY mcp-server/ mcp-server/
 # Build a statically linked binary.
 RUN cd mcp-server && \
     CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-s -w -X github.com/stigmer/stigmer/mcp-server/internal/server.buildVersion=$(git describe --tags --always --dirty 2>/dev/null || echo docker)" \
+    -ldflags="-s -w -X github.com/stigmer/stigmer/mcp-server/internal/server.buildVersion=${BUILD_VERSION}" \
     -o /mcp-server-stigmer \
     ./cmd/mcp-server-stigmer
 

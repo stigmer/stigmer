@@ -215,6 +215,7 @@ jobs:
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --file mcp-server/Dockerfile \
+            --build-arg BUILD_VERSION=$VERSION \
             --tag ghcr.io/stigmer/mcp-server-stigmer:$VERSION \
             --tag ghcr.io/stigmer/mcp-server-stigmer:latest \
             --push \
