@@ -115,6 +115,7 @@ go_library(
         "//client-apps/cli/embedded",
         "//client-apps/cli/internal/cli/agent",
         "//client-apps/cli/internal/cli/apikey",
+        "//client-apps/cli/internal/cli/applier",
         "//client-apps/cli/internal/cli/apply",
         "//client-apps/cli/internal/cli/artifact",
         "//client-apps/cli/internal/cli/auth",
@@ -173,6 +174,7 @@ go_library(
 go_test(
     name = "root_test",
     srcs = [
+        "apply_coverage_test.go",
         "apply_declarative_test.go",
         "apply_file_handlers_test.go",
         "apply_file_test.go",
