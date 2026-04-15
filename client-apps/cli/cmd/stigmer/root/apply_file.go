@@ -15,14 +15,20 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agentinstance"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/environment"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/identityprovider"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/oauthapp"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflowinstance"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
@@ -59,6 +65,12 @@ func newApplyHandlerRegistry() *applier.Registry {
 	reg.Register(agent.NewApplyHandler())
 	reg.Register(workflow.NewApplyHandler())
 	reg.Register(mcpserver.NewApplyHandler())
+	reg.Register(identityprovider.NewApplyHandler())
+	reg.Register(environment.NewApplyHandler())
+	reg.Register(oauthapp.NewApplyHandler())
+	reg.Register(agentinstance.NewApplyHandler())
+	reg.Register(workflowinstance.NewApplyHandler())
+	reg.Register(session.NewApplyHandler())
 	return reg
 }
 

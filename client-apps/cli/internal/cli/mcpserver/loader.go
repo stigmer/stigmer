@@ -3,7 +3,6 @@
 package mcpserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/yamlutil"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
@@ -100,8 +100,7 @@ func parseContent(content []byte, filePath string) (*mcpserverv1.McpServer, erro
 			return nil, errors.Wrapf(err, "failed to parse YAML from %s", filePath)
 		}
 
-		// Convert to JSON for protojson unmarshaling
-		jsonBytes, err = yamlMapToJSON(intermediate)
+		jsonBytes, err = yamlutil.MapToJSON(intermediate)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to convert YAML to JSON from %s", filePath)
 		}
@@ -123,49 +122,6 @@ func parseContent(content []byte, filePath string) (*mcpserverv1.McpServer, erro
 	}
 
 	return mcpServer, nil
-}
-
-// yamlMapToJSON converts a YAML map to JSON bytes.
-// This handles the conversion of YAML-specific types to JSON-compatible types.
-func yamlMapToJSON(m map[string]interface{}) ([]byte, error) {
-	// Convert YAML map keys to strings and handle special types
-	converted := convertYAMLValue(m)
-
-	// Use standard JSON marshaling
-	return marshalToJSON(converted)
-}
-
-// convertYAMLValue recursively converts YAML values to JSON-compatible values.
-func convertYAMLValue(v interface{}) interface{} {
-	switch val := v.(type) {
-	case map[string]interface{}:
-		result := make(map[string]interface{})
-		for k, v := range val {
-			result[k] = convertYAMLValue(v)
-		}
-		return result
-	case map[interface{}]interface{}:
-		// YAML sometimes produces map[interface{}]interface{}
-		result := make(map[string]interface{})
-		for k, v := range val {
-			keyStr := fmt.Sprintf("%v", k)
-			result[keyStr] = convertYAMLValue(v)
-		}
-		return result
-	case []interface{}:
-		result := make([]interface{}, len(val))
-		for i, v := range val {
-			result[i] = convertYAMLValue(v)
-		}
-		return result
-	default:
-		return val
-	}
-}
-
-// marshalToJSON marshals a value to JSON bytes.
-func marshalToJSON(v interface{}) ([]byte, error) {
-	return json.Marshal(v)
 }
 
 // validateMcpServer performs basic validation on the parsed MCP server.

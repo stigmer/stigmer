@@ -59,8 +59,14 @@ var cliRelevantKinds = map[apiresourcekind.ApiResourceKind]bool{
 	apiresourcekind.ApiResourceKind_workflow:     true,
 	apiresourcekind.ApiResourceKind_skill:        true,
 	apiresourcekind.ApiResourceKind_mcp_server:   true,
-	apiresourcekind.ApiResourceKind_project:      true,
-	apiresourcekind.ApiResourceKind_api_key:      true,
+	apiresourcekind.ApiResourceKind_project:           true,
+	apiresourcekind.ApiResourceKind_api_key:           true,
+	apiresourcekind.ApiResourceKind_identity_provider: true,
+	apiresourcekind.ApiResourceKind_oauth_app:         true,
+	apiresourcekind.ApiResourceKind_environment:       true,
+	apiresourcekind.ApiResourceKind_agent_instance:    true,
+	apiresourcekind.ApiResourceKind_workflow_instance: true,
+	apiresourcekind.ApiResourceKind_session:           true,
 }
 
 // buildRegistry creates the registry from proto metadata.
