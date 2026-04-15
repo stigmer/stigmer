@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useStdin } from "ink";
 import TextInput from "ink-text-input";
 
 /** Props for {@link FollowUpInput}. */
@@ -27,7 +27,8 @@ export function FollowUpInput({
   placeholder = "Reply...",
 }: FollowUpInputProps) {
   const [value, setValue] = useState("");
-  const isDisabled = disabled || isSubmitting;
+  const { isRawModeSupported } = useStdin();
+  const isDisabled = disabled || isSubmitting || !isRawModeSupported;
 
   const handleSubmit = (input: string) => {
     const trimmed = input.trim();
