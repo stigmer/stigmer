@@ -54,7 +54,7 @@
       "title": "Execution",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
       "hooks": 7,
-      "components": 26
+      "components": 27
     },
     {
       "slug": "github",

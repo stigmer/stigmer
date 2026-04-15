@@ -557,16 +557,17 @@ function MyArtifactPanel({ executionId, storageKey, fileName }) {
 ```
 
 
-### ArtifactPreviewModal
+### ArtifactPreviewContent
 
-Full preview modal for execution artifacts with content display,
-Stigmer resource detection, and Apply/Push CTA.
+Artifact preview content with detection pipeline and Apply/Push CTA.
 
-Uses the native `<dialog>` element for zero-dependency modal behavior:
-focus trap via `showModal()`, top-layer promotion, Escape key handling,
-and `::backdrop` overlay — with no dependency on `@base-ui/react`.
+Renders the header (name, size, detection badge, close button),
+content body (file content or directory listing), and action bar
+(copy, download, Apply/Push). The parent is responsible for rendering
+it inside a `<dialog>`, modal, sheet, overlay, or inline context as
+needed.
 
-Internally orchestrates the same detection pipeline as [`ArtifactCard`](#artifactcard):
+Orchestrates the same detection pipeline as [`ArtifactCard`](#artifactcard):
 
 - **FILE artifacts**: Fetches text content via [`useArtifactContent`](#useartifactcontent),
   renders via [`ArtifactContentRenderer`](#artifactcontentrenderer) (markdown, YAML, JSON, or
@@ -577,8 +578,50 @@ Internally orchestrates the same detection pipeline as [`ArtifactCard`](#artifac
   `artifact.entries` and detects skill packages via
   [`useDetectSkillPackage`](/docs/sdk/react/library#usedetectskillpackage).
 
-Actions: Copy content to clipboard (file artifacts only), Download
-artifact, and Apply/Push (when a Stigmer resource is detected).
+Content fetching begins immediately on mount. Unmounting the component
+resets all internal state (detection, apply result, clipboard). For
+gated rendering (e.g. only when a dialog is open), conditionally
+mount this component rather than passing an `active` flag.
+
+**Props** — `ArtifactPreviewContentProps`
+
+<TypeTable
+  type={{
+    artifact: { type: "ExecutionArtifact", description: "The execution artifact to preview.", required: true },
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    executionId: { type: "string", description: "ID of the execution that produced this artifact.", required: true },
+    isTerminal: { type: "boolean", description: "Whether the execution is in a terminal phase (completed, failed, cancelled, terminated). Controls Apply/Push CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package is pushed. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
+    onClose: { type: "() => void", description: "Called when the close button is clicked.", required: true },
+    org: { type: "string", description: "Organization slug for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
+  }}
+/>
+
+```tsx
+// Inside a dialog, modal, or overlay:
+<ArtifactPreviewContent
+  artifact={artifact}
+  executionId={execution.id}
+  org={activeOrg}
+  isTerminal={isTerminalPhase(execution.status?.phase)}
+  onClose={() => setOpen(false)}
+  onApplied={(result) => toast(`${result.kind} applied`)}
+/>
+```
+
+
+### ArtifactPreviewModal
+
+Full preview modal for execution artifacts using a native `<dialog>`.
+
+Thin shell around [`ArtifactPreviewContent`](#artifactpreviewcontent) that adds
+`showModal()` / `close()` lifecycle, `::backdrop` overlay, focus
+trap, and Escape key handling — with no dependency on
+`@base-ui/react`.
+
+The content component is conditionally mounted when `open` is true,
+so all internal state (detection, apply result, clipboard) resets
+automatically when the dialog closes.
 
 **Props** — `ArtifactPreviewModalProps`
 

@@ -2777,7 +2777,7 @@ __metadata:
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=bca4b9&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=c18efc&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/theme": "npm:*"
     react-markdown: "npm:^10.1.0"
@@ -2793,20 +2793,20 @@ __metadata:
   peerDependenciesMeta:
     "@base-ui/react":
       optional: true
-  checksum: 10c0/0146ad71cc1b88fde23998384a802f101c2c726f7244e9e2dcf17e932b1d5fa56b0b1161f1f544cf8f3446191dba8ee5368c3701d89b9b690c0c0eeba73d187f
+  checksum: 10c0/b5563ef7b73fc2eec6b00e5c6fc621e298b893c86f48fb4105c2e73872f9d93e84eff6142b2da0ffbf275b4e28e6c0dc912e2b0a375ccc4598b9ec313b300581
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=7f4cd5&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=5261e6&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
   peerDependencies:
     "@bufbuild/protobuf": ^2.0.0
     "@stigmer/protos": "*"
-  checksum: 10c0/fc8525bd1c6fe5c5348b7ca09d368c3a7b221ddabd3db8b6910d3e884eeace2817b7ccd7c701825003a886d7271608470cd592ddbde030ec7779aac68e011ae8
+  checksum: 10c0/75cda54ed5f124e6abee907112d02a8ad170978c5dfc5d59fabab2bbfd07e2a132b47a066da384042bb9962c6fff4f848e24a6b428c513991d7a5d36812eca7b
   languageName: node
   linkType: hard
 
