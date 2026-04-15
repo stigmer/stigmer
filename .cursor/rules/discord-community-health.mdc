@@ -1,0 +1,193 @@
+---
+description: Action rule to scan the Stigmer Discord Community for unanswered messages, check community health, and draft responses. Fetches credentials from Planton Cloud at runtime.
+alwaysApply: false
+---
+
+# Rule: Discord Community Health Check
+
+Purpose: When triggered, scan the Stigmer Community Discord server for unanswered messages, generate a health report, and draft responses for review. Optionally send approved responses.
+
+This is an action rule. It uses the Discord REST API via `curl` and the Planton Cloud MCP for credential retrieval.
+
+Usage: Invoke explicitly as `@discord-community-health`.
+
+## Channel Philosophy
+
+The Stigmer Community Discord follows a minimal-channels approach inspired by successful open-source communities (e.g., Buf). With a small community, all conversation goes to `#general`. Dedicated channels are added only when `#general` becomes too busy and conversations start getting buried. Empty channels signal an inactive community — avoid them.
+
+Current channel structure:
+- `#general` — all conversation (bugs, features, questions, discussion)
+- `#announcements` — read-only, release notes and roadmap updates (Maintainer-only posting)
+- `#show-and-tell` — community members share what they built with Stigmer
+
+## Preconditions
+
+- The Planton Cloud MCP server (`user-planton-cloud`) is connected and authenticated.
+- The `discord-bot` secrets group exists in the `stigmer` Planton org with entries `prod.bot-token` and `prod.server-id`.
+- The Discord bot has been invited to the Stigmer Community server with permissions: Manage Roles, Manage Channels, Send Messages, Manage Messages, Read Message History, View Channels.
+
+## Step 1: Retrieve Credentials from Planton
+
+Before any Discord API call, fetch the bot token and server ID using the Planton MCP:
+
+1. Call `get_secret_value` with `org: "stigmer"`, `group_name: "discord-bot"`, `entry_name: "prod.bot-token"` to retrieve the Discord bot token.
+2. Call `get_secret_value` with `org: "stigmer"`, `group_name: "discord-bot"`, `entry_name: "prod.server-id"` to retrieve the Discord server (guild) ID.
+
+Store these as shell variables `BOT_TOKEN` and `GUILD_ID` for subsequent `curl` calls. Never print or log the bot token.
+
+## Step 2: Scan Channels
+
+Use the Discord REST API (`https://discord.com/api/v10`) with header `Authorization: Bot $BOT_TOKEN`.
+
+1. **List all channels**: `GET /guilds/{guild_id}/channels`
+2. **Identify monitored channels**: Filter for text channels (type 0) with these names:
+   - `#general` — primary channel, all community conversation
+   - `#show-and-tell` — community showcase
+3. **Fetch recent messages**: For each monitored channel, `GET /channels/{channel_id}/messages?limit=50`
+4. **List server roles**: `GET /guilds/{guild_id}/roles` — identify the Maintainer role ID for filtering team responses.
+
+Note: `#announcements` is not monitored for unanswered messages since it is a broadcast-only channel.
+
+## Step 3: Identify Unanswered Messages
+
+For each message in monitored channels:
+
+1. **Skip bot messages** — if `message.author.bot` is true.
+2. **Skip team messages** — if the author has the Maintainer role (check via `GET /guilds/{guild_id}/members/{user_id}`; cache member lookups). **Exception**: always treat `swarupdonepudi` (user ID `930143413767135252`) as a community member regardless of roles — he is a co-founder who plays the role of a community user to provide genuine feedback.
+3. **Check for replies** — a message is "answered" if:
+   - It has a thread with at least one reply from a Maintainer-role member, OR
+   - A subsequent message in the same channel references it (via `message_reference`) from a Maintainer-role member, OR
+   - A subsequent message in the same channel is from a Maintainer-role member within 5 messages after it.
+4. **Flag as unanswered** if none of the above conditions are met and the message is older than 4 hours.
+5. **Flag as urgent** if unanswered and older than 24 hours.
+
+## Step 4: Cross-Reference GitHub
+
+For each unanswered message:
+
+1. Scan the message content for GitHub issue URLs matching `github.com/stigmer/stigmer/issues/\d+`.
+2. For each linked issue, run `gh issue view <number> --json state,title,labels` to check if it is open, closed, or has labels.
+3. Include the issue status in the report.
+
+## Step 5: Generate Health Report
+
+Print a structured report:
+
+```
+=== Stigmer Discord Community Health Report ===
+Date: {current date}
+Server: Stigmer Community
+
+--- Summary ---
+Total messages (last 7 days): {count}
+Unanswered messages: {count} ({urgent_count} urgent)
+Stale threads (no activity 48h+): {count}
+Busiest channel: #{name} ({count} messages)
+
+--- Unanswered Messages ---
+[URGENT] #{channel} | @{author} | {relative_time}
+  > {first 200 chars of message content}
+  GitHub: #{issue_number} ({state}) — {issue_title}
+
+#{channel} | @{author} | {relative_time}
+  > {first 200 chars of message content}
+```
+
+## Step 6: Draft Responses
+
+For each unanswered message, classify it and draft a response. All responses are posted in `#general` (the single conversation channel).
+
+### Classification and Emoji Tagging
+
+Classify each message to determine response tone and to visually tag it with a reaction emoji. This gives community members an at-a-glance view of what each message is about — without needing separate channels.
+
+| Classification | Emoji | When to apply |
+|----------------|-------|---------------|
+| Bug report | 🐛 | Something broken, unexpected behavior, errors, crashes |
+| Feature request | 💡 | New functionality, improvements, unsupported workflows |
+| Integration/SDK question | 🔌 | Embedding `@stigmer/react`, `@stigmer/sdk`, CORS, auth from client apps |
+| General question | ❓ | Getting started, how-to, configuration, conceptual |
+
+To add a classification emoji, use the Discord reaction API:
+
+```
+PUT /channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me
+```
+
+The emoji must be URL-encoded (e.g., `%F0%9F%90%9B` for 🐛). Returns 204 on success.
+
+**Duplicate prevention**: Before adding a reaction, check the message's existing `reactions` array from the fetch in Step 2. If the bot has already reacted with that emoji (`reactions[].me == true`), skip it. This makes the rule safe to re-run.
+
+Apply the classification emoji immediately after classifying each message, before presenting the draft response. This is a read-side visual tag — it does not require user approval.
+
+### Tone and Style
+
+Follow the register closest to "Quickstart / tutorials" from `docs/vocabulary.md`:
+- **Warm but not corporate.** "Thanks for flagging this!" not "Thank you for your valuable feedback."
+- **Technical but accessible.** Match the community member's level of technical depth.
+- **Transparent about status.** "We don't support this yet, but here's the tracking issue" is better than silence.
+- **Credit the reporter.** When a fix ships, mention who reported it.
+
+### Response Templates by Category
+
+**Bug report:**
+> Thanks for reporting this, {author}. {Brief acknowledgment of the issue}. {Ask for reproduction details if missing, OR confirm you can reproduce}. Tracking in {link to GitHub issue if exists, or "I'll open a GitHub issue for tracking"}.
+
+**Feature request:**
+> Great callout, {author}. {Validate the use case — explain why it makes sense}. {Share roadmap context if available: "This is on our radar" / "We're tracking this in #{issue_number}" / "This aligns with our plan to..."}. {Invite discussion if there are multiple approaches}.
+
+**Integration/SDK question:**
+> {Acknowledge the problem is real and affects other users}. {Brief technical context — why the current behavior exists}. {Workaround if one exists}. Tracking in {link to GitHub issue}.
+
+**General question:**
+> {Direct, concise answer}. {Link to relevant docs if they exist}. {If the question reveals a docs gap, note: "Good question — I'll make sure our docs cover this better."}
+
+Present each drafted response clearly:
+
+```
+--- Draft Response for #{channel} | @{author} ---
+Category: {bug/feature/integration/general}
+
+{drafted response text}
+
+Action: [Send] [Edit] [Skip]
+```
+
+## Step 7: Send Approved Responses (Only If User Approves)
+
+For each response the user approves:
+
+1. If the original message is in a thread, reply in the thread: `POST /channels/{thread_id}/messages`
+2. Otherwise, reply referencing the original message:
+   ```
+   POST /channels/{channel_id}/messages
+   {
+     "content": "{approved response}",
+     "message_reference": {"message_id": "{original_message_id}"}
+   }
+   ```
+3. After sending, add the 👀 reaction to the original message to signal "team has acknowledged this":
+   ```
+   PUT /channels/{channel_id}/messages/{original_message_id}/reactions/%F0%9F%91%80/@me
+   ```
+
+Never auto-send. Always wait for explicit user approval for each response. The 👀 reaction is only added after the response is actually sent.
+
+## Health Checks (Report at End)
+
+After scanning, report on these structural health indicators:
+
+- **Response time compliance**: Messages older than 24h with no team response (target: 0).
+- **GitHub link freshness**: Linked GitHub issues that are now CLOSED but the Discord thread was never updated with the resolution. For each, suggest adding a checkmark reaction (✅) to the original Discord message and posting a resolution reply. Use `@github-issue-triage` in resolve mode for the full close-and-notify workflow.
+- **Role coverage**: Active community members (3+ messages) who do not have the Contributor or Early Adopter role — suggest assignment.
+- **Channel scaling signal**: If `#general` has more than 50 messages per day on average over the last 7 days, suggest splitting into dedicated channels (e.g., `#help`, `#bugs`, `#feature-requests`). Until then, keep everything in `#general`.
+
+## Important Notes
+
+- **Never print or log the bot token.** Use it only in `curl` Authorization headers.
+- **Never auto-send messages.** Always present drafts for review first.
+- **Cache member lookups.** Avoid redundant API calls for the same user's roles.
+- **Rate limits.** Discord API has rate limits. If a 429 response is received, wait the duration specified in the `Retry-After` header before retrying.
+- **When token rotation is needed**, update via Planton MCP: `upsert_secret` with `org: "stigmer"`, `group_slug: "discord-bot"`, `entry: {"name": "prod.bot-token", "value": "new-token-here"}`.
+
+@docs/vocabulary.md
