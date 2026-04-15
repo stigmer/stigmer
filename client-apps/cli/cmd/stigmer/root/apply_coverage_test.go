@@ -38,14 +38,6 @@ var applyExcludedKinds = map[apiresourcekind.ApiResourceKind]string{
 	// Permanent exclusions
 	apiresourcekind.ApiResourceKind_execution_context: "ephemeral, auto-managed per execution — never user-applied",
 	apiresourcekind.ApiResourceKind_project:           "uses SDK synthesis path (executeProjectApply), not file-apply",
-
-	// Temporary exclusions — T02 will implement and remove these
-	apiresourcekind.ApiResourceKind_identity_provider: "T02: not yet implemented",
-	apiresourcekind.ApiResourceKind_oauth_app:         "T02: not yet implemented",
-	apiresourcekind.ApiResourceKind_environment:       "T02: not yet implemented",
-	apiresourcekind.ApiResourceKind_agent_instance:    "T02: not yet implemented",
-	apiresourcekind.ApiResourceKind_workflow_instance: "T02: not yet implemented",
-	apiresourcekind.ApiResourceKind_session:           "T02: not yet implemented",
 }
 
 // TestAllApplyableKindsAreCovered verifies that every proto kind with an

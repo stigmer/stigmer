@@ -13,13 +13,21 @@ import (
 // Dependency graph:
 //
 //	Organization (0) <- MCP Server (1) <- Agent (2) <- Workflow (3)
+//	                 <- Environment (4) <- IdentityProvider (5) <- OAuthApp (6)
+//	                 <- AgentInstance (7) <- WorkflowInstance (8) <- Session (9)
 //
 // Kinds absent from this map receive priority 99 (applied last).
 var DefaultApplyOrder = map[apiresourcekind.ApiResourceKind]int{
-	apiresourcekind.ApiResourceKind_organization: 0,
-	apiresourcekind.ApiResourceKind_mcp_server:   1,
-	apiresourcekind.ApiResourceKind_agent:        2,
-	apiresourcekind.ApiResourceKind_workflow:     3,
+	apiresourcekind.ApiResourceKind_organization:      0,
+	apiresourcekind.ApiResourceKind_mcp_server:        1,
+	apiresourcekind.ApiResourceKind_agent:             2,
+	apiresourcekind.ApiResourceKind_workflow:          3,
+	apiresourcekind.ApiResourceKind_environment:       4,
+	apiresourcekind.ApiResourceKind_identity_provider: 5,
+	apiresourcekind.ApiResourceKind_oauth_app:         6,
+	apiresourcekind.ApiResourceKind_agent_instance:    7,
+	apiresourcekind.ApiResourceKind_workflow_instance: 8,
+	apiresourcekind.ApiResourceKind_session:           9,
 }
 
 // SortByApplyOrder sorts items in dependency order using the provided priority

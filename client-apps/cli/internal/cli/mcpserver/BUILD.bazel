@@ -31,6 +31,7 @@ go_library(
         "//client-apps/cli/pkg/clioutput",
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/reference",
+        "//client-apps/cli/pkg/yamlutil",
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
         "@in_gopkg_yaml_v3//:yaml_v3",
