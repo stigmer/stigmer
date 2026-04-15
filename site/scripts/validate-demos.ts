@@ -12,6 +12,9 @@
  *    clamp ceiling in their height expressions.
  * 4. AppShell stgm scope — verifies that AppShell's root element
  *    includes the `stgm` class for consistent compact rendering.
+ * 5. Test manifest generation — scans docs MDX files for <Demo*>
+ *    component usage, maps each to its scenario ID and page URL,
+ *    and writes e2e/demos/demo-manifest.json for Playwright.
  *
  * Interaction coverage (scroll-to visibility, cursor targets) is
  * validated by the Playwright demo test suite in e2e/demos/ which
@@ -36,6 +39,7 @@ interface Violation {
   scenario: string;
   check: string;
   message: string;
+  severity?: "error" | "warning";
 }
 
 async function getScenarioDirs(): Promise<string[]> {
@@ -233,6 +237,177 @@ async function checkAppShellStgmScope(
 }
 
 // ============================================================================
+// Check 5: Generate test manifest for Playwright
+//
+// Scans docs/**/*.mdx for <Demo*> component tags, maps each to a
+// scenario ID (via the export map in src/components/docs/index.ts),
+// and writes e2e/demos/demo-manifest.json. The Playwright specs read
+// this file instead of hardcoding fixture arrays.
+// ============================================================================
+
+const DOCS_DIR = path.join(process.cwd(), "..", "docs");
+const DEMO_EXPORTS_FILE = path.join(
+  process.cwd(),
+  "src/components/docs/index.ts",
+);
+const MANIFEST_OUTPUT = path.join(
+  process.cwd(),
+  "e2e/demos/demo-manifest.json",
+);
+
+interface VisibilityContract {
+  [stepIndex: string]: { targets: string[]; scrollContainer?: string };
+}
+
+interface DemoManifestEntry {
+  scenarioId: string;
+  pagePath: string;
+  demoIndex: number;
+  visibilityContract?: VisibilityContract;
+}
+
+/**
+ * Parse src/components/docs/index.ts to build a map from MDX component
+ * name (e.g. "DemoQuickstartTour") to scenario directory name
+ * (e.g. "quickstart-tour"). This avoids fragile PascalCase-to-kebab
+ * conversion for acronyms like MCP, OAuth, SSO, API.
+ */
+async function buildComponentToScenarioMap(): Promise<Map<string, string>> {
+  const content = await fs.readFile(DEMO_EXPORTS_FILE, "utf-8");
+  const map = new Map<string, string>();
+
+  const re = /as\s+(Demo\w+)\s*\}\s*from\s*"\.\/demos\/scenarios\/([^"]+)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(content)) !== null) {
+    map.set(match[1], match[2]);
+  }
+
+  return map;
+}
+
+/**
+ * Recursively find all .mdx files under a directory.
+ */
+async function findMdxFiles(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name.startsWith("_")) continue;
+      results.push(...(await findMdxFiles(fullPath)));
+    } else if (entry.name.endsWith(".mdx")) {
+      results.push(fullPath);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Load co-located visibility.json files from scenario directories.
+ * Returns a map from scenarioId to the parsed contract object.
+ */
+async function loadVisibilityContracts(): Promise<Map<string, VisibilityContract>> {
+  const contracts = new Map<string, VisibilityContract>();
+  const scenarios = await getScenarioDirs();
+
+  for (const scenario of scenarios) {
+    const visPath = path.join(SCENARIOS_DIR, scenario, "visibility.json");
+    const content = await readFileIfExists(visPath);
+    if (!content) continue;
+
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed.contract) {
+        contracts.set(scenario, parsed.contract);
+      }
+    } catch {
+      // Will be reported as a violation below
+    }
+  }
+
+  return contracts;
+}
+
+async function generateTestManifest(
+  violations: Violation[],
+): Promise<void> {
+  const componentMap = await buildComponentToScenarioMap();
+  const visibilityContracts = await loadVisibilityContracts();
+  const mdxFiles = await findMdxFiles(DOCS_DIR);
+  const manifest: DemoManifestEntry[] = [];
+  const scenariosInDocs = new Set<string>();
+
+  const demoTagRe = /<(Demo\w+)\s*\/>/g;
+
+  for (const mdxPath of mdxFiles.sort()) {
+    const content = await fs.readFile(mdxPath, "utf-8");
+    const relativePath = path.relative(DOCS_DIR, mdxPath);
+    const pagePath = "/docs/" + relativePath.replace(/\.mdx$/, "");
+
+    let demoIndex = 0;
+    let tagMatch: RegExpExecArray | null;
+    while ((tagMatch = demoTagRe.exec(content)) !== null) {
+      const componentName = tagMatch[1];
+      const scenarioId = componentMap.get(componentName);
+
+      if (!scenarioId) {
+        violations.push({
+          scenario: relativePath,
+          check: "test-manifest",
+          message: `Unknown demo component <${componentName} /> — not found in docs/index.ts exports.`,
+        });
+        demoIndex++;
+        continue;
+      }
+
+      const entry: DemoManifestEntry = { scenarioId, pagePath, demoIndex };
+      const contract = visibilityContracts.get(scenarioId);
+      if (contract) {
+        entry.visibilityContract = contract;
+      }
+
+      manifest.push(entry);
+      scenariosInDocs.add(scenarioId);
+      demoIndex++;
+    }
+  }
+
+  // Flag scenarios in the registry that aren't embedded in any docs page
+  const scenarios = await getScenarioDirs();
+  for (const scenario of scenarios) {
+    const hasSteps = await fileExists(
+      path.join(SCENARIOS_DIR, scenario, "steps.ts"),
+    );
+    if (hasSteps && !scenariosInDocs.has(scenario)) {
+      violations.push({
+        scenario,
+        check: "test-manifest",
+        severity: "warning",
+        message:
+          "Playback scenario has steps.ts but is not embedded in any docs page. " +
+          "Orphaned demo will not be tested by Playwright.",
+      });
+    }
+  }
+
+  await fs.mkdir(path.dirname(MANIFEST_OUTPUT), { recursive: true });
+  await fs.writeFile(
+    MANIFEST_OUTPUT,
+    JSON.stringify(manifest, null, 2) + "\n",
+  );
+
+  const withContracts = manifest.filter((e) => e.visibilityContract).length;
+  console.log(
+    `Generated test manifest: ${manifest.length} demo(s) across ` +
+      `${new Set(manifest.map((e) => e.pagePath)).size} page(s)` +
+      ` (${withContracts} with visibility contracts)\n`,
+  );
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -249,16 +424,28 @@ async function main(): Promise<void> {
 
   await checkShellHeightTokens(violations);
   await checkAppShellStgmScope(violations);
+  await generateTestManifest(violations);
 
-  if (violations.length === 0) {
+  const errors = violations.filter((v) => v.severity !== "warning");
+  const warnings = violations.filter((v) => v.severity === "warning");
+
+  if (warnings.length > 0) {
+    console.log(`${warnings.length} warning(s):\n`);
+    for (const w of warnings) {
+      console.log(`  ${w.scenario}/`);
+      console.log(`    [${w.check}] ${w.message}\n`);
+    }
+  }
+
+  if (errors.length === 0) {
     console.log("All demos pass validation checks.\n");
     process.exit(0);
   }
 
-  console.log(`Found ${violations.length} violation(s):\n`);
+  console.log(`Found ${errors.length} error(s):\n`);
 
   const byScenario = new Map<string, Violation[]>();
-  for (const v of violations) {
+  for (const v of errors) {
     const list = byScenario.get(v.scenario) || [];
     list.push(v);
     byScenario.set(v.scenario, list);

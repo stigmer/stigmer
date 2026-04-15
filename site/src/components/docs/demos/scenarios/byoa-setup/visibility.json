@@ -1,0 +1,7 @@
+{
+  "contract": {
+    "0": { "targets": ["capabilities-bottom"] },
+    "4": { "targets": ["capabilities-bottom"] },
+    "5": { "targets": ["capabilities-bottom"] }
+  }
+}
