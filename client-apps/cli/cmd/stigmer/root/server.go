@@ -331,9 +331,8 @@ func runBootstrapDiscovery(cfg *config.Config) {
 		return
 	}
 
-	result := mcpserver.DiscoverAll(context.Background(), &mcpserver.DiscoverAllOptions{
+	result := mcpserver.ConnectAll(context.Background(), &mcpserver.ConnectAllOptions{
 		Conn:    conn,
-		Cfg:     cfg,
 		OrgID:   orgID,
 		Timeout: 30 * time.Second,
 	})

@@ -23,9 +23,9 @@ func NewDeleteCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "delete <type> <name-or-id>",
+		Use:   "delete <type> <slug-or-id>",
 		Short: "Delete a resource by type and reference",
-		Long: `Delete a resource by type and name or ID.
+		Long: `Delete a resource by type and slug or ID.
 
 The type can be specified using any alias:
   - agent, agt, agents

@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -12,20 +13,18 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"google.golang.org/grpc"
 )
 
-// DiscoverAllOptions configures the bootstrap auto-discovery flow.
-type DiscoverAllOptions struct {
+// ConnectAllOptions configures the bootstrap auto-connect flow.
+type ConnectAllOptions struct {
 	Conn    grpc.ClientConnInterface
-	Cfg     *config.Config
 	OrgID   string
 	Timeout time.Duration
 }
 
-// DiscoverAllResult summarises a bulk discovery run.
-type DiscoverAllResult struct {
+// ConnectAllResult summarises a bulk connect run.
+type ConnectAllResult struct {
 	Attempted int
 	Succeeded int
 	Skipped   int
@@ -34,14 +33,14 @@ type DiscoverAllResult struct {
 	SkipMessages []string
 }
 
-// DiscoverAll lists all MCP servers accessible to the caller, then discovers
-// capabilities for each one that uses a stdio transport. This is the bootstrap
-// auto-discovery entry point invoked after the daemon starts.
+// ConnectAll lists all MCP servers accessible to the caller, then connects
+// to each one that uses a stdio transport to discover capabilities. This is
+// the bootstrap auto-connect entry point invoked after the daemon starts.
 //
-// Discovery is best-effort: a failure for one server is logged but does not
-// prevent discovery of the remaining servers or block the caller.
-func DiscoverAll(ctx context.Context, opts *DiscoverAllOptions) *DiscoverAllResult {
-	result := &DiscoverAllResult{}
+// Connection is best-effort: a failure for one server is logged but does not
+// prevent connection of the remaining servers or block the caller.
+func ConnectAll(ctx context.Context, opts *ConnectAllOptions) *ConnectAllResult {
+	result := &ConnectAllResult{}
 
 	servers, err := listMcpServers(ctx, opts.Conn, opts.OrgID)
 	if err != nil {
@@ -63,29 +62,21 @@ func DiscoverAll(ctx context.Context, opts *DiscoverAllOptions) *DiscoverAllResu
 			continue
 		}
 
-		envResult := ResolveEnvForDiscovery(server, opts.Cfg)
-
-		if len(envResult.Unresolved) > 0 {
-			msg := FormatDiscoverySkipMessage(server.Metadata.GetName(), envResult.Unresolved)
+		missing := missingSecretEnvVars(server)
+		if len(missing) > 0 {
+			msg := FormatConnectSkipMessage(server.Metadata.GetName(), missing)
 			result.SkipMessages = append(result.SkipMessages, msg)
 			result.Skipped++
 			log.Debug().
 				Str("mcp_server", server.Metadata.GetName()).
-				Strs("unresolved", envResult.Unresolved).
-				Msg("Skipping discovery: required credentials not available")
+				Strs("unresolved", missing).
+				Msg("Skipping discovery: required credentials not in environment")
 			continue
-		}
-
-		if len(envResult.UnresolvedOptional) > 0 {
-			log.Debug().
-				Str("mcp_server", server.Metadata.GetName()).
-				Strs("unresolved_optional", envResult.UnresolvedOptional).
-				Msg("Non-secret env vars unresolved, proceeding with server defaults")
 		}
 
 		result.Attempted++
 
-		if err := DiscoverServer(ctx, opts.Conn, server, opts.Cfg, opts.Timeout); err != nil {
+		if err := ConnectServer(ctx, opts.Conn, server, opts.Timeout); err != nil {
 			log.Warn().
 				Err(err).
 				Str("mcp_server", server.Metadata.GetName()).
@@ -102,15 +93,14 @@ func DiscoverAll(ctx context.Context, opts *DiscoverAllOptions) *DiscoverAllResu
 	return result
 }
 
-// FormatDiscoverySkipMessage builds a user-facing message explaining that
-// discovery was skipped for a server because required credentials (secret env
-// vars) could not be resolved. The message includes a copy-paste stigmer
-// discover command so the user can run discovery manually with the correct
-// env vars.
-func FormatDiscoverySkipMessage(serverName string, unresolved []string) string {
+// FormatConnectSkipMessage builds a user-facing message explaining that
+// connection was skipped for a server because required credentials (secret
+// env vars) are not in the environment. The message includes a copy-paste
+// stigmer connect command so the user can connect manually.
+func FormatConnectSkipMessage(serverName string, unresolved []string) string {
 	envPrefix := strings.Join(unresolved, "=<value> ") + "=<value>"
 	return fmt.Sprintf(
-		"Discovery skipped for %s: %s not available\n  To discover manually:\n    %s stigmer discover mcp-server %s",
+		"Connect skipped for %s: %s not available\n  To connect manually:\n    %s stigmer connect mcp-server %s",
 		serverName,
 		strings.Join(unresolved, ", "),
 		envPrefix,
@@ -118,47 +108,50 @@ func FormatDiscoverySkipMessage(serverName string, unresolved []string) string {
 	)
 }
 
-// DiscoverOne runs discovery for a single MCP server. This is the post-apply
-// entry point: after an MCP server is registered via stigmer apply, we
-// immediately attempt to discover its capabilities so they are available
-// without requiring a daemon restart.
+// ConnectOne runs connection and discovery for a single MCP server. This is
+// the post-apply entry point: after an MCP server is registered via stigmer
+// apply, we immediately attempt to connect and discover its capabilities so
+// they are available without requiring a daemon restart.
 //
-// Returns nil if discovery succeeds or if the server is skipped (non-stdio,
-// unresolvable env vars). The skipMessage return value is non-empty when
-// discovery was skipped due to missing credentials.
-func DiscoverOne(ctx context.Context, opts *DiscoverOneOptions) (skipMessage string, err error) {
+// Returns nil if connection succeeds or if the server is skipped (non-stdio,
+// missing env vars). The skipMessage return value is non-empty when connection
+// was skipped due to missing credentials.
+func ConnectOne(ctx context.Context, opts *ConnectOneOptions) (skipMessage string, err error) {
 	server := opts.Server
 
 	if server.Spec.GetStdio() == nil {
 		return "", nil
 	}
 
-	envResult := ResolveEnvForDiscovery(server, opts.Cfg)
-
-	if len(envResult.Unresolved) > 0 {
-		return FormatDiscoverySkipMessage(server.Metadata.GetName(), envResult.Unresolved), nil
+	missing := missingSecretEnvVars(server)
+	if len(missing) > 0 {
+		return FormatConnectSkipMessage(server.Metadata.GetName(), missing), nil
 	}
 
-	if len(envResult.UnresolvedOptional) > 0 {
-		log.Debug().
-			Str("mcp_server", server.Metadata.GetName()).
-			Strs("unresolved_optional", envResult.UnresolvedOptional).
-			Msg("Non-secret env vars unresolved, proceeding with server defaults")
-	}
-
-	if err := DiscoverServer(ctx, opts.Conn, server, opts.Cfg, opts.Timeout); err != nil {
+	if err := ConnectServer(ctx, opts.Conn, server, opts.Timeout); err != nil {
 		return "", err
 	}
 
 	return "", nil
 }
 
-// DiscoverOneOptions configures a single-server post-apply discovery.
-type DiscoverOneOptions struct {
+// ConnectOneOptions configures a single-server post-apply connect.
+type ConnectOneOptions struct {
 	Conn    grpc.ClientConnInterface
-	Cfg     *config.Config
 	Server  *mcpserverv1.McpServer
 	Timeout time.Duration
+}
+
+// missingSecretEnvVars returns the names of secret env vars declared by the
+// server that are not present in the current OS environment.
+func missingSecretEnvVars(server *mcpserverv1.McpServer) []string {
+	var missing []string
+	for name, decl := range server.GetSpec().GetEnv() {
+		if decl.GetIsSecret() && os.Getenv(name) == "" {
+			missing = append(missing, name)
+		}
+	}
+	return missing
 }
 
 // listMcpServers fetches all MCP servers for the given org. Since there is no

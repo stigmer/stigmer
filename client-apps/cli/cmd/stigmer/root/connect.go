@@ -13,23 +13,23 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 )
 
-// NewDiscoverCommand creates the top-level discover command with resource-type subcommands.
-func NewDiscoverCommand() *cobra.Command {
+// NewConnectCommand creates the top-level connect command with resource-type subcommands.
+func NewConnectCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "discover",
-		Short: "Discover capabilities from external services",
+		Use:   "connect",
+		Short: "Connect to external services and discover capabilities",
 		Long: `Connect to external services and discover their capabilities.
 
 Currently supports MCP servers: connect via stdio or HTTP, list available
 tools and resource templates, and push the results to stigmer-server.`,
 	}
 
-	cmd.AddCommand(newDiscoverMcpServerCommand())
+	cmd.AddCommand(newConnectMcpServerCommand())
 
 	return cmd
 }
 
-func newDiscoverMcpServerCommand() *cobra.Command {
+func newConnectMcpServerCommand() *cobra.Command {
 	var (
 		timeout  time.Duration
 		dryRun   bool
@@ -37,8 +37,8 @@ func newDiscoverMcpServerCommand() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "mcp-server <name-or-id>",
-		Short: "Discover tools and resources from an MCP server",
+		Use:   "mcp-server <slug-or-id>",
+		Short: "Connect to an MCP server and discover its tools",
 		Long: `Connect to an MCP server, list its tools and resource templates,
 and push the discovered capabilities to stigmer-server.
 
@@ -57,31 +57,27 @@ ENVIRONMENT VARIABLES:
   You can also export variables in your shell before running the command;
   --env is simply more convenient and mirrors stigmer run / stigmer draft.
 
-  During automated flows (bootstrap, apply), well-known variables like
-  PLANTON_API_KEY, GITHUB_TOKEN, and STIGMER_API_KEY are auto-resolved
-  from local credential stores (Planton CLI, gh CLI, stigmer login).
-
 Examples:
-  # Discover by slug (uses default org)
-  stigmer discover mcp-server github
+  # Connect by slug (uses default org)
+  stigmer connect mcp-server github
 
-  # Discover by org/slug
-  stigmer discover mcp-server stigmer/mcp-server-stigmer
+  # Connect by org/slug
+  stigmer connect mcp-server stigmer/mcp-server-stigmer
 
   # Pass required credentials via --env
-  stigmer discover mcp-server planton-cloud --env PLANTON_API_KEY=pk-xxx
+  stigmer connect mcp-server planton-cloud --env PLANTON_API_KEY=pk-xxx
 
   # Multiple env vars
-  stigmer discover mcp-server my-server --env GITHUB_TOKEN=ghp-xxx --env API_URL=https://...
+  stigmer connect mcp-server my-server --env GITHUB_TOKEN=ghp-xxx --env API_URL=https://...
 
   # Preview without pushing
-  stigmer discover mcp-server github --dry-run
+  stigmer connect mcp-server github --dry-run
 
   # Custom timeout for slow-starting servers
-  stigmer discover mcp-server my-server --timeout 60s`,
+  stigmer connect mcp-server my-server --timeout 60s`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := executeDiscoverMcpServer(discoverMcpServerOptions{
+			err := executeConnectMcpServer(connectMcpServerOptions{
 				Reference:    args[0],
 				OrgOverride:  GetOrgFlag(cmd),
 				Timeout:      timeout,
@@ -99,7 +95,7 @@ Examples:
 	return cmd
 }
 
-type discoverMcpServerOptions struct {
+type connectMcpServerOptions struct {
 	Reference    string
 	OrgOverride  string
 	Timeout      time.Duration
@@ -107,7 +103,7 @@ type discoverMcpServerOptions struct {
 	EnvOverrides []string
 }
 
-func executeDiscoverMcpServer(opts discoverMcpServerOptions) error {
+func executeConnectMcpServer(opts connectMcpServerOptions) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return errors.Wrap(err, "failed to load configuration")
@@ -134,7 +130,7 @@ func executeDiscoverMcpServer(opts discoverMcpServerOptions) error {
 	}
 	defer conn.Close()
 
-	result, err := mcpserver.Discover(context.Background(), &mcpserver.DiscoverOptions{
+	result, err := mcpserver.Connect(context.Background(), &mcpserver.ConnectOptions{
 		Conn:         conn,
 		Cfg:          cfg,
 		OrgID:        orgID,
@@ -147,6 +143,6 @@ func executeDiscoverMcpServer(opts discoverMcpServerOptions) error {
 		return err
 	}
 
-	mcpserver.DisplayDiscoverResult(result)
+	mcpserver.DisplayConnectResult(result)
 	return nil
 }
