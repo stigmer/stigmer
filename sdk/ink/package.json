@@ -11,7 +11,7 @@
     ".": "./src/index.ts"
   },
   "bin": {
-    "stigmer-ink": "./src/bin/stigmer-ink.tsx"
+    "stigmer-ink": "./src/cli/stigmer-ink.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -41,7 +41,7 @@
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "bin": {
-      "stigmer-ink": "./dist/bin/stigmer-ink.js"
+      "stigmer-ink": "./dist/cli/stigmer-ink.js"
     },
     "exports": {
       ".": {

@@ -113,40 +113,48 @@ When starting a new session:
 - Built 8 Ink terminal components (MessageEntry, MessageThread, ToolCallGroup, ToolCallItem, ApprovalPrompt, ExecutionProgress, FollowUpInput, UsageWidget)
 - Built InkStigmerProvider, Node transport factory, terminal markdown renderer
 - Built SessionView, SessionApp composition components
-- Built standalone CLI entry point (`bin/stigmer-ink.tsx`)
+- Built standalone CLI entry point (`cli/stigmer-ink.tsx`)
 - Registered in workspace, build pipeline, and publish pipeline (fully automated via existing CI)
 - 28 tests passing, build clean, dry-run publish verified (36.6 kB package)
 - Decision: Go CLI integration (run/resume/draft) deferred to Phase 2 after validating SDK package
 
+## Session Progress (2026-04-15, Session 5)
+
+- **E2E validated**: Ran `@stigmer/ink` against live Stigmer API with real session data — full conversation rendered
+- Fixed 3 bugs discovered during E2E:
+  1. **Transport protocol**: Switched `createConnectTransport` → `createGrpcWebTransport` (server expects gRPC-web, not Connect protocol — HTTP 415 fix)
+  2. **Non-TTY crash**: Added synthetic stdin for non-TTY environments, `FollowUpInput` checks `isRawModeSupported`
+  3. **Missing entry point**: Renamed `src/bin/` → `src/cli/` to avoid root `.gitignore` `bin/` collision (file was never committed)
+- All 28 unit tests still pass after fixes
+
 ## Next Steps
 
-1. Manual E2E test: `npx @stigmer/ink --session <id> --org <slug>` against a real backend
-2. Verify `useExecutionStream` server-streaming RPC works over `connect-node` transport
-3. Evaluate Go CLI integration (Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
-4. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
+1. Evaluate Go CLI integration (Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
+2. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
 
 ## Context for Resume
 
-- `@stigmer/ink` is a complete SDK package at `sdk/ink/` — builds, tests, publishes
+- `@stigmer/ink` is E2E validated — works against live Stigmer API
+- CLI entry point is at `sdk/ink/src/cli/stigmer-ink.tsx` (renamed from `src/bin/`)
+- Transport uses `createGrpcWebTransport` from `@connectrpc/connect-node` (matches server protocol)
+- Non-TTY environments work: synthetic stdin + `isRawModeSupported` check in FollowUpInput
 - `customTransport` on `StigmerConfig` allows any Node.js consumer to bypass the browser transport
-- `DeploymentModeContext` was added to `@stigmer/react` barrel exports (non-breaking)
 - Ink 7.0.0 used (requires React >=19.2.0), marked@^15 for marked-terminal compatibility
-- `dom` is in Ink tsconfig.json lib because `@stigmer/react`'s barrel re-exports DOM components — Ink itself uses no DOM APIs
 - Go CLI rendering layer is ~37K lines of well-tested Go code — significant effort to replace
-- Phase 2 (Go CLI integration) intentionally deferred: build SDK first, validate, then decide
+- Phase 2 (Go CLI integration) intentionally deferred: SDK validated, now decide
 
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: T04 Phase 2 (Go CLI integration — deferred, evaluate after SDK validation)
-**Status**: Phase 1 COMPLETE, Phase 2 PENDING
-**Last Session**: 2026-04-15 — Completed T04 Phase 1 (@stigmer/ink SDK package)
+**Current Task**: T04 Phase 2 (Go CLI integration — evaluate after SDK validation)
+**Status**: Phase 1 COMPLETE + E2E VALIDATED, Phase 2 PENDING
+**Last Session**: 2026-04-15 (Session 5) — E2E validation and 3 bugfixes
 
 ## Quick Commands
 
 After loading context:
-- "Test @stigmer/ink E2E" - Manual testing against real backend
 - "Evaluate Go CLI integration" - Phase 2 decision
+- "Move createNodeTransport to @stigmer/sdk" - Transport refactor
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

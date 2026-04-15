@@ -1,4 +1,4 @@
-import { createConnectTransport } from "@connectrpc/connect-node";
+import { createGrpcWebTransport } from "@connectrpc/connect-node";
 import type { Transport, Interceptor } from "@connectrpc/connect";
 import { Stigmer, type TokenProvider } from "@stigmer/sdk";
 
@@ -21,9 +21,10 @@ export interface NodeClientConfig {
 }
 
 /**
- * Create a ConnectRPC transport for Node.js using native HTTP/2.
+ * Create a gRPC-web transport for Node.js using native HTTP/2.
  *
- * Includes an auth interceptor that attaches `Authorization: Bearer <token>`
+ * Uses gRPC-web protocol to match the server's expected content type,
+ * with an auth interceptor that attaches `Authorization: Bearer <token>`
  * to every outgoing request when a token is available.
  */
 export function createNodeTransport(config: NodeClientConfig): Transport {
@@ -39,7 +40,7 @@ export function createNodeTransport(config: NodeClientConfig): Transport {
     return next(request);
   };
 
-  return createConnectTransport({
+  return createGrpcWebTransport({
     baseUrl: config.baseUrl,
     httpVersion: "2",
     interceptors: [authInterceptor],
