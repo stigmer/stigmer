@@ -39,6 +39,7 @@ const PACKAGES = [
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",
+  "sdk/ink",
 ];
 
 function run(cmd, cwd = root) {

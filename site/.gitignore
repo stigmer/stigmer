@@ -10,6 +10,10 @@
 
 # Testing
 /coverage
+/e2e/screenshots/
+/e2e/demos/demo-manifest.json
+/playwright-report/
+/test-results/
 
 # Next.js
 /.next/

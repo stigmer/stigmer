@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck clean preview generate-narration validate-demos remotion-studio remotion-hello render-videos render-video
+.PHONY: deps dev build start lint typecheck clean preview generate-narration validate-demos test-demos remotion-studio remotion-hello render-videos render-video
 
 PORT ?= 3000
 
@@ -40,6 +40,11 @@ generate-narration: deps
 # Validate demo scenarios for token compliance, interaction coverage, and manifest alignment
 validate-demos: deps
 	yarn validate-demos
+
+# Run Playwright demo e2e tests (starts dev server automatically via playwright.config.ts)
+# Requires Playwright browsers: npx playwright install
+test-demos: deps
+	yarn test:demos
 
 # Render all demo scenarios as MP4 videos via Remotion
 # (requires narration audio in public/demos/ — run generate-narration first)

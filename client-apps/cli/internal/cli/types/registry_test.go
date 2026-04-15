@@ -10,20 +10,26 @@ func TestDefaultRegistry_ReturnsAllCLIRelevantTypes(t *testing.T) {
 	reg := DefaultRegistry()
 	all := reg.All()
 
-	// Should have exactly 7 CLI-relevant types
-	if len(all) != 7 {
-		t.Errorf("expected 7 types, got %d", len(all))
+	// Should have exactly 13 CLI-relevant types (7 original + 6 T02 additions)
+	if len(all) != 13 {
+		t.Errorf("expected 13 types, got %d", len(all))
 	}
 
 	// Verify expected types are present
 	expectedKinds := map[apiresourcekind.ApiResourceKind]bool{
-		apiresourcekind.ApiResourceKind_organization: false,
-		apiresourcekind.ApiResourceKind_agent:        false,
-		apiresourcekind.ApiResourceKind_workflow:     false,
-		apiresourcekind.ApiResourceKind_skill:        false,
-		apiresourcekind.ApiResourceKind_mcp_server:   false,
-		apiresourcekind.ApiResourceKind_project:      false,
-		apiresourcekind.ApiResourceKind_api_key:      false,
+		apiresourcekind.ApiResourceKind_organization:      false,
+		apiresourcekind.ApiResourceKind_agent:             false,
+		apiresourcekind.ApiResourceKind_workflow:          false,
+		apiresourcekind.ApiResourceKind_skill:             false,
+		apiresourcekind.ApiResourceKind_mcp_server:        false,
+		apiresourcekind.ApiResourceKind_project:           false,
+		apiresourcekind.ApiResourceKind_api_key:           false,
+		apiresourcekind.ApiResourceKind_identity_provider: false,
+		apiresourcekind.ApiResourceKind_oauth_app:         false,
+		apiresourcekind.ApiResourceKind_environment:       false,
+		apiresourcekind.ApiResourceKind_agent_instance:    false,
+		apiresourcekind.ApiResourceKind_workflow_instance: false,
+		apiresourcekind.ApiResourceKind_session:           false,
 	}
 
 	for _, info := range all {
@@ -285,13 +291,13 @@ func TestRegistry_TypesForVerb(t *testing.T) {
 		verb          Verb
 		expectedCount int
 	}{
-		{VerbApply, 5},    // Organization, Agent, Workflow, McpServer, Project
+		{VerbApply, 11},   // Original 5 + 6 T02 resources
 		{VerbRun, 2},      // Agent, Workflow
 		{VerbPush, 1},     // Skill only
 		{VerbSearch, 2},   // Agent, Workflow
-		{VerbGet, 7},      // All types
-		{VerbList, 7},     // All types
-		{VerbDelete, 7},   // All types
+		{VerbGet, 13},     // All 13 types
+		{VerbList, 12},    // All except WorkflowInstance (no generic list RPC)
+		{VerbDelete, 13},  // All 13 types
 		{VerbValidate, 4}, // Agent, Workflow, McpServer, Project
 	}
 

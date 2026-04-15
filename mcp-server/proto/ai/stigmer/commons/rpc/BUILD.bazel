@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "rpc",
+    srcs = [
+        "authorization_config.pb.go",
+        "method_options.pb.go",
+        "pagination.pb.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//mcp-server/proto/ai/stigmer/iam/v1:iam",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/descriptorpb",
+    ],
+)

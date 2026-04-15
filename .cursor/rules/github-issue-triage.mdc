@@ -135,11 +135,19 @@ Search message content for `github.com/stigmer/stigmer/issues/{number}`. If foun
 
 ### Step 4: Draft resolution messages
 
-**GitHub close comment:**
-> Fixed in {PR link or version}. {Brief description of what was done}.
+Before drafting, re-read the original issue body and any comments from the reporter. If the reporter proposed approaches, suggested solutions, or asked questions that influenced the resolution, the close comment **must** address them. Community members who take time to think through a problem deserve to see their input acknowledged — not silently bypassed.
+
+**GitHub close comment structure:**
+1. **What was done** — brief description of the fix and where it shipped.
+2. **Address the reporter's suggestions** — if the reporter proposed approaches, explicitly name them, explain which direction was chosen and why. If the chosen approach differs from what was suggested, give the technical reasoning. If a suggestion was deferred rather than rejected, say so and explain when it might make sense.
+3. **Credit the reporter** — thank them specifically for what they contributed (the report, the analysis, the suggested approaches). Be specific, not generic.
+
+> {What was done}. {Address reporter's suggestions — which were evaluated, what direction was chosen and why, what's deferred vs rejected}. Thanks @{reporter} for {specific contribution}.
 
 **Discord resolution message** (only if a linked Discord message was found):
-> Fixed! {Brief description}. Shipped in {version/PR}. Thanks @{reporter} for reporting this.
+Same principle — acknowledge the reporter's suggestions, explain the direction taken, and credit them. Keep it concise but not dismissive.
+
+> Fixed! {Brief description}. {1-2 sentences addressing reporter's suggestions and why this direction was chosen}. Thanks {reporter} for {specific contribution}. {link to GitHub issue}
 
 Present both for approval:
 ```
@@ -241,6 +249,7 @@ When applying labels, follow these rules:
 - **Never close issues without user approval.** Always present the close comment and Discord message for review first.
 - **Never auto-label.** Always present suggested labels for review before applying.
 - **Credit the reporter.** Resolution messages on both GitHub and Discord should mention the original author.
+- **Never ignore the reporter's suggestions.** If the reporter proposed approaches, solutions, or workarounds, the resolution comment must explicitly address them — name what they suggested, explain the direction taken and why, and note anything deferred for later. A thoughtful report deserves a thoughtful response, not a generic "Fixed, thanks."
 - **Link PRs to issues.** When closing with a PR reference, use the format "Fixed in #PR" so GitHub auto-links them.
 - **Discord credentials** are fetched from Planton MCP at runtime, same as the Discord community health rule. Never hardcode tokens.
 

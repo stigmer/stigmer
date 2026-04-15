@@ -45,7 +45,7 @@ function cursorTargetFor(step: MarketplaceConnectStep): string | undefined {
     case "click-connect":
       return "connect-button";
     case "connected-policies":
-      return "policies-tab";
+      return "tab-policies";
     default:
       return undefined;
   }

@@ -2,7 +2,6 @@
 package organization
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"buf.build/go/protovalidate"
 	"github.com/pkg/errors"
 	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/yamlutil"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
@@ -58,7 +58,7 @@ func parseContent(content []byte, filePath string) (*organizationv1.Organization
 			return nil, errors.Wrapf(err, "failed to parse YAML from %s", filePath)
 		}
 
-		jsonBytes, err = yamlMapToJSON(intermediate)
+		jsonBytes, err = yamlutil.MapToJSON(intermediate)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to convert YAML to JSON from %s", filePath)
 		}
@@ -78,35 +78,4 @@ func parseContent(content []byte, filePath string) (*organizationv1.Organization
 	}
 
 	return org, nil
-}
-
-func yamlMapToJSON(m map[string]interface{}) ([]byte, error) {
-	converted := convertYAMLValue(m)
-	return json.Marshal(converted)
-}
-
-func convertYAMLValue(v interface{}) interface{} {
-	switch val := v.(type) {
-	case map[string]interface{}:
-		result := make(map[string]interface{})
-		for k, v := range val {
-			result[k] = convertYAMLValue(v)
-		}
-		return result
-	case map[interface{}]interface{}:
-		result := make(map[string]interface{})
-		for k, v := range val {
-			keyStr := fmt.Sprintf("%v", k)
-			result[keyStr] = convertYAMLValue(v)
-		}
-		return result
-	case []interface{}:
-		result := make([]interface{}, len(val))
-		for i, v := range val {
-			result[i] = convertYAMLValue(v)
-		}
-		return result
-	default:
-		return val
-	}
 }

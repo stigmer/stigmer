@@ -127,6 +127,7 @@ Follow the register closest to "Quickstart / tutorials" from `docs/vocabulary.md
 - **Technical but accessible.** Match the community member's level of technical depth.
 - **Transparent about status.** "We don't support this yet, but here's the tracking issue" is better than silence.
 - **Credit the reporter.** When a fix ships, mention who reported it.
+- **Engage with what they said.** If the community member proposed ideas, approaches, or workarounds, address them directly in the response. Name the suggestions, explain which direction the team is taking and why. A community member who puts thought into an issue must never feel their input was ignored — even when the chosen approach differs from what they suggested. "We evaluated your suggestions and here's why we went this direction" is respect. Silence is dismissal.
 
 ### Response Templates by Category
 
@@ -134,10 +135,10 @@ Follow the register closest to "Quickstart / tutorials" from `docs/vocabulary.md
 > Thanks for reporting this, {author}. {Brief acknowledgment of the issue}. {Ask for reproduction details if missing, OR confirm you can reproduce}. Tracking in {link to GitHub issue if exists, or "I'll open a GitHub issue for tracking"}.
 
 **Feature request:**
-> Great callout, {author}. {Validate the use case — explain why it makes sense}. {Share roadmap context if available: "This is on our radar" / "We're tracking this in #{issue_number}" / "This aligns with our plan to..."}. {Invite discussion if there are multiple approaches}.
+> Great callout, {author}. {Validate the use case — explain why it makes sense}. {If the author suggested approaches, name them and engage: explain which direction the team favors and why, or invite discussion if there are genuine trade-offs. Never skip past their suggestions without comment.} {Share roadmap context if available: "This is on our radar" / "We're tracking this in #{issue_number}" / "This aligns with our plan to..."}.
 
 **Integration/SDK question:**
-> {Acknowledge the problem is real and affects other users}. {Brief technical context — why the current behavior exists}. {Workaround if one exists}. Tracking in {link to GitHub issue}.
+> {Acknowledge the problem is real and affects other users}. {If the author proposed a workaround or diagnosis, confirm or correct it — don't ignore their analysis.} {Brief technical context — why the current behavior exists}. {Workaround if one exists}. Tracking in {link to GitHub issue}.
 
 **General question:**
 > {Direct, concise answer}. {Link to relevant docs if they exist}. {If the question reveals a docs gap, note: "Good question — I'll make sure our docs cover this better."}
