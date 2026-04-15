@@ -278,25 +278,23 @@ export function ByoaSetup() {
                 slideDirection={slideDirectionFor(step)}
               >
                 <StigmerProvider key={`dialog-${key}`} client={client}>
-                  <div className="relative h-full">
-                    <div
-                      className="h-full overflow-y-auto"
-                      style={{ zoom: DEMO_CONTENT_ZOOM }}
-                    >
-                      <div className="p-4">
-                        <McpServerDetailView
-                          org={DEMO_ORG}
-                          slug={DEMO_SLUG}
-                          defaultCapabilityTab="tools"
-                        />
-                      </div>
+                  <div
+                    className="absolute inset-0 overflow-y-auto"
+                    style={{ zoom: DEMO_CONTENT_ZOOM }}
+                  >
+                    <div className="p-4">
+                      <McpServerDetailView
+                        org={DEMO_ORG}
+                        slug={DEMO_SLUG}
+                        defaultCapabilityTab="tools"
+                      />
                     </div>
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
-                      <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
-                        <ByoaDialogCard
-                          filled={step.view === "click-save"}
-                        />
-                      </div>
+                  </div>
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60" data-scroll-target="byoa-dialog-card">
+                    <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
+                      <ByoaDialogCard
+                        filled={step.view === "click-save"}
+                      />
                     </div>
                   </div>
                 </StigmerProvider>

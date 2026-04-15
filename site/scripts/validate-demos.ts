@@ -259,6 +259,7 @@ interface StepContract {
   targets: string[];
   scrollContainer?: string;
   cursorMustAlign?: string;
+  mustBeCentered?: string;
 }
 
 interface VisibilityContract {

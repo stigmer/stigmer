@@ -153,7 +153,7 @@ export function AppShell({
       {/* Content area */}
       <motion.div
         key={contentKey}
-        className="min-w-0 flex-1 overflow-hidden bg-background"
+        className="relative min-w-0 flex-1 overflow-hidden bg-background"
         initial={{ opacity: 0, x: slideX }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}

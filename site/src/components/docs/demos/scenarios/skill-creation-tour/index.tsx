@@ -228,21 +228,19 @@ function renderStep(step: GuidedTourStep) {
           slideDirection={slide}
           aside={renderWidgetsSidebar(step.execution)}
         >
-          <div className="relative h-full">
-            <div className="h-full overflow-hidden">
-              <ComposerView execution={step.execution} />
-            </div>
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
-              <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
-                <div className="w-[36rem] rounded-lg border border-border bg-background shadow-lg">
-                  <ArtifactPreviewContent
-                    artifact={firstArtifact(step.execution)}
-                    executionId={step.execution.metadata!.id}
-                    org={DEMO_ORG}
-                    isTerminal
-                    onClose={noop}
-                  />
-                </div>
+          <div className="absolute inset-0 overflow-hidden">
+            <ComposerView execution={step.execution} />
+          </div>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+            <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
+              <div className="w-[36rem] rounded-lg border border-border bg-background shadow-lg">
+                <ArtifactPreviewContent
+                  artifact={firstArtifact(step.execution)}
+                  executionId={step.execution.metadata!.id}
+                  org={DEMO_ORG}
+                  isTerminal
+                  onClose={noop}
+                />
               </div>
             </div>
           </div>
