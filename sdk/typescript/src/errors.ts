@@ -124,6 +124,40 @@ const CATEGORY_FALLBACKS: Record<ErrorCategory, string> = {
   unknown: "An unexpected error occurred.",
 };
 
+/**
+ * Maps enriched auth error descriptions from the backend into developer-friendly
+ * guidance. These patterns match the actionable descriptions returned by the
+ * gRPC interceptor chain (GrpcSecurityConfigBase + GrpcRequestContextBuilderInterceptor).
+ */
+const AUTH_ERROR_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
+  [
+    /token audience does not match/i,
+    "The token's audience does not match the IdentityProvider's expected_audience. " +
+      "Verify your Auth0 API identifier matches the expected_audience configured in Stigmer.",
+  ],
+  [
+    /token signature verification failed/i,
+    "Token signature verification failed. " +
+      "Check that the IdentityProvider's jwks_uri points to the correct JWKS endpoint.",
+  ],
+  [
+    /token has expired/i,
+    "The access token has expired. Request a new token and retry.",
+  ],
+  [
+    /federated identity account not found/i,
+    "No identity account exists for this user. " +
+      "The platform must create a federated account via createFederatedAccount " +
+      "before the user can authenticate.",
+  ],
+  [
+    /account provisioning failed/i,
+    "SSO account provisioning failed. " +
+      "Ensure the IdentityProvider's userinfo_endpoint is configured and the " +
+      "access token includes the 'openid email profile' scopes.",
+  ],
+];
+
 const INFRA_NOISE_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [/no healthy upstream/i, "The server is temporarily unavailable."],
   [/ECONNREFUSED/i, "Unable to connect to the server."],
@@ -175,6 +209,9 @@ function extractRawMessage(error: unknown): string {
 
 function sanitizeMessage(message: string): string {
   if (!message) return "";
+  for (const [pattern, replacement] of AUTH_ERROR_PATTERNS) {
+    if (pattern.test(message)) return replacement;
+  }
   for (const [pattern, replacement] of INFRA_NOISE_PATTERNS) {
     if (pattern.test(message)) return replacement;
   }
