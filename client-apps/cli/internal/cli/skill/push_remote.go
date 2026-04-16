@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 )
 
 // RemotePushOptions contains options for pushing from a remote git repository.

@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"google.golang.org/protobuf/proto"
 )
 

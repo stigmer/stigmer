@@ -9,14 +9,13 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/search",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//apis/stubs/go/ai/stigmer/commons/rpc",
-        "//apis/stubs/go/ai/stigmer/search/v1:search",
         "//client-apps/cli/pkg/display",
         "@com_github_fatih_color//:color",
         "@com_github_pkg_errors//:errors",
-        "@org_golang_google_grpc//:grpc",
+        "@com_github_stigmer_stigmer_sdk_go//:go",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource/apiresourcekind",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/search/v1:search",
     ],
 )
 
@@ -25,10 +24,10 @@ go_test(
     srcs = ["client_test.go"],
     embed = [":search"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//apis/stubs/go/ai/stigmer/search/v1:search",
+        "@com_github_stigmer_stigmer_sdk_go//:go",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource/apiresourcekind",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/search/v1:search",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
-        "@org_golang_google_grpc//:grpc",
     ],
 )

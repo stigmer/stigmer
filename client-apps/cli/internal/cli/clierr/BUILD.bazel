@@ -9,6 +9,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
+        "@com_github_stigmer_stigmer_sdk_go//:go",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
     ],

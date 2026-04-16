@@ -3,9 +3,9 @@ package root
 import (
 	"time"
 
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
 // convertToolCall transforms a proto ToolCall into a toolrender.ToolCallInfo.

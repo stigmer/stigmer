@@ -8,8 +8,8 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/pkg/errors"
-	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/yamlutil"
+	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )

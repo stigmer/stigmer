@@ -8,8 +8,8 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/pkg/errors"
-	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/yamlutil"
+	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )

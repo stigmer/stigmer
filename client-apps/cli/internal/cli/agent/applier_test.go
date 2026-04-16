@@ -61,9 +61,9 @@ func createTestAgentWithID() *agentv1.Agent {
 
 func TestApply_NilAgent(t *testing.T) {
 	opts := &ApplyOptions{
-		Agent: nil,
+		Agent:  nil,
 		Client: stubClient(),
-		OrgID: testOrgID,
+		OrgID:  testOrgID,
 	}
 
 	result, err := Apply(opts)
@@ -75,9 +75,9 @@ func TestApply_NilAgent(t *testing.T) {
 
 func TestApply_NilConnection(t *testing.T) {
 	opts := &ApplyOptions{
-		Agent: createTestAgent(),
+		Agent:  createTestAgent(),
 		Client: nil,
-		OrgID: testOrgID,
+		OrgID:  testOrgID,
 	}
 
 	result, err := Apply(opts)
@@ -115,7 +115,7 @@ func TestApply_ValidationOrder(t *testing.T) {
 
 	t.Run("nil agent checked first", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
-			Agent: nil,
+			Agent:  nil,
 			Client: stubClient(),
 		})
 		require.Error(t, err)
@@ -124,7 +124,7 @@ func TestApply_ValidationOrder(t *testing.T) {
 
 	t.Run("nil connection checked second", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
-			Agent: createTestAgent(),
+			Agent:  createTestAgent(),
 			Client: nil,
 		})
 		require.Error(t, err)

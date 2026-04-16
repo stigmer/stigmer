@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 )
 
 // ExternalSkillRef represents a reference to an externally-pushed skill.

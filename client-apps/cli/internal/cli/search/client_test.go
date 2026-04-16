@@ -3,9 +3,9 @@ package search
 import (
 	"testing"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	stigmer "github.com/stigmer/stigmer/sdk/go"
 
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"

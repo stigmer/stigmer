@@ -6,11 +6,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

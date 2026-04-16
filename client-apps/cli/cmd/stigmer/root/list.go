@@ -6,9 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -20,6 +17,9 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // NewListCommand creates the unified list command.

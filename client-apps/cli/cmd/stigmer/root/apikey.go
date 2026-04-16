@@ -9,10 +9,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	apikeyv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/apikey/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
+	apikeyv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/apikey/v1"
 )
 
 // NewApiKeyCommand creates the standalone apikey command group.

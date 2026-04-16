@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 )
 
 // GetFromBackend fetches an agent instance from the backend by reference.

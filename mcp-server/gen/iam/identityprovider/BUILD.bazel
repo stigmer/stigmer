@@ -9,5 +9,6 @@ go_library(
         "//mcp-server/internal/convert",
         "//mcp-server/proto/ai/stigmer/commons/apiresource",
         "//mcp-server/proto/ai/stigmer/iam/identityprovider/v1:identityprovider",
+        "//mcp-server/proto/ai/stigmer/iam/v1:iam",
     ],
 )

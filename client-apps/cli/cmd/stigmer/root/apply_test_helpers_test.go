@@ -6,6 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
@@ -13,11 +18,6 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 )
 
 const (

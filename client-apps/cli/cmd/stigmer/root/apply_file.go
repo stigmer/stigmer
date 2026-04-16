@@ -10,10 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agentinstance"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
@@ -31,6 +27,10 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflowinstance"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 type fileApplyOptions struct {

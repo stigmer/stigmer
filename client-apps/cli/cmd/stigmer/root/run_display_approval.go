@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // Note: summaryPanelWidth() from run_display_summary.go is reused here

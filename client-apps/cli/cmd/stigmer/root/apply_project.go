@@ -9,11 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
-	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apply"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
@@ -27,6 +22,11 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // executeProjectApply implements the SDK track where stigmer.yaml has an entry_point set.

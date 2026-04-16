@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpdiscovery"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpdiscovery"
 )
 
 // ConnectOptions configures an MCP server capability discovery run.

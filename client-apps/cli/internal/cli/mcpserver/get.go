@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 )
 
 // GetFromBackend fetches an MCP server from the backend by reference.

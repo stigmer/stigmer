@@ -8,9 +8,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 )
 
 // streamAgentPlainText is a minimal renderer for non-TTY output.

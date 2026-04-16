@@ -10,9 +10,9 @@ import (
 
 	"github.com/fatih/color"
 
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 const (

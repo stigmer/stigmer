@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/browser"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 )
 
 const (

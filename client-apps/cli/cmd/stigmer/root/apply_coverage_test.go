@@ -3,8 +3,8 @@ package root
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stretchr/testify/assert"
 )
 

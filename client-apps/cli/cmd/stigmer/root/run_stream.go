@@ -8,14 +8,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 )
 
 // streamAgentExecution subscribes to execution updates and renders them

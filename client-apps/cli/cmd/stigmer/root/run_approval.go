@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // approvalSubmitTimeout is the timeout for approval submission RPCs.

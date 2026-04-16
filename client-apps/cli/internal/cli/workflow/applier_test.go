@@ -59,7 +59,7 @@ func createTestWorkflowWithID() *workflowv1.Workflow {
 func TestApply_NilWorkflow(t *testing.T) {
 	opts := &ApplyOptions{
 		Workflow: nil,
-		Client: stubClient(),
+		Client:   stubClient(),
 		OrgID:    testOrgID,
 	}
 
@@ -73,7 +73,7 @@ func TestApply_NilWorkflow(t *testing.T) {
 func TestApply_NilConnection(t *testing.T) {
 	opts := &ApplyOptions{
 		Workflow: createTestWorkflow(),
-		Client: nil,
+		Client:   nil,
 		OrgID:    testOrgID,
 	}
 
@@ -88,7 +88,7 @@ func TestApply_EmptyOrgID_StillValid(t *testing.T) {
 	// Empty OrgID is valid - backend will use authenticated user's org
 	opts := &ApplyOptions{
 		Workflow: createTestWorkflow(),
-		Client: stubClient(),
+		Client:   stubClient(),
 		OrgID:    "",
 		DryRun:   true,
 		Quiet:    true,
@@ -113,7 +113,7 @@ func TestApply_ValidationOrder(t *testing.T) {
 	t.Run("nil workflow checked first", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
 			Workflow: nil,
-			Client: stubClient(),
+			Client:   stubClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "workflow is required")
@@ -122,7 +122,7 @@ func TestApply_ValidationOrder(t *testing.T) {
 	t.Run("nil connection checked second", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
 			Workflow: createTestWorkflow(),
-			Client: nil,
+			Client:   nil,
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "client is required")
@@ -138,7 +138,7 @@ func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Workflow: workflow,
-		Client: stubClient(),
+		Client:   stubClient(),
 		OrgID:    testOrgID,
 		DryRun:   true,
 		Quiet:    true,
@@ -167,7 +167,7 @@ func TestApply_DryRun_PreservesWorkflow(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Workflow: workflow,
-		Client: stubClient(),
+		Client:   stubClient(),
 		OrgID:    testOrgID,
 		DryRun:   true,
 		Quiet:    true,
@@ -190,7 +190,7 @@ func TestApply_DryRun_RequiresConnection(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Workflow: workflow,
-		Client: nil,
+		Client:   nil,
 		OrgID:    testOrgID,
 		DryRun:   true,
 		Quiet:    true,
@@ -222,7 +222,7 @@ func TestApply_SetsOrgWhenEmpty(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Workflow: workflow,
-		Client: stubClient(),
+		Client:   stubClient(),
 		OrgID:    testOrgID,
 		DryRun:   true,
 		Quiet:    true,
@@ -251,7 +251,7 @@ func TestApply_PreservesExistingOrg(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Workflow: workflow,
-		Client: stubClient(),
+		Client:   stubClient(),
 		OrgID:    testOrgID, // Different org in options
 		DryRun:   true,
 		Quiet:    true,
@@ -277,7 +277,7 @@ func TestApply_CreatesMetadataWhenNil(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Workflow: workflow,
-		Client: stubClient(),
+		Client:   stubClient(),
 		OrgID:    testOrgID,
 		DryRun:   true,
 		Quiet:    true,
@@ -301,7 +301,7 @@ func TestApplyOptions_AllFields(t *testing.T) {
 	opts := &ApplyOptions{
 		Workflow: workflow,
 		OrgID:    testOrgID,
-		Client: stubClient(),
+		Client:   stubClient(),
 		Quiet:    true,
 		DryRun:   true,
 	}
@@ -362,7 +362,7 @@ func TestApply_DetectsCreate_WhenNoExistingID(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Workflow: workflow,
-		Client: stubClient(),
+		Client:   stubClient(),
 		DryRun:   true,
 		Quiet:    true,
 	}
@@ -380,7 +380,7 @@ func TestApply_DetectsUpdate_WhenExistingID(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Workflow: workflow,
-		Client: stubClient(),
+		Client:   stubClient(),
 		DryRun:   true,
 		Quiet:    true,
 	}

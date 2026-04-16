@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 )
 
 // GetFromBackend fetches a workflow from the backend by reference.
