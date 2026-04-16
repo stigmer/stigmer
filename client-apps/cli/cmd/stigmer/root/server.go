@@ -35,6 +35,17 @@ This command starts the Stigmer server:
   - Starts agent-runner for AI agent execution
 
 Run 'stigmer server setup' to reconfigure the LLM provider at any time.`,
+		Example: `  # Start the server (interactive setup on first run)
+  stigmer server
+
+  # Start with the web console open
+  stigmer server --open
+
+  # Start in sandbox execution mode
+  stigmer server --execution-mode sandbox
+
+  # Start without the embedded web console
+  stigmer server --no-web`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleServerStart(cmd, resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -63,8 +74,10 @@ func newServerStopCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "stop",
-		Short: "Stop the Stigmer server",
+		Use:     "stop",
+		Short:   "Stop the Stigmer server",
+		Long:    `Stop the Stigmer server and all managed processes (Temporal, agent-runner).`,
+		Example: `  stigmer server stop`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleServerStop(resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -80,6 +93,15 @@ func newServerStatusCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show server status",
+		Long: `Show the status of the Stigmer server and its managed processes.
+
+Displays whether the server is running, its PID, uptime, LLM configuration,
+and the status of dependent services.`,
+		Example: `  # Show server status
+  stigmer server status
+
+  # Machine-readable output
+  stigmer server status --json`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleServerStatus(resolveResultFormat(jsonOutput, quietOutput))
 		},

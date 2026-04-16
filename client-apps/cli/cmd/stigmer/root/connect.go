@@ -55,10 +55,8 @@ ENVIRONMENT VARIABLES:
   The flag can be repeated for multiple variables.
 
   You can also export variables in your shell before running the command;
-  --env is simply more convenient and mirrors stigmer run / stigmer draft.
-
-Examples:
-  # Connect by slug (uses default org)
+  --env is simply more convenient and mirrors stigmer run / stigmer draft.`,
+		Example: `  # Connect by slug (uses default org)
   stigmer connect mcp-server github
 
   # Connect by org/slug

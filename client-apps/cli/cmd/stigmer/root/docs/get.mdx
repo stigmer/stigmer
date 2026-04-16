@@ -1,0 +1,93 @@
+Retrieve a resource by type and reference.
+
+`stigmer get` fetches a single resource from the Stigmer backend and displays
+its details. You specify the resource type and a reference — either a slug,
+an `org/slug` qualified name, or a resource ID.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Get an agent by slug
+stigmer get agent my-agent
+
+# Get by org-qualified slug
+stigmer get agent acme-corp/code-reviewer
+
+# Get by resource ID
+stigmer get workflow wfl_abc123
+
+# Output as YAML
+stigmer get agent my-agent --output yaml
+```
+
+{/* AUTO_FLAGS */}
+
+### Supported resource types
+
+| Type | Aliases | Reference formats |
+|------|---------|-------------------|
+| Agent | `agent`, `agt`, `agents` | slug, org/slug, ID |
+| Workflow | `workflow`, `wf`, `workflows` | slug, org/slug, ID |
+| MCP Server | `mcpserver`, `mcp`, `mcp-server` | slug, org/slug, ID |
+| Skill | `skill`, `skills` | slug, org/slug, ID |
+| Organization | `organization`, `org`, `organizations` | slug, ID |
+| Project | `project`, `proj`, `projects` | slug, org/slug, ID |
+| Execution | `execution`, `exec` | ID only |
+
+### Output formats
+
+Use `--output` to control the display format:
+
+| Format | Use case |
+|--------|----------|
+| `table` | Human-readable table (default) |
+| `yaml` | Full resource definition as YAML |
+| `json` | Full resource definition as JSON |
+
+```bash
+# Export an agent definition as YAML
+stigmer get agent my-agent --output yaml > agent.yaml
+
+# Pipe JSON to jq for field extraction
+stigmer get agent my-agent --output json | jq '.spec.instructions'
+```
+
+## Examples
+
+### Inspect an agent
+
+```bash
+stigmer get agent my-agent
+```
+
+### Check execution status and artifacts
+
+```bash
+stigmer get execution aex_01abc123
+```
+
+Executions are referenced by ID only (not slugs). The output includes
+artifacts produced by the agent.
+
+### Export a resource definition
+
+```bash
+stigmer get agent my-agent --output yaml > agent-backup.yaml
+```
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer list`](./list) | List all resources of a type |
+| [`stigmer delete`](./delete) | Delete a resource |
+| [`stigmer apply`](./apply) | Create or update resources |
+| [`stigmer search`](./search) | Search resources by text query |
+
+## See also
+
+- [Command Reference](./) — All available commands

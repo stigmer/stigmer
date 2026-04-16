@@ -1,0 +1,79 @@
+Validate resource YAML files without applying them.
+
+`stigmer validate` checks that your resource files contain valid YAML with a
+correct schema. It supports agents, workflows, MCP servers, and projects. The
+resource type is auto-detected from the `kind` field in the YAML.
+
+Use this command before `stigmer apply` to catch errors early — especially
+useful in CI pipelines.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Validate a single file
+stigmer validate -f agent.yaml
+
+# Validate all YAML files in a directory
+stigmer validate -f ./manifests/
+
+# Validate a project configuration
+stigmer validate -f stigmer.yaml
+```
+
+{/* AUTO_FLAGS */}
+
+### What gets validated
+
+- YAML syntax
+- Required fields (apiVersion, kind, metadata, spec)
+- Resource-specific schema rules per kind
+- Multi-document YAML (`---` separated)
+
+### Supported inputs
+
+| Input | Behavior |
+|-------|----------|
+| Single `.yaml` / `.yml` file | Validate one resource definition |
+| Directory path | Validate all YAML files in the directory |
+| Multi-document YAML | Validate each document separately |
+
+## Examples
+
+### Validate before deploying
+
+```bash
+stigmer validate -f agent.yaml && stigmer apply -f agent.yaml
+```
+
+Run validation first, then apply only if it passes.
+
+### Validate a project directory
+
+```bash
+stigmer validate -f ./manifests/
+```
+
+Checks every YAML file in the directory.
+
+### CI pipeline validation
+
+```bash
+stigmer validate -f ./manifests/ || exit 1
+```
+
+Exit with a non-zero code if any file fails validation.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer apply`](./apply) | Apply validated resources to the backend |
+| [`stigmer draft`](./draft) | Scaffold new resource definition files |
+
+## See also
+
+- [Command Reference](./) — All available commands
