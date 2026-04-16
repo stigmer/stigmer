@@ -43,7 +43,7 @@ curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/instal
 
 # From source
 git clone https://github.com/stigmer/stigmer.git
-cd stigmer && make local
+cd stigmer && make setup && npm install && make local
 ```
 
 </details>
@@ -52,7 +52,7 @@ cd stigmer && make local
 
 Stigmer turns domain knowledge and tools into AI agents you can call from any application.
 
-- **Skills** — Teach agents your domain. Upload versioned knowledge artifacts and the agent answers with expertise instead of generic responses.
+- **Skills** — Teach agents your domain. Upload versioned knowledge and the agent answers with expertise instead of generic responses.
 - **MCP Servers** — Give agents tools. Connect to your systems via the [Model Context Protocol](https://modelcontextprotocol.io). Agents discover available tools and Stigmer handles execution sandboxing.
 - **Approval flows** — Set rules for human oversight. Define which actions need approval before the agent proceeds. Executions are durable — they wait without losing state.
 
@@ -136,27 +136,18 @@ stigmer mcp-server
 
 See [mcp-server/README.md](mcp-server/README.md) for IDE configuration (Cursor, Claude Desktop, VS Code, Windsurf).
 
-## CLI Reference
+## SDKs
 
-| Command | Description |
-|---------|-------------|
-| `stigmer run <name> [prompt]` | Execute an agent or workflow |
-| `stigmer apply -f <file>` | Create or update resources from YAML |
-| `stigmer get <kind> <name>` | Get a resource |
-| `stigmer list <kind>` | List resources |
-| `stigmer delete <kind> <name>` | Delete a resource |
-| `stigmer search <query>` | Full-text search across resources |
-| `stigmer draft <kind>` | Scaffold a new resource |
-| `stigmer push` | Push a skill artifact |
-| `stigmer download <kind> <name>` | Download a resource artifact |
-| `stigmer validate -f <file>` | Validate a resource definition |
-| `stigmer server` | Start/stop/status/setup/reset for local server |
-| `stigmer mcp-server` | Start the Stigmer MCP server |
-| `stigmer config` | Manage CLI configuration and backend |
-| `stigmer auth` | Manage cloud authentication |
-| `stigmer connect` | Connect MCP servers to your environment |
+| SDK | Install | Reference |
+|-----|---------|-----------|
+| **Go** | `go get github.com/stigmer/stigmer/sdk/go` | [Reference](https://stigmer.ai/docs/sdk/go) |
+| **TypeScript** | `npm install @stigmer/sdk` | [Reference](https://stigmer.ai/docs/sdk/typescript) |
+| **Python** | `pip install stigmer` | [Reference](https://stigmer.ai/docs/sdk/python) |
+| **Java** | Maven: `ai.stigmer:stigmer-java` | [Reference](https://stigmer.ai/docs/sdk/java) |
+| **React** | `npm install @stigmer/react` | [Reference](https://stigmer.ai/docs/sdk/react) |
+| **Ink** | `npm install @stigmer/ink` | [Reference](https://stigmer.ai/docs/sdk/ink) |
 
-See the [full CLI reference](https://stigmer.ai/docs/cli) for detailed usage, flags, and examples.
+The Go, TypeScript, Python, and Java SDKs provide typed API clients for all platform resources. The React SDK renders agent UIs — session composers, message threads, and approval views. The Ink SDK brings the same components to the terminal.
 
 ## Local vs Cloud
 
@@ -164,58 +155,18 @@ See the [full CLI reference](https://stigmer.ai/docs/cli) for detailed usage, fl
 |---|---|---|
 | **Start with** | `stigmer server` | `stigmer config backend set cloud` |
 | **Storage** | SQLite (`~/.stigmer/stigmer.db`) | Distributed (managed) |
-| **Orchestration** | Temporal (auto-managed) | Temporal (managed) |
 | **Users** | Single implicit user | Organizations, teams, IAM |
 | **LLM** | Anthropic, OpenAI, or Ollama (your choice) | Configurable |
 | **Best for** | Development, personal projects, air-gapped environments | Team collaboration, production, governance |
 
 Resource definitions are portable across both modes. The CLI talks to the same gRPC service interfaces regardless of backend.
 
-## Architecture
-
-Stigmer is a single binary (BusyBox pattern) that embeds all required services:
-
-```
-┌──────────────────────────────────────────────────────┐
-│                  stigmer CLI (Go)                     │
-│              (client-apps/cli/)                       │
-└────────────────────┬─────────────────────────────────┘
-                     │ gRPC (localhost:7234)
-┌────────────────────▼─────────────────────────────────┐
-│            stigmer-server (Go)                        │
-│        (backend/services/stigmer-server/)             │
-│                                                       │
-│  Controllers: Agent, Workflow, Skill, MCP Server      │
-│  Storage: SQLite via modernc.org/sqlite (pure Go)     │
-└────────────────────┬─────────────────────────────────┘
-                     │ Temporal Client
-┌────────────────────▼─────────────────────────────────┐
-│            Temporal (auto-managed)                     │
-└───────────┬───────────────────────┬──────────────────┘
-┌───────────▼──────────┐  ┌────────▼──────────────────┐
-│  agent-runner        │  │  workflow-runner           │
-│  (Python)            │  │  (Go)                      │
-│  LLM-powered agent   │  │  workflow                  │
-│  execution           │  │  execution                 │
-└──────────────────────┘  └───────────────────────────┘
-```
-
-## SDKs
-
-| SDK | Install | Reference |
-|-----|---------|-----------|
-| **Go** | `go get github.com/stigmer/stigmer/sdk/go` | [sdk/go/README.md](sdk/go/README.md) |
-| **React** | `npm install @stigmer/react` | [SDK Reference](https://stigmer.ai/docs/sdk/react) |
-| **Ink** | `npm install @stigmer/ink` | [SDK Reference](https://stigmer.ai/docs/sdk/ink) |
-
-The Go SDK provides a Pulumi-aligned struct-args API for defining agents and workflows programmatically. The React SDK renders agent UIs — session composers, message threads, and approval views. The Ink SDK brings the same React components to the terminal.
-
 ## Documentation
 
 - [Getting Started (Cloud)](https://stigmer.ai/docs/getting-started/quickstart) — Create your first agent in 5 minutes
 - [Getting Started (Local)](https://stigmer.ai/docs/getting-started/local) — Run agents on your machine
 - [CLI Reference](https://stigmer.ai/docs/cli) — Commands, flags, and examples
-- [SDK Reference](https://stigmer.ai/docs/sdk) — React, Ink, and Go SDK docs
+- [SDK Reference](https://stigmer.ai/docs/sdk) — Go, TypeScript, Python, Java, React, and Ink
 - [Core Concepts](https://stigmer.ai/docs/concepts/what-is-stigmer) — Agents, Skills, Workflows, and how they fit together
 - [Examples](examples/) — Sample agents, workflows, and skills
 
@@ -223,8 +174,9 @@ The Go SDK provides a Pulumi-aligned struct-args API for defining agents and wor
 
 ### Prerequisites
 
-- Go 1.25 or later
-- Python 3.11+ with [Poetry](https://python-poetry.org/) (for agent-runner)
+- Go 1.25+
+- Python 3.11+ with [Poetry](https://python-poetry.org/)
+- Node.js 22+
 - Git, Make
 
 ### Building from Source
@@ -233,14 +185,10 @@ The Go SDK provides a Pulumi-aligned struct-args API for defining agents and wor
 git clone https://github.com/stigmer/stigmer.git
 cd stigmer
 
-# Install all dependencies
-make setup
-
-# Build the CLI (outputs bin/stigmer)
-make build
-
-# Run tests
-make test
+make setup     # Install Go and Python dependencies
+npm install    # Install Node.js dependencies
+make local     # Build CLI with embedded web console
+make test      # Run tests
 ```
 
 ## Contributing
