@@ -18,7 +18,8 @@ import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { TerminalView } from "../../views/TerminalView";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 import {
   type CreateAgentTourStep,
@@ -91,7 +92,7 @@ export function CreateAgentTour() {
   });
 
   return (
-    <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+    <DemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={createAgentTourSteps}
         narrationManifest={narrationManifest}
@@ -159,6 +160,6 @@ export function CreateAgentTour() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </div>
+    </DemoViewport>
   );
 }

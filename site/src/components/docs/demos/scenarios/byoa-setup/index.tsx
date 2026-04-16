@@ -23,7 +23,8 @@ import {
   useStepInteractions,
 } from "../../engine/useStepInteractions";
 import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type ByoaSetupStep,
   byoaSetupSteps,
@@ -260,7 +261,7 @@ export function ByoaSetup() {
   });
 
   return (
-    <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+    <DemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={byoaSetupSteps}
         narrationManifest={narrationManifest}
@@ -329,6 +330,6 @@ export function ByoaSetup() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </div>
+    </DemoViewport>
   );
 }

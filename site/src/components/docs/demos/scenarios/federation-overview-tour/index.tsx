@@ -14,7 +14,8 @@ import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { BrowserView } from "../../views/BrowserView";
 import { ManagementShell } from "../../views/ManagementShell";
 import { APIExchangeView } from "../../views/APIExchangeView";
-import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 import {
   type OverviewTourStep,
   overviewTourSteps,
@@ -173,7 +174,7 @@ export function FederationOverviewTour() {
   });
 
   return (
-    <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+    <DemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={overviewTourSteps}
         narrationManifest={narrationManifest}
@@ -182,6 +183,6 @@ export function FederationOverviewTour() {
         {(step) => renderStep(step)}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </div>
+    </DemoViewport>
   );
 }

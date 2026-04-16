@@ -9,7 +9,7 @@ import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 import { type SessionMemoryStep, sessionMemorySteps } from "./steps";
 
 const emptyScenario: DemoScenario = { fixtures: new Map() };
@@ -52,14 +52,14 @@ export function SessionMemoryPlayback() {
 
   return (
     <StigmerProvider client={client}>
-      <div className={DEMO_PLAYER_CLASSES}>
+      <DemoViewport>
         <ScenarioPlayer
           steps={sessionMemorySteps}
           narrationManifest={narrationManifest}
         >
           {(step) => renderStep(step)}
         </ScenarioPlayer>
-      </div>
+      </DemoViewport>
     </StigmerProvider>
   );
 }

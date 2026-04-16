@@ -16,7 +16,7 @@ import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
 import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { TerminalView } from "../../views/TerminalView";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 import {
   type FirstSkillTourStep,
   firstSkillTourSteps,
@@ -125,7 +125,7 @@ export function FirstSkillTour() {
 
   return (
     <StigmerProvider client={client}>
-      <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+      <DemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={firstSkillTourSteps}
           narrationManifest={narrationManifest}
@@ -134,7 +134,7 @@ export function FirstSkillTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </div>
+      </DemoViewport>
     </StigmerProvider>
   );
 }
