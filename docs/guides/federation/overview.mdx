@@ -1,21 +1,23 @@
 ---
 title: Identity federation
 description:
-  Let users access Stigmer with their existing credentials. This guide covers
-  platform-managed federation for API integration and self-managed SSO for web
-  console login.
+  Let users access Stigmer with their existing credentials. Choose between
+  automatic JIT provisioning, explicit manual provisioning, or self-managed SSO.
 ---
 
 Identity federation lets users access Stigmer with tokens issued by an external
-authentication system. Instead of requiring separate Stigmer accounts, you
-register your auth provider as an Identity Provider and Stigmer trusts its
-tokens.
+authentication system. You register your auth provider as an Identity Provider,
+and Stigmer trusts its tokens.
 
-Federation supports two paths:
+Federation supports three provisioning modes:
 
-- **Platform-managed federation** — Your platform backend provisions accounts
-  and grants roles via the API. Your users call the Stigmer API with JWTs from
-  your auth provider.
+- **JIT provisioning** — Stigmer creates accounts and grants roles automatically
+  when a user authenticates with a valid JWT. Your backend only registers the
+  Identity Provider. Best for platforms where all authenticated users should
+  have Stigmer access.
+- **Manual provisioning** — Your platform backend creates federated accounts and
+  grants roles via the API before users can authenticate. Best for platforms
+  that need to control exactly who gets access and when.
 - **Self-managed SSO** — Your team members sign in to the Stigmer web console
   through your Organization's Identity Provider. Accounts are created
   automatically on first login.
@@ -31,12 +33,20 @@ Agents, Sessions, and other resources without a separate Stigmer login.
 
 ## What you'll build
 
-By the end of this guide, your platform will:
+By the end of this guide, your platform's users will call the Stigmer API using
+JWTs from your auth provider. Stigmer validates each token, resolves the user's
+identity, checks access, and processes the request — no separate Stigmer
+credentials needed.
 
-1. Have an Identity Provider registered in Stigmer that trusts your auth system
-2. Provision federated accounts for your users as they sign up
-3. Grant those users appropriate roles on your Organization
-4. Accept API calls authenticated with JWTs from your provider
+## Choose your provisioning mode
+
+|                      | JIT (automatic)                               | Manual (explicit)                              | SSO                                  |
+| -------------------- | --------------------------------------------- | ---------------------------------------------- | ------------------------------------ |
+| **Who it's for**     | Platform API integrations                     | Platform API integrations                      | Self-managed Organizations           |
+| **Account creation** | Automatic on first JWT                        | Your backend calls `createFederatedAccount`    | Automatic on first web login         |
+| **Role assignment**  | Automatic (configurable role)                 | Your backend creates IAM Policies              | Automatic (viewer)                   |
+| **Setup steps**      | Register IdP with JIT enabled                 | Register IdP, provision accounts, grant access | Register IdP with SSO enabled        |
+| **Use when**         | All authenticated users should access Stigmer | You need gated, explicit access control        | Team members need web console access |
 
 ## Architecture
 
@@ -69,10 +79,14 @@ flowchart LR
 
 {/* vale on */}
 
-The setup happens once per user (steps 1--3). After that, every API call follows
-the same path: present a JWT, Stigmer validates it against your Identity
-Provider's JWKS endpoint, resolves the caller to a federated account, and checks
-IAM Policies.
+The setup and runtime differ by provisioning mode. With **manual provisioning**,
+your backend performs all four steps above before users authenticate. With **JIT
+provisioning**, your backend only registers the Identity Provider (step
+
+1. — Stigmer handles steps 2 and 3 automatically when a user first
+   authenticates. Step 4 is the same regardless of mode: present a JWT, Stigmer
+   validates it against your Identity Provider's JWKS endpoint, resolves the
+   caller to a federated account, and checks IAM Policies.
 
 ## Prerequisites
 
@@ -88,7 +102,8 @@ Before starting, you need:
 
 ## Guide structure
 
-This guide is split into four pages, each covering one step of the integration:
+All integration paths start with step 1. If you enable JIT provisioning in step
+1, you can skip directly to step 4.
 
 <Cards>
   <Card
@@ -96,7 +111,7 @@ This guide is split into four pages, each covering one step of the integration:
     title="1. Register an Identity Provider"
   >
     Create and configure the trust relationship between your auth system and
-    Stigmer.
+    Stigmer. Enable JIT provisioning here for automatic account and role setup.
   </Card>
   <Card
     href="/docs/guides/federation/provision-federated-accounts"
@@ -118,9 +133,9 @@ This guide is split into four pages, each covering one step of the integration:
 </Cards>
 
 <Callout type="info">
-  Each page is self-contained. If you've already registered an Identity
-  Provider, you can jump directly to [provisioning
-  accounts](/docs/guides/federation/provision-federated-accounts).
+  **Using JIT provisioning?** If you enable JIT when you register your Identity
+  Provider (step 1), Stigmer handles account creation and role grants
+  automatically. Skip steps 2 and 3 and go straight to step 4.
 </Callout>
 
 ## Self-managed SSO
@@ -138,9 +153,11 @@ Stigmer creates accounts automatically on first login and assigns a viewer role.
 
 ## Multi-tenant platforms
 
-The four steps above cover federation for a single Organization. If your
-platform serves multiple customers and each customer needs isolated resources,
-you also need to create a separate Organization per tenant.
+The steps above cover federation for a single Organization. If your platform
+serves multiple customers and each customer needs isolated resources, you create
+a separate Organization per tenant. With JIT provisioning and `tenantOrgClaim`,
+Stigmer can automatically route users to their tenant Organization based on a
+JWT claim.
 
 <Cards>
   <Card
@@ -148,6 +165,7 @@ you also need to create a separate Organization per tenant.
     title="Multi-tenant platform setup"
   >
     Create platform-managed Organizations to give each of your customers
-    isolated Agents, Skills, and Sessions.
+    isolated Agents, Skills, and Sessions. Includes JIT provisioning with
+    automatic tenant routing.
   </Card>
 </Cards>

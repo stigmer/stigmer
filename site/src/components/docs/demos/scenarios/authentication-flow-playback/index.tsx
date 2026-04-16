@@ -40,10 +40,11 @@ const AUTH_INTERACTIONS: StepInteractions = {
     { atPercent: 0.75, type: "set-cursor", target: "check-3" },
     { atPercent: 0.92, type: "clear-cursor" },
   ],
-  // Step 4: resolve-authorize — cursor moves through resolve checks
+  // Step 4: resolve-authorize — cursor moves through resolve + JIT checks
   4: [
-    { atPercent: 0.2, type: "set-cursor", target: "check-0" },
-    { atPercent: 0.55, type: "set-cursor", target: "check-1" },
+    { atPercent: 0.15, type: "set-cursor", target: "check-0" },
+    { atPercent: 0.4, type: "set-cursor", target: "check-1" },
+    { atPercent: 0.65, type: "set-cursor", target: "check-2" },
     { atPercent: 0.85, type: "clear-cursor" },
   ],
 };

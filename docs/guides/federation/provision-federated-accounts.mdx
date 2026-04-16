@@ -5,9 +5,17 @@ description:
   they can authenticate with your provider's JWTs.
 ---
 
-For platform-managed federation, your backend must explicitly provision a
-federated Identity Account for each user **before** that user can call the
-Stigmer API. This gives you full control over who gets access.
+For manual provisioning, your backend must explicitly create a federated
+Identity Account for each user **before** that user can call the Stigmer API.
+This gives you full control over who gets access and when.
+
+<Callout type="info">
+  **Using JIT provisioning?** If your Identity Provider has
+  `autoProvisionAccounts` enabled, Stigmer creates accounts automatically on
+  first authentication. You don't need to follow this page. See [Enable JIT
+  provisioning](/docs/guides/federation/register-identity-provider#enable-jit-provisioning)
+  for the automatic setup.
+</Callout>
 
 <Callout type="info">
   **Self-managed SSO is different.** If your Identity Provider has SSO enabled,

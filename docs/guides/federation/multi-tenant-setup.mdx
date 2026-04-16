@@ -418,7 +418,161 @@ Because IAM Policies are scoped to a specific Organization, a user with `viewer`
 on `tenant-alpha` cannot see resources in `tenant-beta`. The Organization
 boundary enforces tenant isolation at the authorization layer.
 
-## Complete tenant onboarding flow
+## JIT provisioning for multi-tenant platforms
+
+With JIT provisioning and `tenantOrgClaim`, you can eliminate per-user
+provisioning code entirely. You still create tenant Organizations, but Stigmer
+handles account creation and role grants automatically based on a JWT claim.
+
+### How `tenantOrgClaim` works
+
+When you set `tenantOrgClaim` on an Identity Provider, Stigmer reads that claim
+from the JWT at authentication time and uses it to route the user to the correct
+tenant Organization. The resolution algorithm:
+
+1. Read the claim value from the JWT (for example, claim `org_id` yields value
+   `tenant-123`)
+2. Look up the platform-managed Organization where `identityProviderRef` matches
+   this Identity Provider and `externalOrgId` matches the claim value
+3. Create a federated account if one doesn't exist (because
+   `autoProvisionAccounts` is `true`)
+4. Grant `autoGrantRole` (default: viewer) on the resolved tenant Organization
+   (because `autoGrantOnOrg` is `true`)
+
+### Set up JIT with tenant routing
+
+Register an Identity Provider with JIT provisioning and `tenantOrgClaim`:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const idp = await stigmer.identityProvider.create({
+  name: "Acme Cloud Auth",
+  org: "acme",
+  slug: "acme-cloud-auth",
+  displayName: "Acme Cloud Auth",
+  jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
+  allowedIssuers: ["https://acme.us.auth0.com/"],
+  expectedAudience: "https://api.stigmer.ai/",
+  autoProvisionAccounts: true,
+  autoGrantOnOrg: true,
+  autoGrantRole: "member",
+  tenantOrgClaim: "org_id",
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
+  Name:                  "Acme Cloud Auth",
+  Org:                   "acme",
+  Slug:                  "acme-cloud-auth",
+  DisplayName:           "Acme Cloud Auth",
+  JwksUri:               "https://acme.us.auth0.com/.well-known/jwks.json",
+  AllowedIssuers:        []string{"https://acme.us.auth0.com/"},
+  ExpectedAudience:      "https://api.stigmer.ai/",
+  AutoProvisionAccounts: true,
+  AutoGrantOnOrg:        true,
+  AutoGrantRole:         "member",
+  TenantOrgClaim:        "org_id",
+})
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+idp = client.identity_providers.create(IdentityProviderInput(
+    name="Acme Cloud Auth",
+    org="acme",
+    slug="acme-cloud-auth",
+    display_name="Acme Cloud Auth",
+    jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
+    allowed_issuers=["https://acme.us.auth0.com/"],
+    expected_audience="https://api.stigmer.ai/",
+    auto_provision_accounts=True,
+    auto_grant_on_org=True,
+    auto_grant_role="member",
+    tenant_org_claim="org_id",
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.builder()
+    .name("Acme Cloud Auth")
+    .org("acme")
+    .slug("acme-cloud-auth")
+    .displayName("Acme Cloud Auth")
+    .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
+    .allowedIssuers(List.of("https://acme.us.auth0.com/"))
+    .expectedAudience("https://api.stigmer.ai/")
+    .autoProvisionAccounts(true)
+    .autoGrantOnOrg(true)
+    .autoGrantRole("member")
+    .tenantOrgClaim("org_id")
+    .build());
+```
+
+</Tab>
+</SDKTabs>
+
+With this configuration, your platform only needs to:
+
+1. Create tenant Organizations with `externalOrgId` set (same as manual setup)
+2. Include the tenant identifier as a claim in your JWTs (for example,
+   `"org_id": "acme-tenant-alpha-id"`)
+
+When a user authenticates, Stigmer reads the `org_id` claim from the JWT, finds
+the Organization with that `externalOrgId`, creates the user's account, and
+grants the member role on that Organization. No per-user provisioning code
+needed.
+
+### Error handling
+
+If the JWT contains the `tenantOrgClaim` but its value does not match any
+platform-managed Organization's `externalOrgId`, Stigmer rejects the
+authentication request with a descriptive error:
+
+<!-- vale off -->
+
+> No organization found for external_org_id 'tenant-999' under identity provider
+> 'acme/acme-cloud-auth'. Create a platform-managed organization with this
+> external_org_id mapped to the identity provider.
+
+<!-- vale on -->
+
+This is a fail-closed design. Stigmer does not create the account or grant
+partial access when the tenant cannot be resolved. The error message tells your
+platform exactly what to fix.
+
+<Callout type="warn">
+  If the JWT does not contain the `tenantOrgClaim` at all, the authentication
+  request is also rejected. When `tenantOrgClaim` is configured, every JWT must
+  include that claim.
+</Callout>
+
+### JIT vs. manual for multi-tenant
+
+|                                | JIT with `tenantOrgClaim`              | Manual per-tenant provisioning                                   |
+| ------------------------------ | -------------------------------------- | ---------------------------------------------------------------- |
+| **Tenant org creation**        | You create them (same for both)        | You create them (same for both)                                  |
+| **Per-user provisioning code** | None — Stigmer handles it              | Your backend calls `createFederatedAccount` + `iamPolicy.create` |
+| **JWT requirement**            | Must include a tenant identifier claim | No additional claim needed                                       |
+| **Role control**               | Same role for all users (configurable) | Different roles per user possible                                |
+| **Tenant resolution**          | Automatic from JWT claim               | Your backend maps tenant to org                                  |
+
+Choose JIT with `tenantOrgClaim` when all users in a tenant should get the same
+role and your auth provider can include a tenant identifier in the JWT. Choose
+manual provisioning when you need per-user role differences or your JWT doesn't
+carry tenant information.
+
+## Complete tenant onboarding flow (manual)
 
 Here's the full pattern that runs when a new customer signs up on your platform:
 
@@ -652,10 +806,13 @@ public void onboardTenantUser(StigmerClient client, String tenantExternalId, Pla
 ## What's next
 
 Your multi-tenant setup is complete. Each tenant has their own Organization with
-isolated resources and access controls. To understand how the runtime
-authentication flow works when tenant users call the Stigmer API, see the
-[Authentication flow](/docs/guides/federation/authentication-flow) page.
+isolated resources and access controls.
 
-For conceptual background on how Organizations serve as tenant boundaries, see
-[Organizations](/docs/concepts/organizations). For API details, see the
-[Organization SDK reference](/docs/sdk/resources/organization).
+- **Authentication flow** --- To understand what happens at runtime when tenant
+  users call the Stigmer API, see
+  [How federated authentication works](/docs/guides/federation/authentication-flow).
+- **Organizations** --- For conceptual background on how Organizations serve as
+  tenant boundaries, see [Organizations](/docs/concepts/organizations).
+- **API reference** --- For API details, see the
+  [Organization SDK reference](/docs/sdk/resources/organization) and
+  [IdentityProvider SDK reference](/docs/sdk/resources/identity-provider).
