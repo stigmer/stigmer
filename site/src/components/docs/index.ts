@@ -13,6 +13,7 @@ export { FederationOverviewTour as DemoFederationOverviewTour } from "./demos/sc
 export { RegisterIdpPlayback as DemoRegisterIdpPlayback } from "./demos/scenarios/register-idp-playback";
 export { ProvisionGrantPlayback as DemoProvisionGrantPlayback } from "./demos/scenarios/provision-grant-playback";
 export { MultiTenantSetupPlayback as DemoMultiTenantSetupPlayback } from "./demos/scenarios/multi-tenant-setup-playback";
+export { MultiTenantJitPlayback as DemoMultiTenantJitPlayback } from "./demos/scenarios/multi-tenant-jit-playback";
 export { SsoLoginPlayback as DemoSsoLoginPlayback } from "./demos/scenarios/sso-login-playback";
 export { CopyMarkdownButton } from "./copy-markdown-button";
 export { QuickstartPlayback as DemoQuickstartPlayback } from "./demos/scenarios/quickstart-playback";
