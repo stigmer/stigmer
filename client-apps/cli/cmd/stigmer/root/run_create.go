@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 )
 
 // CreateAgentExecutionInput holds the parameters for creating an agent execution.

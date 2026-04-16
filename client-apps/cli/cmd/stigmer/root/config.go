@@ -40,7 +40,7 @@ func newConfigGetCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <key>",
 		Short: "Get a configuration value",
-		Long: `Get a configuration value from ~/.stigmer/config.yaml`,
+		Long:  `Get a configuration value from ~/.stigmer/config.yaml`,
 		Example: `  # Get the current execution mode
   stigmer config get execution.mode
 
@@ -63,7 +63,7 @@ func newConfigSetCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set a configuration value",
-		Long: `Set a configuration value in ~/.stigmer/config.yaml`,
+		Long:  `Set a configuration value in ~/.stigmer/config.yaml`,
 		Example: `  # Set execution mode to sandbox
   stigmer config set execution.mode sandbox
 

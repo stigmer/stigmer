@@ -29,7 +29,7 @@ func TestApply_NilOptions(t *testing.T) {
 func TestApply_NilProject(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: nil,
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 	}
 
 	result, err := Apply(opts)
@@ -74,7 +74,7 @@ func TestApply_ValidationOrder(t *testing.T) {
 	t.Run("nil project checked second", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
 			Project: nil,
-			Client: stubApplyClient(),
+			Client:  stubApplyClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "project is required")
@@ -108,7 +108,7 @@ func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Project: project,
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true, // Suppress output in tests
 	}
@@ -137,7 +137,7 @@ func TestApply_DryRun_PreservesProject(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Project: project,
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}
@@ -168,7 +168,7 @@ func TestApply_SetsOrgFromOptions_WhenMetadataNil(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: project,
 		OrgID:   "my-org",
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}
@@ -194,7 +194,7 @@ func TestApply_SetsOrgFromOptions_WhenOrgEmpty(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: project,
 		OrgID:   "my-org",
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}
@@ -219,7 +219,7 @@ func TestApply_PreservesExistingOrg_WhenOrgIDProvided(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: project,
 		OrgID:   "new-org",
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}
@@ -252,7 +252,7 @@ func TestApplyOptions_AllFields(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: project,
 		OrgID:   "test-org",
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 		Quiet:   true,
 		DryRun:  true,
 		Prune:   true,
@@ -325,7 +325,7 @@ func TestApply_DetectsCreate_WhenNoExistingID(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Project: project,
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 		DryRun:  true, // Use dry-run to avoid RPC
 		Quiet:   true,
 	}
@@ -350,7 +350,7 @@ func TestApply_DetectsUpdate_WhenExistingID(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Project: project,
-		Client: stubApplyClient(),
+		Client:  stubApplyClient(),
 		DryRun:  true,
 		Quiet:   true,
 	}

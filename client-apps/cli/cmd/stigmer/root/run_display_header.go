@@ -10,8 +10,8 @@ import (
 	"charm.land/lipgloss/v2"
 	"golang.org/x/term"
 
-	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 )
 
 // sessionHeaderInfo holds metadata displayed in the bordered session header

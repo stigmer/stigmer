@@ -11,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

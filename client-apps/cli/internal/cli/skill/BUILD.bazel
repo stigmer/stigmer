@@ -12,14 +12,12 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//client-apps/cli/internal/cli/artifact",
         "//client-apps/cli/pkg/climsg",
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/reference",
         "@com_github_pkg_errors//:errors",
-        "@org_golang_google_grpc//:grpc",
+        "@com_github_stigmer_stigmer_sdk_go//:go",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/skill/v1:skill",
     ],
 )

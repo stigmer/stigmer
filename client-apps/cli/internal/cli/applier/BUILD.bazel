@@ -10,10 +10,10 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//client-apps/cli/pkg/clioutput",
-        "@org_golang_google_grpc//:grpc",
+        "@com_github_stigmer_stigmer_sdk_go//:go",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource/apiresourcekind",
         "@org_golang_google_protobuf//proto",
     ],
 )

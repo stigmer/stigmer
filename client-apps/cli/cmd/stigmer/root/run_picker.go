@@ -7,13 +7,13 @@ import (
 	"os"
 	"time"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/picker"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // executeRunSmart implements the resolution chain for `stigmer run <value>`.

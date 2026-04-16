@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // ApplyOptions contains options for applying an Organization configuration.

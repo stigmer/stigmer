@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 )
 
 // needsWorkflowApprovalPrompt checks if we should show an interactive approval prompt

@@ -3,8 +3,8 @@ package root
 import (
 	"github.com/rs/zerolog/log"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // subAgentTracker holds per-sub-agent state for incremental event emission

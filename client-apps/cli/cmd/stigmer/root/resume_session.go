@@ -7,8 +7,6 @@ import (
 	"slices"
 
 	"github.com/pkg/errors"
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
@@ -17,6 +15,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // executeRunSession handles the `stigmer resume ses-xxx` path.

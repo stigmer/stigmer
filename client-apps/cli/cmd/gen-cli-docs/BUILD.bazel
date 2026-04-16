@@ -21,6 +21,7 @@ go_binary(
 go_test(
     name = "gen-cli-docs_test",
     srcs = ["coverage_test.go"],
+    embed = [":gen-cli-docs_lib"],
     deps = [
         "//client-apps/cli/cmd/stigmer",
         "@com_github_spf13_cobra//:cobra",

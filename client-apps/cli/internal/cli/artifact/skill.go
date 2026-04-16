@@ -13,10 +13,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/ignore"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 )
 
 const (

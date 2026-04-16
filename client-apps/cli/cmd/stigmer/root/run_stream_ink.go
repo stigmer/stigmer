@@ -9,9 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 )
 
 // inkPackageVersion is the @stigmer/ink npm package version used by the CLI.

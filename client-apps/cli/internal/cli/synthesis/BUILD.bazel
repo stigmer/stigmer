@@ -10,11 +10,11 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
-        "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
-        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
-        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "@com_github_pkg_errors//:errors",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/agent/v1:agent",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/mcpserver/v1:mcpserver",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/skill/v1:skill",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/workflow/v1:workflow",
         "@org_golang_google_protobuf//proto",
     ],
 )
@@ -27,11 +27,11 @@ go_test(
     ],
     embed = [":synthesis"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
-        "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
-        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
-        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/agent/v1:agent",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/mcpserver/v1:mcpserver",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/skill/v1:skill",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/workflow/v1:workflow",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource",
         "@org_golang_google_protobuf//proto",
     ],
 )

@@ -4,9 +4,9 @@ package skill
 import (
 	"fmt"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 )
 
 // PushOptions contains options for the skill push operation.

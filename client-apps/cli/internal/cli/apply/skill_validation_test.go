@@ -3,10 +3,10 @@ package apply
 import (
 	"testing"
 
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -524,4 +524,3 @@ func TestExtractExternalSkillRefs_MultiAgentMicroservice(t *testing.T) {
 	assert.Contains(t, refMap["schema-validation"].ReferencedBy, "agent:orchestrator/validator")
 	assert.Contains(t, refMap["data-transform"].ReferencedBy, "agent:orchestrator/transformer")
 }
-

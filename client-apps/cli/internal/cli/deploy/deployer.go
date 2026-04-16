@@ -6,13 +6,13 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	"google.golang.org/protobuf/proto"
 )
 

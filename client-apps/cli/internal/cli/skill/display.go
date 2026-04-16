@@ -4,8 +4,8 @@ package skill
 import (
 	"fmt"
 
-	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 )
 
 // DisplayGetResult displays a skill in the specified format.

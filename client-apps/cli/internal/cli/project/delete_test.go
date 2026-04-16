@@ -28,7 +28,7 @@ func TestDelete_NilOptions(t *testing.T) {
 func TestDelete_NilConnection(t *testing.T) {
 	opts := &DeleteOptions{
 		ProjectID: "prj_abc123",
-		Client: nil,
+		Client:    nil,
 	}
 
 	result, err := Delete(opts)
@@ -41,7 +41,7 @@ func TestDelete_NilConnection(t *testing.T) {
 func TestDelete_EmptyProjectID(t *testing.T) {
 	opts := &DeleteOptions{
 		ProjectID: "",
-		Client: stubClient(),
+		Client:    stubClient(),
 	}
 
 	result, err := Delete(opts)
@@ -131,7 +131,7 @@ func TestDeleteOptions_ProjectIDFormats(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &DeleteOptions{
 				ProjectID: tc.projectID,
-				Client: stubClient(),
+				Client:    stubClient(),
 			}
 			assert.Equal(t, tc.projectID, opts.ProjectID)
 		})
@@ -157,7 +157,7 @@ func TestDelete_ValidationOrder(t *testing.T) {
 	t.Run("nil connection checked second", func(t *testing.T) {
 		_, err := Delete(&DeleteOptions{
 			ProjectID: "prj_abc123",
-			Client: nil,
+			Client:    nil,
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "client cannot be nil")
@@ -166,7 +166,7 @@ func TestDelete_ValidationOrder(t *testing.T) {
 	t.Run("empty project ID checked third", func(t *testing.T) {
 		_, err := Delete(&DeleteOptions{
 			ProjectID: "",
-			Client: stubClient(),
+			Client:    stubClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "project ID cannot be empty")

@@ -3,9 +3,9 @@ package root
 import (
 	"strings"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/picker"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 )
 
 // buildSessionSearchFn returns a picker.SearchFn that lists sessions from
