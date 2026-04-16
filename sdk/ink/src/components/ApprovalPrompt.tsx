@@ -95,6 +95,11 @@ export function ApprovalPrompt({
         <Text color="yellow" bold>
           ⚠ Approval required
         </Text>
+        {pendingApproval.fromSubAgent && (
+          <Text dimColor>
+            via {pendingApproval.subAgentSubject || pendingApproval.subAgentName}
+          </Text>
+        )}
       </Box>
 
       <Box paddingLeft={2} marginTop={1} flexDirection="column">

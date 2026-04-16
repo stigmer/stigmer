@@ -21,7 +21,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | Generic ApplyHandler framework + CI guards | COMPLETE |
 | T02 | Close all apply gaps (6 new resource kinds) | COMPLETE |
 | T03 | Replace discover with connect, slug audit, MCP OAuth | COMPLETE |
-| T04 | @stigmer/ink package and run/resume rewrite | COMPLETE (Phase 1: SDK package) |
+| T04 | @stigmer/ink package and run/resume rewrite | COMPLETE (Phase 1: SDK + Phase 2: Go integration) |
 | T05 | CLI Go SDK refactor — SDK-first architecture | COMPLETE |
 | T06 | SDK sub-client migration — eliminate raw gRPC stubs | COMPLETE |
 
@@ -161,38 +161,54 @@ When starting a new session:
 - **Zero `.Conn()` calls remain** in CLI (was 27)
 - **Decision**: Keep single `Apply(*Input)` method — CLI uses `FromProto` converters like any other SDK consumer
 
+## Session Progress (2026-04-16, Session 9)
+
+- **Go CLI Ink Integration COMPLETE (T04 Phase 2)**: Replaced 37K-line Bubble Tea TUI with `@stigmer/ink` via npx
+- **Distribution**: npx with workspace auto-detection (dogfoods npm SDK model, no bun compile)
+- **Ink SDK enhanced**: SubAgentBlock, TodoList, task-tool suppression, approval attribution, Ctrl+O expand toggle, session subject, reconnection UX, context compaction
+- **Go CLI rewritten**: `resolveInkCommand()` (env → workspace → npx), `streamAgentInk()` (Ink spawn), `streamAgentPlainText()` (non-TTY)
+- **36 inline renderer files deleted** (~15,800 lines removed)
+- **Release coordination**: `release.cli.yaml` gates GitHub Release on `@stigmer/ink` npm availability
+- **Tests**: Go root package tests pass, Ink SDK 28 tests pass, full CLI builds clean
+- **Decision**: npx over bun compile (dogfoods SDK, no WASM risks, boring and proven)
+- **Decision**: Full TUI replacement, no Bubble Tea fallback (Go TUI was problematic)
+
 ## Next Steps
 
-1. Evaluate Go CLI Ink integration (T04 Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
-2. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
-3. Consider deprecating/removing `Conn()` from `*stigmer.Client` if truly unused across all consumers
+1. E2E test against live Stigmer instance (local daemon + cloud) — validate full run/resume/draft pipeline
+2. Clean up remaining Go dependencies: remove Bubble Tea, Lip Gloss, Glamour, Bubbles from `go.mod`
+3. Delete unused packages: `pkg/toolrender/`, `pkg/approval/`, `pkg/panel/`, `pkg/mdrender/`
+4. Rename `run_stream_inline_header.go` → `run_display_header.go` (no longer inline-specific)
+5. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
+6. Consider deprecating/removing `Conn()` from `*stigmer.Client`
 
 ## Context for Resume
 
-- CLI uses `*stigmer.Client` and SDK sub-clients for ALL API operations (no raw stubs)
-- CLI uses `stigmer.XxxInputFromProto(proto)` to convert parsed YAML protos to SDK Input types
-- CLI uses `sdk/go/proto/...` for proto types (NOT `apis/stubs/go`)
-- CLI no longer embeds stigmer-server/workflow-runner (separate binaries ship alongside)
-- `client.Conn()` exists on the SDK client but is unused by the CLI — candidate for deprecation
-- `@stigmer/ink` is E2E validated — works against live Stigmer API
-- Go CLI rendering layer is ~37K lines of well-tested Go code — significant effort to replace
-- Release pipeline ships 3 binaries per platform (stigmer, stigmer-server, stigmer-workflow-runner)
-- OAuth client credentials are injected into stigmer-server via ldflags (not CLI)
-- `auth/whoami.go` and `daemon/daemon.go` maintain independent gRPC connections (out of scope)
+- CLI interactive rendering is now delegated to `@stigmer/ink` via npx (or workspace tsx for development)
+- `resolveInkCommand()` in `run_stream_ink.go` handles 3-tier resolution: STIGMER_INK_CMD env → workspace auto-detection → npx
+- JSON mode (`--json`) and detach mode (`--detach`) are unchanged, pure Go
+- Non-TTY piped output uses `streamAgentPlainText()` — minimal Go renderer, no external process
+- `@stigmer/ink` is NOT yet published to npm — first publish needed before production CLI release
+- Release pipeline gates CLI release on npm package availability (polling step in `release.cli.yaml`)
+- `tsx` is now a root devDependency for workspace Ink development
+- Workspace detection: Go binary at `bin/stigmer` looks for `../node_modules/.bin/tsx` + `../sdk/ink/src/cli/stigmer-ink.tsx`
+- Some Go TUI utility packages still exist but are now dead code (toolrender, approval, panel, mdrender)
+- `run_stream_inline_header.go` is the only surviving inline file — kept for `sessionHeaderInfo` and `renderSessionHeader`
 
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: SDK sub-client migration COMPLETE
-**Status**: All planned tasks COMPLETE
-**Last Session**: 2026-04-15 (Session 8) — SDK sub-client migration
+**Current Task**: Go CLI Ink Integration COMPLETE (T04 Phase 2)
+**Status**: All planned tasks COMPLETE — cleanup and E2E validation remaining
+**Last Session**: 2026-04-16 (Session 9) — Go CLI Ink Integration
 
 ## Quick Commands
 
 After loading context:
-- "Evaluate Go CLI Ink integration" - T04 Phase 2 decision
+- "E2E test ink integration" - Test against live API
+- "Clean up Go TUI dependencies" - Remove Bubble Tea et al from go.mod
+- "Delete dead TUI packages" - Remove pkg/toolrender, pkg/approval, etc.
 - "Move createNodeTransport to SDK" - SDK architecture cleanup
-- "Deprecate Conn() on Client" - Final SDK cleanup
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

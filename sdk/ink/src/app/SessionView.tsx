@@ -1,8 +1,9 @@
-import React from "react";
-import { Box, Text } from "ink";
+import React, { useState } from "react";
+import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
-import { useSessionConversation } from "@stigmer/react";
+import { useSessionConversation, resolvedSubject, PENDING_SUBJECT } from "@stigmer/react";
 import { MessageThread } from "../components/MessageThread.js";
+import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
@@ -40,6 +41,13 @@ export interface SessionViewProps {
  */
 export function SessionView({ sessionId, org }: SessionViewProps) {
   const conv = useSessionConversation(sessionId, org);
+  const [expandTools, setExpandTools] = useState(false);
+
+  useInput((input, key) => {
+    if (key.ctrl && input === "o") {
+      setExpandTools((e) => !e);
+    }
+  });
 
   if (conv.isLoading) {
     return (
@@ -63,25 +71,44 @@ export function SessionView({ sessionId, org }: SessionViewProps) {
     );
   }
 
-  if (conv.streamError) {
-    return (
-      <Box flexDirection="column" paddingLeft={1}>
-        <Text color="red" bold>
-          Stream error
-        </Text>
-        <Text color="red">{conv.streamError.message}</Text>
-        <Text dimColor>The stream will attempt to reconnect automatically.</Text>
-      </Box>
-    );
-  }
-
   const allExecutions = [
     ...conv.completedExecutions,
     ...(conv.activeStreamExecution ? [conv.activeStreamExecution] : []),
   ];
 
+  const activeTodos = conv.activeStreamExecution?.status?.todos;
+  const contextInfo = conv.activeStreamExecution?.status?.contextInfo;
+  const summarizationCount = contextInfo?.summarizationEvents?.length ?? 0;
+
+  const subject = resolvedSubject(conv.session?.spec?.subject);
+
   return (
     <Box flexDirection="column">
+      {subject && subject !== PENDING_SUBJECT && (
+        <Box paddingLeft={1} marginBottom={1}>
+          <Text dimColor bold>{subject}</Text>
+        </Box>
+      )}
+
+      {conv.isConnecting && (
+        <Box gap={1} paddingLeft={1}>
+          <Text color="cyan">
+            <Spinner type="dots" />
+          </Text>
+          <Text dimColor>Connecting to stream...</Text>
+        </Box>
+      )}
+
+      {conv.streamError && (
+        <Box flexDirection="column" paddingLeft={1} marginBottom={1}>
+          <Box gap={1}>
+            <Text color="yellow" bold>Stream disconnected</Text>
+            <Text dimColor>— reconnecting...</Text>
+          </Box>
+          <Text color="red" dimColor>{conv.streamError.message}</Text>
+        </Box>
+      )}
+
       {conv.activePhase && <ExecutionProgress phase={conv.activePhase} />}
 
       <MessageThread
@@ -90,7 +117,22 @@ export function SessionView({ sessionId, org }: SessionViewProps) {
         pendingUserMessage={conv.pendingUserMessage}
         onApprovalSubmit={conv.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
+        expandToolCalls={expandTools}
       />
+
+      {summarizationCount > 0 && (
+        <Box paddingLeft={1} marginTop={1}>
+          <Text dimColor>
+            Context compacted ({summarizationCount} {summarizationCount === 1 ? "event" : "events"}, {Math.round(contextInfo!.utilizationPercent)}% utilization)
+          </Text>
+        </Box>
+      )}
+
+      {activeTodos && Object.keys(activeTodos).length > 0 && (
+        <Box marginTop={1} paddingLeft={1}>
+          <TodoList todos={activeTodos} />
+        </Box>
+      )}
 
       {conv.approvalError && (
         <Box paddingLeft={1}>
