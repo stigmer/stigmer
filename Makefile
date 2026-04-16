@@ -140,10 +140,15 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 
 gen-cli-docs: ## Generate CLI reference docs from Cobra command tree
 	cd client-apps/cli && go run ./cmd/gen-cli-docs --output ../../docs/cli/commands/
+	npx prettier --write --prose-wrap always docs/cli/commands/
 
 gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	(cd client-apps/cli && go run ./cmd/gen-cli-docs --output "$$tmpdir") && \
+	for f in "$$tmpdir"/*.mdx; do \
+		bn=$$(basename "$$f"); \
+		npx prettier --stdin-filepath "docs/cli/commands/$$bn" < "$$f" > "$$f.fmt" 2>/dev/null && mv "$$f.fmt" "$$f"; \
+	done; \
 	rc=0; \
 	for f in "$$tmpdir"/*; do \
 		if ! diff -q "$$f" "docs/cli/commands/$$(basename $$f)" > /dev/null 2>&1; then \
