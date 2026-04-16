@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import {
   ApiKeyCreatedAlert,
@@ -11,6 +11,7 @@ import {
 import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
+import { useStepInteractions } from "../../engine/useStepInteractions";
 import { Cursor } from "../../engine/Cursor";
 import { DEMO_ORG } from "../../engine/shared";
 import { AppShell } from "../../views/AppShell";
@@ -21,6 +22,7 @@ import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import { DemoViewport } from "../../engine/DemoViewport";
 import {
   type ApiKeySetupStep,
+  APIKEY_INTERACTIONS,
   apiKeySetupSteps,
   getApiKeyList,
   PERSONAL_ENVIRONMENT,
@@ -109,32 +111,6 @@ function ApiKeysPageChrome({
   );
 }
 
-function PrefilledCreateForm({ name }: { readonly name?: string }) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!name) return;
-
-    const input = wrapperRef.current?.querySelector(
-      "#stgm-new-apikey-name",
-    ) as HTMLInputElement | null;
-    if (!input) return;
-
-    const setter = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      "value",
-    )?.set;
-    setter?.call(input, name);
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-  }, [name]);
-
-  return (
-    <div ref={wrapperRef} className="mb-3">
-      <CreateApiKeyForm org={DEMO_ORG} onCancel={noop} />
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Step renderer
 // ---------------------------------------------------------------------------
@@ -202,7 +178,9 @@ function renderStep(step: ApiKeySetupStep) {
       return (
         <ManagementShell activeNav="api-keys" contentKey={contentKey}>
           <ApiKeysPageChrome>
-            <PrefilledCreateForm name={CREATED_KEY_NAME} />
+            <div className="mb-3" data-cursor-target="apikey-name-input">
+              <CreateApiKeyForm org={DEMO_ORG} onCancel={noop} />
+            </div>
           </ApiKeysPageChrome>
         </ManagementShell>
       );
@@ -242,10 +220,24 @@ export function ApiKeySetup() {
   const narrationManifest = useNarrationManifest("api-key-setup");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [stepIndex, setStepIndex] = useState(0);
 
-  const handleStepChange = useCallback((step: ApiKeySetupStep) => {
-    setCursorTarget(cursorTargetFor(step));
-  }, []);
+  const handleStepChange = useCallback(
+    (step: ApiKeySetupStep, index: number) => {
+      setCursorTarget(cursorTargetFor(step));
+      setStepIndex(index);
+    },
+    [],
+  );
+
+  useStepInteractions({
+    stepIndex,
+    interactions: APIKEY_INTERACTIONS,
+    narrationManifest,
+    containerRef,
+    setCursorTarget,
+    steps: apiKeySetupSteps,
+  });
 
   return (
     <StigmerProvider client={client}>
