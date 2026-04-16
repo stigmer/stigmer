@@ -8,7 +8,7 @@ import {
   scrollTargetIntoView,
   scrollTargetIntoViewInstant,
 } from "./scroll-utils";
-import { CLICK_DELAY_MS } from "./timing";
+import { CLICK_DELAY_MS, TYPE_CHAR_DELAY_MS } from "./timing";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -26,13 +26,22 @@ export interface StepAction {
    */
   readonly atPercent: number;
   /** Action type. */
-  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click";
+  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click" | "type";
   /**
    * Target element identifier.
    * - For `scroll-to`: matches `[data-scroll-target="<target>"]`
-   * - For `set-cursor` / `click`: matches `[data-cursor-target="<target>"]`
+   * - For `set-cursor` / `click` / `type`: matches `[data-cursor-target="<target>"]`
    */
   readonly target?: string;
+  /**
+   * Text to type character-by-character. Only used by `type` actions.
+   */
+  readonly text?: string;
+  /**
+   * Milliseconds between characters for `type` actions.
+   * Defaults to {@link TYPE_CHAR_DELAY_MS} (50ms).
+   */
+  readonly typeDelay?: number;
 }
 
 /**
@@ -85,7 +94,7 @@ function getStepDurationMs<T>(
 
 /**
  * Schedule timed mid-step interactions (scroll, cursor movement,
- * click dispatch) synced to narration duration.
+ * click dispatch, text input) synced to narration duration.
  *
  * In browser mode, actions are scheduled via `setTimeout` at
  * `atPercent * stepDuration` ms from step start. In Remotion
@@ -96,6 +105,11 @@ function getStepDurationMs<T>(
  * the target (phase 1), then dispatches a native DOM click after
  * {@link CLICK_DELAY_MS} so the cursor ripple is visible before
  * the UI reacts.
+ *
+ * The `type` action is three-phase: cursor moves to the target
+ * (phase 1), then after {@link CLICK_DELAY_MS} characters appear
+ * one at a time at {@link TYPE_CHAR_DELAY_MS} intervals (phase 2+).
+ * Uses the native input value setter to trigger React's onChange.
  *
  * Opt-in: scenarios that don't call this hook are unaffected.
  */
@@ -143,6 +157,29 @@ export function useStepInteractions<T>({
           firedRef.current.add(dispatchKey);
           dispatchClickOnTarget(action.target, containerRef);
         }
+      } else if (action.type === "type") {
+        const text = action.text ?? "";
+        if (text.length === 0) continue;
+        const charDelay = action.typeDelay ?? TYPE_CHAR_DELAY_MS;
+
+        const cursorKey = `${stepIndex}-${action.atPercent}-type-cursor`;
+        if (elapsed >= fireAt && !firedRef.current.has(cursorKey)) {
+          firedRef.current.add(cursorKey);
+          setCursorTarget(action.target);
+        }
+
+        const typingStart = fireAt + CLICK_DELAY_MS;
+        if (elapsed >= typingStart) {
+          const charCount = Math.min(
+            Math.floor((elapsed - typingStart) / charDelay) + 1,
+            text.length,
+          );
+          const charKey = `${stepIndex}-${action.atPercent}-type-char-${charCount}`;
+          if (!firedRef.current.has(charKey)) {
+            firedRef.current.add(charKey);
+            typeTextIntoTarget(action.target, text.substring(0, charCount), containerRef);
+          }
+        }
       } else {
         const key = `${stepIndex}-${action.atPercent}-${action.type}`;
         if (elapsed >= fireAt && !firedRef.current.has(key)) {
@@ -186,6 +223,27 @@ export function useStepInteractions<T>({
             fireAt + CLICK_DELAY_MS / rate,
           ),
         );
+      } else if (action.type === "type") {
+        const text = action.text ?? "";
+        if (text.length === 0) continue;
+        const charDelay = action.typeDelay ?? TYPE_CHAR_DELAY_MS;
+
+        warnIfTypingExceedsStep(action, charDelay, duration, stepIndex);
+
+        timers.push(
+          setTimeout(() => setCursorTarget(action.target), fireAt),
+        );
+
+        const typingStart = fireAt + CLICK_DELAY_MS / rate;
+        for (let i = 0; i < text.length; i++) {
+          const chars = text.substring(0, i + 1);
+          timers.push(
+            setTimeout(
+              () => typeTextIntoTarget(action.target, chars, containerRef),
+              typingStart + (i * charDelay) / rate,
+            ),
+          );
+        }
       } else {
         timers.push(
           setTimeout(
@@ -270,6 +328,7 @@ function executeAction(
       break;
 
     case "click":
+    case "type":
       setCursorTarget(action.target);
       break;
   }
@@ -306,4 +365,113 @@ function dispatchClickOnTarget(
   }
 
   el.click();
+}
+
+// ---------------------------------------------------------------------------
+// Type dispatch
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a `[data-cursor-target]` element to the underlying
+ * `<input>` or `<textarea>`. If the target element is itself an
+ * input, it is returned directly; otherwise the first descendant
+ * input or textarea is used.
+ */
+function resolveInput(
+  target: string,
+  containerRef: RefObject<HTMLElement | null>,
+): HTMLInputElement | HTMLTextAreaElement | null {
+  const container = containerRef.current;
+  if (!container) return null;
+
+  const targetEl = container.querySelector(
+    `[data-cursor-target="${target}"]`,
+  );
+  if (!targetEl) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `[StepInteractions] type target "${target}" not found in DOM. ` +
+          `Ensure a [data-cursor-target="${target}"] element exists in the container.`,
+      );
+    }
+    return null;
+  }
+
+  if (
+    targetEl instanceof HTMLInputElement ||
+    targetEl instanceof HTMLTextAreaElement
+  ) {
+    return targetEl;
+  }
+
+  const input = targetEl.querySelector<
+    HTMLInputElement | HTMLTextAreaElement
+  >("input, textarea");
+
+  if (!input) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `[StepInteractions] type target "${target}" has no <input> or <textarea> descendant. ` +
+          `Either add data-cursor-target directly to the input, or ensure an input exists inside the target element.`,
+      );
+    }
+    return null;
+  }
+
+  return input;
+}
+
+/**
+ * Dev-mode warning when typing animation would be cut short because
+ * it takes longer than the step's duration. Fires once per action
+ * when timers are scheduled, not per character.
+ */
+function warnIfTypingExceedsStep(
+  action: StepAction,
+  charDelay: number,
+  stepDurationMs: number,
+  stepIdx: number,
+): void {
+  if (process.env.NODE_ENV !== "development") return;
+
+  const text = action.text ?? "";
+  const typingDuration =
+    action.atPercent * stepDurationMs + CLICK_DELAY_MS + text.length * charDelay;
+  if (typingDuration > stepDurationMs) {
+    console.warn(
+      `[StepInteractions] type action in step ${stepIdx} at ${action.atPercent} ` +
+        `needs ~${Math.round(typingDuration)}ms but step is only ${Math.round(stepDurationMs)}ms. ` +
+        `Typing will be cut short when the step advances. ` +
+        `Reduce text length, decrease typeDelay, or increase step duration.`,
+    );
+  }
+}
+
+/**
+ * Set an input's value to `text` using the native property setter,
+ * then dispatch a bubbling `input` event so React's synthetic
+ * onChange fires.
+ *
+ * This is the same `nativeInputValueSetter` pattern used by
+ * TypingComposer and PrefilledCreateForm, extracted here so the
+ * engine can drive character-by-character typing without
+ * scenario-specific wrappers.
+ */
+function typeTextIntoTarget(
+  target: string | undefined,
+  text: string,
+  containerRef: RefObject<HTMLElement | null>,
+): void {
+  if (!target) return;
+
+  const input = resolveInput(target, containerRef);
+  if (!input) return;
+
+  const proto =
+    input instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+  setter?.call(input, text);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
 }
