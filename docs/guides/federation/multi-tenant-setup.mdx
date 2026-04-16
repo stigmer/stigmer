@@ -541,13 +541,13 @@ If the JWT contains the `tenantOrgClaim` but its value does not match any
 platform-managed Organization's `externalOrgId`, Stigmer rejects the
 authentication request with a descriptive error:
 
-<!-- vale off -->
+{/* vale off */}
 
-> No organization found for external_org_id 'tenant-999' under identity provider
-> 'acme/acme-cloud-auth'. Create a platform-managed organization with this
-> external_org_id mapped to the identity provider.
+> No organization found for `external_org_id` 'tenant-999' under identity
+> provider 'acme/acme-cloud-auth'. Create a platform-managed organization with
+> this `external_org_id` mapped to the identity provider.
 
-<!-- vale on -->
+{/* vale on */}
 
 This is a fail-closed design. Stigmer does not create the account or grant
 partial access when the tenant cannot be resolved. The error message tells your

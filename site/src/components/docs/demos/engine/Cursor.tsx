@@ -231,7 +231,7 @@ export function Cursor({ target, containerRef, showRipple = true }: CursorProps)
       clearTimeout(settleTimerRef.current);
       clearTimeout(clickTimerRef.current);
     };
-  }, [target, containerRef]);
+  }, [target, containerRef, showRipple]);
 
   useEffect(() => {
     return () => {
