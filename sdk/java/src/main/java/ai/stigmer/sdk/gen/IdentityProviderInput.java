@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.iam.identityprovider.v1.IdentityProvider;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec;
+import ai.stigmer.iam.v1.IamRole;
 
 /** Input for creating/updating a IdentityProvider. */
 public final class IdentityProviderInput {
@@ -20,6 +21,10 @@ public final class IdentityProviderInput {
     private final String userinfoEndpoint;
     private final boolean isSsoProvider;
     private final String oidcClientId;
+    private final boolean autoProvisionAccounts;
+    private final boolean autoGrantOnOrg;
+    private final IamRole autoGrantRole;
+    private final String tenantOrgClaim;
 
     private IdentityProviderInput(Builder builder) {
         this.name = builder.name;
@@ -34,6 +39,10 @@ public final class IdentityProviderInput {
         this.userinfoEndpoint = builder.userinfoEndpoint;
         this.isSsoProvider = builder.isSsoProvider;
         this.oidcClientId = builder.oidcClientId;
+        this.autoProvisionAccounts = builder.autoProvisionAccounts;
+        this.autoGrantOnOrg = builder.autoGrantOnOrg;
+        this.autoGrantRole = builder.autoGrantRole;
+        this.tenantOrgClaim = builder.tenantOrgClaim;
     }
 
     IdentityProvider toProto() {
@@ -57,6 +66,14 @@ public final class IdentityProviderInput {
         spec.setIsSsoProvider(this.isSsoProvider);
         if (this.oidcClientId != null) {
             spec.setOidcClientId(this.oidcClientId);
+        }
+        spec.setAutoProvisionAccounts(this.autoProvisionAccounts);
+        spec.setAutoGrantOnOrg(this.autoGrantOnOrg);
+        if (this.autoGrantRole != null) {
+            spec.setAutoGrantRole(this.autoGrantRole);
+        }
+        if (this.tenantOrgClaim != null) {
+            spec.setTenantOrgClaim(this.tenantOrgClaim);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -90,6 +107,10 @@ public final class IdentityProviderInput {
         private String userinfoEndpoint;
         private boolean isSsoProvider;
         private String oidcClientId;
+        private boolean autoProvisionAccounts;
+        private boolean autoGrantOnOrg;
+        private IamRole autoGrantRole;
+        private String tenantOrgClaim;
 
         private Builder() {}
 
@@ -105,6 +126,10 @@ public final class IdentityProviderInput {
         public Builder userinfoEndpoint(String userinfoEndpoint) { this.userinfoEndpoint = userinfoEndpoint; return this; }
         public Builder isSsoProvider(boolean isSsoProvider) { this.isSsoProvider = isSsoProvider; return this; }
         public Builder oidcClientId(String oidcClientId) { this.oidcClientId = oidcClientId; return this; }
+        public Builder autoProvisionAccounts(boolean autoProvisionAccounts) { this.autoProvisionAccounts = autoProvisionAccounts; return this; }
+        public Builder autoGrantOnOrg(boolean autoGrantOnOrg) { this.autoGrantOnOrg = autoGrantOnOrg; return this; }
+        public Builder autoGrantRole(IamRole autoGrantRole) { this.autoGrantRole = autoGrantRole; return this; }
+        public Builder tenantOrgClaim(String tenantOrgClaim) { this.tenantOrgClaim = tenantOrgClaim; return this; }
 
         public IdentityProviderInput build() { return new IdentityProviderInput(this); }
     }

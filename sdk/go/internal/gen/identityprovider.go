@@ -8,6 +8,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
+	iamv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/v1"
 	"google.golang.org/grpc"
 )
 
@@ -71,18 +72,22 @@ func (i *IdentityProviderClient) GetSsoProvider(ctx context.Context, input *iden
 
 // IdentityProviderInput holds the fields for creating/updating a IdentityProvider.
 type IdentityProviderInput struct {
-	Name             string
-	Slug             string
-	Org              string
-	Labels           map[string]string
-	DisplayName      string
-	JwksUri          string
-	AllowedIssuers   []string
-	ExpectedAudience string
-	RateLimitBudget  int32
-	UserinfoEndpoint string
-	IsSsoProvider    bool
-	OidcClientId     string
+	Name                  string
+	Slug                  string
+	Org                   string
+	Labels                map[string]string
+	DisplayName           string
+	JwksUri               string
+	AllowedIssuers        []string
+	ExpectedAudience      string
+	RateLimitBudget       int32
+	UserinfoEndpoint      string
+	IsSsoProvider         bool
+	OidcClientId          string
+	AutoProvisionAccounts bool
+	AutoGrantOnOrg        bool
+	AutoGrantRole         iamv1.IamRole
+	TenantOrgClaim        string
 }
 
 func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
@@ -105,6 +110,10 @@ func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
 	resource.Spec.UserinfoEndpoint = i.UserinfoEndpoint
 	resource.Spec.IsSsoProvider = i.IsSsoProvider
 	resource.Spec.OidcClientId = i.OidcClientId
+	resource.Spec.AutoProvisionAccounts = i.AutoProvisionAccounts
+	resource.Spec.AutoGrantOnOrg = i.AutoGrantOnOrg
+	resource.Spec.AutoGrantRole = i.AutoGrantRole
+	resource.Spec.TenantOrgClaim = i.TenantOrgClaim
 	return resource
 }
 
@@ -129,6 +138,10 @@ func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *Ide
 		input.UserinfoEndpoint = s.GetUserinfoEndpoint()
 		input.IsSsoProvider = s.GetIsSsoProvider()
 		input.OidcClientId = s.GetOidcClientId()
+		input.AutoProvisionAccounts = s.GetAutoProvisionAccounts()
+		input.AutoGrantOnOrg = s.GetAutoGrantOnOrg()
+		input.AutoGrantRole = s.GetAutoGrantRole()
+		input.TenantOrgClaim = s.GetTenantOrgClaim()
 	}
 	return input
 }

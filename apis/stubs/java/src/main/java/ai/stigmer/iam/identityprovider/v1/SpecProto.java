@@ -42,26 +42,33 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n-ai/stigmer/iam/identityprovider/v1/spe" +
       "c.proto\022\"ai.stigmer.iam.identityprovider" +
-      ".v1\032\033buf/validate/validate.proto\"\203\003\n\024Ide" +
-      "ntityProviderSpec\022+\n\014display_name\030\001 \001(\tB" +
-      "\010\272H\005r\003\030\310\001R\013displayName\022#\n\010jwks_uri\030\002 \001(\t" +
-      "B\010\272H\005r\003\030\200\020R\007jwksUri\022\'\n\017allowed_issuers\030\003" +
-      " \003(\tR\016allowedIssuers\0225\n\021expected_audienc" +
-      "e\030\004 \001(\tB\010\272H\005r\003\030\310\001R\020expectedAudience\022*\n\021r" +
-      "ate_limit_budget\030\005 \001(\005R\017rateLimitBudget\022" +
-      "5\n\021userinfo_endpoint\030\006 \001(\tB\010\272H\005r\003\030\200\020R\020us" +
-      "erinfoEndpoint\022&\n\017is_sso_provider\030\007 \001(\010R" +
-      "\risSsoProvider\022.\n\016oidc_client_id\030\010 \001(\tB\010" +
-      "\272H\005r\003\030\200\002R\014oidcClientIdB\270\001B\tSpecProtoP\001\242\002" +
-      "\004ASII\252\002\"Ai.Stigmer.Iam.Identityprovider." +
-      "V1\312\002\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\342" +
-      "\002.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPB" +
-      "Metadata\352\002&Ai::Stigmer::Iam::Identitypro" +
-      "vider::V1b\006proto3"
+      ".v1\032\034ai/stigmer/iam/v1/enum.proto\032\033buf/v" +
+      "alidate/validate.proto\"\336\004\n\024IdentityProvi" +
+      "derSpec\022+\n\014display_name\030\001 \001(\tB\010\272H\005r\003\030\310\001R" +
+      "\013displayName\022#\n\010jwks_uri\030\002 \001(\tB\010\272H\005r\003\030\200\020" +
+      "R\007jwksUri\022\'\n\017allowed_issuers\030\003 \003(\tR\016allo" +
+      "wedIssuers\0225\n\021expected_audience\030\004 \001(\tB\010\272" +
+      "H\005r\003\030\310\001R\020expectedAudience\022*\n\021rate_limit_" +
+      "budget\030\005 \001(\005R\017rateLimitBudget\0225\n\021userinf" +
+      "o_endpoint\030\006 \001(\tB\010\272H\005r\003\030\200\020R\020userinfoEndp" +
+      "oint\022&\n\017is_sso_provider\030\007 \001(\010R\risSsoProv" +
+      "ider\022.\n\016oidc_client_id\030\010 \001(\tB\010\272H\005r\003\030\200\002R\014" +
+      "oidcClientId\0226\n\027auto_provision_accounts\030" +
+      "\t \001(\010R\025autoProvisionAccounts\022)\n\021auto_gra" +
+      "nt_on_org\030\n \001(\010R\016autoGrantOnOrg\022B\n\017auto_" +
+      "grant_role\030\013 \001(\0162\032.ai.stigmer.iam.v1.Iam" +
+      "RoleR\rautoGrantRole\0222\n\020tenant_org_claim\030" +
+      "\014 \001(\tB\010\272H\005r\003\030\200\002R\016tenantOrgClaimB\270\001B\tSpec" +
+      "ProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identity" +
+      "provider.V1\312\002\"Ai\\Stigmer\\Iam\\Identitypro" +
+      "vider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprovid" +
+      "er\\V1\\GPBMetadata\352\002&Ai::Stigmer::Iam::Id" +
+      "entityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.iam.v1.EnumProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_identityprovider_v1_IdentityProviderSpec_descriptor =
@@ -69,8 +76,9 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityprovider_v1_IdentityProviderSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityprovider_v1_IdentityProviderSpec_descriptor,
-        new java.lang.String[] { "DisplayName", "JwksUri", "AllowedIssuers", "ExpectedAudience", "RateLimitBudget", "UserinfoEndpoint", "IsSsoProvider", "OidcClientId", });
+        new java.lang.String[] { "DisplayName", "JwksUri", "AllowedIssuers", "ExpectedAudience", "RateLimitBudget", "UserinfoEndpoint", "IsSsoProvider", "OidcClientId", "AutoProvisionAccounts", "AutoGrantOnOrg", "AutoGrantRole", "TenantOrgClaim", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.iam.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

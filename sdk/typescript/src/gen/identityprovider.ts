@@ -13,6 +13,7 @@ import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/ia
 import { ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders, type OrganizationSsoLookup, type SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /** Provides operations on identityprovider resources. */
 export class IdentityProviderClient {
@@ -91,6 +92,10 @@ export interface IdentityProviderInput {
   userinfoEndpoint?: string;
   isSsoProvider?: boolean;
   oidcClientId?: string;
+  autoProvisionAccounts?: boolean;
+  autoGrantOnOrg?: boolean;
+  autoGrantRole?: IamRole;
+  tenantOrgClaim?: string;
 }
 
 function buildIdentityProviderProto(input: IdentityProviderInput): IdentityProvider {
@@ -112,6 +117,10 @@ function buildIdentityProviderProto(input: IdentityProviderInput): IdentityProvi
       userinfoEndpoint: input.userinfoEndpoint,
       isSsoProvider: input.isSsoProvider,
       oidcClientId: input.oidcClientId,
+      autoProvisionAccounts: input.autoProvisionAccounts,
+      autoGrantOnOrg: input.autoGrantOnOrg,
+      autoGrantRole: input.autoGrantRole,
+      tenantOrgClaim: input.tenantOrgClaim,
     })),
   }) as IdentityProvider;
 }
