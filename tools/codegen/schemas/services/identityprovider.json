@@ -408,6 +408,33 @@
           "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
         }
       ]
+    },
+    {
+      "name": "IamRole",
+      "description": "IamRole defines the roles that can be assigned to principals on resources\n via IAM policies.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig.",
+      "protoType": "ai.stigmer.iam.v1.IamRole",
+      "values": [
+        {
+          "name": "owner",
+          "number": 1,
+          "description": "Full control of the resource. Typically assigned to the creator."
+        },
+        {
+          "name": "admin",
+          "number": 2,
+          "description": "Administrative access. Grants most permissions except ownership transfer."
+        },
+        {
+          "name": "member",
+          "number": 3,
+          "description": "Membership-level access. Grants read and limited write permissions."
+        },
+        {
+          "name": "viewer",
+          "number": 4,
+          "description": "Read-only access to the resource."
+        }
+      ]
     }
   ],
   "resourceDescription": "IdentityProvider represents an external platform's trust relationship with Stigmer.\n\n An IdentityProvider is owned by an organization (e.g., \"planton\") and configures\n how Stigmer validates signed JWT assertions from that platform. It enables the\n platform to create and manage organizations on behalf of its users, and to pass\n user identity for FGA-based authorization.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Planton Cloud\n     slug: planton-cloud\n     org: planton\n   spec:\n     display_name: \"Planton Cloud\"\n     jwks_uri: \"https://api.planton.ai/.well-known/stigmer-jwks.json\"\n     allowed_issuers: [\"planton-cloud\"]\n     expected_audience: \"stigmer-api\""

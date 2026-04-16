@@ -255,24 +255,32 @@ const identityProvider = await stigmer.identityProvider.apply({
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
+  autoProvisionAccounts: false,
+  autoGrantOnOrg: false,
+  autoGrantRole: "...",
+  tenantOrgClaim: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityProviderInput{
-  Name:             "my-identity-provider",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  DisplayName:      "...",
-  JwksUri:          "...",
-  AllowedIssuers:   []string{},
-  ExpectedAudience: "...",
-  RateLimitBudget:  0,
-  UserinfoEndpoint: "...",
-  IsSsoProvider:    false,
-  OidcClientId:     "...",
+  Name:                  "my-identity-provider",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  DisplayName:           "...",
+  JwksUri:               "...",
+  AllowedIssuers:        []string{},
+  ExpectedAudience:      "...",
+  RateLimitBudget:       0,
+  UserinfoEndpoint:      "...",
+  IsSsoProvider:         false,
+  OidcClientId:          "...",
+  AutoProvisionAccounts: false,
+  AutoGrantOnOrg:        false,
+  AutoGrantRole:         "...",
+  TenantOrgClaim:        "...",
 })
 ```
 </Tab>
@@ -291,6 +299,10 @@ identity_provider = client.identity_providers.apply(IdentityProviderInput(
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
+    auto_provision_accounts=False,
+    auto_grant_on_org=False,
+    auto_grant_role="...",
+    tenant_org_claim="...",
 ))
 ```
 </Tab>
@@ -309,6 +321,10 @@ IdentityProvider identityProvider = client.identityProviders().apply(IdentityPro
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
+    .autoProvisionAccounts(false)
+    .autoGrantOnOrg(false)
+    .autoGrantRole("...")
+    .tenantOrgClaim("...")
     .build());
 ```
 </Tab>
@@ -340,24 +356,32 @@ const identityProvider = await stigmer.identityProvider.create({
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
+  autoProvisionAccounts: false,
+  autoGrantOnOrg: false,
+  autoGrantRole: "...",
+  tenantOrgClaim: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
-  Name:             "my-identity-provider",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  DisplayName:      "...",
-  JwksUri:          "...",
-  AllowedIssuers:   []string{},
-  ExpectedAudience: "...",
-  RateLimitBudget:  0,
-  UserinfoEndpoint: "...",
-  IsSsoProvider:    false,
-  OidcClientId:     "...",
+  Name:                  "my-identity-provider",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  DisplayName:           "...",
+  JwksUri:               "...",
+  AllowedIssuers:        []string{},
+  ExpectedAudience:      "...",
+  RateLimitBudget:       0,
+  UserinfoEndpoint:      "...",
+  IsSsoProvider:         false,
+  OidcClientId:          "...",
+  AutoProvisionAccounts: false,
+  AutoGrantOnOrg:        false,
+  AutoGrantRole:         "...",
+  TenantOrgClaim:        "...",
 })
 ```
 </Tab>
@@ -376,6 +400,10 @@ identity_provider = client.identity_providers.create(IdentityProviderInput(
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
+    auto_provision_accounts=False,
+    auto_grant_on_org=False,
+    auto_grant_role="...",
+    tenant_org_claim="...",
 ))
 ```
 </Tab>
@@ -394,6 +422,10 @@ IdentityProvider identityProvider = client.identityProviders().create(IdentityPr
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
+    .autoProvisionAccounts(false)
+    .autoGrantOnOrg(false)
+    .autoGrantRole("...")
+    .tenantOrgClaim("...")
     .build());
 ```
 </Tab>
@@ -423,24 +455,32 @@ const identityProvider = await stigmer.identityProvider.update({
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
+  autoProvisionAccounts: false,
+  autoGrantOnOrg: false,
+  autoGrantRole: "...",
+  tenantOrgClaim: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityProviderInput{
-  Name:             "my-identity-provider",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  DisplayName:      "...",
-  JwksUri:          "...",
-  AllowedIssuers:   []string{},
-  ExpectedAudience: "...",
-  RateLimitBudget:  0,
-  UserinfoEndpoint: "...",
-  IsSsoProvider:    false,
-  OidcClientId:     "...",
+  Name:                  "my-identity-provider",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  DisplayName:           "...",
+  JwksUri:               "...",
+  AllowedIssuers:        []string{},
+  ExpectedAudience:      "...",
+  RateLimitBudget:       0,
+  UserinfoEndpoint:      "...",
+  IsSsoProvider:         false,
+  OidcClientId:          "...",
+  AutoProvisionAccounts: false,
+  AutoGrantOnOrg:        false,
+  AutoGrantRole:         "...",
+  TenantOrgClaim:        "...",
 })
 ```
 </Tab>
@@ -459,6 +499,10 @@ identity_provider = client.identity_providers.update(IdentityProviderInput(
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
+    auto_provision_accounts=False,
+    auto_grant_on_org=False,
+    auto_grant_role="...",
+    tenant_org_claim="...",
 ))
 ```
 </Tab>
@@ -477,6 +521,10 @@ IdentityProvider identityProvider = client.identityProviders().update(IdentityPr
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
+    .autoProvisionAccounts(false)
+    .autoGrantOnOrg(false)
+    .autoGrantRole("...")
+    .tenantOrgClaim("...")
     .build());
 ```
 </Tab>
@@ -549,6 +597,10 @@ Input for creating or updating an Identity Provider.
     userinfoEndpoint: { type: "string", description: "OIDC UserInfo endpoint URL for fetching user profile data during token exchange." },
     isSsoProvider: { type: "boolean", description: "Whether this identity provider serves as the SSO login provider for its owning organization." },
     oidcClientId: { type: "string", description: "OIDC client identifier for browser-based SSO login." },
+    autoProvisionAccounts: { type: "boolean", description: "Whether to automatically create a federated identity account when a valid JWT arrives but no account exists for the token's sub claim." },
+    autoGrantOnOrg: { type: "boolean", description: "Whether to automatically grant a role on an organization when an account is auto-provisioned." },
+    autoGrantRole: { type: "IamRole", description: "The role to grant when auto_grant_on_org is true.", typeDescriptionLink: "#iamrole" },
+    tenantOrgClaim: { type: "string", description: "Name of the JWT claim that identifies the tenant organization for multi-tenant provisioning." },
   }}
 />
 
@@ -621,4 +673,15 @@ IdentityProvider represents an external platform's trust relationship with Stigm
     status: { type: "IdentityProviderStatus", description: "System-managed state. See `IdentityProviderStatus`." },
   }}
 />
+
+### IamRole
+
+IamRole defines the roles that can be assigned to principals on resources via IAM policies.
+
+| Value | Description |
+|-------|-------------|
+| `owner` | Full control of the resource. |
+| `admin` | Administrative access. |
+| `member` | Membership-level access. |
+| `viewer` | Read-only access to the resource. |
 
