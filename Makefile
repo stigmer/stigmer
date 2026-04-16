@@ -78,7 +78,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check
+.PHONY: build protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check
 build: ## Build Stigmer CLI, server, and workflow-runner binaries
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -94,7 +94,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-cli-docs ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
@@ -104,7 +104,11 @@ gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
 	cd site && yarn generate-react-sdk-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
+gen-ink-sdk-docs: ## Generate Ink SDK reference docs from TypeDoc
+	cd sdk/ink && npm run typedoc:json
+	cd site && yarn generate-ink-sdk-docs
+
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
@@ -137,6 +141,22 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 		echo "error: React SDK docs are stale — run 'make gen-react-sdk-docs'"; exit 1; \
 	fi; \
 	echo "✓ React SDK docs are up to date"
+
+gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
+	@tmpdir=$$(mktemp -d) && \
+	(cd sdk/ink && npm run typedoc:json) && \
+	(cd site && INK_SDK_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-ink-sdk-docs) && \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/sdk/ink/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: Ink SDK docs are stale — run 'make gen-ink-sdk-docs'"; exit 1; \
+	fi; \
+	echo "✓ Ink SDK docs are up to date"
 
 gen-cli-docs: ## Generate CLI reference docs from Cobra command tree
 	cd client-apps/cli && go run ./cmd/gen-cli-docs --output ../../docs/cli/commands/

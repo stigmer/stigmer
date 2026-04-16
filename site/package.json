@@ -15,6 +15,7 @@
     "validate-demos": "tsx scripts/validate-demos.ts",
     "render-videos": "tsx scripts/render-videos.ts",
     "generate-react-sdk-docs": "tsx scripts/generate-react-sdk-docs/index.ts",
+    "generate-ink-sdk-docs": "tsx scripts/generate-ink-sdk-docs/index.ts",
     "remotion:studio": "remotion studio video/index.ts",
     "start": "next start",
     "lint": "eslint",

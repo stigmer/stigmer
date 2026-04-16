@@ -18,7 +18,7 @@ Drop this file into your conversation to quickly resume work on this project.
 |------|-------------|--------|-------------|
 | T01 | CLI Reference Docs — content quality, generation, docs site, CI | COMPLETE | None |
 | T02 | Open-Source Getting Started Path — visibility, callouts, SDK bridge | COMPLETE | None (parallel with T01) |
-| T03 | Ink SDK Reference Docs — TypeDoc setup, generator, integration guide | PENDING | T01 (nav structure) |
+| T03 | Ink SDK Reference Docs — TypeDoc setup, generator, integration guide | COMPLETE | T01 (nav structure) |
 | T04 | README Overhaul — restructure, align positioning, fix links | PENDING | T01, T02, T03 |
 | T05 | Final Validation — end-to-end checks, CI, journey validation | PENDING | T01–T04 |
 
@@ -132,22 +132,33 @@ When starting a new session:
 - **Files created**: 20 enrichment templates, coverage_test.go, docs/cli/ tree (index.mdx, meta.json, 23 generated files)
 - **Files modified**: gen-cli-docs/main.go, 8 command Go files, Makefile, ci.docs.yaml, docs/meta.json, docs/index.mdx, BUILD.bazel
 
+## Session Progress (2026-04-16, Session 3)
+
+### T03 Completed — Ink SDK Reference Documentation
+
+- **Architecture**: Single generated reference page (not multi-page like React SDK) — Ink has 15 exports vs React's 100+; splitting would create sparse pages
+- **Key design decision**: Re-exports (`createNodeClient`, `createNodeTransport`) link to SDK Overview rather than re-documenting — prevents drift
+- **Key discovery**: Ink TSDoc was already 100% summary coverage at baseline; only `TodoListProps.todos` and `renderMarkdown` @example needed gap-filling
+- **Pipeline**: TypeDoc config → `tsdoc:check` quality gate → `tsdoc:coverage` script → `generate-ink-sdk-docs` generator → single `reference.mdx` + `meta.json`
+- **Output**: Integration guide (`index.mdx`, 7 sections) + generated reference page (16 exports across 4 categories)
+- **Files created**: 11 new files (3 TypeDoc configs, coverage script, 4 generator files, 3 docs files)
+- **Files modified**: 7 files (package.json x2, 2 source TSDoc fixes, Makefile, ci.docs.yaml, docs/sdk/ wiring)
+
 ## Current Status
 
 **Created**: 2026-04-16
-**Current Task**: T01 and T02 complete. Next: T03 (Ink SDK Reference Docs) — now unblocked.
-**Status**: T01 COMPLETE, T02 COMPLETE. Ready for T03.
+**Current Task**: T01, T02, T03 all complete. Next: T04 (README Overhaul) — now unblocked.
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE. Ready for T04.
 
 ## Next Steps
 
-1. Start T03 (Ink SDK Reference Docs) — now unblocked, nav structure established
-2. Start T04 (README Overhaul) — once T01, T02, T03 are all done
-3. T05 (Final Validation) — after T01–T04
+1. Start T04 (README Overhaul) — restructure, align positioning, fix links
+2. T05 (Final Validation) — end-to-end checks, CI, journey validation after T04
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Start Ink SDK docs (when T01 is done)
+- "Continue with T04" - Start README Overhaul
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

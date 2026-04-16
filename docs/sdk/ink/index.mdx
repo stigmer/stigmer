@@ -1,0 +1,210 @@
+---
+title: Ink SDK
+description:
+  Install and configure @stigmer/ink to build terminal UIs for Stigmer agent
+  sessions using React components rendered by Ink.
+---
+
+`@stigmer/ink` provides terminal UI components for rendering Stigmer agent
+sessions in the terminal. It is built on [Ink](https://github.com/vadimdemedes/ink)
+(React for CLIs) and shares the same hook layer as `@stigmer/react` — all
+hooks for sessions, executions, streaming, and approvals work identically.
+
+The package includes a provider, pre-built components for every part of a
+session (message threads, tool calls, approvals, progress indicators, todo
+lists, usage), and two composed views that assemble them into a complete
+terminal experience.
+
+## Installation
+
+```bash
+npm install @stigmer/ink @stigmer/sdk @stigmer/protos @bufbuild/protobuf ink react
+```
+
+`ink` and `react` 19+ are peer dependencies. `@stigmer/protos` provides the
+protocol buffer types. `@bufbuild/protobuf` is its runtime dependency.
+
+## Quick start
+
+The fastest way to render a session in your terminal:
+
+```tsx
+import { render } from "ink";
+import { SessionApp } from "@stigmer/ink";
+
+render(
+  <SessionApp
+    sessionId="ses-abc123"
+    org="my-org"
+    baseUrl="https://api.stigmer.ai"
+    apiKey={process.env.STIGMER_API_KEY}
+  />
+);
+```
+
+`SessionApp` creates a Stigmer client, sets up the provider, and renders a full
+conversation view. You see messages, tool calls, approvals, and a follow-up
+input — all in your terminal.
+
+## Provider and transport
+
+For more control, create the client yourself and wrap your tree in
+`InkStigmerProvider`:
+
+```tsx
+import { render } from "ink";
+import { InkStigmerProvider, createNodeClient } from "@stigmer/ink";
+
+const client = createNodeClient({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY,
+});
+
+render(
+  <InkStigmerProvider client={client}>
+    {/* your terminal components */}
+  </InkStigmerProvider>
+);
+```
+
+`InkStigmerProvider` provides the same React contexts as `StigmerProvider` from
+`@stigmer/react`, but without the DOM `<div>` wrapper used for CSS scoping
+(terminals do not need it).
+
+`createNodeClient` uses `@connectrpc/connect-node` for native HTTP/2 transport.
+It is re-exported from `@stigmer/sdk/node` for convenience.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `client` | `Stigmer` | — | Configured SDK client instance. Required. |
+| `deploymentMode` | `"local" \| "cloud"` | `"cloud"` | Backend deployment mode. Controls feature availability. |
+| `children` | `ReactNode` | — | Application tree. |
+
+## Using React SDK hooks
+
+All hooks from `@stigmer/react` work under `InkStigmerProvider`. This is the
+main reason to choose `@stigmer/ink` over building a terminal UI from scratch:
+you get the complete data layer for free.
+
+```tsx
+import { useStigmer, useSessionConversation } from "@stigmer/react";
+import { InkStigmerProvider, createNodeClient } from "@stigmer/ink";
+import { Box, Text } from "ink";
+
+function MySessionView({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+
+  if (conv.isLoading) return <Text>Loading...</Text>;
+
+  const lastMessage = conv.completedExecutions
+    .flatMap((e) => e.status?.messages ?? [])
+    .pop();
+
+  return (
+    <Box flexDirection="column">
+      <Text>{lastMessage?.content ?? "No messages yet"}</Text>
+    </Box>
+  );
+}
+```
+
+Any hook documented in the [React SDK Reference](/docs/sdk/react) is available.
+The hook reads data from the same `StigmerContext` and `DeploymentModeContext`
+that `InkStigmerProvider` provides.
+
+## Composing custom views
+
+When `SessionApp` or `SessionView` do not fit your layout, compose the
+individual components directly:
+
+```tsx
+import { render } from "ink";
+import {
+  InkStigmerProvider,
+  createNodeClient,
+  MessageThread,
+  ExecutionProgress,
+  FollowUpInput,
+} from "@stigmer/ink";
+import { useSessionConversation } from "@stigmer/react";
+import { Box } from "ink";
+
+function CustomView({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+
+  return (
+    <Box flexDirection="column">
+      {conv.activePhase != null && (
+        <ExecutionProgress phase={conv.activePhase} />
+      )}
+      <MessageThread
+        executions={conv.completedExecutions}
+        activeStreamExecution={conv.activeStreamExecution}
+        onApprovalSubmit={conv.submitApproval}
+        submittingApprovalIds={conv.submittingApprovalIds}
+      />
+      <FollowUpInput
+        onSubmit={(msg) => conv.sendFollowUp(msg)}
+        isSubmitting={conv.isSending}
+        disabled={!conv.canSendFollowUp}
+      />
+    </Box>
+  );
+}
+```
+
+Every component listed in the [Reference](/docs/sdk/ink/reference) can be used
+independently. `MessageThread` builds the full conversation thread.
+`MessageEntry` renders a single message. `ToolCallGroup` and `ToolCallItem`
+handle tool call display. `ApprovalPrompt` renders the HITL approval UI.
+
+## CLI integration
+
+The Stigmer CLI uses `@stigmer/ink` to render agent sessions in the terminal.
+The Go CLI spawns the Ink process, passes the session ID and connection
+details as command-line arguments, and attaches the terminal's stdin/stdout.
+
+You can replicate this pattern in your own CLI:
+
+```bash
+npx @stigmer/ink --session ses-abc123 --org my-org \
+  --base-url https://api.stigmer.ai --api-key "$STIGMER_API_KEY"
+```
+
+Or from a Node.js parent process:
+
+```typescript
+import { spawn } from "node:child_process";
+
+const child = spawn("npx", [
+  "@stigmer/ink",
+  "--session", sessionId,
+  "--org", org,
+  "--base-url", baseUrl,
+  "--api-key", apiKey,
+], { stdio: "inherit" });
+```
+
+The `--session` and `--org` flags are required. `--base-url` defaults to
+`https://api.stigmer.ai`. Provide either `--api-key` or pipe a JSON config
+to stdin for dynamic authentication.
+
+## What's next
+
+<Cards>
+  <Card
+    title="Reference"
+    description="Props, types, and signatures for every Ink SDK export."
+    href="/docs/sdk/ink/reference"
+  />
+  <Card
+    title="React SDK"
+    description="Hooks and components for browser UIs — shares the same data layer."
+    href="/docs/sdk/react"
+  />
+  <Card
+    title="SDK Overview"
+    description="Client setup, authentication, and resource clients across all languages."
+    href="/docs/sdk"
+  />
+</Cards>
