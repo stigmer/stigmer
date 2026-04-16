@@ -26,3 +26,14 @@ export const CLICK_DELAY_MS = 450;
  * via `StepAction.typeDelay`.
  */
 export const TYPE_CHAR_DELAY_MS = 50;
+
+/**
+ * Default milliseconds to hold the cursor in place during a `hover`
+ * action, between the enter-event dispatch and the leave-event
+ * dispatch.
+ *
+ * 1500ms gives viewers enough time to read a tooltip or notice a
+ * hover-state change in both browser playback and video export.
+ * Overridable per-action via `StepAction.hoverDuration`.
+ */
+export const HOVER_HOLD_MS = 1500;

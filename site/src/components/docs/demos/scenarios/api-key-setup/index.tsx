@@ -95,8 +95,8 @@ function ApiKeysPageChrome({
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-xs font-semibold text-foreground">API Keys</h3>
-            <div className="relative" data-cursor-target="create-api-key">
-              <div className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+            <div className="group relative" data-cursor-target="create-api-key">
+              <div className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-80 group-data-[hover=true]:opacity-80">
                 <Plus className="h-2.5 w-2.5" />
                 New API key
               </div>
@@ -220,6 +220,7 @@ export function ApiKeySetup() {
   const narrationManifest = useNarrationManifest("api-key-setup");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [showRipple, setShowRipple] = useState(true);
   const [stepIndex, setStepIndex] = useState(0);
 
   const handleStepChange = useCallback(
@@ -237,6 +238,7 @@ export function ApiKeySetup() {
     containerRef,
     setCursorTarget,
     steps: apiKeySetupSteps,
+    setShowRipple,
   });
 
   return (
@@ -249,7 +251,7 @@ export function ApiKeySetup() {
         >
           {(step) => renderStep(step)}
         </ScenarioPlayer>
-        <Cursor target={cursorTarget} containerRef={containerRef} />
+        <Cursor target={cursorTarget} containerRef={containerRef} showRipple={showRipple} />
       </DemoViewport>
     </StigmerProvider>
   );

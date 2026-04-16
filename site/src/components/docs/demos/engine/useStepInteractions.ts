@@ -8,7 +8,7 @@ import {
   scrollTargetIntoView,
   scrollTargetIntoViewInstant,
 } from "./scroll-utils";
-import { CLICK_DELAY_MS, TYPE_CHAR_DELAY_MS } from "./timing";
+import { CLICK_DELAY_MS, HOVER_HOLD_MS, TYPE_CHAR_DELAY_MS } from "./timing";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -26,11 +26,11 @@ export interface StepAction {
    */
   readonly atPercent: number;
   /** Action type. */
-  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click" | "type";
+  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click" | "type" | "hover";
   /**
    * Target element identifier.
    * - For `scroll-to`: matches `[data-scroll-target="<target>"]`
-   * - For `set-cursor` / `click` / `type`: matches `[data-cursor-target="<target>"]`
+   * - For `set-cursor` / `click` / `type` / `hover`: matches `[data-cursor-target="<target>"]`
    */
   readonly target?: string;
   /**
@@ -42,6 +42,12 @@ export interface StepAction {
    * Defaults to {@link TYPE_CHAR_DELAY_MS} (50ms).
    */
   readonly typeDelay?: number;
+  /**
+   * Milliseconds to hold the cursor over the target during a `hover`
+   * action, between enter-event dispatch and leave-event dispatch.
+   * Defaults to {@link HOVER_HOLD_MS} (1500ms).
+   */
+  readonly hoverDuration?: number;
 }
 
 /**
@@ -70,6 +76,13 @@ export interface UseStepInteractionsOptions<T> {
    * at higher speeds.
    */
   playbackRate?: number;
+  /**
+   * Optional callback to control the Cursor's click ripple. The
+   * `hover` action calls `setShowRipple(false)` before moving the
+   * cursor and `setShowRipple(true)` after hover leave events fire.
+   * Scenarios that don't use `hover` can omit this.
+   */
+  setShowRipple?: (show: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +107,8 @@ function getStepDurationMs<T>(
 
 /**
  * Schedule timed mid-step interactions (scroll, cursor movement,
- * click dispatch, text input) synced to narration duration.
+ * click dispatch, text input, hover reveal) synced to narration
+ * duration.
  *
  * In browser mode, actions are scheduled via `setTimeout` at
  * `atPercent * stepDuration` ms from step start. In Remotion
@@ -111,6 +125,13 @@ function getStepDurationMs<T>(
  * one at a time at {@link TYPE_CHAR_DELAY_MS} intervals (phase 2+).
  * Uses the native input value setter to trigger React's onChange.
  *
+ * The `hover` action is three-phase: cursor moves to the target
+ * without a click ripple (phase 1), then after
+ * {@link CLICK_DELAY_MS} pointer/mouse enter events are dispatched
+ * and `data-hover` is set (phase 2), then after
+ * {@link HOVER_HOLD_MS} leave events are dispatched and
+ * `data-hover` is removed (phase 3).
+ *
  * Opt-in: scenarios that don't call this hook are unaffected.
  */
 export function useStepInteractions<T>({
@@ -121,6 +142,7 @@ export function useStepInteractions<T>({
   setCursorTarget,
   steps,
   playbackRate = 1,
+  setShowRipple,
 }: UseStepInteractionsOptions<T>): void {
   const timeSource = useTimeSource();
   const firedRef = useRef<Set<string>>(new Set());
@@ -179,6 +201,28 @@ export function useStepInteractions<T>({
             firedRef.current.add(charKey);
             typeTextIntoTarget(action.target, text.substring(0, charCount), containerRef);
           }
+        }
+      } else if (action.type === "hover") {
+        const holdMs = action.hoverDuration ?? HOVER_HOLD_MS;
+
+        const cursorKey = `${stepIndex}-${action.atPercent}-hover-cursor`;
+        if (elapsed >= fireAt && !firedRef.current.has(cursorKey)) {
+          firedRef.current.add(cursorKey);
+          setShowRipple?.(false);
+          setCursorTarget(action.target);
+        }
+
+        const enterKey = `${stepIndex}-${action.atPercent}-hover-enter`;
+        if (elapsed >= fireAt + CLICK_DELAY_MS && !firedRef.current.has(enterKey)) {
+          firedRef.current.add(enterKey);
+          dispatchHoverEnterOnTarget(action.target, containerRef);
+        }
+
+        const leaveKey = `${stepIndex}-${action.atPercent}-hover-leave`;
+        if (elapsed >= fireAt + CLICK_DELAY_MS + holdMs && !firedRef.current.has(leaveKey)) {
+          firedRef.current.add(leaveKey);
+          dispatchHoverLeaveOnTarget(action.target, containerRef);
+          setShowRipple?.(true);
         }
       } else {
         const key = `${stepIndex}-${action.atPercent}-${action.type}`;
@@ -244,6 +288,29 @@ export function useStepInteractions<T>({
             ),
           );
         }
+      } else if (action.type === "hover") {
+        const holdMs = action.hoverDuration ?? HOVER_HOLD_MS;
+
+        warnIfHoverExceedsStep(action, holdMs, duration, stepIndex);
+
+        timers.push(
+          setTimeout(() => {
+            setShowRipple?.(false);
+            setCursorTarget(action.target);
+          }, fireAt),
+        );
+        timers.push(
+          setTimeout(
+            () => dispatchHoverEnterOnTarget(action.target, containerRef),
+            fireAt + CLICK_DELAY_MS / rate,
+          ),
+        );
+        timers.push(
+          setTimeout(() => {
+            dispatchHoverLeaveOnTarget(action.target, containerRef);
+            setShowRipple?.(true);
+          }, fireAt + (CLICK_DELAY_MS + holdMs) / rate),
+        );
       } else {
         timers.push(
           setTimeout(
@@ -264,6 +331,7 @@ export function useStepInteractions<T>({
     narrationManifest,
     containerRef,
     setCursorTarget,
+    setShowRipple,
     steps,
     playbackRate,
   ]);
@@ -329,6 +397,7 @@ function executeAction(
 
     case "click":
     case "type":
+    case "hover":
       setCursorTarget(action.target);
       break;
   }
@@ -448,6 +517,31 @@ function warnIfTypingExceedsStep(
 }
 
 /**
+ * Dev-mode warning when a hover action's total duration (cursor
+ * travel + hold) exceeds the step's duration, meaning leave events
+ * will be cut short when the step advances.
+ */
+function warnIfHoverExceedsStep(
+  action: StepAction,
+  hoverDuration: number,
+  stepDurationMs: number,
+  stepIdx: number,
+): void {
+  if (process.env.NODE_ENV !== "development") return;
+
+  const totalMs =
+    action.atPercent * stepDurationMs + CLICK_DELAY_MS + hoverDuration;
+  if (totalMs > stepDurationMs) {
+    console.warn(
+      `[StepInteractions] hover action in step ${stepIdx} at ${action.atPercent} ` +
+        `needs ~${Math.round(totalMs)}ms but step is only ${Math.round(stepDurationMs)}ms. ` +
+        `Leave events will not fire before the step advances. ` +
+        `Reduce hoverDuration or increase step duration.`,
+    );
+  }
+}
+
+/**
  * Set an input's value to `text` using the native property setter,
  * then dispatch a bubbling `input` event so React's synthetic
  * onChange fires.
@@ -474,4 +568,77 @@ function typeTextIntoTarget(
   const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
   setter?.call(input, text);
   input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+// ---------------------------------------------------------------------------
+// Hover dispatch
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a `[data-cursor-target]` element to an `HTMLElement`.
+ * Returns `null` (with a dev-mode warning) if not found.
+ */
+function resolveHoverTarget(
+  target: string | undefined,
+  containerRef: RefObject<HTMLElement | null>,
+): HTMLElement | null {
+  if (!target) return null;
+
+  const container = containerRef.current;
+  if (!container) return null;
+
+  const el = container.querySelector(`[data-cursor-target="${target}"]`);
+  if (!el || !(el instanceof HTMLElement)) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `[StepInteractions] hover target "${target}" not found in DOM. ` +
+          `Ensure a [data-cursor-target="${target}"] element exists and is an HTMLElement.`,
+      );
+    }
+    return null;
+  }
+
+  return el;
+}
+
+/**
+ * Dispatch pointer and mouse enter events on the target element and
+ * set `data-hover="true"` to enable CSS hover-state styling.
+ *
+ * Dispatches four events matching the browser's native hover
+ * sequence: `pointerenter` and `pointerover` (for Radix UI and
+ * pointer-event listeners), then `mouseenter` and `mouseover` (for
+ * legacy mouse-event listeners). `enter`/`leave` events don't
+ * bubble; `over`/`out` events do — matching browser behavior.
+ */
+function dispatchHoverEnterOnTarget(
+  target: string | undefined,
+  containerRef: RefObject<HTMLElement | null>,
+): void {
+  const el = resolveHoverTarget(target, containerRef);
+  if (!el) return;
+
+  el.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false }));
+  el.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+  el.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
+  el.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+  el.setAttribute("data-hover", "true");
+}
+
+/**
+ * Dispatch pointer and mouse leave events on the target element and
+ * remove the `data-hover` attribute.
+ */
+function dispatchHoverLeaveOnTarget(
+  target: string | undefined,
+  containerRef: RefObject<HTMLElement | null>,
+): void {
+  const el = resolveHoverTarget(target, containerRef);
+  if (!el) return;
+
+  el.dispatchEvent(new PointerEvent("pointerleave", { bubbles: false }));
+  el.dispatchEvent(new PointerEvent("pointerout", { bubbles: true }));
+  el.dispatchEvent(new MouseEvent("mouseleave", { bubbles: false }));
+  el.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+  el.removeAttribute("data-hover");
 }
