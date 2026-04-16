@@ -47,12 +47,26 @@ Add the dependency to your `pom.xml`:
 
 ## Authentication
 
-Every request requires a Bearer token derived from an API key. Create one in
-the Stigmer dashboard under **Settings → API Keys**.
+The SDK supports two authentication methods:
+
+- **API key** (`apiKey`) — A static secret credential for server-side use
+  (backends, CLI tools, SSR, CI/CD). Create one in the Stigmer dashboard under
+  **Settings → API Keys**.
+- **Token provider** (`getAccessToken`) — A callback that returns a JWT from
+  your authentication provider. Use this for browser apps where each user
+  authenticates with their own token.
+  [Set up identity federation](/docs/guides/federation/overview) to enable this.
 
 <Callout type="warn">
   API keys start with `sk_`. Store them in environment variables. Never commit
   them to source control.
+</Callout>
+
+<Callout type="error">
+  **Never expose API keys in client-side code.** API keys are secret
+  credentials that grant full access to your Organization. In browser apps,
+  use `getAccessToken` with
+  [identity federation](/docs/guides/federation/overview) instead.
 </Callout>
 
 Set the `STIGMER_API_KEY` environment variable, then pass it to the client
@@ -69,9 +83,10 @@ const stigmer = new Stigmer({
 });
 ```
 
-The TypeScript SDK also accepts a `getAccessToken` callback for dynamic
-token-based authentication. Use this when the token changes over time (e.g.,
-browser sessions with rotating credentials):
+Use `getAccessToken` for browser applications. Each user authenticates through
+your platform's auth provider, and the callback returns their JWT. With
+[JIT provisioning](/docs/guides/federation/register-identity-provider#enable-jit-provisioning)
+enabled, Stigmer creates accounts automatically on first authentication:
 
 ```typescript
 const stigmer = new Stigmer({
