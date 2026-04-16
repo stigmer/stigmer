@@ -176,11 +176,7 @@ When starting a new session:
 ## Next Steps
 
 1. E2E test against live Stigmer instance (local daemon + cloud) — validate full run/resume/draft pipeline
-2. Clean up remaining Go dependencies: remove Bubble Tea, Lip Gloss, Glamour, Bubbles from `go.mod`
-3. Delete unused packages: `pkg/toolrender/`, `pkg/approval/`, `pkg/panel/`, `pkg/mdrender/`
-4. Rename `run_stream_inline_header.go` → `run_display_header.go` (no longer inline-specific)
-5. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
-6. Consider deprecating/removing `Conn()` from `*stigmer.Client`
+2. `@stigmer/ink` first publish to npm — required before production CLI release
 
 ## Context for Resume
 
@@ -192,23 +188,38 @@ When starting a new session:
 - Release pipeline gates CLI release on npm package availability (polling step in `release.cli.yaml`)
 - `tsx` is now a root devDependency for workspace Ink development
 - Workspace detection: Go binary at `bin/stigmer` looks for `../node_modules/.bin/tsx` + `../sdk/ink/src/cli/stigmer-ink.tsx`
-- Some Go TUI utility packages still exist but are now dead code (toolrender, approval, panel, mdrender)
-- `run_stream_inline_header.go` is the only surviving inline file — kept for `sessionHeaderInfo` and `renderSessionHeader`
+- Node transport now lives in `@stigmer/sdk/node` subpath — `@stigmer/ink` re-exports it
+- `Conn()` removed from Go SDK — all consumers use typed sub-clients
+- `pkg/toolrender`, `pkg/approval`, `pkg/panel` are still actively used (JSON mode, workflow approvals, session header, event types) — NOT dead code
+- `pkg/picker` (interactive selector) and `cliprint/progress.go` (daemon startup spinner) legitimately use Bubble Tea
+- `charm.land/glamour/v2` removed; bubbletea/bubbles/lipgloss/ansi remain (still used)
 
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: Go CLI Ink Integration COMPLETE (T04 Phase 2)
-**Status**: All planned tasks COMPLETE — cleanup and E2E validation remaining
-**Last Session**: 2026-04-16 (Session 9) — Go CLI Ink Integration
+**Current Task**: Post-Ink cleanup COMPLETE
+**Status**: All planned tasks COMPLETE — E2E validation remaining
+**Last Session**: 2026-04-16 (Session 10) — Post-Ink Cleanup
+
+## Session Progress (2026-04-16, Session 10)
+
+- **Post-Ink cleanup COMPLETE**: Dead code removal, SDK architecture improvements, dependency cleanup
+- **Surprise: "dead" packages are NOT dead**: Import graph analysis revealed `pkg/toolrender`, `pkg/approval`, `pkg/panel` are actively used by JSON mode, workflow streaming, session headers, event types. Only `pkg/mdrender` was truly dead.
+- **Dead code removed**: `run_display_stream.go` (entire file), dead functions from `run_display.go`, `run_display_tools.go`, `run_display_summary.go`, `run_stream_approval.go` — ~1,800 lines net deletion
+- **`pkg/mdrender/` deleted**: Sole consumer (`displayAgentMessage`) was dead code; `charm.land/glamour/v2` removed from go.mod
+- **Renamed**: `run_stream_inline_header.go` → `run_display_header.go`
+- **Go SDK**: Removed `Conn()` method (zero callers, zero interfaces)
+- **Node transport moved to SDK**: `createNodeTransport` now lives at `@stigmer/sdk/node` subpath export with aligned interceptor chain (auth + RPC metadata + error strip). `@stigmer/ink` re-exports from SDK.
+- **SDK tests**: 108 tests pass (6 new node transport tests). Ink: 22 tests pass.
+- **BUILD.bazel cleanup**: Removed ghost entries (deleted bubbletea files, non-existent test files, mdrender dep)
+- **Decision**: `charm.land/bubbletea/v2`, `bubbles/v2`, `lipgloss/v2` stay — used by `pkg/picker` and `cliprint/progress.go`
+- **Decision**: Node transport interceptors aligned with browser transport (minus browser-specific auth redirect) for consistent behavior across runtimes
 
 ## Quick Commands
 
 After loading context:
 - "E2E test ink integration" - Test against live API
-- "Clean up Go TUI dependencies" - Remove Bubble Tea et al from go.mod
-- "Delete dead TUI packages" - Remove pkg/toolrender, pkg/approval, etc.
-- "Move createNodeTransport to SDK" - SDK architecture cleanup
+- "Publish @stigmer/ink to npm" - First publish for production release
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

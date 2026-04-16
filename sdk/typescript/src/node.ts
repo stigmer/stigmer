@@ -1,13 +1,18 @@
 import { createGrpcWebTransport } from "@connectrpc/connect-node";
 import type { Transport, Interceptor } from "@connectrpc/connect";
-import { Stigmer, type TokenProvider } from "@stigmer/sdk";
+import { Stigmer, type TokenProvider } from "./index";
+import {
+  createAuthInterceptor,
+  rpcMetadataInterceptor,
+  errorStripInterceptor,
+} from "./internal/interceptors";
 
 /**
- * Options for creating a Node.js-compatible Stigmer client.
+ * Configuration for creating a Node.js-compatible Stigmer client.
  *
- * This mirrors the essential fields from `StigmerConfig` but creates a
- * transport using `@connectrpc/connect-node` (native HTTP/2) instead
- * of the browser-oriented `@connectrpc/connect-web`.
+ * Uses `@connectrpc/connect-node` for native HTTP/2 transport instead
+ * of the browser-oriented `@connectrpc/connect-web` that the default
+ * `Stigmer` constructor uses.
  */
 export interface NodeClientConfig {
   /** Stigmer API server URL (e.g., "https://api.stigmer.ai"). */
@@ -23,40 +28,44 @@ export interface NodeClientConfig {
 /**
  * Create a gRPC-web transport for Node.js using native HTTP/2.
  *
- * Uses gRPC-web protocol to match the server's expected content type,
- * with an auth interceptor that attaches `Authorization: Bearer <token>`
- * to every outgoing request when a token is available.
+ * The interceptor chain matches the browser transport for consistent
+ * behavior across runtimes:
+ * 1. Auth — attaches `Authorization: Bearer <token>`
+ * 2. RPC metadata — annotates errors with method name and service path
+ * 3. Error strip — removes gRPC status-code prefixes from messages
+ *
+ * The browser-specific auth-redirect interceptor (`onUnauthenticated`)
+ * is intentionally omitted — Node.js consumers handle auth failures
+ * through error handling, not UI redirects.
  */
 export function createNodeTransport(config: NodeClientConfig): Transport {
   const tokenProvider: TokenProvider = config.apiKey
     ? () => config.apiKey!
     : config.getAccessToken ?? (() => null);
 
-  const authInterceptor: Interceptor = (next) => async (request) => {
-    const token = await tokenProvider();
-    if (token) {
-      request.header.set("Authorization", `Bearer ${token}`);
-    }
-    return next(request);
-  };
+  const interceptors: Interceptor[] = [
+    createAuthInterceptor(tokenProvider),
+    rpcMetadataInterceptor,
+    errorStripInterceptor,
+  ];
 
   return createGrpcWebTransport({
     baseUrl: config.baseUrl,
     httpVersion: "2",
-    interceptors: [authInterceptor],
+    interceptors,
   });
 }
 
 /**
  * Create a Stigmer client configured for Node.js environments.
  *
- * Uses `@connectrpc/connect-node` for native HTTP/2 transport instead
- * of the browser-oriented transport that the default `Stigmer` constructor
- * uses. Suitable for CLI tools, server-side scripts, and Ink terminal apps.
+ * Uses `@connectrpc/connect-node` for native HTTP/2 transport with the
+ * full SDK interceptor chain (auth, RPC metadata, error stripping).
+ * Suitable for CLI tools, server-side scripts, and Ink terminal apps.
  *
  * @example
  * ```typescript
- * import { createNodeClient } from "@stigmer/ink";
+ * import { createNodeClient } from "@stigmer/sdk/node";
  *
  * const stigmer = createNodeClient({
  *   baseUrl: "https://api.stigmer.ai",

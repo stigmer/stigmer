@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { createNodeClient, createNodeTransport } from "../transport.js";
+import { createNodeClient, createNodeTransport } from "../node";
 
 describe("createNodeTransport", () => {
-  it("creates a transport with a base URL", () => {
+  it("creates a transport with an API key", () => {
     const transport = createNodeTransport({
       baseUrl: "https://api.stigmer.ai",
       apiKey: "sk_test_123",

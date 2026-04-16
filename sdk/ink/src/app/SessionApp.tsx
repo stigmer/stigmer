@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { TokenProvider } from "@stigmer/sdk";
 import { InkStigmerProvider } from "../provider.js";
-import { createNodeClient, type NodeClientConfig } from "../transport.js";
+import { createNodeClient, type NodeClientConfig } from "@stigmer/sdk/node";
 import { SessionView } from "./SessionView.js";
 
 /** Props for {@link SessionApp}. */
