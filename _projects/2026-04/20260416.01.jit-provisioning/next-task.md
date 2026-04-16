@@ -14,8 +14,16 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: near-complete (only T07 stigmer-cloud commit remains)
-- **Last Session**: April 16, 2026 — Session 7: Demo narration + JIT demo updates
+- **Last Session**: April 16, 2026 — Session 8: SDK docs browser auth security guidance
 - **Active Task**: All follow-up items complete, only T07 stigmer-cloud commit pending
+
+## Session Progress (April 16, 2026 — Session 8)
+
+- Customer raised concern about API key exposure in browser React apps — confirmed this is a valid security issue
+- Updated `docs/sdk/react/index.mdx`: added "Server-side and internal tools" heading for `apiKey` example, added full "Browser authentication" section with `getAccessToken` + federation pattern, added auth method selection callout
+- Updated `docs/sdk/index.mdx`: replaced single-method auth intro with dual-method list, added error-level callout about never exposing API keys in client-side code, strengthened `getAccessToken` description to reference browser apps and JIT provisioning
+- Committed as `6dd1305a4 docs(sdk): add browser auth security guidance to React SDK and SDK overview`
+- Key insight: the JIT provisioning project directly enables the secure browser auth pattern — federation is the only secure path for browser apps, and JIT makes it nearly zero-friction
 
 ## Session Progress (April 16, 2026 — Session 7)
 
@@ -92,7 +100,11 @@ Drop this file into your conversation to quickly resume work on this project.
 ### 3. Project Documentation
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260416.01.jit-provisioning/README.md`
 
-### 4. Key Files Modified in Session 7 (stigmer — demos)
+### 4. Key Files Modified in Session 8 (stigmer — SDK docs)
+- `docs/sdk/react/index.mdx` (MODIFIED — server-side vs browser auth sections, getAccessToken example)
+- `docs/sdk/index.mdx` (MODIFIED — dual auth method intro, security callout, JIT provisioning link)
+
+### 6. Key Files Modified in Session 7 (stigmer — demos)
 - `site/src/components/docs/demos/scenarios/federation-overview-tour/` (REWRITTEN — two-path JIT+manual demo)
 - `site/src/components/docs/demos/scenarios/multi-tenant-jit-playback/` (NEW — tenantOrgClaim demo)
 - `docs/guides/federation/multi-tenant-setup.mdx` (MODIFIED — embedded DemoMultiTenantJitPlayback)
@@ -101,7 +113,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - `site/src/components/mdx.tsx` (MODIFIED — registered MDX component)
 - `site/public/demos/` (MODIFIED — regenerated narration MP3s + manifests)
 
-### 5. Key Files Modified in T08 (stigmer — docs)
+### 7. Key Files Modified in T08 (stigmer — docs)
 - `docs/guides/federation/overview.mdx` (MODIFIED — three modes, comparison table, routing)
 - `docs/guides/federation/register-identity-provider.mdx` (MODIFIED — JIT section, SDK examples, field table)
 - `docs/guides/federation/authentication-flow.mdx` (MODIFIED — Step 7 rewrite, troubleshooting, summary)
@@ -111,7 +123,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - `site/src/components/docs/demos/scenarios/register-idp-playback/` (MODIFIED — JIT config step)
 - `site/src/components/docs/demos/scenarios/authentication-flow-playback/` (MODIFIED — JIT resolve checks)
 
-### 6. Key Files from T07 (stigmer-cloud, pending commit)
+### 8. Key Files from T07 (stigmer-cloud, pending commit)
 - `backend/services/stigmer-service/BUILD.bazel`
 - `backend/libs/java/api/api-authentication/BUILD.bazel`
 - `ValidateSsoFieldsTest.java` (NEW)
