@@ -15,6 +15,7 @@ export type RegisterIdpStep =
   | { view: "provider-list" }
   | { view: "pick-provider" }
   | { view: "configure-provider" }
+  | { view: "jit-config" }
   | { view: "provider-registered" };
 
 // ---------------------------------------------------------------------------
@@ -51,10 +52,17 @@ export const registerIdpSteps: ScenarioStep<RegisterIdpStep>[] = [
       "Enter the Auth0 tenant name and region to auto-populate the OIDC endpoints. Then set the display name and expected audience for the trust relationship.",
   },
   {
+    delayMs: 3500,
+    data: { view: "jit-config" },
+    caption: "Enable JIT provisioning",
+    narration:
+      "Enable JIT provisioning so Stigmer creates accounts and grants roles automatically when users authenticate. No per-user provisioning code needed.",
+  },
+  {
     delayMs: 4000,
     data: { view: "provider-registered" },
-    caption: "Identity Provider registered",
+    caption: "Identity Provider registered with JIT",
     narration:
-      "The Identity Provider is now registered. Stigmer can validate JWTs from your auth provider and resolve them to federated identities. All configuration values are confirmed.",
+      "The Identity Provider is registered with JIT provisioning enabled. Users who authenticate with a valid JWT are automatically provisioned and granted the viewer role.",
   },
 ];

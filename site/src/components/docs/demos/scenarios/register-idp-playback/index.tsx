@@ -202,7 +202,78 @@ function ConfigureContent() {
 }
 
 // ---------------------------------------------------------------------------
-// Registered (step 5) — success
+// JIT config (step 5) — enable JIT provisioning toggles
+// ---------------------------------------------------------------------------
+
+function JitConfigContent() {
+  return (
+    <div className="p-3" style={{ zoom: DEMO_CONTENT_ZOOM }}>
+      <h2 className="mb-1 text-sm font-semibold">Identity Providers</h2>
+      <WizardStepIndicator current="review" />
+      <p className="mb-3 text-[0.65rem] text-muted-foreground">
+        Configure automatic account provisioning for this provider.
+      </p>
+      <div className="space-y-2.5">
+        <ToggleField
+          label="Auto-provision accounts"
+          hint="Create a federated account automatically on first authentication"
+          checked={true}
+        />
+        <ToggleField
+          label="Auto-grant on organization"
+          hint="Grant a role on the owning organization when an account is auto-provisioned"
+          checked={true}
+        />
+        <StaticField
+          label="Auto-grant role"
+          value="viewer"
+          hint="Role granted automatically — org admins can upgrade later"
+        />
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <div className="relative" data-cursor-target="register-btn">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+          >
+            Register
+          </button>
+          <PulseHighlight />
+        </div>
+        <span className="text-xs text-muted-foreground">Back</span>
+      </div>
+    </div>
+  );
+}
+
+function ToggleField({
+  label,
+  hint,
+  checked,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-md border border-border bg-card p-2">
+      <div
+        className={`mt-0.5 h-4 w-7 shrink-0 rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted"}`}
+      >
+        <div
+          className={`h-3 w-3 translate-y-0.5 rounded-full bg-white shadow-sm transition-transform ${checked ? "translate-x-3.5" : "translate-x-0.5"}`}
+        />
+      </div>
+      <div>
+        <span className="text-xs font-medium text-foreground">{label}</span>
+        <p className="text-[0.6rem] text-muted-foreground">{hint}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Registered (step 6) — success with JIT fields
 // ---------------------------------------------------------------------------
 
 function RegisteredContent() {
@@ -215,7 +286,7 @@ function RegisteredContent() {
         <div>
           <h2 className="text-sm font-semibold">Identity Provider Registered</h2>
           <p className="text-[0.65rem] text-muted-foreground">
-            Stigmer can now validate JWTs from this provider
+            JIT provisioning enabled — accounts created automatically
           </p>
         </div>
       </div>
@@ -225,6 +296,9 @@ function RegisteredContent() {
           <span className="ml-2 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[0.6rem] font-medium text-emerald-600">
             Active
           </span>
+          <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.6rem] font-medium text-primary">
+            JIT
+          </span>
         </div>
         <div className="divide-y divide-border text-xs">
           {[
@@ -233,6 +307,7 @@ function RegisteredContent() {
             { label: "JWKS URI", value: "https://acme.us.auth0.com/.well-known/jwks.json" },
             { label: "Issuers", value: "https://acme.us.auth0.com/" },
             { label: "Audience", value: "https://api.stigmer.ai/" },
+            { label: "JIT", value: "auto-provision + auto-grant (viewer)" },
           ].map((d) => (
             <div key={d.label} className="flex gap-2 px-3 py-1.5">
               <span className="w-16 shrink-0 text-muted-foreground">
@@ -327,6 +402,9 @@ const INTERACTIONS: StepInteractions = {
   3: [
     { atPercent: 0.3, type: "scroll-to", target: "continue-btn" },
   ],
+  4: [
+    { atPercent: 0.5, type: "set-cursor", target: "register-btn" },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -339,6 +417,8 @@ function cursorTargetFor(step: RegisterIdpStep): string | undefined {
       return "add-btn";
     case "configure-provider":
       return "continue-btn";
+    case "jit-config":
+      return "register-btn";
     default:
       return undefined;
   }
@@ -395,6 +475,17 @@ function renderStep(step: RegisterIdpStep) {
         </ManagementShell>
       );
 
+    case "jit-config":
+      return (
+        <ManagementShell
+          activeNav="identity-providers"
+          contentKey="jit"
+          slideDirection="forward"
+        >
+          <JitConfigContent />
+        </ManagementShell>
+      );
+
     case "provider-registered":
       return (
         <ManagementShell
@@ -415,9 +506,10 @@ function renderStep(step: RegisterIdpStep) {
 /**
  * Register IdP playback for the "Register an Identity Provider" guide page.
  *
- * Five-step walkthrough: gather OIDC values from auth dashboard →
+ * Six-step walkthrough: gather OIDC values from auth dashboard →
  * open Identity Providers in Stigmer console → pick provider type
- * (real SDK ProviderPicker) → configure → registered.
+ * (real SDK ProviderPicker) → configure → enable JIT provisioning →
+ * registered with JIT.
  */
 export function RegisterIdpPlayback() {
   const narrationManifest = useNarrationManifest("register-idp-playback");

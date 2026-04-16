@@ -100,13 +100,14 @@ export const VALIDATION_CHECKS: readonly CheckItem[] = [
 ];
 
 export const RESOLVE_CHECKS: readonly CheckItem[] = [
-  { label: "Resolve identity", detail: "sub auth0|jane_doe → ida_01abc123", status: "pass" },
-  { label: "Check IAM Policy", detail: "admin on org_acme456", status: "pass" },
+  { label: "Resolve identity", detail: "sub auth0|jane_doe → auto-provisioned", status: "pass" },
+  { label: "Auto-grant role", detail: "viewer on org_acme456 (JIT)", status: "pass" },
+  { label: "Check IAM Policy", detail: "viewer on org_acme456", status: "pass" },
 ];
 
 export const RESOLVE_RESULT = {
   label: "Authorized",
-  detail: "Jane (ida_01abc123) → admin on org_acme456",
+  detail: "Jane (auto-provisioned) → viewer on org_acme456",
   status: "pass" as const,
 };
 
@@ -146,9 +147,9 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
   {
     delayMs: 3000,
     data: { view: "resolve-authorize" },
-    caption: "Identity resolved, access granted",
+    caption: "Identity resolved, access granted (JIT)",
     narration:
-      "Stigmer maps the subject claim to Jane's federated account and confirms she has the admin role on the organization.",
+      "Stigmer maps the subject claim to Jane's identity. With JIT provisioning, if this is her first authentication, Stigmer creates the account and grants the viewer role automatically.",
   },
   {
     delayMs: 3000,
