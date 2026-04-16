@@ -19,7 +19,8 @@ import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import { DEMO_ORG } from "../../engine/shared";
 import {
   type McpCreationStep,
@@ -264,7 +265,7 @@ export function McpServerCreationTour() {
 
   return (
     <StigmerProvider client={client}>
-      <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+      <DemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={mcpCreationTourSteps}
           narrationManifest={narrationManifest}
@@ -273,7 +274,7 @@ export function McpServerCreationTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </div>
+      </DemoViewport>
     </StigmerProvider>
   );
 }

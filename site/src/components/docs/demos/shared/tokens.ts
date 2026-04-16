@@ -68,6 +68,28 @@ export const DEMO_BROWSER_SHELL_HEIGHT = 420;
 export const DEMO_VIDEO_SHELL_HEIGHT = 460;
 
 /**
+ * Canonical width of the demo viewport in pixels.
+ *
+ * Matches Tailwind's `max-w-4xl` (56rem at 16px base = 896px).
+ * Interactive demos always render at this width internally;
+ * `DemoViewport` applies CSS `zoom` to scale the canonical layout
+ * into the available page width. This guarantees that cursor and
+ * scroll interactions compute against stable dimensions regardless
+ * of the browser viewport size.
+ */
+export const DEMO_CANONICAL_WIDTH = 896;
+
+/**
+ * Minimum zoom factor for the docs-site viewport.
+ *
+ * Prevents the demo from shrinking below ~448×190px on very narrow
+ * screens. The real narrow-container responsive strategy (poster
+ * fallback, tap-to-expand, breakpoint system) is deferred to
+ * DemoScope product design.
+ */
+export const DEMO_MIN_VIEWPORT_ZOOM = 0.5;
+
+/**
  * Container classes for ScenarioPlayer-based demos (playback + tour).
  * Includes not-prose to prevent MDX prose styling from leaking in,
  * and relative positioning for cursor overlays.

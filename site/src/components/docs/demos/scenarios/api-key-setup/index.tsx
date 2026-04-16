@@ -17,7 +17,8 @@ import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ManagementShell } from "../../views/ManagementShell";
 import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 import {
   type ApiKeySetupStep,
   apiKeySetupSteps,
@@ -248,7 +249,7 @@ export function ApiKeySetup() {
 
   return (
     <StigmerProvider client={client}>
-      <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+      <DemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={apiKeySetupSteps}
           narrationManifest={narrationManifest}
@@ -257,7 +258,7 @@ export function ApiKeySetup() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </div>
+      </DemoViewport>
     </StigmerProvider>
   );
 }

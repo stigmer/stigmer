@@ -10,7 +10,7 @@ import { Cursor } from "../../engine/Cursor";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 import { type ApprovalFlowStep, approvalFlowSteps } from "./steps";
 
 const emptyScenario: DemoScenario = { fixtures: new Map() };
@@ -73,7 +73,7 @@ export function ApprovalFlowPlayback() {
 
   return (
     <StigmerProvider client={client}>
-      <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+      <DemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={approvalFlowSteps}
           narrationManifest={narrationManifest}
@@ -82,7 +82,7 @@ export function ApprovalFlowPlayback() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </div>
+      </DemoViewport>
     </StigmerProvider>
   );
 }

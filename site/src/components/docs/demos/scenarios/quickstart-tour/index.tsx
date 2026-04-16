@@ -18,7 +18,8 @@ import {
 import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { TerminalView } from "../../views/TerminalView";
 import { ManagementShell } from "../../views/ManagementShell";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type QuickstartTourStep,
   quickstartTourSteps,
@@ -191,7 +192,7 @@ export function QuickstartTour() {
 
   return (
     <StigmerProvider client={client}>
-      <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+      <DemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={quickstartTourSteps}
           narrationManifest={narrationManifest}
@@ -200,7 +201,7 @@ export function QuickstartTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </div>
+      </DemoViewport>
     </StigmerProvider>
   );
 }
