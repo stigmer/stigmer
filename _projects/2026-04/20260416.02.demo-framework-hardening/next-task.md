@@ -23,17 +23,21 @@ Drop this file into your conversation to quickly resume work on this project.
 | T03 | Expand Playwright Viewport Coverage | DONE (via T01) | T01 |
 | T04 | New Interaction — Click (UI State Trigger) | DONE | T01 |
 | T05 | New Interaction — Type (Text Input Simulation) | DONE | T04 |
-| T06 | New Interaction — Hover (Tooltip Reveal) | PENDING | T04 |
+| T06 | New Interaction — Hover (Tooltip Reveal) | DONE | T04 |
 | T07 | New Interaction — Drag (Drag-and-Drop) | PENDING | T04 |
 | T08 | New Interaction — Viewport Transition (Zoom/Pan) | PENDING | T01 |
 | T09 | DemoScope Extraction Architecture | PENDING | T01-T08 |
 | T10 | Validation and Testing Updates | PENDING | T01-T09 |
 
-## Current Task: T06 — New Interaction: Hover (Tooltip Reveal)
+## Current Task: T07 — New Interaction: Drag (Drag-and-Drop)
 
 **Status**: PENDING — Ready to start (T04 unblocked it)
 
-**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T06_0_plan.md`
+**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T07_0_plan.md`
+
+## Completed: T06 — New Interaction: Hover (Tooltip Reveal)
+
+Added `hover` as the sixth action type to the demo engine's `useStepInteractions` hook. The hover action is three-phase: phase 1 moves the cursor to the target at `atPercent` with ripple suppressed via a new `showRipple` prop on `Cursor`, phase 2 dispatches pointer/mouse enter events (`pointerenter`, `pointerover`, `mouseenter`, `mouseover`) and sets `data-hover="true"` after `CLICK_DELAY_MS` (450ms), phase 3 dispatches leave events and removes `data-hover` after `HOVER_HOLD_MS` (1500ms, configurable via `hoverDuration`). Both browser (setTimeout) and video (frame-driven) paths are implemented. The `data-hover` attribute enables CSS hover-state styling for components that cannot be triggered by JavaScript events alone. A new optional `setShowRipple` callback in `UseStepInteractionsOptions` coordinates ripple suppression between the hook and the Cursor component. Validated with `api-key-setup`, which now hovers over the "New API key" button on step 4 before clicking it on step 5. See coding guideline `hover-interaction-patterns.md`.
 
 ## Completed: T05 — New Interaction: Type (Text Input Simulation)
 
@@ -84,7 +88,7 @@ Implemented `DemoViewport` wrapper using fixed 896×380 canonical viewport with 
 
 ## Quick Commands
 
-- "Continue with T06" — Start the hover interaction
+- "Continue with T07" — Start the drag interaction
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns

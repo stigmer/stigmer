@@ -14,6 +14,12 @@ interface CursorProps {
   target?: string;
   /** Container element used for relative position calculations. */
   containerRef: RefObject<HTMLDivElement | null>;
+  /**
+   * Whether to show the click ripple when the cursor arrives at a
+   * target. Defaults to `true`. Set to `false` during hover
+   * interactions where the cursor should dwell without clicking.
+   */
+  showRipple?: boolean;
 }
 
 interface Position {
@@ -86,7 +92,7 @@ function warnIfTargetObscured(target: string, el: Element): void {
  * Fades out when no target is set, fades in when a target appears.
  * Fully non-interactive (`pointer-events-none`).
  */
-export function Cursor({ target, containerRef }: CursorProps) {
+export function Cursor({ target, containerRef, showRipple = true }: CursorProps) {
   const [pos, setPos] = useState<Position | null>(null);
   const timeSource = useTimeSource();
 
@@ -119,6 +125,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
   }, [target]);
 
   const videoClicking =
+    showRipple &&
     timeSource != null &&
     targetArrivalMs != null &&
     timeSource.currentTimeMs - targetArrivalMs >= CLICK_DELAY_MS;
@@ -204,9 +211,11 @@ export function Cursor({ target, containerRef }: CursorProps) {
             warnIfTargetObscured(target!, el);
             setPos(computeCursorPosition(container, el));
 
-            clickTimerRef.current = setTimeout(() => {
-              if (!cancelled) setBrowserClicking(true);
-            }, CLICK_DELAY_MS);
+            if (showRipple) {
+              clickTimerRef.current = setTimeout(() => {
+                if (!cancelled) setBrowserClicking(true);
+              }, CLICK_DELAY_MS);
+            }
           });
         },
         didScroll ? SCROLL_SETTLE_MS : 0,

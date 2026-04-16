@@ -137,6 +137,15 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
 // ---------------------------------------------------------------------------
 
 /**
+ * Step 4 (`settings-api-keys`): at 30% of narration, the cursor
+ * hovers over the "New API key" button so the viewer sees it
+ * highlighted before the next step clicks it.
+ *
+ * Timing budget (default 1500ms hold):
+ *   cursor travel: 450ms
+ *   hover hold:    1500ms
+ *   total: ~1950ms out of 2500ms step — within budget.
+ *
  * Step 6 (`create-form`): at 15% of narration, the cursor moves to
  * the name input and types "quickstart-key" character by character.
  *
@@ -146,6 +155,9 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
  *   total: ~1150ms out of 2500ms step — comfortably within budget.
  */
 export const APIKEY_INTERACTIONS: StepInteractions = {
+  4: [
+    { atPercent: 0.3, type: "hover", target: "create-api-key" },
+  ],
   6: [
     { atPercent: 0.15, type: "type", target: "apikey-name-input", text: CREATED_KEY_NAME },
   ],
