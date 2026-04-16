@@ -109,7 +109,9 @@ export function SessionView({ sessionId, org }: SessionViewProps) {
         </Box>
       )}
 
-      {conv.activePhase && <ExecutionProgress phase={conv.activePhase} />}
+      {conv.activePhase != null && conv.activePhase !== 0 && (
+        <ExecutionProgress phase={conv.activePhase} />
+      )}
 
       <MessageThread
         executions={conv.completedExecutions}
