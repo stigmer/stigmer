@@ -10,7 +10,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner",
     visibility = ["//visibility:private"],
     deps = [
-        "//backend/services/workflow-runner/pkg/env",
+        "//backend/services/workflow-runner/pkg/dotenv",
         "//backend/services/workflow-runner/worker",
         "//backend/services/workflow-runner/worker/config",
         "@com_github_rs_zerolog//:zerolog",
