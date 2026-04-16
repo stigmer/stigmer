@@ -9,10 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apply"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
@@ -26,7 +22,11 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // executeProjectApply implements the SDK track where stigmer.yaml has an entry_point set.
@@ -69,24 +69,24 @@ func executeProjectApply(detectResult *project.DetectResult, opts projectApplyOp
 		return err
 	}
 
-	conn, err := connectAndEnsureDaemon(cfg)
+	client, err := connectAndEnsureDaemon(cfg)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer client.Close()
 
-	members, appliedServers, err := pushAndApplyResources(synthResult.Result, detectResult.ConfigDir, conn, orgID)
+	members, appliedServers, err := pushAndApplyResources(synthResult.Result, detectResult.ConfigDir, client, orgID)
 	if err != nil {
 		return err
 	}
 
-	discoverAppliedMcpServersSDK(appliedServers, conn)
+	discoverAppliedMcpServersSDK(appliedServers, client)
 
 	detectResult.Project.Spec.Members = members
 	projectResult, err := project.Apply(&project.ApplyOptions{
 		Project: detectResult.Project,
 		OrgID:   orgID,
-		Conn:    conn,
+		Client:  client,
 		Quiet:   false,
 		DryRun:  false,
 		Prune:   opts.PruneEnabled,
@@ -121,8 +121,8 @@ func runSynthesis(projectDir, entryPoint string, runtime apply.Runtime, orgID st
 }
 
 // connectAndEnsureDaemon ensures the daemon is running (local mode) and
-// returns a gRPC connection. The caller is responsible for org resolution.
-func connectAndEnsureDaemon(cfg *config.Config) (*grpc.ClientConn, error) {
+// returns a Stigmer API client. The caller is responsible for org resolution.
+func connectAndEnsureDaemon(cfg *config.Config) (*stigmer.Client, error) {
 	if cfg.Backend.Type == config.BackendTypeLocal {
 		dataDir, err := config.GetDataDir()
 		if err != nil {
@@ -134,13 +134,13 @@ func connectAndEnsureDaemon(cfg *config.Config) (*grpc.ClientConn, error) {
 	}
 
 	climsg.Info("Connecting to backend...")
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to backend")
 	}
 	climsg.Info("Connected to backend")
 
-	return conn, nil
+	return client, nil
 }
 
 // pushAndApplyResources pushes skills and applies agents/workflows/MCP servers,
@@ -150,18 +150,18 @@ func connectAndEnsureDaemon(cfg *config.Config) (*grpc.ClientConn, error) {
 func pushAndApplyResources(
 	synthResult *synthesis.Result,
 	projectDir string,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	orgID string,
 ) ([]*apiresource.ApiResourceReference, []*mcpserverv1.McpServer, error) {
 	var members []*apiresource.ApiResourceReference
 
-	skillRefs, err := pushSynthesizedSkills(synthResult.SkillSynths, projectDir, conn, orgID)
+	skillRefs, err := pushSynthesizedSkills(synthResult.SkillSynths, projectDir, client, orgID)
 	if err != nil {
 		return nil, nil, err
 	}
 	members = append(members, skillRefs...)
 
-	resourceRefs, appliedServers, err := applySynthesizedResources(synthResult, conn, orgID)
+	resourceRefs, appliedServers, err := applySynthesizedResources(synthResult, client, orgID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,7 +175,7 @@ func pushAndApplyResources(
 func pushSynthesizedSkills(
 	synths []*skillv1.SkillSynth,
 	projectDir string,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	orgID string,
 ) ([]*apiresource.ApiResourceReference, error) {
 	var refs []*apiresource.ApiResourceReference
@@ -183,7 +183,7 @@ func pushSynthesizedSkills(
 	for i, synth := range synths {
 		climsg.Info("Pushing skill %d/%d...", i+1, len(synths))
 
-		result, err := pushSkillSynth(synth, projectDir, conn, orgID)
+		result, err := pushSkillSynth(synth, projectDir, client, orgID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to push skill %d", i+1)
 		}
@@ -207,7 +207,7 @@ func pushSynthesizedSkills(
 func pushSkillSynth(
 	synth *skillv1.SkillSynth,
 	projectDir string,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	orgID string,
 ) (*artifact.SkillArtifactResult, error) {
 	tag := synth.Tag
@@ -222,7 +222,7 @@ func pushSkillSynth(
 			Directory: dir,
 			OrgID:     orgID,
 			Tag:       tag,
-			Conn:      conn,
+			Client:    client,
 		})
 
 	case *skillv1.SkillSynth_Git:
@@ -232,7 +232,7 @@ func pushSkillSynth(
 			GitSubdir: src.Git.Subdir,
 			OrgID:     orgID,
 			Tag:       tag,
-			Conn:      conn,
+			Client:    client,
 		})
 
 	default:
@@ -245,7 +245,7 @@ func pushSkillSynth(
 // and the applied MCP server protos for post-apply discovery.
 func applySynthesizedResources(
 	synthResult *synthesis.Result,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	orgID string,
 ) ([]*apiresource.ApiResourceReference, []*mcpserverv1.McpServer, error) {
 	var refs []*apiresource.ApiResourceReference
@@ -254,7 +254,7 @@ func applySynthesizedResources(
 	for _, a := range synthResult.Agents {
 		climsg.Info("Applying agent: %s", a.Metadata.Name)
 		result, err := agent.Apply(&agent.ApplyOptions{
-			Agent: a, OrgID: orgID, Conn: conn,
+			Agent: a, OrgID: orgID, Client: client,
 		})
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "failed to apply agent %s", a.Metadata.Name)
@@ -265,7 +265,7 @@ func applySynthesizedResources(
 	for _, w := range synthResult.Workflows {
 		climsg.Info("Applying workflow: %s", w.Metadata.Name)
 		result, err := workflow.Apply(&workflow.ApplyOptions{
-			Workflow: w, OrgID: orgID, Conn: conn,
+			Workflow: w, OrgID: orgID, Client: client,
 		})
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "failed to apply workflow %s", w.Metadata.Name)
@@ -276,7 +276,7 @@ func applySynthesizedResources(
 	for _, m := range synthResult.McpServers {
 		climsg.Info("Applying MCP server: %s", m.Metadata.Name)
 		result, err := mcpserver.Apply(&mcpserver.ApplyOptions{
-			McpServer: m, OrgID: orgID, Conn: conn,
+			McpServer: m, OrgID: orgID, Client: client,
 		})
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "failed to apply MCP server %s", m.Metadata.Name)
@@ -290,7 +290,7 @@ func applySynthesizedResources(
 
 // discoverAppliedMcpServersSDK triggers best-effort discovery for MCP servers
 // applied via the SDK synthesis path.
-func discoverAppliedMcpServersSDK(servers []*mcpserverv1.McpServer, conn *grpc.ClientConn) {
+func discoverAppliedMcpServersSDK(servers []*mcpserverv1.McpServer, client *stigmer.Client) {
 	if len(servers) == 0 {
 		return
 	}
@@ -299,7 +299,7 @@ func discoverAppliedMcpServersSDK(servers []*mcpserverv1.McpServer, conn *grpc.C
 
 	for _, server := range servers {
 		skipMsg, discoverErr := mcpserver.ConnectOne(context.Background(), &mcpserver.ConnectOneOptions{
-			Conn:    conn,
+			Client:  client,
 			Server:  server,
 			Timeout: 30 * time.Second,
 		})

@@ -8,12 +8,12 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 func newUsageAgentCommand() *cobra.Command {
@@ -64,14 +64,13 @@ func executeUsageAgent(agentID, fromDate, toDate, outputFormat string) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
-	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	report, err := client.GetAgentUsageReport(context.Background(), &agentexecutionv1.GetAgentUsageReportInput{
+	report, err := client.AgentExecution.GetAgentUsageReport(context.Background(), &agentexecutionv1.GetAgentUsageReportInput{
 		AgentId:  agentID,
 		FromDate: fromDate,
 		ToDate:   toDate,

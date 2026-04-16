@@ -5,13 +5,21 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { samples } from "@stigmer/react/demo";
 import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import type { StepInteractions } from "../../engine/useStepInteractions";
 import { snapshot } from "../../engine/shared";
+
+// ---------------------------------------------------------------------------
+// Step data
+// ---------------------------------------------------------------------------
 
 export type ApprovalFlowStep =
   | { view: "composer-typing"; message: string }
   | { view: "conversation"; execution: AgentExecution }
-  | { view: "approval-card"; execution: AgentExecution }
-  | { view: "cursor-approve"; execution: AgentExecution };
+  | { view: "approval-pending"; execution: AgentExecution };
+
+// ---------------------------------------------------------------------------
+// Fixture data
+// ---------------------------------------------------------------------------
 
 const user1 = samples.humanMessage(
   "Process a return for order #ORD-4821 — the headphones are defective.",
@@ -68,7 +76,22 @@ function buildWaitingExecution(): AgentExecution {
   return exec;
 }
 
-const waitingExecution = buildWaitingExecution();
+// ---------------------------------------------------------------------------
+// Exported data
+// ---------------------------------------------------------------------------
+
+export const waitingExecution = buildWaitingExecution();
+
+export const completedExecution = snapshot(
+  [user1, aiToolCallMsg, aiSummaryMsg],
+  ExecutionPhase.EXECUTION_COMPLETED,
+);
+
+export const receivedExecution = snapshot([user1]);
+
+// ---------------------------------------------------------------------------
+// Steps
+// ---------------------------------------------------------------------------
 
 export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
   {
@@ -79,27 +102,35 @@ export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
   },
   {
     delayMs: 2000,
-    data: { view: "conversation", execution: snapshot([user1]) },
+    data: { view: "conversation", execution: receivedExecution },
     caption: "Agent receives the request",
   },
   {
     delayMs: 2000,
-    data: { view: "approval-card", execution: waitingExecution },
+    data: { view: "approval-pending", execution: waitingExecution },
     caption: "Agent pauses for human approval",
     narration: "The agent stops and shows exactly what it wants to do. Nothing happens until a human approves.",
   },
   {
-    delayMs: 3000,
-    data: { view: "cursor-approve", execution: waitingExecution },
-    caption: "Human clicks Approve",
-  },
-  {
     delayMs: 2500,
-    data: {
-      view: "conversation",
-      execution: snapshot([user1, aiToolCallMsg, aiSummaryMsg], ExecutionPhase.EXECUTION_COMPLETED),
-    },
+    data: { view: "conversation", execution: completedExecution },
     caption: "Approved — agent completes the return",
     narration: "Once approved, the agent completes the return and confirms the details. The execution waited safely until a human said yes.",
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Mid-step interactions
+// ---------------------------------------------------------------------------
+
+/**
+ * Step 2 (`approval-pending`): at 40% of narration, the cursor moves
+ * to the Approve button and dispatches a real click. The ApprovalCard
+ * component handles the click and the scenario transitions its local
+ * state to show the completed conversation.
+ */
+export const APPROVAL_INTERACTIONS: StepInteractions = {
+  2: [
+    { atPercent: 0.4, type: "click", target: "approve-button" },
+  ],
+};

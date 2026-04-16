@@ -90,3 +90,26 @@ func (i *InvitationInput) toProto() *invitationv1.Invitation {
 	resource.Spec.Label = i.Label
 	return resource
 }
+
+// InvitationInputFromProto creates a InvitationInput from a proto Invitation resource.
+func InvitationInputFromProto(p *invitationv1.Invitation) *InvitationInput {
+	if p == nil {
+		return &InvitationInput{}
+	}
+	input := &InvitationInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Role = s.GetRole()
+		input.MaxRedemptions = s.GetMaxRedemptions()
+		if ts := s.GetExpiresAt(); ts != nil {
+			input.ExpiresAt = ts.AsTime().Format(time.RFC3339)
+		}
+		input.Label = s.GetLabel()
+	}
+	return input
+}

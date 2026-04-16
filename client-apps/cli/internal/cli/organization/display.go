@@ -6,8 +6,8 @@ import (
 
 	"github.com/fatih/color"
 
-	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 )
 
 // DisplayGetResult displays an organization in the specified format.

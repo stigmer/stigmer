@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,7 +38,7 @@ func (h *applyHandler) Metadata(msg proto.Message) *apiresource.ApiResourceMetad
 	return msg.(*workflowv1.Workflow).Metadata
 }
 
-func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface, msg proto.Message) (*applier.ApplyResult, error) {
+func (h *applyHandler) Apply(ctx context.Context, client *stigmer.Client, msg proto.Message) (*applier.ApplyResult, error) {
 	wf := msg.(*workflowv1.Workflow)
 
 	if wf.Metadata == nil {
@@ -47,8 +47,7 @@ func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface,
 
 	isCreate := wf.Metadata.Id == ""
 
-	client := workflowv1.NewWorkflowCommandControllerClient(conn)
-	result, err := client.Apply(ctx, wf)
+	result, err := client.Workflow.Apply(ctx, stigmer.WorkflowInputFromProto(wf))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply workflow")
 	}

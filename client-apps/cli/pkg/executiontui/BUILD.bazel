@@ -10,7 +10,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//client-apps/cli/pkg/toolrender",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/agentexecution/v1:agentexecution",
     ],
 )

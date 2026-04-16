@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	oauthappv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1"
 )
 
 // DisplayGetResult displays an OAuth app in the specified format.

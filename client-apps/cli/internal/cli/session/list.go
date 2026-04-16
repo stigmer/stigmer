@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 
 // ListOptions contains options for listing sessions.
 type ListOptions struct {
-	Conn      grpc.ClientConnInterface
+	Client    *stigmer.Client
 	PageSize  int32
 	PageToken string
 	Tags      []string
@@ -29,8 +29,8 @@ func List(opts *ListOptions) (*sessionv1.SessionList, error) {
 	if opts == nil {
 		return nil, errors.New("list options cannot be nil")
 	}
-	if opts.Conn == nil {
-		return nil, errors.New("gRPC connection cannot be nil")
+	if opts.Client == nil {
+		return nil, errors.New("SDK client cannot be nil")
 	}
 
 	pageSize := opts.PageSize
@@ -41,7 +41,6 @@ func List(opts *ListOptions) (*sessionv1.SessionList, error) {
 		pageSize = MaxPageSize
 	}
 
-	client := sessionv1.NewSessionQueryControllerClient(opts.Conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
@@ -53,7 +52,7 @@ func List(opts *ListOptions) (*sessionv1.SessionList, error) {
 		req.Tags = opts.Tags
 	}
 
-	result, err := client.List(ctx, req)
+	result, err := opts.Client.Session.List(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list sessions")
 	}

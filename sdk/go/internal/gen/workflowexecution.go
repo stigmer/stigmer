@@ -158,3 +158,31 @@ func (i *WorkflowExecutionInput) toProto() *workflowexecutionv1.WorkflowExecutio
 	resource.Spec.CallbackToken = i.CallbackToken
 	return resource
 }
+
+// WorkflowExecutionInputFromProto creates a WorkflowExecutionInput from a proto WorkflowExecution resource.
+func WorkflowExecutionInputFromProto(p *workflowexecutionv1.WorkflowExecution) *WorkflowExecutionInput {
+	if p == nil {
+		return &WorkflowExecutionInput{}
+	}
+	input := &WorkflowExecutionInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.WorkflowInstanceId = s.GetWorkflowInstanceId()
+		input.WorkflowId = s.GetWorkflowId()
+		input.TriggerMessage = s.GetTriggerMessage()
+		input.TriggerMetadata = s.GetTriggerMetadata()
+		if len(s.GetRuntimeEnv()) > 0 {
+			input.RuntimeEnv = make(map[string]EnvVarInput, len(s.GetRuntimeEnv()))
+			for k, v := range s.GetRuntimeEnv() {
+				input.RuntimeEnv[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret()}
+			}
+		}
+		input.CallbackToken = s.GetCallbackToken()
+	}
+	return input
+}

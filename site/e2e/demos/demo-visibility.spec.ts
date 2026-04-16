@@ -36,6 +36,7 @@ interface StepAssertion {
   targets: string[];
   scrollContainer?: string;
   cursorMustAlign?: string;
+  mustBeCentered?: string;
 }
 
 interface ManifestEntry {
@@ -101,6 +102,13 @@ const CONTAINMENT_TOLERANCE_PX = 2;
  * animation overshoot and sub-pixel rounding from CSS zoom.
  */
 const CURSOR_ALIGNMENT_TOLERANCE_PX = 25;
+
+/**
+ * For mustBeCentered checks: the target's vertical center must
+ * be within this fraction of the container's height from the
+ * container's vertical center. 0.2 = within 20%.
+ */
+const CENTERING_THRESHOLD = 0.2;
 
 /**
  * Extra wait time after the interaction settle delay for the cursor
@@ -172,6 +180,17 @@ for (const fixture of fixtures) {
         if (!stillVisible) break;
       }
 
+      // Wait for enough demo containers to exist for our demoIndex
+      if (demoIdx > 0) {
+        await page.waitForFunction(
+          (needed) => {
+            return document.querySelectorAll("[data-demo-step]").length > needed;
+          },
+          demoIdx,
+          { timeout: 15_000 },
+        );
+      }
+
       const demoContainers = page.locator("[data-demo-step]");
       const containerCount = await demoContainers.count();
       const demoContainer = containerCount > demoIdx
@@ -183,7 +202,7 @@ for (const fixture of fixtures) {
         await page.waitForFunction(
           ({ containerIdx, targetStep }) => {
             const containers = document.querySelectorAll("[data-demo-step]");
-            const el = containers[containerIdx] ?? containers[0];
+            const el = containers[containerIdx];
             if (!el) return false;
             const current = Number(el.getAttribute("data-demo-step") ?? "-1");
             return current >= targetStep;
@@ -249,6 +268,44 @@ for (const fixture of fixtures) {
             `Step ${step.stepIndex}: target "${targetId}" is not fully visible ` +
               `in scroll container (${isVisible.reason})`,
           ).toBe(true);
+        }
+
+        if (step.mustBeCentered) {
+          const centering = await demoContainer.evaluate(
+            (container, { targetId, threshold }) => {
+              const target =
+                container.querySelector(
+                  `[data-scroll-target="${targetId}"]`,
+                ) ??
+                container.querySelector(
+                  `[data-cursor-target="${targetId}"]`,
+                );
+              if (!target) return { found: false as const };
+
+              const cr = container.getBoundingClientRect();
+              const tr = target.getBoundingClientRect();
+              const containerCenterY = (cr.top + cr.bottom) / 2;
+              const targetCenterY = (tr.top + tr.bottom) / 2;
+              const offset = Math.abs(targetCenterY - containerCenterY);
+              const maxOffset = cr.height * threshold;
+
+              return {
+                found: true as const,
+                offset: Math.round(offset),
+                maxOffset: Math.round(maxOffset),
+                centered: offset <= maxOffset,
+              };
+            },
+            { targetId: step.mustBeCentered, threshold: CENTERING_THRESHOLD },
+          );
+
+          if (centering.found) {
+            expect(
+              centering.centered,
+              `Step ${step.stepIndex}: "${step.mustBeCentered}" is ${centering.offset}px ` +
+                `from vertical center (max ${centering.maxOffset}px)`,
+            ).toBe(true);
+          }
         }
 
         if (step.cursorMustAlign) {

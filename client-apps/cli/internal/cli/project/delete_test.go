@@ -3,20 +3,14 @@ package project
 import (
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 )
 
-// =============================================================================
-// Mock gRPC Connection
-// =============================================================================
-
-// mockConn implements grpc.ClientConnInterface for testing.
-// This allows us to test validation logic without a real gRPC connection.
-type mockConn struct {
-	grpc.ClientConnInterface
+func stubClient() *stigmer.Client {
+	return &stigmer.Client{}
 }
 
 // =============================================================================
@@ -34,20 +28,20 @@ func TestDelete_NilOptions(t *testing.T) {
 func TestDelete_NilConnection(t *testing.T) {
 	opts := &DeleteOptions{
 		ProjectID: "prj_abc123",
-		Conn:      nil,
+		Client:    nil,
 	}
 
 	result, err := Delete(opts)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "gRPC connection cannot be nil")
+	assert.Contains(t, err.Error(), "client cannot be nil")
 }
 
 func TestDelete_EmptyProjectID(t *testing.T) {
 	opts := &DeleteOptions{
 		ProjectID: "",
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 	}
 
 	result, err := Delete(opts)
@@ -62,9 +56,7 @@ func TestDelete_EmptyProjectID(t *testing.T) {
 // =============================================================================
 
 func TestDeleteFromBackend_EmptyProjectID(t *testing.T) {
-	conn := &mockConn{}
-
-	result, err := DeleteFromBackend(conn, "")
+	result, err := DeleteFromBackend(stubClient(), "")
 
 	require.Error(t, err)
 	assert.Nil(t, result)
@@ -105,14 +97,14 @@ func TestDeleteResult_NilProject(t *testing.T) {
 // =============================================================================
 
 func TestDeleteOptions_ValidStructure(t *testing.T) {
-	conn := &mockConn{}
+	c := stubClient()
 	opts := &DeleteOptions{
 		ProjectID: "prj_abc123",
-		Conn:      conn,
+		Client:    c,
 	}
 
 	assert.Equal(t, "prj_abc123", opts.ProjectID)
-	assert.NotNil(t, opts.Conn)
+	assert.NotNil(t, opts.Client)
 }
 
 func TestDeleteOptions_ProjectIDFormats(t *testing.T) {
@@ -139,7 +131,7 @@ func TestDeleteOptions_ProjectIDFormats(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &DeleteOptions{
 				ProjectID: tc.projectID,
-				Conn:      &mockConn{},
+				Client:    stubClient(),
 			}
 			assert.Equal(t, tc.projectID, opts.ProjectID)
 		})
@@ -165,16 +157,16 @@ func TestDelete_ValidationOrder(t *testing.T) {
 	t.Run("nil connection checked second", func(t *testing.T) {
 		_, err := Delete(&DeleteOptions{
 			ProjectID: "prj_abc123",
-			Conn:      nil,
+			Client:    nil,
 		})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "gRPC connection cannot be nil")
+		assert.Contains(t, err.Error(), "client cannot be nil")
 	})
 
 	t.Run("empty project ID checked third", func(t *testing.T) {
 		_, err := Delete(&DeleteOptions{
 			ProjectID: "",
-			Conn:      &mockConn{},
+			Client:    stubClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "project ID cannot be empty")

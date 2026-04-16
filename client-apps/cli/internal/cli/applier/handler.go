@@ -13,10 +13,10 @@ package applier
 import (
 	"context"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -46,7 +46,7 @@ type ApplyHandler interface {
 	// Apply calls the backend Apply RPC. The message will already have
 	// metadata.org populated by the framework. Apply is never called
 	// during dry-run; the framework handles that branch.
-	Apply(ctx context.Context, conn grpc.ClientConnInterface, msg proto.Message) (*ApplyResult, error)
+	Apply(ctx context.Context, client *stigmer.Client, msg proto.Message) (*ApplyResult, error)
 
 	// BuildDryRunResult constructs the structured CLI output for a
 	// dry-run preview of the resource.

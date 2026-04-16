@@ -33,6 +33,7 @@
       "InvitationInput": "/docs/sdk/resources/invitation",
       "AgentInstanceInput": "/docs/sdk/resources/agent-instance",
       "EnvironmentInput": "/docs/sdk/resources/environment",
+      "OAuthAppInput": "/docs/sdk/resources/oauth-app",
       "CLOUD_ONLY_KINDS": "#"
     },
     "@stigmer/protos": {
@@ -52,7 +53,8 @@
       "IamPolicy": "/docs/sdk/resources/iam-policy",
       "IamPolicySpec": "/docs/sdk/resources/iam-policy",
       "LlmCallMetrics": "/docs/sdk/resources/agent-execution",
-      "TodoItem": "/docs/sdk/resources/agent-execution"
+      "TodoItem": "/docs/sdk/resources/agent-execution",
+      "OAuthApp": "/docs/sdk/resources/oauth-app"
     },
     "@stigmer/react": {
       "DISABLED_PROVIDERS": "#",
@@ -63,7 +65,9 @@
       "McpServerSetupAction": "#",
       "getOrCreate": "#",
       "useAgentSetup.resolveAgent": "#",
-      "useAgentSetup.submitEnvVars": "#"
+      "useAgentSetup.submitEnvVars": "#",
+      "DefaultResourceCard": "#",
+      "DefaultResourceRow": "#"
     }
   }
 }

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
+	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 )
 
 // reservedNames contains project names reserved for platform use.

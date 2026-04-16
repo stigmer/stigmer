@@ -3,8 +3,8 @@ package agentinstance
 import (
 	"fmt"
 
-	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
 )
 
 // DisplayGetResult displays an agent instance in the specified format.

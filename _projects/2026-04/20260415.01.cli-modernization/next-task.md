@@ -11,7 +11,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Goal**: Make the CLI a first-class citizen: every apply-able resource works, CI prevents regressions, connect replaces discover with proper OAuth, and run/resume uses shared React SDK components via Ink for terminal rendering.
 
 **Tech Stack**: Go/Cobra (CLI), TypeScript/React/Ink (SDK), Protobuf (APIs), Bubble Tea/Lip Gloss (current TUI)
-**Components**: client-apps/cli, sdk/ink (new), sdk/react, sdk/typescript, apis/stubs/go
+**Components**: client-apps/cli, sdk/go, sdk/ink (new), sdk/react, sdk/typescript
 **Timeline**: 1 month (4 tasks/phases)
 
 ## Task Overview
@@ -21,7 +21,9 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | Generic ApplyHandler framework + CI guards | COMPLETE |
 | T02 | Close all apply gaps (6 new resource kinds) | COMPLETE |
 | T03 | Replace discover with connect, slug audit, MCP OAuth | COMPLETE |
-| T04 | @stigmer/ink package and run/resume rewrite | COMPLETE (Phase 1: SDK package) |
+| T04 | @stigmer/ink package and run/resume rewrite | COMPLETE (Phase 1: SDK + Phase 2: Go integration) |
+| T05 | CLI Go SDK refactor — SDK-first architecture | COMPLETE |
+| T06 | SDK sub-client migration — eliminate raw gRPC stubs | COMPLETE |
 
 ## Essential Files to Review
 
@@ -113,40 +115,128 @@ When starting a new session:
 - Built 8 Ink terminal components (MessageEntry, MessageThread, ToolCallGroup, ToolCallItem, ApprovalPrompt, ExecutionProgress, FollowUpInput, UsageWidget)
 - Built InkStigmerProvider, Node transport factory, terminal markdown renderer
 - Built SessionView, SessionApp composition components
-- Built standalone CLI entry point (`bin/stigmer-ink.tsx`)
+- Built standalone CLI entry point (`cli/stigmer-ink.tsx`)
 - Registered in workspace, build pipeline, and publish pipeline (fully automated via existing CI)
 - 28 tests passing, build clean, dry-run publish verified (36.6 kB package)
 - Decision: Go CLI integration (run/resume/draft) deferred to Phase 2 after validating SDK package
 
+## Session Progress (2026-04-15, Session 5)
+
+- **E2E validated**: Ran `@stigmer/ink` against live Stigmer API with real session data — full conversation rendered
+- Fixed 3 bugs discovered during E2E:
+  1. **Transport protocol**: Switched `createConnectTransport` → `createGrpcWebTransport` (server expects gRPC-web, not Connect protocol — HTTP 415 fix)
+  2. **Non-TTY crash**: Added synthetic stdin for non-TTY environments, `FollowUpInput` checks `isRawModeSupported`
+  3. **Missing entry point**: Renamed `src/bin/` → `src/cli/` to avoid root `.gitignore` `bin/` collision (file was never committed)
+- All 28 unit tests still pass after fixes
+
+## Session Progress (2026-04-15, Session 6)
+
+- **CLI Go SDK refactor COMPLETE**: CLI now consumes `sdk/go` for connection/auth/transport
+- **Go SDK enhanced**: `NewClient(...opts)` with `WithAPIKey`, `WithToken`, `WithInsecure`, `WithKeepaliveParams`, `Connect(ctx)`, `Conn()`
+- **Proto imports migrated**: All ~170 CLI files switched from `apis/stubs/go` to `sdk/go/proto`
+- **Backend decoupled**: Removed CLI's Go-level dependency on `stigmer-server` and `workflow-runner` (BusyBox pattern removed)
+- **Protobuf conflict resolved**: Dual proto registration panic fixed by eliminating `apis/stubs/go` from CLI's dependency tree
+- **New CLI packages**: `internal/cli/kindmeta` (proto metadata), `internal/cli/mcpdiscovery` (MCP discovery using SDK types)
+- **Daemon updated**: Now launches standalone `stigmer-server` / `stigmer-workflow-runner` binaries instead of self-executing
+- All tests pass, binary runs clean
+
+## Session Progress (2026-04-15, Session 7)
+
+- **Release pipeline COMPLETE**: `release.cli.yaml` now builds and ships `stigmer-server` and `stigmer-workflow-runner` alongside the CLI for all 3 platforms
+- **OAuth ldflags fixed**: Removed stale flags from CLI build, moved to `stigmer-server` build where they belong
+- **Tarballs include all 3 binaries**: `stigmer`, `stigmer-server`, `stigmer-workflow-runner`
+- **Homebrew formula updated**: Installs all 3 binaries
+- **Makefile updated**: `build` and `local` targets produce all 3 binaries
+- **Release docs updated**: Stage 2 description, tarball contents table, checklists
+- **Decision**: Use `backend/services/workflow-runner/main.go` (lean Stigmer-specific entry point) not `cmd/zigflow` (full Cobra CLI)
+
+## Session Progress (2026-04-15, Session 8)
+
+- **SDK sub-client migration COMPLETE**: All 83 raw gRPC stub constructions replaced with SDK sub-client methods across 129 files (2,048 insertions / 1,656 deletions)
+- **FromProto codegen**: Extended code generator to produce `XxxInputFromProto` converters for all 19 resources
+- **ApplyHandler interface migrated**: `conn grpc.ClientConnInterface` → `client *stigmer.Client` across all 10 apply handlers
+- **All 14 domain packages migrated**: session, agent, organization, workflow, mcpserver, environment, project, skill, agentinstance, workflowinstance, apikey, execution, identityprovider, oauthapp
+- **Streaming + create migrated**: Subscribe, Create, SubmitApproval, UploadAttachment all use SDK methods
+- **Error handling updated**: `clierr.go` recognizes SDK `*stigmer.Error` alongside raw gRPC status errors
+- **Zero `.Conn()` calls remain** in CLI (was 27)
+- **Decision**: Keep single `Apply(*Input)` method — CLI uses `FromProto` converters like any other SDK consumer
+
+## Session Progress (2026-04-16, Session 9)
+
+- **Go CLI Ink Integration COMPLETE (T04 Phase 2)**: Replaced 37K-line Bubble Tea TUI with `@stigmer/ink` via npx
+- **Distribution**: npx with workspace auto-detection (dogfoods npm SDK model, no bun compile)
+- **Ink SDK enhanced**: SubAgentBlock, TodoList, task-tool suppression, approval attribution, Ctrl+O expand toggle, session subject, reconnection UX, context compaction
+- **Go CLI rewritten**: `resolveInkCommand()` (env → workspace → npx), `streamAgentInk()` (Ink spawn), `streamAgentPlainText()` (non-TTY)
+- **36 inline renderer files deleted** (~15,800 lines removed)
+- **Release coordination**: `release.cli.yaml` gates GitHub Release on `@stigmer/ink` npm availability
+- **Tests**: Go root package tests pass, Ink SDK 28 tests pass, full CLI builds clean
+- **Decision**: npx over bun compile (dogfoods SDK, no WASM risks, boring and proven)
+- **Decision**: Full TUI replacement, no Bubble Tea fallback (Go TUI was problematic)
+
 ## Next Steps
 
-1. Manual E2E test: `npx @stigmer/ink --session <id> --org <slug>` against a real backend
-2. Verify `useExecutionStream` server-streaming RPC works over `connect-node` transport
-3. Evaluate Go CLI integration (Phase 2): shell-out from Go to Ink renderer for `run`, `resume`, `draft`
-4. Consider moving `createNodeTransport` from `@stigmer/ink` to `@stigmer/sdk`
+1. E2E test against live Stigmer instance (local daemon + cloud) — validate full run/resume/draft pipeline
+2. `@stigmer/ink` first publish to npm — required before production CLI release
 
 ## Context for Resume
 
-- `@stigmer/ink` is a complete SDK package at `sdk/ink/` — builds, tests, publishes
-- `customTransport` on `StigmerConfig` allows any Node.js consumer to bypass the browser transport
-- `DeploymentModeContext` was added to `@stigmer/react` barrel exports (non-breaking)
-- Ink 7.0.0 used (requires React >=19.2.0), marked@^15 for marked-terminal compatibility
-- `dom` is in Ink tsconfig.json lib because `@stigmer/react`'s barrel re-exports DOM components — Ink itself uses no DOM APIs
-- Go CLI rendering layer is ~37K lines of well-tested Go code — significant effort to replace
-- Phase 2 (Go CLI integration) intentionally deferred: build SDK first, validate, then decide
+- CLI interactive rendering is now delegated to `@stigmer/ink` via npx (or workspace tsx for development)
+- `resolveInkCommand()` in `run_stream_ink.go` handles 3-tier resolution: STIGMER_INK_CMD env → workspace auto-detection (binary-relative + CWD walk-up) → npx
+- JSON mode (`--json`) and detach mode (`--detach`) are unchanged, pure Go
+- Non-TTY piped output uses `streamAgentPlainText()` — minimal Go renderer, no external process
+- `@stigmer/ink` is NOT yet published to npm — first publish needed before production CLI release
+- Release pipeline gates CLI release on npm package availability (polling step in `release.cli.yaml`)
+- `tsx` is now a root devDependency for workspace Ink development
+- Workspace detection: two strategies — (2a) binary-relative `../node_modules/.bin/tsx`, (2b) CWD walk-up for binaries installed outside repo (`~/bin`, `$GOPATH/bin`, bazel output)
+- `stigmer-ink.tsx` shebang changed from `#!/usr/bin/env node` to `#!/usr/bin/env tsx` (safety net for npx resolution in dev)
+- Node transport now lives in `@stigmer/sdk/node` subpath — `@stigmer/ink` re-exports it
+- `Conn()` removed from Go SDK — all consumers use typed sub-clients
+- `pkg/toolrender`, `pkg/approval`, `pkg/panel` are still actively used (JSON mode, workflow approvals, session header, event types) — NOT dead code
+- `pkg/picker` (interactive selector) and `cliprint/progress.go` (daemon startup spinner) legitimately use Bubble Tea
+- `charm.land/glamour/v2` removed; bubbletea/bubbles/lipgloss/ansi remain (still used)
 
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: T04 Phase 2 (Go CLI integration — deferred, evaluate after SDK validation)
-**Status**: Phase 1 COMPLETE, Phase 2 PENDING
-**Last Session**: 2026-04-15 — Completed T04 Phase 1 (@stigmer/ink SDK package)
+**Current Task**: All planned tasks COMPLETE — bug fix applied
+**Status**: All planned tasks COMPLETE — E2E validation remaining
+**Last Session**: 2026-04-16 (Session 12) — Fix Ink bare "0" render crash
+
+## Session Progress (2026-04-16, Session 10)
+
+- **Post-Ink cleanup COMPLETE**: Dead code removal, SDK architecture improvements, dependency cleanup
+- **Surprise: "dead" packages are NOT dead**: Import graph analysis revealed `pkg/toolrender`, `pkg/approval`, `pkg/panel` are actively used by JSON mode, workflow streaming, session headers, event types. Only `pkg/mdrender` was truly dead.
+- **Dead code removed**: `run_display_stream.go` (entire file), dead functions from `run_display.go`, `run_display_tools.go`, `run_display_summary.go`, `run_stream_approval.go` — ~1,800 lines net deletion
+- **`pkg/mdrender/` deleted**: Sole consumer (`displayAgentMessage`) was dead code; `charm.land/glamour/v2` removed from go.mod
+- **Renamed**: `run_stream_inline_header.go` → `run_display_header.go`
+- **Go SDK**: Removed `Conn()` method (zero callers, zero interfaces)
+- **Node transport moved to SDK**: `createNodeTransport` now lives at `@stigmer/sdk/node` subpath export with aligned interceptor chain (auth + RPC metadata + error strip). `@stigmer/ink` re-exports from SDK.
+- **SDK tests**: 108 tests pass (6 new node transport tests). Ink: 22 tests pass.
+- **BUILD.bazel cleanup**: Removed ghost entries (deleted bubbletea files, non-existent test files, mdrender dep)
+- **Decision**: `charm.land/bubbletea/v2`, `bubbles/v2`, `lipgloss/v2` stay — used by `pkg/picker` and `cliprint/progress.go`
+- **Decision**: Node transport interceptors aligned with browser transport (minus browser-specific auth redirect) for consistent behavior across runtimes
+
+## Session Progress (2026-04-16, Session 11)
+
+- **Fix: `stigmer resume` ERR_UNKNOWN_FILE_EXTENSION crash**: `resolveInkCommand()` workspace detection failed when the binary was installed outside the repo (e.g., `~/bin/stigmer` instead of `<repo>/bin/stigmer`)
+- **Root cause**: `os.Executable()` returned `~/bin/stigmer`, so `workspaceRoot = filepath.Join(binDir, "..")` resolved to `~/` instead of the repo root. Both `tsx` and `stigmer-ink.tsx` checks failed, falling through to `npx --yes @stigmer/ink@0.0.0-dev`, which resolved the local workspace package and tried to execute the `.tsx` source with `node` (shebang was `#!/usr/bin/env node`)
+- **Primary fix**: Added CWD-based workspace detection (tier 2b) in `run_stream_ink.go` — walks up from CWD looking for `node_modules/.bin/tsx` + `sdk/ink/src/cli/stigmer-ink.tsx`
+- **Secondary fix**: Changed shebang in `stigmer-ink.tsx` from `#!/usr/bin/env node` to `#!/usr/bin/env tsx` as safety net
+- **Refactored**: Extracted `tryWorkspaceInk()` and `findWorkspaceRoot()` helpers for cleaner workspace detection
+- **Test updated**: Renamed test helper `findWorkspaceRoot(t)` → `testFindWorkspaceRoot(t)` to avoid collision, updated `TestResolveInkCommand_WorkspaceDetection` to account for both detection strategies
+- All 4 Ink resolution tests pass, `go vet` clean, binary builds and runs correctly
+
+## Session Progress (2026-04-16, Session 12)
+
+- **Fix: Ink `Text string "0"` crash on session resume**: `SessionView.tsx` used `{conv.activePhase && <ExecutionProgress />}` where `activePhase` is a protobuf numeric enum — `EXECUTION_PHASE_UNSPECIFIED = 0` short-circuits `&&` to the bare number `0`, which Ink rejects as a text node outside `<Text>`
+- **Fix**: Changed guard to `{conv.activePhase != null && conv.activePhase !== 0 && ...}` — explicit null/zero check prevents bare number rendering
+- All 22 Ink SDK tests pass, resume E2E verified against live session
 
 ## Quick Commands
 
 After loading context:
-- "Test @stigmer/ink E2E" - Manual testing against real backend
-- "Evaluate Go CLI integration" - Phase 2 decision
+- "E2E test ink integration" - Test against live API
+- "Publish @stigmer/ink to npm" - First publish for production release
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

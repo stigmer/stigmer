@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 )
 
 // CreateAgentExecutionInput holds the parameters for creating an agent execution.
@@ -29,7 +29,7 @@ type CreateAgentExecutionInput struct {
 	WorkspaceFileRefs []string
 	Model             string
 	AutoApproveAll    bool
-	Conn              *grpc.ClientConn
+	Client            *stigmer.Client
 }
 
 // createAgentExecution creates a new agent execution.
@@ -77,11 +77,10 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 		Spec: spec,
 	}
 
-	client := agentexecutionv1.NewAgentExecutionCommandControllerClient(input.Conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	result, err := client.Create(ctx, execution)
+	result, err := input.Client.AgentExecution.Create(ctx, stigmer.AgentExecutionInputFromProto(execution))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create execution: %w", err)
 	}
@@ -96,8 +95,7 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 // which has no workspace passthrough. The session subject uses the same
 // sentinel as the backend auto-create, so the LLM-generated title activity
 // will replace it asynchronously.
-func createSessionForAgent(agentInstanceID, orgID string, entries []*sessionv1.WorkspaceEntry, conn *grpc.ClientConn) (*sessionv1.Session, error) {
-	client := sessionv1.NewSessionCommandControllerClient(conn)
+func createSessionForAgent(agentInstanceID, orgID string, entries []*sessionv1.WorkspaceEntry, client *stigmer.Client) (*sessionv1.Session, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -115,7 +113,7 @@ func createSessionForAgent(agentInstanceID, orgID string, entries []*sessionv1.W
 		},
 	}
 
-	result, err := client.Create(ctx, session)
+	result, err := client.Session.Create(ctx, stigmer.SessionInputFromProto(session))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
@@ -124,7 +122,7 @@ func createSessionForAgent(agentInstanceID, orgID string, entries []*sessionv1.W
 }
 
 // createWorkflowExecution creates a new workflow execution
-func createWorkflowExecution(workflowID string, orgID string, message string, runtimeEnv envfile.EnvMap, conn *grpc.ClientConn) (*workflowexecutionv1.WorkflowExecution, error) {
+func createWorkflowExecution(workflowID string, orgID string, message string, runtimeEnv envfile.EnvMap, client *stigmer.Client) (*workflowexecutionv1.WorkflowExecution, error) {
 	if message == "" {
 		message = "execute"
 	}
@@ -147,11 +145,10 @@ func createWorkflowExecution(workflowID string, orgID string, message string, ru
 		Spec: spec,
 	}
 
-	client := workflowexecutionv1.NewWorkflowExecutionCommandControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	result, err := client.Create(ctx, execution)
+	result, err := client.WorkflowExecution.Create(ctx, stigmer.WorkflowExecutionInputFromProto(execution))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create execution: %w", err)
 	}

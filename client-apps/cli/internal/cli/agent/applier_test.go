@@ -3,11 +3,11 @@ package agent
 import (
 	"testing"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 )
 
 // =============================================================================
@@ -22,12 +22,10 @@ const (
 	testDescription = "Test agent description"
 )
 
-// =============================================================================
-// Mock gRPC Connection
-// =============================================================================
-
-type mockConn struct {
-	grpc.ClientConnInterface
+// stubClient returns a non-nil *stigmer.Client for validation-only tests.
+// It is not connected to a backend and will panic on actual RPC calls.
+func stubClient() *stigmer.Client {
+	return &stigmer.Client{}
 }
 
 // =============================================================================
@@ -63,9 +61,9 @@ func createTestAgentWithID() *agentv1.Agent {
 
 func TestApply_NilAgent(t *testing.T) {
 	opts := &ApplyOptions{
-		Agent: nil,
-		Conn:  &mockConn{},
-		OrgID: testOrgID,
+		Agent:  nil,
+		Client: stubClient(),
+		OrgID:  testOrgID,
 	}
 
 	result, err := Apply(opts)
@@ -77,23 +75,23 @@ func TestApply_NilAgent(t *testing.T) {
 
 func TestApply_NilConnection(t *testing.T) {
 	opts := &ApplyOptions{
-		Agent: createTestAgent(),
-		Conn:  nil,
-		OrgID: testOrgID,
+		Agent:  createTestAgent(),
+		Client: nil,
+		OrgID:  testOrgID,
 	}
 
 	result, err := Apply(opts)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "connection is required")
+	assert.Contains(t, err.Error(), "client is required")
 }
 
 func TestApply_EmptyOrgID_StillValid(t *testing.T) {
 	// Empty OrgID is valid - backend will use authenticated user's org
 	opts := &ApplyOptions{
 		Agent:  createTestAgent(),
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		OrgID:  "",
 		DryRun: true,
 		Quiet:  true,
@@ -117,8 +115,8 @@ func TestApply_ValidationOrder(t *testing.T) {
 
 	t.Run("nil agent checked first", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
-			Agent: nil,
-			Conn:  &mockConn{},
+			Agent:  nil,
+			Client: stubClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "agent is required")
@@ -126,11 +124,11 @@ func TestApply_ValidationOrder(t *testing.T) {
 
 	t.Run("nil connection checked second", func(t *testing.T) {
 		_, err := Apply(&ApplyOptions{
-			Agent: createTestAgent(),
-			Conn:  nil,
+			Agent:  createTestAgent(),
+			Client: nil,
 		})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "connection is required")
+		assert.Contains(t, err.Error(), "client is required")
 	})
 }
 
@@ -143,7 +141,7 @@ func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Agent:  agent,
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		OrgID:  testOrgID,
 		DryRun: true,
 		Quiet:  true,
@@ -173,7 +171,7 @@ func TestApply_DryRun_PreservesAgent(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Agent:  agent,
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		OrgID:  testOrgID,
 		DryRun: true,
 		Quiet:  true,
@@ -197,7 +195,7 @@ func TestApply_DryRun_RequiresConnection(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Agent:  agent,
-		Conn:   nil,
+		Client: nil,
 		OrgID:  testOrgID,
 		DryRun: true,
 		Quiet:  true,
@@ -207,7 +205,7 @@ func TestApply_DryRun_RequiresConnection(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "connection is required")
+	assert.Contains(t, err.Error(), "client is required")
 }
 
 // =============================================================================
@@ -229,7 +227,7 @@ func TestApply_SetsOrgWhenEmpty(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Agent:  agent,
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		OrgID:  testOrgID,
 		DryRun: true,
 		Quiet:  true,
@@ -258,7 +256,7 @@ func TestApply_PreservesExistingOrg(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Agent:  agent,
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		OrgID:  testOrgID, // Different org in options
 		DryRun: true,
 		Quiet:  true,
@@ -284,7 +282,7 @@ func TestApply_CreatesMetadataWhenNil(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Agent:  agent,
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		OrgID:  testOrgID,
 		DryRun: true,
 		Quiet:  true,
@@ -308,14 +306,14 @@ func TestApplyOptions_AllFields(t *testing.T) {
 	opts := &ApplyOptions{
 		Agent:  agent,
 		OrgID:  testOrgID,
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		Quiet:  true,
 		DryRun: true,
 	}
 
 	assert.Equal(t, agent, opts.Agent)
 	assert.Equal(t, testOrgID, opts.OrgID)
-	assert.NotNil(t, opts.Conn)
+	assert.NotNil(t, opts.Client)
 	assert.True(t, opts.Quiet)
 	assert.True(t, opts.DryRun)
 }
@@ -326,7 +324,7 @@ func TestApplyOptions_DefaultValues(t *testing.T) {
 
 	assert.Nil(t, opts.Agent)
 	assert.Equal(t, "", opts.OrgID)
-	assert.Nil(t, opts.Conn)
+	assert.Nil(t, opts.Client)
 	assert.False(t, opts.Quiet)
 	assert.False(t, opts.DryRun)
 }
@@ -369,7 +367,7 @@ func TestApply_DetectsCreate_WhenNoExistingID(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Agent:  agent,
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		DryRun: true,
 		Quiet:  true,
 	}
@@ -387,7 +385,7 @@ func TestApply_DetectsUpdate_WhenExistingID(t *testing.T) {
 
 	opts := &ApplyOptions{
 		Agent:  agent,
-		Conn:   &mockConn{},
+		Client: stubClient(),
 		DryRun: true,
 		Quiet:  true,
 	}

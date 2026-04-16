@@ -7,14 +7,13 @@ import (
 	"os"
 	"time"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/picker"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // executeRunSmart implements the resolution chain for `stigmer run <value>`.
@@ -73,13 +72,12 @@ func executeRunByAgentID(agentID string, opts runOptions, outputMode OutputMode)
 		return err
 	}
 	prep.OutputMode = outputMode
-	defer prep.Conn.Close()
+	defer prep.Client.Close()
 
 	sp.Update("Resolving agent...")
-	client := agentv1.NewAgentQueryControllerClient(prep.Conn)
 	ctx, cancel := newGRPCContext()
 	defer cancel()
-	agent, err := client.Get(ctx, &agentv1.AgentId{Value: agentID})
+	agent, err := prep.Client.Agent.Get(ctx, agentID)
 	if err != nil {
 		sp.Stop()
 		displayAgentNotFoundError(agentID)
@@ -100,7 +98,7 @@ func executeRunByAgentID(agentID string, opts runOptions, outputMode OutputMode)
 		DefaultAction:    prep.DefaultAction,
 		Verbose:          prep.Verbose,
 		OutputMode:       prep.OutputMode,
-		Conn:             prep.Conn,
+		Client:           prep.Client,
 	}, sp)
 }
 
@@ -117,10 +115,10 @@ func executeRunWithFallback(value string, opts runOptions, outputMode OutputMode
 		return err
 	}
 	prep.OutputMode = outputMode
-	defer prep.Conn.Close()
+	defer prep.Client.Close()
 
 	sp.Update("Resolving agent...")
-	agent, resolveErr := resolveAgent(value, prep.OrgID, prep.Conn)
+	agent, resolveErr := resolveAgent(value, prep.OrgID, prep.Client)
 	if resolveErr == nil {
 		return executeResolvedAgent(resolvedAgentExecInput{
 			Agent:            agent,
@@ -136,7 +134,7 @@ func executeRunWithFallback(value string, opts runOptions, outputMode OutputMode
 			DefaultAction:    prep.DefaultAction,
 			Verbose:          prep.Verbose,
 			OutputMode:       prep.OutputMode,
-			Conn:             prep.Conn,
+			Client:           prep.Client,
 		}, sp)
 	}
 
@@ -156,7 +154,7 @@ func executeRunInteractive(opts runOptions, outputMode OutputMode) error {
 		return err
 	}
 	prep.OutputMode = outputMode
-	defer prep.Conn.Close()
+	defer prep.Client.Close()
 
 	sp.Stop()
 	return launchAgentPickerAndRun("", opts, prep)
@@ -165,7 +163,7 @@ func executeRunInteractive(opts runOptions, outputMode OutputMode) error {
 // launchAgentPickerAndRun shows the interactive agent picker, then runs the
 // selected agent.
 func launchAgentPickerAndRun(initQuery string, opts runOptions, prep *preparedAgentExec) error {
-	searchFn := buildAgentSearchFn(prep.Conn, prep.OrgID)
+	searchFn := buildAgentSearchFn(prep.Client, prep.OrgID)
 	selected, err := picker.Pick(picker.Config{
 		Prompt:    "Select an agent",
 		SearchFn:  searchFn,
@@ -198,10 +196,9 @@ func launchAgentPickerAndRun(initQuery string, opts runOptions, prep *preparedAg
 	sp := spinner.New(os.Stderr)
 	sp.Start("Resolving agent...")
 
-	client := agentv1.NewAgentQueryControllerClient(prep.Conn)
 	ctx, cancel := newGRPCContext()
 	defer cancel()
-	agent, err := client.Get(ctx, &agentv1.AgentId{Value: selected.ID})
+	agent, err := prep.Client.Agent.Get(ctx, selected.ID)
 	if err != nil {
 		sp.Stop()
 		return fmt.Errorf("failed to fetch selected agent: %w", err)
@@ -221,16 +218,16 @@ func launchAgentPickerAndRun(initQuery string, opts runOptions, prep *preparedAg
 		DefaultAction:    prep.DefaultAction,
 		Verbose:          prep.Verbose,
 		OutputMode:       prep.OutputMode,
-		Conn:             prep.Conn,
+		Client:           prep.Client,
 	}, sp)
 }
 
 // buildAgentSearchFn returns a picker.SearchFn that queries the backend
 // SearchService for agents matching the query text.
-func buildAgentSearchFn(conn grpc.ClientConnInterface, orgID string) func(query string) ([]picker.Item, error) {
+func buildAgentSearchFn(client *stigmer.Client, orgID string) func(query string) ([]picker.Item, error) {
 	return func(query string) ([]picker.Item, error) {
 		result, err := search.Search(&search.Options{
-			Conn:     conn,
+			Client:   client,
 			Kinds:    []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},
 			Query:    query,
 			Org:      orgID,

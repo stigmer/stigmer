@@ -5,17 +5,17 @@ import (
 
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/picker"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 )
 
 // buildSessionSearchFn returns a picker.SearchFn that lists sessions from
 // the backend and filters them client-side by query text. Client-side
 // filtering is appropriate here because sessions are user-scoped and the
 // total count is typically manageable.
-func buildSessionSearchFn(conn grpc.ClientConnInterface) func(query string) ([]picker.Item, error) {
+func buildSessionSearchFn(client *stigmer.Client) func(query string) ([]picker.Item, error) {
 	return func(query string) ([]picker.Item, error) {
 		list, err := session.List(&session.ListOptions{
-			Conn:     conn,
+			Client:   client,
 			PageSize: session.MaxPageSize,
 		})
 		if err != nil {

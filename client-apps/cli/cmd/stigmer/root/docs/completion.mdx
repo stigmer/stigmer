@@ -1,0 +1,60 @@
+Generate shell completion scripts for the Stigmer CLI.
+
+Completions let you press Tab to auto-complete commands, flags, and arguments.
+Supported shells: Bash, Zsh, Fish, and PowerShell.
+
+{/* AUTO_USAGE */}
+
+{/* AUTO_FLAGS */}
+
+### Setup by shell
+
+#### Bash
+
+```bash
+# Load completions in the current session
+source <(stigmer completion bash)
+
+# Install permanently
+stigmer completion bash > /etc/bash_completion.d/stigmer
+```
+
+If bash-completion is not installed, install it via your package manager
+(e.g., `apt install bash-completion` or `brew install bash-completion@2`).
+
+#### Zsh
+
+```bash
+# Load completions in the current session
+source <(stigmer completion zsh)
+
+# Install permanently (add to your .zshrc)
+echo 'source <(stigmer completion zsh)' >> ~/.zshrc
+```
+
+If completions don't work, you may need to enable `compinit` in your
+`.zshrc` before sourcing the completions.
+
+#### Fish
+
+```bash
+stigmer completion fish | source
+
+# Install permanently
+stigmer completion fish > ~/.config/fish/completions/stigmer.fish
+```
+
+#### PowerShell
+
+```powershell
+stigmer completion powershell | Out-String | Invoke-Expression
+
+# Install permanently (add to your $PROFILE)
+stigmer completion powershell >> $PROFILE
+```
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## See also
+
+- [Command Reference](./) — All available commands

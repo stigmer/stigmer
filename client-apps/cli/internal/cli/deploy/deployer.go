@@ -6,20 +6,20 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/protobuf/proto"
 )
 
 // DeployOptions contains options for deploying resources
 type DeployOptions struct {
 	OrgID            string
-	Conn             *grpc.ClientConn
+	Client           *stigmer.Client
 	Quiet            bool
 	DryRun           bool
 	ProgressCallback func(string)
@@ -244,7 +244,7 @@ func (d *Deployer) deploySkillSynth(synth *skillv1.SkillSynth) (*skillv1.Skill, 
 			Directory: local.Path,
 			OrgID:     d.opts.OrgID,
 			Tag:       synth.Tag,
-			Conn:      d.opts.Conn,
+			Client:    d.opts.Client,
 			Quiet:     quiet,
 		})
 		if err != nil {
@@ -316,8 +316,7 @@ func (d *Deployer) deployAgent(agent *agentv1.Agent) (*agentv1.Agent, error) {
 		d.opts.ProgressCallback(fmt.Sprintf("Deploying agent: %s", agent.Metadata.Name))
 	}
 
-	client := agentv1.NewAgentCommandControllerClient(d.opts.Conn)
-	deployed, err := client.Apply(context.Background(), agent)
+	deployed, err := d.opts.Client.Agent.Apply(context.Background(), stigmer.AgentInputFromProto(agent))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to deploy agent '%s'", agent.Metadata.Name)
 	}
@@ -341,8 +340,7 @@ func (d *Deployer) deployWorkflow(workflow *workflowv1.Workflow) (*workflowv1.Wo
 		d.opts.ProgressCallback(fmt.Sprintf("Deploying workflow: %s", workflow.Metadata.Name))
 	}
 
-	client := workflowv1.NewWorkflowCommandControllerClient(d.opts.Conn)
-	deployed, err := client.Apply(context.Background(), workflow)
+	deployed, err := d.opts.Client.Workflow.Apply(context.Background(), stigmer.WorkflowInputFromProto(workflow))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to deploy workflow '%s'", workflow.Metadata.Name)
 	}
@@ -356,11 +354,9 @@ func (d *Deployer) deployWorkflow(workflow *workflowv1.Workflow) (*workflowv1.Wo
 
 // deployAgents deploys all agents
 func (d *Deployer) deployAgents(agents []*agentv1.Agent) ([]*agentv1.Agent, error) {
-	client := agentv1.NewAgentCommandControllerClient(d.opts.Conn)
 	deployedAgents := make([]*agentv1.Agent, 0, len(agents))
 
 	for i, agent := range agents {
-		// Ensure metadata is initialized and org is set
 		if agent.Metadata == nil {
 			agent.Metadata = &apiresource.ApiResourceMetadata{}
 		}
@@ -370,9 +366,7 @@ func (d *Deployer) deployAgents(agents []*agentv1.Agent) ([]*agentv1.Agent, erro
 			d.opts.ProgressCallback(fmt.Sprintf("Deploying agent %d/%d: %s", i+1, len(agents), agent.Metadata.Name))
 		}
 
-		// Call apply RPC (creates or updates)
-		// The agent already has full spec from SDK (skills, MCP servers, etc.)
-		deployed, err := client.Apply(context.Background(), agent)
+		deployed, err := d.opts.Client.Agent.Apply(context.Background(), stigmer.AgentInputFromProto(agent))
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to deploy agent '%s'", agent.Metadata.Name)
 		}
@@ -389,11 +383,9 @@ func (d *Deployer) deployAgents(agents []*agentv1.Agent) ([]*agentv1.Agent, erro
 
 // deployWorkflows deploys all workflows
 func (d *Deployer) deployWorkflows(workflows []*workflowv1.Workflow) ([]*workflowv1.Workflow, error) {
-	client := workflowv1.NewWorkflowCommandControllerClient(d.opts.Conn)
 	deployedWorkflows := make([]*workflowv1.Workflow, 0, len(workflows))
 
 	for i, workflow := range workflows {
-		// Ensure metadata is initialized
 		if workflow.Metadata == nil {
 			workflow.Metadata = &apiresource.ApiResourceMetadata{}
 		}
@@ -402,12 +394,9 @@ func (d *Deployer) deployWorkflows(workflows []*workflowv1.Workflow) ([]*workflo
 			d.opts.ProgressCallback(fmt.Sprintf("Deploying workflow %d/%d: %s", i+1, len(workflows), workflow.Metadata.Name))
 		}
 
-		// The workflow is already in the correct format from SDK
-		// Just need to ensure org is set
 		workflow.Metadata.Org = d.opts.OrgID
 
-		// Call apply RPC (creates or updates)
-		deployed, err := client.Apply(context.Background(), workflow)
+		deployed, err := d.opts.Client.Workflow.Apply(context.Background(), stigmer.WorkflowInputFromProto(workflow))
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to deploy workflow '%s'", workflow.Metadata.Name)
 		}

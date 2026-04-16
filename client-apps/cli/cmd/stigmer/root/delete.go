@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -14,7 +13,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // NewDeleteCommand creates the unified delete command.
@@ -88,7 +88,7 @@ type deleteContext struct {
 	force     bool
 	confirmer clioutput.Confirmer
 	renderer  clioutput.Renderer
-	conn      *grpc.ClientConn
+	client    *stigmer.Client
 }
 
 // isDeleteOrganizationType checks if the type arg refers to organizations.
@@ -136,11 +136,11 @@ func executeDelete(opts deleteOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	dctx := &deleteContext{
 		ref:       opts.Reference,
@@ -148,7 +148,7 @@ func executeDelete(opts deleteOptions) error {
 		force:     opts.Force,
 		confirmer: clioutput.NewConfirmer(opts.Force, os.Stderr),
 		renderer:  clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr),
-		conn:      conn,
+		client:    client,
 	}
 	return routeDelete(info, dctx)
 }
@@ -171,16 +171,16 @@ func executeDeleteOrganization(opts deleteOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
 	confirmer := clioutput.NewConfirmer(opts.Force, os.Stderr)
 
-	orgRes, err := organization.GetFromBackend(conn, opts.Reference)
+	orgRes, err := organization.GetFromBackend(client, opts.Reference)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func executeDeleteOrganization(opts deleteOptions) error {
 
 	result, err := organization.Delete(&organization.DeleteOptions{
 		OrganizationID: orgRes.GetMetadata().GetId(),
-		Conn:           conn,
+		Client:         client,
 	})
 	if err != nil {
 		return err

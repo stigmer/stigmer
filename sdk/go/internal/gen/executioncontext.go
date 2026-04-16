@@ -90,3 +90,27 @@ func (i *ExecutionContextInput) toProto() *executioncontextv1.ExecutionContext {
 	}
 	return resource
 }
+
+// ExecutionContextInputFromProto creates a ExecutionContextInput from a proto ExecutionContext resource.
+func ExecutionContextInputFromProto(p *executioncontextv1.ExecutionContext) *ExecutionContextInput {
+	if p == nil {
+		return &ExecutionContextInput{}
+	}
+	input := &ExecutionContextInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.ExecutionId = s.GetExecutionId()
+		if len(s.GetData()) > 0 {
+			input.Data = make(map[string]EnvVarInput, len(s.GetData()))
+			for k, v := range s.GetData() {
+				input.Data[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret()}
+			}
+		}
+	}
+	return input
+}

@@ -95,3 +95,25 @@ func (i *AgentInstanceInput) toProto() *agentinstancev1.AgentInstance {
 	}
 	return resource
 }
+
+// AgentInstanceInputFromProto creates a AgentInstanceInput from a proto AgentInstance resource.
+func AgentInstanceInputFromProto(p *agentinstancev1.AgentInstance) *AgentInstanceInput {
+	if p == nil {
+		return &AgentInstanceInput{}
+	}
+	input := &AgentInstanceInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.AgentId = s.GetAgentId()
+		input.Description = s.GetDescription()
+		for _, r := range s.GetEnvironmentRefs() {
+			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+		}
+	}
+	return input
+}

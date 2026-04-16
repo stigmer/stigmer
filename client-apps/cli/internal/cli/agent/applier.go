@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 )
 
 // ApplyOptions contains options for applying an Agent configuration.
@@ -18,8 +18,8 @@ type ApplyOptions struct {
 	Agent *agentv1.Agent
 	// OrgID is the organization ID for the resource.
 	OrgID string
-	// Conn is the gRPC connection to the backend.
-	Conn grpc.ClientConnInterface
+	// Client is the Stigmer SDK client.
+	Client *stigmer.Client
 	// Quiet suppresses detailed output.
 	Quiet bool
 	// DryRun validates without applying.
@@ -41,21 +41,18 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		return nil, fmt.Errorf("agent is required")
 	}
 
-	if opts.Conn == nil {
-		return nil, fmt.Errorf("connection is required")
+	if opts.Client == nil {
+		return nil, fmt.Errorf("client is required")
 	}
 
-	// Ensure metadata exists and set organization
 	if opts.Agent.Metadata == nil {
 		opts.Agent.Metadata = &apiresource.ApiResourceMetadata{}
 	}
 
-	// Set organization if not already set
 	if opts.Agent.Metadata.Org == "" && opts.OrgID != "" {
 		opts.Agent.Metadata.Org = opts.OrgID
 	}
 
-	// Dry run - just validate and return
 	if opts.DryRun {
 		if !opts.Quiet {
 			climsg.Info("Dry run mode - configuration is valid")
@@ -67,9 +64,7 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		}, nil
 	}
 
-	// Check if resource exists to determine create vs update
-	existingID := opts.Agent.Metadata.Id
-	isCreate := existingID == ""
+	isCreate := opts.Agent.Metadata.Id == ""
 
 	if !opts.Quiet {
 		if isCreate {
@@ -79,9 +74,7 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		}
 	}
 
-	// Call Apply RPC
-	client := agentv1.NewAgentCommandControllerClient(opts.Conn)
-	result, err := client.Apply(context.Background(), opts.Agent)
+	result, err := opts.Client.Agent.Apply(context.Background(), stigmer.AgentInputFromProto(opts.Agent))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply agent")
 	}

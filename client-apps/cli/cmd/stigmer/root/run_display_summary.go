@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 )
 
 // maxPanelWidth caps panel width to maintain readability on wide terminals.
@@ -65,45 +65,6 @@ func agentSummaryTitleAndStyle(phase agentexecutionv1.ExecutionPhase) (string, p
 	default:
 		return "EXECUTION STATUS UNKNOWN", panel.StyleDefault
 	}
-}
-
-// displayAgentExecutionDetached renders a detach notice when the user exits the
-// TUI while the execution is still running. The panel uses a neutral style
-// (blue border) since detaching is a normal, non-destructive action.
-//
-// It shows the current execution snapshot (phase, messages, tool calls) and
-// provides actionable hints for checking status or cancelling the execution.
-func displayAgentExecutionDetached(execution *agentexecutionv1.AgentExecution) {
-	var sections []string
-
-	sections = append(sections, fmt.Sprintf("Execution:   %s", execution.Metadata.Id))
-	sections = append(sections, fmt.Sprintf("Status:      %s", mapPhaseToString(execution.Status.Phase)))
-
-	// Snapshot stats at the time of detach.
-	allToolCalls := collectToolCallsFromMessages(execution.Status.GetMessages())
-	sections = append(sections, fmt.Sprintf("Messages:    %d", len(execution.Status.Messages)))
-	sections = append(sections, fmt.Sprintf("Tool calls:  %d", len(allToolCalls)))
-	if breakdown := formatToolCallBreakdown(allToolCalls); breakdown != "" {
-		sections = append(sections, fmt.Sprintf("             %s", breakdown))
-	}
-
-	sections = append(sections, "")
-	sections = append(sections, "The execution continues in the background.")
-	sections = append(sections, "")
-	sections = append(sections, "Check status:")
-	sections = append(sections, fmt.Sprintf("  stigmer get execution %s", execution.Metadata.Id))
-	sections = append(sections, "")
-	sections = append(sections, "Cancel:")
-	sections = append(sections, fmt.Sprintf("  stigmer delete execution %s", execution.Metadata.Id))
-
-	fmt.Println()
-	fmt.Println(panel.Render(strings.Join(sections, "\n"), panel.Options{
-		Title: "DETACHED FROM EXECUTION",
-		Style: panel.StyleDefault,
-		Width: summaryPanelWidth(),
-	}))
-	fmt.Println()
-	flushStdout()
 }
 
 // buildAgentSummaryContent assembles the labeled statistics displayed inside the

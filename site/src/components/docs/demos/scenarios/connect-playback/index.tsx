@@ -15,7 +15,8 @@ import { AppShell } from "../../views/AppShell";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type ConnectStep,
   connectSteps,
@@ -109,7 +110,7 @@ export function ConnectPlayback() {
   }, []);
 
   return (
-    <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+    <DemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={connectSteps}
         narrationManifest={narrationManifest}
@@ -145,6 +146,6 @@ export function ConnectPlayback() {
         )}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </div>
+    </DemoViewport>
   );
 }

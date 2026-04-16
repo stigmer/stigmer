@@ -7,22 +7,20 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
 )
 
-// connectToBackend connects to the backend and returns the connection and organization ID.
+// connectToBackend creates a Stigmer SDK client and returns it with the organization ID.
 // For local backend, it ensures the daemon is running before connecting and
 // retries transient connection failures with backoff.
-func connectToBackend(orgOverride string) (*grpc.ClientConn, string, error) {
+func connectToBackend(orgOverride string) (*stigmer.Client, string, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		climsg.Error("Failed to load configuration: %s", err)
@@ -48,11 +46,11 @@ func connectToBackend(orgOverride string) (*grpc.ClientConn, string, error) {
 	const maxAttempts = 3
 	const retryDelay = 2 * time.Second
 
-	var conn *grpc.ClientConn
+	var client *stigmer.Client
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		conn, err = backend.NewConnection()
+		client, err = backend.NewStigmerClient()
 		if err == nil {
-			return conn, orgID, nil
+			return client, orgID, nil
 		}
 		if attempt < maxAttempts {
 			log.Debug().Err(err).Int("attempt", attempt).Msg("Connection failed, retrying")
@@ -91,30 +89,25 @@ func printOrgNotSetError() {
 //   - "agt_xxx": Agent ID (direct lookup)
 //   - "org/slug": Explicit organization and slug
 //   - "slug": Uses orgID as the organization context
-func resolveAgent(ref string, orgID string, conn *grpc.ClientConn) (*agentv1.Agent, error) {
-	client := agentv1.NewAgentQueryControllerClient(conn)
+func resolveAgent(ref string, orgID string, sdkClient *stigmer.Client) (*agentv1.Agent, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Parse the reference (handles ID detection and org/slug parsing)
 	parsed, err := reference.Parse(ref, orgID)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid agent reference")
 	}
 
-	// If it's an ID, fetch directly
 	if parsed.IsID {
-		agent, err := client.Get(ctx, &agentv1.AgentId{Value: parsed.ID})
+		agent, err := sdkClient.Agent.Get(ctx, parsed.ID)
 		if err != nil {
 			return nil, errors.Wrap(err, "agent not found")
 		}
 		return agent, nil
 	}
 
-	// Lookup by org/slug using GetByReference
-	agent, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+	agent, err := sdkClient.Agent.GetByReference(ctx, stigmer.ResourceRef{
 		Org:  parsed.Org,
-		Kind: apiresourcekind.ApiResourceKind_agent,
 		Slug: parsed.Slug,
 	})
 	if err != nil {
@@ -130,30 +123,25 @@ func resolveAgent(ref string, orgID string, conn *grpc.ClientConn) (*agentv1.Age
 //   - "wf_xxx": Workflow ID (direct lookup)
 //   - "org/slug": Explicit organization and slug
 //   - "slug": Uses orgID as the organization context
-func resolveWorkflow(ref string, orgID string, conn *grpc.ClientConn) (*workflowv1.Workflow, error) {
-	client := workflowv1.NewWorkflowQueryControllerClient(conn)
+func resolveWorkflow(ref string, orgID string, sdkClient *stigmer.Client) (*workflowv1.Workflow, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Parse the reference (handles ID detection and org/slug parsing)
 	parsed, err := reference.Parse(ref, orgID)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid workflow reference")
 	}
 
-	// If it's an ID, fetch directly
 	if parsed.IsID {
-		workflow, err := client.Get(ctx, &workflowv1.WorkflowId{Value: parsed.ID})
+		workflow, err := sdkClient.Workflow.Get(ctx, parsed.ID)
 		if err != nil {
 			return nil, errors.Wrap(err, "workflow not found")
 		}
 		return workflow, nil
 	}
 
-	// Lookup by org/slug using GetByReference
-	workflow, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+	workflow, err := sdkClient.Workflow.GetByReference(ctx, stigmer.ResourceRef{
 		Org:  parsed.Org,
-		Kind: apiresourcekind.ApiResourceKind_workflow,
 		Slug: parsed.Slug,
 	})
 	if err != nil {

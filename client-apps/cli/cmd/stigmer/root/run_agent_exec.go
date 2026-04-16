@@ -6,14 +6,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 )
 
 // ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ type preparedAgentExec struct {
 	DefaultAction    approval.Action
 	WorkspaceEntries []*sessionv1.WorkspaceEntry
 	RuntimeEnv       envfile.EnvMap
-	Conn             *grpc.ClientConn
+	Client           *stigmer.Client
 	OrgID            string
 	AttachResult     AttachmentResult
 
@@ -124,7 +124,7 @@ type preparedAgentExec struct {
 // The caller owns the spinner lifecycle — this function neither starts nor
 // stops it.
 //
-// The caller MUST defer prep.Conn.Close() on success.
+// The caller MUST defer prep.Client.Close() on success.
 func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgentExec, error) {
 	var defaultAction approval.Action
 	if flags.ApproveDefault != "" {
@@ -151,7 +151,7 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 	}
 
 	sp.Update("Connecting...")
-	conn, orgID, err := connectToBackend(flags.OrgOverride)
+	client, orgID, err := connectToBackend(flags.OrgOverride)
 	if err != nil {
 		return nil, err
 	}
@@ -165,11 +165,11 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 	var attachResult AttachmentResult
 	if len(flags.AttachFlags) > 0 {
 		sp.Update("Processing attachments...")
-		processor := NewAttachmentProcessor(conn)
+		processor := NewAttachmentProcessor(client)
 		localRoots := localWorkspaceRoots(workspaceEntries)
 		res, err := processor.ProcessFiles(flags.AttachFlags, localRoots)
 		if err != nil {
-			conn.Close()
+			_ = client.Close()
 			return nil, errors.Wrap(err, "failed to process attachments")
 		}
 		attachResult = *res
@@ -179,7 +179,7 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 		DefaultAction:    defaultAction,
 		WorkspaceEntries: workspaceEntries,
 		RuntimeEnv:       runtimeEnv,
-		Conn:             conn,
+		Client:           client,
 		OrgID:            orgID,
 		AttachResult:     attachResult,
 		Message:          flags.Message,
@@ -211,7 +211,7 @@ type resolvedAgentExecInput struct {
 	DefaultAction    approval.Action
 	Verbose          bool
 	OutputMode       OutputMode
-	Conn             *grpc.ClientConn
+	Client           *stigmer.Client
 }
 
 // executeResolvedAgent creates a session (if workspace is configured), creates
@@ -234,7 +234,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		WorkspaceFileRefs: input.AttachResult.WorkspaceFileRefs,
 		Model:             input.Model,
 		AutoApproveAll:    input.AutoApproveAll,
-		Conn:              input.Conn,
+		Client:            input.Client,
 	}
 
 	if len(input.WorkspaceEntries) > 0 {
@@ -245,7 +245,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		}
 
 		sp.Start("Creating workspace...")
-		session, err := createSessionForAgent(instanceID, input.OrgID, input.WorkspaceEntries, input.Conn)
+		session, err := createSessionForAgent(instanceID, input.OrgID, input.WorkspaceEntries, input.Client)
 		if err != nil {
 			sp.Stop()
 			return errors.Wrap(err, "failed to create workspace session")
@@ -288,13 +288,13 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 	} else {
 		prompter = approval.NewInteractivePrompter()
 	}
-	exec, err = streamAgentExecution(sessionID, headerInfo, exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn, localWorkspaceRoots(input.WorkspaceEntries), os.Stdout, os.Stderr)
+	exec, err = streamAgentExecution(sessionID, headerInfo, exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Client, localWorkspaceRoots(input.WorkspaceEntries), os.Stdout, os.Stderr)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}
 
 	if input.DownloadDir != "" && len(exec.Status.Artifacts) > 0 {
-		if err := downloadArtifacts(exec, input.DownloadDir, input.Conn); err != nil {
+		if err := downloadArtifacts(exec, input.DownloadDir, input.Client); err != nil {
 			return errors.Wrap(err, "failed to download artifacts")
 		}
 	}

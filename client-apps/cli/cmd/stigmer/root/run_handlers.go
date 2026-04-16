@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // waitForExecution polls until execution reaches a terminal state.
@@ -25,7 +25,7 @@ import (
 // after a stream disconnect). The primary execution path uses streamAgentExecution(),
 // which streams updates in real-time and handles approvals inline. This polling path
 // does NOT handle approvals and will hang if the execution requires user approval.
-func waitForExecution(executionID string, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+func waitForExecution(executionID string, client *stigmer.Client) (*agentexecutionv1.AgentExecution, error) {
 	climsg.Info("Waiting for execution to complete...")
 
 	pollInterval := 2 * time.Second
@@ -38,7 +38,7 @@ func waitForExecution(executionID string, conn *grpc.ClientConn) (*agentexecutio
 			return nil, fmt.Errorf("timeout waiting for execution (30 min)")
 		}
 
-		exec, err := execution.GetFromBackend(conn, executionID)
+		exec, err := execution.GetFromBackend(client, executionID)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +110,7 @@ type artifactResult struct {
 // downloadArtifacts downloads all artifacts to the specified directory and
 // prints a compact summary. Single artifacts get one line; multiple artifacts
 // get a header followed by indented entries.
-func downloadArtifacts(exec *agentexecutionv1.AgentExecution, downloadDir string, conn *grpc.ClientConn) error {
+func downloadArtifacts(exec *agentexecutionv1.AgentExecution, downloadDir string, client *stigmer.Client) error {
 	if err := os.MkdirAll(downloadDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create download directory")
 	}
@@ -119,7 +119,7 @@ func downloadArtifacts(exec *agentexecutionv1.AgentExecution, downloadDir string
 	results := make([]artifactResult, 0, len(artifacts))
 
 	for _, artifact := range artifacts {
-		result, err := downloadArtifact(exec.Metadata.Id, artifact, downloadDir, conn)
+		result, err := downloadArtifact(exec.Metadata.Id, artifact, downloadDir, client)
 		if err != nil {
 			return errors.Wrapf(err, "failed to download %s", artifact.GetName())
 		}
@@ -161,12 +161,8 @@ func displayArtifactSummary(results []artifactResult, downloadDir string) {
 // structure (e.g. references/) is preserved on the user's filesystem.
 //
 // For file artifacts, the content is saved directly as downloadDir/artifact.Name.
-func downloadArtifact(executionID string, artifact *agentexecutionv1.ExecutionArtifact, downloadDir string, conn *grpc.ClientConn) (artifactResult, error) {
-	// Always refresh the download URL via gRPC. The cached URL in the execution
-	// status may use a Docker-internal hostname (host.docker.internal) that is
-	// inappropriate for CLI-side HTTP requests. The server generates a fresh URL
-	// using the host-appropriate base address (e.g., localhost).
-	downloadURL, _, err := execution.GetArtifactDownloadURL(conn, executionID, artifact.GetStorageKey())
+func downloadArtifact(executionID string, artifact *agentexecutionv1.ExecutionArtifact, downloadDir string, client *stigmer.Client) (artifactResult, error) {
+	downloadURL, _, err := execution.GetArtifactDownloadURL(client, executionID, artifact.GetStorageKey())
 	if err != nil {
 		downloadURL = artifact.GetDownloadUrl()
 		if downloadURL == "" {
@@ -305,14 +301,14 @@ func isExpired(expiresAt string) bool {
 
 // runWorkflow executes a workflow using the prepared execution context.
 func runWorkflow(ref string, prep *preparedAgentExec) error {
-	workflow, err := resolveWorkflow(ref, prep.OrgID, prep.Conn)
+	workflow, err := resolveWorkflow(ref, prep.OrgID, prep.Client)
 	if err != nil {
 		displayWorkflowNotFoundError(ref)
 		return err
 	}
 
 	climsg.Info("Creating workflow execution...")
-	wfExec, err := createWorkflowExecution(workflow.Metadata.Id, prep.OrgID, prep.Message, prep.RuntimeEnv, prep.Conn)
+	wfExec, err := createWorkflowExecution(workflow.Metadata.Id, prep.OrgID, prep.Message, prep.RuntimeEnv, prep.Client)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
@@ -326,7 +322,7 @@ func runWorkflow(ref string, prep *preparedAgentExec) error {
 	}
 
 	prompter := approval.NewInteractivePrompter()
-	if _, err := streamWorkflowExecution(wfExec.Metadata.Id, prompter, prep.DefaultAction, prep.Conn); err != nil {
+	if _, err := streamWorkflowExecution(wfExec.Metadata.Id, prompter, prep.DefaultAction, prep.Client); err != nil {
 		return errors.Wrap(err, "error streaming workflow execution")
 	}
 

@@ -40,12 +40,15 @@ func newConfigGetCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <key>",
 		Short: "Get a configuration value",
-		Long: `Get a configuration value from ~/.stigmer/config.yaml
-
-Examples:
+		Long:  `Get a configuration value from ~/.stigmer/config.yaml`,
+		Example: `  # Get the current execution mode
   stigmer config get execution.mode
-  stigmer config get execution.sandbox_image
-  stigmer config get llm.provider`,
+
+  # Get the LLM provider
+  stigmer config get llm.provider
+
+  # Get the sandbox image
+  stigmer config get execution.sandbox_image`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			key := args[0]
@@ -60,11 +63,14 @@ func newConfigSetCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set a configuration value",
-		Long: `Set a configuration value in ~/.stigmer/config.yaml
-
-Examples:
+		Long:  `Set a configuration value in ~/.stigmer/config.yaml`,
+		Example: `  # Set execution mode to sandbox
   stigmer config set execution.mode sandbox
+
+  # Set a custom sandbox image
   stigmer config set execution.sandbox_image my-custom:latest
+
+  # Set the LLM provider
   stigmer config set llm.provider anthropic`,
 		Args: cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -82,9 +88,10 @@ func newConfigListCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List all configuration values",
-		Long:  `List all configuration values from ~/.stigmer/config.yaml`,
+		Use:     "list",
+		Short:   "List all configuration values",
+		Long:    `List all configuration values from ~/.stigmer/config.yaml`,
+		Example: `  stigmer config list`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleConfigList(resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -96,9 +103,10 @@ func newConfigListCommand() *cobra.Command {
 
 func newConfigPathCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "path",
-		Short: "Show configuration file path",
-		Long:  `Show the path to the configuration file (~/.stigmer/config.yaml)`,
+		Use:     "path",
+		Short:   "Show configuration file path",
+		Long:    `Show the path to the configuration file (~/.stigmer/config.yaml)`,
+		Example: `  stigmer config path`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleConfigPath()
 		},

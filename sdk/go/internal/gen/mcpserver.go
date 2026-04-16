@@ -246,3 +246,96 @@ func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
 		DiscoveryUrl:      i.DiscoveryUrl,
 	}
 }
+
+// McpServerInputFromProto creates a McpServerInput from a proto McpServer resource.
+func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
+	if p == nil {
+		return &McpServerInput{}
+	}
+	input := &McpServerInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Description = s.GetDescription()
+		input.IconUrl = s.GetIconUrl()
+		input.DefaultEnabledTools = s.GetDefaultEnabledTools()
+		if len(s.GetEnv()) > 0 {
+			input.Env = make(map[string]*EnvVarDeclarationInput, len(s.GetEnv()))
+			for k, v := range s.GetEnv() {
+				input.Env[k] = envVarDeclarationInputFromProto(v)
+			}
+		}
+		for _, item := range s.GetPinnedToolApprovals() {
+			input.PinnedToolApprovals = append(input.PinnedToolApprovals, toolApprovalPolicyInputFromProto(item))
+		}
+		input.RepositoryUrl = s.GetRepositoryUrl()
+		input.GithubStars = s.GetGithubStars()
+		input.Auth = mcpServerAuthInputFromProto(s.GetAuth())
+		if ov := s.GetStdio(); ov != nil {
+			input.Stdio = &StdioServerConfigInput{
+				Command:    ov.GetCommand(),
+				Args:       ov.GetArgs(),
+				WorkingDir: ov.GetWorkingDir(),
+			}
+		}
+		if ov := s.GetHttp(); ov != nil {
+			input.Http = &HttpServerConfigInput{
+				Url:            ov.GetUrl(),
+				Headers:        ov.GetHeaders(),
+				QueryParams:    ov.GetQueryParams(),
+				TimeoutSeconds: ov.GetTimeoutSeconds(),
+			}
+		}
+	}
+	return input
+}
+
+func stdioServerConfigInputFromProto(p *mcpserverv1.StdioServerConfig) *StdioServerConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &StdioServerConfigInput{}
+	input.Command = p.GetCommand()
+	input.Args = p.GetArgs()
+	input.WorkingDir = p.GetWorkingDir()
+	return input
+}
+
+func httpServerConfigInputFromProto(p *mcpserverv1.HttpServerConfig) *HttpServerConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &HttpServerConfigInput{}
+	input.Url = p.GetUrl()
+	input.Headers = p.GetHeaders()
+	input.QueryParams = p.GetQueryParams()
+	input.TimeoutSeconds = p.GetTimeoutSeconds()
+	return input
+}
+
+func toolApprovalPolicyInputFromProto(p *mcpserverv1.ToolApprovalPolicy) *ToolApprovalPolicyInput {
+	if p == nil {
+		return nil
+	}
+	input := &ToolApprovalPolicyInput{}
+	input.ToolName = p.GetToolName()
+	input.Message = p.GetMessage()
+	return input
+}
+
+func mcpServerAuthInputFromProto(p *mcpserverv1.McpServerAuth) *McpServerAuthInput {
+	if p == nil {
+		return nil
+	}
+	input := &McpServerAuthInput{}
+	input.OauthAppRef = resourceRefFromProto(p.GetOauthAppRef())
+	input.TargetEnvVar = p.GetTargetEnvVar()
+	input.TokenLifetimeHint = p.GetTokenLifetimeHint()
+	input.ScopeHints = p.GetScopeHints()
+	input.DiscoveryUrl = p.GetDiscoveryUrl()
+	return input
+}

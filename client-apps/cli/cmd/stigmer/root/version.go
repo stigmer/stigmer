@@ -9,9 +9,11 @@ import (
 
 func NewVersionCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "version",
-		Short: "Print the Stigmer CLI version",
-		Args:  cobra.NoArgs,
+		Use:     "version",
+		Short:   "Print the Stigmer CLI version",
+		Long:    `Print the installed version of the Stigmer CLI.`,
+		Example: `  stigmer version`,
+		Args:    cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println(embedded.GetBuildVersion())
 		},

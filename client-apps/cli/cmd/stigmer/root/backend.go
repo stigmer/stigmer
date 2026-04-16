@@ -30,8 +30,10 @@ func newBackendStatusCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "status",
-		Short: "Show current backend",
+		Use:     "status",
+		Short:   "Show current backend",
+		Long:    `Show the current backend type (local or cloud) and its connection details.`,
+		Example: `  stigmer config backend status`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleBackendStatus(resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -45,8 +47,17 @@ func newBackendSetCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:       "set <local|cloud>",
-		Short:     "Set backend type",
+		Use:   "set <local|cloud>",
+		Short: "Set backend type",
+		Long: `Set the backend type to local or cloud.
+
+Local mode connects to a Stigmer server running on your machine.
+Cloud mode connects to Stigmer Cloud (requires authentication).`,
+		Example: `  # Switch to local backend
+  stigmer config backend set local
+
+  # Switch to cloud backend
+  stigmer config backend set cloud`,
 		Args:      cobra.ExactArgs(1),
 		ValidArgs: []string{"local", "cloud"},
 		Run: func(cmd *cobra.Command, args []string) {

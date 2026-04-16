@@ -8,9 +8,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 4,
   reporter: "html",
-  timeout: 60_000,
+  timeout: 150_000,
 
   expect: {
     toHaveScreenshot: {
@@ -35,6 +35,19 @@ export default defineConfig({
       name: "ipad",
       use: {
         ...devices["iPad Pro 11"],
+      },
+    },
+    {
+      name: "small-desktop",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1024, height: 600 },
+      },
+    },
+    {
+      name: "mobile",
+      use: {
+        ...devices["Pixel 5"],
       },
     },
   ],

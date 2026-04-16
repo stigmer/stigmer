@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"gopkg.in/yaml.v3"
 )
 

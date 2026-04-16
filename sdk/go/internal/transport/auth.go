@@ -9,8 +9,8 @@ import (
 
 const authHeader = "authorization"
 
-func unaryAuthInterceptor(apiKey string) grpc.UnaryClientInterceptor {
-	bearerToken := "Bearer " + apiKey
+func unaryAuthInterceptor(token string) grpc.UnaryClientInterceptor {
+	headerValue := "Bearer " + token
 	return func(
 		ctx context.Context,
 		method string,
@@ -19,13 +19,13 @@ func unaryAuthInterceptor(apiKey string) grpc.UnaryClientInterceptor {
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption,
 	) error {
-		ctx = metadata.AppendToOutgoingContext(ctx, authHeader, bearerToken)
+		ctx = metadata.AppendToOutgoingContext(ctx, authHeader, headerValue)
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 }
 
-func streamAuthInterceptor(apiKey string) grpc.StreamClientInterceptor {
-	bearerToken := "Bearer " + apiKey
+func streamAuthInterceptor(token string) grpc.StreamClientInterceptor {
+	headerValue := "Bearer " + token
 	return func(
 		ctx context.Context,
 		desc *grpc.StreamDesc,
@@ -34,7 +34,7 @@ func streamAuthInterceptor(apiKey string) grpc.StreamClientInterceptor {
 		streamer grpc.Streamer,
 		opts ...grpc.CallOption,
 	) (grpc.ClientStream, error) {
-		ctx = metadata.AppendToOutgoingContext(ctx, authHeader, bearerToken)
+		ctx = metadata.AppendToOutgoingContext(ctx, authHeader, headerValue)
 		return streamer(ctx, desc, cc, method, opts...)
 	}
 }

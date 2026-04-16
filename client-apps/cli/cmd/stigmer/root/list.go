@@ -6,8 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -19,7 +17,9 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // NewListCommand creates the unified list command.
@@ -169,36 +169,36 @@ func executeList(opts listOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	// Step 4: Route to appropriate handler
-	return routeList(info, orgID, opts.OutputFormat, opts.Limit, conn)
+	return routeList(info, orgID, opts.OutputFormat, opts.Limit, client)
 }
 
 // routeList routes to the appropriate list handler based on kind.
-func routeList(info *types.TypeInfo, orgID, format string, limit int32, conn *grpc.ClientConn) error {
+func routeList(info *types.TypeInfo, orgID, format string, limit int32, client *stigmer.Client) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return listAgents(orgID, format, limit, conn)
+		return listAgents(orgID, format, limit, client)
 
 	case apiresourcekind.ApiResourceKind_workflow:
-		return listWorkflows(orgID, format, limit, conn)
+		return listWorkflows(orgID, format, limit, client)
 
 	case apiresourcekind.ApiResourceKind_mcp_server:
-		return listMcpServers(orgID, format, limit, conn)
+		return listMcpServers(orgID, format, limit, client)
 
 	case apiresourcekind.ApiResourceKind_project:
-		return listProjects(orgID, format, limit, conn)
+		return listProjects(orgID, format, limit, client)
 
 	case apiresourcekind.ApiResourceKind_skill:
-		return listSkills(orgID, format, limit, conn)
+		return listSkills(orgID, format, limit, client)
 
 	case apiresourcekind.ApiResourceKind_api_key:
-		return listApiKeys(format, conn)
+		return listApiKeys(format, client)
 
 	default:
 		return fmt.Errorf("list not implemented for %s", info.DisplayName)
@@ -206,11 +206,11 @@ func routeList(info *types.TypeInfo, orgID, format string, limit int32, conn *gr
 }
 
 // listAgents lists all agents.
-func listAgents(orgID, format string, limit int32, conn *grpc.ClientConn) error {
+func listAgents(orgID, format string, limit int32, client *stigmer.Client) error {
 	result, err := search.List(&search.ListOptions{
 		Kind:     apiresourcekind.ApiResourceKind_agent,
 		Org:      orgID,
-		Conn:     conn,
+		Client:   client,
 		PageSize: limit,
 	})
 	if err != nil {
@@ -225,11 +225,11 @@ func listAgents(orgID, format string, limit int32, conn *grpc.ClientConn) error 
 }
 
 // listWorkflows lists all workflows.
-func listWorkflows(orgID, format string, limit int32, conn *grpc.ClientConn) error {
+func listWorkflows(orgID, format string, limit int32, client *stigmer.Client) error {
 	result, err := search.List(&search.ListOptions{
 		Kind:     apiresourcekind.ApiResourceKind_workflow,
 		Org:      orgID,
-		Conn:     conn,
+		Client:   client,
 		PageSize: limit,
 	})
 	if err != nil {
@@ -244,12 +244,11 @@ func listWorkflows(orgID, format string, limit int32, conn *grpc.ClientConn) err
 }
 
 // listMcpServers lists all MCP servers.
-func listMcpServers(orgID, format string, limit int32, conn *grpc.ClientConn) error {
-	// MCP servers use the same search infrastructure
+func listMcpServers(orgID, format string, limit int32, client *stigmer.Client) error {
 	result, err := search.List(&search.ListOptions{
 		Kind:     apiresourcekind.ApiResourceKind_mcp_server,
 		Org:      orgID,
-		Conn:     conn,
+		Client:   client,
 		PageSize: limit,
 	})
 	if err != nil {
@@ -269,11 +268,11 @@ func listMcpServers(orgID, format string, limit int32, conn *grpc.ClientConn) er
 }
 
 // listProjects lists all projects.
-func listProjects(orgID, format string, limit int32, conn *grpc.ClientConn) error {
+func listProjects(orgID, format string, limit int32, client *stigmer.Client) error {
 	result, err := search.List(&search.ListOptions{
 		Kind:     apiresourcekind.ApiResourceKind_project,
 		Org:      orgID,
-		Conn:     conn,
+		Client:   client,
 		PageSize: limit,
 	})
 	if err != nil {
@@ -288,11 +287,11 @@ func listProjects(orgID, format string, limit int32, conn *grpc.ClientConn) erro
 }
 
 // listSkills lists all skills.
-func listSkills(orgID, format string, limit int32, conn *grpc.ClientConn) error {
+func listSkills(orgID, format string, limit int32, client *stigmer.Client) error {
 	result, err := search.List(&search.ListOptions{
 		Kind:     apiresourcekind.ApiResourceKind_skill,
 		Org:      orgID,
-		Conn:     conn,
+		Client:   client,
 		PageSize: limit,
 	})
 	if err != nil {
@@ -325,15 +324,14 @@ func executeListExecutions(opts listOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
-	// List executions using dedicated package
 	result, err := execution.List(&execution.ListOptions{
-		Conn:     conn,
+		Client:   client,
 		PageSize: opts.Limit,
 		// Phase filter could be added via --status flag in future
 	})
@@ -373,14 +371,14 @@ func executeListSessions(opts listOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	result, err := session.List(&session.ListOptions{
-		Conn:     conn,
+		Client:   client,
 		PageSize: opts.Limit,
 	})
 	if err != nil {
@@ -418,13 +416,13 @@ func executeListOrganizations(opts listOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
-	orgs, err := organization.ListFromBackend(conn)
+	orgs, err := organization.ListFromBackend(client)
 	if err != nil {
 		return errors.Wrap(err, "failed to list organizations")
 	}
@@ -458,8 +456,8 @@ func parsePhaseFilter(status string) agentexecutionv1.ExecutionPhase {
 
 // listApiKeys lists all API keys for the authenticated user.
 // API keys are not search-indexed, so this uses the dedicated FindAll RPC.
-func listApiKeys(format string, conn *grpc.ClientConn) error {
-	keys, err := apikey.ListFromBackend(conn)
+func listApiKeys(format string, client *stigmer.Client) error {
+	keys, err := apikey.ListFromBackend(client)
 	if err != nil {
 		return errors.Wrap(err, "failed to list API keys")
 	}

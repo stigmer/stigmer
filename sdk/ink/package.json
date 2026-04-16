@@ -11,14 +11,17 @@
     ".": "./src/index.ts"
   },
   "bin": {
-    "stigmer-ink": "./src/bin/stigmer-ink.tsx"
+    "stigmer-ink": "./src/cli/stigmer-ink.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typedoc:json": "typedoc",
+    "tsdoc:check": "typedoc --treatValidationWarningsAsErrors",
+    "tsdoc:coverage": "tsx scripts/tsdoc-coverage.ts"
   },
   "files": [
     "dist",
@@ -41,7 +44,7 @@
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "bin": {
-      "stigmer-ink": "./dist/bin/stigmer-ink.js"
+      "stigmer-ink": "./dist/cli/stigmer-ink.js"
     },
     "exports": {
       ".": {
@@ -74,6 +77,8 @@
     "ink": "^7.0.0",
     "ink-testing-library": "^4.0.0",
     "react": "^19.0.0",
+    "tsx": "^4.19.4",
+    "typedoc": "^0.28.18",
     "vitest": "^3.2.4"
   }
 }

@@ -23,7 +23,8 @@ import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import { DEMO_ORG } from "../../engine/shared";
 import {
   type GuidedTourStep,
@@ -228,21 +229,19 @@ function renderStep(step: GuidedTourStep) {
           slideDirection={slide}
           aside={renderWidgetsSidebar(step.execution)}
         >
-          <div className="relative h-full">
-            <div className="h-full overflow-hidden">
-              <ComposerView execution={step.execution} />
-            </div>
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
-              <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
-                <div className="w-[36rem] rounded-lg border border-border bg-background shadow-lg">
-                  <ArtifactPreviewContent
-                    artifact={firstArtifact(step.execution)}
-                    executionId={step.execution.metadata!.id}
-                    org={DEMO_ORG}
-                    isTerminal
-                    onClose={noop}
-                  />
-                </div>
+          <div className="absolute inset-0 overflow-hidden">
+            <ComposerView execution={step.execution} />
+          </div>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+            <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
+              <div className="w-[36rem] rounded-lg border border-border bg-background shadow-lg">
+                <ArtifactPreviewContent
+                  artifact={firstArtifact(step.execution)}
+                  executionId={step.execution.metadata!.id}
+                  org={DEMO_ORG}
+                  isTerminal
+                  onClose={noop}
+                />
               </div>
             </div>
           </div>
@@ -309,7 +308,7 @@ export function SkillCreationTour() {
 
   return (
     <StigmerProvider client={client}>
-      <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+      <DemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={skillCreationTourSteps}
           narrationManifest={narrationManifest}
@@ -318,7 +317,7 @@ export function SkillCreationTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </div>
+      </DemoViewport>
     </StigmerProvider>
   );
 }

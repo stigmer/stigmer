@@ -130,3 +130,34 @@ func (i *ApiResourceRefInput) toProto() *iampolicyv1.ApiResourceRef {
 		Relation: i.Relation,
 	}
 }
+
+// IamPolicyInputFromProto creates a IamPolicyInput from a proto IamPolicy resource.
+func IamPolicyInputFromProto(p *iampolicyv1.IamPolicy) *IamPolicyInput {
+	if p == nil {
+		return &IamPolicyInput{}
+	}
+	input := &IamPolicyInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Principal = apiResourceRefInputFromProto(s.GetPrincipal())
+		input.Resource = apiResourceRefInputFromProto(s.GetResource())
+		input.Relation = s.GetRelation()
+	}
+	return input
+}
+
+func apiResourceRefInputFromProto(p *iampolicyv1.ApiResourceRef) *ApiResourceRefInput {
+	if p == nil {
+		return nil
+	}
+	input := &ApiResourceRefInput{}
+	input.Kind = p.GetKind()
+	input.Id = p.GetId()
+	input.Relation = p.GetRelation()
+	return input
+}

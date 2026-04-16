@@ -1,0 +1,74 @@
+Resume an existing session by ID, or browse recent sessions interactively.
+
+`stigmer resume` reconnects you to a previous conversation. If the latest
+execution is still running, you re-attach to the live stream. If all
+executions have completed, you see the full conversation history and can
+send follow-up messages.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Browse recent sessions interactively
+stigmer resume
+
+# Resume by session ID
+stigmer resume ses-01abc123xyz456
+
+# Search sessions by subject
+stigmer resume "deploy staging"
+```
+
+{/* AUTO_FLAGS */}
+
+### How resuming works
+
+| Scenario | Behavior |
+|----------|----------|
+| Latest execution is running | Re-attach to the live output stream |
+| All executions complete | Display conversation history, accept new messages |
+| Search text provided | Find sessions by subject, show interactive picker |
+
+Session IDs must be provided in full (e.g., `ses-01abc123xyz456`). Partial
+IDs are not accepted.
+
+## Examples
+
+### Browse and select a session
+
+```bash
+stigmer resume
+```
+
+An interactive picker shows your recent sessions. Select one to continue
+the conversation.
+
+### Resume a specific session
+
+```bash
+stigmer resume ses-01abc123xyz456
+```
+
+### Search sessions by subject
+
+```bash
+stigmer resume "deploy staging"
+```
+
+Finds sessions whose subject matches your query and shows an interactive
+picker if multiple match.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer run`](./run) | Start a new agent execution |
+| [`stigmer get`](./get) | Inspect session details |
+| [`stigmer list`](./list) | List all sessions |
+
+## See also
+
+- [Command Reference](./) — All available commands

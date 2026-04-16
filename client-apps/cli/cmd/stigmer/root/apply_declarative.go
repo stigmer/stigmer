@@ -7,10 +7,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
@@ -21,6 +19,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // executeDeclarativeApply implements the declarative track:
@@ -97,17 +97,17 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 	}
 
 	climsg.Info("Connecting to backend...")
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 	climsg.Info("Connected to backend")
 
 	// Phase 5a: Push skill directories first (agents may reference these skills)
 	var members []*apiresource.ApiResourceReference
 	for _, skillDir := range skillDirs {
-		ref, err := pushSkillDirectory(skillDir, conn, orgID)
+		ref, err := pushSkillDirectory(skillDir, client, orgID)
 		if err != nil {
 			return errors.Wrapf(err, "failed to push skill from %s", skillDir)
 		}
@@ -118,7 +118,7 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 
 	// Phase 5b: Apply each YAML resource and collect references
 	fctx := &fileApplyContext{
-		conn:     conn,
+		client:   client,
 		orgID:    orgID,
 		dryRun:   false,
 		renderer: renderer,
@@ -144,7 +144,7 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 	projectResult, err := project.Apply(&project.ApplyOptions{
 		Project: detectResult.Project,
 		OrgID:   orgID,
-		Conn:    conn,
+		Client:  client,
 		Quiet:   false,
 		DryRun:  false,
 		Prune:   opts.PruneEnabled,
@@ -310,14 +310,14 @@ func isSkillDirectory(dir string) bool {
 }
 
 // pushSkillDirectory pushes a skill directory and returns an ApiResourceReference.
-func pushSkillDirectory(dir string, conn *grpc.ClientConn, orgID string) (*apiresource.ApiResourceReference, error) {
+func pushSkillDirectory(dir string, client *stigmer.Client, orgID string) (*apiresource.ApiResourceReference, error) {
 	climsg.Info("Pushing skill from %s...", filepath.Base(dir))
 
 	result, err := skill.Push(skill.PushOptions{
 		Directory: dir,
 		OrgID:     orgID,
 		Tag:       "latest",
-		Conn:      conn,
+		Client:    client,
 	})
 	if err != nil {
 		return nil, err

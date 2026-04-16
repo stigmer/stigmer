@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
@@ -21,7 +20,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // NewGetCommand creates the unified get command.
@@ -147,36 +147,36 @@ func executeGet(opts getOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	// Step 4: Route to appropriate handler
-	return routeGet(info, opts.Reference, orgID, opts.OutputFormat, conn)
+	return routeGet(info, opts.Reference, orgID, opts.OutputFormat, client)
 }
 
 // routeGet routes to the appropriate get handler based on kind.
-func routeGet(info *types.TypeInfo, ref, orgID, format string, conn *grpc.ClientConn) error {
+func routeGet(info *types.TypeInfo, ref, orgID, format string, client *stigmer.Client) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return getAgent(ref, orgID, format, conn)
+		return getAgent(ref, orgID, format, client)
 
 	case apiresourcekind.ApiResourceKind_workflow:
-		return getWorkflow(ref, orgID, format, conn)
+		return getWorkflow(ref, orgID, format, client)
 
 	case apiresourcekind.ApiResourceKind_mcp_server:
-		return getMcpServer(ref, orgID, format, conn)
+		return getMcpServer(ref, orgID, format, client)
 
 	case apiresourcekind.ApiResourceKind_project:
-		return getProject(ref, orgID, format, conn)
+		return getProject(ref, orgID, format, client)
 
 	case apiresourcekind.ApiResourceKind_skill:
-		return getSkill(ref, orgID, format, conn)
+		return getSkill(ref, orgID, format, client)
 
 	case apiresourcekind.ApiResourceKind_api_key:
-		return getApiKey(ref, format, conn)
+		return getApiKey(ref, format, client)
 
 	default:
 		return fmt.Errorf("get not implemented for %s", info.DisplayName)
@@ -184,8 +184,8 @@ func routeGet(info *types.TypeInfo, ref, orgID, format string, conn *grpc.Client
 }
 
 // getAgent retrieves an agent.
-func getAgent(ref, orgID, format string, conn *grpc.ClientConn) error {
-	result, err := agent.GetFromBackend(conn, orgID, ref)
+func getAgent(ref, orgID, format string, client *stigmer.Client) error {
+	result, err := agent.GetFromBackend(client, orgID, ref)
 	if err != nil {
 		return err
 	}
@@ -194,8 +194,8 @@ func getAgent(ref, orgID, format string, conn *grpc.ClientConn) error {
 }
 
 // getWorkflow retrieves a workflow.
-func getWorkflow(ref, orgID, format string, conn *grpc.ClientConn) error {
-	result, err := workflow.GetFromBackend(conn, orgID, ref)
+func getWorkflow(ref, orgID, format string, client *stigmer.Client) error {
+	result, err := workflow.GetFromBackend(client, orgID, ref)
 	if err != nil {
 		return err
 	}
@@ -204,8 +204,8 @@ func getWorkflow(ref, orgID, format string, conn *grpc.ClientConn) error {
 }
 
 // getMcpServer retrieves an MCP server.
-func getMcpServer(ref, orgID, format string, conn *grpc.ClientConn) error {
-	result, err := mcpserver.GetFromBackend(conn, orgID, ref)
+func getMcpServer(ref, orgID, format string, client *stigmer.Client) error {
+	result, err := mcpserver.GetFromBackend(client, orgID, ref)
 	if err != nil {
 		return err
 	}
@@ -214,8 +214,8 @@ func getMcpServer(ref, orgID, format string, conn *grpc.ClientConn) error {
 }
 
 // getProject retrieves a project.
-func getProject(ref, orgID, format string, conn *grpc.ClientConn) error {
-	result, err := project.GetFromBackend(conn, orgID, ref)
+func getProject(ref, orgID, format string, client *stigmer.Client) error {
+	result, err := project.GetFromBackend(client, orgID, ref)
 	if err != nil {
 		return err
 	}
@@ -224,8 +224,8 @@ func getProject(ref, orgID, format string, conn *grpc.ClientConn) error {
 }
 
 // getSkill retrieves a skill.
-func getSkill(ref, orgID, format string, conn *grpc.ClientConn) error {
-	result, err := skill.GetFromBackend(conn, orgID, ref)
+func getSkill(ref, orgID, format string, client *stigmer.Client) error {
+	result, err := skill.GetFromBackend(client, orgID, ref)
 	if err != nil {
 		return err
 	}
@@ -257,14 +257,14 @@ func executeGetExecution(opts getOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	// Get execution using dedicated package
-	result, err := execution.GetFromBackend(conn, opts.Reference)
+	result, err := execution.GetFromBackend(client, opts.Reference)
 	if err != nil {
 		return errors.Wrap(err, "failed to get execution")
 	}
@@ -292,13 +292,13 @@ func executeGetOrganization(opts getOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
-	result, err := organization.GetFromBackend(conn, opts.Reference)
+	result, err := organization.GetFromBackend(client, opts.Reference)
 	if err != nil {
 		return err
 	}
@@ -308,8 +308,8 @@ func executeGetOrganization(opts getOptions) error {
 }
 
 // getApiKey retrieves an API key by ID.
-func getApiKey(ref, format string, conn *grpc.ClientConn) error {
-	result, err := apikey.GetFromBackend(conn, ref)
+func getApiKey(ref, format string, client *stigmer.Client) error {
+	result, err := apikey.GetFromBackend(client, ref)
 	if err != nil {
 		return err
 	}

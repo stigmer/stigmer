@@ -156,3 +156,77 @@ func (i *FlowControlInput) toProto() *workflowv1.FlowControl {
 		Then: i.Then,
 	}
 }
+
+// WorkflowInputFromProto creates a WorkflowInput from a proto Workflow resource.
+func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
+	if p == nil {
+		return &WorkflowInput{}
+	}
+	input := &WorkflowInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Description = s.GetDescription()
+		input.Document = workflowDocumentInputFromProto(s.GetDocument())
+		for _, item := range s.GetTasks() {
+			input.Tasks = append(input.Tasks, workflowTaskInputFromProto(item))
+		}
+		if len(s.GetEnv()) > 0 {
+			input.Env = make(map[string]*EnvVarDeclarationInput, len(s.GetEnv()))
+			for k, v := range s.GetEnv() {
+				input.Env[k] = envVarDeclarationInputFromProto(v)
+			}
+		}
+	}
+	return input
+}
+
+func workflowDocumentInputFromProto(p *workflowv1.WorkflowDocument) *WorkflowDocumentInput {
+	if p == nil {
+		return nil
+	}
+	input := &WorkflowDocumentInput{}
+	input.Dsl = p.GetDsl()
+	input.Namespace = p.GetNamespace()
+	input.Name = p.GetName()
+	input.Version = p.GetVersion()
+	input.Description = p.GetDescription()
+	return input
+}
+
+func workflowTaskInputFromProto(p *workflowv1.WorkflowTask) *WorkflowTaskInput {
+	if p == nil {
+		return nil
+	}
+	input := &WorkflowTaskInput{}
+	input.Name = p.GetName()
+	input.Kind = p.GetKind()
+	if sv := p.GetTaskConfig(); sv != nil {
+		input.TaskConfig = sv.AsMap()
+	}
+	input.Export = exportInputFromProto(p.GetExport())
+	input.Flow = flowControlInputFromProto(p.GetFlow())
+	return input
+}
+
+func exportInputFromProto(p *workflowv1.Export) *ExportInput {
+	if p == nil {
+		return nil
+	}
+	input := &ExportInput{}
+	input.As = p.GetAs()
+	return input
+}
+
+func flowControlInputFromProto(p *workflowv1.FlowControl) *FlowControlInput {
+	if p == nil {
+		return nil
+	}
+	input := &FlowControlInput{}
+	input.Then = p.GetThen()
+	return input
+}

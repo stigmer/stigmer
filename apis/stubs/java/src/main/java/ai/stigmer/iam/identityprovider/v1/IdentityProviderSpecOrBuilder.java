@@ -262,4 +262,176 @@ public interface IdentityProviderSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getOidcClientIdBytes();
+
+  /**
+   * <pre>
+   * Whether to automatically create a federated identity account when a valid
+   * JWT arrives but no account exists for the token's sub claim.
+   *
+   * This controls identity provisioning — establishing that Stigmer recognizes
+   * this user — and is independent of what access the user receives. An
+   * auto-provisioned account has no organization access by default; authorization
+   * is controlled separately by auto_grant_on_org.
+   *
+   * When false (default), the platform must explicitly create federated accounts
+   * via the CreateFederatedAccount API before users can authenticate. This gives
+   * platforms full control over which of their users can access Stigmer resources.
+   *
+   * When true, Stigmer creates the IdentityAccount automatically on first
+   * authentication, using profile data from the JWT claims and the
+   * userinfo_endpoint (if configured). Subsequent authentications refresh
+   * the profile data.
+   *
+   * This field is independent of is_sso_provider. SSO providers always
+   * auto-provision accounts regardless of this setting. For non-SSO identity
+   * providers (platform delegation), this field enables JIT provisioning
+   * without requiring the OIDC browser flow.
+   * </pre>
+   *
+   * <code>bool auto_provision_accounts = 9 [json_name = "autoProvisionAccounts"];</code>
+   * @return The autoProvisionAccounts.
+   */
+  boolean getAutoProvisionAccounts();
+
+  /**
+   * <pre>
+   * Whether to automatically grant a role on an organization when an account
+   * is auto-provisioned.
+   *
+   * This controls authorization — determining what access an auto-provisioned
+   * user receives — and is separate from the identity provisioning decision
+   * controlled by auto_provision_accounts.
+   *
+   * When false (default), auto-provisioned accounts receive no organization
+   * access. The platform must create IAM policies to grant access to specific
+   * organizations. This is the appropriate setting for multi-tenant platforms
+   * where users should only access their tenant organization, not the
+   * platform's root organization.
+   *
+   * When true, Stigmer grants auto_grant_role (default: viewer) on the IdP's
+   * owning organization immediately after account creation. This is the
+   * appropriate setting for single-organization platforms where all
+   * authenticated users should have access to the same organization.
+   *
+   * When tenant_org_claim is also set, the role grant targets the resolved
+   * tenant organization instead of the IdP's owning organization.
+   *
+   * Requires auto_provision_accounts to be true.
+   * </pre>
+   *
+   * <code>bool auto_grant_on_org = 10 [json_name = "autoGrantOnOrg"];</code>
+   * @return The autoGrantOnOrg.
+   */
+  boolean getAutoGrantOnOrg();
+
+  /**
+   * <pre>
+   * The role to grant when auto_grant_on_org is true.
+   *
+   * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
+   * is not permitted — organization ownership must be assigned explicitly.
+   *
+   * This field is only meaningful when auto_grant_on_org is true. When
+   * auto_grant_on_org is false, this field is ignored regardless of its value.
+   *
+   * Common configurations:
+   * - viewer (default): Users can browse resources but cannot modify them.
+   * Org admins upgrade to member or admin when ready.
+   * - member: Users can immediately create and modify resources.
+   * Appropriate when all authenticated users are trusted collaborators.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 11 [json_name = "autoGrantRole"];</code>
+   * @return The enum numeric value on the wire for autoGrantRole.
+   */
+  int getAutoGrantRoleValue();
+  /**
+   * <pre>
+   * The role to grant when auto_grant_on_org is true.
+   *
+   * Defaults to viewer when unspecified (iam_role_unspecified). The owner role
+   * is not permitted — organization ownership must be assigned explicitly.
+   *
+   * This field is only meaningful when auto_grant_on_org is true. When
+   * auto_grant_on_org is false, this field is ignored regardless of its value.
+   *
+   * Common configurations:
+   * - viewer (default): Users can browse resources but cannot modify them.
+   * Org admins upgrade to member or admin when ready.
+   * - member: Users can immediately create and modify resources.
+   * Appropriate when all authenticated users are trusted collaborators.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.v1.IamRole auto_grant_role = 11 [json_name = "autoGrantRole"];</code>
+   * @return The autoGrantRole.
+   */
+  ai.stigmer.iam.v1.IamRole getAutoGrantRole();
+
+  /**
+   * <pre>
+   * Name of the JWT claim that identifies the tenant organization for
+   * multi-tenant provisioning.
+   *
+   * When set, Stigmer extracts this claim from the JWT payload and resolves
+   * it to a platform-managed organization. The resolution algorithm:
+   *
+   * 1. Read the claim value from the JWT (e.g., claim "org_id" yields
+   * value "tenant-123").
+   * 2. Look up the platform-managed organization where
+   * identity_provider_ref matches this IdP and external_org_id matches
+   * the claim value.
+   * 3. If auto_grant_on_org is true, grant auto_grant_role on the resolved
+   * organization instead of the IdP's owning organization.
+   *
+   * This enables fully automated multi-tenant provisioning: a platform JWT
+   * with a tenant claim works end-to-end without any backend provisioning
+   * steps. The platform only needs to pre-create the tenant organizations
+   * with their external_org_id mappings.
+   *
+   * Requires auto_provision_accounts to be true. The claim name is
+   * case-sensitive and must match the JWT payload key exactly.
+   *
+   * If the JWT does not contain this claim, or the claim value does not
+   * resolve to a known platform-managed organization, the authentication
+   * request is rejected with a descriptive error.
+   * </pre>
+   *
+   * <code>string tenant_org_claim = 12 [json_name = "tenantOrgClaim", (.buf.validate.field) = { ... }</code>
+   * @return The tenantOrgClaim.
+   */
+  java.lang.String getTenantOrgClaim();
+  /**
+   * <pre>
+   * Name of the JWT claim that identifies the tenant organization for
+   * multi-tenant provisioning.
+   *
+   * When set, Stigmer extracts this claim from the JWT payload and resolves
+   * it to a platform-managed organization. The resolution algorithm:
+   *
+   * 1. Read the claim value from the JWT (e.g., claim "org_id" yields
+   * value "tenant-123").
+   * 2. Look up the platform-managed organization where
+   * identity_provider_ref matches this IdP and external_org_id matches
+   * the claim value.
+   * 3. If auto_grant_on_org is true, grant auto_grant_role on the resolved
+   * organization instead of the IdP's owning organization.
+   *
+   * This enables fully automated multi-tenant provisioning: a platform JWT
+   * with a tenant claim works end-to-end without any backend provisioning
+   * steps. The platform only needs to pre-create the tenant organizations
+   * with their external_org_id mappings.
+   *
+   * Requires auto_provision_accounts to be true. The claim name is
+   * case-sensitive and must match the JWT payload key exactly.
+   *
+   * If the JWT does not contain this claim, or the claim value does not
+   * resolve to a known platform-managed organization, the authentication
+   * request is rejected with a descriptive error.
+   * </pre>
+   *
+   * <code>string tenant_org_claim = 12 [json_name = "tenantOrgClaim", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for tenantOrgClaim.
+   */
+  com.google.protobuf.ByteString
+      getTenantOrgClaimBytes();
 }

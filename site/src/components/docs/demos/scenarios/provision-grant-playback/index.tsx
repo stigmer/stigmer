@@ -12,7 +12,8 @@ import { BrowserView } from "../../views/BrowserView";
 import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
 import { TerminalView } from "../../views/TerminalView";
 import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DEMO_BROWSER_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 
 const FILE_TREE: FileTreeEntry[] = [
   { name: "src", type: "folder", depth: 0 },
@@ -204,7 +205,7 @@ export function ProvisionGrantPlayback() {
   });
 
   return (
-    <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+    <DemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={provisionGrantSteps}
         narrationManifest={narrationManifest}
@@ -213,6 +214,6 @@ export function ProvisionGrantPlayback() {
         {(step) => renderStep(step)}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </div>
+    </DemoViewport>
   );
 }

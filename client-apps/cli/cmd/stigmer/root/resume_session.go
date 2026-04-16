@@ -2,12 +2,11 @@ package root
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"slices"
 
-	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
@@ -16,7 +15,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // executeRunSession handles the `stigmer resume ses-xxx` path.
@@ -25,14 +25,14 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 	sp := spinner.New(os.Stderr)
 	sp.Start("Connecting...")
 
-	conn, orgID, err := connectToBackend(orgOverride)
+	client, orgID, err := connectToBackend(orgOverride)
 	if err != nil {
 		sp.Stop()
 		return err
 	}
-	defer conn.Close()
+	defer client.Close()
 
-	return openSession(sessionID, orgID, verbose, outputMode, conn, sp)
+	return openSession(sessionID, orgID, verbose, outputMode, client, sp)
 }
 
 // openSession re-opens an existing session by its ID.
@@ -43,9 +43,9 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 //     completed, allowing the user to continue
 //
 // The spinner is active on entry and stopped after session data is loaded.
-func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, sp *spinner.Spinner) error {
+func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, client *stigmer.Client, sp *spinner.Spinner) error {
 	sp.Update("Loading session...")
-	ses, err := session.GetFromBackend(conn, sessionID)
+	ses, err := session.GetFromBackend(client, sessionID)
 	if err != nil {
 		sp.Stop()
 		climsg.Error("Session not found: %s", sessionID)
@@ -54,7 +54,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 
 	sp.Update("Loading session history...")
 	execList, err := execution.ListBySession(&execution.ListBySessionOptions{
-		Conn:      conn,
+		Client:    client,
 		SessionID: sessionID,
 		PageSize:  execution.MaxPageSize,
 	})
@@ -97,11 +97,11 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		_, err := streamAgentExecution(sessionID, headerInfo, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn, wsRoots, os.Stdout, os.Stderr)
+		_, err := streamAgentExecution(sessionID, headerInfo, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, client, wsRoots, os.Stdout, os.Stderr)
 		return err
 
 	default:
-		return resumeSession(sessionID, headerInfo, orgID, entries, verbose, outputMode, conn, wsRoots)
+		return resumeSession(sessionID, headerInfo, orgID, entries, verbose, outputMode, client, wsRoots)
 	}
 }
 
@@ -110,8 +110,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 // same event stream (via snapshotToEvents), so noise suppression, lifecycle
 // badges, and duplicate filtering all apply automatically. The follow-up
 // prompt activates after all historical events are rendered.
-func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string) error {
-
+func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, client *stigmer.Client, workspaceRoots []string) error {
 	chronological := make([]*agentexecutionv1.AgentExecution, len(executions))
 	copy(chronological, executions)
 	slices.Reverse(chronological)
@@ -141,67 +140,31 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 		return nil
 
 	default:
-		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
+		streamCancel()
 
-		var toggleExpandCh chan struct{}
-		var cancelCh chan struct{}
-		var interruptCh chan struct{}
 		if termctl.IsSupported(os.Stderr) {
-			toggleExpandCh = make(chan struct{}, 1)
-			cancelCh = make(chan struct{}, 1)
-			interruptCh = make(chan struct{}, 1)
-		}
-
-		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh, interruptCh)
-
-		var programFactory func(func(*inlineBubbleModel)) *managedProgram
-		if program != nil {
-			programFactory = func(initModel func(*inlineBubbleModel)) *managedProgram {
-				m := newInlineBubbleModelWithChannels(toggleExpandCh, cancelCh, interruptCh)
-				if initModel != nil {
-					initModel(&m)
+			// Interactive TTY: delegate to Ink, which loads the
+			// session history and allows follow-up via its own hooks.
+			_, err := streamAgentInk(sessionID, headerInfo, latestExecID, orgID, client)
+			if err != nil {
+				return errors.Wrap(err, "ink renderer failed")
+			}
+		} else {
+			// Non-TTY: drain historical events as plain text, then exit.
+			for event := range events {
+				switch e := event.(type) {
+				case executiontui.AIMessageEvent:
+					if e.Content != "" {
+						fmt.Fprintln(os.Stdout, e.Content)
+					}
+				case executiontui.HumanMessageEvent:
+					fmt.Fprintf(os.Stderr, "\n> %s\n\n", e.Content)
+				case executiontui.SystemMessageEvent:
+					fmt.Fprintf(os.Stderr, "[system] %s\n", e.Content)
 				}
-				p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
-				mp := newManagedProgram(p, os.Stderr)
-				mp.runAndMonitor()
-				return mp
 			}
 		}
 
-		sbRoot, pfDir := sessionPaths(sessionID)
-
-		cfg := inlineRenderConfig{
-			events:            events,
-			approvalResponses: approvalResponses,
-			prompter:          prompter,
-			data:              os.Stdout,
-			status:            os.Stderr,
-			sessionID:         sessionID,
-			workspaceRoots:    workspaceRoots,
-			sandboxRoot:       sbRoot,
-			platformDir:       pfDir,
-			headerInfo:        headerInfo,
-			program:           program,
-			programFactory:    programFactory,
-			toggleExpandCh:    toggleExpandCh,
-			cancelCh:          cancelCh,
-			interruptCh:       interruptCh,
-			followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
-		}
-		finalExecID, _, exitErr, activeProgram := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
-
-		stopInlineProgram(activeProgram)
-		streamCancel()
-
-		if exitErr != "" {
-			return errors.New(exitErr)
-		}
-		finalExec, err := fetchFinalExecution(context.Background(), conn, finalExecID)
-		if err != nil {
-			return errors.Wrap(err, "failed to fetch final execution state")
-		}
-		displaySessionExitLine(sessionID, finalExec)
 		return nil
 	}
 }

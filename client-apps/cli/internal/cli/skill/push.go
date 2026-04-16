@@ -6,7 +6,7 @@ import (
 
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 )
 
 // PushOptions contains options for the skill push operation.
@@ -19,7 +19,7 @@ type PushOptions struct {
 	IncludePatterns []string
 	NoGitignore     bool
 	Verbose         bool
-	Conn            *grpc.ClientConn
+	Client          *stigmer.Client
 }
 
 // Push pushes a skill artifact from a local directory to the registry.
@@ -51,7 +51,7 @@ func Push(opts PushOptions) (*artifact.SkillArtifactResult, error) {
 		Directory: opts.Directory,
 		OrgID:     opts.OrgID,
 		Tag:       opts.Tag,
-		Conn:      opts.Conn,
+		Client:    opts.Client,
 		Quiet:     false,
 		Ignore:    ignoreOpts,
 	})

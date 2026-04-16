@@ -120,16 +120,16 @@ func launchSessionPicker(initQuery, orgOverride string, verbose bool, outputMode
 	sp := spinner.New(os.Stderr)
 	sp.Start("Connecting...")
 
-	conn, _, err := connectToBackend(orgOverride)
+	client, _, err := connectToBackend(orgOverride)
 	if err != nil {
 		sp.Stop()
 		return err
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	sp.Stop()
 
-	searchFn := buildSessionSearchFn(conn)
+	searchFn := buildSessionSearchFn(client)
 	selected, err := picker.Pick(picker.Config{
 		Prompt:    "Select a session",
 		SearchFn:  searchFn,

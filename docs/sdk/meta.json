@@ -2,6 +2,7 @@
   "title": "SDK Reference",
   "pages": [
     "react",
+    "ink",
     "streaming",
     "resources"
   ]

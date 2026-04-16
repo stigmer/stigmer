@@ -15,7 +15,7 @@ import (
 func StreamingExecution() {
 	ctx := context.Background()
 
-	client, err := stigmer.NewClient("sk_live_your_api_key")
+	client, err := stigmer.NewClient(stigmer.WithAPIKey("sk_live_your_api_key"))
 	if err != nil {
 		log.Fatal(err)
 	}

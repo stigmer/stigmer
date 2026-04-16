@@ -3,8 +3,8 @@ package agent
 import (
 	"testing"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,23 +21,23 @@ func TestDelete_NilOptions(t *testing.T) {
 	assert.Contains(t, err.Error(), "delete options cannot be nil")
 }
 
-func TestDelete_NilConnection(t *testing.T) {
+func TestDelete_NilClient(t *testing.T) {
 	opts := &DeleteOptions{
 		AgentID: testAgentID,
-		Conn:    nil,
+		Client:  nil,
 	}
 
 	result, err := Delete(opts)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "gRPC connection cannot be nil")
+	assert.Contains(t, err.Error(), "client cannot be nil")
 }
 
 func TestDelete_EmptyAgentID(t *testing.T) {
 	opts := &DeleteOptions{
 		AgentID: "",
-		Conn:    &mockConn{},
+		Client:  stubClient(),
 	}
 
 	result, err := Delete(opts)
@@ -52,9 +52,7 @@ func TestDelete_EmptyAgentID(t *testing.T) {
 // =============================================================================
 
 func TestDeleteFromBackend_EmptyAgentID(t *testing.T) {
-	conn := &mockConn{}
-
-	result, err := DeleteFromBackend(conn, "")
+	result, err := DeleteFromBackend(stubClient(), "")
 
 	require.Error(t, err)
 	assert.Nil(t, result)
@@ -66,7 +64,7 @@ func TestDeleteFromBackend_EmptyAgentID(t *testing.T) {
 // =============================================================================
 
 func TestDeleteResult_Structure(t *testing.T) {
-	agent := &agentv1.Agent{
+	a := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
@@ -77,7 +75,7 @@ func TestDeleteResult_Structure(t *testing.T) {
 	}
 
 	result := &DeleteResult{
-		Agent: agent,
+		Agent: a,
 	}
 
 	assert.NotNil(t, result.Agent)
@@ -87,7 +85,6 @@ func TestDeleteResult_Structure(t *testing.T) {
 }
 
 func TestDeleteResult_NilAgent(t *testing.T) {
-	// DeleteResult can hold nil agent (edge case)
 	result := &DeleteResult{
 		Agent: nil,
 	}
@@ -100,48 +97,38 @@ func TestDeleteResult_NilAgent(t *testing.T) {
 // =============================================================================
 
 func TestDeleteOptions_ValidStructure(t *testing.T) {
-	conn := &mockConn{}
+	c := stubClient()
 	opts := &DeleteOptions{
 		AgentID: testAgentID,
-		Conn:    conn,
+		Client:  c,
 	}
 
 	assert.Equal(t, testAgentID, opts.AgentID)
-	assert.NotNil(t, opts.Conn)
+	assert.NotNil(t, opts.Client)
 }
 
 func TestDeleteOptions_DefaultValues(t *testing.T) {
 	opts := &DeleteOptions{}
 
 	assert.Equal(t, "", opts.AgentID)
-	assert.Nil(t, opts.Conn)
+	assert.Nil(t, opts.Client)
 }
 
 func TestDeleteOptions_AgentIDFormats(t *testing.T) {
-	// Test various valid agent ID formats
 	testCases := []struct {
 		name    string
 		agentID string
 	}{
-		{
-			name:    "underscore separator",
-			agentID: "agt_abc123",
-		},
-		{
-			name:    "hyphen separator",
-			agentID: "agt-abc123",
-		},
-		{
-			name:    "long ID",
-			agentID: "agt_01kewqjbtdy0w4d14bnhhy4yc2",
-		},
+		{name: "underscore separator", agentID: "agt_abc123"},
+		{name: "hyphen separator", agentID: "agt-abc123"},
+		{name: "long ID", agentID: "agt_01kewqjbtdy0w4d14bnhhy4yc2"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &DeleteOptions{
 				AgentID: tc.agentID,
-				Conn:    &mockConn{},
+				Client:  stubClient(),
 			}
 			assert.Equal(t, tc.agentID, opts.AgentID)
 		})
@@ -153,30 +140,25 @@ func TestDeleteOptions_AgentIDFormats(t *testing.T) {
 // =============================================================================
 
 func TestDelete_ValidationOrder(t *testing.T) {
-	// Verify validation happens in the correct order:
-	// 1. nil options check
-	// 2. nil connection check
-	// 3. empty agent ID check
-
 	t.Run("nil options checked first", func(t *testing.T) {
 		_, err := Delete(nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "delete options cannot be nil")
 	})
 
-	t.Run("nil connection checked second", func(t *testing.T) {
+	t.Run("nil client checked second", func(t *testing.T) {
 		_, err := Delete(&DeleteOptions{
 			AgentID: testAgentID,
-			Conn:    nil,
+			Client:  nil,
 		})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "gRPC connection cannot be nil")
+		assert.Contains(t, err.Error(), "client cannot be nil")
 	})
 
 	t.Run("empty agent ID checked third", func(t *testing.T) {
 		_, err := Delete(&DeleteOptions{
 			AgentID: "",
-			Conn:    &mockConn{},
+			Client:  stubClient(),
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "agent ID cannot be empty")
@@ -188,16 +170,11 @@ func TestDelete_ValidationOrder(t *testing.T) {
 // =============================================================================
 
 func TestDeleteOptions_WhitespaceAgentID_Structure(t *testing.T) {
-	// Whitespace-only ID is technically not empty per validation
-	// This tests that the options struct accepts it
 	opts := &DeleteOptions{
 		AgentID: "   ",
-		Conn:    &mockConn{},
+		Client:  stubClient(),
 	}
 
-	// Verify the struct is created correctly
 	assert.Equal(t, "   ", opts.AgentID)
-	assert.NotNil(t, opts.Conn)
-	// Note: The actual RPC call would fail with whitespace ID
-	// but validation only checks for empty string
+	assert.NotNil(t, opts.Client)
 }
