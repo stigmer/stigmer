@@ -100,13 +100,19 @@ Runs in parallel:
 - `build-darwin-amd64` (macOS Intel, cross-compiled)
 - `build-linux-amd64` (Linux x86_64)
 
-Each job:
-1. Sets up Go and Buf
-2. Generates proto stubs
-3. Syncs agent-runner Python source into embed directory (`sync.sh`)
-4. Compiles CLI with `-tags embed_agentrunner` (embeds Python source via `//go:embed`)
-5. Creates tarballs with checksums
-6. Uploads artifacts
+Each job builds three binaries:
+
+1. **`stigmer`** (CLI) — sets up Go, downloads proto stubs, syncs agent-runner
+   Python source into embed directory (`sync.sh`), compiles with
+   `-tags embed_agentrunner embed_webconsole`.
+2. **`stigmer-server`** (API server for local mode) — compiled from
+   `backend/services/stigmer-server/cmd/server` with OAuth client credentials
+   injected via `-ldflags`.
+3. **`stigmer-workflow-runner`** (Temporal worker for local mode) — compiled
+   from `backend/services/workflow-runner` root package.
+
+All three are packaged into a single tarball with a checksum and uploaded as
+artifacts.
 
 ### Stage 3: Release (Conditional)
 Only runs if `should_release == true`:
@@ -117,6 +123,16 @@ Only runs if `should_release == true`:
 5. Update Homebrew formula
 
 ## Files Created
+
+### Tarball Contents
+
+Each tarball contains three binaries:
+
+| Binary | Source | Purpose |
+|--------|--------|---------|
+| `stigmer` | `client-apps/cli` | CLI (embeds agent-runner + web console) |
+| `stigmer-server` | `backend/services/stigmer-server/cmd/server` | API server for local mode |
+| `stigmer-workflow-runner` | `backend/services/workflow-runner` | Temporal worker for local mode |
 
 ### For Test Builds
 Artifacts (temporary, 90 days):
@@ -137,6 +153,7 @@ GitHub Release assets:
 
 Homebrew formula:
 - Updated `Formula/stigmer.rb` with new version and checksums
+- Installs all three binaries (`stigmer`, `stigmer-server`, `stigmer-workflow-runner`)
 
 ## Version Numbering Strategy
 
@@ -167,8 +184,9 @@ Mark as pre-release in GitHub Actions or manually edit the release.
 
 1. **Test locally first**
    ```bash
-   make build-release
+   make build
    ./bin/stigmer --version
+   ls -lh bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner
    ```
 
 2. **Push to main and verify test build**
@@ -185,10 +203,10 @@ Mark as pre-release in GitHub Actions or manually edit the release.
 
 ### Release Checklist
 
-- [ ] Code compiles locally
-- [ ] Tests pass (if you have tests)
+- [ ] All three binaries compile locally (`make build`)
+- [ ] Tests pass
 - [ ] Test build succeeded on all platforms
-- [ ] Downloaded and verified test binaries work
+- [ ] Downloaded and verified test binaries work (CLI, server, workflow-runner)
 - [ ] Decided on version number (e.g., `1.0.1`)
 - [ ] Ready to create git tag and release
 
@@ -317,15 +335,17 @@ git push origin main
 
 ## Summary
 
-The new workflow follows a **build → verify → tag → release** pattern:
+The workflow follows a **build → verify → tag → release** pattern:
 
-1. ✅ **Build first** - Compile on all platforms
+1. ✅ **Build first** - Compile three binaries (`stigmer`, `stigmer-server`,
+   `stigmer-workflow-runner`) on all platforms
 2. ✅ **Verify** - All builds must succeed  
 3. ✅ **Tag** - Create git tag only after success
-4. ✅ **Release** - Publish binaries to GitHub
+4. ✅ **Release** - Publish tarballs (containing all three binaries) to GitHub
 
 This ensures:
 - Clean git history (no failed release tags)
 - Confidence (only working versions get released)
 - Testability (can test builds before releasing)
 - Flexibility (test builds vs release builds)
+- Local mode works out of the box (server and runner ship alongside the CLI)

@@ -2,23 +2,31 @@
   "steps": [
     {
       "src": "/demos/federation-overview-tour/step-0.mp3",
-      "durationMs": 8913
+      "durationMs": 9275
     },
     {
       "src": "/demos/federation-overview-tour/step-1.mp3",
-      "durationMs": 7788
+      "durationMs": 10425
     },
     {
       "src": "/demos/federation-overview-tour/step-2.mp3",
-      "durationMs": 8000
+      "durationMs": 10375
     },
     {
       "src": "/demos/federation-overview-tour/step-3.mp3",
-      "durationMs": 8475
+      "durationMs": 8725
     },
     {
       "src": "/demos/federation-overview-tour/step-4.mp3",
-      "durationMs": 9675
+      "durationMs": 9000
+    },
+    {
+      "src": "/demos/federation-overview-tour/step-5.mp3",
+      "durationMs": 8650
+    },
+    {
+      "src": "/demos/federation-overview-tour/step-6.mp3",
+      "durationMs": 7450
     }
   ]
 }

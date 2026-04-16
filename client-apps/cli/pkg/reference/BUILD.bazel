@@ -10,8 +10,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/reference",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//backend/libs/go/apiresource",
+        "//client-apps/cli/internal/cli/kindmeta",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource/apiresourcekind",
     ],
 )
 
@@ -20,6 +20,6 @@ go_test(
     srcs = ["reference_test.go"],
     embed = [":reference"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource/apiresourcekind",
     ],
 )

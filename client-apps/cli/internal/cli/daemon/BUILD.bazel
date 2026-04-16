@@ -14,7 +14,6 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/tenancy/organization/v1:organization",
         "//client-apps/cli/embedded",
         "//client-apps/cli/embedded/agentrunner",
         "//client-apps/cli/embedded/webconsole",
@@ -28,6 +27,7 @@ go_library(
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/tenancy/organization/v1:organization",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//credentials/insecure",
         "@org_golang_google_protobuf//types/known/emptypb",

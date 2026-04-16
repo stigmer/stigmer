@@ -1,12 +1,12 @@
 // Provider
 export { InkStigmerProvider, type InkStigmerProviderProps } from "./provider.js";
 
-// Transport
+// Transport (re-exported from @stigmer/sdk/node)
 export {
   createNodeClient,
   createNodeTransport,
   type NodeClientConfig,
-} from "./transport.js";
+} from "@stigmer/sdk/node";
 
 // Markdown
 export { renderMarkdown } from "./markdown.js";
@@ -16,6 +16,8 @@ export { MessageEntry, type MessageEntryProps } from "./components/MessageEntry.
 export { MessageThread, type MessageThreadProps } from "./components/MessageThread.js";
 export { ToolCallItem, type ToolCallItemProps } from "./components/ToolCallItem.js";
 export { ToolCallGroup, type ToolCallGroupProps } from "./components/ToolCallGroup.js";
+export { SubAgentBlock, type SubAgentBlockProps } from "./components/SubAgentBlock.js";
+export { TodoList, type TodoListProps } from "./components/TodoList.js";
 export { ApprovalPrompt, type ApprovalPromptProps } from "./components/ApprovalPrompt.js";
 export { ExecutionProgress, type ExecutionProgressProps } from "./components/ExecutionProgress.js";
 export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInput.js";

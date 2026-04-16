@@ -1,0 +1,120 @@
+Start and manage the Stigmer server in local mode.
+
+Running `stigmer server` starts all the components needed to run agents
+locally: the Stigmer server, Temporal (for durable execution), and the
+agent-runner. On first run, an interactive setup wizard prompts you to choose
+an LLM provider (Anthropic, OpenAI, or Ollama).
+
+The server listens on `localhost:7234` and includes an embedded web console
+you can open with `--open` or by visiting `http://localhost:7234` in your
+browser.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Start the server (interactive setup on first run)
+stigmer server
+
+# Start and open the web console
+stigmer server --open
+
+# Start in sandbox execution mode
+stigmer server --execution-mode sandbox
+
+# Start without the embedded web console
+stigmer server --no-web
+```
+
+{/* AUTO_FLAGS */}
+
+### Execution modes
+
+Control how agents execute on your local server:
+
+| Mode | Behavior |
+|------|----------|
+| `local` | Agents run directly on the host machine (default) |
+| `sandbox` | Agents run in isolated Docker containers |
+| `auto` | Use sandbox when Docker is available, fall back to local |
+
+```bash
+# Run agents in sandboxed containers
+stigmer server --execution-mode sandbox
+
+# Use a custom sandbox image
+stigmer server --execution-mode sandbox --sandbox-image my-custom:latest
+```
+
+### Sandbox options
+
+When using sandbox execution mode, these options control container behavior:
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--sandbox-image` | `ghcr.io/stigmer/agent-sandbox-basic:latest` | Docker image for sandbox containers |
+| `--sandbox-auto-pull` | `true` | Pull the image automatically if missing |
+| `--sandbox-cleanup` | `true` | Remove containers after execution |
+| `--sandbox-ttl` | `3600` | Container reuse TTL in seconds |
+
+## Examples
+
+### First-time setup
+
+```bash
+stigmer server
+```
+
+The setup wizard guides you through choosing an LLM provider and entering
+your API key. Configuration is saved to `~/.stigmer/config.yaml`.
+
+### Restart with a different execution mode
+
+```bash
+stigmer server stop
+stigmer server --execution-mode sandbox
+```
+
+### Check server status
+
+```bash
+stigmer server status
+```
+
+Shows whether the server is running, its PID, and the configured LLM
+provider.
+
+### Reconfigure the LLM provider
+
+```bash
+stigmer server setup
+```
+
+Re-runs the LLM provider setup wizard without restarting the server.
+
+### Reset to a fresh state
+
+```bash
+stigmer server reset
+```
+
+Stops the server, clears all local data, and restarts with a clean state.
+Use this when you want to start over.
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer run`](./run) | Execute an agent or workflow |
+| [`stigmer config`](./config) | Manage CLI configuration |
+| [`stigmer mcp-server`](./mcp-server) | Start the MCP server for AI coding assistants |
+
+## See also
+
+- [Local Quickstart](/docs/getting-started/local) — Set up Stigmer and run your first agent
+- [Command Reference](./) — All available commands

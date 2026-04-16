@@ -249,3 +249,75 @@ func (i *AttachmentInput) toProto() *agentexecutionv1.Attachment {
 		LocalPath:   i.LocalPath,
 	}
 }
+
+// AgentExecutionInputFromProto creates a AgentExecutionInput from a proto AgentExecution resource.
+func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExecutionInput {
+	if p == nil {
+		return &AgentExecutionInput{}
+	}
+	input := &AgentExecutionInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.SessionId = s.GetSessionId()
+		input.AgentId = s.GetAgentId()
+		input.Message = s.GetMessage()
+		input.ExecutionConfig = executionConfigInputFromProto(s.GetExecutionConfig())
+		if len(s.GetRuntimeEnv()) > 0 {
+			input.RuntimeEnv = make(map[string]EnvVarInput, len(s.GetRuntimeEnv()))
+			for k, v := range s.GetRuntimeEnv() {
+				input.RuntimeEnv[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret()}
+			}
+		}
+		input.CallbackToken = s.GetCallbackToken()
+		input.AutoApproveAll = s.GetAutoApproveAll()
+		input.ParentWorkflowId = s.GetParentWorkflowId()
+		for _, item := range s.GetAttachments() {
+			input.Attachments = append(input.Attachments, attachmentInputFromProto(item))
+		}
+		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
+	}
+	return input
+}
+
+func executionConfigInputFromProto(p *agentexecutionv1.ExecutionConfig) *ExecutionConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &ExecutionConfigInput{}
+	input.ModelName = p.GetModelName()
+	input.ContextManagement = contextManagementConfigInputFromProto(p.GetContextManagement())
+	input.MaxToolRounds = p.GetMaxToolRounds()
+	input.MaxToolResultChars = p.GetMaxToolResultChars()
+	input.MaxCostUsd = p.GetMaxCostUsd()
+	return input
+}
+
+func contextManagementConfigInputFromProto(p *agentexecutionv1.ContextManagementConfig) *ContextManagementConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &ContextManagementConfigInput{}
+	input.DisableSummarization = p.GetDisableSummarization()
+	input.CustomTriggerThreshold = p.GetCustomTriggerThreshold()
+	input.CustomTargetTokens = p.GetCustomTargetTokens()
+	return input
+}
+
+func attachmentInputFromProto(p *agentexecutionv1.Attachment) *AttachmentInput {
+	if p == nil {
+		return nil
+	}
+	input := &AttachmentInput{}
+	input.Filename = p.GetFilename()
+	input.StorageKey = p.GetStorageKey()
+	input.MountPath = p.GetMountPath()
+	input.ContentType = p.GetContentType()
+	input.Extract = p.GetExtract()
+	input.LocalPath = p.GetLocalPath()
+	return input
+}

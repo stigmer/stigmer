@@ -7,17 +7,16 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/backend/libs/go/mcpdiscovery"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpdiscovery"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 )
 
 // ConnectOptions configures an MCP server capability discovery run.
 type ConnectOptions struct {
-	Conn    grpc.ClientConnInterface
+	Client  *stigmer.Client
 	Cfg     *config.Config
 	OrgID   string
 	Ref     string
@@ -53,7 +52,7 @@ func Connect(ctx context.Context, opts *ConnectOptions) (*ConnectResult, error) 
 		defer cancel()
 	}
 
-	server, err := GetFromBackend(opts.Conn, opts.OrgID, opts.Ref)
+	server, err := GetFromBackend(opts.Client, opts.OrgID, opts.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +60,12 @@ func Connect(ctx context.Context, opts *ConnectOptions) (*ConnectResult, error) 
 	result := &ConnectResult{McpServer: server}
 
 	if !opts.DryRun && CheckOAuthRequired(server) && len(opts.EnvOverrides) == 0 {
-		hasGrant, err := CheckOAuthGrantExists(ctx, opts.Conn, server.Metadata.GetId(), opts.OrgID)
+		hasGrant, err := CheckOAuthGrantExists(ctx, opts.Client, server.Metadata.GetId(), opts.OrgID)
 		if err != nil {
 			return nil, err
 		}
 		if !hasGrant {
-			if err := RunOAuthFlow(ctx, opts.Conn, server, opts.OrgID, opts.Cfg); err != nil {
+			if err := RunOAuthFlow(ctx, opts.Client, server, opts.OrgID, opts.Cfg); err != nil {
 				return nil, err
 			}
 		}
@@ -74,7 +73,7 @@ func Connect(ctx context.Context, opts *ConnectOptions) (*ConnectResult, error) 
 
 	if !opts.DryRun {
 		runtimeEnv := buildRuntimeEnv(server, opts.EnvOverrides)
-		updated, err := callConnect(ctx, opts.Conn, server.Metadata.Id, runtimeEnv)
+		updated, err := callConnect(ctx, opts.Client, server.Metadata.Id, runtimeEnv)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +94,7 @@ func Connect(ctx context.Context, opts *ConnectOptions) (*ConnectResult, error) 
 // Used by the bootstrap auto-connect flow and post-apply connect which
 // already have the McpServer proto in hand. Environment variables are
 // resolved from the OS environment only.
-func ConnectServer(ctx context.Context, conn grpc.ClientConnInterface, server *mcpserverv1.McpServer, timeout time.Duration) error {
+func ConnectServer(ctx context.Context, client *stigmer.Client, server *mcpserverv1.McpServer, timeout time.Duration) error {
 	if timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, timeout)
@@ -103,25 +102,24 @@ func ConnectServer(ctx context.Context, conn grpc.ClientConnInterface, server *m
 	}
 
 	runtimeEnv := buildRuntimeEnv(server, nil)
-	_, err := callConnect(ctx, conn, server.Metadata.Id, runtimeEnv)
+	_, err := callConnect(ctx, client, server.Metadata.Id, runtimeEnv)
 	return err
 }
 
 // callConnect invokes the Connect RPC with the given runtime_env.
 func callConnect(
 	ctx context.Context,
-	conn grpc.ClientConnInterface,
+	client *stigmer.Client,
 	mcpServerID string,
 	runtimeEnv map[string]*executioncontextv1.ExecutionValue,
 ) (*mcpserverv1.McpServer, error) {
-	client := mcpserverv1.NewMcpServerCommandControllerClient(conn)
 	input := &mcpserverv1.ConnectInput{
 		McpServerId: mcpServerID,
 	}
 	if len(runtimeEnv) > 0 {
 		input.RuntimeEnv = runtimeEnv
 	}
-	result, err := client.Connect(ctx, input)
+	result, err := client.McpServer.Connect(ctx, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "connect failed")
 	}
@@ -195,6 +193,5 @@ func localDiscover(ctx context.Context, server *mcpserverv1.McpServer, envOverri
 	if err != nil {
 		return nil, errors.Wrapf(err, "discovery failed for MCP server '%s'", server.Metadata.Name)
 	}
-	caps.LastDiscoveredAt = timestamppb.Now()
 	return caps, nil
 }

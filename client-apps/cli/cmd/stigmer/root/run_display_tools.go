@@ -1,31 +1,12 @@
 package root
 
 import (
-	"fmt"
 	"time"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
 )
-
-// displayToolCalls renders structured tool call information from an AI message.
-//
-// Each tool call is printed as a single line with a category-aware icon, the tool
-// name, and the most relevant argument. This replaces the old generic format:
-//
-//	Old: 🔧 Tool: read(path='main.go') -> 1164 chars
-//	New:   📖 Read: main.go (1164 chars)
-func displayToolCalls(toolCalls []*agentexecutionv1.ToolCall) {
-	for _, tc := range toolCalls {
-		info := convertToolCall(tc)
-		fmt.Println(toolrender.Render(info))
-	}
-	if len(toolCalls) > 0 {
-		fmt.Println()
-		flushStdout()
-	}
-}
 
 // convertToolCall transforms a proto ToolCall into a toolrender.ToolCallInfo.
 //
@@ -118,21 +99,6 @@ func computeToolCallDuration(startedAt, completedAt string) time.Duration {
 	}
 
 	return d
-}
-
-// spinnerLabelForAgentPhase returns a human-readable label for the spinner
-// based on the current agent execution phase.
-func spinnerLabelForAgentPhase(phase agentexecutionv1.ExecutionPhase) string {
-	switch phase {
-	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING:
-		return "Waiting for agent..."
-	case agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS:
-		return "Agent is working..."
-	case agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL:
-		return "Waiting for approval..."
-	default:
-		return "Processing..."
-	}
 }
 
 // spinnerLabelForWorkflowPhase returns a human-readable label for the spinner

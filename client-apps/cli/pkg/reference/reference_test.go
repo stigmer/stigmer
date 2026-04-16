@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func TestParse(t *testing.T) {

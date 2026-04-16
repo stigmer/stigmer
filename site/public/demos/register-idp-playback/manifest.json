@@ -18,7 +18,11 @@
     },
     {
       "src": "/demos/register-idp-playback/step-4.mp3",
-      "durationMs": 11988
+      "durationMs": 9600
+    },
+    {
+      "src": "/demos/register-idp-playback/step-5.mp3",
+      "durationMs": 10375
     }
   ]
 }

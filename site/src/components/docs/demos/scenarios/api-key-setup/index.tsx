@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import {
   ApiKeyCreatedAlert,
@@ -11,15 +11,18 @@ import {
 import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { useNarrationManifest } from "../../engine/useNarrationManifest";
+import { useStepInteractions } from "../../engine/useStepInteractions";
 import { Cursor } from "../../engine/Cursor";
 import { DEMO_ORG } from "../../engine/shared";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ManagementShell } from "../../views/ManagementShell";
 import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 import {
   type ApiKeySetupStep,
+  APIKEY_INTERACTIONS,
   apiKeySetupSteps,
   getApiKeyList,
   PERSONAL_ENVIRONMENT,
@@ -92,8 +95,8 @@ function ApiKeysPageChrome({
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-xs font-semibold text-foreground">API Keys</h3>
-            <div className="relative" data-cursor-target="create-api-key">
-              <div className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+            <div className="group relative" data-cursor-target="create-api-key">
+              <div className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-80 group-data-[hover=true]:opacity-80">
                 <Plus className="h-2.5 w-2.5" />
                 New API key
               </div>
@@ -104,32 +107,6 @@ function ApiKeysPageChrome({
           <ApiKeyListPanel />
         </section>
       </div>
-    </div>
-  );
-}
-
-function PrefilledCreateForm({ name }: { readonly name?: string }) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!name) return;
-
-    const input = wrapperRef.current?.querySelector(
-      "#stgm-new-apikey-name",
-    ) as HTMLInputElement | null;
-    if (!input) return;
-
-    const setter = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      "value",
-    )?.set;
-    setter?.call(input, name);
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-  }, [name]);
-
-  return (
-    <div ref={wrapperRef} className="mb-3">
-      <CreateApiKeyForm org={DEMO_ORG} onCancel={noop} />
     </div>
   );
 }
@@ -201,7 +178,9 @@ function renderStep(step: ApiKeySetupStep) {
       return (
         <ManagementShell activeNav="api-keys" contentKey={contentKey}>
           <ApiKeysPageChrome>
-            <PrefilledCreateForm name={CREATED_KEY_NAME} />
+            <div className="mb-3" data-cursor-target="apikey-name-input">
+              <CreateApiKeyForm org={DEMO_ORG} onCancel={noop} />
+            </div>
           </ApiKeysPageChrome>
         </ManagementShell>
       );
@@ -241,14 +220,30 @@ export function ApiKeySetup() {
   const narrationManifest = useNarrationManifest("api-key-setup");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+  const [showRipple, setShowRipple] = useState(true);
+  const [stepIndex, setStepIndex] = useState(0);
 
-  const handleStepChange = useCallback((step: ApiKeySetupStep) => {
-    setCursorTarget(cursorTargetFor(step));
-  }, []);
+  const handleStepChange = useCallback(
+    (step: ApiKeySetupStep, index: number) => {
+      setCursorTarget(cursorTargetFor(step));
+      setStepIndex(index);
+    },
+    [],
+  );
+
+  useStepInteractions({
+    stepIndex,
+    interactions: APIKEY_INTERACTIONS,
+    narrationManifest,
+    containerRef,
+    setCursorTarget,
+    steps: apiKeySetupSteps,
+    setShowRipple,
+  });
 
   return (
     <StigmerProvider client={client}>
-      <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+      <DemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={apiKeySetupSteps}
           narrationManifest={narrationManifest}
@@ -256,8 +251,8 @@ export function ApiKeySetup() {
         >
           {(step) => renderStep(step)}
         </ScenarioPlayer>
-        <Cursor target={cursorTarget} containerRef={containerRef} />
-      </div>
+        <Cursor target={cursorTarget} containerRef={containerRef} showRipple={showRipple} />
+      </DemoViewport>
     </StigmerProvider>
   );
 }

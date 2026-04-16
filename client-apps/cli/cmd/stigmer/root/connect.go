@@ -55,10 +55,8 @@ ENVIRONMENT VARIABLES:
   The flag can be repeated for multiple variables.
 
   You can also export variables in your shell before running the command;
-  --env is simply more convenient and mirrors stigmer run / stigmer draft.
-
-Examples:
-  # Connect by slug (uses default org)
+  --env is simply more convenient and mirrors stigmer run / stigmer draft.`,
+		Example: `  # Connect by slug (uses default org)
   stigmer connect mcp-server github
 
   # Connect by org/slug
@@ -124,14 +122,14 @@ func executeConnectMcpServer(opts connectMcpServerOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	result, err := mcpserver.Connect(context.Background(), &mcpserver.ConnectOptions{
-		Conn:         conn,
+		Client:       client,
 		Cfg:          cfg,
 		OrgID:        orgID,
 		Ref:          opts.Reference,

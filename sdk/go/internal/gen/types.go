@@ -80,3 +80,42 @@ func (e *EnvSpecInput) toProto() *environmentv1.EnvironmentSpec {
 	}
 	return spec
 }
+
+// ResourceRefFromProto creates a ResourceRef from a proto ApiResourceReference.
+func ResourceRefFromProto(r *apiresource.ApiResourceReference) ResourceRef {
+	if r == nil {
+		return ResourceRef{}
+	}
+	return ResourceRef{
+		Org:     r.GetOrg(),
+		Slug:    r.GetSlug(),
+		Version: r.GetVersion(),
+		Kind:    r.GetKind(),
+	}
+}
+
+func resourceRefFromProto(r *apiresource.ApiResourceReference) ResourceRef {
+	return ResourceRefFromProto(r)
+}
+
+// EnvSpecInputFromProto creates an EnvSpecInput from a proto EnvironmentSpec.
+func EnvSpecInputFromProto(s *environmentv1.EnvironmentSpec) *EnvSpecInput {
+	if s == nil {
+		return nil
+	}
+	input := &EnvSpecInput{
+		Variables: make(map[string]EnvVarInput, len(s.GetData())),
+	}
+	for k, v := range s.GetData() {
+		input.Variables[k] = EnvVarInput{
+			Value:       v.GetValue(),
+			IsSecret:    v.GetIsSecret(),
+			Description: v.GetDescription(),
+		}
+	}
+	return input
+}
+
+func envSpecInputFromProto(s *environmentv1.EnvironmentSpec) *EnvSpecInput {
+	return EnvSpecInputFromProto(s)
+}

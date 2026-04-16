@@ -4,22 +4,19 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	workflowinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowinstance/v1"
 )
 
-// DeleteFromBackend deletes a workflow instance by resource ID via gRPC.
-func DeleteFromBackend(conn grpc.ClientConnInterface, resourceID string) (*workflowinstancev1.WorkflowInstance, error) {
+// DeleteFromBackend deletes a workflow instance by resource ID via the SDK.
+func DeleteFromBackend(client *stigmer.Client, resourceID string) (*workflowinstancev1.WorkflowInstance, error) {
 	if resourceID == "" {
 		return nil, errors.New("workflow instance ID is required for delete operation")
 	}
 
-	client := workflowinstancev1.NewWorkflowInstanceCommandControllerClient(conn)
 	ctx := context.Background()
 
-	deleted, err := client.Delete(ctx, &workflowinstancev1.WorkflowInstanceId{
-		Value: resourceID,
-	})
+	deleted, err := client.WorkflowInstance.Delete(ctx, resourceID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to delete workflow instance '%s'", resourceID)
 	}

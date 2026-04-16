@@ -280,3 +280,18 @@ func omitEmpty(s string) any {
 	}
 	return s
 }
+
+// actionToString maps an approval.Action to its string representation for
+// JSON serialization and approval submission.
+func actionToString(a approval.Action) string {
+	switch a {
+	case approval.ActionApprove:
+		return "approve"
+	case approval.ActionSkip:
+		return "skip"
+	case approval.ActionReject:
+		return "reject"
+	default:
+		return "skip"
+	}
+}

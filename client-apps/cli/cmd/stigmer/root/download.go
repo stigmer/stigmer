@@ -100,12 +100,11 @@ func executeDownload(opts downloadOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
-	// Download execution artifacts
-	return downloadExecutionArtifacts(opts.Reference, opts, conn)
+	return downloadExecutionArtifacts(opts.Reference, opts, client)
 }

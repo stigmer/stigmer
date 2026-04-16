@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -59,7 +60,12 @@ func Classify(err error) *CLIError {
 // implements the gRPC GRPCStatus() interface. status.FromError only
 // checks the outermost error; this handles the common case where
 // commands wrap gRPC errors with errors.Wrap before they reach Handle.
+// Also recognises SDK *stigmer.Error, which wraps gRPC codes.
 func extractGRPCStatus(err error) (*status.Status, bool) {
+	var sdkErr *stigmer.Error
+	if errors.As(err, &sdkErr) {
+		return status.New(sdkErr.GRPCCode, sdkErr.Message), true
+	}
 	for e := err; e != nil; e = errors.Unwrap(e) {
 		if st, ok := status.FromError(e); ok {
 			if st.Code() != codes.OK {

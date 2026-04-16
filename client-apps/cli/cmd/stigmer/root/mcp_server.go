@@ -46,17 +46,16 @@ resolved from ~/.stigmer/config.yaml if the corresponding environment
 variables are not set. Local backends connect without authentication;
 cloud backends use the stored token.
 
-Environment variables:
+ENVIRONMENT VARIABLES:
+
   STIGMER_SERVER_ADDRESS        gRPC address (default from CLI config or "localhost:9090")
   STIGMER_API_KEY               API key (optional; auto-resolved from CLI config for cloud)
   STIGMER_MCP_TRANSPORT         "stdio" | "http" | "both" (default "stdio")
   STIGMER_MCP_HTTP_PORT         HTTP listen port (default "8080")
   STIGMER_MCP_HTTP_AUTH_ENABLED "true" | "false" (default "true")
   STIGMER_MCP_LOG_FORMAT        "text" | "json" (default "text")
-  STIGMER_MCP_LOG_LEVEL         "debug" | "info" | "warn" | "error" (default "info")
-
-Examples:
-  # STDIO mode (default — what MCP clients spawn)
+  STIGMER_MCP_LOG_LEVEL         "debug" | "info" | "warn" | "error" (default "info")`,
+		Example: `  # STDIO mode (default — what MCP clients spawn)
   stigmer mcp-server
 
   # HTTP mode on a custom port

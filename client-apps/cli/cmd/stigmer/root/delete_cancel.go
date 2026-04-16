@@ -41,11 +41,11 @@ func executeCancelExecution(opts deleteOptions) error {
 		}
 	}
 
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to backend")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
 
@@ -65,7 +65,7 @@ func executeCancelExecution(opts deleteOptions) error {
 		}
 	}
 
-	result, err := execution.CancelWithResult(conn, opts.Reference)
+	result, err := execution.CancelWithResult(client, opts.Reference)
 	if err != nil {
 		return errors.Wrap(err, "failed to cancel execution")
 	}

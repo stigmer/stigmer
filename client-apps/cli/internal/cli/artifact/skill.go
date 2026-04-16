@@ -13,10 +13,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/ignore"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
 )
 
 const (
@@ -82,8 +82,8 @@ type SkillArtifactOptions struct {
 	OrgID string
 	// Tag for the skill version (default: "latest")
 	Tag string
-	// gRPC connection to backend
-	Conn *grpc.ClientConn
+	// Client is the Stigmer SDK client
+	Client *stigmer.Client
 	// Quiet mode (suppress detailed output)
 	Quiet bool
 	// Ignore configures file filtering during artifact creation.
@@ -109,8 +109,8 @@ type SkillFromGitOptions struct {
 	OrgID string
 	// Tag for the skill version
 	Tag string
-	// gRPC connection to backend
-	Conn *grpc.ClientConn
+	// Client is the Stigmer SDK client
+	Client *stigmer.Client
 	// Quiet mode (suppress detailed output)
 	Quiet bool
 	// Git repository URL
@@ -207,8 +207,7 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 		tag = "latest"
 	}
 
-	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
-	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
+	response, err := opts.Client.Skill.Push(context.Background(), &skillv1.PushSkillRequest{
 		Org:           opts.OrgID,
 		Artifact:      zipBytes,
 		Tag:           tag,
@@ -332,8 +331,7 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 		tag = "latest"
 	}
 
-	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
-	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
+	response, err := opts.Client.Skill.Push(context.Background(), &skillv1.PushSkillRequest{
 		Org:           opts.OrgID,
 		Artifact:      zipBytes,
 		Tag:           tag,

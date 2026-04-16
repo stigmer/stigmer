@@ -1,16 +1,14 @@
 package apply
 
 import (
-	"context"
 	"testing"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 )
 
 // =============================================================================
@@ -392,19 +390,18 @@ func TestContainsString(t *testing.T) {
 // VerifyExternalSkills Tests
 // =============================================================================
 
-func TestVerifyExternalSkills_NilConnection(t *testing.T) {
+func TestVerifyExternalSkills_NilClient(t *testing.T) {
 	refs := []ExternalSkillRef{{Org: "org", Slug: "skill"}}
 
 	result, err := VerifyExternalSkills(nil, "org", refs)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "connection is required")
+	assert.Contains(t, err.Error(), "client is required")
 }
 
 func TestVerifyExternalSkills_EmptyRefs(t *testing.T) {
-	// Mock connection not needed for empty refs
-	result, err := VerifyExternalSkills(&mockConn{}, "org", []ExternalSkillRef{})
+	result, err := VerifyExternalSkills(nil, "org", []ExternalSkillRef{})
 
 	require.NoError(t, err)
 	assert.Empty(t, result.Found)
@@ -526,18 +523,4 @@ func TestExtractExternalSkillRefs_MultiAgentMicroservice(t *testing.T) {
 	assert.Contains(t, refMap["workflow-management"].ReferencedBy, "agent:orchestrator")
 	assert.Contains(t, refMap["schema-validation"].ReferencedBy, "agent:orchestrator/validator")
 	assert.Contains(t, refMap["data-transform"].ReferencedBy, "agent:orchestrator/transformer")
-}
-
-// =============================================================================
-// Mock Connection for Tests
-// =============================================================================
-
-type mockConn struct{}
-
-func (m *mockConn) Invoke(ctx context.Context, method string, args any, reply any, opts ...grpc.CallOption) error {
-	return nil
-}
-
-func (m *mockConn) NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-	return nil, nil
 }

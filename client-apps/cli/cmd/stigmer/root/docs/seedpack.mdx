@@ -1,0 +1,49 @@
+Manage the embedded seedpack — system agents, skills, and MCP server
+definitions bundled with the CLI.
+
+The seedpack contains foundational resources (the `stigmer` organization's
+built-in agents and skills). On local backends, the seedpack is applied
+automatically during server startup. On cloud backends, use
+`stigmer seedpack apply` to provision these resources.
+
+{/* AUTO_USAGE */}
+
+{/* AUTO_FLAGS */}
+
+{/* AUTO_SUBCOMMANDS */}
+
+## Examples
+
+### Apply the seedpack to a cloud backend
+
+```bash
+stigmer config backend set cloud
+stigmer auth login
+stigmer seedpack apply
+```
+
+### Force re-apply (even if unchanged)
+
+```bash
+stigmer seedpack apply --force
+```
+
+### Check seedpack status
+
+```bash
+stigmer seedpack status
+```
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer server`](./server) | Start the local server (auto-applies seedpack) |
+| [`stigmer apply`](./apply) | Deploy your own resource definitions |
+| [`stigmer config`](./config) | Switch between local and cloud backends |
+
+## See also
+
+- [Command Reference](./) — All available commands

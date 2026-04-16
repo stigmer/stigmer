@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
 )
 
 // Validate performs cross-field business logic validation on a Workflow.

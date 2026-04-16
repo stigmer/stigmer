@@ -29,6 +29,14 @@ function getMarked(width?: number): Marked {
  * @param content - Raw markdown string.
  * @param width - Terminal width for text wrapping. Defaults to `process.stdout.columns` or 80.
  * @returns ANSI-styled string ready for terminal output.
+ *
+ * @example
+ * ```ts
+ * import { renderMarkdown } from "@stigmer/ink";
+ *
+ * const ansi = renderMarkdown("**Hello** from the agent!");
+ * process.stdout.write(ansi);
+ * ```
  */
 export function renderMarkdown(content: string, width?: number): string {
   const marked = getMarked(width);

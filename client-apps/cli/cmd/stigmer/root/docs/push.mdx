@@ -1,0 +1,102 @@
+Push an artifact to the Stigmer registry.
+
+`stigmer push` packages and uploads artifacts (currently skills) to the
+registry. You can push from a local directory or directly from a remote git
+repository.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Push a skill from the current directory
+stigmer push skill
+
+# Push from a specific directory
+stigmer push skill ./my-skill/
+
+# Push with a version tag
+stigmer push skill --tag v1.2.0
+
+# Preview without pushing
+stigmer push skill --dry-run
+```
+
+{/* AUTO_FLAGS */}
+
+### Source modes
+
+**Local push** (default): Packages the current directory (or the path you
+specify). The CLI reads `SKILL.md` to identify the artifact and respects
+`.gitignore` patterns for file filtering.
+
+```bash
+# Push from current directory
+stigmer push skill
+
+# Push from a specific path
+stigmer push skill ./my-skill/
+```
+
+**Remote push**: Push directly from a git repository without cloning locally.
+Use `--subdir` when the artifact lives in a subdirectory of the repo.
+
+```bash
+# Push from a git repository
+stigmer push skill --git-url https://github.com/acme/skills --subdir api-validator
+
+# Push a specific version
+stigmer push skill --git-url https://github.com/acme/skills --git-ref v2.0.0
+```
+
+### File filtering
+
+By default, the CLI respects `.gitignore` patterns. Use `--ignore` and
+`--include` to customize:
+
+```bash
+# Ignore additional patterns
+stigmer push skill --ignore "*.test.md" --ignore "drafts/"
+
+# Force-include files that would be ignored
+stigmer push skill --include "data/*.csv"
+
+# Disable gitignore entirely
+stigmer push skill --no-gitignore
+```
+
+## Examples
+
+### Push a skill with a version tag
+
+```bash
+stigmer push skill --tag v1.0.0
+```
+
+### Push to a specific organization
+
+```bash
+stigmer push skill --org acme-corp
+```
+
+### Debug file filtering
+
+```bash
+stigmer push skill --dry-run --verbose
+```
+
+Shows which files would be included and which are filtered out.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer draft`](./draft) | Create resource definitions with AI |
+| [`stigmer download`](./download) | Download artifacts from executions |
+| [`stigmer apply`](./apply) | Deploy resource definitions |
+
+## See also
+
+- [Command Reference](./) — All available commands

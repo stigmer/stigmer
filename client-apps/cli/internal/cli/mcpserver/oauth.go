@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/browser"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 )
 
 const (
@@ -40,12 +40,11 @@ func CheckOAuthRequired(server *mcpserverv1.McpServer) bool {
 // MCP server in the specified org.
 func CheckOAuthGrantExists(
 	ctx context.Context,
-	conn grpc.ClientConnInterface,
+	client *stigmer.Client,
 	mcpServerID string,
 	org string,
 ) (bool, error) {
-	client := mcpserverv1.NewMcpServerQueryControllerClient(conn)
-	resp, err := client.GetOAuthGrantStatus(ctx, &mcpserverv1.GetOAuthGrantStatusInput{
+	resp, err := client.McpServer.GetOAuthGrantStatus(ctx, &mcpserverv1.GetOAuthGrantStatusInput{
 		ResourceId: mcpServerID,
 		Org:        org,
 	})
@@ -60,7 +59,7 @@ func CheckOAuthGrantExists(
 // context is cancelled.
 func RunOAuthFlow(
 	ctx context.Context,
-	conn grpc.ClientConnInterface,
+	client *stigmer.Client,
 	server *mcpserverv1.McpServer,
 	org string,
 	cfg *config.Config,
@@ -85,7 +84,7 @@ func RunOAuthFlow(
 		fmt.Fprintln(os.Stderr, "  Please open the URL above in your browser.")
 	}
 
-	return WaitForOAuthGrant(ctx, conn, server.GetMetadata().GetId(), org)
+	return WaitForOAuthGrant(ctx, client, server.GetMetadata().GetId(), org)
 }
 
 // WaitForOAuthGrant polls getOAuthGrantStatus until the grant is connected
@@ -93,7 +92,7 @@ func RunOAuthFlow(
 // (Ctrl+C).
 func WaitForOAuthGrant(
 	ctx context.Context,
-	conn grpc.ClientConnInterface,
+	client *stigmer.Client,
 	mcpServerID string,
 	org string,
 ) error {
@@ -110,7 +109,7 @@ func WaitForOAuthGrant(
 		case <-ctx.Done():
 			return errors.New("timed out waiting for OAuth connection — please try again")
 		case <-ticker.C:
-			connected, err := CheckOAuthGrantExists(ctx, conn, mcpServerID, org)
+			connected, err := CheckOAuthGrantExists(ctx, client, mcpServerID, org)
 			if err != nil {
 				return err
 			}
@@ -143,8 +142,8 @@ func ResolveConsoleURL(cfg *config.Config) string {
 // responding. Returns a user-friendly error with remediation steps if
 // the console is unreachable.
 func checkWebConsoleAvailable(consoleURL string) error {
-	client := &http.Client{Timeout: consoleProbeTimeout}
-	resp, err := client.Get(consoleURL)
+	httpClient := &http.Client{Timeout: consoleProbeTimeout}
+	resp, err := httpClient.Get(consoleURL)
 	if err != nil {
 		return fmt.Errorf(
 			"OAuth authentication requires the web console, which is not running.\n\n" +

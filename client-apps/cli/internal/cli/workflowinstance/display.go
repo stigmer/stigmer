@@ -3,8 +3,8 @@ package workflowinstance
 import (
 	"fmt"
 
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	workflowinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowinstance/v1"
 )
 
 // DisplayGetResult displays a workflow instance in the specified format.

@@ -3,8 +3,8 @@ package reference
 import (
 	"strings"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/kindmeta"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // ParsedReference contains the components of a parsed resource reference.
@@ -163,7 +163,7 @@ func isResourceID(ref string) bool {
 // ID format is: prefix + separator + ULID, where separator is underscore or hyphen.
 // Prefix is derived from the ApiResourceKind enum options (id_prefix).
 func isResourceIDWithKind(ref string, kind apiresourcekind.ApiResourceKind) bool {
-	prefix, err := apiresource.GetIdPrefix(kind)
+	prefix, err := kindmeta.GetIDPrefix(kind)
 	if err != nil || prefix == "" {
 		return false
 	}
@@ -247,7 +247,7 @@ func ResourceIDKind(ref string) (apiresourcekind.ApiResourceKind, error) {
 		if k == apiresourcekind.ApiResourceKind_api_resource_kind_unknown {
 			continue
 		}
-		prefix, err := apiresource.GetIdPrefix(k)
+		prefix, err := kindmeta.GetIDPrefix(k)
 		if err != nil || prefix == "" {
 			continue
 		}

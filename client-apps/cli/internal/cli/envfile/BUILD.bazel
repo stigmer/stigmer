@@ -10,8 +10,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
         "@com_github_pkg_errors//:errors",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/executioncontext/v1:executioncontext",
     ],
 )
 

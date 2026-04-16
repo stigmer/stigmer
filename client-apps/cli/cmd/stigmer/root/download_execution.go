@@ -9,16 +9,15 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // downloadExecutionArtifacts downloads artifacts from an execution.
-func downloadExecutionArtifacts(executionID string, opts downloadOptions, conn *grpc.ClientConn) error {
-	// Step 1: Get execution to retrieve artifact list
-	exec, err := execution.GetFromBackend(conn, executionID)
+func downloadExecutionArtifacts(executionID string, opts downloadOptions, client *stigmer.Client) error {
+	exec, err := execution.GetFromBackend(client, executionID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get execution")
 	}
@@ -63,7 +62,7 @@ func downloadExecutionArtifacts(executionID string, opts downloadOptions, conn *
 
 	var downloadedCount int
 	for _, artifact := range artifacts {
-		if err := downloadSingleArtifact(executionID, artifact, opts.OutputDir, conn); err != nil {
+		if err := downloadSingleArtifact(executionID, artifact, opts.OutputDir, client); err != nil {
 			climsg.Error("Failed to download %s: %v", artifact.GetName(), err)
 			continue
 		}
@@ -94,12 +93,8 @@ func filterArtifactsByName(artifacts []*agentexecutionv1.ExecutionArtifact, name
 }
 
 // downloadSingleArtifact downloads a single artifact to the output directory.
-func downloadSingleArtifact(executionID string, artifact *agentexecutionv1.ExecutionArtifact, outputDir string, conn *grpc.ClientConn) error {
-	// Always refresh the download URL via gRPC. The cached URL in the execution
-	// status may use a Docker-internal hostname (host.docker.internal) that is
-	// inappropriate for CLI-side HTTP requests. The server generates a fresh URL
-	// using the host-appropriate base address (e.g., localhost).
-	downloadURL, _, err := execution.GetArtifactDownloadURL(conn, executionID, artifact.GetStorageKey())
+func downloadSingleArtifact(executionID string, artifact *agentexecutionv1.ExecutionArtifact, outputDir string, client *stigmer.Client) error {
+	downloadURL, _, err := execution.GetArtifactDownloadURL(client, executionID, artifact.GetStorageKey())
 	if err != nil {
 		// Fall back to cached URL if gRPC refresh fails
 		downloadURL = artifact.GetDownloadUrl()

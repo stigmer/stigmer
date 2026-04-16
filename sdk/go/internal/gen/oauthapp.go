@@ -106,3 +106,30 @@ func (i *OAuthAppInput) toProto() *oauthappv1.OAuthApp {
 	resource.Spec.VendorApprovalDocsUrl = i.VendorApprovalDocsUrl
 	return resource
 }
+
+// OAuthAppInputFromProto creates a OAuthAppInput from a proto OAuthApp resource.
+func OAuthAppInputFromProto(p *oauthappv1.OAuthApp) *OAuthAppInput {
+	if p == nil {
+		return &OAuthAppInput{}
+	}
+	input := &OAuthAppInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Provider = s.GetProvider()
+		input.ClientId = s.GetClientId()
+		input.ClientSecret = s.GetClientSecret()
+		input.AuthorizationUrl = s.GetAuthorizationUrl()
+		input.TokenUrl = s.GetTokenUrl()
+		input.Scopes = s.GetScopes()
+		input.UserinfoUrl = s.GetUserinfoUrl()
+		input.ScopeParameterName = s.GetScopeParameterName()
+		input.VendorApprovalStatus = s.GetVendorApprovalStatus()
+		input.VendorApprovalDocsUrl = s.GetVendorApprovalDocsUrl()
+	}
+	return input
+}

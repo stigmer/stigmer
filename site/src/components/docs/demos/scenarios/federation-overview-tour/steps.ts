@@ -1,27 +1,31 @@
 /**
- * Federation overview tour — high-level walkthrough of the 4-step
- * federation setup for the guide landing page.
+ * Federation overview tour — two-path walkthrough comparing JIT
+ * provisioning (3 steps) with manual provisioning (4 steps) for
+ * the federation guide landing page.
  *
- * Each step maps to one of the guide pages, giving the reader
- * a visual preview of the entire integration before diving into
- * the detailed pages.
+ * JIT path comes first because the page recommends it. The contrast
+ * makes the value proposition self-evident: zero provisioning code
+ * vs explicit API calls.
  */
 
 import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import type { StepInteractions } from "../../engine/useStepInteractions";
 
 // ---------------------------------------------------------------------------
 // Data model
 // ---------------------------------------------------------------------------
 
 export type OverviewTourStep =
-  | { view: "register-idp" }
-  | { view: "provision-account" }
-  | { view: "grant-access" }
-  | { view: "user-login" }
-  | { view: "api-call-success" };
+  | { view: "jit-register" }
+  | { view: "jit-login" }
+  | { view: "jit-success" }
+  | { view: "manual-register" }
+  | { view: "manual-provision" }
+  | { view: "manual-grant" }
+  | { view: "manual-success" };
 
 // ---------------------------------------------------------------------------
-// Fixture data — code snippets
+// Fixture data — code snippets (manual path)
 // ---------------------------------------------------------------------------
 
 export const PROVISION_CODE = [
@@ -50,43 +54,98 @@ export const GRANT_CODE = [
 ];
 
 // ---------------------------------------------------------------------------
+// Fixture data — API exchange checks
+// ---------------------------------------------------------------------------
+
+export const JIT_CHECKS = [
+  { label: "Token validated", detail: "signature + claims OK", status: "pass" as const },
+  { label: "Account auto-provisioned", detail: "auth0|jane_doe → ida_01abc (JIT)", status: "pass" as const },
+  { label: "Role granted: viewer", detail: "on org_acme (JIT)", status: "pass" as const },
+  { label: "Access authorized", detail: "viewer on org_acme", status: "pass" as const },
+];
+
+export const MANUAL_CHECKS = [
+  { label: "Token validated", detail: "signature + claims OK", status: "pass" as const },
+  { label: "Identity resolved", detail: "auth0|jane_doe → ida_01abc", status: "pass" as const },
+  { label: "Access authorized", detail: "admin on org_acme", status: "pass" as const },
+];
+
+// ---------------------------------------------------------------------------
+// Step interactions
+// ---------------------------------------------------------------------------
+
+export const OVERVIEW_INTERACTIONS: StepInteractions = {
+  // Step 2 (jit-success): cursor walks through 4 JIT checks
+  2: [
+    { atPercent: 0.12, type: "set-cursor", target: "check-0" },
+    { atPercent: 0.30, type: "set-cursor", target: "check-1" },
+    { atPercent: 0.50, type: "set-cursor", target: "check-2" },
+    { atPercent: 0.70, type: "set-cursor", target: "check-3" },
+    { atPercent: 0.88, type: "clear-cursor" },
+  ],
+  // Step 6 (manual-success): cursor walks through 3 checks
+  6: [
+    { atPercent: 0.15, type: "set-cursor", target: "check-0" },
+    { atPercent: 0.40, type: "set-cursor", target: "check-1" },
+    { atPercent: 0.65, type: "set-cursor", target: "check-2" },
+    { atPercent: 0.88, type: "clear-cursor" },
+  ],
+};
+
+// ---------------------------------------------------------------------------
 // Step sequence
 // ---------------------------------------------------------------------------
 
 export const overviewTourSteps: ScenarioStep<OverviewTourStep>[] = [
+  // ── JIT path (steps 0-2) ──────────────────────────────────────────────
   {
     delayMs: 0,
-    data: { view: "register-idp" },
-    caption: "1. Register an Identity Provider",
+    data: { view: "jit-register" },
+    caption: "JIT path: register IdP with auto-provisioning",
     narration:
-      "First, register your auth provider in the Stigmer console. Choose the provider type and Stigmer auto-populates the OIDC configuration.",
+      "Register your auth provider and enable JIT provisioning. Stigmer will create accounts and grant roles automatically when users authenticate.",
   },
   {
     delayMs: 3500,
-    data: { view: "provision-account" },
-    caption: "2. Provision federated accounts",
+    data: { view: "jit-login" },
+    caption: "User signs in — JIT handles the rest",
     narration:
-      "Next, provision federated accounts for your users. This maps each user's OIDC subject to a Stigmer identity.",
+      "Jane signs in on the Acme platform. With JIT enabled, Stigmer creates her account and grants a role the first time she authenticates. No provisioning code needed.",
   },
   {
     delayMs: 3500,
-    data: { view: "grant-access" },
-    caption: "3. Grant access via IAM Policies",
+    data: { view: "jit-success" },
+    caption: "API call succeeds — account auto-provisioned",
     narration:
-      "Then grant each account a role on your Organization. Without a policy, authenticated requests return 403 Forbidden.",
+      "The request succeeds. Stigmer validated the token, auto-provisioned Jane's account, granted the viewer role, and authorized the request — all in one step.",
+  },
+  // ── Manual path (steps 3-6) ───────────────────────────────────────────
+  {
+    delayMs: 3500,
+    data: { view: "manual-register" },
+    caption: "Manual path: register IdP without JIT",
+    narration:
+      "Alternatively, register the Identity Provider without JIT. You keep full control, but your backend provisions each user explicitly.",
   },
   {
     delayMs: 3500,
-    data: { view: "user-login" },
-    caption: "4. User signs in on your platform",
+    data: { view: "manual-provision" },
+    caption: "Provision a federated account",
     narration:
-      "At runtime, your user signs in on your platform and gets a JWT. This is standard OIDC — Stigmer is not involved yet.",
+      "Call create federated account to map each user's OIDC subject to a Stigmer identity. This runs in your backend for every user.",
+  },
+  {
+    delayMs: 3500,
+    data: { view: "manual-grant" },
+    caption: "Grant access via IAM Policy",
+    narration:
+      "Then grant a role on the Organization. Without this policy, the user's JWT is valid but Stigmer returns 403 Forbidden.",
   },
   {
     delayMs: 3000,
-    data: { view: "api-call-success" },
-    caption: "JWT validated — request authorized",
+    data: { view: "manual-success" },
+    caption: "API call succeeds — manual setup complete",
     narration:
-      "When the user calls the Stigmer API with that JWT, Stigmer validates the token, resolves the identity, checks the policy, and authorizes the request.",
+      "The request succeeds. The same result as JIT, but your backend handled provisioning and access grants explicitly.",
   },
 ];

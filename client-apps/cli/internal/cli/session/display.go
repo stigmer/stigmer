@@ -6,8 +6,8 @@ import (
 
 	"github.com/fatih/color"
 
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 )
 
 // DisplayGetResult displays a session in the specified format.

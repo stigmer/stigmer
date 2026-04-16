@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/browser"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -18,7 +17,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/setup"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // NewServerCommand creates the server command for daemon management
@@ -37,6 +35,17 @@ This command starts the Stigmer server:
   - Starts agent-runner for AI agent execution
 
 Run 'stigmer server setup' to reconfigure the LLM provider at any time.`,
+		Example: `  # Start the server (interactive setup on first run)
+  stigmer server
+
+  # Start with the web console open
+  stigmer server --open
+
+  # Start in sandbox execution mode
+  stigmer server --execution-mode sandbox
+
+  # Start without the embedded web console
+  stigmer server --no-web`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleServerStart(cmd, resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -65,8 +74,10 @@ func newServerStopCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "stop",
-		Short: "Stop the Stigmer server",
+		Use:     "stop",
+		Short:   "Stop the Stigmer server",
+		Long:    `Stop the Stigmer server and all managed processes (Temporal, agent-runner).`,
+		Example: `  stigmer server stop`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleServerStop(resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -82,6 +93,15 @@ func newServerStatusCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show server status",
+		Long: `Show the status of the Stigmer server and its managed processes.
+
+Displays whether the server is running, its PID, uptime, LLM configuration,
+and the status of dependent services.`,
+		Example: `  # Show server status
+  stigmer server status
+
+  # Machine-readable output
+  stigmer server status --json`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleServerStatus(resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -318,12 +338,12 @@ func displayLLMStatus(provider, model string, localCfg *config.LocalBackendConfi
 // servers. Runs synchronously after daemon start so tool metadata is
 // immediately available. Failures are logged but do not block success.
 func runBootstrapDiscovery(cfg *config.Config) {
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		climsg.Warning("Skipping MCP discovery: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	orgID := cfg.ResolveContextOrganization()
 	if orgID == "" {
@@ -332,7 +352,7 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 
 	result := mcpserver.ConnectAll(context.Background(), &mcpserver.ConnectAllOptions{
-		Conn:    conn,
+		Client:  client,
 		OrgID:   orgID,
 		Timeout: 30 * time.Second,
 	})
@@ -357,18 +377,17 @@ func autoSetOrgContext(cfg *config.Config) {
 		return
 	}
 
-	conn, err := backend.NewConnection()
+	stigmerClient, err := backend.NewStigmerClient()
 	if err != nil {
 		climsg.Warning("Skipping org context auto-detection: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer stigmerClient.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client := orgv1.NewOrganizationQueryControllerClient(conn)
-	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	resp, err := stigmerClient.Organization.FindMyOrganizations(ctx)
 	if err != nil {
 		climsg.Warning("Failed to detect organizations: %v", err)
 		return

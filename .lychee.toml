@@ -3,12 +3,14 @@
 
 # Vendor dashboard / console URLs always redirect to a login page (HTTP 302).
 # They are "open your admin panel" links in how-to guides — not broken.
+# localhost URLs reference the local dev server and are unreachable in CI.
 exclude = [
   "https://manage\\.auth0\\.com/",
   "https://developer\\.okta\\.com/login/",
   "https://portal\\.azure\\.com/",
   "https://console\\.aws\\.amazon\\.com/",
-  "https://console\\.anthropic\\.com/"
+  "https://console\\.anthropic\\.com/",
+  "http://localhost"
 ]
 
 exclude_path = ["docs/_archive"]

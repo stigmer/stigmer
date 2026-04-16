@@ -1,0 +1,110 @@
+---
+title: CLI
+description:
+  Install and use the Stigmer CLI to run agents, deploy resources, and manage
+  your Stigmer environment from the terminal.
+---
+
+The Stigmer CLI is the primary tool for interacting with the Stigmer platform
+from your terminal. Run agents, deploy resource definitions, manage local and
+cloud backends, and connect MCP servers — all from the command line.
+
+## Installation
+
+### macOS (Homebrew)
+
+```bash
+brew install stigmer/tap/stigmer
+```
+
+### Shell script (macOS / Linux)
+
+```bash
+curl -fsSL https://get.stigmer.ai | sh
+```
+
+### From source
+
+```bash
+git clone https://github.com/stigmer/stigmer.git
+cd stigmer/client-apps/cli
+go install ./cmd/stigmer/
+```
+
+## Backend modes
+
+The CLI connects to one of two backends:
+
+| Mode      | Description                                               |
+| --------- | --------------------------------------------------------- |
+| **Local** | Stigmer server running on your machine (`localhost:7234`) |
+| **Cloud** | Stigmer Cloud API (`api.stigmer.ai`)                      |
+
+Switch between backends with `stigmer config backend set`:
+
+```bash
+# Use the local server
+stigmer config backend set local
+
+# Use Stigmer Cloud
+stigmer config backend set cloud
+stigmer auth login
+```
+
+### Starting the local server
+
+```bash
+stigmer server
+```
+
+On first run, an interactive wizard helps you choose an LLM provider (Anthropic,
+OpenAI, or Ollama). The server starts Temporal for durable execution and the
+agent-runner for AI agent processing.
+
+## Quick start
+
+```bash
+# Start the server
+stigmer server
+
+# Run an agent interactively
+stigmer run
+
+# Run a specific agent with a message
+stigmer run my-agent -m "Summarize the quarterly report"
+
+# Deploy resources from YAML
+stigmer apply -f agent.yaml
+```
+
+## LLM configuration
+
+The CLI supports three LLM providers for local mode:
+
+| Provider      | Setup                                          |
+| ------------- | ---------------------------------------------- |
+| **Anthropic** | Set your API key during `stigmer server` setup |
+| **OpenAI**    | Set your API key during `stigmer server` setup |
+| **Ollama**    | Local models, downloaded automatically         |
+
+Reconfigure at any time with `stigmer server setup`.
+
+## What's next
+
+<Cards>
+  <Card
+    title="Command Reference"
+    description="Complete reference for all stigmer CLI commands."
+    href="/docs/cli/commands"
+  />
+  <Card
+    title="Local Quickstart"
+    description="Set up Stigmer locally and run your first agent."
+    href="/docs/getting-started/local"
+  />
+  <Card
+    title="Core Concepts"
+    description="Understand Agents, Skills, Sessions, and how they fit together."
+    href="/docs/concepts/what-is-stigmer"
+  />
+</Cards>

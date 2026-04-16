@@ -20,11 +20,8 @@ import {
   type StepInteractions,
   useStepInteractions,
 } from "../../engine/useStepInteractions";
-import {
-  DEMO_BROWSER_ZOOM,
-  DEMO_CONTENT_ZOOM,
-  DEMO_PLAYER_CLASSES,
-} from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 import { PulseHighlight } from "../../shared/PulseHighlight";
 import {
   type OAuthConnectStep,
@@ -272,7 +269,7 @@ export function OAuthConnectFlow() {
   });
 
   return (
-    <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+    <DemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={oauthConnectSteps}
         narrationManifest={narrationManifest}
@@ -322,6 +319,6 @@ export function OAuthConnectFlow() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </div>
+    </DemoViewport>
   );
 }

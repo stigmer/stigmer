@@ -2,6 +2,19 @@
 // command by walking the Cobra command tree. Output is committed to
 // docs/cli/commands/ and verified for freshness in CI.
 //
+// Each command may have a hand-written enrichment template that controls the
+// page layout and prose content. The generator reads enrichment files from
+// --enrichments-dir (co-located with Go source) and injects auto-generated
+// sections (usage syntax, flags table, subcommands) at marked insertion
+// points. Commands without enrichments get a default generated page.
+//
+// Enrichment markers:
+//
+//	{/* AUTO_USAGE */}        — replaced with ## Usage + syntax code block
+//	{/* AUTO_FLAGS */}        — replaced with ## Options + flags table
+//	{/* AUTO_GLOBAL_FLAGS */} — replaced with ## Global Flags + flags table
+//	{/* AUTO_SUBCOMMANDS */}  — replaced with ## Subcommands + inline docs
+//
 // Usage:
 //
 //	go run ./cmd/gen-cli-docs --output ../../docs/cli/commands/
@@ -51,6 +64,7 @@ type flagDoc struct {
 
 func main() {
 	outputDir := flag.String("output", "", "output directory for generated MDX docs")
+	enrichmentsDir := flag.String("enrichments-dir", "", "directory containing hand-written enrichment templates (default: ./cmd/stigmer/root/docs/)")
 	flag.Parse()
 
 	if *outputDir == "" {
@@ -58,13 +72,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := generate(*outputDir); err != nil {
+	if *enrichmentsDir == "" {
+		*enrichmentsDir = "./cmd/stigmer/root/docs/"
+	}
+
+	if err := generate(*outputDir, *enrichmentsDir); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func generate(outputDir string) error {
+func generate(outputDir, enrichmentsDir string) error {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
@@ -73,16 +91,21 @@ func generate(outputDir string) error {
 	globalFlags := collectFlags(root.PersistentFlags())
 	grouped := groupCommands(root)
 
-	count := 0
+	enriched := 0
+	defaulted := 0
 	for _, cmd := range root.Commands() {
 		if skipCommand(cmd) {
 			continue
 		}
-		content := renderCommandPage(cmd, globalFlags)
+		content, wasEnriched := renderCommandPage(cmd, globalFlags, enrichmentsDir)
 		if err := writeFile(outputDir, cmd.Name()+".mdx", content); err != nil {
 			return fmt.Errorf("writing %s.mdx: %w", cmd.Name(), err)
 		}
-		count++
+		if wasEnriched {
+			enriched++
+		} else {
+			defaulted++
+		}
 	}
 
 	if err := writeFile(outputDir, "index.mdx", renderIndexPage(grouped, globalFlags)); err != nil {
@@ -93,7 +116,8 @@ func generate(outputDir string) error {
 		return fmt.Errorf("writing meta.json: %w", err)
 	}
 
-	fmt.Printf("generated %d command pages + index in %s\n", count, outputDir)
+	fmt.Printf("generated %d command pages (%d enriched, %d default) + index in %s\n",
+		enriched+defaulted, enriched, defaulted, outputDir)
 	return nil
 }
 
@@ -120,7 +144,44 @@ func groupCommands(root *cobra.Command) map[string][]*cobra.Command {
 // Page rendering — individual command pages
 // ---------------------------------------------------------------------------
 
-func renderCommandPage(cmd *cobra.Command, globalFlags []flagDoc) string {
+// renderCommandPage produces the full MDX for a single command page. If a
+// hand-written enrichment template exists for this command, the template
+// controls the page layout and AUTO markers are replaced with generated
+// content. Otherwise a default page is produced from the Cobra fields.
+// The second return value indicates whether an enrichment was used.
+func renderCommandPage(cmd *cobra.Command, globalFlags []flagDoc, enrichmentsDir string) (string, bool) {
+	enrichmentPath := filepath.Join(enrichmentsDir, cmd.Name()+".mdx")
+	enrichment, err := os.ReadFile(enrichmentPath)
+	if err == nil && len(enrichment) > 0 {
+		return renderEnrichedPage(cmd, globalFlags, string(enrichment)), true
+	}
+	return renderDefaultPage(cmd, globalFlags), false
+}
+
+// renderEnrichedPage builds a command page from a hand-written enrichment
+// template. The enrichment controls the full page structure; AUTO markers
+// are replaced with auto-generated content from the Cobra command tree.
+func renderEnrichedPage(cmd *cobra.Command, globalFlags []flagDoc, enrichment string) string {
+	var b strings.Builder
+
+	writeFrontmatter(&b, cmd.CommandPath(), cmd.Short)
+
+	replaced := enrichment
+	replaced = strings.ReplaceAll(replaced, "{/* AUTO_USAGE */}", renderAutoUsage(cmd))
+	replaced = strings.ReplaceAll(replaced, "{/* AUTO_FLAGS */}", renderAutoFlags(cmd))
+	replaced = strings.ReplaceAll(replaced, "{/* AUTO_GLOBAL_FLAGS */}", renderAutoGlobalFlags(globalFlags))
+	replaced = strings.ReplaceAll(replaced, "{/* AUTO_SUBCOMMANDS */}", renderAutoSubcommands(cmd))
+
+	b.WriteString(strings.TrimSpace(replaced))
+	b.WriteString("\n")
+
+	return b.String()
+}
+
+// renderDefaultPage builds the default page layout used when no enrichment
+// template exists. This is an improved version of the original generator
+// output with a back-link to the command index.
+func renderDefaultPage(cmd *cobra.Command, globalFlags []flagDoc) string {
 	var b strings.Builder
 
 	writeFrontmatter(&b, cmd.CommandPath(), cmd.Short)
@@ -129,12 +190,60 @@ func renderCommandPage(cmd *cobra.Command, globalFlags []flagDoc) string {
 	b.WriteString("## Usage\n\n")
 	fmt.Fprintf(&b, "```bash\n%s\n```\n\n", cmd.UseLine())
 
-	writeFlags(&b, "Flags", collectLocalFlags(cmd))
+	writeFlags(&b, "Options", collectLocalFlags(cmd))
 	writeFlags(&b, "Global Flags", globalFlags)
 	writeExamples(&b, cmd)
 	writeSubcommands(&b, cmd)
 
+	b.WriteString("## See also\n\n")
+	b.WriteString("- [Command Reference](./) — all available commands\n")
+
 	return b.String()
+}
+
+// ---------------------------------------------------------------------------
+// Auto-generated section renderers (for enrichment marker replacement)
+// ---------------------------------------------------------------------------
+
+func renderAutoUsage(cmd *cobra.Command) string {
+	var b strings.Builder
+	b.WriteString("## Usage\n\n")
+	fmt.Fprintf(&b, "```bash\n%s\n```", cmd.UseLine())
+	return b.String()
+}
+
+func renderAutoFlags(cmd *cobra.Command) string {
+	flags := collectLocalFlags(cmd)
+	if len(flags) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("## Options\n\n")
+	writeFlagsTable(&b, flags)
+	return strings.TrimRight(b.String(), "\n")
+}
+
+func renderAutoGlobalFlags(globalFlags []flagDoc) string {
+	if len(globalFlags) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("## Global Flags\n\n")
+	writeFlagsTable(&b, globalFlags)
+	return strings.TrimRight(b.String(), "\n")
+}
+
+func renderAutoSubcommands(cmd *cobra.Command) string {
+	subs := visibleSubcommands(cmd)
+	if len(subs) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("## Subcommands\n\n")
+	for _, sub := range subs {
+		renderSubcommand(&b, sub)
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
 
 // ---------------------------------------------------------------------------
@@ -181,7 +290,8 @@ func writeFrontmatter(b *strings.Builder, title, description string) {
 	fmt.Fprintf(b, "title: %s\n", escapeYAML(title))
 	fmt.Fprintf(b, "description: %s\n", escapeYAML(description))
 	b.WriteString("---\n\n")
-	b.WriteString("{/* Auto-generated by gen-cli-docs. Do not edit manually. */}\n\n")
+	b.WriteString("{/* Auto-generated by gen-cli-docs. Do not edit manually. */}\n")
+	b.WriteString("{/* To enrich this page, create an enrichment template in client-apps/cli/cmd/stigmer/root/docs/ */}\n\n")
 }
 
 func writeDescription(b *strings.Builder, cmd *cobra.Command) {

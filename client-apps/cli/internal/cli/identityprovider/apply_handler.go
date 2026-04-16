@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	identityproviderv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,7 +38,7 @@ func (h *applyHandler) Metadata(msg proto.Message) *apiresource.ApiResourceMetad
 	return msg.(*identityproviderv1.IdentityProvider).Metadata
 }
 
-func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface, msg proto.Message) (*applier.ApplyResult, error) {
+func (h *applyHandler) Apply(ctx context.Context, client *stigmer.Client, msg proto.Message) (*applier.ApplyResult, error) {
 	idp := msg.(*identityproviderv1.IdentityProvider)
 
 	if idp.Metadata == nil {
@@ -47,8 +47,7 @@ func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface,
 
 	isCreate := idp.Metadata.Id == ""
 
-	client := identityproviderv1.NewIdentityProviderCommandControllerClient(conn)
-	result, err := client.Apply(ctx, idp)
+	result, err := client.IdentityProvider.Apply(ctx, stigmer.IdentityProviderInputFromProto(idp))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply identity provider")
 	}

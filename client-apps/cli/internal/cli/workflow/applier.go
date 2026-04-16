@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 )
 
 // ApplyOptions contains options for applying a Workflow configuration.
@@ -18,8 +18,8 @@ type ApplyOptions struct {
 	Workflow *workflowv1.Workflow
 	// OrgID is the organization ID for the resource.
 	OrgID string
-	// Conn is the gRPC connection to the backend.
-	Conn grpc.ClientConnInterface
+	// Client is the Stigmer SDK client.
+	Client *stigmer.Client
 	// Quiet suppresses detailed output.
 	Quiet bool
 	// DryRun validates without applying.
@@ -41,21 +41,18 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		return nil, fmt.Errorf("workflow is required")
 	}
 
-	if opts.Conn == nil {
-		return nil, fmt.Errorf("connection is required")
+	if opts.Client == nil {
+		return nil, fmt.Errorf("client is required")
 	}
 
-	// Ensure metadata exists and set organization
 	if opts.Workflow.Metadata == nil {
 		opts.Workflow.Metadata = &apiresource.ApiResourceMetadata{}
 	}
 
-	// Set organization if not already set
 	if opts.Workflow.Metadata.Org == "" && opts.OrgID != "" {
 		opts.Workflow.Metadata.Org = opts.OrgID
 	}
 
-	// Dry run - just validate and return
 	if opts.DryRun {
 		if !opts.Quiet {
 			climsg.Info("Dry run mode - configuration is valid")
@@ -67,9 +64,7 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		}, nil
 	}
 
-	// Check if resource exists to determine create vs update
-	existingID := opts.Workflow.Metadata.Id
-	isCreate := existingID == ""
+	isCreate := opts.Workflow.Metadata.Id == ""
 
 	if !opts.Quiet {
 		if isCreate {
@@ -79,9 +74,7 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		}
 	}
 
-	// Call Apply RPC
-	client := workflowv1.NewWorkflowCommandControllerClient(opts.Conn)
-	result, err := client.Apply(context.Background(), opts.Workflow)
+	result, err := opts.Client.Workflow.Apply(context.Background(), stigmer.WorkflowInputFromProto(opts.Workflow))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply workflow")
 	}

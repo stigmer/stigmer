@@ -3,11 +3,11 @@ package mcpserver
 import (
 	"testing"
 
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 )
 
 // =============================================================================
@@ -23,13 +23,10 @@ const (
 	testDescription = "Test MCP server"
 )
 
-// =============================================================================
-// Mock gRPC Connection
-// =============================================================================
-
-type mockConn struct {
-	grpc.ClientConnInterface
-}
+// stubClient returns a non-nil *stigmer.Client for tests that only exercise
+// validation/dry-run paths and never make real RPCs. The embedded gen.Client
+// is nil, which is safe as long as tests don't call SDK methods.
+func stubClient() *stigmer.Client { return &stigmer.Client{} }
 
 // =============================================================================
 // ApplyOptions Validation Tests
@@ -38,7 +35,7 @@ type mockConn struct {
 func TestApply_NilMcpServer(t *testing.T) {
 	opts := &ApplyOptions{
 		McpServer: nil,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 	}
 
@@ -52,7 +49,7 @@ func TestApply_NilMcpServer(t *testing.T) {
 func TestApply_NilConnection(t *testing.T) {
 	opts := &ApplyOptions{
 		McpServer: createTestMcpServer(),
-		Conn:      nil,
+		Client:    nil,
 		OrgID:     testOrgID,
 	}
 
@@ -60,14 +57,13 @@ func TestApply_NilConnection(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "connection is required")
+	assert.Contains(t, err.Error(), "client is required")
 }
 
 func TestApply_EmptyOrgID_StillValid(t *testing.T) {
-	// Empty OrgID is valid - backend will use authenticated user's org
 	opts := &ApplyOptions{
 		McpServer: createTestMcpServer(),
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     "",
 		DryRun:    true,
 		Quiet:     true,
@@ -89,7 +85,7 @@ func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,
@@ -124,7 +120,7 @@ func TestApply_DryRun_PreservesMcpServer(t *testing.T) {
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,
@@ -135,7 +131,6 @@ func TestApply_DryRun_PreservesMcpServer(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	// Verify all fields preserved
 	assert.Equal(t, testServerName, result.McpServer.Metadata.Name)
 	assert.Equal(t, testOrgID, result.McpServer.Metadata.Org)
 	assert.Equal(t, testDescription, result.McpServer.Spec.Description)
@@ -143,23 +138,22 @@ func TestApply_DryRun_PreservesMcpServer(t *testing.T) {
 }
 
 func TestApply_DryRun_AllowsNilConnection(t *testing.T) {
-	// In DryRun mode, connection can be nil since we don't make RPC calls
 	mcpServer := createTestMcpServer()
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      nil,
+		Client:    nil,
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,
 	}
 
-	// This should fail because Apply() checks Conn before checking DryRun
+	// This should fail because Apply() checks Client before checking DryRun
 	result, err := Apply(opts)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "connection is required")
+	assert.Contains(t, err.Error(), "client is required")
 }
 
 // =============================================================================
@@ -185,7 +179,7 @@ func TestApply_SetOrgWhenEmpty(t *testing.T) {
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,
@@ -218,7 +212,7 @@ func TestApply_PreserveExistingOrg(t *testing.T) {
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,
@@ -228,7 +222,6 @@ func TestApply_PreserveExistingOrg(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	// Existing org should be preserved
 	assert.Equal(t, existingOrg, result.McpServer.Metadata.Org)
 }
 
@@ -248,7 +241,7 @@ func TestApply_CreatesMetadataIfNil(t *testing.T) {
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,
@@ -271,7 +264,7 @@ func TestApply_ResultPopulated(t *testing.T) {
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,
@@ -286,7 +279,6 @@ func TestApply_ResultPopulated(t *testing.T) {
 }
 
 func TestApply_Created_NewServer(t *testing.T) {
-	// Server with no ID is considered a create
 	mcpServer := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
@@ -305,7 +297,7 @@ func TestApply_Created_NewServer(t *testing.T) {
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,
@@ -320,7 +312,6 @@ func TestApply_Created_NewServer(t *testing.T) {
 }
 
 func TestApply_Updated_ExistingServer(t *testing.T) {
-	// Server with ID is considered an update
 	mcpServer := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
@@ -339,7 +330,7 @@ func TestApply_Updated_ExistingServer(t *testing.T) {
 
 	opts := &ApplyOptions{
 		McpServer: mcpServer,
-		Conn:      &mockConn{},
+		Client:    stubClient(),
 		OrgID:     testOrgID,
 		DryRun:    true,
 		Quiet:     true,

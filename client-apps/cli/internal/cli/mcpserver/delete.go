@@ -6,24 +6,19 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
 )
 
 // DeleteOptions contains options for deleting an MCP server.
 type DeleteOptions struct {
-	// Reference is the MCP server reference (slug, org/slug, or resource ID).
 	Reference string
-	// OrgID is the organization ID for context.
-	OrgID string
-	// Conn is the gRPC connection to the backend.
-	Conn grpc.ClientConnInterface
+	OrgID     string
+	Client    *stigmer.Client
 }
 
 // DeleteResult contains the result of a delete operation.
 type DeleteResult struct {
-	// McpServer is the deleted MCP server.
 	McpServer *mcpserverv1.McpServer
 }
 
@@ -33,23 +28,20 @@ func Delete(opts *DeleteOptions) (*DeleteResult, error) {
 	if opts == nil {
 		return nil, fmt.Errorf("delete options cannot be nil")
 	}
-	if opts.Conn == nil {
-		return nil, fmt.Errorf("gRPC connection cannot be nil")
+	if opts.Client == nil {
+		return nil, fmt.Errorf("client cannot be nil")
 	}
 	if opts.Reference == "" {
 		return nil, fmt.Errorf("MCP server reference cannot be empty")
 	}
 
-	// First, get the resource to verify it exists and get its ID
-	mcpServer, err := GetFromBackend(opts.Conn, opts.OrgID, opts.Reference)
+	mcpServer, err := GetFromBackend(opts.Client, opts.OrgID, opts.Reference)
 	if err != nil {
 		return nil, err
 	}
 
-	// Delete the resource by ID
-	client := mcpserverv1.NewMcpServerCommandControllerClient(opts.Conn)
-	_, err = client.Delete(context.Background(), &apiresource.ApiResourceDeleteInput{
-		ResourceId: mcpServer.Metadata.Id,
+	_, err = opts.Client.McpServer.Delete(context.Background(), &stigmer.DeleteResourceInput{
+		ResourceID: mcpServer.Metadata.Id,
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to delete MCP server '%s'", mcpServer.Metadata.Name)

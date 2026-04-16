@@ -7,8 +7,16 @@ description:
 
 A federated Identity Account proves _who_ the user is, but not _what_ they can
 do. Without an IAM Policy, an authenticated request returns `403 Forbidden`.
-This page shows how to grant roles so federated users can access your
+This page shows how to grant roles manually so federated users can access your
 Organization's resources.
+
+<Callout type="info">
+  **Using JIT provisioning?** If your Identity Provider has `autoGrantOnOrg`
+  enabled, Stigmer grants roles automatically when accounts are provisioned. You
+  don't need to create IAM Policies manually. See [Enable JIT
+  provisioning](/docs/guides/federation/register-identity-provider#enable-jit-provisioning)
+  for the automatic setup.
+</Callout>
 
 <DemoProvisionGrantPlayback />
 

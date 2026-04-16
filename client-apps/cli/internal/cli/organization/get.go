@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 )
 
 const defaultTimeout = 10 * time.Second
@@ -19,12 +18,11 @@ const defaultTimeout = 10 * time.Second
 //
 // Unlike other resources, organizations don't support GetByReference, so
 // this uses FindMyOrganizations and matches by slug or ID locally.
-func GetFromBackend(conn grpc.ClientConnInterface, ref string) (*organizationv1.Organization, error) {
-	client := organizationv1.NewOrganizationQueryControllerClient(conn)
+func GetFromBackend(client *stigmer.Client, ref string) (*organizationv1.Organization, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	resp, err := client.Organization.FindMyOrganizations(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to query organizations")
 	}
@@ -51,12 +49,11 @@ func GetFromBackend(conn grpc.ClientConnInterface, ref string) (*organizationv1.
 }
 
 // ListFromBackend returns all organizations accessible to the current user.
-func ListFromBackend(conn grpc.ClientConnInterface) ([]*organizationv1.Organization, error) {
-	client := organizationv1.NewOrganizationQueryControllerClient(conn)
+func ListFromBackend(client *stigmer.Client) ([]*organizationv1.Organization, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	resp, err := client.Organization.FindMyOrganizations(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list organizations")
 	}

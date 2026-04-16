@@ -114,3 +114,23 @@ func (i *SkillInput) toProto() *skillv1.Skill {
 	resource.Spec.Description = i.Description
 	return resource
 }
+
+// SkillInputFromProto creates a SkillInput from a proto Skill resource.
+func SkillInputFromProto(p *skillv1.Skill) *SkillInput {
+	if p == nil {
+		return &SkillInput{}
+	}
+	input := &SkillInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.SkillMd = s.GetSkillMd()
+		input.Tag = s.GetTag()
+		input.Description = s.GetDescription()
+	}
+	return input
+}

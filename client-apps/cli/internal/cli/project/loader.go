@@ -10,8 +10,8 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/pkg/errors"
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/yamlutil"
+	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )

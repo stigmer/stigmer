@@ -39,8 +39,10 @@ func newServerLLMListCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List available models",
+		Use:     "list",
+		Short:   "List available models",
+		Long:    `List all models installed on the local LLM provider. Only available when using Ollama.`,
+		Example: `  stigmer server llm list`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleLLMList(resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -58,8 +60,12 @@ func newServerLLMPullCommand() *cobra.Command {
 		Short: "Pull a new model",
 		Long: `Pull a new model from the LLM provider.
 
-Examples:
+Only available when using a local provider (Ollama). The server must be
+running before pulling a model.`,
+		Example: `  # Pull a coding model
   stigmer server llm pull codellama:7b
+
+  # Pull a different model
   stigmer server llm pull deepseek-coder:6.7b`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -75,8 +81,10 @@ func newServerLLMStatusCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "status",
-		Short: "Show LLM provider status",
+		Use:     "status",
+		Short:   "Show LLM provider status",
+		Long:    `Show the current LLM provider configuration, active model, and connection status.`,
+		Example: `  stigmer server llm status`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleLLMStatus(resolveResultFormat(jsonOutput, quietOutput))
 		},

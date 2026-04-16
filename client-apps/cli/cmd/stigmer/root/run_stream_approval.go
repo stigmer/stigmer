@@ -5,35 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
-
-// needsAgentApprovalPrompt checks if we should show an interactive approval prompt
-// for an agent execution via the phase-level detection track. Returns true when:
-//   - Phase is EXECUTION_WAITING_FOR_APPROVAL
-//   - PendingApproval is non-nil with a valid ToolCallId
-//   - ToolCallId has not already been prompted (prevents duplicate prompts)
-//
-// This is the primary approval detection track. The secondary track
-// (findUnpromptedApproval) provides defense-in-depth by scanning tool call statuses.
-func needsAgentApprovalPrompt(
-	phase agentexecutionv1.ExecutionPhase,
-	pendingApproval *agentexecutionv1.PendingApproval,
-	promptedToolCallIDs map[string]bool,
-) bool {
-	if phase != agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
-		return false
-	}
-	if pendingApproval == nil {
-		return false
-	}
-	if pendingApproval.ToolCallId == "" {
-		return false
-	}
-	return !promptedToolCallIDs[pendingApproval.ToolCallId]
-}
 
 // needsWorkflowApprovalPrompt checks if we should show an interactive approval prompt
 // for a workflow execution. Returns true when:
@@ -53,70 +28,6 @@ func needsWorkflowApprovalPrompt(
 		return false
 	}
 	return !promptedToolCallIDs[pendingApproval.ToolCallId]
-}
-
-// findUnpromptedApproval scans tool calls for any in WAITING_APPROVAL status
-// that has not been prompted yet. This is the defense-in-depth mechanism that
-// catches approvals missed by phase-level detection (e.g., when the backend
-// transitions through WAITING_FOR_APPROVAL between two stream updates).
-//
-// Returns the first unprompted tool call requiring approval, or nil if none found.
-func findUnpromptedApproval(
-	toolCalls []*agentexecutionv1.ToolCall,
-	promptedToolCallIDs map[string]bool,
-) *agentexecutionv1.ToolCall {
-	for _, tc := range toolCalls {
-		if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
-			tc.Id != "" &&
-			!promptedToolCallIDs[tc.Id] {
-			return tc
-		}
-	}
-	return nil
-}
-
-// countUnresolvedApprovals returns the number of tool calls in WAITING_APPROVAL
-// status that were never prompted. Used as a terminal-phase guard to warn when
-// the execution completed with unresolved approval requests.
-func countUnresolvedApprovals(
-	toolCalls []*agentexecutionv1.ToolCall,
-	promptedToolCallIDs map[string]bool,
-) int {
-	count := 0
-	for _, tc := range toolCalls {
-		if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
-			!promptedToolCallIDs[tc.Id] {
-			count++
-		}
-	}
-	return count
-}
-
-// handleToolCallApproval orchestrates the approval flow for a tool call detected
-// via the tool-call-level scan (defense-in-depth track). It prefers the richer
-// PendingApproval message when available and matching; otherwise, it constructs
-// a synthetic PendingApproval from the ToolCall fields.
-//
-// This ensures the user gets prompted even when the execution phase skipped
-// WAITING_FOR_APPROVAL (transient phase race condition).
-func handleToolCallApproval(
-	ctx context.Context,
-	conn *grpc.ClientConn,
-	executionID string,
-	tc *agentexecutionv1.ToolCall,
-	pendingApproval *agentexecutionv1.PendingApproval,
-	prompter approval.Prompter,
-	defaultAction approval.Action,
-) error {
-	// Prefer PendingApproval if available and matches this tool call (richer info
-	// with human-readable message, sanitized args preview, sub-agent context).
-	if pendingApproval != nil && pendingApproval.ToolCallId == tc.Id {
-		return handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction)
-	}
-
-	// Construct synthetic PendingApproval from ToolCall fields.
-	syntheticPA := buildPendingApprovalFromToolCall(tc)
-	return handleAgentApprovalPrompt(ctx, conn, executionID, syntheticPA, prompter, defaultAction)
 }
 
 // buildPendingApprovalFromToolCall constructs a PendingApproval message from
@@ -139,53 +50,6 @@ func buildPendingApprovalFromToolCall(tc *agentexecutionv1.ToolCall) *agentexecu
 	return pa
 }
 
-// handleAgentApprovalPrompt orchestrates the approval flow for agent executions.
-// It displays approval details, prompts the user for a decision, submits the
-// decision to the backend, and displays a confirmation message.
-//
-// defaultAction is passed through from the --approve-default flag. When set,
-// non-interactive environments auto-resolve approvals without prompting.
-//
-// Returns an error if the prompt is cancelled or the API submission fails.
-// The caller should handle the error appropriately (e.g., exit the streaming loop).
-func handleAgentApprovalPrompt(
-	ctx context.Context,
-	conn *grpc.ClientConn,
-	executionID string,
-	pendingApproval *agentexecutionv1.PendingApproval,
-	prompter approval.Prompter,
-	defaultAction approval.Action,
-) error {
-	// Display the approval request details
-	displayPendingApproval(pendingApproval)
-
-	// Build prompt options from the pending approval
-	opts := buildPromptOptions(pendingApproval, defaultAction)
-
-	// Prompt user for decision
-	decision, err := prompter.Prompt(ctx, opts)
-	if err != nil {
-		if errors.Is(err, approval.ErrPromptCancelled) {
-			return errors.New("approval cancelled by user")
-		}
-		if errors.Is(err, approval.ErrNonInteractiveNoDefault) {
-			return errors.New("non-interactive mode requires --approve-default flag")
-		}
-		return err
-	}
-
-	// Submit the approval decision
-	_, err = submitAgentApproval(ctx, conn, executionID, pendingApproval.ToolCallId, decision)
-	if err != nil {
-		return err
-	}
-
-	// Display confirmation
-	displayApprovalSubmitted(decision.Action)
-
-	return nil
-}
-
 // handleWorkflowApprovalPrompt orchestrates the approval flow for workflow executions.
 // It displays approval details, prompts the user for a decision, submits the
 // decision to the backend, and displays a confirmation message.
@@ -199,7 +63,7 @@ func handleAgentApprovalPrompt(
 // Returns an error if the prompt is cancelled or the API submission fails.
 func handleWorkflowApprovalPrompt(
 	ctx context.Context,
-	conn *grpc.ClientConn,
+	client *stigmer.Client,
 	executionID string,
 	pendingApproval *agentexecutionv1.PendingApproval,
 	prompter approval.Prompter,
@@ -224,7 +88,7 @@ func handleWorkflowApprovalPrompt(
 	}
 
 	// Submit the approval decision via workflow API
-	_, err = submitWorkflowApproval(ctx, conn, executionID, pendingApproval.ToolCallId, decision)
+	_, err = submitWorkflowApproval(ctx, client, executionID, pendingApproval.ToolCallId, decision)
 	if err != nil {
 		return err
 	}

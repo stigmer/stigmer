@@ -9,9 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // =============================================================================
@@ -338,8 +336,7 @@ func TestUploadFile_SetsLocalPath(t *testing.T) {
 	writeFile(t, dir, "config.yaml", "key: value")
 	filePath := filepath.Join(dir, "config.yaml")
 
-	conn := &fakeUploadConn{storageKey: "attachments/abc/config.yaml"}
-	proc := NewAttachmentProcessor(conn)
+	proc := newTestProcessor("attachments/abc/config.yaml")
 
 	att, err := proc.uploadFile(filePath, "config.yaml", "application/x-yaml", 10)
 	if err != nil {
@@ -359,8 +356,7 @@ func TestUploadFile_LocalPathIsAbsolute(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "data.csv", "a,b,c")
 
-	conn := &fakeUploadConn{storageKey: "attachments/xyz/data.csv"}
-	proc := NewAttachmentProcessor(conn)
+	proc := newTestProcessor("attachments/xyz/data.csv")
 
 	att, err := proc.uploadFile(filepath.Join(dir, "data.csv"), "data.csv", "text/csv", 5)
 	if err != nil {
@@ -380,8 +376,7 @@ func TestProcessDirectory_SetsLocalPath(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "file.txt", "content")
 
-	conn := &fakeUploadConn{storageKey: "attachments/def/dir.zip"}
-	proc := NewAttachmentProcessor(conn)
+	proc := newTestProcessor("attachments/def/dir.zip")
 
 	att, err := proc.processDirectory(dir)
 	if err != nil {
@@ -401,23 +396,16 @@ func TestProcessDirectory_SetsLocalPath(t *testing.T) {
 // fakeUploadConn — mock gRPC connection for UploadAttachment
 // =============================================================================
 
-type fakeUploadConn struct {
+type fakeUploader struct {
 	storageKey string
 }
 
-func (c *fakeUploadConn) Invoke(_ context.Context, method string, args, reply interface{}, _ ...grpc.CallOption) error {
-	if resp, ok := reply.(proto.Message); ok {
-		// Use protobuf reflection to set storage_key on the response.
-		fd := resp.ProtoReflect().Descriptor().Fields().ByName("storage_key")
-		if fd != nil {
-			resp.ProtoReflect().Set(fd, protoreflect.ValueOfString(c.storageKey))
-		}
-	}
-	return nil
+func (f *fakeUploader) UploadAttachment(_ context.Context, req *agentexecutionv1.UploadAttachmentRequest) (*agentexecutionv1.UploadAttachmentResponse, error) {
+	return &agentexecutionv1.UploadAttachmentResponse{StorageKey: f.storageKey}, nil
 }
 
-func (c *fakeUploadConn) NewStream(_ context.Context, _ *grpc.StreamDesc, _ string, _ ...grpc.CallOption) (grpc.ClientStream, error) {
-	return nil, nil
+func newTestProcessor(storageKey string) *AttachmentProcessor {
+	return &AttachmentProcessor{uploader: &fakeUploader{storageKey: storageKey}}
 }
 
 // =============================================================================
@@ -549,8 +537,7 @@ func TestProcessFiles_WorkspaceAware(t *testing.T) {
 		writeFile(t, dir, "a.txt", "alpha")
 		writeFile(t, dir, "b.txt", "beta")
 
-		conn := &fakeUploadConn{storageKey: "attachments/test/file.txt"}
-		proc := NewAttachmentProcessor(conn)
+		proc := newTestProcessor("attachments/test/file.txt")
 
 		result, err := proc.ProcessFiles([]string{
 			filepath.Join(dir, "a.txt"),
@@ -572,8 +559,7 @@ func TestProcessFiles_WorkspaceAware(t *testing.T) {
 		writeFile(t, dir, "src/config.yaml", "key: value")
 		writeFile(t, dir, "README.md", "hello")
 
-		conn := &fakeUploadConn{storageKey: "attachments/test/file.txt"}
-		proc := NewAttachmentProcessor(conn)
+		proc := newTestProcessor("attachments/test/file.txt")
 
 		result, err := proc.ProcessFiles([]string{
 			filepath.Join(dir, "src", "config.yaml"),
@@ -603,8 +589,7 @@ func TestProcessFiles_WorkspaceAware(t *testing.T) {
 		writeFile(t, workspace, "schema.sql", "CREATE TABLE t")
 		writeFile(t, external, "data.csv", "a,b,c")
 
-		conn := &fakeUploadConn{storageKey: "attachments/test/data.csv"}
-		proc := NewAttachmentProcessor(conn)
+		proc := newTestProcessor("attachments/test/data.csv")
 
 		result, err := proc.ProcessFiles([]string{
 			filepath.Join(workspace, "schema.sql"),
@@ -625,8 +610,7 @@ func TestProcessFiles_WorkspaceAware(t *testing.T) {
 	})
 
 	t.Run("empty paths returns empty result", func(t *testing.T) {
-		conn := &fakeUploadConn{}
-		proc := NewAttachmentProcessor(conn)
+		proc := newTestProcessor("")
 
 		result, err := proc.ProcessFiles([]string{}, []string{"/some/workspace"})
 		if err != nil {

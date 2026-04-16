@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/applier"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/grpc"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,7 +38,7 @@ func (h *applyHandler) Metadata(msg proto.Message) *apiresource.ApiResourceMetad
 	return msg.(*agentv1.Agent).Metadata
 }
 
-func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface, msg proto.Message) (*applier.ApplyResult, error) {
+func (h *applyHandler) Apply(ctx context.Context, client *stigmer.Client, msg proto.Message) (*applier.ApplyResult, error) {
 	a := msg.(*agentv1.Agent)
 
 	if a.Metadata == nil {
@@ -47,8 +47,7 @@ func (h *applyHandler) Apply(ctx context.Context, conn grpc.ClientConnInterface,
 
 	isCreate := a.Metadata.Id == ""
 
-	client := agentv1.NewAgentCommandControllerClient(conn)
-	result, err := client.Apply(ctx, a)
+	result, err := client.Agent.Apply(ctx, stigmer.AgentInputFromProto(a))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to apply agent")
 	}

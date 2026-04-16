@@ -6,13 +6,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // NewContextCommand creates the context command for managing active CLI context.
@@ -36,8 +34,10 @@ func newContextShowCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "show",
-		Short: "Show active context",
+		Use:     "show",
+		Short:   "Show active context",
+		Long:    `Show the active CLI context, including the current organization and environment.`,
+		Example: `  stigmer config context show`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleContextShow(resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -110,19 +110,17 @@ func handleContextSet(orgSlug string, format clioutput.OutputFormat) {
 		return
 	}
 
-	// Validate that the organization exists on the server.
-	conn, err := backend.NewConnection()
+	client, err := backend.NewStigmerClient()
 	if err != nil {
 		clierr.Handle(err)
 		return
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client := orgv1.NewOrganizationQueryControllerClient(conn)
-	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	resp, err := client.Organization.FindMyOrganizations(ctx)
 	if err != nil {
 		climsg.Error("Failed to query organizations: %v", err)
 		clierr.Handle(err)

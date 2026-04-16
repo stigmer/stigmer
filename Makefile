@@ -78,11 +78,13 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check
-build: ## Build the Stigmer CLI binary
+.PHONY: build protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check
+build: ## Build Stigmer CLI, server, and workflow-runner binaries
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
-	@echo "built: bin/stigmer"
+	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
+	cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner .
+	@echo "built: bin/stigmer, bin/stigmer-server, bin/stigmer-workflow-runner"
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -92,7 +94,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
@@ -102,7 +104,11 @@ gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
 	cd site && yarn generate-react-sdk-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check ## Verify all SDK docs are up to date (CI)
+gen-ink-sdk-docs: ## Generate Ink SDK reference docs from TypeDoc
+	cd sdk/ink && npm run typedoc:json
+	cd site && yarn generate-ink-sdk-docs
+
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
@@ -136,6 +142,45 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 	fi; \
 	echo "✓ React SDK docs are up to date"
 
+gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
+	@tmpdir=$$(mktemp -d) && \
+	(cd sdk/ink && npm run typedoc:json) && \
+	(cd site && INK_SDK_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-ink-sdk-docs) && \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/sdk/ink/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: Ink SDK docs are stale — run 'make gen-ink-sdk-docs'"; exit 1; \
+	fi; \
+	echo "✓ Ink SDK docs are up to date"
+
+gen-cli-docs: ## Generate CLI reference docs from Cobra command tree
+	cd client-apps/cli && go run ./cmd/gen-cli-docs --output ../../docs/cli/commands/
+	npx prettier --write --prose-wrap always docs/cli/commands/
+
+gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
+	@tmpdir=$$(mktemp -d) && \
+	(cd client-apps/cli && go run ./cmd/gen-cli-docs --output "$$tmpdir") && \
+	for f in "$$tmpdir"/*.mdx; do \
+		bn=$$(basename "$$f"); \
+		npx prettier --stdin-filepath "docs/cli/commands/$$bn" < "$$f" > "$$f.fmt" 2>/dev/null && mv "$$f.fmt" "$$f"; \
+	done; \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/cli/commands/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: CLI docs are stale — run 'make gen-cli-docs'"; exit 1; \
+	fi; \
+	echo "✓ CLI docs are up to date"
+
 gen-narration: ## Generate narration audio for demo scenarios
 	$(MAKE) -C site generate-narration
 
@@ -163,7 +208,7 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint & Check ────────────────────────────
 
-.PHONY: fix lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos test-demos check check-all
+.PHONY: fix lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	@cd backend/libs/python/graphton && poetry run ruff check --fix .
@@ -194,10 +239,14 @@ web-build:
 validate-demos: ## Run static demo scenario validation (token compliance, manifest alignment)
 	$(MAKE) -C site validate-demos
 
+tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
+	cd sdk/ink && npm run tsdoc:check
+	cd sdk/react && npm run tsdoc:check
+
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-check: tidy fix lint lint-docs format-docs-check gen-sdk-docs-check check-links libs-build web-build docs-build build test validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs-check check-links libs-build web-build docs-build build test validate-demos ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
@@ -269,13 +318,17 @@ update-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
 DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner
 
 .PHONY: local
-local: ## Build + install CLI for local development
-	@rm -f $(HOME)/bin/stigmer /usr/local/bin/stigmer bin/stigmer 2>/dev/null || true
+local: ## Build + install CLI, server, and workflow-runner for local development
+	@rm -f $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server $(HOME)/bin/stigmer-workflow-runner 2>/dev/null || true
+	@rm -f /usr/local/bin/stigmer bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner 2>/dev/null || true
 	@$(MAKE) web-console-build
 	@mkdir -p bin $(HOME)/bin
 	@cd client-apps/cli && go build -tags 'embed_webconsole' -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
-	@cp bin/stigmer $(HOME)/bin/stigmer && chmod +x $(HOME)/bin/stigmer
-	@echo "cli: installed $(HOME)/bin/stigmer"
+	@cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
+	@cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner .
+	@cp bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner $(HOME)/bin/
+	@chmod +x $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server $(HOME)/bin/stigmer-workflow-runner
+	@echo "installed: $(HOME)/bin/stigmer, stigmer-server, stigmer-workflow-runner"
 	@stigmer --version 2>/dev/null || echo "cli: development build"
 	@echo ""
 	@echo "stigmer server will auto-detect API keys from your environment."
@@ -372,6 +425,7 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 .PHONY: clean
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
+	rm -rf backend/services/stigmer-server/bin/
 	rm -rf backend/services/workflow-runner/bin/
 	rm -rf client-apps/cli/embedded/agentrunner/source/
 	rm -rf client-apps/cli/embedded/webconsole/out/

@@ -19,7 +19,8 @@ import {
   type StepInteractions,
   useStepInteractions,
 } from "../../engine/useStepInteractions";
-import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
+import { DemoViewport } from "../../engine/DemoViewport";
 import {
   type MarketplaceConnectStep,
   marketplaceConnectSteps,
@@ -159,7 +160,7 @@ export function MarketplaceConnectTour() {
   });
 
   return (
-    <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+    <DemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={marketplaceConnectSteps}
         narrationManifest={narrationManifest}
@@ -201,6 +202,6 @@ export function MarketplaceConnectTour() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </div>
+    </DemoViewport>
   );
 }

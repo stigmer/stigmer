@@ -110,3 +110,27 @@ func (i *EnvironmentInput) toProto() *environmentv1.Environment {
 	}
 	return resource
 }
+
+// EnvironmentInputFromProto creates a EnvironmentInput from a proto Environment resource.
+func EnvironmentInputFromProto(p *environmentv1.Environment) *EnvironmentInput {
+	if p == nil {
+		return &EnvironmentInput{}
+	}
+	input := &EnvironmentInput{}
+	if m := p.GetMetadata(); m != nil {
+		input.Name = m.GetName()
+		input.Slug = m.GetSlug()
+		input.Org = m.GetOrg()
+		input.Labels = m.GetLabels()
+	}
+	if s := p.GetSpec(); s != nil {
+		input.Description = s.GetDescription()
+		if len(s.GetData()) > 0 {
+			input.Data = make(map[string]EnvVarInput, len(s.GetData()))
+			for k, v := range s.GetData() {
+				input.Data[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret(), Description: v.GetDescription()}
+			}
+		}
+	}
+	return input
+}
