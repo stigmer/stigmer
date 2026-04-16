@@ -5,7 +5,7 @@
  *   Provider and Transport → Components → Composed Views → Utilities
  */
 
-import type { InkReference, InkExport, InkPropsInterface } from "./parser";
+import type { InkReference, InkExport } from "./parser";
 import type { Field } from "../generate-react-sdk-docs/model";
 import { escapeJsString, renderCommentParts } from "../generate-react-sdk-docs/mdx-utils";
 

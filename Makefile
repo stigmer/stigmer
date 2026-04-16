@@ -208,7 +208,7 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint & Check ────────────────────────────
 
-.PHONY: fix lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos test-demos check check-all
+.PHONY: fix lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	@cd backend/libs/python/graphton && poetry run ruff check --fix .
@@ -239,10 +239,14 @@ web-build:
 validate-demos: ## Run static demo scenario validation (token compliance, manifest alignment)
 	$(MAKE) -C site validate-demos
 
+tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
+	cd sdk/ink && npm run tsdoc:check
+	cd sdk/react && npm run tsdoc:check
+
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-check: tidy fix lint lint-docs format-docs-check gen-sdk-docs-check check-links libs-build web-build docs-build build test validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs-check check-links libs-build web-build docs-build build test validate-demos ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
