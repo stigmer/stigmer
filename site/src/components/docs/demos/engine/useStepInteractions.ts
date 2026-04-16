@@ -8,6 +8,7 @@ import {
   scrollTargetIntoView,
   scrollTargetIntoViewInstant,
 } from "./scroll-utils";
+import { CLICK_DELAY_MS } from "./timing";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -25,11 +26,11 @@ export interface StepAction {
    */
   readonly atPercent: number;
   /** Action type. */
-  readonly type: "scroll-to" | "set-cursor" | "clear-cursor";
+  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click";
   /**
    * Target element identifier.
    * - For `scroll-to`: matches `[data-scroll-target="<target>"]`
-   * - For `set-cursor`: matches `[data-cursor-target="<target>"]`
+   * - For `set-cursor` / `click`: matches `[data-cursor-target="<target>"]`
    */
   readonly target?: string;
 }
@@ -83,13 +84,18 @@ function getStepDurationMs<T>(
 // ---------------------------------------------------------------------------
 
 /**
- * Schedule timed mid-step interactions (scroll, cursor movement)
- * synced to narration duration.
+ * Schedule timed mid-step interactions (scroll, cursor movement,
+ * click dispatch) synced to narration duration.
  *
  * In browser mode, actions are scheduled via `setTimeout` at
  * `atPercent * stepDuration` ms from step start. In Remotion
  * video-export mode, actions fire synchronously when the frame
  * time crosses the action's threshold.
+ *
+ * The `click` action is two-phase: it first moves the cursor to
+ * the target (phase 1), then dispatches a native DOM click after
+ * {@link CLICK_DELAY_MS} so the cursor ripple is visible before
+ * the UI reacts.
  *
  * Opt-in: scenarios that don't call this hook are unaffected.
  */
@@ -124,11 +130,25 @@ export function useStepInteractions<T>({
 
     for (const action of actions) {
       const fireAt = action.atPercent * stepDuration;
-      const key = `${stepIndex}-${action.atPercent}-${action.type}`;
 
-      if (elapsed >= fireAt && !firedRef.current.has(key)) {
-        firedRef.current.add(key);
-        executeAction(action, containerRef, setCursorTarget, true);
+      if (action.type === "click") {
+        const cursorKey = `${stepIndex}-${action.atPercent}-click-cursor`;
+        if (elapsed >= fireAt && !firedRef.current.has(cursorKey)) {
+          firedRef.current.add(cursorKey);
+          setCursorTarget(action.target);
+        }
+
+        const dispatchKey = `${stepIndex}-${action.atPercent}-click-dispatch`;
+        if (elapsed >= fireAt + CLICK_DELAY_MS && !firedRef.current.has(dispatchKey)) {
+          firedRef.current.add(dispatchKey);
+          dispatchClickOnTarget(action.target, containerRef);
+        }
+      } else {
+        const key = `${stepIndex}-${action.atPercent}-${action.type}`;
+        if (elapsed >= fireAt && !firedRef.current.has(key)) {
+          firedRef.current.add(key);
+          executeAction(action, containerRef, setCursorTarget, true);
+        }
       }
     }
   });
@@ -155,10 +175,25 @@ export function useStepInteractions<T>({
 
     for (const action of actions) {
       const fireAt = (action.atPercent * duration) / rate;
-      const timer = setTimeout(() => {
-        executeAction(action, containerRef, setCursorTarget, false);
-      }, fireAt);
-      timers.push(timer);
+
+      if (action.type === "click") {
+        timers.push(
+          setTimeout(() => setCursorTarget(action.target), fireAt),
+        );
+        timers.push(
+          setTimeout(
+            () => dispatchClickOnTarget(action.target, containerRef),
+            fireAt + CLICK_DELAY_MS / rate,
+          ),
+        );
+      } else {
+        timers.push(
+          setTimeout(
+            () => executeAction(action, containerRef, setCursorTarget, false),
+            fireAt,
+          ),
+        );
+      }
     }
 
     return () => {
@@ -233,5 +268,42 @@ function executeAction(
     case "clear-cursor":
       setCursorTarget(undefined);
       break;
+
+    case "click":
+      setCursorTarget(action.target);
+      break;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Click dispatch
+// ---------------------------------------------------------------------------
+
+/**
+ * Find the cursor-target element and dispatch a native click on it.
+ *
+ * Uses `HTMLElement.click()` which fires through React's event
+ * delegation, triggering the component's `onClick` handler normally.
+ */
+function dispatchClickOnTarget(
+  target: string | undefined,
+  containerRef: RefObject<HTMLElement | null>,
+): void {
+  if (!target) return;
+
+  const container = containerRef.current;
+  if (!container) return;
+
+  const el = container.querySelector(`[data-cursor-target="${target}"]`);
+  if (!el || !(el instanceof HTMLElement)) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `[StepInteractions] click target "${target}" not found in DOM. ` +
+          `Ensure a [data-cursor-target="${target}"] element exists and is an HTMLElement.`,
+      );
+    }
+    return;
+  }
+
+  el.click();
 }

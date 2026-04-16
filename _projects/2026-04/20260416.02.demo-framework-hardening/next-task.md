@@ -21,7 +21,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | Fix Responsiveness — Fixed Virtual Viewport | DONE | — |
 | T02 | Resize-Aware Scroll Recovery | RESOLVED BY T01 | T01 |
 | T03 | Expand Playwright Viewport Coverage | DONE (via T01) | T01 |
-| T04 | New Interaction — Click (UI State Trigger) | PENDING | T01 |
+| T04 | New Interaction — Click (UI State Trigger) | DONE | T01 |
 | T05 | New Interaction — Type (Text Input Simulation) | PENDING | T04 |
 | T06 | New Interaction — Hover (Tooltip Reveal) | PENDING | T04 |
 | T07 | New Interaction — Drag (Drag-and-Drop) | PENDING | T04 |
@@ -29,11 +29,15 @@ Drop this file into your conversation to quickly resume work on this project.
 | T09 | DemoScope Extraction Architecture | PENDING | T01-T08 |
 | T10 | Validation and Testing Updates | PENDING | T01-T09 |
 
-## Current Task: T04 — New Interaction: Click (UI State Trigger)
+## Current Task: T05 — New Interaction: Type (Text Input Simulation)
 
-**Status**: PENDING — Ready to start (T01 unblocked it)
+**Status**: PENDING — Ready to start (T04 unblocked it)
 
-**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T04_0_plan.md`
+**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T05_0_plan.md`
+
+## Completed: T04 — New Interaction: Click (UI State Trigger)
+
+Added `click` as a fourth action type to the demo engine's `useStepInteractions` hook. The click action is two-phase: phase 1 moves the cursor to the target element at `atPercent`, phase 2 dispatches a native DOM click after `CLICK_DELAY_MS` (450ms) so the cursor ripple is visible before the UI reacts. Both browser (setTimeout) and video (frame-driven) paths are implemented. Validated with `approval-flow-playback`, which collapsed from 5 steps to 4 by replacing the three-step snapshot pattern with a real click that triggers `ApprovalCard`'s `onSubmit` handler. See coding guideline `click-interaction-patterns.md`.
 
 ## Completed: T01 — Fix Responsiveness
 
@@ -55,6 +59,7 @@ Implemented `DemoViewport` wrapper using fixed 896×380 canonical viewport with 
 
 ### Key Source Files
 - **Engine core**: `site/src/components/docs/demos/engine/`
+- **Timing constants**: `site/src/components/docs/demos/engine/timing.ts`
 - **DemoViewport**: `site/src/components/docs/demos/engine/DemoViewport.tsx`
 - **Cursor**: `site/src/components/docs/demos/engine/Cursor.tsx`
 - **Interactions**: `site/src/components/docs/demos/engine/useStepInteractions.ts`
@@ -75,7 +80,7 @@ Implemented `DemoViewport` wrapper using fixed 896×380 canonical viewport with 
 
 ## Quick Commands
 
-- "Continue with T01" — Resume the responsiveness fix
+- "Continue with T05" — Resume the type interaction
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns

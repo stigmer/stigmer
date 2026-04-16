@@ -4,6 +4,7 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion";
 import { useTimeSource } from "./TimeSource";
 import { findScrollParent, scrollTargetIntoView } from "./scroll-utils";
+import { CLICK_DELAY_MS } from "./timing";
 
 interface CursorProps {
   /**
@@ -27,7 +28,6 @@ const SPRING = {
   mass: 0.6,
 } as const;
 
-const CLICK_DELAY_MS = 450;
 const RETRY_INTERVAL_MS = 80;
 const MAX_RETRIES = 12;
 const SCROLL_SETTLE_MS = 400;
