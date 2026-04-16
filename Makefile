@@ -94,7 +94,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-cli-docs ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
@@ -104,7 +104,7 @@ gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
 	cd site && yarn generate-react-sdk-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
@@ -137,6 +137,24 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 		echo "error: React SDK docs are stale — run 'make gen-react-sdk-docs'"; exit 1; \
 	fi; \
 	echo "✓ React SDK docs are up to date"
+
+gen-cli-docs: ## Generate CLI reference docs from Cobra command tree
+	cd client-apps/cli && go run ./cmd/gen-cli-docs --output ../../docs/cli/commands/
+
+gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
+	@tmpdir=$$(mktemp -d) && \
+	(cd client-apps/cli && go run ./cmd/gen-cli-docs --output "$$tmpdir") && \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/cli/commands/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: CLI docs are stale — run 'make gen-cli-docs'"; exit 1; \
+	fi; \
+	echo "✓ CLI docs are up to date"
 
 gen-narration: ## Generate narration audio for demo scenarios
 	$(MAKE) -C site generate-narration

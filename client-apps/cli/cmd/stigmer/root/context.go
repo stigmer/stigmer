@@ -34,8 +34,10 @@ func newContextShowCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "show",
-		Short: "Show active context",
+		Use:     "show",
+		Short:   "Show active context",
+		Long:    `Show the active CLI context, including the current organization and environment.`,
+		Example: `  stigmer config context show`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleContextShow(resolveResultFormat(jsonOutput, quietOutput))
 		},

@@ -1,0 +1,86 @@
+Connect to external services and discover their capabilities.
+
+`stigmer connect` lets you connect to MCP servers, discover their tools and
+resource templates, and push the results to the Stigmer backend. This is how
+you teach Stigmer what an MCP server can do — the discovered capabilities
+become available to agents at runtime.
+
+{/* AUTO_USAGE */}
+
+{/* AUTO_FLAGS */}
+
+{/* AUTO_SUBCOMMANDS */}
+
+### How connection works
+
+For **stdio-based servers**, the CLI spawns the server process locally.
+Environment variables from your shell are passed through, so credentials
+(e.g., `GITHUB_TOKEN`) never leave your machine.
+
+For **HTTP-based servers**, the CLI connects to the configured URL directly.
+
+### Passing credentials
+
+Use `--env` to pass credentials the MCP server needs. Values are merged on
+top of your shell environment (`--env` wins on collision).
+
+```bash
+# Single credential
+stigmer connect mcp-server planton-cloud --env PLANTON_API_KEY=pk-xxx
+
+# Multiple credentials
+stigmer connect mcp-server my-server \
+  --env GITHUB_TOKEN=ghp-xxx \
+  --env API_URL=https://api.example.com
+```
+
+You can also export variables in your shell before running the command.
+`--env` is more convenient and mirrors `stigmer run` and `stigmer draft`.
+
+### Dry run
+
+Use `--dry-run` to preview discovered capabilities without pushing them
+to the backend.
+
+```bash
+stigmer connect mcp-server github --dry-run
+```
+
+## Examples
+
+### Discover tools from a GitHub MCP server
+
+```bash
+stigmer connect mcp-server github
+```
+
+Connects to the GitHub MCP server, lists its tools, and pushes them to
+the Stigmer backend.
+
+### Connect with an organization-qualified slug
+
+```bash
+stigmer connect mcp-server stigmer/mcp-server-stigmer
+```
+
+### Handle slow-starting servers
+
+```bash
+stigmer connect mcp-server my-server --timeout 60s
+```
+
+Increase the timeout for servers that take longer to initialize.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer mcp-server`](./mcp-server) | Start the Stigmer MCP server |
+| [`stigmer apply`](./apply) | Deploy MCP server definitions |
+| [`stigmer get`](./get) | Inspect MCP server resources |
+
+## See also
+
+- [Command Reference](./) — All available commands

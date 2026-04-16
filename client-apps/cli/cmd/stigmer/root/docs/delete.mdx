@@ -1,0 +1,88 @@
+Delete a resource from the Stigmer backend.
+
+`stigmer delete` permanently removes a resource by type and reference. For
+running executions, delete gracefully cancels the agent. This operation
+cannot be undone.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Delete an agent by slug
+stigmer delete agent my-agent
+
+# Delete a workflow by ID
+stigmer delete workflow wfl_abc123
+
+# Cancel a running execution
+stigmer delete execution aex_01abc123
+
+# Skip the confirmation prompt
+stigmer delete agent my-agent --force
+```
+
+{/* AUTO_FLAGS */}
+
+### Supported resource types
+
+| Type | Aliases | Behavior |
+|------|---------|----------|
+| Agent | `agent`, `agt`, `agents` | Permanently deletes the agent definition |
+| Workflow | `workflow`, `wf`, `workflows` | Permanently deletes the workflow |
+| MCP Server | `mcpserver`, `mcp`, `mcp-server` | Permanently deletes the MCP server |
+| Skill | `skill`, `skills` | Permanently deletes the skill |
+| Project | `project`, `proj`, `projects` | Permanently deletes the project |
+| Execution | `execution`, `exec` | Gracefully cancels a running execution |
+
+### Confirmation
+
+By default, `stigmer delete` prompts for confirmation before proceeding.
+Use `--force` to skip the prompt in scripts and CI pipelines.
+
+```bash
+# Interactive confirmation
+stigmer delete agent my-agent
+
+# Skip confirmation (use in scripts)
+stigmer delete agent my-agent --force
+```
+
+## Examples
+
+### Delete an agent
+
+```bash
+stigmer delete agent my-agent
+```
+
+You are prompted to confirm. The agent and all its versions are permanently
+removed.
+
+### Cancel a running execution
+
+```bash
+stigmer delete execution aex_01abc123
+```
+
+The running agent receives a graceful cancellation signal.
+
+### Scripted deletion with JSON output
+
+```bash
+stigmer delete agent my-agent --force --json
+```
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer get`](./get) | Inspect a resource before deleting |
+| [`stigmer list`](./list) | List resources to find what to delete |
+| [`stigmer apply`](./apply) | Create or update resources |
+
+## See also
+
+- [Command Reference](./) — All available commands
