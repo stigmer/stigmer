@@ -23,7 +23,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/env"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/dotenv"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker"
 	workerConfig "github.com/stigmer/stigmer/backend/services/workflow-runner/worker/config"
 )
@@ -39,7 +39,7 @@ func main() {
 	}()
 
 	// Load .env file for local development (optional - fails silently in production)
-	env.Load()
+	dotenv.Load()
 
 	// Setup logging
 	setupLogging()
