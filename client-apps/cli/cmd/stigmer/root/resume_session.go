@@ -2,10 +2,10 @@ package root
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"slices"
 
-	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
@@ -140,67 +140,31 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 		return nil
 
 	default:
-		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, client)
+		streamCancel()
 
-		var toggleExpandCh chan struct{}
-		var cancelCh chan struct{}
-		var interruptCh chan struct{}
 		if termctl.IsSupported(os.Stderr) {
-			toggleExpandCh = make(chan struct{}, 1)
-			cancelCh = make(chan struct{}, 1)
-			interruptCh = make(chan struct{}, 1)
-		}
-
-		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh, interruptCh)
-
-		var programFactory func(func(*inlineBubbleModel)) *managedProgram
-		if program != nil {
-			programFactory = func(initModel func(*inlineBubbleModel)) *managedProgram {
-				m := newInlineBubbleModelWithChannels(toggleExpandCh, cancelCh, interruptCh)
-				if initModel != nil {
-					initModel(&m)
+			// Interactive TTY: delegate to Ink, which loads the
+			// session history and allows follow-up via its own hooks.
+			_, err := streamAgentInk(sessionID, headerInfo, latestExecID, orgID, client)
+			if err != nil {
+				return errors.Wrap(err, "ink renderer failed")
+			}
+		} else {
+			// Non-TTY: drain historical events as plain text, then exit.
+			for event := range events {
+				switch e := event.(type) {
+				case executiontui.AIMessageEvent:
+					if e.Content != "" {
+						fmt.Fprintln(os.Stdout, e.Content)
+					}
+				case executiontui.HumanMessageEvent:
+					fmt.Fprintf(os.Stderr, "\n> %s\n\n", e.Content)
+				case executiontui.SystemMessageEvent:
+					fmt.Fprintf(os.Stderr, "[system] %s\n", e.Content)
 				}
-				p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
-				mp := newManagedProgram(p, os.Stderr)
-				mp.runAndMonitor()
-				return mp
 			}
 		}
 
-		sbRoot, pfDir := sessionPaths(sessionID)
-
-		cfg := inlineRenderConfig{
-			events:            events,
-			approvalResponses: approvalResponses,
-			prompter:          prompter,
-			data:              os.Stdout,
-			status:            os.Stderr,
-			sessionID:         sessionID,
-			workspaceRoots:    workspaceRoots,
-			sandboxRoot:       sbRoot,
-			platformDir:       pfDir,
-			headerInfo:        headerInfo,
-			program:           program,
-			programFactory:    programFactory,
-			toggleExpandCh:    toggleExpandCh,
-			cancelCh:          cancelCh,
-			interruptCh:       interruptCh,
-			followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
-		}
-		finalExecID, _, exitErr, activeProgram := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
-
-		stopInlineProgram(activeProgram)
-		streamCancel()
-
-		if exitErr != "" {
-			return errors.New(exitErr)
-		}
-		finalExec, err := fetchFinalExecution(context.Background(), client, finalExecID)
-		if err != nil {
-			return errors.Wrap(err, "failed to fetch final execution state")
-		}
-		displaySessionExitLine(sessionID, finalExec)
 		return nil
 	}
 }

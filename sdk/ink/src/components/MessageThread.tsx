@@ -8,6 +8,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import {
   ApprovalAction,
   ExecutionPhase,
@@ -16,6 +17,7 @@ import {
 import { isTerminalPhase } from "@stigmer/react";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
+import { SubAgentBlock } from "./SubAgentBlock.js";
 import { ExecutionProgress } from "./ExecutionProgress.js";
 import { ApprovalPrompt } from "./ApprovalPrompt.js";
 
@@ -34,11 +36,14 @@ export interface MessageThreadProps {
   ) => void;
   /** Set of tool call IDs currently being submitted for approval. */
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  /** Whether tool call groups should be rendered in expanded mode. Toggled via Ctrl+O. */
+  readonly expandToolCalls?: boolean;
 }
 
 type ThreadItem =
   | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly key: string }
+  | { readonly kind: "sub-agent"; readonly subAgent: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
   | { readonly kind: "approval"; readonly pendingApproval: PendingApproval; readonly key: string };
@@ -57,6 +62,7 @@ function buildThreadItems(
   for (let ei = 0; ei < allExecutions.length; ei++) {
     const exec = allExecutions[ei];
     const messages = exec.status?.messages ?? [];
+    const subAgents = exec.status?.subAgentExecutions ?? [];
 
     const specMessage = exec.spec?.message;
     if (specMessage && specMessage !== "execute") {
@@ -78,11 +84,29 @@ function buildThreadItems(
       }
 
       if (msg.type === MessageType.MESSAGE_AI && msg.toolCalls.length > 0) {
-        items.push({
-          kind: "tool-group",
-          toolCalls: msg.toolCalls,
-          key: `e${ei}-m${mi}-tc`,
-        });
+        // Split tool calls: "task" tools become sub-agent blocks,
+        // everything else goes into a regular tool group.
+        const regularTools = msg.toolCalls.filter((tc) => tc.name !== "task");
+        const taskTools = msg.toolCalls.filter((tc) => tc.name === "task");
+
+        if (regularTools.length > 0) {
+          items.push({
+            kind: "tool-group",
+            toolCalls: regularTools,
+            key: `e${ei}-m${mi}-tc`,
+          });
+        }
+
+        for (let ti = 0; ti < taskTools.length; ti++) {
+          const matchedSub = subAgents.find((sa) => sa.id === taskTools[ti].id);
+          if (matchedSub) {
+            items.push({
+              kind: "sub-agent",
+              subAgent: matchedSub,
+              key: `e${ei}-m${mi}-sa-${ti}`,
+            });
+          }
+        }
       }
     }
   }
@@ -141,6 +165,7 @@ export function MessageThread({
   pendingUserMessage,
   onApprovalSubmit,
   submittingApprovalIds,
+  expandToolCalls = false,
 }: MessageThreadProps) {
   const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
@@ -162,14 +187,14 @@ export function MessageThread({
       <Static items={historyItems}>
         {(item) => (
           <Box key={item.key} flexDirection="column" marginBottom={1}>
-            {renderItem(item, onApprovalSubmit, submittingApprovalIds)}
+            {renderItem(item, onApprovalSubmit, submittingApprovalIds, expandToolCalls)}
           </Box>
         )}
       </Static>
 
       {liveItems.map((item) => (
         <Box key={item.key} flexDirection="column" marginBottom={1}>
-          {renderItem(item, onApprovalSubmit, submittingApprovalIds)}
+          {renderItem(item, onApprovalSubmit, submittingApprovalIds, expandToolCalls)}
         </Box>
       ))}
     </Box>
@@ -204,12 +229,15 @@ function renderItem(
   item: ThreadItem,
   onApprovalSubmit?: (toolCallId: string, action: ApprovalAction) => void,
   submittingApprovalIds?: ReadonlySet<string>,
+  expandToolCalls?: boolean,
 ): React.ReactNode {
   switch (item.kind) {
     case "message":
       return <MessageEntry message={item.message} />;
     case "tool-group":
-      return <ToolCallGroup toolCalls={item.toolCalls} />;
+      return <ToolCallGroup toolCalls={item.toolCalls} defaultExpanded={expandToolCalls} />;
+    case "sub-agent":
+      return <SubAgentBlock subAgent={item.subAgent} defaultExpanded={expandToolCalls} />;
     case "phase":
       return <ExecutionProgress phase={item.phase} />;
     case "approval":

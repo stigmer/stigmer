@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
-	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
 
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -21,19 +18,17 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 )
 
-// streamAgentExecution subscribes to execution updates and renders them using
-// the selected output mode:
+// streamAgentExecution subscribes to execution updates and renders them
+// using the selected output mode:
 //
-//   - OutputInline (default): Streaming text output in normal terminal
-//     scrollback. AI content goes to stdout; status/progress goes to stderr.
 //   - OutputJSON: Newline-delimited JSON events on stdout for scripting/CI.
+//   - OutputInline + TTY: Delegates to the @stigmer/ink renderer (Node.js).
+//   - OutputInline + non-TTY: Minimal plain text output for piped scenarios.
 //
-// A background goroutine reads the gRPC stream and converts updates into
-// events sent over a channel. The consumer (renderer) receives these events
-// and renders or serializes them.
-//
-// The returned execution is the last one that ran (which may be a follow-up
-// in inline mode, not the original).
+// For the JSON and plain text paths, a background goroutine reads the gRPC
+// stream and converts updates into events sent over a channel. The Ink path
+// cancels this subscription immediately — Ink manages its own connection
+// via @stigmer/react hooks.
 func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, client *stigmer.Client, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 
@@ -55,146 +50,18 @@ func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, execut
 		client:            client,
 	})
 
-	switch outputMode {
-	case OutputJSON:
+	switch {
+	case outputMode == OutputJSON:
 		renderSessionHeader(statusW, headerInfo)
 		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, client)
+	case termctl.IsSupported(statusW):
+		// Interactive TTY: delegate to the Ink renderer.
+		streamCancel()
+		return streamAgentInk(sessionID, headerInfo, executionID, orgID, client)
 	default:
-		return streamAgentInline(streamCtx, streamCancel, sessionID, headerInfo, executionID, orgID, events, approvalResponses, prompter, defaultAction, client, workspaceRoots, dataW, statusW)
+		// Non-TTY piped output: minimal plain text renderer.
+		return streamAgentPlainText(streamCtx, streamCancel, sessionID, headerInfo, executionID, events, approvalResponses, client, dataW, statusW)
 	}
-}
-
-// streamAgentInline renders events as streaming text without the TUI.
-// AI content goes to dataW, status/progress goes to statusW. When a session
-// exists, a follow-up loop prompts for continued conversation after each
-// execution completes.
-//
-// A Bubbletea Program runs alongside the event loop in inline mode (no alt
-// screen), owning the stderr writer for accurate row tracking. The Program
-// is started before the first renderInline call and shut down on return.
-// When the status writer is not a terminal, the Program is skipped entirely
-// and all output falls back to direct writes.
-func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, client *stigmer.Client, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
-	var followUpFn executiontui.FollowUpFn
-	if sessionID != "" {
-		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, client)
-	}
-
-	var toggleExpandCh chan struct{}
-	var cancelCh chan struct{}
-	var interruptCh chan struct{}
-	if termctl.IsSupported(statusW) {
-		toggleExpandCh = make(chan struct{}, 1)
-		cancelCh = make(chan struct{}, 1)
-		interruptCh = make(chan struct{}, 1)
-	}
-
-	program := startInlineProgram(statusW, toggleExpandCh, cancelCh, interruptCh)
-
-	var programFactory func(func(*inlineBubbleModel)) *managedProgram
-	if program != nil {
-		programFactory = func(initModel func(*inlineBubbleModel)) *managedProgram {
-			m := newInlineBubbleModelWithChannels(toggleExpandCh, cancelCh, interruptCh)
-			if initModel != nil {
-				initModel(&m)
-			}
-			p := tea.NewProgram(m, tea.WithOutput(statusW))
-			mp := newManagedProgram(p, statusW)
-			mp.runAndMonitor()
-			return mp
-		}
-	}
-
-	var subjectUpdate chan string
-	if sessionID != "" && headerInfo.Subject == "" {
-		subjectUpdate = make(chan string, 1)
-		go pollSessionSubject(streamCtx, client, sessionID, subjectUpdate)
-	}
-
-	var recentSessionsCh chan []recentSession
-	if !headerInfo.IsResumed && termctl.IsSupported(statusW) && sessionID != "" {
-		recentSessionsCh = make(chan []recentSession, 1)
-		go fetchRecentSessions(client, sessionID, recentSessionsCh)
-	}
-
-	sbRoot, pfDir := sessionPaths(sessionID)
-
-	cfg := inlineRenderConfig{
-		events:            events,
-		approvalResponses: approvalResponses,
-		prompter:          prompter,
-		defaultAction:     defaultAction,
-		data:              dataW,
-		status:            statusW,
-		sessionID:         sessionID,
-		workspaceRoots:    workspaceRoots,
-		sandboxRoot:       sbRoot,
-		platformDir:       pfDir,
-		program:           program,
-		programFactory:    programFactory,
-		headerInfo:        headerInfo,
-		subjectUpdate:     subjectUpdate,
-		recentSessionsCh:  recentSessionsCh,
-		toggleExpandCh:    toggleExpandCh,
-		cancelCh:          cancelCh,
-		interruptCh:       interruptCh,
-		followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
-		cancelExecFn: func() {
-			_, _ = execution.Cancel(client, executionID)
-		},
-	}
-
-	latestExecID, phase, exitErr, activeProgram := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
-
-	stopInlineProgram(activeProgram)
-	streamCancel()
-
-	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, client)
-}
-
-// startInlineProgram creates and starts a managed Bubbletea Program in
-// inline mode for row-tracked stderr rendering. Returns nil when the writer
-// is not a terminal (CI, piped output) — the renderer falls back to direct
-// writes.
-//
-// When the channel arguments are non-nil, the model is wired to the event
-// loop via channels and Bubbletea owns stdin (raw mode). When nil, stdin
-// is not connected and input is handled externally.
-//
-// The returned *managedProgram monitors the underlying tea.Program's Run()
-// goroutine. If Run() exits unexpectedly (e.g., terminal resize edge case),
-// subsequent Println calls degrade to direct writes on statusW and Send
-// calls become no-ops — the rendering pipeline never goes dark.
-func startInlineProgram(statusW io.Writer, toggleCh, cancelCh, interruptCh chan struct{}) *managedProgram {
-	if !termctl.IsSupported(statusW) {
-		return nil
-	}
-
-	opts := []tea.ProgramOption{tea.WithOutput(statusW)}
-
-	var model inlineBubbleModel
-	if toggleCh != nil || cancelCh != nil {
-		model = newInlineBubbleModelWithChannels(toggleCh, cancelCh, interruptCh)
-	} else {
-		model = newInlineBubbleModel()
-		opts = append(opts, tea.WithInput(nil))
-	}
-
-	p := tea.NewProgram(model, opts...)
-	mp := newManagedProgram(p, statusW)
-	mp.runAndMonitor()
-	return mp
-}
-
-// stopInlineProgram sends Quit to the managed program and waits for it
-// to exit. Safe to call with nil (non-TTY path). Uses a generous timeout
-// to avoid blocking indefinitely on a stuck program at session end.
-func stopInlineProgram(mp *managedProgram) {
-	if mp == nil {
-		return
-	}
-	mp.Quit()
-	mp.Wait(5 * time.Second)
 }
 
 // streamAgentJSON renders events as newline-delimited JSON on stdout.
@@ -212,7 +79,7 @@ func streamAgentJSON(streamCtx context.Context, streamCancel context.CancelFunc,
 }
 
 // streamAgentEpilogue fetches the final execution and prints a summary.
-// Shared by the inline and JSON rendering paths.
+// Shared by all rendering paths.
 func streamAgentEpilogue(sessionID, executionID, phase, exitErr string, sdkClient *stigmer.Client) (*agentexecutionv1.AgentExecution, error) {
 	if exitErr != "" && phase == "" {
 		return nil, errors.New(exitErr)
@@ -232,56 +99,6 @@ func streamAgentEpilogue(sessionID, executionID, phase, exitErr string, sdkClien
 	return finalExec, nil
 }
 
-// buildFollowUpFn creates a FollowUpFn closure that creates follow-up
-// executions within the given session. Each call creates a new execution,
-// subscribes to its gRPC stream, and launches a streamToEvents goroutine.
-func buildFollowUpFn(ctx context.Context, sessionID, orgID string, client *stigmer.Client) executiontui.FollowUpFn {
-	return func(message string) (*executiontui.FollowUpResult, error) {
-		exec, err := createAgentExecution(CreateAgentExecutionInput{
-			SessionID: sessionID,
-			OrgID:     orgID,
-			Message:   message,
-			Client:    client,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		newExecID := exec.GetMetadata().GetId()
-
-		subStream, err := client.AgentExecution.Subscribe(ctx, newExecID)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to subscribe to follow-up execution")
-		}
-
-		events := make(chan executiontui.Event, 16)
-		approvalResponses := make(chan executiontui.ApprovalResponse, 1)
-
-		cancelFn := func() error {
-			_, err := execution.Cancel(client, newExecID)
-			return err
-		}
-
-		go streamToEvents(ctx, streamToEventsConfig{
-			executionID:       newExecID,
-			sessionID:         sessionID,
-			stream:            subStream,
-			events:            events,
-			approvalResponses: approvalResponses,
-			client:            client,
-		})
-
-		return &executiontui.FollowUpResult{
-			ExecutionID:       newExecID,
-			Events:            events,
-			ApprovalResponses: approvalResponses,
-			CancelFn:          cancelFn,
-		}, nil
-	}
-}
-
-// fetchFinalExecution retrieves the current execution state from the backend.
-// Called after the renderer exits to get the full proto for the summary display.
 func fetchFinalExecution(ctx context.Context, sdkClient *stigmer.Client, executionID string) (*agentexecutionv1.AgentExecution, error) {
 	resp, err := sdkClient.AgentExecution.Get(ctx, executionID)
 	if err != nil {
@@ -290,16 +107,8 @@ func fetchFinalExecution(ctx context.Context, sdkClient *stigmer.Client, executi
 	return resp, nil
 }
 
-// streamWorkflowExecution subscribes to workflow execution updates and displays them in real-time.
-// When a child agent execution requires approval, it prompts the user for a decision
-// and submits it via the workflow API (which forwards to the child agent).
-//
-// The streaming loop follows the same invariant as streamAgentExecution: render content
-// before status, prompt before proceeding.
-//
-// The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
-// defaultAction is the --approve-default flag value; when set, non-TTY approvals
-// are auto-resolved without prompting.
+// streamWorkflowExecution subscribes to workflow execution updates and
+// displays them in real-time with tool approval handling.
 func streamWorkflowExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, client *stigmer.Client) (*workflowexecutionv1.WorkflowExecution, error) {
 	climsg.Success("Streaming workflow execution logs")
 	fmt.Println()
@@ -313,17 +122,14 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 		return nil, errors.Wrap(err, "failed to subscribe to workflow execution")
 	}
 
-	// Activity spinner — shows progress between streaming updates.
 	sp := spinner.New(os.Stdout)
 	sp.Start("Waiting for workflow...")
 	defer sp.Stop()
 
-	// Track last displayed phase, tasks, and approval state.
 	var lastPhase workflowexecutionv1.ExecutionPhase
 	promptedToolCallIDs := make(map[string]bool)
 	taskCount := 0
 
-	// Stream updates until execution completes
 	for {
 		execution, err := subStream.Recv()
 		if err != nil {
@@ -334,7 +140,6 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 			return nil, errors.Wrap(err, "workflow execution stream error")
 		}
 
-		// Step 1: Display new tasks FIRST — show what happened before status changes.
 		if len(execution.Status.Tasks) > taskCount {
 			sp.Stop()
 			for i := taskCount; i < len(execution.Status.Tasks); i++ {
@@ -344,8 +149,6 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 			sp.Start("Workflow running...")
 		}
 
-		// Step 2: Handle approval flow when child agent requires approval.
-		// Workflows surface approvals via WorkflowPendingApproval wrappers.
 		for _, wpa := range execution.Status.GetPendingApprovals() {
 			pa := wpa.GetApproval()
 			if pa.GetToolCallId() == "" || promptedToolCallIDs[pa.GetToolCallId()] {
@@ -359,7 +162,6 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 			sp.Start("Resuming after approval...")
 		}
 
-		// Step 3: Display phase changes (AFTER tasks and approvals handled).
 		if execution.Status.Phase != lastPhase {
 			sp.Stop()
 			displayWorkflowPhaseChange(execution.Status.Phase)
@@ -370,7 +172,6 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 			}
 		}
 
-		// Step 4: Terminal check.
 		if isTerminalWorkflowPhase(execution.Status.Phase) {
 			sp.Stop()
 			displayWorkflowExecutionComplete(execution)

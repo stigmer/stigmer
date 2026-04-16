@@ -566,6 +566,31 @@ jobs:
           echo "$CHANGELOG" > /tmp/changelog.txt
           echo "changelog_file=/tmp/changelog.txt" >> $GITHUB_OUTPUT
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Wait for @stigmer/ink on npm
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          # Strip 'v' prefix for npm version (tag v1.2.3 → npm 1.2.3)
+          NPM_VERSION="${VERSION#v}"
+          echo "Waiting for @stigmer/ink@$NPM_VERSION on npm..."
+          for i in $(seq 1 60); do
+            if npm view "@stigmer/ink@$NPM_VERSION" version 2>/dev/null; then
+              echo "Found @stigmer/ink@$NPM_VERSION on npm"
+              exit 0
+            fi
+            echo "Attempt $i/60: not yet available, waiting 10s..."
+            sleep 10
+          done
+          echo "ERROR: @stigmer/ink@$NPM_VERSION not found on npm after 10 minutes"
+          echo "The CLI requires this package for interactive session rendering."
+          echo "Check the release.npm-libs workflow for failures."
+          exit 1
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         env:

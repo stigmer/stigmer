@@ -10,6 +10,8 @@ export interface ToolCallGroupProps {
   readonly toolCalls: readonly ToolCall[];
   /** Whether this group is currently focused for keyboard interaction. */
   readonly isFocused?: boolean;
+  /** Whether to start in expanded mode (driven by Ctrl+O global toggle). */
+  readonly defaultExpanded?: boolean;
 }
 
 type AggregateStatus = "running" | "failed" | "completed" | "pending";
@@ -51,8 +53,9 @@ const STATUS_STYLE: Record<AggregateStatus, { symbol: string; color?: string }> 
 export function ToolCallGroup({
   toolCalls,
   isFocused = false,
+  defaultExpanded = false,
 }: ToolCallGroupProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const status = deriveAggregateStatus(toolCalls);
   const style = STATUS_STYLE[status];
 
