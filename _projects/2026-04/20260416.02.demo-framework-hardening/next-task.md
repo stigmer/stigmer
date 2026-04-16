@@ -22,18 +22,22 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Resize-Aware Scroll Recovery | RESOLVED BY T01 | T01 |
 | T03 | Expand Playwright Viewport Coverage | DONE (via T01) | T01 |
 | T04 | New Interaction — Click (UI State Trigger) | DONE | T01 |
-| T05 | New Interaction — Type (Text Input Simulation) | PENDING | T04 |
+| T05 | New Interaction — Type (Text Input Simulation) | DONE | T04 |
 | T06 | New Interaction — Hover (Tooltip Reveal) | PENDING | T04 |
 | T07 | New Interaction — Drag (Drag-and-Drop) | PENDING | T04 |
 | T08 | New Interaction — Viewport Transition (Zoom/Pan) | PENDING | T01 |
 | T09 | DemoScope Extraction Architecture | PENDING | T01-T08 |
 | T10 | Validation and Testing Updates | PENDING | T01-T09 |
 
-## Current Task: T05 — New Interaction: Type (Text Input Simulation)
+## Current Task: T06 — New Interaction: Hover (Tooltip Reveal)
 
 **Status**: PENDING — Ready to start (T04 unblocked it)
 
-**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T05_0_plan.md`
+**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T06_0_plan.md`
+
+## Completed: T05 — New Interaction: Type (Text Input Simulation)
+
+Added `type` as the fifth action type to the demo engine's `useStepInteractions` hook. The type action is three-phase: phase 1 moves the cursor to the target at `atPercent`, phase 2 starts typing after `CLICK_DELAY_MS` (450ms), phase 3+ types characters one at a time at `TYPE_CHAR_DELAY_MS` (50ms) intervals. Uses `resolveInput` to find the `<input>`/`<textarea>` inside a `data-cursor-target` wrapper, and the proven `nativeInputValueSetter` pattern to trigger React's onChange. Both browser (setTimeout) and video (frame-driven) paths are implemented. Validated with `api-key-setup`, which replaced the one-off `PrefilledCreateForm` component with the engine-level `type` action. See coding guideline `type-interaction-patterns.md`.
 
 ## Completed: T04 — New Interaction: Click (UI State Trigger)
 
@@ -80,7 +84,7 @@ Implemented `DemoViewport` wrapper using fixed 896×380 canonical viewport with 
 
 ## Quick Commands
 
-- "Continue with T05" — Resume the type interaction
+- "Continue with T06" — Start the hover interaction
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns

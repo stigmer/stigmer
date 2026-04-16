@@ -22,6 +22,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import { samples } from "@stigmer/react/demo";
 import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import type { StepInteractions } from "../../engine/useStepInteractions";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -122,7 +123,7 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
     narration: "These are your API keys. You'll create one for the quickstart.",
   },
   { delayMs: 2500, data: { view: "create-key-click" }, caption: "Create a new key" },
-  { delayMs: 2000, data: { view: "create-form" }, caption: "Name your key" },
+  { delayMs: 2500, data: { view: "create-form" }, caption: "Name your key" },
   {
     delayMs: 2500,
     data: { view: "key-created" },
@@ -130,3 +131,22 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
     narration: "Your key is ready. Copy it now — you won't see the full key again after this.",
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Mid-step interactions
+// ---------------------------------------------------------------------------
+
+/**
+ * Step 6 (`create-form`): at 15% of narration, the cursor moves to
+ * the name input and types "quickstart-key" character by character.
+ *
+ * Timing budget at default 50ms/char:
+ *   cursor travel: 450ms
+ *   14 chars × 50ms: 700ms
+ *   total: ~1150ms out of 2500ms step — comfortably within budget.
+ */
+export const APIKEY_INTERACTIONS: StepInteractions = {
+  6: [
+    { atPercent: 0.15, type: "type", target: "apikey-name-input", text: CREATED_KEY_NAME },
+  ],
+};

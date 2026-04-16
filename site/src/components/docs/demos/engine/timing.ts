@@ -16,3 +16,13 @@
  * this window for typical travel distances in the demo viewport.
  */
 export const CLICK_DELAY_MS = 450;
+
+/**
+ * Default milliseconds between characters for the `type` action.
+ *
+ * 50ms per character = 20 characters/second — fast enough to feel
+ * like confident typing, slow enough that each character is readable
+ * in both browser playback and video export. Overridable per-action
+ * via `StepAction.typeDelay`.
+ */
+export const TYPE_CHAR_DELAY_MS = 50;
