@@ -76,8 +76,9 @@ func resolveInkConfig(sessionID, orgID string) (*inkConfig, error) {
 // resolution strategy that mirrors how the web app resolves @stigmer/react:
 //
 //  1. STIGMER_INK_CMD env var — escape hatch for custom setups.
-//  2. Workspace detection — if the Go binary sits inside the monorepo
-//     (bin/stigmer), resolve tsx + source entry point from the workspace.
+//  2. Workspace detection — first from the binary location (bin/stigmer),
+//     then by walking up from CWD to handle binaries installed outside
+//     the repo (e.g. ~/bin, $GOPATH/bin, bazel-bin).
 //  3. npx with pinned version — production path, downloads on first run.
 func resolveInkCommand(args []string) (*exec.Cmd, error) {
 	// 1. Escape hatch: explicit override.
@@ -86,7 +87,7 @@ func resolveInkCommand(args []string) (*exec.Cmd, error) {
 		return exec.Command(parts[0], append(parts[1:], args...)...), nil
 	}
 
-	// 2. Workspace detection (development).
+	// 2a. Workspace detection from binary location (development).
 	// When the CLI is built with `make build` the binary lands at
 	// <workspace>/bin/stigmer. We look for tsx and the source entry point
 	// relative to the binary location.
@@ -94,11 +95,18 @@ func resolveInkCommand(args []string) (*exec.Cmd, error) {
 		binDir := filepath.Dir(exePath)
 		workspaceRoot := filepath.Join(binDir, "..")
 
-		tsxBin := filepath.Join(workspaceRoot, "node_modules", ".bin", "tsx")
-		inkEntry := filepath.Join(workspaceRoot, "sdk", "ink", "src", "cli", "stigmer-ink.tsx")
+		if cmd, ok := tryWorkspaceInk(workspaceRoot, args); ok {
+			return cmd, nil
+		}
+	}
 
-		if fileExists(tsxBin) && fileExists(inkEntry) {
-			return exec.Command(tsxBin, append([]string{inkEntry}, args...)...), nil
+	// 2b. Workspace detection from CWD — handles binaries installed
+	// outside the repo (~/bin, $GOPATH/bin, bazel output, etc.).
+	if cwd, err := os.Getwd(); err == nil {
+		if root := findWorkspaceRoot(cwd); root != "" {
+			if cmd, ok := tryWorkspaceInk(root, args); ok {
+				return cmd, nil
+			}
 		}
 	}
 
@@ -112,6 +120,36 @@ func resolveInkCommand(args []string) (*exec.Cmd, error) {
 
 	npxArgs := append([]string{"--yes", "@stigmer/ink@" + inkPackageVersion}, args...)
 	return exec.Command(npxPath, npxArgs...), nil
+}
+
+// tryWorkspaceInk checks whether root looks like the stigmer monorepo
+// workspace and returns a tsx command for the Ink entry point if so.
+func tryWorkspaceInk(root string, args []string) (*exec.Cmd, bool) {
+	tsxBin := filepath.Join(root, "node_modules", ".bin", "tsx")
+	inkEntry := filepath.Join(root, "sdk", "ink", "src", "cli", "stigmer-ink.tsx")
+
+	if fileExists(tsxBin) && fileExists(inkEntry) {
+		return exec.Command(tsxBin, append([]string{inkEntry}, args...)...), true
+	}
+	return nil, false
+}
+
+// findWorkspaceRoot walks up from dir looking for the stigmer monorepo root
+// (identified by the presence of both node_modules/.bin/tsx and the Ink source
+// entry point).
+func findWorkspaceRoot(dir string) string {
+	for {
+		tsxBin := filepath.Join(dir, "node_modules", ".bin", "tsx")
+		inkEntry := filepath.Join(dir, "sdk", "ink", "src", "cli", "stigmer-ink.tsx")
+		if fileExists(tsxBin) && fileExists(inkEntry) {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
 }
 
 // streamAgentInk spawns the @stigmer/ink renderer as an external process,
