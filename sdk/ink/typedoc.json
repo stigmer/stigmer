@@ -1,0 +1,51 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "tsconfig": "tsconfig.typedoc.json",
+  "skipErrorChecking": true,
+  "json": "dist/api.json",
+  "pretty": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "readme": "none",
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": true,
+    "unusedMergeModuleWith": true
+  },
+  "requiredToBeDocumented": [
+    "Variable",
+    "Function",
+    "Interface",
+    "Property",
+    "TypeAlias"
+  ],
+  "externalSymbolLinkMappings": {
+    "@stigmer/sdk": {
+      "Stigmer": "/docs/sdk",
+      "DeploymentMode": "/docs/sdk/react/core"
+    },
+    "@stigmer/react": {
+      "StigmerContext": "/docs/sdk/react/core",
+      "DeploymentModeContext": "/docs/sdk/react/core",
+      "useSessionConversation": "/docs/sdk/react/session",
+      "useSessionUsage": "/docs/sdk/react/usage",
+      "isTerminalPhase": "/docs/sdk/react/execution",
+      "formatCost": "/docs/sdk/react/usage",
+      "formatTokenCount": "/docs/sdk/react/usage"
+    },
+    "@stigmer/protos": {
+      "AgentExecution": "/docs/sdk/resources/agent-execution",
+      "AgentMessage": "/docs/sdk/resources/agent-execution",
+      "ToolCall": "/docs/sdk/resources/agent-execution",
+      "PendingApproval": "/docs/sdk/resources/agent-execution",
+      "SubAgentExecution": "/docs/sdk/resources/agent-execution",
+      "TodoItem": "/docs/sdk/resources/agent-execution",
+      "ExecutionPhase": "/docs/sdk/resources/agent-execution",
+      "ToolCallStatus": "/docs/sdk/resources/agent-execution",
+      "ApprovalAction": "/docs/sdk/resources/agent-execution",
+      "MessageType": "/docs/sdk/resources/agent-execution"
+    }
+  }
+}
