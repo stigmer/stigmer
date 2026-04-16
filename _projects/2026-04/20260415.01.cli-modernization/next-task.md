@@ -200,7 +200,7 @@ When starting a new session:
 **Created**: 2026-04-15
 **Current Task**: All planned tasks COMPLETE — bug fix applied
 **Status**: All planned tasks COMPLETE — E2E validation remaining
-**Last Session**: 2026-04-16 (Session 11) — Fix resume tsx error
+**Last Session**: 2026-04-16 (Session 12) — Fix Ink bare "0" render crash
 
 ## Session Progress (2026-04-16, Session 10)
 
@@ -225,6 +225,12 @@ When starting a new session:
 - **Refactored**: Extracted `tryWorkspaceInk()` and `findWorkspaceRoot()` helpers for cleaner workspace detection
 - **Test updated**: Renamed test helper `findWorkspaceRoot(t)` → `testFindWorkspaceRoot(t)` to avoid collision, updated `TestResolveInkCommand_WorkspaceDetection` to account for both detection strategies
 - All 4 Ink resolution tests pass, `go vet` clean, binary builds and runs correctly
+
+## Session Progress (2026-04-16, Session 12)
+
+- **Fix: Ink `Text string "0"` crash on session resume**: `SessionView.tsx` used `{conv.activePhase && <ExecutionProgress />}` where `activePhase` is a protobuf numeric enum — `EXECUTION_PHASE_UNSPECIFIED = 0` short-circuits `&&` to the bare number `0`, which Ink rejects as a text node outside `<Text>`
+- **Fix**: Changed guard to `{conv.activePhase != null && conv.activePhase !== 0 && ...}` — explicit null/zero check prevents bare number rendering
+- All 22 Ink SDK tests pass, resume E2E verified against live session
 
 ## Quick Commands
 
