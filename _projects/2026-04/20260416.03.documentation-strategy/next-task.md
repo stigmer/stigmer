@@ -20,7 +20,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Open-Source Getting Started Path — visibility, callouts, SDK bridge | COMPLETE | None (parallel with T01) |
 | T03 | Ink SDK Reference Docs — TypeDoc setup, generator, integration guide | COMPLETE | T01 (nav structure) |
 | T04 | README Overhaul — restructure, align positioning, fix links | COMPLETE | T01, T02, T03 |
-| T05 | Final Validation — end-to-end checks, CI, journey validation | PENDING | T01–T04 |
+| T05 | Final Validation — end-to-end checks, CI, journey validation | COMPLETE | T01–T04 |
 
 ## Essential Files to Review
 
@@ -160,23 +160,33 @@ When starting a new session:
 ### Files Created
 - `_changelog/2026-04/2026-04-16-100226-readme-overhaul.md`
 
+## Session Progress (2026-04-16, Session 5)
+
+### T05 Completed — Final Validation and CI Integration
+
+- **New CI gate**: Added `tsdoc-check` Makefile target (`typedoc --treatValidationWarningsAsErrors` for both sdk/ink and sdk/react), wired into `check` between format-docs-check and gen-sdk-docs-check
+- **CI trigger fix**: Added `sdk/react/**` to `ci.docs.yaml` path filters (was missing — React SDK changes never triggered docs CI)
+- **Issues fixed**: 4 pre-existing issues surfaced by the stricter pipeline — React SDK TypeDoc external symbol mappings, Ink SDK docs generator unused import, demo scenario unused imports, lychee localhost false positive
+- **Validation**: `make codegen` and `make check` both pass end-to-end. All four user journeys verified through the live docs site.
+- **Commit**: `c149ee8b1` — 7 files modified (120 insertions, 37 deletions)
+
+### Files Modified
+- `Makefile` — added `tsdoc-check` target, wired into `check`
+- `.github/workflows/ci.docs.yaml` — added `sdk/react/**` to trigger paths
+- `sdk/react/typedoc.json` — added 4 missing external symbol link mappings
+- `.lychee.toml` — added localhost exclusion
+- `site/scripts/generate-ink-sdk-docs/renderer.ts` — removed unused import
+- `site/src/components/docs/demos/scenarios/api-key-setup/index.tsx` — removed unused imports
+
 ## Current Status
 
 **Created**: 2026-04-16
-**Current Task**: T01, T02, T03, T04 all complete. Next: T05 (Final Validation).
-**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE. Ready for T05.
+**Current Task**: All tasks complete. Project finished.
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, T05 COMPLETE.
 
 ## Next Steps
 
-1. Start T05 (Final Validation) — end-to-end checks, CI, journey validation
-
-## Quick Commands
-
-After loading context:
-- "Continue with T05" - Start Final Validation
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+None — all 5 tasks are complete. The documentation strategy project is finished.
 
 ---
 
