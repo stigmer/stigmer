@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://stigmer.ai">
-    <img src="docs/banner_dark.png" alt="Stigmer — Build agents that work for your business" width="100%" height="auto" />
+    <img src="docs/banner_dark.png" alt="Stigmer — Open-source AI agent platform" width="100%" height="auto" />
   </a>
 </div>
 
@@ -8,87 +8,61 @@
 
 # Stigmer
 
-**Build AI agents and workflows with zero infrastructure.**
+**An open-source AI agent platform.**
 
-Stigmer is an open-source AI agent platform. Run it locally with SQLite for development, or connect to Stigmer Cloud for production. Bring your own LLM — Anthropic, OpenAI, or Ollama. Same CLI, same SDK, same resource definitions — your choice of backend.
+Define agents in YAML, deploy with one command, call from any app via API.
+Run locally with SQLite or connect to Stigmer Cloud for production.
+Bring your own LLM — Anthropic, OpenAI, or Ollama.
+
+[![License](https://img.shields.io/github/license/stigmer/stigmer)](LICENSE)
+[![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.gg/stigmer)
+[![GitHub stars](https://img.shields.io/github/stars/stigmer/stigmer?style=flat)](https://github.com/stigmer/stigmer/stargazers)
 
 ## Quick Start
 
-### 1. Install
-
 ```bash
-# Homebrew (macOS/Linux)
+# Install
 brew install stigmer/tap/stigmer
 
-# Or from source
-git clone https://github.com/stigmer/stigmer.git
-cd stigmer && make local
-
-# Or via shell script
-curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/install.sh | bash
-```
-
-This installs a single self-contained `stigmer` binary that embeds all required components.
-
-### 2. Configure LLM Provider
-
-Stigmer agents need an LLM to generate responses. You can pre-configure one before starting the server, or let the interactive setup guide you on first run.
-
-**Option A: Anthropic (recommended for best quality)**
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-**Option B: OpenAI**
-
-```bash
-export OPENAI_API_KEY=sk-...
-```
-
-**Option C: Ollama (free, local, offline)**
-
-```bash
-brew install ollama
-ollama serve
-ollama pull qwen2.5-coder:7b
-```
-
-If you skip this step, `stigmer server` will prompt you to choose a provider interactively.
-
-### 3. Start the Server
-
-```bash
+# Start the server (interactive LLM setup on first run)
 stigmer server
-```
 
-On first run, this prompts you to choose an LLM provider, auto-downloads Temporal, starts all services, and is ready on `localhost:7234`.
-
-### 4. Deploy and Run an Agent
-
-```bash
-# Deploy from a YAML file
+# Deploy an agent from YAML
 stigmer apply -f agent.yaml
 
-# Execute
+# Run it
 stigmer run support-bot "How do I reset my password?"
 ```
 
-### Managing the Server
+<details>
+<summary>Other install methods</summary>
 
 ```bash
-stigmer server status   # check if running
-stigmer server stop     # stop all services
-stigmer server          # start again
-stigmer server setup    # reconfigure LLM provider
-stigmer server reset    # stop and remove all data (keeps config)
+# Shell script (macOS/Linux)
+curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/install.sh | bash
+
+# From source
+git clone https://github.com/stigmer/stigmer.git
+cd stigmer && make local
 ```
+
+</details>
+
+## What is Stigmer?
+
+Stigmer turns domain knowledge and tools into AI agents you can call from any application.
+
+- **Skills** — Teach agents your domain. Upload versioned knowledge artifacts and the agent answers with expertise instead of generic responses.
+- **MCP Servers** — Give agents tools. Connect to your systems via the [Model Context Protocol](https://modelcontextprotocol.io). Agents discover available tools and Stigmer handles execution sandboxing.
+- **Approval flows** — Set rules for human oversight. Define which actions need approval before the agent proceeds. Executions are durable — they wait without losing state.
+
+Every capability is exposed via gRPC with public protobuf contracts. Generate type-safe clients in Go, Python, Java, TypeScript, or Rust.
 
 ## Core Concepts
 
 ### Agents
 
-An agent has instructions, optional MCP servers for tool access, and optional model configuration.
+An Agent has instructions, optional MCP servers for tool access, and optional model configuration.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -116,7 +90,7 @@ stigmer run support-bot "What's the status of issue #42?"
 
 ### Workflows
 
-Multi-step automations that chain HTTP calls, agent calls, variable assignments, conditionals, and loops. Workflows follow the [CNCF Serverless Workflow](https://serverlessworkflow.io/) DSL.
+Multi-step automations that chain HTTP calls, agent calls, variable assignments, conditionals, and loops.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -124,33 +98,19 @@ kind: Workflow
 metadata:
   name: hello-world
 spec:
-  description: A minimal workflow
-  document:
-    dsl: "1.0.0"
-    namespace: examples
-    name: hello-world
-    version: "1.0.0"
   tasks:
     - name: set-greeting
       kind: set_vars
       task_config:
         variables:
           greeting: "Hello, World!"
-          timestamp: "${now()}"
-      export:
-        as: "${.}"
 ```
 
-Tasks support `kind: set_vars`, `kind: http_call`, `kind: agent_call`, `kind: wait`, and control flow via `flow.then`. See [examples/workflows/](examples/workflows/) for more complex patterns including multi-agent orchestration and conditional branching.
-
-```bash
-stigmer apply -f workflow.yaml
-stigmer run hello-world
-```
+Tasks support `set_vars`, `http_call`, `agent_call`, `wait`, and control flow via `flow.then`. See [examples/workflows/](examples/workflows/) for patterns including multi-agent orchestration and conditional branching.
 
 ### Skills
 
-Versioned knowledge artifacts (instructions + reference material) that agents can use. A skill is a directory with a `SKILL.md` file containing YAML frontmatter:
+Versioned knowledge artifacts that agents use for domain expertise. A Skill is a directory with a `SKILL.md` file containing YAML frontmatter:
 
 ```
 my-skill/
@@ -176,40 +136,6 @@ stigmer mcp-server
 
 See [mcp-server/README.md](mcp-server/README.md) for IDE configuration (Cursor, Claude Desktop, VS Code, Windsurf).
 
-## Go SDK
-
-Define agents and workflows programmatically using a Pulumi-aligned struct args API.
-
-```go
-package main
-
-import (
-    "fmt"
-    "log"
-
-    "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/stigmer"
-)
-
-func main() {
-    err := stigmer.Run(func(ctx *stigmer.Context) error {
-        a, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
-            Instructions: "Review code for best practices and security issues",
-        })
-        if err != nil {
-            return err
-        }
-        fmt.Printf("Created agent: %s\n", a.Name)
-        return nil
-    })
-    if err != nil {
-        log.Fatal(err)
-    }
-}
-```
-
-See [sdk/go/README.md](sdk/go/README.md) for the full SDK reference, workflow builders, and more examples in [sdk/go/examples/](sdk/go/examples/).
-
 ## CLI Reference
 
 | Command | Description |
@@ -226,72 +152,24 @@ See [sdk/go/README.md](sdk/go/README.md) for the full SDK reference, workflow bu
 | `stigmer validate -f <file>` | Validate a resource definition |
 | `stigmer server` | Start/stop/status/setup/reset for local server |
 | `stigmer mcp-server` | Start the Stigmer MCP server |
-| `stigmer backend` | Switch between local and cloud backends |
-| `stigmer config` | Manage CLI configuration |
+| `stigmer config` | Manage CLI configuration and backend |
+| `stigmer auth` | Manage cloud authentication |
+| `stigmer connect` | Connect MCP servers to your environment |
+
+See the [full CLI reference](https://stigmer.ai/docs/cli) for detailed usage, flags, and examples.
 
 ## Local vs Cloud
 
 | | Local Mode (Open Source) | Cloud Mode (Stigmer Cloud) |
 |---|---|---|
-| **Start with** | `stigmer server` | `stigmer backend set cloud` |
+| **Start with** | `stigmer server` | `stigmer config backend set cloud` |
 | **Storage** | SQLite (`~/.stigmer/stigmer.db`) | Distributed (managed) |
 | **Orchestration** | Temporal (auto-managed) | Temporal (managed) |
 | **Users** | Single implicit user | Organizations, teams, IAM |
-| **LLM** | Anthropic, OpenAI, or Ollama (user's choice) | Configurable |
+| **LLM** | Anthropic, OpenAI, or Ollama (your choice) | Configurable |
 | **Best for** | Development, personal projects, air-gapped environments | Team collaboration, production, governance |
 
 Resource definitions are portable across both modes. The CLI talks to the same gRPC service interfaces regardless of backend.
-
-### LLM Configuration
-
-On first run, `stigmer server` guides you through an interactive setup to choose your LLM provider. The chosen provider and API key are saved to `~/.stigmer/config.yaml`.
-
-**Supported providers:**
-
-| Provider | Model (default) | Requires |
-|----------|----------------|----------|
-| Anthropic | `claude-sonnet-4.5` | `ANTHROPIC_API_KEY` env var or API key in config |
-| OpenAI | `gpt-4` | `OPENAI_API_KEY` env var or API key in config |
-| Ollama | `qwen2.5-coder:7b` | Ollama installed and running locally |
-
-**Config file example** (`~/.stigmer/config.yaml`):
-
-```yaml
-backend:
-  local:
-    llm:
-      provider: anthropic
-      model: claude-sonnet-4.5
-```
-
-**Environment variables** (take precedence over config file):
-
-```bash
-export STIGMER_LLM_PROVIDER=anthropic
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-### Changing Your LLM Provider
-
-Re-run the interactive setup:
-
-```bash
-stigmer server setup
-```
-
-Or set the provider directly:
-
-```bash
-stigmer config set llm.provider anthropic    # switch to Anthropic
-stigmer config set llm.provider openai       # switch to OpenAI
-stigmer config set llm.provider ollama       # switch to Ollama
-```
-
-After changing the provider, restart the server:
-
-```bash
-stigmer server stop && stigmer server
-```
 
 ## Architecture
 
@@ -317,20 +195,29 @@ Stigmer is a single binary (BusyBox pattern) that embeds all required services:
 ┌───────────▼──────────┐  ┌────────▼──────────────────┐
 │  agent-runner        │  │  workflow-runner           │
 │  (Python)            │  │  (Go)                      │
-│  Graphton agent      │  │  CNCF Serverless Workflow  │
+│  LLM-powered agent   │  │  workflow                  │
 │  execution           │  │  execution                 │
 └──────────────────────┘  └───────────────────────────┘
 ```
 
-**Components:**
+## SDKs
 
-- **stigmer CLI** — User-facing command-line interface with backend abstraction (local daemon vs cloud). Location: `client-apps/cli/`
-- **stigmer-server** — Go gRPC API server with SQLite storage, protobuf validation, and full-text search (FTS5). Location: `backend/services/stigmer-server/`
-- **agent-runner** — Python Temporal worker for AI agent execution via the Graphton framework. Location: `backend/services/agent-runner/`
-- **workflow-runner** — Go Temporal worker for CNCF Serverless Workflow execution with Claim Check and Continue-As-New patterns. Location: `backend/services/workflow-runner/`
-- **Go SDK** — Pulumi-aligned SDK for defining agents and workflows programmatically. Location: `sdk/go/`
-- **MCP Server** — Stateless MCP gateway bridging AI IDEs to stigmer-server via gRPC. Location: `mcp-server/`
-- **Proto APIs** — gRPC service definitions that serve as the contract between CLI and backends. Location: `apis/`
+| SDK | Install | Reference |
+|-----|---------|-----------|
+| **Go** | `go get github.com/stigmer/stigmer/sdk/go` | [sdk/go/README.md](sdk/go/README.md) |
+| **React** | `npm install @stigmer/react` | [SDK Reference](https://stigmer.ai/docs/sdk/react) |
+| **Ink** | `npm install @stigmer/ink` | [SDK Reference](https://stigmer.ai/docs/sdk/ink) |
+
+The Go SDK provides a Pulumi-aligned struct-args API for defining agents and workflows programmatically. The React SDK renders agent UIs — session composers, message threads, and approval views. The Ink SDK brings the same React components to the terminal.
+
+## Documentation
+
+- [Getting Started (Cloud)](https://stigmer.ai/docs/getting-started/quickstart) — Create your first agent in 5 minutes
+- [Getting Started (Local)](https://stigmer.ai/docs/getting-started/local) — Run agents on your machine
+- [CLI Reference](https://stigmer.ai/docs/cli) — Commands, flags, and examples
+- [SDK Reference](https://stigmer.ai/docs/sdk) — React, Ink, and Go SDK docs
+- [Core Concepts](https://stigmer.ai/docs/concepts/what-is-stigmer) — Agents, Skills, Workflows, and how they fit together
+- [Examples](examples/) — Sample agents, workflows, and skills
 
 ## Development
 
@@ -355,62 +242,6 @@ make build
 # Run tests
 make test
 ```
-
-### Proto Generation
-
-```bash
-cd apis
-make build         # generate Go + Python stubs
-make lint          # lint proto files
-make fmt           # format proto files
-```
-
-Generated stubs go to `apis/stubs/` (excluded from version control). See [apis/README.md](apis/README.md) for details.
-
-### Releases
-
-```bash
-make release bump=patch   # create a release tag (triggers GoReleaser via GitHub Actions)
-make protos-release       # publish protos to Buf separately
-```
-
-See [Distribution Guide](docs/guides/distribution.md) for the full packaging and release process.
-
-## Troubleshooting
-
-**Server won't start:**
-
-```bash
-stigmer server status              # check if already running
-stigmer server stop && sleep 2 && stigmer server   # restart cleanly
-```
-
-**Check logs:**
-
-```bash
-stigmer server logs
-```
-
-**Reset all local data:**
-
-```bash
-stigmer server reset    # stops services, removes data, keeps config
-stigmer server          # recreates everything on first run
-```
-
-To also remove configuration (API keys, LLM preferences):
-
-```bash
-stigmer server reset --include-config
-```
-
-## Documentation
-
-- [Full Documentation Index](docs/README.md)
-- [Local Mode Guide](docs/getting-started/local-mode.md)
-- [Architecture](docs/architecture/) — [Temporal Integration](docs/architecture/temporal-integration.md), [Open Core Model](docs/architecture/open-core-model.md), [Packaging Flow](docs/architecture/packaging-flow.md)
-- [Guides](docs/guides/) — [Environment Variables](docs/guides/environment-variables.md), [Using MCP Servers](docs/guides/using-mcp-servers.md), [Uploading Skills](docs/guides/uploading-skills.md)
-- [Examples](examples/) — Sample agents, workflows, and skills
 
 ## Contributing
 
