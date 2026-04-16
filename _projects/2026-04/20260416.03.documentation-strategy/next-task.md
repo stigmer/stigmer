@@ -19,7 +19,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | CLI Reference Docs — content quality, generation, docs site, CI | COMPLETE | None |
 | T02 | Open-Source Getting Started Path — visibility, callouts, SDK bridge | COMPLETE | None (parallel with T01) |
 | T03 | Ink SDK Reference Docs — TypeDoc setup, generator, integration guide | COMPLETE | T01 (nav structure) |
-| T04 | README Overhaul — restructure, align positioning, fix links | PENDING | T01, T02, T03 |
+| T04 | README Overhaul — restructure, align positioning, fix links | COMPLETE | T01, T02, T03 |
 | T05 | Final Validation — end-to-end checks, CI, journey validation | PENDING | T01–T04 |
 
 ## Essential Files to Review
@@ -144,21 +144,36 @@ When starting a new session:
 - **Files created**: 11 new files (3 TypeDoc configs, coverage script, 4 generator files, 3 docs files)
 - **Files modified**: 7 files (package.json x2, 2 source TSDoc fixes, Makefile, ci.docs.yaml, docs/sdk/ wiring)
 
+## Session Progress (2026-04-16, Session 4)
+
+### T04 Completed — README Overhaul
+
+- **Tagline**: Replaced "Build AI agents and workflows with zero infrastructure" with "An open-source AI agent platform." — category-first, developer-direct register
+- **Key decision**: LLM configuration content (50 lines) NOT moved to a new docs page — it already lives across `local.mdx`, `server.mdx`, and `config.mdx` from T01/T02. Creating a 4th location would violate single-source-of-truth.
+- **Key discovery**: 10 of 18 README links were broken (pointing to removed architecture, guides, and getting-started pages). All replaced with docs site URLs or valid repo paths.
+- **Vocabulary fixes**: Removed "Graphton" (internal-only), removed "CNCF Serverless Workflow" (reference-only), aligned all terms with vocabulary guide README column
+- **Output**: 255 lines (down from 425, 40% reduction). Badge row, SDKs table (Go/React/Ink), valid Documentation section, condensed Quick Start.
+
+### Files Modified
+- `README.md` — complete restructure
+
+### Files Created
+- `_changelog/2026-04/2026-04-16-100226-readme-overhaul.md`
+
 ## Current Status
 
 **Created**: 2026-04-16
-**Current Task**: T01, T02, T03 all complete. Next: T04 (README Overhaul) — now unblocked.
-**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE. Ready for T04.
+**Current Task**: T01, T02, T03, T04 all complete. Next: T05 (Final Validation).
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE. Ready for T05.
 
 ## Next Steps
 
-1. Start T04 (README Overhaul) — restructure, align positioning, fix links
-2. T05 (Final Validation) — end-to-end checks, CI, journey validation after T04
+1. Start T05 (Final Validation) — end-to-end checks, CI, journey validation
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T04" - Start README Overhaul
+- "Continue with T05" - Start Final Validation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
