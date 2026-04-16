@@ -32,24 +32,39 @@ func TestResolveInkCommand_WorkspaceDetection(t *testing.T) {
 		t.Fatalf("resolveInkCommand failed: %v", err)
 	}
 
-	// When running from the monorepo, the workspace path should be detected.
-	// The resolved command should use tsx from node_modules/.bin/.
-	exePath, _ := os.Executable()
-	binDir := filepath.Dir(exePath)
-	workspaceRoot := filepath.Join(binDir, "..")
+	// Workspace detection uses two strategies:
+	//  2a: relative to the binary location (os.Executable)
+	//  2b: walking up from the CWD
+	// Either can succeed depending on how tests are invoked. When running
+	// inside the monorepo, at least one will find tsx + stigmer-ink.tsx.
+	inWorkspace := false
 
-	tsxBin := filepath.Join(workspaceRoot, "node_modules", ".bin", "tsx")
-	inkEntry := filepath.Join(workspaceRoot, "sdk", "ink", "src", "cli", "stigmer-ink.tsx")
+	// Check binary-relative path.
+	if exePath, err := os.Executable(); err == nil {
+		binDir := filepath.Dir(exePath)
+		root := filepath.Join(binDir, "..")
+		tsxBin := filepath.Join(root, "node_modules", ".bin", "tsx")
+		inkEntry := filepath.Join(root, "sdk", "ink", "src", "cli", "stigmer-ink.tsx")
+		if fileExists(tsxBin) && fileExists(inkEntry) {
+			inWorkspace = true
+		}
+	}
 
-	if fileExists(tsxBin) && fileExists(inkEntry) {
-		// We're in the workspace — expect tsx to be used.
+	// Check CWD-based path.
+	if !inWorkspace {
+		if cwd, err := os.Getwd(); err == nil {
+			if findWorkspaceRoot(cwd) != "" {
+				inWorkspace = true
+			}
+		}
+	}
+
+	if inWorkspace {
 		if !containsArg(cmd.Args, "stigmer-ink.tsx") {
 			t.Errorf("expected workspace tsx path, got args: %v", cmd.Args)
 		}
 	} else {
-		// Not in workspace — expect npx fallback.
 		if filepath.Base(cmd.Path) != "npx" {
-			t.Logf("not in workspace, checking npx fallback")
 			if _, err := exec.LookPath("npx"); err == nil {
 				t.Errorf("expected npx, got %s", cmd.Path)
 			}
@@ -81,7 +96,7 @@ func TestResolveInkCommand_NpxFallback(t *testing.T) {
 func TestResolveInkCommand_HelpOutput(t *testing.T) {
 	// go test runs from a temp dir, so workspace detection won't find the
 	// monorepo paths. Use STIGMER_INK_CMD to point at the workspace tsx + entry.
-	workspaceRoot := findWorkspaceRoot(t)
+	workspaceRoot := testFindWorkspaceRoot(t)
 	if workspaceRoot == "" {
 		t.Skip("not running from within the stigmer workspace")
 	}
@@ -113,9 +128,9 @@ func TestResolveInkCommand_HelpOutput(t *testing.T) {
 	}
 }
 
-// findWorkspaceRoot walks up from the current working directory looking for
+// testFindWorkspaceRoot walks up from the current working directory looking for
 // the stigmer monorepo root (identified by sdk/ink/package.json).
-func findWorkspaceRoot(t *testing.T) string {
+func testFindWorkspaceRoot(t *testing.T) string {
 	t.Helper()
 	dir, err := os.Getwd()
 	if err != nil {

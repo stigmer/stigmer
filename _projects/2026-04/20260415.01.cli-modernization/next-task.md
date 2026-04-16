@@ -181,13 +181,14 @@ When starting a new session:
 ## Context for Resume
 
 - CLI interactive rendering is now delegated to `@stigmer/ink` via npx (or workspace tsx for development)
-- `resolveInkCommand()` in `run_stream_ink.go` handles 3-tier resolution: STIGMER_INK_CMD env → workspace auto-detection → npx
+- `resolveInkCommand()` in `run_stream_ink.go` handles 3-tier resolution: STIGMER_INK_CMD env → workspace auto-detection (binary-relative + CWD walk-up) → npx
 - JSON mode (`--json`) and detach mode (`--detach`) are unchanged, pure Go
 - Non-TTY piped output uses `streamAgentPlainText()` — minimal Go renderer, no external process
 - `@stigmer/ink` is NOT yet published to npm — first publish needed before production CLI release
 - Release pipeline gates CLI release on npm package availability (polling step in `release.cli.yaml`)
 - `tsx` is now a root devDependency for workspace Ink development
-- Workspace detection: Go binary at `bin/stigmer` looks for `../node_modules/.bin/tsx` + `../sdk/ink/src/cli/stigmer-ink.tsx`
+- Workspace detection: two strategies — (2a) binary-relative `../node_modules/.bin/tsx`, (2b) CWD walk-up for binaries installed outside repo (`~/bin`, `$GOPATH/bin`, bazel output)
+- `stigmer-ink.tsx` shebang changed from `#!/usr/bin/env node` to `#!/usr/bin/env tsx` (safety net for npx resolution in dev)
 - Node transport now lives in `@stigmer/sdk/node` subpath — `@stigmer/ink` re-exports it
 - `Conn()` removed from Go SDK — all consumers use typed sub-clients
 - `pkg/toolrender`, `pkg/approval`, `pkg/panel` are still actively used (JSON mode, workflow approvals, session header, event types) — NOT dead code
@@ -197,9 +198,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-15
-**Current Task**: Post-Ink cleanup COMPLETE
+**Current Task**: All planned tasks COMPLETE — bug fix applied
 **Status**: All planned tasks COMPLETE — E2E validation remaining
-**Last Session**: 2026-04-16 (Session 10) — Post-Ink Cleanup
+**Last Session**: 2026-04-16 (Session 11) — Fix resume tsx error
 
 ## Session Progress (2026-04-16, Session 10)
 
@@ -214,6 +215,16 @@ When starting a new session:
 - **BUILD.bazel cleanup**: Removed ghost entries (deleted bubbletea files, non-existent test files, mdrender dep)
 - **Decision**: `charm.land/bubbletea/v2`, `bubbles/v2`, `lipgloss/v2` stay — used by `pkg/picker` and `cliprint/progress.go`
 - **Decision**: Node transport interceptors aligned with browser transport (minus browser-specific auth redirect) for consistent behavior across runtimes
+
+## Session Progress (2026-04-16, Session 11)
+
+- **Fix: `stigmer resume` ERR_UNKNOWN_FILE_EXTENSION crash**: `resolveInkCommand()` workspace detection failed when the binary was installed outside the repo (e.g., `~/bin/stigmer` instead of `<repo>/bin/stigmer`)
+- **Root cause**: `os.Executable()` returned `~/bin/stigmer`, so `workspaceRoot = filepath.Join(binDir, "..")` resolved to `~/` instead of the repo root. Both `tsx` and `stigmer-ink.tsx` checks failed, falling through to `npx --yes @stigmer/ink@0.0.0-dev`, which resolved the local workspace package and tried to execute the `.tsx` source with `node` (shebang was `#!/usr/bin/env node`)
+- **Primary fix**: Added CWD-based workspace detection (tier 2b) in `run_stream_ink.go` — walks up from CWD looking for `node_modules/.bin/tsx` + `sdk/ink/src/cli/stigmer-ink.tsx`
+- **Secondary fix**: Changed shebang in `stigmer-ink.tsx` from `#!/usr/bin/env node` to `#!/usr/bin/env tsx` as safety net
+- **Refactored**: Extracted `tryWorkspaceInk()` and `findWorkspaceRoot()` helpers for cleaner workspace detection
+- **Test updated**: Renamed test helper `findWorkspaceRoot(t)` → `testFindWorkspaceRoot(t)` to avoid collision, updated `TestResolveInkCommand_WorkspaceDetection` to account for both detection strategies
+- All 4 Ink resolution tests pass, `go vet` clean, binary builds and runs correctly
 
 ## Quick Commands
 

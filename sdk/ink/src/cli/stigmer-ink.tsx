@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 import React from "react";
 import { Readable } from "node:stream";
