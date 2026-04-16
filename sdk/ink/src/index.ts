@@ -1,12 +1,12 @@
 // Provider
 export { InkStigmerProvider, type InkStigmerProviderProps } from "./provider.js";
 
-// Transport
+// Transport (re-exported from @stigmer/sdk/node)
 export {
   createNodeClient,
   createNodeTransport,
   type NodeClientConfig,
-} from "./transport.js";
+} from "@stigmer/sdk/node";
 
 // Markdown
 export { renderMarkdown } from "./markdown.js";

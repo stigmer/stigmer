@@ -103,14 +103,6 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 }
 
-// Conn returns the underlying gRPC client connection.
-// This is useful during incremental migration from raw gRPC stubs to SDK
-// methods. Prefer using the typed sub-clients (Agent, Session, etc.) when
-// the SDK covers the needed RPC.
-func (c *Client) Conn() grpc.ClientConnInterface {
-	return c.conn
-}
-
 // Close releases the underlying gRPC connection.
 func (c *Client) Close() error {
 	if c.conn != nil {
