@@ -28,12 +28,6 @@ class PlatformClientClient:
         self._query = query_pb2_grpc.PlatformClientQueryControllerStub(channel)
         self._token = token_pb2_grpc.PlatformClientTokenControllerStub(channel)
 
-    def apply(self, input: PlatformClientInput) -> api_pb2.PlatformClient:
-        try:
-            return self._command.apply(input._to_proto())
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def create(self, input: PlatformClientInput) -> io_pb2.PlatformClientCreateResponse:
         try:
             return self._command.create(input._to_proto())

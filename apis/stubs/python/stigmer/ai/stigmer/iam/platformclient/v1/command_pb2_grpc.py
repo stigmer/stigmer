@@ -27,11 +27,6 @@ class PlatformClientCommandControllerStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.apply = channel.unary_unary(
-                '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/apply',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
-                _registered_method=True)
         self.create = channel.unary_unary(
                 '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/create',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
@@ -67,21 +62,6 @@ class PlatformClientCommandControllerServicer(object):
     org-private. There is no updateVisibility RPC — public visibility is
     intentionally unsupported to prevent credential leakage.
     """
-
-    def apply(self, request, context):
-        """Create or update a platform client.
-
-        If the resource does not exist, creates a new platform client.
-        If the resource exists, updates the existing platform client.
-
-        @internal
-        The authorization and state-operation are determined depending on whether the
-        platform client is going to be created or updated, which is determined as
-        part of the request execution.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
         """Create a platform client.
@@ -147,11 +127,6 @@ class PlatformClientCommandControllerServicer(object):
 
 def add_PlatformClientCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'apply': grpc.unary_unary_rpc_method_handler(
-                    servicer.apply,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
-                    response_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
-            ),
             'create': grpc.unary_unary_rpc_method_handler(
                     servicer.create,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
@@ -193,33 +168,6 @@ class PlatformClientCommandController(object):
     org-private. There is no updateVisibility RPC — public visibility is
     intentionally unsupported to prevent credential leakage.
     """
-
-    @staticmethod
-    def apply(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/apply',
-            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
-            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
 
     @staticmethod
     def create(request,

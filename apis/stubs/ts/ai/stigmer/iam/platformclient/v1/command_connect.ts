@@ -4,8 +4,8 @@
 // @ts-nocheck
 
 import { PlatformClient } from "./api_pb.js";
-import { MethodKind } from "@bufbuild/protobuf";
 import { PlatformClientCreateResponse, PlatformClientId } from "./io_pb.js";
+import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pb.js";
 
 /**
@@ -26,25 +26,6 @@ import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pb.js";
 export const PlatformClientCommandController = {
   typeName: "ai.stigmer.iam.platformclient.v1.PlatformClientCommandController",
   methods: {
-    /**
-     * Create or update a platform client.
-     *
-     * If the resource does not exist, creates a new platform client.
-     * If the resource exists, updates the existing platform client.
-     *
-     * @internal
-     * The authorization and state-operation are determined depending on whether the
-     * platform client is going to be created or updated, which is determined as
-     * part of the request execution.
-     *
-     * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.apply
-     */
-    apply: {
-      name: "apply",
-      I: PlatformClient,
-      O: PlatformClient,
-      kind: MethodKind.Unary,
-    },
     /**
      * Create a platform client.
      *

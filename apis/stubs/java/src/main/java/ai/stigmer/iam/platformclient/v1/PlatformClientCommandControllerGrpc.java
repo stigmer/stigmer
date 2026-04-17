@@ -24,37 +24,6 @@ public final class PlatformClientCommandControllerGrpc {
 
   // Static method descriptors that strictly reflect the proto.
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.PlatformClient,
-      ai.stigmer.iam.platformclient.v1.PlatformClient> getApplyMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "apply",
-      requestType = ai.stigmer.iam.platformclient.v1.PlatformClient.class,
-      responseType = ai.stigmer.iam.platformclient.v1.PlatformClient.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.PlatformClient,
-      ai.stigmer.iam.platformclient.v1.PlatformClient> getApplyMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.PlatformClient, ai.stigmer.iam.platformclient.v1.PlatformClient> getApplyMethod;
-    if ((getApplyMethod = PlatformClientCommandControllerGrpc.getApplyMethod) == null) {
-      synchronized (PlatformClientCommandControllerGrpc.class) {
-        if ((getApplyMethod = PlatformClientCommandControllerGrpc.getApplyMethod) == null) {
-          PlatformClientCommandControllerGrpc.getApplyMethod = getApplyMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.platformclient.v1.PlatformClient, ai.stigmer.iam.platformclient.v1.PlatformClient>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "apply"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.platformclient.v1.PlatformClient.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.platformclient.v1.PlatformClient.getDefaultInstance()))
-              .setSchemaDescriptor(new PlatformClientCommandControllerMethodDescriptorSupplier("apply"))
-              .build();
-        }
-      }
-    }
-    return getApplyMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.PlatformClient,
       ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse> getCreateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
@@ -254,22 +223,6 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create or update a platform client.
-     * If the resource does not exist, creates a new platform client.
-     * If the resource exists, updates the existing platform client.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * platform client is going to be created or updated, which is determined as
-     * part of the request execution.
-     * </pre>
-     */
-    default void apply(ai.stigmer.iam.platformclient.v1.PlatformClient request,
-        io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getApplyMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Create a platform client.
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
@@ -384,23 +337,6 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create or update a platform client.
-     * If the resource does not exist, creates a new platform client.
-     * If the resource exists, updates the existing platform client.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * platform client is going to be created or updated, which is determined as
-     * part of the request execution.
-     * </pre>
-     */
-    public void apply(ai.stigmer.iam.platformclient.v1.PlatformClient request,
-        io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getApplyMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Create a platform client.
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
@@ -497,22 +433,6 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create or update a platform client.
-     * If the resource does not exist, creates a new platform client.
-     * If the resource exists, updates the existing platform client.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * platform client is going to be created or updated, which is determined as
-     * part of the request execution.
-     * </pre>
-     */
-    public ai.stigmer.iam.platformclient.v1.PlatformClient apply(ai.stigmer.iam.platformclient.v1.PlatformClient request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getApplyMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Create a platform client.
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
@@ -601,22 +521,6 @@ public final class PlatformClientCommandControllerGrpc {
     protected PlatformClientCommandControllerBlockingStub build(
         io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
       return new PlatformClientCommandControllerBlockingStub(channel, callOptions);
-    }
-
-    /**
-     * <pre>
-     * Create or update a platform client.
-     * If the resource does not exist, creates a new platform client.
-     * If the resource exists, updates the existing platform client.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * platform client is going to be created or updated, which is determined as
-     * part of the request execution.
-     * </pre>
-     */
-    public ai.stigmer.iam.platformclient.v1.PlatformClient apply(ai.stigmer.iam.platformclient.v1.PlatformClient request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getApplyMethod(), getCallOptions(), request);
     }
 
     /**
@@ -713,23 +617,6 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create or update a platform client.
-     * If the resource does not exist, creates a new platform client.
-     * If the resource exists, updates the existing platform client.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * platform client is going to be created or updated, which is determined as
-     * part of the request execution.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClient> apply(
-        ai.stigmer.iam.platformclient.v1.PlatformClient request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getApplyMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Create a platform client.
      * Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
      * The raw client_secret is included in the response and is never returned again.
@@ -797,11 +684,10 @@ public final class PlatformClientCommandControllerGrpc {
     }
   }
 
-  private static final int METHODID_APPLY = 0;
-  private static final int METHODID_CREATE = 1;
-  private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
-  private static final int METHODID_ROTATE_SECRET = 4;
+  private static final int METHODID_CREATE = 0;
+  private static final int METHODID_UPDATE = 1;
+  private static final int METHODID_DELETE = 2;
+  private static final int METHODID_ROTATE_SECRET = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -820,10 +706,6 @@ public final class PlatformClientCommandControllerGrpc {
     @java.lang.SuppressWarnings("unchecked")
     public void invoke(Req request, io.grpc.stub.StreamObserver<Resp> responseObserver) {
       switch (methodId) {
-        case METHODID_APPLY:
-          serviceImpl.apply((ai.stigmer.iam.platformclient.v1.PlatformClient) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient>) responseObserver);
-          break;
         case METHODID_CREATE:
           serviceImpl.create((ai.stigmer.iam.platformclient.v1.PlatformClient) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse>) responseObserver);
@@ -858,13 +740,6 @@ public final class PlatformClientCommandControllerGrpc {
 
   public static final io.grpc.ServerServiceDefinition bindService(AsyncService service) {
     return io.grpc.ServerServiceDefinition.builder(getServiceDescriptor())
-        .addMethod(
-          getApplyMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.iam.platformclient.v1.PlatformClient,
-              ai.stigmer.iam.platformclient.v1.PlatformClient>(
-                service, METHODID_APPLY)))
         .addMethod(
           getCreateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -941,7 +816,6 @@ public final class PlatformClientCommandControllerGrpc {
         if (result == null) {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new PlatformClientCommandControllerFileDescriptorSupplier())
-              .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())

@@ -22,17 +22,6 @@ import "ai/stigmer/iam/platformclient/v1/io.proto";
 service PlatformClientCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = platform_client;
 
-  // Create or update a platform client.
-  //
-  // If the resource does not exist, creates a new platform client.
-  // If the resource exists, updates the existing platform client.
-  //
-  // @internal
-  // The authorization and state-operation are determined depending on whether the
-  // platform client is going to be created or updated, which is determined as
-  // part of the request execution.
-  rpc apply(PlatformClient) returns (PlatformClient);
-
   // Create a platform client.
   //
   // Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).

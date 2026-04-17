@@ -26,9 +26,8 @@ var File_ai_stigmer_iam_platformclient_v1_command_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_iam_platformclient_v1_command_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/iam/platformclient/v1/command.proto\x12 ai.stigmer.iam.platformclient.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a)ai/stigmer/iam/platformclient/v1/io.proto2\x8d\a\n" +
-	"\x1fPlatformClientCommandController\x12k\n" +
-	"\x05apply\x120.ai.stigmer.iam.platformclient.v1.PlatformClient\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\x12\xcf\x01\n" +
+	".ai/stigmer/iam/platformclient/v1/command.proto\x12 ai.stigmer.iam.platformclient.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a)ai/stigmer/iam/platformclient/v1/io.proto2\xa0\x06\n" +
+	"\x1fPlatformClientCommandController\x12\xcf\x01\n" +
 	"\x06create\x120.ai.stigmer.iam.platformclient.v1.PlatformClient\x1a>.ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse\"S¸\x18O\b\x18\x10\x1e\"\fmetadata.org*;unauthorized to create platform client in this organization\x12\xab\x01\n" +
 	"\x06update\x120.ai.stigmer.iam.platformclient.v1.PlatformClient\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"=¸\x189\b\x02\x10\x17\"\vmetadata.id*&unauthorized to update platform client\x12\xb1\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"=¸\x189\b\x03\x10\x17\"\vresource_id*&unauthorized to delete platform client\x12\xc2\x01\n" +
@@ -42,18 +41,16 @@ var file_ai_stigmer_iam_platformclient_v1_command_proto_goTypes = []any{
 	(*PlatformClientCreateResponse)(nil),       // 3: ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
 }
 var file_ai_stigmer_iam_platformclient_v1_command_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.apply:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	0, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	0, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	1, // 3: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
-	2, // 4: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClientId
-	0, // 5: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.apply:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	3, // 6: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
-	0, // 7: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	0, // 8: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.delete:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	3, // 9: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	0, // 0: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
+	0, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
+	1, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	2, // 3: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClientId
+	3, // 4: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
+	0, // 5: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
+	0, // 6: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.delete:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
+	3, // 7: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
