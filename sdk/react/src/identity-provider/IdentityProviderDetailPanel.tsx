@@ -4,6 +4,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider";
 
@@ -76,6 +77,30 @@ export function IdentityProviderDetailPanel({
     spec?.oidcClientId ?? "",
   );
 
+  // JIT provisioning
+  const [autoProvision, setAutoProvision] = useState(spec?.autoProvisionAccounts ?? false);
+  const [autoGrant, setAutoGrant] = useState(spec?.autoGrantOnOrg ?? false);
+  const [autoGrantRole, setAutoGrantRole] = useState<IamRole>(spec?.autoGrantRole ?? IamRole.iam_role_unspecified);
+  const [tenantOrgClaim, setTenantOrgClaim] = useState(spec?.tenantOrgClaim ?? "");
+
+  const handleAutoProvisionChange = useCallback((v: boolean) => {
+    setAutoProvision(v);
+    if (!v) {
+      setAutoGrant(false);
+      setAutoGrantRole(IamRole.iam_role_unspecified);
+      setTenantOrgClaim("");
+    }
+  }, []);
+
+  const handleAutoGrantChange = useCallback((v: boolean) => {
+    setAutoGrant(v);
+    if (v) setAutoProvision(true);
+    if (!v) {
+      setAutoGrantRole(IamRole.iam_role_unspecified);
+      setTenantOrgClaim("");
+    }
+  }, []);
+
   const enterEdit = useCallback(() => {
     setDisplayName(spec?.displayName ?? "");
     setJwksUri(spec?.jwksUri ?? "");
@@ -84,6 +109,10 @@ export function IdentityProviderDetailPanel({
     setUserinfoEndpoint(spec?.userinfoEndpoint ?? "");
     setIsSso(spec?.isSsoProvider ?? false);
     setOidcClientId(spec?.oidcClientId ?? "");
+    setAutoProvision(spec?.autoProvisionAccounts ?? false);
+    setAutoGrant(spec?.autoGrantOnOrg ?? false);
+    setAutoGrantRole(spec?.autoGrantRole ?? IamRole.iam_role_unspecified);
+    setTenantOrgClaim(spec?.tenantOrgClaim ?? "");
     clearError();
     setMode("edit");
   }, [spec, clearError]);
@@ -112,6 +141,16 @@ export function IdentityProviderDetailPanel({
           userinfoEndpoint: userinfoEndpoint.trim() || undefined,
           isSsoProvider: isSso,
           oidcClientId: isSso ? oidcClientId.trim() : undefined,
+          ...(!isSso && {
+            autoProvisionAccounts: autoProvision,
+            autoGrantOnOrg: autoGrant,
+            ...(autoGrant && autoGrantRole !== IamRole.iam_role_unspecified && {
+              autoGrantRole,
+            }),
+            ...(autoGrant && tenantOrgClaim.trim() && {
+              tenantOrgClaim: tenantOrgClaim.trim(),
+            }),
+          }),
         });
         setMode("view");
         onUpdated?.(updated);
@@ -121,7 +160,8 @@ export function IdentityProviderDetailPanel({
     },
     [
       meta, displayName, jwksUri, issuers, audience,
-      userinfoEndpoint, isSso, oidcClientId, update, clearError, onUpdated,
+      userinfoEndpoint, isSso, oidcClientId, autoProvision, autoGrant,
+      autoGrantRole, tenantOrgClaim, update, clearError, onUpdated,
     ],
   );
 
@@ -160,11 +200,7 @@ export function IdentityProviderDetailPanel({
                 {meta.slug}
               </span>
             )}
-            {spec?.isSsoProvider && (
-              <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary-subtle px-2 py-0.5 text-[0.65rem] font-medium text-primary">
-                SSO
-              </span>
-            )}
+            <ProvisioningModeBadge spec={spec} />
           </div>
         </div>
 
@@ -279,6 +315,20 @@ export function IdentityProviderDetailPanel({
             />
           )}
 
+          {/* JIT provisioning */}
+          <JitEditSection
+            isSso={isSso}
+            autoProvision={autoProvision}
+            onAutoProvisionChange={handleAutoProvisionChange}
+            autoGrant={autoGrant}
+            onAutoGrantChange={handleAutoGrantChange}
+            autoGrantRole={autoGrantRole}
+            onAutoGrantRoleChange={setAutoGrantRole}
+            tenantOrgClaim={tenantOrgClaim}
+            onTenantOrgClaimChange={setTenantOrgClaim}
+            disabled={isUpdating}
+          />
+
           {error && (
             <p className="text-destructive text-[0.65rem]" role="alert">
               {getUserMessage(error)}
@@ -360,6 +410,35 @@ function ViewMode({
           value={`${spec!.rateLimitBudget} req/min`}
         />
       )}
+
+      {/* JIT provisioning fields */}
+      {!spec?.isSsoProvider && spec?.autoProvisionAccounts && (
+        <>
+          <hr className="border-border/40" />
+          <Field
+            label="Auto-provision accounts"
+            value={spec.autoProvisionAccounts ? "Enabled" : "Disabled"}
+          />
+          <Field
+            label="Auto-grant on organization"
+            value={spec.autoGrantOnOrg ? "Enabled" : "Disabled"}
+          />
+          {spec.autoGrantOnOrg && (
+            <Field
+              label="Auto-grant role"
+              value={formatIamRole(spec.autoGrantRole)}
+            />
+          )}
+          {spec.autoGrantOnOrg && spec.tenantOrgClaim && (
+            <Field
+              label="Tenant org claim"
+              value={spec.tenantOrgClaim}
+              mono
+            />
+          )}
+        </>
+      )}
+
       <div className="flex gap-6">
         {createdAt && (
           <Field
@@ -532,6 +611,209 @@ function FieldInput({
       )}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Provisioning mode badge
+// ---------------------------------------------------------------------------
+
+function ProvisioningModeBadge({ spec }: { spec: IdentityProvider["spec"] }) {
+  if (spec?.isSsoProvider) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary-subtle px-2 py-0.5 text-[0.65rem] font-medium text-primary">
+        SSO
+      </span>
+    );
+  }
+  if (spec?.autoProvisionAccounts) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary-subtle px-2 py-0.5 text-[0.65rem] font-medium text-primary">
+        JIT
+      </span>
+    );
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// JIT edit section
+// ---------------------------------------------------------------------------
+
+const JIT_ROLE_OPTIONS: readonly { readonly value: string; readonly label: string }[] = [
+  { value: String(IamRole.iam_role_unspecified), label: "Default (viewer)" },
+  { value: String(IamRole.viewer), label: "Viewer" },
+  { value: String(IamRole.member), label: "Member" },
+  { value: String(IamRole.admin), label: "Admin" },
+];
+
+function JitEditSection({
+  isSso,
+  autoProvision,
+  onAutoProvisionChange,
+  autoGrant,
+  onAutoGrantChange,
+  autoGrantRole,
+  onAutoGrantRoleChange,
+  tenantOrgClaim,
+  onTenantOrgClaimChange,
+  disabled,
+}: {
+  isSso: boolean;
+  autoProvision: boolean;
+  onAutoProvisionChange: (v: boolean) => void;
+  autoGrant: boolean;
+  onAutoGrantChange: (v: boolean) => void;
+  autoGrantRole: IamRole;
+  onAutoGrantRoleChange: (v: IamRole) => void;
+  tenantOrgClaim: string;
+  onTenantOrgClaimChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  if (isSso) {
+    return (
+      <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+        <p className="text-[0.65rem] text-muted-foreground">
+          SSO providers automatically provision accounts and grant the{" "}
+          <span className="font-medium text-foreground">viewer</span> role on
+          the owning organization. JIT provisioning settings are not applicable.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <fieldset className="space-y-2.5" disabled={disabled}>
+      <hr className="border-border/40" />
+      <legend className="text-xs font-medium text-foreground">
+        JIT provisioning
+      </legend>
+      <p className="text-[0.65rem] text-muted-foreground">
+        Configure automatic account creation and role assignment for users
+        authenticating with this provider.
+      </p>
+
+      <ToggleSwitch
+        checked={autoProvision}
+        onChange={onAutoProvisionChange}
+        label="Auto-provision accounts"
+        hint="Create a federated account automatically on first authentication"
+        disabled={disabled}
+      />
+
+      <ToggleSwitch
+        checked={autoGrant}
+        onChange={onAutoGrantChange}
+        label="Auto-grant on organization"
+        hint="Grant a role on the owning organization when an account is provisioned"
+        disabled={disabled || !autoProvision}
+      />
+
+      {autoGrant && (
+        <>
+          <div className="space-y-1">
+            <label
+              htmlFor="stgm-idp-edit-grant-role"
+              className="text-xs font-medium text-foreground"
+            >
+              Auto-grant role
+            </label>
+            <select
+              id="stgm-idp-edit-grant-role"
+              value={String(autoGrantRole)}
+              onChange={(e) => onAutoGrantRoleChange(Number(e.target.value) as IamRole)}
+              disabled={disabled}
+              className={cn(
+                "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {JIT_ROLE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-[0.65rem] text-muted-foreground">
+              Role granted automatically — org admins can upgrade later
+            </p>
+          </div>
+
+          <FieldInput
+            id="stgm-idp-edit-tenant-claim"
+            label="Tenant org claim"
+            value={tenantOrgClaim}
+            onChange={onTenantOrgClaimChange}
+            placeholder="e.g., org_id"
+            hint="JWT claim name that maps to a platform-managed organization (max 256 chars)"
+            disabled={disabled}
+          />
+        </>
+      )}
+    </fieldset>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Toggle switch
+// ---------------------------------------------------------------------------
+
+function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+  hint,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          onClick={() => onChange(!checked)}
+          disabled={disabled}
+          className={cn(
+            "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+            checked ? "bg-primary" : "bg-muted",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          <span
+            className={cn(
+              "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
+              checked ? "translate-x-4" : "translate-x-0",
+            )}
+          />
+        </button>
+        <span className="text-xs font-medium text-foreground">{label}</span>
+      </div>
+      {hint && (
+        <p className="pl-11 text-[0.65rem] text-muted-foreground">{hint}</p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatIamRole(role: IamRole): string {
+  switch (role) {
+    case IamRole.viewer: return "Viewer";
+    case IamRole.member: return "Member";
+    case IamRole.admin: return "Admin";
+    case IamRole.owner: return "Owner";
+    default: return "Viewer (default)";
+  }
 }
 
 function formatDate(date: Date): string {
