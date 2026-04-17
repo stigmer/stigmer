@@ -42,6 +42,7 @@
                 "invitation",
                 "identity_provider",
                 "oauth_app",
+                "platform_client",
                 "organization",
                 "platform",
                 "agent",
@@ -221,6 +222,11 @@
           "name": "oauth_app",
           "number": 22,
           "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
         },
         {
           "name": "organization",

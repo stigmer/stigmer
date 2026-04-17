@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.platformclient.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/platformclient/v1/spec.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// PlatformClient represents an OAuth2 client credential for platform builders
+// who embed Stigmer into their products.
+//
+// A PlatformClient is owned by an organization and holds a client_id + client_secret
+// credential pair. Platform builders use these credentials from their backend to
+// mint user-scoped JWTs via the mintUserToken RPC, enabling their users to interact
+// with Stigmer resources through the React SDK without requiring OIDC federation.
+//
+// PlatformClient is the inbound auth counterpart to OAuthApp (outbound auth).
+// While OAuthApp configures how Stigmer authenticates *outward* to external services,
+// PlatformClient configures how platform builders authenticate *inward* to Stigmer
+// on behalf of their users.
+//
+// Example YAML:
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: PlatformClient
+//   metadata:
+//     name: Acme Dashboard
+//     slug: acme-dashboard
+//     org: acme
+//   spec:
+//     auto_provision_accounts: true
+//     auto_grant_on_org: true
+//     auto_grant_role: viewer
+//     allowed_origins: ["https://app.acme.com"]
+message PlatformClient {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'PlatformClient'];
+
+  // Standard resource metadata including name, id, org, visibility, labels, and tags.
+  // The org field identifies which organization owns this platform client.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-provided platform client configuration (desired state).
+  PlatformClientSpec spec = 4;
+
+  // System-managed state including audit trail and usage tracking.
+  PlatformClientStatus status = 5;
+}
+
+// PlatformClientStatus contains system-managed state for a platform client.
+//
+// Uses a custom status (rather than the generic ApiResourceAuditStatus) to
+// include credential usage tracking, which is essential for security auditing
+// and stale credential detection.
+message PlatformClientStatus {
+  // Standard audit information (created_at, updated_at, created_by, etc.).
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // Timestamp of the most recent successful mintUserToken call using this
+  // platform client's credentials. Used for security monitoring — credentials
+  // that have not been used recently may be candidates for rotation or deletion.
+  google.protobuf.Timestamp last_used_at = 1;
+}

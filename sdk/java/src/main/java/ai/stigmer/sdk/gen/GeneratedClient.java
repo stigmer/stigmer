@@ -19,6 +19,7 @@ public class GeneratedClient {
     public final McpServerClient mcpServer;
     public final OAuthAppClient oauthapp;
     public final OrganizationClient organization;
+    public final PlatformClientClient platformclient;
     public final ProjectClient project;
     public final SessionClient session;
     public final SkillClient skill;
@@ -40,6 +41,7 @@ public class GeneratedClient {
         this.mcpServer = new McpServerClient(channel);
         this.oauthapp = new OAuthAppClient(channel);
         this.organization = new OrganizationClient(channel);
+        this.platformclient = new PlatformClientClient(channel);
         this.project = new ProjectClient(channel);
         this.session = new SessionClient(channel);
         this.skill = new SkillClient(channel);

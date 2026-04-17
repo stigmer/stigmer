@@ -337,6 +337,11 @@
           "description": "Registered OAuth application with an external vendor for outbound authentication."
         },
         {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
           "name": "organization",
           "number": 30,
           "description": "Top-level tenant that owns and manages resources."

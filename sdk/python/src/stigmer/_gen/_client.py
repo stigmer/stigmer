@@ -17,6 +17,7 @@ from ._invitation import InvitationClient
 from ._mcpserver import McpServerClient
 from ._oauthapp import OAuthAppClient
 from ._organization import OrganizationClient
+from ._platformclient import PlatformClientClient
 from ._project import ProjectClient
 from ._session import SessionClient
 from ._skill import SkillClient
@@ -42,6 +43,7 @@ class GeneratedClient:
         self.mcp_servers = McpServerClient(channel)
         self.oauthapps = OAuthAppClient(channel)
         self.organizations = OrganizationClient(channel)
+        self.platformclients = PlatformClientClient(channel)
         self.projects = ProjectClient(channel)
         self.sessions = SessionClient(channel)
         self.skills = SkillClient(channel)
