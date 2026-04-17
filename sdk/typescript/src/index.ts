@@ -133,6 +133,10 @@ export {
   OrganizationClient,
   type OrganizationInput,
 } from "./gen/organization";
+export {
+  PlatformClientClient,
+  type PlatformClientInput,
+} from "./gen/platformclient";
 export { ProjectClient, type ProjectInput } from "./gen/project";
 export {
   SessionClient,

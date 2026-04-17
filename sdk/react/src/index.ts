@@ -454,6 +454,32 @@ export type {
   ApiKeyCreatedAlertProps,
 } from "./api-key";
 
+// Platform Client — data hooks, mutation hooks, and styled components for platform client lifecycle
+export {
+  usePlatformClientList,
+  usePlatformClient,
+  useCreatePlatformClient,
+  useUpdatePlatformClient,
+  useDeletePlatformClient,
+  useRotatePlatformClientSecret,
+  PlatformClientListPanel,
+  CreatePlatformClientForm,
+  PlatformClientDetailPanel,
+  PlatformClientSecretAlert,
+} from "./platform-client";
+export type {
+  UsePlatformClientListReturn,
+  UsePlatformClientReturn,
+  UseCreatePlatformClientReturn,
+  UseUpdatePlatformClientReturn,
+  UseDeletePlatformClientReturn,
+  UseRotatePlatformClientSecretReturn,
+  PlatformClientListPanelProps,
+  CreatePlatformClientFormProps,
+  PlatformClientDetailPanelProps,
+  PlatformClientSecretAlertProps,
+} from "./platform-client";
+
 // OAuth App — data hooks, mutation hooks, and styled components for OAuth app management
 export {
   useOAuthAppList,

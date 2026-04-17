@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State (wrap-up)
 
-- **Status**: T05 complete on stigmer repo (all four SDKs + docs). Ready for T06.
-- **Last session**: 2026-04-17 (session 5) — PlatformClient auth helpers in TypeScript, Go, Python, Java SDKs. Integration docs. DD-005 supersedes T05_0_plan.md.
-- **Active task**: T06 — Console UI + Documentation.
+- **Status**: T06 Console UI half complete. Documentation remaining (session 7).
+- **Last session**: 2026-04-17 (session 6) — PlatformClient full-CRUD React components + Console integration. 6 hooks, 4 components, Console section + route, barrel exports.
+- **Active task**: T06 — Documentation pass (session 7).
 
 ## Essential Files to Review
 
@@ -80,13 +80,13 @@ When starting a new session:
 | T03 | Backend: Token endpoint + Stigmer-signed JWT issuance | 2 sessions | stigmer-cloud | COMPLETE |
 | T04 | Backend: Auth chain integration + JIT provisioning | 1 session | stigmer + stigmer-cloud | COMPLETE |
 | T05 | SDK: TypeScript/Go/Python/Java client support for PlatformClient auth | 1 session | stigmer | COMPLETE |
-| T06 | Console UI + Documentation | 2 sessions | stigmer | NOT STARTED |
+| T06 | Console UI + Documentation | 2 sessions | stigmer | IN PROGRESS (UI done, docs next) |
 
 ## Current Status
 
 **Created**: 2026-04-17
-**Current Task**: T06 (Console UI + Documentation — next up)
-**Status**: T01 + T02 + T03 + T04 + T05 complete, ready for T06
+**Current Task**: T06 (Documentation pass — session 7)
+**Status**: T01–T05 complete, T06 Console UI complete, T06 Documentation remaining
 
 ## Session Progress (2026-04-17, Session 1)
 
@@ -197,28 +197,51 @@ When starting a new session:
 - **Java as first-class peer**: Original T05 plan omitted it. Codegen already had the wire method; only the ergonomic wrapper was missing.
 - **Server-only by construction (TypeScript)**: Exported from `@stigmer/sdk/node` only. No browser entry exposure.
 
+## Session Progress (2026-04-17, Session 6)
+
+### Accomplished
+- Completed T06 Console UI half: full-CRUD PlatformClient management in `@stigmer/react` + Console
+- 6 hooks in `sdk/react/src/platform-client/`: `usePlatformClientList`, `usePlatformClient`, `useCreatePlatformClient`, `useUpdatePlatformClient`, `useDeletePlatformClient`, `useRotatePlatformClientSecret`
+- 4 components: `PlatformClientListPanel`, `CreatePlatformClientForm`, `PlatformClientDetailPanel`, `PlatformClientSecretAlert`
+- Console section (`PlatformClientsSection`) with flow state machine: idle → creating → revealing → editing
+- Route at `/settings/platform-clients` with nav entry under Configuration (Plug icon)
+- SDK barrel: exported `PlatformClientClient` + `PlatformClientInput` from `@stigmer/sdk`
+- React barrel: 12 exports + 12 type exports in `@stigmer/react`
+- All 128 existing tests pass, zero lint errors, TypeScript clean (only pre-existing codegen stub issue)
+
+### Key Decisions Made (Session 6)
+- **SDK-first, not Console-first**: PlatformClient CRUD built in `@stigmer/react` following IdentityProvider pattern, consumed from Console. Keeps option open for platform builders to embed admin UI.
+- **IdentityProvider as reference, not ApiKey**: IdP has the full CRUD shape (list + single-get + create + update + delete + detail-with-edit). ApiKey is list-only with no edit.
+- **Dropped PlatformClientQuickStart component**: No compelling embedded use case — platform builders create PlatformClients in the Stigmer Console, not in their own apps. Auth guide docs are sufficient.
+- **Revealing flow state for one-time secrets**: Both `create` and `rotateSecret` return `PlatformClientCreateResponse` with raw secret. A single `PlatformClientSecretAlert` component handles both entry points. Console section has a `revealing` state entered from both `creating→success` and `editing→rotate-success`.
+- **No demo fixtures**: Deferred as low-priority — demo client doesn't need PlatformClient mocks for the Console to be functional.
+
+### Pre-existing Issue Noted
+- Codegen file `sdk/typescript/src/gen/platformclient.ts` imports `MintUserTokenRequest`/`MintUserTokenResponse` from `io_pb` but they live in `token_pb`. Needs `make codegen` re-run to fix. Not introduced by session 6.
+
 ## Next Steps
-1. Pick up T06 in stigmer: Console UI + Documentation
-2. T06 scope: PlatformClient CRUD pages in the Console, create flow with one-time secret display, secret rotation, resource listing, documentation site pages
+1. Pick up T06 session 7: Documentation pass
+2. T06 docs scope: `docs/guides/platform-client/overview.mdx`, `quick-start.mdx`, `token-endpoint.mdx`, `auto-provisioning.mdx`
+3. Update existing docs: `docs/sdk/react/index.mdx` (add PlatformClient auth method), `docs/sdk/index.mdx` (overview), `docs/guides/federation/overview.mdx` (cross-reference)
+4. Fix pre-existing codegen stub import issue (`MintUserToken*` in `io_pb` vs `token_pb`) via `make codegen`
 
 ## Context for Resume
-- Proto files are at `apis/ai/stigmer/iam/platformclient/v1/{spec,api,io,command,query,token}.proto`
-- `mintUserToken` uses `is_public = true` (changed from `is_skip_authorization` in session 3)
-- JWT signing infrastructure is in: `backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/platformclient/jwt/`
-- Token handler is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/request/handler/token/`
-- Credential validator is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/token/`
-- Provisioner is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/provisioning/`
-- Auth provider is in: `backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/platformclient/auth/`
-- Redis cache is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/cache/`
-- Signing key config: `stigmer.jwt.signing.*` in `application.yaml`, env var `STIGMER_JWT_SIGNING_KEY`
-- SDK helpers: `sdk/typescript/src/platform-client-auth.ts`, `sdk/go/platform_client_auth.go`, `sdk/python/src/stigmer/platform_client_auth.py`, `sdk/java/src/main/java/ai/stigmer/sdk/PlatformClientAuth.java`
-- Integration docs: `docs/guides/platform-client-auth.mdx`
-- Design decisions: DD-004 (`004-mint-time-jit-and-composite-idp-id.md`), DD-005 (`005-t05-sdk-design-supersedes-original-plan.md`)
+- React hooks + components: `sdk/react/src/platform-client/` (11 files)
+- Console section: `client-apps/web/src/components/settings/PlatformClientsSection.tsx`
+- Console route: `client-apps/web/src/app/settings/platform-clients/page.tsx`
+- Nav entry: `client-apps/web/src/components/layout/settings-nav.ts` (Plug icon under Configuration)
+- SDK barrel export: `sdk/typescript/src/index.ts` (`PlatformClientClient`, `PlatformClientInput`)
+- React barrel export: `sdk/react/src/index.ts` (12 + 12 type exports)
+- Generated client surface: `stigmer.platformclient.*` (lowercase, codegen-driven)
+- Proto files: `apis/ai/stigmer/iam/platformclient/v1/{spec,api,io,command,query,token}.proto`
+- SDK helpers (T05): `sdk/typescript/src/platform-client-auth.ts`, `sdk/go/platform_client_auth.go`, `sdk/python/src/stigmer/platform_client_auth.py`, `sdk/java/src/main/java/ai/stigmer/sdk/PlatformClientAuth.java`
+- Integration docs (T05): `docs/guides/platform-client-auth.mdx`
+- Design decisions: DD-004, DD-005
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T04" - Start the next task (auth chain + JIT provisioning in stigmer-cloud)
+- "Continue with T06 docs" - Start the documentation pass (session 7)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
