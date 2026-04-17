@@ -12,14 +12,16 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Tech Stack**: TypeScript, React, Framer Motion, Remotion, Protobuf (buf)
 
-**Components**: `scenar/` (new top-level directory: apis/, engine/, shells/, sdk/), `site/src/components/docs/demos/engine/` (extraction source), `site/src/components/docs/demos/views/` (extraction source), `site/video/` (Remotion integration)
+**Repository**: [scenar-ai/scenar](https://github.com/scenar-ai/scenar) (public, open-source monorepo)
+
+**Local Path**: `/Users/suresh/scm/github.com/scenar-ai/scenar`
 
 ## Task Roadmap
 
 | Task | Title | Status | Depends On |
 |------|-------|--------|------------|
-| T01 | Define Scenar Proto Contract | PENDING | — |
-| T02 | Scaffold Directory & Buf Configuration | PENDING | T01 |
+| T01 | Define Scenar Proto Contract | DONE | — |
+| T02 | Scaffold Directory & Buf Configuration | DONE (via T01) | T01 |
 | T03 | Engine Extraction (zero @stigmer/* imports) | PENDING | T02 |
 | T04 | Shells Extraction | PENDING | T03 |
 | T05 | SDK — createScenario() | PENDING | T01, T03 |
@@ -27,22 +29,59 @@ Drop this file into your conversation to quickly resume work on this project.
 | T07 | Remotion Video Pipeline Integration | PENDING | T03, T06 |
 | T08 | Standalone Example (validates extraction) | PENDING | T05, T06 |
 
-## Current Task: T01 — Define Scenar Proto Contract
+## Completed: T01 — Define Scenar Proto Contract
 
-**Status**: PENDING — Ready to start
+**Status**: DONE — Committed and pushed to scenar-ai/scenar (e5e9a32)
 
-**Plan file**: `_projects/2026-04/20260417.02.scenar-product/tasks/T01_0_plan.md`
+**What was built**:
+- 13 proto source files (6 scenario + 7 commons)
+- Commons resource patterns (metadata, audit, visibility, kind, field options, pagination)
+- Buf module `buf.build/scenar/apis` with standalone config
+- Codegen templates for TypeScript, Go, Python
+- Makefiles (root + apis) — `make protos` generates 72 stub files
+- `buf lint` and `buf build` pass clean
 
-**Summary**: Create the Scenar scenario proto contract in `scenar/apis/ai/scenar/scenario/v1/` (completely separate from Stigmer's `apis/`). Six proto files following the Stigmer API resource pattern: `enum.proto`, `spec.proto`, `api.proto`, `io.proto`, `command.proto`, `query.proto`. Zero Stigmer imports. The spec.proto is the core — it defines the full scenario choreography (steps, interactions, viewport config).
+**Design decisions applied**:
+1. **Separate GitHub repo**: `scenar-ai/scenar` (not a subdirectory of stigmer)
+2. **Zero Stigmer imports**: Scenar's own commons (`ai.scenar.commons.*`)
+3. **Interactions embedded in Step**: Not a separate `map<int32, StepInteractions>` — each step owns its interactions for better YAML ergonomics
+4. **No CursorStyle enum**: Cursor visual style is an engine concern, not scenario data
+5. **No multi-org**: `ResourceMetadata` has no `org` field initially
+6. **Forward-looking services**: command.proto and query.proto define the API for a future hosted Scenar service
+
+## Current Task: T03 — Engine Extraction
+
+**Status**: PENDING — Ready to start (T01 and T02 are done)
+
+**Summary**: Extract the generic scenario engine from `site/src/components/docs/demos/engine/` into `scenar/engine/` with zero `@stigmer/*` imports. The engine components (ScenarioPlayer, Cursor, useStepInteractions, DemoViewport, ViewportTransformLayer, timeline, timing, scroll-utils, narration, TimeSource, PlaybackCoordinator, VideoExportContext) move to the Scenar package.
+
+**Key challenge**: `engine/shared.ts` imports Stigmer protos for fixture data — this file stays in Stigmer (it's scenario-specific, not engine-generic).
 
 ## Key Design Decisions
 
-1. **Separate from Stigmer protos**: `scenar/apis/` at repo root, NOT inside `apis/ai/scenar/`. Scenar is its own product.
+1. **Separate GitHub repo**: `scenar-ai/scenar` under the `scenar-ai` GitHub organization. Domain: scenar.ai.
 2. **Proto-first (hybrid approach)**: Proto defines the scenario contract. TypeScript types generated from protos. Users author in TS (with generated types) or YAML — both validate against the same schema.
-3. **Zero Stigmer dependencies**: Scenar protos import only `buf/validate` and `google/protobuf`. ScenarioMetadata is Scenar-specific (not ApiResourceMetadata).
-4. **Forward-looking services**: command.proto and query.proto define the API for a future hosted Scenar service.
+3. **Zero Stigmer dependencies**: Scenar protos import only `buf/validate` and `google/protobuf`. Commons are Scenar's own (`ai.scenar.commons.*`).
+4. **Embedded interactions**: Step owns its interactions. No separate interaction map keyed by step index.
+5. **View is an opaque string**: The `view` field maps to React components via the scenario author's render function. Shells (AppShell, BrowserView) are product-specific, not modeled in the proto.
+6. **Forward-looking services**: command.proto and query.proto define the API surface for a future hosted Scenar platform.
 
 ## Essential Files to Review
+
+### Scenar Repository
+```
+/Users/suresh/scm/github.com/scenar-ai/scenar/
+├── Makefile
+├── apis/
+│   ├── buf.yaml
+│   ├── Makefile
+│   ├── buf.gen.{ts,go,python}.yaml
+│   ├── ai/scenar/
+│   │   ├── commons/resource/     (metadata, enum, status, kind, field_options, rpc_service_options)
+│   │   ├── commons/rpc/          (pagination)
+│   │   └── scenario/v1/          (enum, spec, api, io, command, query)
+│   └── stubs/{ts,go,python}/     (generated — 72 files)
+```
 
 ### Task Plans
 ```
@@ -56,7 +95,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - **Don't Dos**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260417.02.scenar-product/dont-dos/`
 - **Checkpoints**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260417.02.scenar-product/checkpoints/`
 
-### Existing Demo Engine (Extraction Source)
+### Existing Demo Engine (Extraction Source for T03)
 - **Engine core**: `site/src/components/docs/demos/engine/`
 - **Timing constants**: `site/src/components/docs/demos/engine/timing.ts`
 - **DemoViewport**: `site/src/components/docs/demos/engine/DemoViewport.tsx`
@@ -82,7 +121,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Quick Commands
 
-- "Continue with T01" — Start/resume the Scenar proto contract definition
+- "Continue with T03" — Start the engine extraction
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
