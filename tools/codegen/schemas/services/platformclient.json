@@ -284,7 +284,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Platform's stable user identifier. Becomes the JWT sub claim and is\n used as the external user ID for the federated identity account.\n\n Must be unique and stable within the platform — changing this value\n for the same user creates a new identity account.",
+          "description": "Platform's stable user identifier for the end user. Used together with\n the PlatformClient's owning org to resolve or create an IdentityAccount\n (keyed as \"stgm_pc|{org}|{user_id}\").\n\n Must be unique and stable within the org — the same user_id presented\n via any PlatformClient in the same org resolves to the same identity.\n Changing this value for the same user creates a new identity account.",
           "required": false,
           "validation": {
             "minLength": 1

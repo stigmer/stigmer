@@ -177,6 +177,13 @@ automatically create accounts:
   immediately.
 - **`auto_grant_role`** — the role to grant (default: `viewer`).
 
+Identity resolution is **org-scoped**: the same `user_id` presented via any
+PlatformClient in your organization resolves to a single Stigmer identity. If
+you have separate PlatformClients for your dashboard, mobile app, and admin
+tool, a user who signs in through any of them shares one identity account and
+one set of permissions. Use a consistent, stable identifier across all your apps
+(for example, your Auth0 `sub`, Clerk user ID, or database primary key).
+
 ## Error handling
 
 All SDKs return structured errors with actionable messages:

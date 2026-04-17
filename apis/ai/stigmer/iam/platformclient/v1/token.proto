@@ -63,11 +63,13 @@ message MintUserTokenRequest {
   // Validated against the stored client_secret_hash.
   string client_secret = 2 [(buf.validate.field).string.min_len = 1];
 
-  // Platform's stable user identifier. Becomes the JWT sub claim and is
-  // used as the external user ID for the federated identity account.
+  // Platform's stable user identifier for the end user. Used together with
+  // the PlatformClient's owning org to resolve or create an IdentityAccount
+  // (keyed as "stgm_pc|{org}|{user_id}").
   //
-  // Must be unique and stable within the platform — changing this value
-  // for the same user creates a new identity account.
+  // Must be unique and stable within the org — the same user_id presented
+  // via any PlatformClient in the same org resolves to the same identity.
+  // Changing this value for the same user creates a new identity account.
   string user_id = 3 [(buf.validate.field).string.min_len = 1];
 
   // User's email address. Used for profile enrichment when JIT-provisioning

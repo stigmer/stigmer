@@ -24,8 +24,12 @@ import (
 //	- federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
 //	  scoped by identity_provider_ref
 //	- machine: Auth0 client ID with "@clients" suffix
-//	- platform_client: composite "stgm_pc|{platform_client_id}|{external_user_id}",
-//	  globally unique by construction
+//	- platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
+//	  is the Stigmer org that owns the PlatformClient(s) and external_user_id
+//	  is the platform builder's stable identifier for the user. Scoping by org
+//	  (not by PlatformClient) means a customer's end user resolves to a single
+//	  IdentityAccount across all of that customer's PlatformClients. Globally
+//	  unique by construction.
 type IdentityAccountInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -40,8 +44,8 @@ type IdentityAccountInput struct {
 	// Tags for categorization and discovery.
 	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
-	// IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123"). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with "@clients" suffix. For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}" where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id is the user identifier from the platform builder's system. Globally unique by construction — no additional scope field is needed.
-	IdpId string `json:"idp_id" jsonschema:"IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., 'auth0|abc123'). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., 'google-oauth2|109876543210'). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with '@clients' suffix. For platform_client accounts: composite 'stgm_pc|{platform_client_id}|{external_user_id}' where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id is the user identifier from the platform builder's system. Globally unique by construction — no additional scope field is needed."`
+	// IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123"). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with "@clients" suffix. For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}" where org is the Stigmer org that owns the PlatformClient(s) and external_user_id is the platform builder's stable identifier for the user. Scoping by org (not by PlatformClient) means the same user_id presented via any PlatformClient in the same org resolves to the same IdentityAccount. Globally unique by construction — no additional scope field is needed.
+	IdpId string `json:"idp_id" jsonschema:"IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., 'auth0|abc123'). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., 'google-oauth2|109876543210'). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with '@clients' suffix. For platform_client accounts: composite 'stgm_pc|{org}|{external_user_id}' where org is the Stigmer org that owns the PlatformClient(s) and external_user_id is the platform builder's stable identifier for the user. Scoping by org (not by PlatformClient) means the same user_id presented via any PlatformClient in the same org resolves to the same IdentityAccount. Globally unique by construction — no additional scope field is needed."`
 	// Email of the identity account. For direct accounts: based on the email used to sign up. For federated accounts: provided by the platform when creating the account. (ignored for create) this value is assigned by backend.
 	Email string `json:"email,omitempty" jsonschema:"Email of the identity account. For direct accounts: based on the email used to sign up. For federated accounts: provided by the platform when creating the account. (ignored for create) this value is assigned by backend."`
 	// First name of the identity account.

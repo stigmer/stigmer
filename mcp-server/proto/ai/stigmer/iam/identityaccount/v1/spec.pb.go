@@ -38,8 +38,12 @@ const (
 //   - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
 //     scoped by identity_provider_ref
 //   - machine: Auth0 client ID with "@clients" suffix
-//   - platform_client: composite "stgm_pc|{platform_client_id}|{external_user_id}",
-//     globally unique by construction
+//   - platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
+//     is the Stigmer org that owns the PlatformClient(s) and external_user_id
+//     is the platform builder's stable identifier for the user. Scoping by org
+//     (not by PlatformClient) means a customer's end user resolves to a single
+//     IdentityAccount across all of that customer's PlatformClients. Globally
+//     unique by construction.
 type IdentityAccountSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// IDP ID of the identity account.
@@ -49,9 +53,11 @@ type IdentityAccountSpec struct {
 	// provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
 	// identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
 	// For machine accounts: the Auth0 client ID with "@clients" suffix.
-	// For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
-	// where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
-	// and external_user_id is the user identifier from the platform builder's system.
+	// For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+	// where org is the Stigmer org that owns the PlatformClient(s) and
+	// external_user_id is the platform builder's stable identifier for the user.
+	// Scoping by org (not by PlatformClient) means the same user_id presented
+	// via any PlatformClient in the same org resolves to the same IdentityAccount.
 	// Globally unique by construction — no additional scope field is needed.
 	IdpId string `protobuf:"bytes,1,opt,name=idp_id,json=idpId,proto3" json:"idp_id,omitempty"`
 	// Email of the identity account.
