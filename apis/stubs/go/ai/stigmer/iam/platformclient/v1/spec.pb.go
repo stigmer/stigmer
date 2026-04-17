@@ -41,6 +41,12 @@ const (
 // - client_secret is generated on creation, returned once, and only the hash is stored.
 // - Secret rotation generates a new client_secret and invalidates the old one immediately.
 //
+// Identity resolution is org-scoped: the same user_id presented via any
+// PlatformClient owned by the same organization resolves to a single
+// IdentityAccount (keyed as "stgm_pc|{org}|{external_user_id}"). This means
+// a customer with multiple PlatformClients (e.g., dashboard, mobile, admin)
+// sees one Stigmer identity per end user, with one set of FGA grants.
+//
 // Three provisioning modes for users presented via mintUserToken:
 //
 //  1. Manual (default): The platform explicitly creates identity accounts and IAM

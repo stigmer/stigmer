@@ -56,11 +56,13 @@ public interface MintUserTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * Platform's stable user identifier. Becomes the JWT sub claim and is
-   * used as the external user ID for the federated identity account.
+   * Platform's stable user identifier for the end user. Used together with
+   * the PlatformClient's owning org to resolve or create an IdentityAccount
+   * (keyed as "stgm_pc|{org}|{user_id}").
    *
-   * Must be unique and stable within the platform — changing this value
-   * for the same user creates a new identity account.
+   * Must be unique and stable within the org — the same user_id presented
+   * via any PlatformClient in the same org resolves to the same identity.
+   * Changing this value for the same user creates a new identity account.
    * </pre>
    *
    * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>
@@ -69,11 +71,13 @@ public interface MintUserTokenRequestOrBuilder extends
   java.lang.String getUserId();
   /**
    * <pre>
-   * Platform's stable user identifier. Becomes the JWT sub claim and is
-   * used as the external user ID for the federated identity account.
+   * Platform's stable user identifier for the end user. Used together with
+   * the PlatformClient's owning org to resolve or create an IdentityAccount
+   * (keyed as "stgm_pc|{org}|{user_id}").
    *
-   * Must be unique and stable within the platform — changing this value
-   * for the same user creates a new identity account.
+   * Must be unique and stable within the org — the same user_id presented
+   * via any PlatformClient in the same org resolves to the same identity.
+   * Changing this value for the same user creates a new identity account.
    * </pre>
    *
    * <code>string user_id = 3 [json_name = "userId", (.buf.validate.field) = { ... }</code>

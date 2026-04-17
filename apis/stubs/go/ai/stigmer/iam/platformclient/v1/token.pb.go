@@ -37,11 +37,13 @@ type MintUserTokenRequest struct {
 	// The raw client secret (stgm_cs_ prefix).
 	// Validated against the stored client_secret_hash.
 	ClientSecret string `protobuf:"bytes,2,opt,name=client_secret,json=clientSecret,proto3" json:"client_secret,omitempty"`
-	// Platform's stable user identifier. Becomes the JWT sub claim and is
-	// used as the external user ID for the federated identity account.
+	// Platform's stable user identifier for the end user. Used together with
+	// the PlatformClient's owning org to resolve or create an IdentityAccount
+	// (keyed as "stgm_pc|{org}|{user_id}").
 	//
-	// Must be unique and stable within the platform — changing this value
-	// for the same user creates a new identity account.
+	// Must be unique and stable within the org — the same user_id presented
+	// via any PlatformClient in the same org resolves to the same identity.
+	// Changing this value for the same user creates a new identity account.
 	UserId string `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// User's email address. Used for profile enrichment when JIT-provisioning
 	// an identity account. Updated on each token mint if the account exists.
