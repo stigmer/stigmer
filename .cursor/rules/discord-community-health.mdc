@@ -185,6 +185,7 @@ After scanning, report on these structural health indicators:
 
 ## Important Notes
 
+- **Docs URL**: The Stigmer documentation site is at `https://stigmer.ai/docs/...` — **NOT** `https://docs.stigmer.ai/...`. Always use `stigmer.ai/docs/` as the base when linking to documentation pages (e.g., `https://stigmer.ai/docs/sdk/ink`, `https://stigmer.ai/docs/guides/federation/overview`). Double-check all URLs in drafted messages before posting.
 - **Never print or log the bot token.** Use it only in `curl` Authorization headers.
 - **Never auto-send messages.** Always present drafts for review first.
 - **Cache member lookups.** Avoid redundant API calls for the same user's roles.
