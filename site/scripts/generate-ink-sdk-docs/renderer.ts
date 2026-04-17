@@ -48,7 +48,7 @@ export function renderReferencePage(ref: InkReference): string {
 export function renderMetaJson(): string {
   const meta = {
     title: "Ink SDK",
-    pages: ["reference"],
+    pages: ["cli-integration", "reference"],
   };
   return JSON.stringify(meta, null, 2) + "\n";
 }
