@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State (wrap-up)
 
-- **Status**: T06 Console UI half complete. FGA authorization gap closed (session 7). Documentation remaining (session 8).
-- **Last session**: 2026-04-17 (session 7) — FGA authorization model for PlatformClient + OAuthApp can_create_* gap fix. ProtoFgaSchemaConsistencyTest + handler authorization tests. DD-006.
-- **Active task**: T06 — Documentation pass (session 8).
+- **Status**: Identity resolution rescoped to org-level (session 8). T06 docs still remaining.
+- **Last session**: 2026-04-17 (session 8) — Rescoped PlatformClient identity resolution from per-PlatformClient to per-org. Same user_id from any PlatformClient in the same org now resolves to a single IdentityAccount.
+- **Active task**: T06 — Documentation pass (session 9).
 
 ## Essential Files to Review
 
@@ -241,10 +241,39 @@ When starting a new session:
 - The `IamPolicyCreationServiceTest` in `api-authorization` exists as a Java file but has no Bazel test target — its tests never run in CI.
 
 ## Next Steps
-1. Pick up T06 session 8: Documentation pass
+1. Pick up T06 session 9: Documentation pass
 2. T06 docs scope: `docs/guides/platform-client/overview.mdx`, `quick-start.mdx`, `token-endpoint.mdx`, `auto-provisioning.mdx`
 3. Update existing docs: `docs/sdk/react/index.mdx` (add PlatformClient auth method), `docs/sdk/index.mdx` (overview), `docs/guides/federation/overview.mdx` (cross-reference)
 4. Fix pre-existing codegen stub import issue (`MintUserToken*` in `io_pb` vs `token_pb`) via `make codegen`
+5. Commit remaining uncommitted files in stigmer-cloud: generated stubs (from `make protos`), handler code (cache/, token/, handler/token/), auth chain code (platformclient/auth/, platformclient/jwt/), and broader feature-branch changes
+
+## Session Progress (2026-04-17, Session 8)
+
+### Accomplished
+- Rescoped PlatformClient identity resolution from per-PlatformClient to per-org
+- Changed composite `idp_id` from `stgm_pc|{platform_client_id}|{external_user_id}` to `stgm_pc|{org}|{external_user_id}`
+- Updated proto docstrings in 3 files (identityaccount/spec.proto, platformclient/spec.proto, platformclient/token.proto)
+- Updated `PlatformClientIdentityEncoding.composeIdpId(org, externalUserId)` in stigmer-cloud
+- Updated `PlatformClientAccountProvisionerImpl` to use org instead of clientId for identity resolution
+- Updated `PlatformClientProvisioningException.UnknownUserException` error message to reference org
+- Rewrote `PlatformClientIdentityEncodingTest` for org-scoped parameters
+- Added `OrgScopedResolutionTests` to `PlatformClientAccountProvisionerImplTest` (3 new tests)
+- Added org-scoped identity resolution paragraph to `docs/guides/platform-client-auth.mdx`
+- Ran `make codegen` (stigmer) and `make protos` (stigmer-cloud) --- all stubs regenerated
+- Verified FGA model (`platform_client.fga`) needs no changes --- already org-scoped
+- Committed: OSS `f202c6988`, Cloud `2796fff9`
+
+### Key Decisions Made (Session 8)
+- **Org-scoped, not per-PlatformClient**: Same user_id from any PlatformClient in the same org resolves to one IdentityAccount. Matches the common multi-app embedding pattern.
+- **Email is profile data only**: Never used as a lookup key. Updated on each mintUserToken call. Two different users in the same org can share an email.
+- **Keep PlatformClient name**: After evaluating EmbedApp, IntegrationApp, and others, decided the current name is directionally correct and not worth the churn.
+- **No migration**: Pre-GA feature on feature branch. Any existing test data with the old format should be wiped.
+
+### Research and Analysis
+- Investigated whether Auth0 or WorkOS offer equivalent functionality to PlatformClient
+- Auth0: Custom Token Exchange (CTE) is the closest equivalent, but locked behind B2B Professional ($800/mo) / Enterprise plans and still in Early Access
+- WorkOS: No equivalent feature at any tier. M2M is app-scoped (not user-scoped), Impersonation is admin-only debugging tool
+- Conclusion: PlatformClient is a genuine product differentiator that neither major IDP sells at a reasonable price point
 
 ## Context for Resume
 - React hooks + components: `sdk/react/src/platform-client/` (11 files)
