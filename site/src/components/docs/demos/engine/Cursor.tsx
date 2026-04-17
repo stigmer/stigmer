@@ -20,6 +20,12 @@ interface CursorProps {
    * interactions where the cursor should dwell without clicking.
    */
   showRipple?: boolean;
+  /**
+   * Whether the cursor is currently performing a drag. When `true`,
+   * the pointer icon switches to a closed-hand grab icon and the
+   * click ripple is suppressed.
+   */
+  isDragging?: boolean;
 }
 
 interface Position {
@@ -92,7 +98,7 @@ function warnIfTargetObscured(target: string, el: Element): void {
  * Fades out when no target is set, fades in when a target appears.
  * Fully non-interactive (`pointer-events-none`).
  */
-export function Cursor({ target, containerRef, showRipple = true }: CursorProps) {
+export function Cursor({ target, containerRef, showRipple = true, isDragging = false }: CursorProps) {
   const [pos, setPos] = useState<Position | null>(null);
   const timeSource = useTimeSource();
 
@@ -126,11 +132,12 @@ export function Cursor({ target, containerRef, showRipple = true }: CursorProps)
 
   const videoClicking =
     showRipple &&
+    !isDragging &&
     timeSource != null &&
     targetArrivalMs != null &&
     timeSource.currentTimeMs - targetArrivalMs >= CLICK_DELAY_MS;
 
-  const isClicking = timeSource ? videoClicking : browserClicking;
+  const isClicking = timeSource ? videoClicking : (browserClicking && !isDragging);
 
   // ---------------------------------------------------------------------------
   // Video-export path: compute position synchronously.
@@ -286,7 +293,7 @@ export function Cursor({ target, containerRef, showRipple = true }: CursorProps)
           exit={{ opacity: 0 }}
           transition={SPRING}
         >
-          <CursorIcon />
+          {isDragging ? <GrabCursorIcon /> : <CursorIcon />}
 
           <AnimatePresence>
             {isClicking && (
@@ -326,6 +333,39 @@ function CursorIcon() {
         stroke="hsl(var(--background))"
         strokeWidth="1"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Closed-hand (grabbing) cursor icon shown during drag actions.
+ * Sized to match CursorIcon so swapping between them does not
+ * cause a layout shift. The center of the fist aligns near (0, 0)
+ * so the cursor position stays visually on the dragged element.
+ */
+function GrabCursorIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 16 16"
+      fill="none"
+      className="-translate-x-2 -translate-y-2 drop-shadow-sm"
+      aria-hidden
+    >
+      <path
+        d="M4.5 8V5.5a1 1 0 0 1 2 0V4a1 1 0 0 1 2 0v.5a1 1 0 0 1 2 0V5a1 1 0 0 1 2 0v4.5a3.5 3.5 0 0 1-3.5 3.5h-1A3.5 3.5 0 0 1 4.5 9.5V8Z"
+        fill="hsl(var(--foreground) / 0.85)"
+        stroke="hsl(var(--background))"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.5 8H3a1.5 1.5 0 0 1 0-3h1.5"
+        stroke="hsl(var(--background))"
+        strokeWidth="0.5"
+        fill="hsl(var(--foreground) / 0.85)"
       />
     </svg>
   );

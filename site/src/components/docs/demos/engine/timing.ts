@@ -37,3 +37,14 @@ export const TYPE_CHAR_DELAY_MS = 50;
  * Overridable per-action via `StepAction.hoverDuration`.
  */
 export const HOVER_HOLD_MS = 1500;
+
+/**
+ * Milliseconds to pause at the drag source after pressing before
+ * starting the drag movement to the destination.
+ *
+ * 200ms mimics the brief human hesitation between mousedown and the
+ * start of a deliberate drag gesture. Without this pause the cursor
+ * would begin moving immediately after the press, which looks
+ * robotic rather than intentional.
+ */
+export const DRAG_SETTLE_MS = 200;

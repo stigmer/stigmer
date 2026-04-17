@@ -8,7 +8,7 @@ import {
   scrollTargetIntoView,
   scrollTargetIntoViewInstant,
 } from "./scroll-utils";
-import { CLICK_DELAY_MS, HOVER_HOLD_MS, TYPE_CHAR_DELAY_MS } from "./timing";
+import { CLICK_DELAY_MS, DRAG_SETTLE_MS, HOVER_HOLD_MS, TYPE_CHAR_DELAY_MS } from "./timing";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -26,13 +26,19 @@ export interface StepAction {
    */
   readonly atPercent: number;
   /** Action type. */
-  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click" | "type" | "hover";
+  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click" | "type" | "hover" | "drag";
   /**
    * Target element identifier.
    * - For `scroll-to`: matches `[data-scroll-target="<target>"]`
    * - For `set-cursor` / `click` / `type` / `hover`: matches `[data-cursor-target="<target>"]`
+   * - For `drag`: matches `[data-cursor-target="<target>"]` (drag source)
    */
   readonly target?: string;
+  /**
+   * Drag destination element identifier. Only used by `drag` actions.
+   * Matches `[data-cursor-target="<dragTarget>"]`.
+   */
+  readonly dragTarget?: string;
   /**
    * Text to type character-by-character. Only used by `type` actions.
    */
@@ -83,6 +89,13 @@ export interface UseStepInteractionsOptions<T> {
    * Scenarios that don't use `hover` can omit this.
    */
   setShowRipple?: (show: boolean) => void;
+  /**
+   * Optional callback to control the Cursor's drag visual. The
+   * `drag` action calls `setDragging(true)` after pressing at the
+   * source and `setDragging(false)` after releasing at the
+   * destination. Scenarios that don't use `drag` can omit this.
+   */
+  setDragging?: (dragging: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -107,8 +120,8 @@ function getStepDurationMs<T>(
 
 /**
  * Schedule timed mid-step interactions (scroll, cursor movement,
- * click dispatch, text input, hover reveal) synced to narration
- * duration.
+ * click dispatch, text input, hover reveal, drag-and-drop) synced
+ * to narration duration.
  *
  * In browser mode, actions are scheduled via `setTimeout` at
  * `atPercent * stepDuration` ms from step start. In Remotion
@@ -132,6 +145,14 @@ function getStepDurationMs<T>(
  * {@link HOVER_HOLD_MS} leave events are dispatched and
  * `data-hover` is removed (phase 3).
  *
+ * The `drag` action is four-phase: cursor moves to the drag
+ * source (phase 1), then after {@link CLICK_DELAY_MS} a
+ * `pointerdown` is dispatched and `data-dragging` is set on the
+ * source (phase 2), then after {@link DRAG_SETTLE_MS} the cursor
+ * animates to the drag destination (phase 3), then after another
+ * {@link CLICK_DELAY_MS} a `pointerup` is dispatched and
+ * `data-dragging` is removed (phase 4).
+ *
  * Opt-in: scenarios that don't call this hook are unaffected.
  */
 export function useStepInteractions<T>({
@@ -143,6 +164,7 @@ export function useStepInteractions<T>({
   steps,
   playbackRate = 1,
   setShowRipple,
+  setDragging,
 }: UseStepInteractionsOptions<T>): void {
   const timeSource = useTimeSource();
   const firedRef = useRef<Set<string>>(new Set());
@@ -222,6 +244,38 @@ export function useStepInteractions<T>({
         if (elapsed >= fireAt + CLICK_DELAY_MS + holdMs && !firedRef.current.has(leaveKey)) {
           firedRef.current.add(leaveKey);
           dispatchHoverLeaveOnTarget(action.target, containerRef);
+          setShowRipple?.(true);
+        }
+      } else if (action.type === "drag") {
+        // Phase 1: move cursor to drag source
+        const cursorKey = `${stepIndex}-${action.atPercent}-drag-cursor`;
+        if (elapsed >= fireAt && !firedRef.current.has(cursorKey)) {
+          firedRef.current.add(cursorKey);
+          setShowRipple?.(false);
+          setCursorTarget(action.target);
+        }
+
+        // Phase 2: press at source
+        const pressKey = `${stepIndex}-${action.atPercent}-drag-press`;
+        if (elapsed >= fireAt + CLICK_DELAY_MS && !firedRef.current.has(pressKey)) {
+          firedRef.current.add(pressKey);
+          setDragging?.(true);
+          dispatchDragPressOnTarget(action.target, containerRef);
+        }
+
+        // Phase 3: move cursor to destination
+        const moveKey = `${stepIndex}-${action.atPercent}-drag-move`;
+        if (elapsed >= fireAt + CLICK_DELAY_MS + DRAG_SETTLE_MS && !firedRef.current.has(moveKey)) {
+          firedRef.current.add(moveKey);
+          setCursorTarget(action.dragTarget);
+        }
+
+        // Phase 4: release at destination
+        const releaseKey = `${stepIndex}-${action.atPercent}-drag-release`;
+        if (elapsed >= fireAt + CLICK_DELAY_MS + DRAG_SETTLE_MS + CLICK_DELAY_MS && !firedRef.current.has(releaseKey)) {
+          firedRef.current.add(releaseKey);
+          dispatchDragReleaseOnTarget(action.dragTarget, action.target, containerRef);
+          setDragging?.(false);
           setShowRipple?.(true);
         }
       } else {
@@ -311,6 +365,41 @@ export function useStepInteractions<T>({
             setShowRipple?.(true);
           }, fireAt + (CLICK_DELAY_MS + holdMs) / rate),
         );
+      } else if (action.type === "drag") {
+        warnIfDragExceedsStep(action, duration, stepIndex);
+
+        // Phase 1: move cursor to drag source
+        timers.push(
+          setTimeout(() => {
+            setShowRipple?.(false);
+            setCursorTarget(action.target);
+          }, fireAt),
+        );
+
+        // Phase 2: press at source
+        timers.push(
+          setTimeout(() => {
+            setDragging?.(true);
+            dispatchDragPressOnTarget(action.target, containerRef);
+          }, fireAt + CLICK_DELAY_MS / rate),
+        );
+
+        // Phase 3: move cursor to destination
+        timers.push(
+          setTimeout(
+            () => setCursorTarget(action.dragTarget),
+            fireAt + (CLICK_DELAY_MS + DRAG_SETTLE_MS) / rate,
+          ),
+        );
+
+        // Phase 4: release at destination
+        timers.push(
+          setTimeout(() => {
+            dispatchDragReleaseOnTarget(action.dragTarget, action.target, containerRef);
+            setDragging?.(false);
+            setShowRipple?.(true);
+          }, fireAt + (CLICK_DELAY_MS + DRAG_SETTLE_MS + CLICK_DELAY_MS) / rate),
+        );
       } else {
         timers.push(
           setTimeout(
@@ -332,6 +421,7 @@ export function useStepInteractions<T>({
     containerRef,
     setCursorTarget,
     setShowRipple,
+    setDragging,
     steps,
     playbackRate,
   ]);
@@ -398,6 +488,7 @@ function executeAction(
     case "click":
     case "type":
     case "hover":
+    case "drag":
       setCursorTarget(action.target);
       break;
   }
@@ -568,6 +659,97 @@ function typeTextIntoTarget(
   const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
   setter?.call(input, text);
   input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+// ---------------------------------------------------------------------------
+// Drag dispatch
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a `[data-cursor-target]` element to an `HTMLElement` for
+ * drag interactions. Returns `null` (with a dev-mode warning) if
+ * not found.
+ */
+function resolveDragElement(
+  target: string | undefined,
+  label: "source" | "destination",
+  containerRef: RefObject<HTMLElement | null>,
+): HTMLElement | null {
+  if (!target) return null;
+
+  const container = containerRef.current;
+  if (!container) return null;
+
+  const el = container.querySelector(`[data-cursor-target="${target}"]`);
+  if (!el || !(el instanceof HTMLElement)) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `[StepInteractions] drag ${label} "${target}" not found in DOM. ` +
+          `Ensure a [data-cursor-target="${target}"] element exists and is an HTMLElement.`,
+      );
+    }
+    return null;
+  }
+
+  return el;
+}
+
+/**
+ * Dispatch `pointerdown` on the drag source element and set
+ * `data-dragging="true"` for CSS-based drag-state styling.
+ */
+function dispatchDragPressOnTarget(
+  target: string | undefined,
+  containerRef: RefObject<HTMLElement | null>,
+): void {
+  const el = resolveDragElement(target, "source", containerRef);
+  if (!el) return;
+
+  el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+  el.setAttribute("data-dragging", "true");
+}
+
+/**
+ * Dispatch `pointerup` on the drag destination element and remove
+ * `data-dragging` from the source element.
+ */
+function dispatchDragReleaseOnTarget(
+  destination: string | undefined,
+  source: string | undefined,
+  containerRef: RefObject<HTMLElement | null>,
+): void {
+  const destEl = resolveDragElement(destination, "destination", containerRef);
+  if (destEl) {
+    destEl.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+  }
+
+  const srcEl = resolveDragElement(source, "source", containerRef);
+  if (srcEl) {
+    srcEl.removeAttribute("data-dragging");
+  }
+}
+
+/**
+ * Dev-mode warning when a drag action's total duration exceeds the
+ * step's duration, meaning the release phase will be cut short.
+ */
+function warnIfDragExceedsStep(
+  action: StepAction,
+  stepDurationMs: number,
+  stepIdx: number,
+): void {
+  if (process.env.NODE_ENV !== "development") return;
+
+  const totalMs =
+    action.atPercent * stepDurationMs + CLICK_DELAY_MS + DRAG_SETTLE_MS + CLICK_DELAY_MS;
+  if (totalMs > stepDurationMs) {
+    console.warn(
+      `[StepInteractions] drag action in step ${stepIdx} at ${action.atPercent} ` +
+        `needs ~${Math.round(totalMs)}ms but step is only ${Math.round(stepDurationMs)}ms. ` +
+        `Release events will not fire before the step advances. ` +
+        `Move atPercent earlier or increase step duration.`,
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
