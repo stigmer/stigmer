@@ -215,7 +215,7 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\n" +
 	"expires_in\x18\x03 \x01(\x05R\texpiresIn2\xa8\x01\n" +
 	"\x1dPlatformClientTokenController\x12\x86\x01\n" +
-	"\rmintUserToken\x126.ai.stigmer.iam.platformclient.v1.MintUserTokenRequest\x1a7.ai.stigmer.iam.platformclient.v1.MintUserTokenResponse\"\x04и\x18\x01B\xb6\x02\n" +
+	"\rmintUserToken\x126.ai.stigmer.iam.platformclient.v1.MintUserTokenRequest\x1a7.ai.stigmer.iam.platformclient.v1.MintUserTokenResponse\"\x04ȸ\x18\x01B\xb6\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\n" +
 	"TokenProtoP\x01Z]github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 

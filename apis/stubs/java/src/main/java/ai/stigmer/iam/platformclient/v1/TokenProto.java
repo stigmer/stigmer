@@ -61,7 +61,7 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
       "tTokenController\022\206\001\n\rmintUserToken\0226.ai." +
       "stigmer.iam.platformclient.v1.MintUserTo" +
       "kenRequest\0327.ai.stigmer.iam.platformclie" +
-      "nt.v1.MintUserTokenResponse\"\004\320\270\030\001B\261\001B\nTo" +
+      "nt.v1.MintUserTokenResponse\"\004\310\270\030\001B\261\001B\nTo" +
       "kenProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platf" +
       "ormclient.V1\312\002 Ai\\Stigmer\\Iam\\Platformcl" +
       "ient\\V1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\" +
@@ -91,7 +91,7 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
-    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isPublic);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

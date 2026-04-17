@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/token.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_token: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiowEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhgKB3VzZXJfaWQYAyABKAlCB7pIBHICEAESEgoKdXNlcl9lbWFpbBgEIAEoCRIRCgl1c2VyX25hbWUYBSABKAkSDgoGb3JnX2lkGAYgASgJIlUKFU1pbnRVc2VyVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFMqgBCh1QbGF0Zm9ybUNsaWVudFRva2VuQ29udHJvbGxlchKGAQoNbWludFVzZXJUb2tlbhI2LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXF1ZXN0GjcuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludFVzZXJUb2tlblJlc3BvbnNlIgTQuBgBYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiowEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhgKB3VzZXJfaWQYAyABKAlCB7pIBHICEAESEgoKdXNlcl9lbWFpbBgEIAEoCRIRCgl1c2VyX25hbWUYBSABKAkSDgoGb3JnX2lkGAYgASgJIlUKFU1pbnRVc2VyVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFMqgBCh1QbGF0Zm9ybUNsaWVudFRva2VuQ29udHJvbGxlchKGAQoNbWludFVzZXJUb2tlbhI2LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXF1ZXN0GjcuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludFVzZXJUb2tlblJlc3BvbnNlIgTIuBgBYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * MintUserTokenRequest contains the credentials and user identity needed
@@ -162,10 +162,9 @@ export const PlatformClientTokenController: GenService<{
    * - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
    *
    * @internal
-   * Authorization is handled within the RPC handler by validating the
-   * client_id + client_secret credentials directly. The normal auth
-   * interceptor is bypassed because the caller is a platform backend,
-   * not an authenticated Stigmer user.
+   * This RPC is public — no Bearer token is required. The caller authenticates
+   * by providing client_id + client_secret in the request body. The handler
+   * validates these credentials as business logic, not via the auth interceptor.
    *
    * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintUserToken
    */
