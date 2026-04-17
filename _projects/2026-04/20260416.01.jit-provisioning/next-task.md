@@ -14,8 +14,19 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: near-complete (only T07 stigmer-cloud commit remains)
-- **Last Session**: April 16, 2026 — Session 8: SDK docs browser auth security guidance
+- **Last Session**: April 17, 2026 — Session 9: Web UI JIT provisioning fields
 - **Active Task**: All follow-up items complete, only T07 stigmer-cloud commit pending
+
+## Session Progress (April 17, 2026 — Session 9)
+
+- Gap analysis: JIT fields (autoProvisionAccounts, autoGrantOnOrg, autoGrantRole, tenantOrgClaim) were fully wired in proto + all SDKs but completely absent from `@stigmer/react` UI components
+- Added JIT provisioning form controls to `IdentityProviderWizard.tsx` (Review step)
+- Added JIT view mode display + edit mode form to `IdentityProviderDetailPanel.tsx` with `ProvisioningModeBadge` (SSO/JIT)
+- Added JIT provisioning form controls to `CreateIdentityProviderForm.tsx`
+- Added JIT badge to `IdentityProviderListPanel.tsx` rows
+- All cross-field validation rules from DD-001/DD-004 enforced client-side
+- All linters and TypeScript type checks pass
+- 4 files changed, +748/-33 lines
 
 ## Session Progress (April 16, 2026 — Session 8)
 
@@ -100,7 +111,13 @@ Drop this file into your conversation to quickly resume work on this project.
 ### 3. Project Documentation
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260416.01.jit-provisioning/README.md`
 
-### 4. Key Files Modified in Session 8 (stigmer — SDK docs)
+### 4. Key Files Modified in Session 9 (stigmer — @stigmer/react IdP UI)
+- `sdk/react/src/identity-provider/IdentityProviderWizard.tsx` (MODIFIED — JIT provisioning section in Review step)
+- `sdk/react/src/identity-provider/IdentityProviderDetailPanel.tsx` (MODIFIED — JIT view/edit + ProvisioningModeBadge)
+- `sdk/react/src/identity-provider/CreateIdentityProviderForm.tsx` (MODIFIED — JIT provisioning form controls)
+- `sdk/react/src/identity-provider/IdentityProviderListPanel.tsx` (MODIFIED — JIT badge in list rows)
+
+### 5. Key Files Modified in Session 8 (stigmer — SDK docs)
 - `docs/sdk/react/index.mdx` (MODIFIED — server-side vs browser auth sections, getAccessToken example)
 - `docs/sdk/index.mdx` (MODIFIED — dual auth method intro, security callout, JIT provisioning link)
 
