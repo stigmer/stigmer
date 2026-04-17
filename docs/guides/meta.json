@@ -1,4 +1,4 @@
 {
   "title": "Guides",
-  "pages": ["integrations", "federation"]
+  "pages": ["integrations", "federation", "platform-client-auth"]
 }

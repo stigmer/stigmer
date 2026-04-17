@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State (wrap-up)
 
-- **Status**: T04 complete on both repos (OSS proto + cloud implementation). Ready for T05.
-- **Last session**: 2026-04-17 (session 4) — Mint-time JIT provisioning, composite idp_id encoding, auth chain wiring, all tests pass. DD-004 supersedes DD-003.
-- **Active task**: T05 — SDK client support for PlatformClient auth (Node/Go/Python).
+- **Status**: T05 complete on stigmer repo (all four SDKs + docs). Ready for T06.
+- **Last session**: 2026-04-17 (session 5) — PlatformClient auth helpers in TypeScript, Go, Python, Java SDKs. Integration docs. DD-005 supersedes T05_0_plan.md.
+- **Active task**: T06 — Console UI + Documentation.
 
 ## Essential Files to Review
 
@@ -79,14 +79,14 @@ When starting a new session:
 | T02 | Backend: PlatformClient CRUD + credential generation | 1–2 sessions | stigmer-cloud | COMPLETE |
 | T03 | Backend: Token endpoint + Stigmer-signed JWT issuance | 2 sessions | stigmer-cloud | COMPLETE |
 | T04 | Backend: Auth chain integration + JIT provisioning | 1 session | stigmer + stigmer-cloud | COMPLETE |
-| T05 | SDK: Node/Go/Python client support for PlatformClient auth | 1–2 sessions | stigmer | NOT STARTED |
+| T05 | SDK: TypeScript/Go/Python/Java client support for PlatformClient auth | 1 session | stigmer | COMPLETE |
 | T06 | Console UI + Documentation | 2 sessions | stigmer | NOT STARTED |
 
 ## Current Status
 
 **Created**: 2026-04-17
-**Current Task**: T05 (SDK client support for PlatformClient auth — next up)
-**Status**: T01 + T02 + T03 + T04 complete, ready for T05
+**Current Task**: T06 (Console UI + Documentation — next up)
+**Status**: T01 + T02 + T03 + T04 + T05 complete, ready for T06
 
 ## Session Progress (2026-04-17, Session 1)
 
@@ -179,10 +179,27 @@ When starting a new session:
 - `IdpIdToIdentityAccountIdCacheProxy.proxyGet()` returns the raw `idpId` as fallback when no account is found (for non-machine accounts). The provisioner detects this by comparing the returned value against the composite `idpId` — equality means "not resolved."
 - `IamRole` enum values in the proto have `iam_role_unspecified = 0` and `UNRECOGNIZED` for unknown wire values. Both must be checked when defaulting `auto_grant_role` to viewer.
 
+## Session Progress (2026-04-17, Session 5)
+
+### Accomplished
+- Completed T05: PlatformClient auth helpers in all four SDKs (TypeScript, Go, Python, Java)
+- Wrote DD-005 superseding T05_0_plan.md (gRPC pivot, no client_credentials grant, no SDK-level caching, mintUserToken naming, Java inclusion)
+- TypeScript: `createPlatformClientAuth` in `@stigmer/sdk/node`, 6 tests passing
+- Go: `NewPlatformClientAuth` with functional options, 5 tests passing, `go build ./...` clean
+- Python: `platform_client_auth(...)` factory with dataclasses, tests written
+- Java: `PlatformClientAuth.builder(...)` with `AutoCloseable`, 7 tests written
+- Integration docs: `docs/guides/platform-client-auth.mdx` with all four language snippets + React wiring
+- Runnable example: `sdk/typescript/examples/mint-user-token.ts`
+
+### Key Decisions Made (Session 5)
+- **Separate helper, not a new auth mode**: PlatformClient credentials don't replace `apiKey`. Adding them to the main client would imply they do.
+- **No SDK-level token caching**: Token is user-keyed; caching is the platform builder's concern. Non-breaking to add later.
+- **Java as first-class peer**: Original T05 plan omitted it. Codegen already had the wire method; only the ergonomic wrapper was missing.
+- **Server-only by construction (TypeScript)**: Exported from `@stigmer/sdk/node` only. No browser entry exposure.
+
 ## Next Steps
-1. Pick up T05 in stigmer: SDK client support for PlatformClient auth (Node/Go/Python)
-2. T05 scope: `getAccessToken` configuration for PlatformClient tokens in React SDK, backend SDK helpers for calling `mintUserToken`
-3. T06 follows: Console UI + documentation
+1. Pick up T06 in stigmer: Console UI + Documentation
+2. T06 scope: PlatformClient CRUD pages in the Console, create flow with one-time secret display, secret rotation, resource listing, documentation site pages
 
 ## Context for Resume
 - Proto files are at `apis/ai/stigmer/iam/platformclient/v1/{spec,api,io,command,query,token}.proto`
@@ -194,7 +211,9 @@ When starting a new session:
 - Auth provider is in: `backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/platformclient/auth/`
 - Redis cache is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/cache/`
 - Signing key config: `stigmer.jwt.signing.*` in `application.yaml`, env var `STIGMER_JWT_SIGNING_KEY`
-- Design decisions: `_projects/2026-04/20260417.01.platform-client/design-decisions/003-identity-resolution-deferred-to-t04.md`
+- SDK helpers: `sdk/typescript/src/platform-client-auth.ts`, `sdk/go/platform_client_auth.go`, `sdk/python/src/stigmer/platform_client_auth.py`, `sdk/java/src/main/java/ai/stigmer/sdk/PlatformClientAuth.java`
+- Integration docs: `docs/guides/platform-client-auth.mdx`
+- Design decisions: DD-004 (`004-mint-time-jit-and-composite-idp-id.md`), DD-005 (`005-t05-sdk-design-supersedes-original-plan.md`)
 
 ## Quick Commands
 
