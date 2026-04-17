@@ -48,3 +48,16 @@ export const HOVER_HOLD_MS = 1500;
  * robotic rather than intentional.
  */
 export const DRAG_SETTLE_MS = 200;
+
+/**
+ * Expected milliseconds for the viewport transition spring to settle
+ * after a zoom or pan change.
+ *
+ * The ViewportTransformLayer uses a softer spring (stiffness 100,
+ * damping 20, mass 0.8) than the cursor spring, so it takes longer
+ * to settle. Used for dev-mode warnings when a subsequent cursor
+ * action is scheduled too close to a viewport transition — the
+ * cursor would target an element mid-animation, landing at an
+ * intermediate position.
+ */
+export const VIEWPORT_SETTLE_MS = 500;

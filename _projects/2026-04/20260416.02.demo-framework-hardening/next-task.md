@@ -25,15 +25,19 @@ Drop this file into your conversation to quickly resume work on this project.
 | T05 | New Interaction — Type (Text Input Simulation) | DONE | T04 |
 | T06 | New Interaction — Hover (Tooltip Reveal) | DONE | T04 |
 | T07 | New Interaction — Drag (Drag-and-Drop) | DONE | T04 |
-| T08 | New Interaction — Viewport Transition (Zoom/Pan) | PENDING | T01 |
+| T08 | New Interaction — Viewport Transition (Zoom/Pan) | DONE | T01 |
 | T09 | DemoScope Extraction Architecture | PENDING | T01-T08 |
 | T10 | Validation and Testing Updates | PENDING | T01-T09 |
 
-## Current Task: T08 — New Interaction: Viewport Transition (Zoom/Pan)
+## Current Task: T09 — DemoScope Extraction Architecture
 
-**Status**: PENDING — Ready to start (T01 unblocked it)
+**Status**: PENDING — Ready to start (T01-T08 all done)
 
-**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T08_0_plan.md`
+**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T09_0_plan.md`
+
+## Completed: T08 — New Interaction: Viewport Transition (Zoom/Pan)
+
+Added `viewport-transition` as the eighth action type to the demo engine's `useStepInteractions` hook. The viewport transition is single-phase: at `atPercent`, the engine computes CSS transform values (scale + translate) to center a `data-cursor-target` element in the viewport at the specified zoom level, and calls the `setViewportTransform` callback. A new `ViewportTransformLayer` engine component wraps demo content in a Framer Motion `motion.div` that animates the transform with a soft spring (`stiffness: 100`, `damping: 20`, `mass: 0.8`). The layer applies `overflow: hidden` when zoomed to clip content beyond viewport bounds, and is unrestricted at identity to preserve portaled content. The `Cursor` component is positioned as a sibling OUTSIDE the transform layer — `getBoundingClientRect()` on target elements correctly reports post-transform visual positions, so cursor positioning works without any Cursor code changes. The viewport transform persists across steps until explicitly reset via `viewportReset: true`. `VIEWPORT_SETTLE_MS` (500ms) warns when cursor actions fire too close to a viewport transition. Both browser (setTimeout) and video (frame-driven) paths are implemented. Validated with `viewport-zoom-validation`, a 2x2 metric dashboard scenario. See coding guideline `viewport-transition-patterns.md`.
 
 ## Completed: T07 — New Interaction: Drag (Drag-and-Drop)
 
@@ -92,7 +96,7 @@ Implemented `DemoViewport` wrapper using fixed 896×380 canonical viewport with 
 
 ## Quick Commands
 
-- "Continue with T08" — Start the viewport transition interaction
+- "Continue with T09" — Start the DemoScope extraction architecture
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
