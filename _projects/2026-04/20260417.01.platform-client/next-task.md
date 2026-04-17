@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State (wrap-up)
 
-- **Status**: T03 complete on both repos (OSS contract + cloud implementation). Ready for T04.
-- **Last session**: 2026-04-17 — OSS: `mintUserToken` marked `is_public`, stubs regenerated, design decision 003, project docs and changelog. Cloud implementation lives in `stigmer-cloud` (commit separately if not yet committed).
-- **Active task**: T04 — auth chain integration and JIT provisioning; identity resolution from JWT `sub` + `platform_client_id`.
+- **Status**: T04 complete on both repos (OSS proto + cloud implementation). Ready for T05.
+- **Last session**: 2026-04-17 (session 4) — Mint-time JIT provisioning, composite idp_id encoding, auth chain wiring, all tests pass. DD-004 supersedes DD-003.
+- **Active task**: T05 — SDK client support for PlatformClient auth (Node/Go/Python).
 
 ## Essential Files to Review
 
@@ -78,15 +78,15 @@ When starting a new session:
 | T01 | Proto: PlatformClient resource definition | 1–2 sessions | stigmer | COMPLETE |
 | T02 | Backend: PlatformClient CRUD + credential generation | 1–2 sessions | stigmer-cloud | COMPLETE |
 | T03 | Backend: Token endpoint + Stigmer-signed JWT issuance | 2 sessions | stigmer-cloud | COMPLETE |
-| T04 | Backend: Auth chain integration + JIT provisioning | 1–2 sessions | stigmer-cloud | NOT STARTED |
+| T04 | Backend: Auth chain integration + JIT provisioning | 1 session | stigmer + stigmer-cloud | COMPLETE |
 | T05 | SDK: Node/Go/Python client support for PlatformClient auth | 1–2 sessions | stigmer | NOT STARTED |
 | T06 | Console UI + Documentation | 2 sessions | stigmer | NOT STARTED |
 
 ## Current Status
 
 **Created**: 2026-04-17
-**Current Task**: T04 (Auth chain integration + JIT provisioning — next up)
-**Status**: T01 + T02 + T03 complete, ready for T04
+**Current Task**: T05 (SDK client support for PlatformClient auth — next up)
+**Status**: T01 + T02 + T03 + T04 complete, ready for T05
 
 ## Session Progress (2026-04-17, Session 1)
 
@@ -155,18 +155,43 @@ When starting a new session:
 - `InterceptorAwareCustomOperationContextFactory` handles public methods correctly — allows `caller == null` when `methodMetadata.getIsPublic()` is true. The `InvitationGetByTokenHandler` is the existing precedent.
 - The `PlatformClientTokenController` service does not need `api_resource_kind` option since it's not a resource lifecycle service. The `CustomOperationContextV2.getResourceKind()` returns null, which is fine since the handler doesn't use it.
 
+## Session Progress (2026-04-17, Session 4)
+
+### Accomplished
+- Completed T04: Auth chain integration + JIT provisioning
+- OSS: Added `platform_client = 4` to `IdentityAccountProvisioningMode`, extended `idp_id` doc comments, `make codegen`
+- Cloud: Refactored `StigmerJwtIssuer` into `StigmerJwtKeySource` + `StigmerJwtIssuer` + `StigmerJwtVerifier`
+- Cloud: Created `PlatformClientIdentityEncoding` — composite `stgm_pc|{pcid}|{extUid}` encoding
+- Cloud: Created `PlatformClientAccountProvisioner(Impl)` — resolve-or-provision with ALREADY_EXISTS recovery
+- Cloud: Added `ResolveOrProvisionUser` pipeline step to `MintUserTokenHandler`; JWT `sub` is now IdentityAccount ID
+- Cloud: Created `PlatformClientTokenAuthenticationProvider` + `PlatformClientAuthenticationToken`
+- Cloud: Wired provider into auth chain: API key → Stigmer JWT → federated → Auth0
+- Cloud: Updated `RequestCallerIdentityMapper` with PlatformClient branch; added `platformClientId` to `RequestCallerIdentity`
+- 7 tests pass (4 new + 3 existing unbroken)
+
+### Key Decisions Made (Session 4)
+- **Mint-time JIT** (supersedes DD-003): provisioning at `mintUserToken`, not at token validation. Aligns with proto contract.
+- **Composite `idp_id`**: `stgm_pc|{platform_client_id}|{external_user_id}` — globally unique by construction, no mapping table, no scope fields.
+- **No live `ApiResourceReference` to PlatformClient on IdentityAccount**: PlatformClient is an admission credential, not an ongoing auth authority. The `platform_client_id` baked into `idp_id` is an immutable historical marker.
+- **No new Mongo collections or indexes**: existing sparse unique `spec.idpId` index is sufficient.
+
+### Discoveries
+- `IdpIdToIdentityAccountIdCacheProxy.proxyGet()` returns the raw `idpId` as fallback when no account is found (for non-machine accounts). The provisioner detects this by comparing the returned value against the composite `idpId` — equality means "not resolved."
+- `IamRole` enum values in the proto have `iam_role_unspecified = 0` and `UNRECOGNIZED` for unknown wire values. Both must be checked when defaulting `auto_grant_role` to viewer.
+
 ## Next Steps
-1. Pick up T04 in stigmer-cloud: Auth chain integration + JIT provisioning
-2. T04 scope: `PlatformClientTokenAuthenticationProvider` (validate Stigmer-signed JWTs), identity resolution (resolve external user_id → IdentityAccount), JIT provisioning, define PlatformClient-to-identity-model relationship
-3. T04 must resolve: How PlatformClient maps to the identity model (see design decision 003). Options: synthetic IdentityProvider per PlatformClient, new provisioning mode, or dedicated lookup index.
-4. T05 follows: SDK client support for PlatformClient auth
+1. Pick up T05 in stigmer: SDK client support for PlatformClient auth (Node/Go/Python)
+2. T05 scope: `getAccessToken` configuration for PlatformClient tokens in React SDK, backend SDK helpers for calling `mintUserToken`
+3. T06 follows: Console UI + documentation
 
 ## Context for Resume
 - Proto files are at `apis/ai/stigmer/iam/platformclient/v1/{spec,api,io,command,query,token}.proto`
-- `mintUserToken` uses `is_public = true` (changed from `is_skip_authorization` in this session)
+- `mintUserToken` uses `is_public = true` (changed from `is_skip_authorization` in session 3)
 - JWT signing infrastructure is in: `backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/platformclient/jwt/`
 - Token handler is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/request/handler/token/`
 - Credential validator is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/token/`
+- Provisioner is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/provisioning/`
+- Auth provider is in: `backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/platformclient/auth/`
 - Redis cache is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/cache/`
 - Signing key config: `stigmer.jwt.signing.*` in `application.yaml`, env var `STIGMER_JWT_SIGNING_KEY`
 - Design decisions: `_projects/2026-04/20260417.01.platform-client/design-decisions/003-identity-resolution-deferred-to-t04.md`

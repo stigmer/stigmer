@@ -22,8 +22,9 @@ export const file_ai_stigmer_iam_identityaccount_v1_spec: GenFile = /*@__PURE__*
  *
  * An identity account represents a user or machine principal in Stigmer.
  * Accounts can be direct (signed up via Stigmer), federated (provisioned
- * through an external identity provider), or machine (service-to-service
- * credentials).
+ * through an external identity provider), machine (service-to-service
+ * credentials), or platform_client (provisioned via a PlatformClient's
+ * mintUserToken endpoint).
  *
  * @internal
  * All FGA tuples use identity_account as the principal type.
@@ -32,6 +33,8 @@ export const file_ai_stigmer_iam_identityaccount_v1_spec: GenFile = /*@__PURE__*
  * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
  *   scoped by identity_provider_ref
  * - machine: Auth0 client ID with "@clients" suffix
+ * - platform_client: composite "stgm_pc|{platform_client_id}|{external_user_id}",
+ *   globally unique by construction
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec
  */
@@ -44,6 +47,10 @@ export type IdentityAccountSpec = Message<"ai.stigmer.iam.identityaccount.v1.Ide
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "@clients" suffix.
+   * For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
+   * where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
+   * and external_user_id is the user identifier from the platform builder's system.
+   * Globally unique by construction — no additional scope field is needed.
    *
    * @generated from field: string idp_id = 1;
    */

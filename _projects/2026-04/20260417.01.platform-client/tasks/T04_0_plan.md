@@ -1,7 +1,14 @@
 # Task T04: Backend — Auth Chain Integration + JIT Provisioning for PlatformClient
 
+> **SUPERSEDED**: The original plan below has been replaced by the T04 implementation
+> plan developed in session 4 (2026-04-17). Key changes from the original plan:
+> - **Mint-time JIT** instead of validation-time (supersedes DD-003)
+> - **Composite `idp_id` encoding** instead of a separate `PlatformClientIdentityMapping` collection
+> - **No new fields or tables** on IdentityAccount beyond `provisioning_mode = platform_client`
+> - See [DD-004](../design-decisions/004-mint-time-jit-and-composite-idp-id.md) for rationale.
+
 **Created**: 2026-04-17
-**Status**: NOT STARTED
+**Status**: COMPLETE
 **Estimated effort**: 1–2 sessions
 **Repo**: stigmer-cloud
 **Depends on**: T03 (token endpoint must be issuing JWTs)

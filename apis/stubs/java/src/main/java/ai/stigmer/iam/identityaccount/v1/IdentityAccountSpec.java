@@ -11,8 +11,9 @@ package ai.stigmer.iam.identityaccount.v1;
  *
  * An identity account represents a user or machine principal in Stigmer.
  * Accounts can be direct (signed up via Stigmer), federated (provisioned
- * through an external identity provider), or machine (service-to-service
- * credentials).
+ * through an external identity provider), machine (service-to-service
+ * credentials), or platform_client (provisioned via a PlatformClient's
+ * mintUserToken endpoint).
  *
  * &#64;internal
  * All FGA tuples use identity_account as the principal type.
@@ -21,6 +22,8 @@ package ai.stigmer.iam.identityaccount.v1;
  * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
  * scoped by identity_provider_ref
  * - machine: Auth0 client ID with "&#64;clients" suffix
+ * - platform_client: composite "stgm_pc|{platform_client_id}|{external_user_id}",
+ * globally unique by construction
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec}
@@ -84,6 +87,10 @@ private static final long serialVersionUID = 0L;
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+   * For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
+   * where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
+   * and external_user_id is the user identifier from the platform builder's system.
+   * Globally unique by construction — no additional scope field is needed.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -111,6 +118,10 @@ private static final long serialVersionUID = 0L;
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+   * For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
+   * where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
+   * and external_user_id is the user identifier from the platform builder's system.
+   * Globally unique by construction — no additional scope field is needed.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -666,8 +677,9 @@ private static final long serialVersionUID = 0L;
    *
    * An identity account represents a user or machine principal in Stigmer.
    * Accounts can be direct (signed up via Stigmer), federated (provisioned
-   * through an external identity provider), or machine (service-to-service
-   * credentials).
+   * through an external identity provider), machine (service-to-service
+   * credentials), or platform_client (provisioned via a PlatformClient's
+   * mintUserToken endpoint).
    *
    * &#64;internal
    * All FGA tuples use identity_account as the principal type.
@@ -676,6 +688,8 @@ private static final long serialVersionUID = 0L;
    * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
    * scoped by identity_provider_ref
    * - machine: Auth0 client ID with "&#64;clients" suffix
+   * - platform_client: composite "stgm_pc|{platform_client_id}|{external_user_id}",
+   * globally unique by construction
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec}
@@ -934,6 +948,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
+     * where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
+     * and external_user_id is the user identifier from the platform builder's system.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -960,6 +978,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
+     * where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
+     * and external_user_id is the user identifier from the platform builder's system.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -987,6 +1009,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
+     * where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
+     * and external_user_id is the user identifier from the platform builder's system.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -1010,6 +1036,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
+     * where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
+     * and external_user_id is the user identifier from the platform builder's system.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -1030,6 +1060,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}"
+     * where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*)
+     * and external_user_id is the user identifier from the platform builder's system.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>

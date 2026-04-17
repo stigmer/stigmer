@@ -36,6 +36,18 @@ const (
 	IdentityAccountProvisioningMode_federated IdentityAccountProvisioningMode = 2
 	// Machine-to-machine client credentials account for inter-service communication.
 	IdentityAccountProvisioningMode_machine IdentityAccountProvisioningMode = 3
+	// Account provisioned via a PlatformClient's mintUserToken endpoint.
+	//
+	// The idp_id for these accounts uses the composite encoding
+	// "stgm_pc|{platform_client_id}|{external_user_id}", where platform_client_id
+	// is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id
+	// is the user identifier supplied by the platform builder. The composite is
+	// globally unique by construction — no additional scope field is needed.
+	//
+	// Unlike federated accounts, PlatformClient is not an ongoing authentication
+	// authority. Stigmer signs its own JWTs for these users; the PlatformClient
+	// is the admission credential used at mint time only.
+	IdentityAccountProvisioningMode_platform_client IdentityAccountProvisioningMode = 4
 )
 
 // Enum value maps for IdentityAccountProvisioningMode.
@@ -45,12 +57,14 @@ var (
 		1: "direct",
 		2: "federated",
 		3: "machine",
+		4: "platform_client",
 	}
 	IdentityAccountProvisioningMode_value = map[string]int32{
 		"identity_account_provisioning_mode_unspecified": 0,
-		"direct":    1,
-		"federated": 2,
-		"machine":   3,
+		"direct":          1,
+		"federated":       2,
+		"machine":         3,
+		"platform_client": 4,
 	}
 )
 
@@ -85,13 +99,14 @@ var File_ai_stigmer_iam_identityaccount_v1_enum_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_identityaccount_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*}\n" +
+	",ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*\x92\x01\n" +
 	"\x1fIdentityAccountProvisioningMode\x122\n" +
 	".identity_account_provisioning_mode_unspecified\x10\x00\x12\n" +
 	"\n" +
 	"\x06direct\x10\x01\x12\r\n" +
 	"\tfederated\x10\x02\x12\v\n" +
-	"\amachine\x10\x03B\xb9\x02\n" +
+	"\amachine\x10\x03\x12\x13\n" +
+	"\x0fplatform_client\x10\x04B\xb9\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\x01Z\\github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (

@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-17
 **Task**: T03 (Token Endpoint)
-**Status**: Accepted
+**Status**: Superseded by [DD-004](004-mint-time-jit-and-composite-idp-id.md)
 
 ## Context
 

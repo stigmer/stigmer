@@ -13,8 +13,9 @@ import (
 //
 //	An identity account represents a user or machine principal in Stigmer.
 //	Accounts can be direct (signed up via Stigmer), federated (provisioned
-//	through an external identity provider), or machine (service-to-service
-//	credentials).
+//	through an external identity provider), machine (service-to-service
+//	credentials), or platform_client (provisioned via a PlatformClient's
+//	mintUserToken endpoint).
 //
 //	@internal
 //	All FGA tuples use identity_account as the principal type.
@@ -23,6 +24,8 @@ import (
 //	- federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
 //	  scoped by identity_provider_ref
 //	- machine: Auth0 client ID with "@clients" suffix
+//	- platform_client: composite "stgm_pc|{platform_client_id}|{external_user_id}",
+//	  globally unique by construction
 type IdentityAccountInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -37,8 +40,8 @@ type IdentityAccountInput struct {
 	// Tags for categorization and discovery.
 	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
-	// IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123"). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with "@clients" suffix.
-	IdpId string `json:"idp_id" jsonschema:"IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., 'auth0|abc123'). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., 'google-oauth2|109876543210'). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with '@clients' suffix."`
+	// IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123"). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with "@clients" suffix. For platform_client accounts: composite "stgm_pc|{platform_client_id}|{external_user_id}" where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id is the user identifier from the platform builder's system. Globally unique by construction — no additional scope field is needed.
+	IdpId string `json:"idp_id" jsonschema:"IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., 'auth0|abc123'). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., 'google-oauth2|109876543210'). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with '@clients' suffix. For platform_client accounts: composite 'stgm_pc|{platform_client_id}|{external_user_id}' where platform_client_id is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id is the user identifier from the platform builder's system. Globally unique by construction — no additional scope field is needed."`
 	// Email of the identity account. For direct accounts: based on the email used to sign up. For federated accounts: provided by the platform when creating the account. (ignored for create) this value is assigned by backend.
 	Email string `json:"email,omitempty" jsonschema:"Email of the identity account. For direct accounts: based on the email used to sign up. For federated accounts: provided by the platform when creating the account. (ignored for create) this value is assigned by backend."`
 	// First name of the identity account.
@@ -50,7 +53,7 @@ type IdentityAccountInput struct {
 	// Indicates if this is a machine account used for inter-service communication. Machine accounts have idp_id values ending with "@clients" suffix. (ignored for create) this value is assigned by backend based on idp_id.
 	IsMachineAccount bool `json:"is_machine_account,omitempty" jsonschema:"Indicates if this is a machine account used for inter-service communication. Machine accounts have idp_id values ending with '@clients' suffix. (ignored for create) this value is assigned by backend based on idp_id."`
 	// How this identity account was provisioned. Unspecified for legacy accounts created before this field was introduced. (ignored for create) this value is assigned by backend.
-	ProvisioningMode string `json:"provisioning_mode,omitempty" jsonschema:"How this identity account was provisioned. Unspecified for legacy accounts created before this field was introduced. (ignored for create) this value is assigned by backend. Allowed values: direct, federated, machine."`
+	ProvisioningMode string `json:"provisioning_mode,omitempty" jsonschema:"How this identity account was provisioned. Unspecified for legacy accounts created before this field was introduced. (ignored for create) this value is assigned by backend. Allowed values: direct, federated, machine, platform_client."`
 	// Reference to the IdentityProvider that owns this federated account. Set only when provisioning_mode is FEDERATED. Identifies which external platform's identity provider scopes this account. Together with idp_id, forms the unique identity for federated accounts. (ignored for create) this value is assigned by backend.
 	IdentityProviderRef *ApiResourceReferenceInput `json:"identity_provider_ref,omitempty" jsonschema:"Reference to the IdentityProvider that owns this federated account. Set only when provisioning_mode is FEDERATED. Identifies which external platform's identity provider scopes this account. Together with idp_id, forms the unique identity for federated accounts. (ignored for create) this value is assigned by backend."`
 }
