@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State (wrap-up)
 
-- **Status**: T06 Console UI half complete. Documentation remaining (session 7).
-- **Last session**: 2026-04-17 (session 6) — PlatformClient full-CRUD React components + Console integration. 6 hooks, 4 components, Console section + route, barrel exports.
-- **Active task**: T06 — Documentation pass (session 7).
+- **Status**: T06 Console UI half complete. FGA authorization gap closed (session 7). Documentation remaining (session 8).
+- **Last session**: 2026-04-17 (session 7) — FGA authorization model for PlatformClient + OAuthApp can_create_* gap fix. ProtoFgaSchemaConsistencyTest + handler authorization tests. DD-006.
+- **Active task**: T06 — Documentation pass (session 8).
 
 ## Essential Files to Review
 
@@ -76,7 +76,7 @@ When starting a new session:
 | Task | Description | Effort | Repo | Status |
 |------|-------------|--------|------|--------|
 | T01 | Proto: PlatformClient resource definition | 1–2 sessions | stigmer | COMPLETE |
-| T02 | Backend: PlatformClient CRUD + credential generation | 1–2 sessions | stigmer-cloud | COMPLETE |
+| T02 | Backend: PlatformClient CRUD + credential generation | 1–2 sessions | stigmer-cloud | COMPLETE (FGA gap closed in session 7) |
 | T03 | Backend: Token endpoint + Stigmer-signed JWT issuance | 2 sessions | stigmer-cloud | COMPLETE |
 | T04 | Backend: Auth chain integration + JIT provisioning | 1 session | stigmer + stigmer-cloud | COMPLETE |
 | T05 | SDK: TypeScript/Go/Python/Java client support for PlatformClient auth | 1 session | stigmer | COMPLETE |
@@ -85,8 +85,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-17
-**Current Task**: T06 (Documentation pass — session 7)
-**Status**: T01–T05 complete, T06 Console UI complete, T06 Documentation remaining
+**Current Task**: T06 (Documentation pass — session 8)
+**Status**: T01–T05 complete, T02 FGA gap closed (session 7), T06 Console UI complete, T06 Documentation remaining
 
 ## Session Progress (2026-04-17, Session 1)
 
@@ -219,8 +219,29 @@ When starting a new session:
 ### Pre-existing Issue Noted
 - Codegen file `sdk/typescript/src/gen/platformclient.ts` imports `MintUserTokenRequest`/`MintUserTokenResponse` from `io_pb` but they live in `token_pb`. Needs `make codegen` re-run to fix. Not introduced by session 6.
 
+## Session Progress (2026-04-17, Session 7)
+
+### Accomplished
+- Closed FGA authorization gap in stigmer-cloud: `platform_client` type was missing from the OpenFGA model
+- Added `iam/platform_client.fga` — Restricted access model mirroring `oauth_app.fga` (viewer = owner + admin from org)
+- Added `can_create_platform_client` and `can_create_oauth_app` to `organization.fga` (both gated on admin)
+- Registered `iam/platform_client.fga` in `fga.mod`
+- Created `ProtoFgaSchemaConsistencyTest` — walks every proto RPC method option and asserts the (resource_kind, permission) pair exists as a relation in the FGA model
+- Created `PlatformClientAuthorizationTest` — tests CreateAuthorizationTuples, GetByReference Authorize, and RotateSecret LoadAndAuthorize steps
+- All 4 new tests pass, all existing tests unbroken
+- Wrote DD-006 documenting the gap, root cause, and structural guard
+
+### Key Decisions Made (Session 7)
+- **Restricted, not Personal**: PlatformClients are org-level infrastructure (like OAuthApp), not personal credentials (like ApiKey). Admins need governance visibility.
+- **Fix both gaps together**: The `can_create_oauth_app` omission in `organization.fga` was the same bug class as `can_create_platform_client`. Fixed in one coherent FGA change.
+- **ProtoFgaSchemaConsistencyTest as structural guard**: Catches proto↔FGA drift at compile time. Explicit descriptor enumeration is intentional — forces developers to register new service protos.
+
+### Discoveries
+- `can_create_oauth_app` was also missing from `organization.fga` since OAuthApp landed (commit `ad6de7b1`). Pre-existing latent bug — OAuthApp `create` was also silently broken at the FGA authorization layer.
+- The `IamPolicyCreationServiceTest` in `api-authorization` exists as a Java file but has no Bazel test target — its tests never run in CI.
+
 ## Next Steps
-1. Pick up T06 session 7: Documentation pass
+1. Pick up T06 session 8: Documentation pass
 2. T06 docs scope: `docs/guides/platform-client/overview.mdx`, `quick-start.mdx`, `token-endpoint.mdx`, `auto-provisioning.mdx`
 3. Update existing docs: `docs/sdk/react/index.mdx` (add PlatformClient auth method), `docs/sdk/index.mdx` (overview), `docs/guides/federation/overview.mdx` (cross-reference)
 4. Fix pre-existing codegen stub import issue (`MintUserToken*` in `io_pb` vs `token_pb`) via `make codegen`
@@ -236,12 +257,12 @@ When starting a new session:
 - Proto files: `apis/ai/stigmer/iam/platformclient/v1/{spec,api,io,command,query,token}.proto`
 - SDK helpers (T05): `sdk/typescript/src/platform-client-auth.ts`, `sdk/go/platform_client_auth.go`, `sdk/python/src/stigmer/platform_client_auth.py`, `sdk/java/src/main/java/ai/stigmer/sdk/PlatformClientAuth.java`
 - Integration docs (T05): `docs/guides/platform-client-auth.mdx`
-- Design decisions: DD-004, DD-005
+- Design decisions: DD-004, DD-005, DD-006 (FGA gap)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T06 docs" - Start the documentation pass (session 7)
+- "Continue with T06 docs" - Start the documentation pass (session 8)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
