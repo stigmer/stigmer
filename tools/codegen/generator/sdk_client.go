@@ -203,10 +203,19 @@ func runSDKClientGeneration(schemaDir, outputDir string) error {
 func deriveResourceConfig(schema *ServiceSchemaFile, schemaDir string) sdkResourceConfig {
 	cfg := sdkResourceConfig{}
 
-	// Derive protoResType from the output type of the first command method
+	// Derive protoResType from the command service methods. Prefer the
+	// update or delete method's output type (which always returns the
+	// resource directly) over create (which may return a wrapper like
+	// PlatformClientCreateResponse).
 	for _, svc := range schema.Services {
 		if svc.Role == "command" && len(svc.Methods) > 0 {
 			cfg.protoResType = svc.Methods[0].OutputType
+			for _, m := range svc.Methods {
+				if strings.EqualFold(m.Name, "Update") || strings.EqualFold(m.Name, "Delete") {
+					cfg.protoResType = m.OutputType
+					break
+				}
+			}
 			break
 		}
 	}

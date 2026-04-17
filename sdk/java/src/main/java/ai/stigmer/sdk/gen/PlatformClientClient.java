@@ -30,12 +30,6 @@ public final class PlatformClientClient {
         this.token = PlatformClientTokenControllerGrpc.newBlockingStub(channel);
     }
 
-    public PlatformClient apply(PlatformClientInput input) {
-        try {
-            return command.apply(input.toProto());
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
     public PlatformClientCreateResponse create(PlatformClientInput input) {
         try {
             return command.create(input.toProto());

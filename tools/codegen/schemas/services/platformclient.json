@@ -8,14 +8,6 @@
       "role": "command",
       "methods": [
         {
-          "name": "Apply",
-          "inputType": "PlatformClient",
-          "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "outputType": "PlatformClient",
-          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "description": "Create or update a platform client.\n\n If the resource does not exist, creates a new platform client.\n If the resource exists, updates the existing platform client.\n\n @internal\n The authorization and state-operation are determined depending on whether the\n platform client is going to be created or updated, which is determined as\n part of the request execution."
-        },
-        {
           "name": "Create",
           "inputType": "PlatformClient",
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",

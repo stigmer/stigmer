@@ -20,7 +20,6 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PlatformClientCommandController_Apply_FullMethodName        = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/apply"
 	PlatformClientCommandController_Create_FullMethodName       = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/create"
 	PlatformClientCommandController_Update_FullMethodName       = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/update"
 	PlatformClientCommandController_Delete_FullMethodName       = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/delete"
@@ -43,16 +42,6 @@ const (
 // org-private. There is no updateVisibility RPC — public visibility is
 // intentionally unsupported to prevent credential leakage.
 type PlatformClientCommandControllerClient interface {
-	// Create or update a platform client.
-	//
-	// If the resource does not exist, creates a new platform client.
-	// If the resource exists, updates the existing platform client.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the
-	// platform client is going to be created or updated, which is determined as
-	// part of the request execution.
-	Apply(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClient, error)
 	// Create a platform client.
 	//
 	// Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
@@ -102,16 +91,6 @@ type platformClientCommandControllerClient struct {
 
 func NewPlatformClientCommandControllerClient(cc grpc.ClientConnInterface) PlatformClientCommandControllerClient {
 	return &platformClientCommandControllerClient{cc}
-}
-
-func (c *platformClientCommandControllerClient) Apply(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClient, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PlatformClient)
-	err := c.cc.Invoke(ctx, PlatformClientCommandController_Apply_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *platformClientCommandControllerClient) Create(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClientCreateResponse, error) {
@@ -170,16 +149,6 @@ func (c *platformClientCommandControllerClient) RotateSecret(ctx context.Context
 // org-private. There is no updateVisibility RPC — public visibility is
 // intentionally unsupported to prevent credential leakage.
 type PlatformClientCommandControllerServer interface {
-	// Create or update a platform client.
-	//
-	// If the resource does not exist, creates a new platform client.
-	// If the resource exists, updates the existing platform client.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the
-	// platform client is going to be created or updated, which is determined as
-	// part of the request execution.
-	Apply(context.Context, *PlatformClient) (*PlatformClient, error)
 	// Create a platform client.
 	//
 	// Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).
@@ -230,9 +199,6 @@ type PlatformClientCommandControllerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedPlatformClientCommandControllerServer struct{}
 
-func (UnimplementedPlatformClientCommandControllerServer) Apply(context.Context, *PlatformClient) (*PlatformClient, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Apply not implemented")
-}
 func (UnimplementedPlatformClientCommandControllerServer) Create(context.Context, *PlatformClient) (*PlatformClientCreateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
@@ -263,24 +229,6 @@ func RegisterPlatformClientCommandControllerServer(s grpc.ServiceRegistrar, srv 
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&PlatformClientCommandController_ServiceDesc, srv)
-}
-
-func _PlatformClientCommandController_Apply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PlatformClient)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PlatformClientCommandControllerServer).Apply(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PlatformClientCommandController_Apply_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlatformClientCommandControllerServer).Apply(ctx, req.(*PlatformClient))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _PlatformClientCommandController_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -362,10 +310,6 @@ var PlatformClientCommandController_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "ai.stigmer.iam.platformclient.v1.PlatformClientCommandController",
 	HandlerType: (*PlatformClientCommandControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "apply",
-			Handler:    _PlatformClientCommandController_Apply_Handler,
-		},
 		{
 			MethodName: "create",
 			Handler:    _PlatformClientCommandController_Create_Handler,

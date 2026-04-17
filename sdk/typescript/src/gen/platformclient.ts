@@ -28,12 +28,6 @@ export class PlatformClientClient {
     this.token = createClient(PlatformClientTokenController, transport);
   }
 
-  async apply(input: PlatformClientInput): Promise<PlatformClient> {
-    try {
-      return await this.command.apply(buildPlatformClientProto(input));
-    } catch (e) { throw wrapError(e); }
-  }
-
   async create(input: PlatformClientInput): Promise<PlatformClientCreateResponse> {
     try {
       return await this.command.create(buildPlatformClientProto(input));

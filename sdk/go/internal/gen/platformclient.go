@@ -29,11 +29,6 @@ func NewPlatformClientClient(conn grpc.ClientConnInterface) *PlatformClientClien
 	}
 }
 
-func (p *PlatformClientClient) Apply(ctx context.Context, input *PlatformClientInput) (*platformclientv1.PlatformClient, error) {
-	resp, err := p.command.Apply(ctx, input.toProto())
-	return resp, wrapErr(err)
-}
-
 func (p *PlatformClientClient) Create(ctx context.Context, input *PlatformClientInput) (*platformclientv1.PlatformClientCreateResponse, error) {
 	resp, err := p.command.Create(ctx, input.toProto())
 	return resp, wrapErr(err)
