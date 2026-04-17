@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*}\n\x1fIdentityAccountProvisioningMode\x12\x32\n.identity_account_provisioning_mode_unspecified\x10\x00\x12\n\n\x06\x64irect\x10\x01\x12\r\n\tfederated\x10\x02\x12\x0b\n\x07machine\x10\x03\x42\xdb\x01\n%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*\x92\x01\n\x1fIdentityAccountProvisioningMode\x12\x32\n.identity_account_provisioning_mode_unspecified\x10\x00\x12\n\n\x06\x64irect\x10\x01\x12\r\n\tfederated\x10\x02\x12\x0b\n\x07machine\x10\x03\x12\x13\n\x0fplatform_client\x10\x04\x42\xdb\x01\n%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,6 +32,6 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.iam.identityacco
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Stigmer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai::Stigmer::Iam::Identityaccount::V1'
-  _globals['_IDENTITYACCOUNTPROVISIONINGMODE']._serialized_start=83
-  _globals['_IDENTITYACCOUNTPROVISIONINGMODE']._serialized_end=208
+  _globals['_IDENTITYACCOUNTPROVISIONINGMODE']._serialized_start=84
+  _globals['_IDENTITYACCOUNTPROVISIONINGMODE']._serialized_end=230
 # @@protoc_insertion_point(module_scope)
