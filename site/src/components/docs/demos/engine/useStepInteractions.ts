@@ -8,7 +8,8 @@ import {
   scrollTargetIntoView,
   scrollTargetIntoViewInstant,
 } from "./scroll-utils";
-import { CLICK_DELAY_MS, DRAG_SETTLE_MS, HOVER_HOLD_MS, TYPE_CHAR_DELAY_MS } from "./timing";
+import { CLICK_DELAY_MS, DRAG_SETTLE_MS, HOVER_HOLD_MS, TYPE_CHAR_DELAY_MS, VIEWPORT_SETTLE_MS } from "./timing";
+import type { ViewportTransform } from "./ViewportTransformLayer";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -26,7 +27,7 @@ export interface StepAction {
    */
   readonly atPercent: number;
   /** Action type. */
-  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click" | "type" | "hover" | "drag";
+  readonly type: "scroll-to" | "set-cursor" | "clear-cursor" | "click" | "type" | "hover" | "drag" | "viewport-transition";
   /**
    * Target element identifier.
    * - For `scroll-to`: matches `[data-scroll-target="<target>"]`
@@ -54,6 +55,18 @@ export interface StepAction {
    * Defaults to {@link HOVER_HOLD_MS} (1500ms).
    */
   readonly hoverDuration?: number;
+  /**
+   * Zoom scale factor for `viewport-transition` actions.
+   * Values > 1 zoom in, < 1 zoom out. Defaults to 1.5.
+   * Ignored when {@link viewportReset} is `true`.
+   */
+  readonly viewportZoom?: number;
+  /**
+   * When `true`, a `viewport-transition` action resets the viewport
+   * to the identity transform (scale 1, no translation). `target`
+   * and `viewportZoom` are ignored.
+   */
+  readonly viewportReset?: boolean;
 }
 
 /**
@@ -96,6 +109,15 @@ export interface UseStepInteractionsOptions<T> {
    * destination. Scenarios that don't use `drag` can omit this.
    */
   setDragging?: (dragging: boolean) => void;
+  /**
+   * Optional callback to apply a viewport transform (zoom/pan). The
+   * `viewport-transition` action computes the scale and translate
+   * values needed to center the target element and calls this
+   * callback. The scenario passes the resulting transform to
+   * `ViewportTransformLayer`. Scenarios that don't use
+   * `viewport-transition` can omit this.
+   */
+  setViewportTransform?: (transform: ViewportTransform) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -165,6 +187,7 @@ export function useStepInteractions<T>({
   playbackRate = 1,
   setShowRipple,
   setDragging,
+  setViewportTransform,
 }: UseStepInteractionsOptions<T>): void {
   const timeSource = useTimeSource();
   const firedRef = useRef<Set<string>>(new Set());
@@ -277,6 +300,12 @@ export function useStepInteractions<T>({
           dispatchDragReleaseOnTarget(action.dragTarget, action.target, containerRef);
           setDragging?.(false);
           setShowRipple?.(true);
+        }
+      } else if (action.type === "viewport-transition") {
+        const key = `${stepIndex}-${action.atPercent}-viewport`;
+        if (elapsed >= fireAt && !firedRef.current.has(key)) {
+          firedRef.current.add(key);
+          applyViewportTransition(action, containerRef, setViewportTransform);
         }
       } else {
         const key = `${stepIndex}-${action.atPercent}-${action.type}`;
@@ -400,6 +429,14 @@ export function useStepInteractions<T>({
             setShowRipple?.(true);
           }, fireAt + (CLICK_DELAY_MS + DRAG_SETTLE_MS + CLICK_DELAY_MS) / rate),
         );
+      } else if (action.type === "viewport-transition") {
+        warnIfViewportTooCloseToAction(action, actions, duration, stepIndex);
+        timers.push(
+          setTimeout(
+            () => applyViewportTransition(action, containerRef, setViewportTransform),
+            fireAt,
+          ),
+        );
       } else {
         timers.push(
           setTimeout(
@@ -422,6 +459,7 @@ export function useStepInteractions<T>({
     setCursorTarget,
     setShowRipple,
     setDragging,
+    setViewportTransform,
     steps,
     playbackRate,
   ]);
@@ -489,6 +527,7 @@ function executeAction(
     case "type":
     case "hover":
     case "drag":
+    case "viewport-transition":
       setCursorTarget(action.target);
       break;
   }
@@ -823,4 +862,136 @@ function dispatchHoverLeaveOnTarget(
   el.dispatchEvent(new MouseEvent("mouseleave", { bubbles: false }));
   el.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
   el.removeAttribute("data-hover");
+}
+
+// ---------------------------------------------------------------------------
+// Viewport transition
+// ---------------------------------------------------------------------------
+
+const DEFAULT_VIEWPORT_ZOOM = 1.5;
+
+/**
+ * Compute the viewport transform that centers `target` in the
+ * container at the given scale. Uses `getBoundingClientRect` with
+ * CSS zoom correction (same math as `computeCursorPosition` in
+ * Cursor.tsx) to find the element's center in container CSS space,
+ * then calculates translate values so the element lands at the
+ * container center after scaling from origin `(0, 0)`.
+ */
+function computeViewportTransformForTarget(
+  target: string,
+  scale: number,
+  containerRef: RefObject<HTMLElement | null>,
+): ViewportTransform | null {
+  const container = containerRef.current;
+  if (!container) return null;
+
+  const el = container.querySelector(`[data-cursor-target="${target}"]`);
+  if (!el) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `[StepInteractions] viewport-transition target "${target}" not found in DOM. ` +
+          `Ensure a [data-cursor-target="${target}"] element exists in the container.`,
+      );
+    }
+    return null;
+  }
+
+  const cRect = container.getBoundingClientRect();
+  const eRect = el.getBoundingClientRect();
+  const zoom = cRect.width / container.offsetWidth || 1;
+
+  const ex = (eRect.left - cRect.left + eRect.width / 2) / zoom;
+  const ey = (eRect.top - cRect.top + eRect.height / 2) / zoom;
+
+  const cw = container.offsetWidth;
+  const ch = container.offsetHeight;
+
+  return {
+    scale,
+    x: cw / 2 - ex * scale,
+    y: ch / 2 - ey * scale,
+  };
+}
+
+/**
+ * Apply a viewport transition: either zoom into a target element
+ * or reset to the identity transform. Computes the transform values
+ * and calls the `setViewportTransform` callback.
+ */
+function applyViewportTransition(
+  action: StepAction,
+  containerRef: RefObject<HTMLElement | null>,
+  setViewportTransform: ((transform: ViewportTransform) => void) | undefined,
+): void {
+  if (!setViewportTransform) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[StepInteractions] viewport-transition action found but no setViewportTransform " +
+          "callback provided. Pass setViewportTransform to useStepInteractions.",
+      );
+    }
+    return;
+  }
+
+  if (action.viewportReset) {
+    setViewportTransform({ scale: 1, x: 0, y: 0 });
+    return;
+  }
+
+  if (!action.target) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[StepInteractions] viewport-transition action has no target and viewportReset " +
+          "is not set. Provide a target to zoom into or set viewportReset: true.",
+      );
+    }
+    return;
+  }
+
+  const scale = action.viewportZoom ?? DEFAULT_VIEWPORT_ZOOM;
+  const transform = computeViewportTransformForTarget(
+    action.target,
+    scale,
+    containerRef,
+  );
+
+  if (transform) {
+    setViewportTransform(transform);
+  }
+}
+
+/**
+ * Dev-mode warning when a cursor-targeting action (set-cursor, click,
+ * type, hover, drag) fires within {@link VIEWPORT_SETTLE_MS} of a
+ * viewport-transition in the same step. The cursor would target an
+ * element while the zoom animation is still in flight, likely
+ * landing at an intermediate position.
+ */
+function warnIfViewportTooCloseToAction(
+  vpAction: StepAction,
+  allActions: readonly StepAction[],
+  stepDurationMs: number,
+  stepIdx: number,
+): void {
+  if (process.env.NODE_ENV !== "development") return;
+
+  const vpFireAt = vpAction.atPercent * stepDurationMs;
+  const settleAt = vpFireAt + VIEWPORT_SETTLE_MS;
+
+  for (const other of allActions) {
+    if (other === vpAction) continue;
+    if (other.type === "viewport-transition" || other.type === "clear-cursor") continue;
+
+    const otherFireAt = other.atPercent * stepDurationMs;
+    if (otherFireAt > vpFireAt && otherFireAt < settleAt) {
+      console.warn(
+        `[StepInteractions] ${other.type} action in step ${stepIdx} at ${other.atPercent} ` +
+          `fires ${Math.round(otherFireAt - vpFireAt)}ms after a viewport-transition ` +
+          `at ${vpAction.atPercent}, but the viewport spring needs ~${VIEWPORT_SETTLE_MS}ms ` +
+          `to settle. The cursor may land at an intermediate position. ` +
+          `Move the ${other.type} action later (atPercent >= ${((settleAt / stepDurationMs)).toFixed(2)}).`,
+      );
+    }
+  }
 }
