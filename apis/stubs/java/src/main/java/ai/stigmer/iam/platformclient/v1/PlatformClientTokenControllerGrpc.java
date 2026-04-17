@@ -148,10 +148,9 @@ public final class PlatformClientTokenControllerGrpc {
      * - FAILED_PRECONDITION: PlatformClient secret has expired
      * - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
      * &#64;internal
-     * Authorization is handled within the RPC handler by validating the
-     * client_id + client_secret credentials directly. The normal auth
-     * interceptor is bypassed because the caller is a platform backend,
-     * not an authenticated Stigmer user.
+     * This RPC is public — no Bearer token is required. The caller authenticates
+     * by providing client_id + client_secret in the request body. The handler
+     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     default void mintUserToken(ai.stigmer.iam.platformclient.v1.MintUserTokenRequest request,
@@ -229,10 +228,9 @@ public final class PlatformClientTokenControllerGrpc {
      * - FAILED_PRECONDITION: PlatformClient secret has expired
      * - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
      * &#64;internal
-     * Authorization is handled within the RPC handler by validating the
-     * client_id + client_secret credentials directly. The normal auth
-     * interceptor is bypassed because the caller is a platform backend,
-     * not an authenticated Stigmer user.
+     * This RPC is public — no Bearer token is required. The caller authenticates
+     * by providing client_id + client_secret in the request body. The handler
+     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     public void mintUserToken(ai.stigmer.iam.platformclient.v1.MintUserTokenRequest request,
@@ -289,10 +287,9 @@ public final class PlatformClientTokenControllerGrpc {
      * - FAILED_PRECONDITION: PlatformClient secret has expired
      * - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
      * &#64;internal
-     * Authorization is handled within the RPC handler by validating the
-     * client_id + client_secret credentials directly. The normal auth
-     * interceptor is bypassed because the caller is a platform backend,
-     * not an authenticated Stigmer user.
+     * This RPC is public — no Bearer token is required. The caller authenticates
+     * by providing client_id + client_secret in the request body. The handler
+     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintUserTokenResponse mintUserToken(ai.stigmer.iam.platformclient.v1.MintUserTokenRequest request) throws io.grpc.StatusException {
@@ -348,10 +345,9 @@ public final class PlatformClientTokenControllerGrpc {
      * - FAILED_PRECONDITION: PlatformClient secret has expired
      * - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
      * &#64;internal
-     * Authorization is handled within the RPC handler by validating the
-     * client_id + client_secret credentials directly. The normal auth
-     * interceptor is bypassed because the caller is a platform backend,
-     * not an authenticated Stigmer user.
+     * This RPC is public — no Bearer token is required. The caller authenticates
+     * by providing client_id + client_secret in the request body. The handler
+     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintUserTokenResponse mintUserToken(ai.stigmer.iam.platformclient.v1.MintUserTokenRequest request) {
@@ -407,10 +403,9 @@ public final class PlatformClientTokenControllerGrpc {
      * - FAILED_PRECONDITION: PlatformClient secret has expired
      * - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
      * &#64;internal
-     * Authorization is handled within the RPC handler by validating the
-     * client_id + client_secret credentials directly. The normal auth
-     * interceptor is bypassed because the caller is a platform backend,
-     * not an authenticated Stigmer user.
+     * This RPC is public — no Bearer token is required. The caller authenticates
+     * by providing client_id + client_secret in the request body. The handler
+     * validates these credentials as business logic, not via the auth interceptor.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.MintUserTokenResponse> mintUserToken(

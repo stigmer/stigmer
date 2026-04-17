@@ -11,6 +11,12 @@ Drop this file into your conversation to quickly resume work on this project.
 **Tech Stack**: Protobuf, Java/Spring (stigmer-cloud backend), TypeScript (SDK), Go (SDK), Python (SDK), React (Console UI), MDX (docs)
 **Components**: PlatformClient proto (stigmer), token-minting gRPC service (stigmer-cloud), PlatformClientTokenAuthenticationProvider (stigmer-cloud), JIT provisioning reuse (stigmer-cloud), Node/Go/Python SDK auth config (stigmer), React components for PlatformClient CRUD (stigmer), Console pages (stigmer), federation/SDK docs (stigmer)
 
+## Current State (wrap-up)
+
+- **Status**: T03 complete on both repos (OSS contract + cloud implementation). Ready for T04.
+- **Last session**: 2026-04-17 — OSS: `mintUserToken` marked `is_public`, stubs regenerated, design decision 003, project docs and changelog. Cloud implementation lives in `stigmer-cloud` (commit separately if not yet committed).
+- **Active task**: T04 — auth chain integration and JIT provisioning; identity resolution from JWT `sub` + `platform_client_id`.
+
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint (if exists)
@@ -71,7 +77,7 @@ When starting a new session:
 |------|-------------|--------|------|--------|
 | T01 | Proto: PlatformClient resource definition | 1–2 sessions | stigmer | COMPLETE |
 | T02 | Backend: PlatformClient CRUD + credential generation | 1–2 sessions | stigmer-cloud | COMPLETE |
-| T03 | Backend: Token endpoint + Stigmer-signed JWT issuance | 2 sessions | stigmer-cloud | NOT STARTED |
+| T03 | Backend: Token endpoint + Stigmer-signed JWT issuance | 2 sessions | stigmer-cloud | COMPLETE |
 | T04 | Backend: Auth chain integration + JIT provisioning | 1–2 sessions | stigmer-cloud | NOT STARTED |
 | T05 | SDK: Node/Go/Python client support for PlatformClient auth | 1–2 sessions | stigmer | NOT STARTED |
 | T06 | Console UI + Documentation | 2 sessions | stigmer | NOT STARTED |
@@ -79,8 +85,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-17
-**Current Task**: T03 (Token endpoint + JWT issuance — next up)
-**Status**: T01 + T02 complete, ready for T03
+**Current Task**: T04 (Auth chain integration + JIT provisioning — next up)
+**Status**: T01 + T02 + T03 complete, ready for T04
 
 ## Session Progress (2026-04-17, Session 1)
 
@@ -123,24 +129,52 @@ When starting a new session:
 - Framework bug: `UpdateOperationBuildNewStateStepV2` calls `clearComputedFields` which clears ALL computed spec fields, then `preserveResourceIdentifiers` only restores metadata (not spec). Any resource with computed spec fields loses them on update. Mitigated for PlatformClient with a custom `PreserveCredentials` step. ApiKey may have the same latent issue.
 - SDK codegen `inferResourceType` was fragile — took the first command method's output type, which broke when `apply` was removed (making `create` the first method with a wrapper return type). Fixed to prefer `update`/`delete` output types.
 
+## Session Progress (2026-04-17, Session 3)
+
+### Accomplished
+- Completed T03: mintUserToken gRPC endpoint + Stigmer-signed JWT issuance
+- Changed proto option from `is_skip_authorization` to `is_public` on `mintUserToken` — the endpoint is public; handler validates client credentials as business logic
+- Created JWT signing infrastructure (`StigmerJwtSigningConfig`, `StigmerJwtIssuer`) using `com.auth0:java-jwt` with RSA-256 signing
+- Created Redis caching for PlatformClient lookups by client_id (cache-aside: Redis → MongoDB)
+- Created `PlatformClientCredentialValidator` with constant-time hash comparison and expiry checking
+- Created `MintUserTokenHandler` using `CustomOperationHandlerV2` pipeline pattern
+- Wired `PlatformClientTokenControllerGrpc` in `@AutoGrpcRouterController`
+- Added signing key config to `application.yaml`
+- Both `bazel build` targets pass cleanly
+
+### Key Decisions Made (Session 3)
+- **gRPC, not REST**: The original plan called for a REST endpoint following OAuth2 conventions. Changed to gRPC because all infrastructure is gRPC-based, zero REST controllers exist in the codebase, SDKs mediate access, and the proto already defines the RPC.
+- **`is_public` over `is_skip_authorization`**: The endpoint is public — no Bearer token expected. The handler validates client credentials as business logic (like a login endpoint validates username/password).
+- **No JWKS endpoint**: Stigmer validates its own tokens in-process (T04). JWKS deferred until external verification need emerges.
+- **No `mintClientToken`**: Only `mintUserToken` implemented. M2M tokens deferred until demand emerges.
+- **Simplified lookup: direct Mongo, no gRPC repo**: The plan called for a gRPC repo pattern (like API keys). But the API key pattern uses gRPC indirection because its introspector runs in shared infrastructure that can't access Mongo repos. The `MintUserTokenHandler` is in stigmer-service domain and has direct Mongo access. Eliminated 3 unnecessary files.
+- **Identity resolution deferred to T04**: The JWT `sub` claim uses the platform's external `user_id` (not a Stigmer IdentityAccount ID). T04's auth chain resolves this to an IdentityAccount. See design decision 003.
+
+### Discoveries
+- `RequestMethodMetadataRegistry` automatically extracts `isPublic` from proto method descriptor options. No manual registration needed — just changing the proto option is sufficient.
+- `InterceptorAwareCustomOperationContextFactory` handles public methods correctly — allows `caller == null` when `methodMetadata.getIsPublic()` is true. The `InvitationGetByTokenHandler` is the existing precedent.
+- The `PlatformClientTokenController` service does not need `api_resource_kind` option since it's not a resource lifecycle service. The `CustomOperationContextV2.getResourceKind()` returns null, which is fine since the handler doesn't use it.
+
 ## Next Steps
-1. Pick up T03 in stigmer-cloud: Token endpoint + Stigmer-signed JWT issuance
-2. T03 scope: Redis caching for client_id lookups, PlatformClientTokenController wiring, mintUserToken handler, JWT signing infrastructure, PlatformClientGrpcRepoImpl (downstream in-process client)
-3. T04 follows: PlatformClientTokenAuthenticationProvider (auth chain integration), JIT provisioning integration
+1. Pick up T04 in stigmer-cloud: Auth chain integration + JIT provisioning
+2. T04 scope: `PlatformClientTokenAuthenticationProvider` (validate Stigmer-signed JWTs), identity resolution (resolve external user_id → IdentityAccount), JIT provisioning, define PlatformClient-to-identity-model relationship
+3. T04 must resolve: How PlatformClient maps to the identity model (see design decision 003). Options: synthetic IdentityProvider per PlatformClient, new provisioning mode, or dedicated lookup index.
+4. T05 follows: SDK client support for PlatformClient auth
 
 ## Context for Resume
 - Proto files are at `apis/ai/stigmer/iam/platformclient/v1/{spec,api,io,command,query,token}.proto`
-- The `apply` RPC was removed from command.proto in this session — codegen tools updated
-- The `inferResourceType` codegen fix is in `tools/codegen/proto2schema/main.go` and `tools/codegen/generator/sdk_client.go`
-- T02 backend implementation is in stigmer-cloud: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/`
-- Credential utilities are in: `backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/platformclient/`
-- T03 task plan is at `_projects/2026-04/20260417.01.platform-client/tasks/T03_0_plan.md` (needs creation)
-- `PlatformClientTokenControllerGrpc` is NOT wired yet — deferred to T03
+- `mintUserToken` uses `is_public = true` (changed from `is_skip_authorization` in this session)
+- JWT signing infrastructure is in: `backend/libs/java/api/api-authentication/src/main/java/ai/stigmer/apiauthentication/platformclient/jwt/`
+- Token handler is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/request/handler/token/`
+- Credential validator is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/token/`
+- Redis cache is in: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/iam/platformclient/cache/`
+- Signing key config: `stigmer.jwt.signing.*` in `application.yaml`, env var `STIGMER_JWT_SIGNING_KEY`
+- Design decisions: `_projects/2026-04/20260417.01.platform-client/design-decisions/003-identity-resolution-deferred-to-t04.md`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Start the next task (token endpoint in stigmer-cloud)
+- "Continue with T04" - Start the next task (auth chain + JIT provisioning in stigmer-cloud)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

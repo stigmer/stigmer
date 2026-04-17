@@ -70,10 +70,9 @@ class PlatformClientTokenControllerServicer(object):
         - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
 
         @internal
-        Authorization is handled within the RPC handler by validating the
-        client_id + client_secret credentials directly. The normal auth
-        interceptor is bypassed because the caller is a platform backend,
-        not an authenticated Stigmer user.
+        This RPC is public — no Bearer token is required. The caller authenticates
+        by providing client_id + client_secret in the request body. The handler
+        validates these credentials as business logic, not via the auth interceptor.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
