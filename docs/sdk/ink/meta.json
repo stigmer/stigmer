@@ -1,6 +1,7 @@
 {
   "title": "Ink SDK",
   "pages": [
+    "cli-integration",
     "reference"
   ]
 }
