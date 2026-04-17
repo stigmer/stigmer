@@ -96,6 +96,15 @@ from ._gen._errors import (
     is_unauthenticated,
 )
 
+# --- PlatformClient token minting ------------------------------------------
+
+from .platform_client_auth import (
+    MintUserTokenInput,
+    MintUserTokenResult,
+    PlatformClientAuth,
+    platform_client_auth,
+)
+
 __all__ = [
     # Client
     "StigmerClient",
@@ -182,4 +191,9 @@ __all__ = [
     "is_permission_denied",
     "is_retryable",
     "is_unauthenticated",
+    # PlatformClient token minting
+    "MintUserTokenInput",
+    "MintUserTokenResult",
+    "PlatformClientAuth",
+    "platform_client_auth",
 ]
