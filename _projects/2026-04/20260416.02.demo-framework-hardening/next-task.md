@@ -24,16 +24,20 @@ Drop this file into your conversation to quickly resume work on this project.
 | T04 | New Interaction — Click (UI State Trigger) | DONE | T01 |
 | T05 | New Interaction — Type (Text Input Simulation) | DONE | T04 |
 | T06 | New Interaction — Hover (Tooltip Reveal) | DONE | T04 |
-| T07 | New Interaction — Drag (Drag-and-Drop) | PENDING | T04 |
+| T07 | New Interaction — Drag (Drag-and-Drop) | DONE | T04 |
 | T08 | New Interaction — Viewport Transition (Zoom/Pan) | PENDING | T01 |
 | T09 | DemoScope Extraction Architecture | PENDING | T01-T08 |
 | T10 | Validation and Testing Updates | PENDING | T01-T09 |
 
-## Current Task: T07 — New Interaction: Drag (Drag-and-Drop)
+## Current Task: T08 — New Interaction: Viewport Transition (Zoom/Pan)
 
-**Status**: PENDING — Ready to start (T04 unblocked it)
+**Status**: PENDING — Ready to start (T01 unblocked it)
 
-**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T07_0_plan.md`
+**Plan file**: `_projects/2026-04/20260416.02.demo-framework-hardening/tasks/T08_0_plan.md`
+
+## Completed: T07 — New Interaction: Drag (Drag-and-Drop)
+
+Added `drag` as the seventh action type to the demo engine's `useStepInteractions` hook. The drag action is four-phase: phase 1 moves the cursor to the drag source at `atPercent`, phase 2 dispatches `pointerdown` and sets `data-dragging="true"` on the source after `CLICK_DELAY_MS` (450ms), phase 3 animates the cursor to the destination after `DRAG_SETTLE_MS` (200ms), phase 4 dispatches `pointerup` on the destination and removes `data-dragging` after another `CLICK_DELAY_MS` (450ms). Both browser (setTimeout) and video (frame-driven) paths are implemented. The `isDragging` prop on `Cursor` switches from the pointer arrow icon to a closed-hand grab icon during the drag. A new `setDragging` callback in `UseStepInteractionsOptions` coordinates drag-visual state between the hook and the Cursor component. Uses pointer events (not HTML5 drag events) for compatibility with modern drag libraries. Uses `data-cursor-target` for both source and destination (no new data attributes). Validated with `drag-reorder-validation`, a two-column task board scenario. See coding guideline `drag-interaction-patterns.md`.
 
 ## Completed: T06 — New Interaction: Hover (Tooltip Reveal)
 
@@ -88,7 +92,7 @@ Implemented `DemoViewport` wrapper using fixed 896×380 canonical viewport with 
 
 ## Quick Commands
 
-- "Continue with T07" — Start the drag interaction
+- "Continue with T08" — Start the viewport transition interaction
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
