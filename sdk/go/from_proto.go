@@ -21,6 +21,7 @@ import (
 	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
 	invitationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/invitation/v1"
 	oauthappv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1"
+	platformclientv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 )
@@ -88,6 +89,11 @@ func OAuthAppInputFromProto(p *oauthappv1.OAuthApp) *OAuthAppInput {
 // OrganizationInputFromProto creates a OrganizationInput from a proto Organization resource.
 func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInput {
 	return gen.OrganizationInputFromProto(p)
+}
+
+// PlatformClientInputFromProto creates a PlatformClientInput from a proto PlatformClient resource.
+func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformClientInput {
+	return gen.PlatformClientInputFromProto(p)
 }
 
 // ProjectInputFromProto creates a ProjectInput from a proto Project resource.

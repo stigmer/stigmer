@@ -81,6 +81,14 @@ public enum ApiResourceKind
   oauth_app(22),
   /**
    * <pre>
+   * OAuth2 client credential for platform builders embedding Stigmer into their products.
+   * </pre>
+   *
+   * <code>platform_client = 23 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  platform_client(23),
+  /**
+   * <pre>
    * Top-level tenant that owns and manages resources.
    * </pre>
    *
@@ -269,6 +277,14 @@ public enum ApiResourceKind
   public static final int oauth_app_VALUE = 22;
   /**
    * <pre>
+   * OAuth2 client credential for platform builders embedding Stigmer into their products.
+   * </pre>
+   *
+   * <code>platform_client = 23 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int platform_client_VALUE = 23;
+  /**
+   * <pre>
    * Top-level tenant that owns and manages resources.
    * </pre>
    *
@@ -413,6 +429,7 @@ public enum ApiResourceKind
       case 20: return invitation;
       case 21: return identity_provider;
       case 22: return oauth_app;
+      case 23: return platform_client;
       case 30: return organization;
       case 31: return platform;
       case 40: return agent;

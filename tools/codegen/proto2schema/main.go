@@ -1794,6 +1794,9 @@ func inferServiceRole(name string) string {
 	if strings.Contains(lower, "query") {
 		return "query"
 	}
+	if strings.Contains(lower, "token") {
+		return "token"
+	}
 	return "query"
 }
 

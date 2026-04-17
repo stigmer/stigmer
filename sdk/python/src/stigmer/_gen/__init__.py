@@ -14,6 +14,7 @@ from ._invitation import InvitationClient, InvitationInput
 from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, ToolApprovalPolicyInput, McpServerAuthInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput
+from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._project import ProjectClient, ProjectInput
 from ._session import SessionClient, SessionInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput
 from ._skill import SkillClient, SkillInput
@@ -80,6 +81,8 @@ __all__ = [
     "OAuthAppInput",
     "OrganizationClient",
     "OrganizationInput",
+    "PlatformClientClient",
+    "PlatformClientInput",
     "ProjectClient",
     "ProjectInput",
     "SessionClient",
