@@ -1,0 +1,21 @@
+{
+  "steps": [
+    {
+      "src": "/demos/platform-client-setup-tour/step-0.mp3",
+      "durationMs": 5763
+    },
+    null,
+    null,
+    null,
+    {
+      "src": "/demos/platform-client-setup-tour/step-4.mp3",
+      "durationMs": 5288
+    },
+    null,
+    null,
+    {
+      "src": "/demos/platform-client-setup-tour/step-7.mp3",
+      "durationMs": 5850
+    }
+  ]
+}
