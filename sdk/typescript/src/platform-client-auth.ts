@@ -2,7 +2,7 @@ import { createGrpcWebTransport } from "@connectrpc/connect-node";
 import { createClient, type Client } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
-import { MintUserTokenRequestSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
+import { MintUserTokenRequestSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { StigmerError, wrapError } from "./gen/errors";
 import {
   rpcMetadataInterceptor,

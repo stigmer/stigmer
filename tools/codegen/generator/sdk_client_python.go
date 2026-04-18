@@ -43,6 +43,43 @@ func pyStubMethodName(name string) string {
 	return strings.ToLower(name[:1]) + name[1:]
 }
 
+// pyProtoFileToModule extracts the _pb2 module name from a proto file path.
+// "apis/.../token.proto" → "token_pb2"
+func pyProtoFileToModule(protoFile string) string {
+	base := filepath.Base(protoFile)
+	name := strings.TrimSuffix(base, ".proto")
+	return name + "_pb2"
+}
+
+// pyMethodTypePb2Prefix returns the _pb2 module prefix for a method type.
+// Types whose proto file is known via methodTypePb2Map get their correct module;
+// everything else falls back to "io_pb2".
+func pyMethodTypePb2Prefix(typeName string, methodTypePb2Map map[string]string) string {
+	if mod, ok := methodTypePb2Map[typeName]; ok {
+		return mod
+	}
+	return "io_pb2"
+}
+
+// pyTrackMethodTypeImport ensures the correct _pb2 import is tracked for a method
+// input or output type. Types with a known proto file get their specific _pb2 module
+// (e.g., token_pb2); everything else falls back to io_pb2.
+func pyTrackMethodTypeImport(typeName, fullType string, cfg sdkResourceConfig, schema *ServiceSchemaFile, methodTypePb2Map map[string]string, imports *pyImports) {
+	if typeName == cfg.protoResType || isEmptyType(fullType) || isIDType(typeName) ||
+		typeName == "ApiResourceId" || typeName == "ApiResourceReference" || typeName == "ApiResourceDeleteInput" {
+		return
+	}
+	if !strings.HasPrefix(fullType, schema.Package+".") {
+		return
+	}
+	mod := pyMethodTypePb2Prefix(typeName, methodTypePb2Map)
+	if mod == "io_pb2" {
+		imports.needsIoPb2 = true
+	} else {
+		imports.extraPb2Modules[mod] = true
+	}
+}
+
 // pyClientFieldName maps a resource slug to its snake_case plural Python property name.
 func pyClientFieldName(resource string) string {
 	m := map[string]string{
@@ -247,6 +284,7 @@ type pyImports struct {
 	typesNames         map[string]bool
 	crossResourceTypes map[string][]string // "._agent" -> ["McpServerUsageInput", ...]
 	crossProtoPackages map[string]bool     // "ai.stigmer.agentic.agent.v1" -> true
+	extraPb2Modules    map[string]bool     // additional _pb2 modules beyond io_pb2 (e.g., "token_pb2")
 }
 
 func newPyImports(pkg string) *pyImports {
@@ -256,6 +294,7 @@ func newPyImports(pkg string) *pyImports {
 		typesNames:         make(map[string]bool),
 		crossResourceTypes: make(map[string][]string),
 		crossProtoPackages: make(map[string]bool),
+		extraPb2Modules:    make(map[string]bool),
 	}
 }
 
@@ -316,6 +355,22 @@ func (p *pyImports) emit(buf *bytes.Buffer) {
 	}
 	if p.needsIoPb2 {
 		fmt.Fprintf(buf, "from %s import io_pb2\n", p.resourcePkg)
+	}
+	if len(p.extraPb2Modules) > 0 {
+		var modules []string
+		for m := range p.extraPb2Modules {
+			if m == "io_pb2" && p.needsIoPb2 {
+				continue
+			}
+			if m == "spec_pb2" && p.needsSpec {
+				continue
+			}
+			modules = append(modules, m)
+		}
+		sort.Strings(modules)
+		for _, m := range modules {
+			fmt.Fprintf(buf, "from %s import %s\n", p.resourcePkg, m)
+		}
 	}
 	if p.needsSpec {
 		fmt.Fprintf(buf, "from %s import spec_pb2\n", p.resourcePkg)
@@ -483,6 +538,16 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 
 	imports := newPyImports(schema.Package)
 
+	// Build a map of same-package method type names to their _pb2 module names.
+	// Types like MintUserTokenRequest live in token.proto (→ token_pb2), not io.proto.
+	// Cross-package types are excluded — they use separate import handling.
+	methodTypePb2Map := make(map[string]string)
+	for _, mt := range schema.MethodTypes {
+		if mt.ProtoFile != "" && strings.HasPrefix(mt.ProtoType, schema.Package+".") {
+			methodTypePb2Map[mt.Name] = pyProtoFileToModule(mt.ProtoFile)
+		}
+	}
+
 	for _, svc := range schema.Services {
 		imports.addService(svc.Role)
 		for _, m := range svc.Methods {
@@ -506,18 +571,8 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 				imports.needsIterator = true
 				genInfo.streamTypes = append(genInfo.streamTypes, cfg.protoResType+m.Name+"Stream")
 			}
-			if m.OutputType != cfg.protoResType && !isEmptyType(m.OutputFullType) &&
-				strings.HasPrefix(m.OutputFullType, schema.Package+".") {
-				imports.needsIoPb2 = true
-			}
-			if !isIDType(m.InputType) && !isEmptyType(m.InputFullType) &&
-				m.InputType != cfg.protoResType &&
-				m.InputType != "ApiResourceId" &&
-				m.InputType != "ApiResourceReference" &&
-				m.InputType != "ApiResourceDeleteInput" &&
-				strings.HasPrefix(m.InputFullType, schema.Package+".") {
-				imports.needsIoPb2 = true
-			}
+			pyTrackMethodTypeImport(m.OutputType, m.OutputFullType, cfg, schema, methodTypePb2Map, imports)
+			pyTrackMethodTypeImport(m.InputType, m.InputFullType, cfg, schema, methodTypePb2Map, imports)
 		}
 	}
 
@@ -560,7 +615,7 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
-			generatePythonMethod(&body, &m, &svc, schema, cfg, hasInputType, imports)
+			generatePythonMethod(&body, &m, &svc, schema, cfg, hasInputType, imports, methodTypePb2Map)
 		}
 	}
 	if needsSearch {
@@ -631,9 +686,9 @@ func scanPyFieldImports(f *FieldSchema, typeMap map[string]*TypeSchema, imports 
 // Method generation
 // =========================================================================
 
-func generatePythonMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, schema *ServiceSchemaFile, cfg sdkResourceConfig, hasInputType bool, imports *pyImports) {
+func generatePythonMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, schema *ServiceSchemaFile, cfg sdkResourceConfig, hasInputType bool, imports *pyImports, methodTypePb2Map map[string]string) {
 	if m.ServerStreaming {
-		generatePythonStreamingMethod(buf, m, svc, schema, cfg, imports)
+		generatePythonStreamingMethod(buf, m, svc, schema, cfg, imports, methodTypePb2Map)
 		return
 	}
 
@@ -652,7 +707,7 @@ func generatePythonMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefini
 	if emptyOutput {
 		outputAnnotation = "None"
 	} else if m.OutputType != cfg.protoResType {
-		outputAnnotation = "io_pb2." + m.OutputType
+		outputAnnotation = pyMethodTypePb2Prefix(m.OutputType, methodTypePb2Map) + "." + m.OutputType
 	}
 
 	returnKw := "return "
@@ -708,14 +763,16 @@ func generatePythonMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefini
 		fmt.Fprintf(buf, "            raise wrap_error(e) from e\n\n")
 
 	case isIDInput:
+		idMod := pyMethodTypePb2Prefix(m.InputType, methodTypePb2Map)
 		fmt.Fprintf(buf, "    def %s(self, id: str) -> %s:\n", methodName, outputAnnotation)
 		fmt.Fprintf(buf, "        try:\n")
-		fmt.Fprintf(buf, "            %sself._%s.%s(io_pb2.%s(value=id))\n", returnKw, svc.Role, stubMethod, m.InputType)
+		fmt.Fprintf(buf, "            %sself._%s.%s(%s.%s(value=id))\n", returnKw, svc.Role, stubMethod, idMod, m.InputType)
 		fmt.Fprintf(buf, "        except grpc.RpcError as e:\n")
 		fmt.Fprintf(buf, "            raise wrap_error(e) from e\n\n")
 
 	default:
-		inputAnnotation := "io_pb2." + m.InputType
+		inputMod := pyMethodTypePb2Prefix(m.InputType, methodTypePb2Map)
+		inputAnnotation := inputMod + "." + m.InputType
 		fmt.Fprintf(buf, "    def %s(self, input: %s) -> %s:\n", methodName, inputAnnotation, outputAnnotation)
 		fmt.Fprintf(buf, "        try:\n")
 		fmt.Fprintf(buf, "            %sself._%s.%s(input)\n", returnKw, svc.Role, stubMethod)
@@ -724,27 +781,28 @@ func generatePythonMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefini
 	}
 }
 
-func generatePythonStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, schema *ServiceSchemaFile, cfg sdkResourceConfig, imports *pyImports) {
+func generatePythonStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, schema *ServiceSchemaFile, cfg sdkResourceConfig, imports *pyImports, methodTypePb2Map map[string]string) {
 	isIDInput := isIDType(m.InputType)
 	methodName := pyMethodName(m.Name)
 	stubMethod := pyStubMethodName(m.Name)
 
 	outputAnnotation := "api_pb2." + cfg.protoResType
 	if m.OutputType != cfg.protoResType {
-		outputAnnotation = "io_pb2." + m.OutputType
-		imports.needsIoPb2 = true
+		outMod := pyMethodTypePb2Prefix(m.OutputType, methodTypePb2Map)
+		outputAnnotation = outMod + "." + m.OutputType
 	}
 
 	if isIDInput {
+		idMod := pyMethodTypePb2Prefix(m.InputType, methodTypePb2Map)
 		fmt.Fprintf(buf, "    def %s(self, id: str) -> Iterator[%s]:\n", methodName, outputAnnotation)
 		fmt.Fprintf(buf, "        try:\n")
-		fmt.Fprintf(buf, "            for msg in self._%s.%s(io_pb2.%s(value=id)):\n", svc.Role, stubMethod, m.InputType)
+		fmt.Fprintf(buf, "            for msg in self._%s.%s(%s.%s(value=id)):\n", svc.Role, stubMethod, idMod, m.InputType)
 		fmt.Fprintf(buf, "                yield msg\n")
 		fmt.Fprintf(buf, "        except grpc.RpcError as e:\n")
 		fmt.Fprintf(buf, "            raise wrap_error(e) from e\n\n")
 	} else {
-		inputAnnotation := "io_pb2." + m.InputType
-		imports.needsIoPb2 = true
+		inputMod := pyMethodTypePb2Prefix(m.InputType, methodTypePb2Map)
+		inputAnnotation := inputMod + "." + m.InputType
 		fmt.Fprintf(buf, "    def %s(self, input: %s) -> Iterator[%s]:\n", methodName, inputAnnotation, outputAnnotation)
 		fmt.Fprintf(buf, "        try:\n")
 		fmt.Fprintf(buf, "            for msg in self._%s.%s(input):\n", svc.Role, stubMethod)

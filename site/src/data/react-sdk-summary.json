@@ -121,8 +121,8 @@
     },
     {
       "slug": "platform-client",
-      "title": "Platform Client",
-      "description": "Hooks and components for platform client credential management, secret rotation, and admin UI.",
+      "title": "platform-client",
+      "description": "",
       "hooks": 6,
       "components": 4
     },

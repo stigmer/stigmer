@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State (COMPLETE)
 
-- **Status**: All tasks T01–T06 complete. Project ready for final merge prep.
-- **Last session**: 2026-04-18 (session 9) — Completed T06 documentation pass. Fixed identity concepts page, added PlatformClient to vocabulary/glossary, polished integration guide, verified cross-references.
+- **Status**: All tasks T01–T06 complete. Codegen import bug fixed. Project ready for final merge prep.
+- **Last session**: 2026-04-18 (session 10) — Fixed codegen generator bug where method types in non-standard proto files (token.proto) were incorrectly imported from io_pb. Fixed both TS and Python generators, regenerated all SDKs.
 - **Active task**: None — all tasks complete.
 
 ## Essential Files to Review
@@ -86,7 +86,7 @@ When starting a new session:
 
 **Created**: 2026-04-17
 **Current Task**: None — all tasks complete
-**Status**: T01–T06 complete. Project finished in 9 sessions.
+**Status**: T01–T06 complete. Codegen import bug fixed in session 10. Project finished in 10 sessions.
 
 ## Session Progress (2026-04-17, Session 1)
 
@@ -241,9 +241,29 @@ When starting a new session:
 - The `IamPolicyCreationServiceTest` in `api-authorization` exists as a Java file but has no Bazel test target — its tests never run in CI.
 
 ## Remaining Pre-Merge Work
-1. Fix pre-existing codegen stub import issue (`MintUserToken*` in `io_pb` vs `token_pb`) via `make codegen`
+1. ~~Fix pre-existing codegen stub import issue (`MintUserToken*` in `io_pb` vs `token_pb`) via `make codegen`~~ — **DONE** (session 10)
 2. Commit remaining uncommitted files in stigmer-cloud: generated stubs (from `make protos`), handler code (cache/, token/, handler/token/), auth chain code (platformclient/auth/, platformclient/jwt/), and broader feature-branch changes
 3. Demo components for PlatformClient Console UI (deferred — separate engineering task)
+
+## Session Progress (2026-04-18, Session 10)
+
+### Accomplished
+- Fixed codegen generator bug: method types in non-standard proto files were incorrectly imported from `io_pb`/`io_pb2`
+- **TypeScript generator** (`sdk_client_ts.go`): Added `methodTypeFileMap` from `schema.MethodTypes`, lookup before `io_pb` fallback
+- **Python generator** (`sdk_client_python.go`): Added `pyProtoFileToModule`, `pyMethodTypePb2Prefix`, `pyTrackMethodTypeImport` helpers; `extraPb2Modules` tracking with deduplication; same-package-only restriction for cross-package safety
+- Fixed hand-written `sdk/typescript/src/platform-client-auth.ts` import (`io_pb` → `token_pb`)
+- Ran `make codegen` — regenerated all 4 SDK clients
+- Verified: TypeScript 114 tests passed, Go all tests passed, codegen generator tests passed
+- Bonus: Fixed two pre-existing Python annotation bugs (`_iampolicy.py`, `_environment.py`) from same root cause
+
+### Key Decisions Made (Session 10)
+- **Generator fix over proto reorganization**: User proposed moving `mintUserToken` to command.proto and messages to io.proto to avoid the bug. Pushed back: `mintUserToken` is a public endpoint (no Bearer token), not a resource command. Mixing auth models in one service controller would be incorrect. The generator fix uses data the schema already provides.
+- **Same-package restriction for Python map**: Cross-package types (e.g., `ApiResourceAuditActor` from commons) must NOT go through `methodTypePb2Map` — they need separate import handling. Restricting to `strings.HasPrefix(mt.ProtoType, schema.Package+".")` prevents false routing.
+- **Deduplication over filtering**: `extraPb2Modules` emitter skips `io_pb2`/`spec_pb2` when already imported by `needsIoPb2`/`needsSpec` flags, preventing duplicate import lines.
+
+### Discoveries
+- The Python generator had a broader class of the same bug: `IamPolicySpec` and `ApiResourceRef` (defined in spec.proto) were annotated as `io_pb2.X` in `_iampolicy.py`. Same for `EnvironmentValue` in `_environment.py`. The fix corrected these as a side effect.
+- Python and Java SDK tests can't run locally due to unresolvable proto dependencies (`stigmer-protos>=0.1.0`, `stigmer-java-protos`). Pre-existing environment limitation, not a regression.
 
 ## Session Progress (2026-04-18, Session 9)
 
