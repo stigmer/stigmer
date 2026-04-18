@@ -1,27 +1,29 @@
 ---
 title: Identity
 description:
-  How Stigmer identifies users and services. Learn the three account types, how
-  Identity Providers establish trust, and how federated authentication lets your
-  platform's users access Stigmer directly.
+  How Stigmer identifies users and services. Learn the four account types, how
+  Identity Providers and PlatformClients establish trust, and how your
+  platform's users access Stigmer.
 ---
 
 Every API call to Stigmer is made by an **Identity Account**---a principal that
-Stigmer can authenticate and authorize. Identity Accounts come in three flavors,
+Stigmer can authenticate and authorize. Identity Accounts come in four types,
 each suited to a different integration pattern.
 
 ## Account types
 
-| Type          | How it's created                                           | Use case                                                    |
-| ------------- | ---------------------------------------------------------- | ----------------------------------------------------------- |
-| **Direct**    | User signs up on Stigmer or through a Stigmer-hosted login | Self-managed Organizations using Stigmer's own auth         |
-| **Federated** | Platform backend calls `createFederatedAccount`            | Platform-managed Organizations bringing their own user base |
-| **Machine**   | Created via API with client credentials                    | Service-to-service communication (backend-to-backend)       |
+| Type          | How it's created                                                       | Use case                                                        |
+| ------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Direct**    | User signs up on Stigmer or through a Stigmer-hosted login             | Self-managed Organizations using Stigmer's own auth             |
+| **Federated** | Created via JIT provisioning or explicit `createFederatedAccount` call | Platform-managed Organizations bringing their own OIDC provider |
+| **Platform**  | Created automatically when your backend calls `mintUserToken`          | Embedding Stigmer in your product without OIDC setup            |
+| **Machine**   | Created via API with client credentials                                | Service-to-service communication (backend-to-backend)           |
 
-Direct accounts use Stigmer's own authentication tenant. Federated accounts
-belong to an external Identity Provider and authenticate with tokens issued by
-that provider. Machine accounts use client credentials and have no interactive
-login.
+Direct accounts use Stigmer's own authentication tenant. Federated and Platform
+accounts both represent your platform's users, but they establish trust
+differently---federated accounts authenticate with tokens from an external OIDC
+provider, while Platform accounts authenticate with tokens that Stigmer itself
+signs. Machine accounts use client credentials and have no interactive login.
 
 ## Identity Providers
 
@@ -58,9 +60,17 @@ Key fields:
 
 ## How federated authentication works
 
-Federated authentication is **explicit, not automatic**. Stigmer does not create
-accounts on the fly when it sees a new token. Instead, the platform backend
-provisions accounts ahead of time:
+Your backend registers an Identity Provider once. After that, users authenticate
+with JWTs from your OIDC provider and Stigmer validates them directly.
+
+Federation supports two provisioning modes:
+
+- **JIT provisioning** --- Stigmer creates accounts and grants roles
+  automatically when a user first presents a valid JWT. You only register the
+  Identity Provider.
+- **Manual provisioning** --- Your backend creates accounts and grants roles via
+  the API before users can authenticate. Use this when you need explicit control
+  over who gets access.
 
 {/* vale off */}
 
@@ -72,21 +82,70 @@ sequenceDiagram
   participant Stigmer as Stigmer API
   participant User as Platform User
   Platform->>Stigmer: 1. Register Identity Provider
+  Note right of Stigmer: Manual only:
   Platform->>Stigmer: 2. createFederatedAccount(sub, email, name)
   Platform->>Stigmer: 3. Grant org role via IAM Policy
   User->>Platform: 4. Sign in on platform
   Platform-->>User: 5. Issue JWT
   User->>Stigmer: 6. Call API with JWT
   Stigmer->>Stigmer: 7. Validate token, resolve account
+  Note right of Stigmer: JIT: auto-provision if new
   Stigmer-->>User: 8. Authorized response
 `}
 />
 
 {/* vale on */}
 
-Steps 1--3 happen once per user during onboarding. Steps 4--8 happen on every
-API call. If a token's `sub` doesn't match any federated account, Stigmer
-returns `401 Unauthorized`---it never provisions automatically.
+Step 1 is required for all modes. Steps 2--3 apply only to manual
+provisioning---with JIT enabled, Stigmer handles them automatically on first
+authentication. Steps 4--8 happen on every API call.
+
+For the full setup guide, see
+[Identity federation](/docs/guides/authentication/federation/overview).
+
+## How PlatformClient authentication works
+
+PlatformClient uses a different trust model. Instead of validating tokens from
+an external OIDC provider, **Stigmer acts as the token issuer**. Your backend
+authenticates users with your own auth system, then calls Stigmer's
+`mintUserToken` endpoint with the user's identity. Stigmer signs a JWT and
+returns it. Your frontend passes this token to the React SDK.
+
+{/* vale off */}
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+sequenceDiagram
+  participant User as Your User
+  participant App as Your Frontend
+  participant Backend as Your Backend
+  participant Stigmer as Stigmer API
+  User->>App: 1. Use your app
+  App->>Backend: 2. Request Stigmer token
+  Backend->>Stigmer: 3. mintUserToken(clientId, secret, userId)
+  Note right of Stigmer: Auto-provision account if new
+  Stigmer-->>Backend: 4. Stigmer-signed JWT
+  Backend-->>App: 5. Return token
+  App->>Stigmer: 6. Call API with JWT
+  Stigmer->>Stigmer: 7. Validate own signature, resolve account
+  Stigmer-->>App: 8. Authorized response
+`}
+/>
+
+{/* vale on */}
+
+No Identity Provider registration or JWKS endpoint is needed. You create a
+PlatformClient in the Stigmer Console, store its credentials in your backend,
+and call `mintUserToken` for each user.
+
+Platform accounts are **org-scoped**: the same user ID from any PlatformClient
+in your Organization resolves to a single Identity Account. A user who accesses
+Stigmer through your dashboard, mobile app, and admin tool shares one identity
+and one set of permissions.
+
+For the full setup guide, see
+[Embed Stigmer with PlatformClient](/docs/guides/authentication/platform-client/overview).
 
 ## Authorization
 
@@ -115,13 +174,21 @@ Without a matching IAM Policy, an authenticated user gets `403 Forbidden`.
 
 ## What's next
 
-If you're building a platform that manages Organizations on behalf of your
-users, the [Identity federation guide](/docs/guides/federation/overview) walks
-you through the complete setup: registering an Identity Provider, provisioning
-federated accounts, granting access, and how the authentication flow works at
-runtime.
+Choose the authentication path that fits your integration:
+
+- **Your users have an OIDC provider** (Auth0, Okta, Entra ID) --- the
+  [federation guide](/docs/guides/authentication/federation/overview) walks you
+  through registering an Identity Provider, provisioning accounts, and the
+  runtime authentication flow.
+- **You want to embed Stigmer without OIDC setup** --- the
+  [PlatformClient guide](/docs/guides/authentication/platform-client/overview)
+  shows how to mint user tokens from your backend.
+- **Not sure which to use?** --- the
+  [authentication overview](/docs/guides/authentication/overview) compares all
+  three authentication paths side by side.
 
 For API reference details, see
 [IdentityProvider](/docs/sdk/resources/identity-provider),
-[IdentityAccount](/docs/sdk/resources/identity-account), and
+[IdentityAccount](/docs/sdk/resources/identity-account),
+[PlatformClient](/docs/sdk/resources/platform-client), and
 [IamPolicy](/docs/sdk/resources/iam-policy).

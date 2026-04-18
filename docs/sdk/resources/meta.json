@@ -15,6 +15,7 @@
     "mcp-server",
     "oauth-app",
     "organization",
+    "platform-client",
     "project",
     "session",
     "skill",

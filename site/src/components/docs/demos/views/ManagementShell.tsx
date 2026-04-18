@@ -10,6 +10,7 @@ import {
   CreditCard,
   KeyRound,
   Link as LinkIcon,
+  Plug,
   ShieldCheck,
   User,
   Users,
@@ -25,6 +26,7 @@ export type ManagementNavId =
   | "invitations"
   | "identity-providers"
   | "api-keys"
+  | "platform-clients"
   | "environments"
   | "billing"
   | "usage";
@@ -58,6 +60,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
     heading: "Configuration",
     items: [
       { id: "api-keys", label: "API Keys", icon: KeyRound },
+      { id: "platform-clients", label: "Platform Clients", icon: Plug },
       { id: "environments", label: "Environments", icon: Box },
     ],
   },
@@ -107,7 +110,7 @@ export function ManagementShell({
     <div
       className="flex overflow-hidden rounded-lg border border-border bg-card"
       style={{
-        height: `var(--demo-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
+        height: `var(--scenar-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
       }}
     >
       {/* Management sidebar — real-app layout scaled via zoom */}

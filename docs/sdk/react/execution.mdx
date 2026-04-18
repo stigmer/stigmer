@@ -430,8 +430,6 @@ Arguments are rendered through the shared [`ToolArgsView`](#toolargsview)
 dispatch, ensuring pixel-level parity between the approval
 preview and the post-execution detail view.
 
-<ComponentPreview component="ApprovalCard" />
-
 **Props** — `ApprovalCardProps`
 
 <TypeTable
@@ -477,8 +475,6 @@ Detection results are surfaced as a type badge ("Agent detected",
 "Skill · N files"). Non-Stigmer artifacts render with file info
 and a download link only — no error messages or "not detected"
 indicators (detection is silent).
-
-<ComponentPreview component="ArtifactCard" />
 
 **Props** — `ArtifactCardProps`
 
@@ -531,8 +527,6 @@ in a third-party host application.
 
 Platform builders who want to render artifact content outside of
 [`ArtifactPreviewModal`](#artifactpreviewmodal) can import this component directly:
-
-<ComponentPreview component="ArtifactContentRenderer" />
 
 **Props** — `ArtifactContentRendererProps`
 
@@ -681,8 +675,6 @@ own border and padding. The consumer controls the container styling
 
 All visual properties flow through `--stgm-*` tokens.
 
-<ComponentPreview component="ArtifactsWidget" />
-
 **Props** — `ArtifactsWidgetProps`
 
 <TypeTable
@@ -717,8 +709,6 @@ Renders nothing for `EXECUTION_PHASE_UNSPECIFIED`.
 
 All visual properties flow through `--stgm-*` tokens.
 
-<ComponentPreview component="ExecutionPhaseBadge" />
-
 **Props** — `ExecutionPhaseBadgeProps`
 
 <TypeTable
@@ -748,8 +738,6 @@ Renders its content without card chrome (no border, background, or
 elevation). The consumer controls the container styling.
 
 All visual properties flow through `--stgm-*` tokens.
-
-<ComponentPreview component="ExecutionProgress" />
 
 **Props** — `ExecutionProgressProps`
 
@@ -784,8 +772,6 @@ Resolves the path against workspace entries from
 Platform builders can override the default behavior via the
 `onFilePathClick` callback in [`FilePathContext`](#filepathcontext).
 
-<ComponentPreview component="FilePathLink" />
-
 **Props** — `FilePathLinkProps`
 
 <TypeTable
@@ -813,8 +799,6 @@ Uses `<div>` instead of `<form>` so it can be embedded inside host
 application forms without nesting violations.
 
 All visual properties flow through `--stgm-*` tokens.
-
-<ComponentPreview component="FollowUpInput" />
 
 **Props** — `FollowUpInputProps`
 
@@ -856,8 +840,6 @@ Renders MCP tool arguments as a structured key-value list.
 Scalars display inline; objects and arrays collapse into
 formatted JSON blocks via `CollapsibleJsonBlock`.
 
-<ComponentPreview component="McpArgsView" />
-
 **Props** — `McpArgsViewProps`
 
 <TypeTable
@@ -871,8 +853,6 @@ formatted JSON blocks via `CollapsibleJsonBlock`.
 
 Displays MCP server slug, tool name, and optional duration as a
 compact metadata row above tool arguments.
-
-<ComponentPreview component="McpMetadataRow" />
 
 **Props** — `McpMetadataRowProps`
 
@@ -899,8 +879,6 @@ with structured formatting:
 - **Results** are parsed through [`parseMcpResult`](#parsemcpresult) which
   handles MCP content-block arrays, embedded JSON, and Python
   repr artefacts before rendering.
-
-<ComponentPreview component="McpToolDetail" />
 
 **Props** — `McpToolDetailProps`
 
@@ -930,8 +908,6 @@ Renders a single message in the conversation thread.
 Purely presentational — no data fetching, no state.
 All visual properties flow through `--stgm-*` tokens.
 
-<ComponentPreview component="MessageEntry" />
-
 **Props** — `MessageEntryProps`
 
 <TypeTable
@@ -958,8 +934,6 @@ that follows new content when the user is near the bottom.
 Renders nothing when no executions are provided.
 
 All visual properties flow through `--stgm-*` tokens.
-
-<ComponentPreview component="MessageThread" />
 
 **Props** — `MessageThreadProps`
 
@@ -1005,8 +979,6 @@ it standalone with [`useSessionVariables`](#usesessionvariables) for custom UIs.
 
 All visual properties flow through `--stgm-*` design tokens.
 
-<ComponentPreview component="SessionVariablesInput" />
-
 **Props** — `SessionVariablesInputProps`
 
 <TypeTable
@@ -1039,8 +1011,6 @@ backends), the component cycles through contextual status messages
 derived from the session configuration on a fixed interval.
 
 All visual properties flow through `--stgm-*` tokens.
-
-<ComponentPreview component="SetupProgress" />
 
 **Props** — `SetupProgressProps`
 
@@ -1082,8 +1052,6 @@ Composes [`MessageEntry`](#messageentry) and [`ToolCallGroup`](#toolcallgroup) t
 the sub-agent's internal messages and tool calls — the same
 building blocks used by the top-level [`MessageThread`](#messagethread).
 
-<ComponentPreview component="SubAgentSection" />
-
 **Props** — `SubAgentSectionProps`
 
 <TypeTable
@@ -1107,8 +1075,6 @@ building blocks used by the top-level [`MessageThread`](#messagethread).
 
 Exported for reuse in SubAgentSection collapsed preview.
 
-<ComponentPreview component="TodoInProgressIcon" />
-
 
 ### TodoList
 
@@ -1122,8 +1088,6 @@ completed, and cancelled. Each row shows a status icon and the
 task description.
 
 All visual properties flow through `--stgm-*` tokens.
-
-<ComponentPreview component="TodoList" />
 
 **Props** — `TodoListProps`
 
@@ -1156,8 +1120,6 @@ appropriate category-specific view:
 - **Search / List** — pattern display
 - **MCP** — metadata row + scalar key-value grid + collapsible JSON
 - **Generic / Unknown** — formatted JSON args
-
-<ComponentPreview component="ToolArgsView" />
 
 **Props** — `ToolArgsViewProps`
 
@@ -1202,8 +1164,6 @@ Used inside [`ToolCallItem`](#toolcallitem) when expanded, but also
 independently importable by platform builders who compose
 their own tool call UI.
 
-<ComponentPreview component="ToolCallDetail" />
-
 **Props** — `ToolCallDetailProps`
 
 <TypeTable
@@ -1233,8 +1193,6 @@ Default summaries use active-voice phrasing ("Ran 3 tools",
 "Running 2 tools") with category-aware labels for single tools
 (e.g., "Shell: ls -la /tmp"). Platform builders can override
 via the `formatSummary` prop.
-
-<ComponentPreview component="ToolCallGroup" />
 
 **Props** — `ToolCallGroupProps`
 
@@ -1269,8 +1227,6 @@ Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
 the primary argument as a subtitle, a category-specific icon, and
 an inline approval decision badge when applicable.
 
-<ComponentPreview component="ToolCallItem" />
-
 **Props** — `ToolCallItemProps`
 
 <TypeTable
@@ -1302,8 +1258,6 @@ conditional-render pattern of [`ArtifactsWidget`](#artifactswidget) and
 
 All visual properties flow through `--stgm-*` tokens. Zero
 Console dependencies.
-
-<ComponentPreview component="UsageWidget" />
 
 **Props** — `UsageWidgetProps`
 
@@ -1337,8 +1291,6 @@ successfully created. On failure, displays the error message.
 Themed via standard semantic tokens — no hardcoded colors, no
 Console dependencies. Embedders can theme this card through
 their Tailwind/CSS configuration.
-
-<ComponentPreview component="WriteBackCard" />
 
 **Props** — `WriteBackCardProps`
 
@@ -1377,8 +1329,6 @@ conditional-render pattern of [`ArtifactsWidget`](#artifactswidget) and
 
 All visual properties flow through `--stgm-*` tokens.  Zero
 Console dependencies.
-
-<ComponentPreview component="WriteBacksWidget" />
 
 **Props** — `WriteBacksWidgetProps`
 

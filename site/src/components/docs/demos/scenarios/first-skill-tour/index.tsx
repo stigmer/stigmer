@@ -1,30 +1,27 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider } from "@stigmer/react";
-import { createDemoClient } from "@stigmer/react/demo";
-import type { DemoScenario } from "@stigmer/react/demo";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
+import { useCallback, useRef, useState } from "react";
+import { PreviewProvider } from "@scenar/preview/runtime";
 import {
-  type StepInteractions,
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
   useStepInteractions,
-} from "../../engine/useStepInteractions";
+  CodeEditorView,
+  type FileTreeEntry,
+  TerminalView,
+} from "@scenar/react";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { TerminalView } from "../../views/TerminalView";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type FirstSkillTourStep,
   firstSkillTourSteps,
   SKILL_REFS_CODE,
   EXPERT_OUTPUT,
 } from "./steps";
-
-const emptyScenario: DemoScenario = { fixtures: new Map() };
 
 const FILE_TREE: FileTreeEntry[] = [
   { name: "ask-agent.ts", type: "file", depth: 0 },
@@ -84,12 +81,6 @@ function renderStep(step: FirstSkillTourStep) {
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {};
-
-// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -100,7 +91,6 @@ const INTERACTIONS: StepInteractions = {};
  * Skill generated → add skillRefs to code → expert response.
  */
 export function FirstSkillTour() {
-  const client = useMemo(() => createDemoClient(emptyScenario), []);
   const narrationManifest = useNarrationManifest("first-skill-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -116,7 +106,6 @@ export function FirstSkillTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -124,8 +113,8 @@ export function FirstSkillTour() {
   });
 
   return (
-    <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+    <PreviewProvider providers={PreviewProviders}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={firstSkillTourSteps}
           narrationManifest={narrationManifest}
@@ -134,7 +123,7 @@ export function FirstSkillTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
-    </StigmerProvider>
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }

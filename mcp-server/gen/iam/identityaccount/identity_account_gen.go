@@ -13,8 +13,9 @@ import (
 //
 //	An identity account represents a user or machine principal in Stigmer.
 //	Accounts can be direct (signed up via Stigmer), federated (provisioned
-//	through an external identity provider), or machine (service-to-service
-//	credentials).
+//	through an external identity provider), machine (service-to-service
+//	credentials), or platform_client (provisioned via a PlatformClient's
+//	mintUserToken endpoint).
 //
 //	@internal
 //	All FGA tuples use identity_account as the principal type.
@@ -23,6 +24,12 @@ import (
 //	- federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
 //	  scoped by identity_provider_ref
 //	- machine: Auth0 client ID with "@clients" suffix
+//	- platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
+//	  is the Stigmer org that owns the PlatformClient(s) and external_user_id
+//	  is the platform builder's stable identifier for the user. Scoping by org
+//	  (not by PlatformClient) means a customer's end user resolves to a single
+//	  IdentityAccount across all of that customer's PlatformClients. Globally
+//	  unique by construction.
 type IdentityAccountInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -37,8 +44,8 @@ type IdentityAccountInput struct {
 	// Tags for categorization and discovery.
 	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
-	// IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123"). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with "@clients" suffix.
-	IdpId string `json:"idp_id" jsonschema:"IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., 'auth0|abc123'). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., 'google-oauth2|109876543210'). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with '@clients' suffix."`
+	// IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123"). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with "@clients" suffix. For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}" where org is the Stigmer org that owns the PlatformClient(s) and external_user_id is the platform builder's stable identifier for the user. Scoping by org (not by PlatformClient) means the same user_id presented via any PlatformClient in the same org resolves to the same IdentityAccount. Globally unique by construction — no additional scope field is needed.
+	IdpId string `json:"idp_id" jsonschema:"IDP ID of the identity account. For direct accounts: the Auth0 subject ID (e.g., 'auth0|abc123'). For federated accounts: the raw OIDC sub claim from the external identity provider (e.g., 'google-oauth2|109876543210'). Uniqueness is scoped by identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique. For machine accounts: the Auth0 client ID with '@clients' suffix. For platform_client accounts: composite 'stgm_pc|{org}|{external_user_id}' where org is the Stigmer org that owns the PlatformClient(s) and external_user_id is the platform builder's stable identifier for the user. Scoping by org (not by PlatformClient) means the same user_id presented via any PlatformClient in the same org resolves to the same IdentityAccount. Globally unique by construction — no additional scope field is needed."`
 	// Email of the identity account. For direct accounts: based on the email used to sign up. For federated accounts: provided by the platform when creating the account. (ignored for create) this value is assigned by backend.
 	Email string `json:"email,omitempty" jsonschema:"Email of the identity account. For direct accounts: based on the email used to sign up. For federated accounts: provided by the platform when creating the account. (ignored for create) this value is assigned by backend."`
 	// First name of the identity account.
@@ -50,7 +57,7 @@ type IdentityAccountInput struct {
 	// Indicates if this is a machine account used for inter-service communication. Machine accounts have idp_id values ending with "@clients" suffix. (ignored for create) this value is assigned by backend based on idp_id.
 	IsMachineAccount bool `json:"is_machine_account,omitempty" jsonschema:"Indicates if this is a machine account used for inter-service communication. Machine accounts have idp_id values ending with '@clients' suffix. (ignored for create) this value is assigned by backend based on idp_id."`
 	// How this identity account was provisioned. Unspecified for legacy accounts created before this field was introduced. (ignored for create) this value is assigned by backend.
-	ProvisioningMode string `json:"provisioning_mode,omitempty" jsonschema:"How this identity account was provisioned. Unspecified for legacy accounts created before this field was introduced. (ignored for create) this value is assigned by backend. Allowed values: direct, federated, machine."`
+	ProvisioningMode string `json:"provisioning_mode,omitempty" jsonschema:"How this identity account was provisioned. Unspecified for legacy accounts created before this field was introduced. (ignored for create) this value is assigned by backend. Allowed values: direct, federated, machine, platform_client."`
 	// Reference to the IdentityProvider that owns this federated account. Set only when provisioning_mode is FEDERATED. Identifies which external platform's identity provider scopes this account. Together with idp_id, forms the unique identity for federated accounts. (ignored for create) this value is assigned by backend.
 	IdentityProviderRef *ApiResourceReferenceInput `json:"identity_provider_ref,omitempty" jsonschema:"Reference to the IdentityProvider that owns this federated account. Set only when provisioning_mode is FEDERATED. Identifies which external platform's identity provider scopes this account. Together with idp_id, forms the unique identity for federated accounts. (ignored for create) this value is assigned by backend."`
 }
@@ -60,7 +67,7 @@ type ApiResourceReferenceInput struct {
 	// Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: "stigmer", "acme-corp". When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources).
 	Org string `json:"org,omitempty" jsonschema:"Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources)."`
 	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
-	Kind string `json:"kind,omitempty" jsonschema:"Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER). Allowed values: api_resource_version, iam_policy, identity_account, api_key, invitation, identity_provider, oauth_app, organization, platform, agent, agent_execution, session, skill, mcp_server, agent_instance, workflow, workflow_instance, workflow_execution, environment, execution_context, project."`
+	Kind string `json:"kind,omitempty" jsonschema:"Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER). Allowed values: api_resource_version, iam_policy, identity_account, api_key, invitation, identity_provider, oauth_app, platform_client, organization, platform, agent, agent_execution, session, skill, mcp_server, agent_instance, workflow, workflow_instance, workflow_execution, environment, execution_context, project."`
 	// Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer"). Length: 1-63 characters.
 	Slug string `json:"slug" jsonschema:"Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., 'web-search', 'code-reviewer'). Length: 1-63 characters."`
 	// Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to "latest" (most recent version) 2. Tag name → Resolves to version with this tag (e.g., "stable", "v1.0") 3. Exact hash → Immutable reference to specific version (e.g., "abc123...") Default behavior: Empty means "latest" (current version). This field is ignored for non-versioned resources. Examples: - version: "" → Use latest version - version: "latest" → Use latest version (explicit) - version: "stable" → Use version tagged as "stable" - version: "v1.0" → Use version tagged as "v1.0" - version: "abc123..." → Use exact version with this hash (immutable)

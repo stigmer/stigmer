@@ -23,25 +23,25 @@ class IamPolicyClient:
         self._command = command_pb2_grpc.IamPolicyCommandControllerStub(channel)
         self._query = query_pb2_grpc.IamPolicyQueryControllerStub(channel)
 
-    def create(self, input: io_pb2.IamPolicySpec) -> api_pb2.IamPolicy:
+    def create(self, input: spec_pb2.IamPolicySpec) -> api_pb2.IamPolicy:
         try:
             return self._command.create(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def delete(self, input: io_pb2.IamPolicySpec) -> api_pb2.IamPolicy:
+    def delete(self, input: spec_pb2.IamPolicySpec) -> api_pb2.IamPolicy:
         try:
             return self._command.delete(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def bootstrap_policy(self, input: io_pb2.IamPolicySpec) -> api_pb2.IamPolicy:
+    def bootstrap_policy(self, input: spec_pb2.IamPolicySpec) -> api_pb2.IamPolicy:
         try:
             return self._command.bootstrapPolicy(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def cleanup_resource_policies(self, input: io_pb2.ApiResourceRef) -> None:
+    def cleanup_resource_policies(self, input: spec_pb2.ApiResourceRef) -> None:
         try:
             self._command.cleanupResourcePolicies(input)
         except grpc.RpcError as e:

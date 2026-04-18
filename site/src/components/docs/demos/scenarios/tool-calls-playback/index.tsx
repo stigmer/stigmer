@@ -1,18 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { StigmerProvider } from "@stigmer/react";
-import { createDemoClient } from "@stigmer/react/demo";
-import type { DemoScenario } from "@stigmer/react/demo";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { ScenarioPlayer, useNarrationManifest } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { type ToolCallStep, toolCallsPlaybackSteps } from "./steps";
-
-const emptyScenario: DemoScenario = { fixtures: new Map() };
 
 function renderStep(step: ToolCallStep) {
   switch (step.view) {
@@ -40,19 +35,18 @@ function renderStep(step: ToolCallStep) {
 }
 
 export function ToolCallsPlayback() {
-  const client = useMemo(() => createDemoClient(emptyScenario), []);
   const narrationManifest = useNarrationManifest("tool-calls-playback");
 
   return (
-    <StigmerProvider client={client}>
-      <DemoViewport>
+    <PreviewProvider providers={PreviewProviders}>
+      <StigmerDemoViewport>
         <ScenarioPlayer
           steps={toolCallsPlaybackSteps}
           narrationManifest={narrationManifest}
         >
           {(step) => renderStep(step)}
         </ScenarioPlayer>
-      </DemoViewport>
-    </StigmerProvider>
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }

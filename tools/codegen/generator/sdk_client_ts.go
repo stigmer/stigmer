@@ -312,6 +312,16 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 		}
 	}
 
+	// Build a map of method-level type names to their proto file suffixes.
+	// Types like MintUserTokenRequest live in token.proto, not io.proto;
+	// without this map, they fall through to the io_pb default.
+	methodTypeFileMap := make(map[string]string)
+	for _, mt := range schema.MethodTypes {
+		if mt.ProtoFile != "" {
+			methodTypeFileMap[mt.Name] = tsProtoFileToSuffix(mt.ProtoFile)
+		}
+	}
+
 	needsApiResourceId := false
 	needsApiResourceRef := false
 	needsApiResourceDeleteInput := false
@@ -347,8 +357,8 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 			}
 
 			// Import non-standard types used as method inputs/outputs.
-			tsImportMethodType(imports, m.InputType, m.InputFullType, schema, cfg, specTypeNames, specTypeFileMap, importBase)
-			tsImportMethodType(imports, m.OutputType, m.OutputFullType, schema, cfg, specTypeNames, specTypeFileMap, importBase)
+			tsImportMethodType(imports, m.InputType, m.InputFullType, schema, cfg, specTypeNames, specTypeFileMap, methodTypeFileMap, importBase)
+			tsImportMethodType(imports, m.OutputType, m.OutputFullType, schema, cfg, specTypeNames, specTypeFileMap, methodTypeFileMap, importBase)
 		}
 	}
 
@@ -462,7 +472,7 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 
 // tsImportMethodType handles importing a single method input or output type.
 // It determines the correct source module based on type origin.
-func tsImportMethodType(imports *tsImportSet, typeName, fullType string, schema *ServiceSchemaFile, cfg sdkResourceConfig, specTypeNames map[string]bool, specTypeFileMap map[string]string, importBase string) {
+func tsImportMethodType(imports *tsImportSet, typeName, fullType string, schema *ServiceSchemaFile, cfg sdkResourceConfig, specTypeNames map[string]bool, specTypeFileMap map[string]string, methodTypeFileMap map[string]string, importBase string) {
 	// Skip types handled by dedicated logic
 	if typeName == "" || typeName == cfg.protoResType || typeName == "ApiResourceId" ||
 		typeName == "ApiResourceReference" || typeName == "ApiResourceDeleteInput" ||
@@ -503,6 +513,13 @@ func tsImportMethodType(imports *tsImportSet, typeName, fullType string, schema 
 	// but we still need the TYPE for method signatures.
 	if typeName == cfg.inputPrefix+"Spec" {
 		imports.addType(importBase+"/spec_pb", typeName)
+		return
+	}
+
+	// Same-package: resolve from methodTypes when the type's proto file is known
+	if file, ok := methodTypeFileMap[typeName]; ok {
+		imports.addValue(importBase+"/"+file, typeName+"Schema")
+		imports.addType(importBase+"/"+file, typeName)
 		return
 	}
 

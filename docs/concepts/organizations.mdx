@@ -178,8 +178,8 @@ the Organization boundary keeps each tenant's data and access separate.
 
 <Callout type="info">
   For step-by-step instructions on setting up a multi-tenant platform, see the
-  [Multi-tenant platform setup](/docs/guides/federation/multi-tenant-setup)
-  guide.
+  [Multi-tenant platform
+  setup](/docs/guides/authentication/federation/multi-tenant-setup) guide.
 </Callout>
 
 ## Cloud vs. local
@@ -231,10 +231,16 @@ by internal IDs.
 ## What's next
 
 - Building a platform with federated authentication? The
-  [Identity federation guide](/docs/guides/federation/overview) walks through
-  Identity Provider registration, account provisioning, and access granting.
+  [Identity federation guide](/docs/guides/authentication/federation/overview)
+  walks through Identity Provider registration, account provisioning, and access
+  granting.
+- Want to embed Stigmer without OIDC setup? The
+  [PlatformClient guide](/docs/guides/authentication/platform-client/overview)
+  shows how to mint user tokens from your backend. PlatformClient identities are
+  org-scoped --- the same user across multiple PlatformClients in your
+  Organization shares one Identity Account.
 - Need tenant isolation for multiple customers? The
-  [Multi-tenant platform setup](/docs/guides/federation/multi-tenant-setup)
+  [Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup)
   guide covers creating platform-managed Organizations and provisioning users
   per tenant.
 - For API details, see the

@@ -8,7 +8,7 @@ import {
   UsageWidget,
   WriteBacksWidget,
 } from "@stigmer/react";
-import { DEMO_ORG } from "../engine/shared";
+import { DEMO_ORG } from "../fixtures";
 import { DEMO_SIDEBAR_ZOOM } from "../shared/tokens";
 
 interface WidgetsSidebarProps {

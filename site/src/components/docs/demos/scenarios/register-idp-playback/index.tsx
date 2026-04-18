@@ -10,18 +10,17 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { ProviderPicker } from "@stigmer/react";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
 import {
-  type StepInteractions,
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
   useStepInteractions,
-} from "../../engine/useStepInteractions";
-import { BrowserView } from "../../views/BrowserView";
+  BrowserView,
+  PulseHighlight,
+} from "@scenar/react";
 import { ManagementShell } from "../../views/ManagementShell";
-import { PulseHighlight } from "../../shared/PulseHighlight";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { type RegisterIdpStep, registerIdpSteps } from "./steps";
 
 const noop = () => {};
@@ -392,22 +391,6 @@ function StaticField({
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions (scroll / cursor synced to narration)
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {
-  0: [
-    { atPercent: 0.55, type: "scroll-to", target: "audience-field" },
-  ],
-  3: [
-    { atPercent: 0.3, type: "scroll-to", target: "continue-btn" },
-  ],
-  4: [
-    { atPercent: 0.5, type: "set-cursor", target: "register-btn" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Cursor targets
 // ---------------------------------------------------------------------------
 
@@ -527,7 +510,6 @@ export function RegisterIdpPlayback() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -535,7 +517,7 @@ export function RegisterIdpPlayback() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={registerIdpSteps}
         narrationManifest={narrationManifest}
@@ -544,6 +526,6 @@ export function RegisterIdpPlayback() {
         {(step) => renderStep(step)}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

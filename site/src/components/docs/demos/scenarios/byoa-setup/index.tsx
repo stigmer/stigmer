@@ -1,12 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider, McpServerDetailView } from "@stigmer/react";
-import {
-  createDemoClient,
-  buildScenario,
-  fixtures,
-} from "@stigmer/react/demo";
+import { Fragment, useCallback, useMemo, useRef, useState } from "react";
+import { McpServerDetailView } from "@stigmer/react";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -14,16 +12,11 @@ import type {
   GetOAuthGrantStatusOutput,
   GetOrgOAuthAppOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, PulseHighlight } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "@scenar/preview/connect";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import {
-  type StepInteractions,
-  useStepInteractions,
-} from "../../engine/useStepInteractions";
-import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DemoViewport } from "../../engine/DemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type ByoaSetupStep,
@@ -32,26 +25,7 @@ import {
   DEMO_SLUG,
 } from "./steps";
 
-// ---------------------------------------------------------------------------
-// Demo client builder
-// ---------------------------------------------------------------------------
-
 const emptyEnvList = () => create(EnvironmentListSchema, {});
-
-function buildClient(
-  server: McpServer,
-  grant: GetOAuthGrantStatusOutput,
-  orgApp: GetOrgOAuthAppOutput,
-) {
-  return createDemoClient(
-    buildScenario(
-      fixtures.mcpServer.getByReference(() => server),
-      fixtures.environment.list(emptyEnvList),
-      fixtures.mcpServer.getOAuthGrantStatus(() => grant),
-      fixtures.mcpServer.getOrgOAuthApp(() => orgApp),
-    ),
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Step helpers
@@ -192,27 +166,6 @@ function ExternalLinkIcon() {
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {
-  0: [
-    { atPercent: 0.4, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-  2: [
-    { atPercent: 0.4, type: "set-cursor", target: "byoa-client-id" },
-    { atPercent: 0.65, type: "set-cursor", target: "byoa-client-secret" },
-    { atPercent: 0.9, type: "clear-cursor" },
-  ],
-  4: [
-    { atPercent: 0.3, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-  5: [
-    { atPercent: 0.35, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -227,17 +180,19 @@ const INTERACTIONS: StepInteractions = {
 export function ByoaSetup() {
   const narrationManifest = useNarrationManifest("byoa-setup");
 
-  const clientMap = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof buildClient>>();
-    for (const step of byoaSetupSteps) {
-      const data = step.data;
-      const key = `${data.server.metadata?.id ?? ""}:${data.grant.connected}:${data.orgApp.hasOverride}`;
-      if (!map.has(key)) {
-        map.set(key, buildClient(data.server, data.grant, data.orgApp));
-      }
-    }
-    return map;
-  }, []);
+  const currentServerRef = useRef<McpServer>(null!);
+  const currentGrantRef = useRef<GetOAuthGrantStatusOutput>(null!);
+  const currentOrgAppRef = useRef<GetOrgOAuthAppOutput>(null!);
+
+  const previewFixtures = useMemo(
+    () => [
+      connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
+      connectFixture(EnvironmentQueryController, "list", emptyEnvList),
+      connectFixture(McpServerQueryController, "getOAuthGrantStatus", () => currentGrantRef.current),
+      connectFixture(McpServerQueryController, "getOrgOAuthApp", () => currentOrgAppRef.current),
+    ],
+    [],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -253,7 +208,6 @@ export function ByoaSetup() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -261,56 +215,59 @@ export function ByoaSetup() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
-      <ScenarioPlayer
-        steps={byoaSetupSteps}
-        narrationManifest={narrationManifest}
-        onStepChange={handleStepChange}
-      >
-        {(step) => {
-          const key = `${step.server.metadata?.id ?? ""}:${step.grant.connected}:${step.orgApp.hasOverride}`;
-          const client = clientMap.get(key)!;
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+      <StigmerDemoViewport containerRef={containerRef}>
+        <ScenarioPlayer
+          steps={byoaSetupSteps}
+          narrationManifest={narrationManifest}
+          onStepChange={handleStepChange}
+        >
+          {(step) => {
+            currentServerRef.current = step.server;
+            currentGrantRef.current = step.grant;
+            currentOrgAppRef.current = step.orgApp;
+            const componentKey = `${step.server.metadata?.id ?? ""}:${step.grant.connected}:${step.orgApp.hasOverride}`;
 
-          if (step.view === "byoa-dialog" || step.view === "click-save") {
+            if (step.view === "byoa-dialog" || step.view === "click-save") {
+              return (
+                <AppShell
+                  activeNav="library"
+                  contentKey="byoa-dialog"
+                  slideDirection={slideDirectionFor(step)}
+                >
+                  <Fragment key={`dialog-${componentKey}`}>
+                    <div
+                      className="absolute inset-0 overflow-y-auto"
+                      style={{ zoom: DEMO_CONTENT_ZOOM }}
+                    >
+                      <div className="p-4">
+                        <McpServerDetailView
+                          org={DEMO_ORG}
+                          slug={DEMO_SLUG}
+                          defaultCapabilityTab="tools"
+                        />
+                      </div>
+                    </div>
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60" data-scroll-target="byoa-dialog-card">
+                      <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
+                        <ByoaDialogCard
+                          filled={step.view === "click-save"}
+                        />
+                      </div>
+                    </div>
+                  </Fragment>
+                </AppShell>
+              );
+            }
+
             return (
               <AppShell
                 activeNav="library"
-                contentKey="byoa-dialog"
+                contentKey={contentKeyFor(step)}
                 slideDirection={slideDirectionFor(step)}
               >
-                <StigmerProvider key={`dialog-${key}`} client={client}>
-                  <div
-                    className="absolute inset-0 overflow-y-auto"
-                    style={{ zoom: DEMO_CONTENT_ZOOM }}
-                  >
-                    <div className="p-4">
-                      <McpServerDetailView
-                        org={DEMO_ORG}
-                        slug={DEMO_SLUG}
-                        defaultCapabilityTab="tools"
-                      />
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60" data-scroll-target="byoa-dialog-card">
-                    <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
-                      <ByoaDialogCard
-                        filled={step.view === "click-save"}
-                      />
-                    </div>
-                  </div>
-                </StigmerProvider>
-              </AppShell>
-            );
-          }
-
-          return (
-            <AppShell
-              activeNav="library"
-              contentKey={contentKeyFor(step)}
-              slideDirection={slideDirectionFor(step)}
-            >
-              <StigmerProvider key={key} client={client}>
                 <div
+                  key={componentKey}
                   data-scroll-container
                   className="h-full overflow-y-auto"
                   style={{ zoom: DEMO_CONTENT_ZOOM }}
@@ -324,12 +281,12 @@ export function ByoaSetup() {
                     <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
-              </StigmerProvider>
-            </AppShell>
-          );
-        }}
-      </ScenarioPlayer>
-      <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+              </AppShell>
+            );
+          }}
+        </ScenarioPlayer>
+        <Cursor target={cursorTarget} containerRef={containerRef} />
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }

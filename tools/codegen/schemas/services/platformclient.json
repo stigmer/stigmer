@@ -1,0 +1,677 @@
+{
+  "resource": "platformclient",
+  "package": "ai.stigmer.iam.platformclient.v1",
+  "goImportPath": "platformclientv1",
+  "services": [
+    {
+      "name": "PlatformClientCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "PlatformClient",
+          "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
+          "outputType": "PlatformClientCreateResponse",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
+          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client. The creator is granted\n the owner role automatically.\n\n @internal\n Authorization: Requires can_create_platform_client permission in the organization."
+        },
+        {
+          "name": "Update",
+          "inputType": "PlatformClient",
+          "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
+          "outputType": "PlatformClient",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
+          "description": "Update an existing platform client.\n\n Only mutable fields can be changed: auto_provision_accounts, auto_grant_on_org,\n auto_grant_role, and allowed_origins. Credential fields (client_id,\n client_secret_hash, secret_fingerprint) are immutable after creation.\n Use rotateSecret to change the client secret.\n\n @internal\n Authorization: Requires can_edit permission on the platform client resource."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceDeleteInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
+          "outputType": "PlatformClient",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
+          "description": "Delete a platform client.\n\n Immediately invalidates the client_id and client_secret. Any tokens\n previously minted by this platform client remain valid until their\n own expiration — deletion does not revoke already-issued tokens.\n\n @internal\n Authorization: Requires can_delete permission on the platform client resource."
+        },
+        {
+          "name": "RotateSecret",
+          "inputType": "PlatformClientId",
+          "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientId",
+          "outputType": "PlatformClientCreateResponse",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
+          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation.\n\n @internal\n Authorization: Requires can_edit permission on the platform client resource."
+        }
+      ]
+    },
+    {
+      "name": "PlatformClientQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiResourceId",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
+          "outputType": "PlatformClient",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
+          "description": "Get a platform client by its unique identifier.\n\n @internal\n Authorization: Requires can_view permission on the platform client resource."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "PlatformClient",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
+          "description": "Get a platform client by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/acme-dashboard\" to the full\n PlatformClient resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+        },
+        {
+          "name": "ListByOrg",
+          "inputType": "ListPlatformClientsByOrgInput",
+          "inputFullType": "ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput",
+          "outputType": "PlatformClients",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClients",
+          "description": "List all platform clients belonging to an organization.\n\n Returns every PlatformClient whose metadata.org matches the input org.\n Typically a small set per org, so results are not paginated.\n\n @internal\n Authorization: Requires can_view permission on the organization resource."
+        }
+      ]
+    },
+    {
+      "name": "PlatformClientTokenController",
+      "role": "token",
+      "methods": [
+        {
+          "name": "MintUserToken",
+          "inputType": "MintUserTokenRequest",
+          "inputFullType": "ai.stigmer.iam.platformclient.v1.MintUserTokenRequest",
+          "outputType": "MintUserTokenResponse",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.MintUserTokenResponse",
+          "description": "Mint a user-scoped JWT for browser-based access to Stigmer resources.\n\n The platform builder's backend calls this RPC with its PlatformClient\n credentials (client_id + client_secret) and the end user's identity.\n Stigmer validates the credentials, optionally JIT-provisions the user's\n identity account, and returns a Stigmer-signed JWT.\n\n The returned JWT can be used by the React SDK (via StigmerProvider's\n getAccessToken callback) to authenticate API calls from the browser.\n\n Authentication flow:\n 1. Validate client_id + client_secret against stored hash\n 2. Resolve or JIT-provision the identity account for user_id\n 3. If auto_grant_on_org is enabled, grant the configured role\n 4. Sign a JWT with Stigmer's private key containing the user's identity\n\n Error scenarios:\n - UNAUTHENTICATED: Invalid client_id or client_secret\n - NOT_FOUND: user_id does not exist and auto_provision_accounts is false\n - FAILED_PRECONDITION: PlatformClient secret has expired\n - PERMISSION_DENIED: Origin not in allowed_origins (when configured)\n\n @internal\n This RPC is public — no Bearer token is required. The caller authenticates\n by providing client_id + client_secret in the request body. The handler\n validates these credentials as business logic, not via the auth interceptor."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "PlatformClientCreateResponse",
+      "description": "PlatformClientCreateResponse wraps a PlatformClient resource with the\n one-time raw client secret.\n\n Returned by the create and rotateSecret RPCs. The client_secret field\n contains the raw secret value that must be stored securely by the caller —\n it is never returned again after this response.\n\n This wrapper makes the one-time secret explicit in the type system rather\n than relying on transient field injection in the resource message.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/io.proto",
+      "fields": [
+        {
+          "name": "PlatformClient",
+          "jsonName": "platformClient",
+          "protoField": "platform_client",
+          "type": {
+            "kind": "message",
+            "messageType": "PlatformClient"
+          },
+          "description": "The created or updated platform client resource.",
+          "required": false
+        },
+        {
+          "name": "ClientSecret",
+          "jsonName": "clientSecret",
+          "protoField": "client_secret",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The raw client secret. Store this value securely — it is not retrievable\n after this response. If lost, use rotateSecret to generate a new one.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"web-search\", \"code-reviewer\").\n Length: 1-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListPlatformClientsByOrgInput",
+      "description": "ListPlatformClientsByOrgInput specifies the organization whose platform\n clients should be returned.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to list platform clients for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "PlatformClients",
+      "description": "PlatformClients contains a list of platform client resources.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.PlatformClients",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PlatformClient"
+            }
+          },
+          "description": "Platform client entries.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "MintUserTokenRequest",
+      "description": "MintUserTokenRequest contains the credentials and user identity needed\n to mint a Stigmer JWT.\n\n Called from the platform builder's backend — never from a browser.\n The client_secret must be transmitted over TLS and never exposed in\n client-side code.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.MintUserTokenRequest",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/token.proto",
+      "fields": [
+        {
+          "name": "ClientId",
+          "jsonName": "clientId",
+          "protoField": "client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The PlatformClient's client identifier (stgm_cid_ prefix).\n Used together with client_secret to authenticate the request.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ClientSecret",
+          "jsonName": "clientSecret",
+          "protoField": "client_secret",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The raw client secret (stgm_cs_ prefix).\n Validated against the stored client_secret_hash.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "UserId",
+          "jsonName": "userId",
+          "protoField": "user_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Platform's stable user identifier for the end user. Used together with\n the PlatformClient's owning org to resolve or create an IdentityAccount\n (keyed as \"stgm_pc|{org}|{user_id}\").\n\n Must be unique and stable within the org — the same user_id presented\n via any PlatformClient in the same org resolves to the same identity.\n Changing this value for the same user creates a new identity account.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "UserEmail",
+          "jsonName": "userEmail",
+          "protoField": "user_email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "User's email address. Used for profile enrichment when JIT-provisioning\n an identity account. Updated on each token mint if the account exists.",
+          "required": false
+        },
+        {
+          "name": "UserName",
+          "jsonName": "userName",
+          "protoField": "user_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "User's display name. Used for profile enrichment when JIT-provisioning\n an identity account. Updated on each token mint if the account exists.",
+          "required": false
+        },
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional organization to scope the minted token to.\n When set, the JWT's claims include this org context, and the user must\n have access to this organization. When empty, the token is scoped to\n the PlatformClient's owning organization.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "MintUserTokenResponse",
+      "description": "MintUserTokenResponse contains the Stigmer-signed JWT and its metadata.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.MintUserTokenResponse",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/token.proto",
+      "fields": [
+        {
+          "name": "AccessToken",
+          "jsonName": "accessToken",
+          "protoField": "access_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stigmer-signed JWT for authenticating browser-based API calls.\n Pass this to the React SDK's StigmerProvider via getAccessToken.",
+          "required": false
+        },
+        {
+          "name": "TokenType",
+          "jsonName": "tokenType",
+          "protoField": "token_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token type. Always \"Bearer\".",
+          "required": false
+        },
+        {
+          "name": "ExpiresIn",
+          "jsonName": "expiresIn",
+          "protoField": "expires_in",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Token lifetime in seconds from the time of issuance.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    },
+    {
+      "name": "IamRole",
+      "description": "IamRole defines the roles that can be assigned to principals on resources\n via IAM policies.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig.",
+      "protoType": "ai.stigmer.iam.v1.IamRole",
+      "values": [
+        {
+          "name": "owner",
+          "number": 1,
+          "description": "Full control of the resource. Typically assigned to the creator."
+        },
+        {
+          "name": "admin",
+          "number": 2,
+          "description": "Administrative access. Grants most permissions except ownership transfer."
+        },
+        {
+          "name": "member",
+          "number": 3,
+          "description": "Membership-level access. Grants read and limited write permissions."
+        },
+        {
+          "name": "viewer",
+          "number": 4,
+          "description": "Read-only access to the resource."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "PlatformClient represents an OAuth2 client credential for platform builders\n who embed Stigmer into their products.\n\n A PlatformClient is owned by an organization and holds a client_id + client_secret\n credential pair. Platform builders use these credentials from their backend to\n mint user-scoped JWTs via the mintUserToken RPC, enabling their users to interact\n with Stigmer resources through the React SDK without requiring OIDC federation.\n\n PlatformClient is the inbound auth counterpart to OAuthApp (outbound auth).\n While OAuthApp configures how Stigmer authenticates *outward* to external services,\n PlatformClient configures how platform builders authenticate *inward* to Stigmer\n on behalf of their users.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: PlatformClient\n   metadata:\n     name: Acme Dashboard\n     slug: acme-dashboard\n     org: acme\n   spec:\n     auto_provision_accounts: true\n     auto_grant_on_org: true\n     auto_grant_role: viewer\n     allowed_origins: [\"https://app.acme.com\"]",
+  "statusType": {
+    "name": "PlatformClientStatus",
+    "description": "PlatformClientStatus contains system-managed state for a platform client.\n\n Uses a custom status (rather than the generic ApiResourceAuditStatus) to\n include credential usage tracking, which is essential for security auditing\n and stale credential detection.",
+    "protoType": "ai.stigmer.iam.platformclient.v1.PlatformClientStatus",
+    "protoFile": "apis/ai/stigmer/iam/platformclient/v1/api.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.).",
+        "required": false
+      },
+      {
+        "name": "LastUsedAt",
+        "jsonName": "lastUsedAt",
+        "protoField": "last_used_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "Timestamp of the most recent successful mintUserToken call using this\n platform client's credentials. Used for security monitoring — credentials\n that have not been used recently may be candidates for rotation or deletion.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

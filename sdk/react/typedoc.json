@@ -34,7 +34,8 @@
       "AgentInstanceInput": "/docs/sdk/resources/agent-instance",
       "EnvironmentInput": "/docs/sdk/resources/environment",
       "OAuthAppInput": "/docs/sdk/resources/oauth-app",
-      "CLOUD_ONLY_KINDS": "#"
+      "CLOUD_ONLY_KINDS": "#",
+      "PlatformClientInput": "/docs/sdk/resources/platform-client"
     },
     "@stigmer/protos": {
       "Session": "/docs/sdk/resources/session",
@@ -54,7 +55,9 @@
       "IamPolicySpec": "/docs/sdk/resources/iam-policy",
       "LlmCallMetrics": "/docs/sdk/resources/agent-execution",
       "TodoItem": "/docs/sdk/resources/agent-execution",
-      "OAuthApp": "/docs/sdk/resources/oauth-app"
+      "OAuthApp": "/docs/sdk/resources/oauth-app",
+      "PlatformClient": "/docs/sdk/resources/platform-client",
+      "PlatformClientCreateResponse": "/docs/sdk/resources/platform-client"
     },
     "@stigmer/react": {
       "DISABLED_PROVIDERS": "#",

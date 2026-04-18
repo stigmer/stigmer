@@ -6,8 +6,7 @@
  * guide pages in a single scenario.
  */
 
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { TerminalLine } from "../../views/TerminalView";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Data model

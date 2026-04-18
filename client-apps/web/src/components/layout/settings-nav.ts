@@ -7,6 +7,7 @@ import {
   CreditCard,
   KeyRound,
   Link,
+  Plug,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -45,6 +46,11 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
       "API keys, environment variables, and OAuth app credentials for your integrations.",
     items: [
       { href: "/settings/api-keys", label: "API Keys", icon: KeyRound },
+      {
+        href: "/settings/platform-clients",
+        label: "Platform Clients",
+        icon: Plug,
+      },
       { href: "/settings/environments", label: "Environments", icon: Box },
       { href: "/settings/oauth-apps", label: "OAuth Apps", icon: AppWindow },
     ],

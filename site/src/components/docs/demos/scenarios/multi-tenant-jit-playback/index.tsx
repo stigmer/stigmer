@@ -2,16 +2,19 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Check, KeyRound } from "lucide-react";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import { useStepInteractions } from "../../engine/useStepInteractions";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { TerminalView } from "../../views/TerminalView";
-import { BrowserView } from "../../views/BrowserView";
+import {
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
+  useStepInteractions,
+  CodeEditorView,
+  type FileTreeEntry,
+  TerminalView,
+  BrowserView,
+} from "@scenar/react";
 import { APIExchangeView } from "../../views/APIExchangeView";
 import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type MultiTenantJitStep,
   multiTenantJitSteps,
@@ -20,7 +23,6 @@ import {
   ORG_CREATED_OUTPUT,
   TENANT_RESOLVE_CHECKS,
   SUCCESS_CHECKS,
-  MT_JIT_INTERACTIONS,
 } from "./steps";
 
 // ---------------------------------------------------------------------------
@@ -206,7 +208,6 @@ export function MultiTenantJitPlayback() {
 
   useStepInteractions({
     stepIndex,
-    interactions: MT_JIT_INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -214,7 +215,7 @@ export function MultiTenantJitPlayback() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={multiTenantJitSteps}
         narrationManifest={narrationManifest}
@@ -223,6 +224,6 @@ export function MultiTenantJitPlayback() {
         {(step) => renderStep(step)}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

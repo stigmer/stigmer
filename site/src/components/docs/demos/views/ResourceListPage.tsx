@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { ResourceListView } from "@stigmer/react";
 import type { ResourceListLayout } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { PulseHighlight } from "../shared/PulseHighlight";
+import { PulseHighlight } from "@scenar/react";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 interface ResourceListPageProps {

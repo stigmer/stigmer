@@ -13,91 +13,6 @@ import {
 } from "./mdx-utils";
 
 // ---------------------------------------------------------------------------
-// Component preview — names of SDK components that have a live preview
-// registered in site/src/components/docs/previews/preview-configs.ts.
-// The generator emits a <ComponentPreview> tag for these components.
-// ---------------------------------------------------------------------------
-
-const PREVIEW_COMPONENTS = new Set([
-  // Composer
-  "SessionComposer",
-  "FollowUpInput",
-  // Models
-  "ModelSelector",
-  // Agent
-  "AgentDetailView",
-  "AgentPicker",
-  "AgentEnvForm",
-  // Skill
-  "SkillDetailView",
-  "SkillPicker",
-  // MCP Server
-  "McpServerDetailView",
-  "McpServerPicker",
-  "McpServerConfigPanel",
-  "McpToolSelector",
-  // Environment
-  "EnvironmentListPanel",
-  "EnvironmentVariableEditor",
-  "CreateEnvironmentForm",
-  "EnvVarForm",
-  // API Key
-  "ApiKeyListPanel",
-  "CreateApiKeyForm",
-  "ApiKeyCreatedAlert",
-  // Organization
-  "CreateOrganizationForm",
-  // Error
-  "ErrorMessage",
-  "SecretFlowErrorGuide",
-  // Execution — Messages
-  "MessageThread",
-  "MessageEntry",
-  "SubAgentSection",
-  // Execution — Progress & Status
-  "ExecutionProgress",
-  "ExecutionPhaseBadge",
-  "TodoList",
-  "TodoInProgressIcon",
-  "SetupProgress",
-  // Execution — Approvals
-  "ApprovalCard",
-  // Execution — Tool Calls
-  "ToolCallDetail",
-  "ToolCallGroup",
-  "ToolCallItem",
-  "ToolArgsView",
-  "McpToolDetail",
-  "McpArgsView",
-  "McpMetadataRow",
-  // Execution — Artifacts
-  "ArtifactContentRenderer",
-  "ArtifactCard",
-  "ArtifactsWidget",
-  // Execution — Write-Backs
-  "WriteBackCard",
-  "WriteBacksWidget",
-  // Execution — Usage
-  "UsageWidget",
-  // Execution — File Paths
-  "FilePathLink",
-  // Execution — Session Variables
-  "SessionVariablesInput",
-  // Workspace
-  "WorkspaceEditor",
-  "WorkspaceSummary",
-  // Library
-  "ResourceListView",
-  "ResourceCountCard",
-  "ScopeToggle",
-  "VisibilityToggle",
-  // Attachment
-  "AttachmentChipList",
-  // Internal
-  "CloudFeatureNotice",
-]);
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -233,10 +148,6 @@ function renderComponentSection(component: Component): string {
 
   if (component.description.length > 0) {
     s += renderCommentParts(component.description) + "\n\n";
-  }
-
-  if (PREVIEW_COMPONENTS.has(component.name)) {
-    s += `<ComponentPreview component="${component.name}" />\n\n`;
   }
 
   if (component.propsInterface && component.propsInterface.fields.length > 0) {

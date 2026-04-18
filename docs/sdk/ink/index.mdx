@@ -160,38 +160,28 @@ handle tool call display. `ApprovalPrompt` renders the HITL approval UI.
 
 ## CLI integration
 
-The Stigmer CLI uses `@stigmer/ink` to render agent sessions in the terminal.
-The Go CLI spawns the Ink process, passes the session ID and connection
-details as command-line arguments, and attaches the terminal's stdin/stdout.
-
-You can replicate this pattern in your own CLI:
+`@stigmer/ink` ships a standalone binary that any CLI can spawn as a child
+process — regardless of language. Your CLI creates the session, then hands
+the terminal to Ink for rendering:
 
 ```bash
 npx @stigmer/ink --session ses-abc123 --org my-org \
   --base-url https://api.stigmer.ai --api-key "$STIGMER_API_KEY"
 ```
 
-Or from a Node.js parent process:
-
-```typescript
-import { spawn } from "node:child_process";
-
-const child = spawn("npx", [
-  "@stigmer/ink",
-  "--session", sessionId,
-  "--org", org,
-  "--base-url", baseUrl,
-  "--api-key", apiKey,
-], { stdio: "inherit" });
-```
-
-The `--session` and `--org` flags are required. `--base-url` defaults to
-`https://api.stigmer.ai`. Provide either `--api-key` or pipe a JSON config
-to stdin for dynamic authentication.
+This is the same pattern the Stigmer CLI uses. See
+[Embed in your CLI](/docs/sdk/ink/cli-integration) for complete examples in
+Go, Rust, and Python, including version pinning, TTY handling, and
+post-exit state queries.
 
 ## What's next
 
 <Cards>
+  <Card
+    title="Embed in your CLI"
+    description="Spawn @stigmer/ink from Go, Rust, or Python to render sessions in the terminal."
+    href="/docs/sdk/ink/cli-integration"
+  />
   <Card
     title="Reference"
     description="Props, types, and signatures for every Ink SDK export."

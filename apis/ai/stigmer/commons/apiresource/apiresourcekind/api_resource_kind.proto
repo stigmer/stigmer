@@ -195,6 +195,28 @@ enum ApiResourceKind {
     }
   }];
 
+  // IAM - Platform client credentials for inbound authentication
+
+  // OAuth2 client credential for platform builders embedding Stigmer into their products.
+  platform_client = 23 [(kind_meta) = {
+    group: iam
+    version: v1
+    name: "PlatformClient"
+    display_name: "Platform Client"
+    id_prefix: "pcl"
+    is_versioned: false
+    not_search_indexed: true
+    tier: cloud_only
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
+    }
+  }];
+
   // Tenancy - Platform and organizational resources
 
   // Top-level tenant that owns and manages resources.

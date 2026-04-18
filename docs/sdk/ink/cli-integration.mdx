@@ -1,0 +1,227 @@
+---
+title: Embed in your CLI
+description:
+  Spawn @stigmer/ink from a Go, Rust, or Python CLI to render agent sessions
+  in the terminal.
+---
+
+`@stigmer/ink` ships a standalone binary that renders a Stigmer agent session
+in the terminal. Your CLI creates the session through the Stigmer API, then
+spawns this binary as a child process. The binary connects to the API on its
+own, streams execution updates, and renders the full conversation UI —
+messages, tool calls, approvals, and follow-up input.
+
+This is the same pattern the Stigmer CLI uses. It works from any language that
+can spawn a child process.
+
+**Prerequisite:** Node.js 18 or later must be installed on the user's machine.
+The binary is distributed as an npm package and runs through `npx`.
+
+## How it works
+
+Your CLI and the Ink process have a clear division of responsibility:
+
+1. **Your CLI** handles business logic: authentication, session creation, org
+   resolution, and any pre- or post-processing. It uses the Stigmer SDK in
+   your language (Go, Python, Rust) to talk to the API.
+
+2. **The Ink process** handles rendering. It receives the session ID and
+   connection details as command-line flags, opens its own API connection, and
+   takes over the terminal. When the session ends, the process exits.
+
+3. **Your CLI resumes** after the Ink process exits. It can query the final
+   execution state through the SDK to determine the outcome and set its own
+   exit code.
+
+The two processes share the same terminal — your CLI passes its stdin, stdout,
+and stderr to the child process so Ink can read keyboard input and write
+directly to the screen.
+
+## Parameters
+
+Pass connection details to `stigmer-ink` as command-line flags:
+
+| Flag | Short | Required | Default | Description |
+|------|-------|----------|---------|-------------|
+| `--session` | `-s` | Yes | — | Session ID to render. |
+| `--org` | `-o` | Yes | — | Organization slug. |
+| `--base-url` | `-u` | No | `STIGMER_BASE_URL` env | Stigmer API URL (e.g. `https://api.stigmer.ai`). |
+| `--api-key` | `-k` | No | `STIGMER_API_KEY` env | API key for authentication. |
+
+When `--base-url` or `--api-key` are omitted, the process reads from the
+`STIGMER_BASE_URL` and `STIGMER_API_KEY` environment variables. Your CLI can
+set these in the child process environment instead of passing flags.
+
+## Go
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+)
+
+const inkVersion = "0.1.0"
+
+func renderSession(sessionID, org, baseURL, apiKey string) error {
+	args := []string{
+		"--yes", fmt.Sprintf("@stigmer/ink@%s", inkVersion),
+		"--session", sessionID,
+		"--org", org,
+		"--base-url", baseURL,
+	}
+	if apiKey != "" {
+		args = append(args, "--api-key", apiKey)
+	}
+
+	cmd := exec.Command("npx", args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+```
+
+`cmd.Stdin = os.Stdin` gives Ink access to keyboard input so the user can
+type follow-up messages and respond to approval prompts. `--yes` tells `npx`
+to install the package without prompting if it is not already cached.
+
+After `cmd.Run()` returns, query the session through the Go SDK to determine
+the final execution outcome:
+
+```go
+func main() {
+	// ... create session via Go SDK, get sessionID ...
+
+	if err := renderSession(sessionID, org, baseURL, apiKey); err != nil {
+		fmt.Fprintf(os.Stderr, "render failed: %v\n", err)
+	}
+
+	// Fetch the final execution state to set the CLI exit code.
+	execution, err := client.AgentExecution.Get(ctx, executionID)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	switch execution.Status.Phase {
+	case "FAILED":
+		os.Exit(1)
+	case "CANCELLED":
+		os.Exit(2)
+	}
+}
+```
+
+## Rust
+
+```rust
+use std::process::{Command, Stdio};
+
+const INK_VERSION: &str = "0.1.0";
+
+fn render_session(
+    session_id: &str,
+    org: &str,
+    base_url: &str,
+    api_key: Option<&str>,
+) -> std::io::Result<std::process::ExitStatus> {
+    let package = format!("@stigmer/ink@{INK_VERSION}");
+    let mut args = vec![
+        "--yes", &package,
+        "--session", session_id,
+        "--org", org,
+        "--base-url", base_url,
+    ];
+    if let Some(key) = api_key {
+        args.push("--api-key");
+        args.push(key);
+    }
+
+    Command::new("npx")
+        .args(&args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+}
+```
+
+`Stdio::inherit()` connects the child process to the parent's terminal
+streams. Call `.status()` to block until Ink exits and get the exit code.
+
+## Python
+
+```python
+import subprocess
+
+INK_VERSION = "0.1.0"
+
+def render_session(session_id, org, base_url, api_key=None):
+    cmd = [
+        "npx", "--yes", f"@stigmer/ink@{INK_VERSION}",
+        "--session", session_id,
+        "--org", org,
+        "--base-url", base_url,
+    ]
+    if api_key:
+        cmd += ["--api-key", api_key]
+
+    return subprocess.run(cmd).returncode
+```
+
+`subprocess.run` inherits stdin, stdout, and stderr by default. No extra
+configuration is needed for terminal passthrough.
+
+## Version pinning
+
+Always pin the `@stigmer/ink` version in the `npx` command. Without a version,
+`npx` resolves `latest`, which can introduce breaking changes between CLI
+releases.
+
+```
+npx --yes @stigmer/ink@0.1.0 --session ...
+```
+
+Store the version as a constant in your CLI source. Update it alongside CLI
+releases so the renderer and CLI stay in sync.
+
+## TTY and non-TTY behavior
+
+When stdin is a TTY (the normal case), Ink captures keyboard input and
+enables `Ctrl+C` to exit the process.
+
+When stdin is **not** a TTY, Ink reads a JSON configuration object from stdin
+instead of using command-line flags. This is useful for programmatic
+invocation where you want to avoid passing secrets as command-line arguments
+(which may be visible in process listings):
+
+```bash
+echo '{"sessionId":"ses-abc","org":"my-org","baseUrl":"https://api.stigmer.ai","apiKey":"sk_..."}' \
+  | npx --yes @stigmer/ink@0.1.0
+```
+
+In non-TTY mode, Ink disables `Ctrl+C` handling and suppresses the Ink debug
+output. The process still renders to stdout but does not read keyboard input.
+
+## What's next
+
+<Cards>
+  <Card
+    title="Ink SDK"
+    description="Components, providers, and hooks for building custom terminal UIs."
+    href="/docs/sdk/ink"
+  />
+  <Card
+    title="Reference"
+    description="Props, types, and signatures for every Ink SDK export."
+    href="/docs/sdk/ink/reference"
+  />
+  <Card
+    title="SDK Overview"
+    description="Client setup, authentication, and resource clients across all languages."
+    href="/docs/sdk"
+  />
+</Cards>

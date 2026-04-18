@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/identityaccount/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvZW51bS5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxKn0KH0lkZW50aXR5QWNjb3VudFByb3Zpc2lvbmluZ01vZGUSMgouaWRlbnRpdHlfYWNjb3VudF9wcm92aXNpb25pbmdfbW9kZV91bnNwZWNpZmllZBAAEgoKBmRpcmVjdBABEg0KCWZlZGVyYXRlZBACEgsKB21hY2hpbmUQA2IGcHJvdG8z");
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvZW51bS5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxKpIBCh9JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEjIKLmlkZW50aXR5X2FjY291bnRfcHJvdmlzaW9uaW5nX21vZGVfdW5zcGVjaWZpZWQQABIKCgZkaXJlY3QQARINCglmZWRlcmF0ZWQQAhILCgdtYWNoaW5lEAMSEwoPcGxhdGZvcm1fY2xpZW50EARiBnByb3RvMw");
 
 /**
  * IdentityAccountProvisioningMode defines how an identity account was created.
@@ -47,6 +47,23 @@ export enum IdentityAccountProvisioningMode {
    * @generated from enum value: machine = 3;
    */
   machine = 3,
+
+  /**
+   * Account provisioned via a PlatformClient's mintUserToken endpoint.
+   *
+   * The idp_id for these accounts uses the composite encoding
+   * "stgm_pc|{platform_client_id}|{external_user_id}", where platform_client_id
+   * is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id
+   * is the user identifier supplied by the platform builder. The composite is
+   * globally unique by construction — no additional scope field is needed.
+   *
+   * Unlike federated accounts, PlatformClient is not an ongoing authentication
+   * authority. Stigmer signs its own JWTs for these users; the PlatformClient
+   * is the admission credential used at mint time only.
+   *
+   * @generated from enum value: platform_client = 4;
+   */
+  platform_client = 4,
 }
 
 /**

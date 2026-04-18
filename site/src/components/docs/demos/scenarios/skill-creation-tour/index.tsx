@@ -1,31 +1,29 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { ArtifactPreviewContent, StigmerProvider } from "@stigmer/react";
-import {
-  createDemoClient,
-  fixtures,
-  buildScenario,
-  samples,
-} from "@stigmer/react/demo";
+import { useCallback, useRef, useState } from "react";
+import { ArtifactPreviewContent } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
 import {
-  type StepInteractions,
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
   useStepInteractions,
-} from "../../engine/useStepInteractions";
+} from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DEMO_ORG } from "../../engine/shared";
+import { DEMO_ORG } from "../../fixtures";
 import {
   type GuidedTourStep,
   skillCreationTourSteps,
@@ -69,8 +67,8 @@ const ALL_SKILLS = [
 
 const skillMdBytes = new TextEncoder().encode(SKILL_MD_PREVIEW);
 
-const demoScenario = buildScenario(
-  fixtures.agentExecution.getArtifactContent(() =>
+const previewFixtures = [
+  connectFixture(AgentExecutionQueryController, "getArtifactContent", () =>
     create(GetArtifactContentResponseSchema, {
       content: skillMdBytes,
       contentType: "text/markdown",
@@ -78,7 +76,7 @@ const demoScenario = buildScenario(
       truncated: false,
     }),
   ),
-);
+];
 
 /**
  * Derive the content-area key from the current step so that
@@ -280,10 +278,7 @@ function renderStep(step: GuidedTourStep) {
  * 2. **Slide transitions** — content slides left/right on navigation
  * 3. **Animated cursor** — pointer moves to click targets with ripple
  */
-const INTERACTIONS: StepInteractions = {};
-
 export function SkillCreationTour() {
-  const client = useMemo(() => createDemoClient(demoScenario), []);
   const narrationManifest = useNarrationManifest("skill-creation-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -299,7 +294,6 @@ export function SkillCreationTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -307,8 +301,8 @@ export function SkillCreationTour() {
   });
 
   return (
-    <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={skillCreationTourSteps}
           narrationManifest={narrationManifest}
@@ -317,7 +311,7 @@ export function SkillCreationTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
-    </StigmerProvider>
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }

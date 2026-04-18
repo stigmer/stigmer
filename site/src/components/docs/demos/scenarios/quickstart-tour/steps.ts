@@ -18,9 +18,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import { samples } from "@stigmer/react/demo";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { TerminalLine } from "../../views/TerminalView";
+import { samples } from "@stigmer/react/test";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -168,6 +167,9 @@ export const quickstartTourSteps: ScenarioStep<QuickstartTourStep>[] = [
     caption: "Grab an API key from the console",
     narration:
       "You start by creating an API key in the Stigmer console. Copy it — you'll use it in your code.",
+    interactions: [
+      { atPercent: 0.5, type: "set_cursor", target: "copy-key" },
+    ],
   },
   {
     delayMs: 3000,
@@ -175,6 +177,9 @@ export const quickstartTourSteps: ScenarioStep<QuickstartTourStep>[] = [
     caption: "Connect and send a message",
     narration:
       "A few lines of code is all you need. Import the SDK, connect with your key, and send a message.",
+    interactions: [
+      { atPercent: 0.0, type: "clear_cursor" },
+    ],
   },
   {
     delayMs: 3500,

@@ -4,6 +4,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { useCreateIdentityProvider } from "./useCreateIdentityProvider";
 
 /** Props for {@link CreateIdentityProviderForm}. */
@@ -59,6 +60,30 @@ export function CreateIdentityProviderForm({
   const [isSso, setIsSso] = useState(false);
   const [oidcClientId, setOidcClientId] = useState("");
 
+  // JIT provisioning
+  const [autoProvision, setAutoProvision] = useState(false);
+  const [autoGrant, setAutoGrant] = useState(false);
+  const [autoGrantRole, setAutoGrantRole] = useState<IamRole>(IamRole.iam_role_unspecified);
+  const [tenantOrgClaim, setTenantOrgClaim] = useState("");
+
+  const handleAutoProvisionChange = useCallback((v: boolean) => {
+    setAutoProvision(v);
+    if (!v) {
+      setAutoGrant(false);
+      setAutoGrantRole(IamRole.iam_role_unspecified);
+      setTenantOrgClaim("");
+    }
+  }, []);
+
+  const handleAutoGrantChange = useCallback((v: boolean) => {
+    setAutoGrant(v);
+    if (v) setAutoProvision(true);
+    if (!v) {
+      setAutoGrantRole(IamRole.iam_role_unspecified);
+      setTenantOrgClaim("");
+    }
+  }, []);
+
   const trimmedName = name.trim();
   const trimmedJwksUri = jwksUri.trim();
   const trimmedIssuers = issuers.trim();
@@ -91,6 +116,16 @@ export function CreateIdentityProviderForm({
             isSsoProvider: true,
             oidcClientId: oidcClientId.trim(),
           }),
+          ...(!isSso && {
+            autoProvisionAccounts: autoProvision,
+            autoGrantOnOrg: autoGrant,
+            ...(autoGrant && autoGrantRole !== IamRole.iam_role_unspecified && {
+              autoGrantRole,
+            }),
+            ...(autoGrant && tenantOrgClaim.trim() && {
+              tenantOrgClaim: tenantOrgClaim.trim(),
+            }),
+          }),
         });
         onCreated?.(idp);
       } catch {
@@ -106,6 +141,10 @@ export function CreateIdentityProviderForm({
       trimmedAudience,
       isSso,
       oidcClientId,
+      autoProvision,
+      autoGrant,
+      autoGrantRole,
+      tenantOrgClaim,
       create,
       clearError,
       onCreated,
@@ -194,6 +233,20 @@ export function CreateIdentityProviderForm({
             required
           />
         )}
+
+        {/* JIT provisioning */}
+        <JitSection
+          isSso={isSso}
+          autoProvision={autoProvision}
+          onAutoProvisionChange={handleAutoProvisionChange}
+          autoGrant={autoGrant}
+          onAutoGrantChange={handleAutoGrantChange}
+          autoGrantRole={autoGrantRole}
+          onAutoGrantRoleChange={setAutoGrantRole}
+          tenantOrgClaim={tenantOrgClaim}
+          onTenantOrgClaimChange={setTenantOrgClaim}
+          disabled={isCreating}
+        />
       </div>
 
       {error && (
@@ -280,6 +333,173 @@ function FormField({
       />
       {hint && (
         <p className="text-[0.65rem] text-muted-foreground">{hint}</p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// JIT provisioning section
+// ---------------------------------------------------------------------------
+
+const JIT_ROLE_OPTIONS: readonly { readonly value: string; readonly label: string }[] = [
+  { value: String(IamRole.iam_role_unspecified), label: "Default (viewer)" },
+  { value: String(IamRole.viewer), label: "Viewer" },
+  { value: String(IamRole.member), label: "Member" },
+  { value: String(IamRole.admin), label: "Admin" },
+];
+
+function JitSection({
+  isSso,
+  autoProvision,
+  onAutoProvisionChange,
+  autoGrant,
+  onAutoGrantChange,
+  autoGrantRole,
+  onAutoGrantRoleChange,
+  tenantOrgClaim,
+  onTenantOrgClaimChange,
+  disabled,
+}: {
+  isSso: boolean;
+  autoProvision: boolean;
+  onAutoProvisionChange: (v: boolean) => void;
+  autoGrant: boolean;
+  onAutoGrantChange: (v: boolean) => void;
+  autoGrantRole: IamRole;
+  onAutoGrantRoleChange: (v: IamRole) => void;
+  tenantOrgClaim: string;
+  onTenantOrgClaimChange: (v: string) => void;
+  disabled: boolean;
+}) {
+  if (isSso) {
+    return (
+      <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+        <p className="text-[0.65rem] text-muted-foreground">
+          SSO providers automatically provision accounts and grant the{" "}
+          <span className="font-medium text-foreground">viewer</span> role on
+          the owning organization. JIT provisioning settings are not applicable.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <fieldset className="space-y-2.5" disabled={disabled}>
+      <hr className="border-border/40" />
+      <legend className="text-xs font-medium text-foreground">
+        JIT provisioning
+      </legend>
+      <p className="text-[0.65rem] text-muted-foreground">
+        Configure automatic account creation and role assignment for users
+        authenticating with this provider.
+      </p>
+
+      <ToggleSwitch
+        checked={autoProvision}
+        onChange={onAutoProvisionChange}
+        label="Auto-provision accounts"
+        hint="Create a federated account automatically on first authentication"
+        disabled={disabled}
+      />
+
+      <ToggleSwitch
+        checked={autoGrant}
+        onChange={onAutoGrantChange}
+        label="Auto-grant on organization"
+        hint="Grant a role on the owning organization when an account is provisioned"
+        disabled={disabled || !autoProvision}
+      />
+
+      {autoGrant && (
+        <>
+          <div className="space-y-1">
+            <label
+              htmlFor="stgm-idp-grant-role"
+              className="text-xs font-medium text-foreground"
+            >
+              Auto-grant role
+            </label>
+            <select
+              id="stgm-idp-grant-role"
+              value={String(autoGrantRole)}
+              onChange={(e) => onAutoGrantRoleChange(Number(e.target.value) as IamRole)}
+              disabled={disabled}
+              className={cn(
+                "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {JIT_ROLE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-[0.65rem] text-muted-foreground">
+              Role granted automatically — org admins can upgrade later
+            </p>
+          </div>
+
+          <FormField
+            id="stgm-idp-tenant-claim"
+            label="Tenant org claim"
+            value={tenantOrgClaim}
+            onChange={onTenantOrgClaimChange}
+            placeholder="e.g., org_id"
+            hint="JWT claim name that maps to a platform-managed organization (max 256 chars)"
+            disabled={disabled}
+          />
+        </>
+      )}
+    </fieldset>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Toggle switch
+// ---------------------------------------------------------------------------
+
+function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+  hint,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          onClick={() => onChange(!checked)}
+          disabled={disabled}
+          className={cn(
+            "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+            checked ? "bg-primary" : "bg-muted",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          <span
+            className={cn(
+              "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
+              checked ? "translate-x-4" : "translate-x-0",
+            )}
+          />
+        </button>
+        <span className="text-xs font-medium text-foreground">{label}</span>
+      </div>
+      {hint && (
+        <p className="pl-11 text-[0.65rem] text-muted-foreground">{hint}</p>
       )}
     </div>
   );

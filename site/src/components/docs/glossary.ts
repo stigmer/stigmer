@@ -26,6 +26,8 @@ export const glossary: Record<string, string> = {
     "A piece of knowledge you attach to an Agent so it has domain expertise. Skills let you give an Agent specialized information without rewriting its instructions.",
   "MCP Server":
     "An external tool connection that lets an Agent interact with other systems — like databases, APIs, or file storage.",
+  PlatformClient:
+    "A credential pair your backend uses to mint Stigmer-signed user tokens. Use it to embed Stigmer in your product without setting up OIDC federation.",
   Organization:
     "A workspace that keeps one team's Agents, Workflows, and settings separate from another's.",
   Environment:

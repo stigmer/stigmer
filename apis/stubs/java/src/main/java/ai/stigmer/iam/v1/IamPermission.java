@@ -97,6 +97,10 @@ public enum IamPermission
    */
   can_create_oauth_app(23),
   /**
+   * <code>can_create_platform_client = 24;</code>
+   */
+  can_create_platform_client(24),
+  /**
    * <pre>
    * Resource-level create permissions.
    * </pre>
@@ -241,6 +245,10 @@ public enum IamPermission
    */
   public static final int can_create_oauth_app_VALUE = 23;
   /**
+   * <code>can_create_platform_client = 24;</code>
+   */
+  public static final int can_create_platform_client_VALUE = 24;
+  /**
    * <pre>
    * Resource-level create permissions.
    * </pre>
@@ -341,6 +349,7 @@ public enum IamPermission
       case 12: return can_create_environment;
       case 21: return can_create_identity_account;
       case 23: return can_create_oauth_app;
+      case 24: return can_create_platform_client;
       case 13: return can_create_execution_in;
       case 14: return can_create_instance;
       case 15: return can_execute;
