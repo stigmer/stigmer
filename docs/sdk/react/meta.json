@@ -19,6 +19,7 @@
     "models",
     "oauth-app",
     "organization",
+    "platform-client",
     "session",
     "skill",
     "usage",

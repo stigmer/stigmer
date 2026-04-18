@@ -19,6 +19,12 @@ public interface IdentityAccountSpecOrBuilder extends
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+   * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+   * where org is the Stigmer org that owns the PlatformClient(s) and
+   * external_user_id is the platform builder's stable identifier for the user.
+   * Scoping by org (not by PlatformClient) means the same user_id presented
+   * via any PlatformClient in the same org resolves to the same IdentityAccount.
+   * Globally unique by construction — no additional scope field is needed.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -34,6 +40,12 @@ public interface IdentityAccountSpecOrBuilder extends
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+   * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+   * where org is the Stigmer org that owns the PlatformClient(s) and
+   * external_user_id is the platform builder's stable identifier for the user.
+   * Scoping by org (not by PlatformClient) means the same user_id presented
+   * via any PlatformClient in the same org resolves to the same IdentityAccount.
+   * Globally unique by construction — no additional scope field is needed.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>

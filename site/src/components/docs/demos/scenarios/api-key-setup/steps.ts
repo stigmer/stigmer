@@ -20,9 +20,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import { samples } from "@stigmer/react/demo";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { StepInteractions } from "../../engine/useStepInteractions";
+import { samples } from "@stigmer/react/test";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -121,9 +120,19 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
     data: { view: "settings-api-keys" },
     caption: "Your API keys",
     narration: "These are your API keys. You'll create one for the quickstart.",
+    interactions: [
+      { atPercent: 0.3, type: "hover", target: "create-api-key" },
+    ],
   },
   { delayMs: 2500, data: { view: "create-key-click" }, caption: "Create a new key" },
-  { delayMs: 2500, data: { view: "create-form" }, caption: "Name your key" },
+  {
+    delayMs: 2500,
+    data: { view: "create-form" },
+    caption: "Name your key",
+    interactions: [
+      { atPercent: 0.15, type: "type", target: "apikey-name-input", text: CREATED_KEY_NAME },
+    ],
+  },
   {
     delayMs: 2500,
     data: { view: "key-created" },
@@ -132,33 +141,3 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-/**
- * Step 4 (`settings-api-keys`): at 30% of narration, the cursor
- * hovers over the "New API key" button so the viewer sees it
- * highlighted before the next step clicks it.
- *
- * Timing budget (default 1500ms hold):
- *   cursor travel: 450ms
- *   hover hold:    1500ms
- *   total: ~1950ms out of 2500ms step — within budget.
- *
- * Step 6 (`create-form`): at 15% of narration, the cursor moves to
- * the name input and types "quickstart-key" character by character.
- *
- * Timing budget at default 50ms/char:
- *   cursor travel: 450ms
- *   14 chars × 50ms: 700ms
- *   total: ~1150ms out of 2500ms step — comfortably within budget.
- */
-export const APIKEY_INTERACTIONS: StepInteractions = {
-  4: [
-    { atPercent: 0.3, type: "hover", target: "create-api-key" },
-  ],
-  6: [
-    { atPercent: 0.15, type: "type", target: "apikey-name-input", text: CREATED_KEY_NAME },
-  ],
-};

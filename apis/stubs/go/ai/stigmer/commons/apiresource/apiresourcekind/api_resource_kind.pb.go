@@ -191,6 +191,8 @@ const (
 	ApiResourceKind_identity_provider ApiResourceKind = 21
 	// Registered OAuth application with an external vendor for outbound authentication.
 	ApiResourceKind_oauth_app ApiResourceKind = 22
+	// OAuth2 client credential for platform builders embedding Stigmer into their products.
+	ApiResourceKind_platform_client ApiResourceKind = 23
 	// Top-level tenant that owns and manages resources.
 	ApiResourceKind_organization ApiResourceKind = 30
 	// Singleton platform instance representing the Stigmer deployment.
@@ -232,6 +234,7 @@ var (
 		20: "invitation",
 		21: "identity_provider",
 		22: "oauth_app",
+		23: "platform_client",
 		30: "organization",
 		31: "platform",
 		40: "agent",
@@ -256,6 +259,7 @@ var (
 		"invitation":                20,
 		"identity_provider":         21,
 		"oauth_app":                 22,
+		"platform_client":           23,
 		"organization":              30,
 		"platform":                  31,
 		"agent":                     40,
@@ -460,7 +464,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xed\f\n" +
+	"\astigmer\x10\x01*\xc0\r\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -475,7 +479,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"Invitation\"\n" +
 	"Invitation*\x03inv8\x01@\x02J\x04\b\x02\x10\x01\x12W\n" +
 	"\x11identity_provider\x10\x15\x1a@\xaa\xff+<\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12@\n" +
-	"\toauth_app\x10\x16\x1a1\xaa\xff+-\b\x02\x10\x01\x1a\bOAuthApp\"\tOAuth App*\x04oapp8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12I\n" +
+	"\toauth_app\x10\x16\x1a1\xaa\xff+-\b\x02\x10\x01\x1a\bOAuthApp\"\tOAuth App*\x04oapp8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12Q\n" +
+	"\x0fplatform_client\x10\x17\x1a<\xaa\xff+8\b\x02\x10\x01\x1a\x0ePlatformClient\"\x0fPlatform Client*\x03pcl8\x01@\x02J\b\b\x02\x10\x01:\x02\x01\x04\x12I\n" +
 	"\forganization\x10\x1e\x1a7\xaa\xff+3\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\n" +
 	"\b\x04\x10\x01:\x04\x01\x02\x03\x04\x129\n" +
 	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +

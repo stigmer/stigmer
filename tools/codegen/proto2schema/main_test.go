@@ -100,6 +100,8 @@ func TestInferServiceRole(t *testing.T) {
 		{"query controller", "AgentQueryController", "query"},
 		{"lowercase command", "agentcommandcontroller", "command"},
 		{"lowercase query", "agentquerycontroller", "query"},
+		{"token controller", "PlatformClientTokenController", "token"},
+		{"lowercase token", "platformclienttokencontroller", "token"},
 		{"neither defaults to query", "AgentService", "query"},
 		{"empty string", "", "query"},
 		{"command takes precedence over query", "CommandQueryService", "command"},

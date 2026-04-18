@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useStepInteractions } from "../../engine/useStepInteractions";
-import { Cursor } from "../../engine/Cursor";
-import { DemoViewport } from "../../engine/DemoViewport";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import {
+  ScenarioPlayer,
+  useStepInteractions,
+  Cursor,
+} from "@scenar/react";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type DragReorderStep,
   type TaskItem,
-  DRAG_INTERACTIONS,
   dragReorderSteps,
 } from "./steps";
 
@@ -142,7 +142,6 @@ export function DragReorderValidation() {
 
   useStepInteractions({
     stepIndex,
-    interactions: DRAG_INTERACTIONS,
     narrationManifest: undefined,
     containerRef,
     setCursorTarget,
@@ -152,21 +151,19 @@ export function DragReorderValidation() {
   });
 
   return (
-    <div className={DEMO_PLAYER_CLASSES}>
-      <DemoViewport containerRef={containerRef}>
-        <ScenarioPlayer
-          steps={dragReorderSteps}
-          onStepChange={handleStepChange}
-        >
-          {(step) => <Board step={step} draggingItemId={draggingItemId} />}
-        </ScenarioPlayer>
-        <Cursor
-          target={cursorTarget}
-          containerRef={containerRef}
-          showRipple={showRipple}
-          isDragging={isDragging}
-        />
-      </DemoViewport>
-    </div>
+    <StigmerDemoViewport containerRef={containerRef}>
+      <ScenarioPlayer
+        steps={dragReorderSteps}
+        onStepChange={handleStepChange}
+      >
+        {(step) => <Board step={step} draggingItemId={draggingItemId} />}
+      </ScenarioPlayer>
+      <Cursor
+        target={cursorTarget}
+        containerRef={containerRef}
+        showRipple={showRipple}
+        isDragging={isDragging}
+      />
+    </StigmerDemoViewport>
   );
 }

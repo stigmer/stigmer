@@ -25,7 +25,7 @@ export const DEMO_BROWSER_ZOOM = 0.9;
 /**
  * Fixed height of the AppShell demo container in pixels.
  * On the docs site, this is the default. In video export mode,
- * the CSS variable `--demo-shell-height` overrides this value
+ * the CSS variable `--scenar-shell-height` overrides this value
  * to fill more of the video frame.
  */
 export const DEMO_SHELL_HEIGHT = 380;
@@ -37,7 +37,7 @@ export const DEMO_SHELL_HEIGHT = 380;
  *
  * On desktop, `55vh` exceeds DEMO_SHELL_HEIGHT so the clamp resolves
  * to the canonical 380px. On shorter viewports, it shrinks gracefully
- * down to this floor. The `--demo-shell-height` CSS variable override
+ * down to this floor. The `--scenar-shell-height` CSS variable override
  * for video export takes precedence over the entire clamp expression.
  */
 export const DEMO_SHELL_HEIGHT_MIN = 320;
@@ -52,7 +52,7 @@ export const DEMO_SHELL_HEIGHT_MIN = 320;
  * identical to the original 380px shell — but the internal content
  * area grows from ~314px to ~354px, giving cards comfortable margins.
  *
- * In video export mode, `--demo-shell-height` overrides this
+ * In video export mode, `--scenar-shell-height` overrides this
  * (just like DEMO_SHELL_HEIGHT) so video proportions are unaffected.
  */
 export const DEMO_BROWSER_SHELL_HEIGHT = 420;

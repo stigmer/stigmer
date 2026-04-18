@@ -2,14 +2,16 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Check, Shield } from "lucide-react";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import { BrowserView } from "../../views/BrowserView";
+import {
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
+  BrowserView,
+  PulseHighlight,
+} from "@scenar/react";
 import { ManagementShell } from "../../views/ManagementShell";
-import { PulseHighlight } from "../../shared/PulseHighlight";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { type SsoLoginStep, ssoLoginSteps } from "./steps";
 
 // ---------------------------------------------------------------------------
@@ -381,7 +383,7 @@ export function SsoLoginPlayback() {
   );
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={ssoLoginSteps}
         narrationManifest={narrationManifest}
@@ -390,6 +392,6 @@ export function SsoLoginPlayback() {
         {(step) => renderStep(step)}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

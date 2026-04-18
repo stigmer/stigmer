@@ -35,6 +35,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     invitation: _ClassVar[ApiResourceKind]
     identity_provider: _ClassVar[ApiResourceKind]
     oauth_app: _ClassVar[ApiResourceKind]
+    platform_client: _ClassVar[ApiResourceKind]
     organization: _ClassVar[ApiResourceKind]
     platform: _ClassVar[ApiResourceKind]
     agent: _ClassVar[ApiResourceKind]
@@ -64,6 +65,7 @@ api_key: ApiResourceKind
 invitation: ApiResourceKind
 identity_provider: ApiResourceKind
 oauth_app: ApiResourceKind
+platform_client: ApiResourceKind
 organization: ApiResourceKind
 platform: ApiResourceKind
 agent: ApiResourceKind

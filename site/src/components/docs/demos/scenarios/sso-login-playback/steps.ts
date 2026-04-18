@@ -5,7 +5,7 @@
  * provisioning.
  */
 
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Data model

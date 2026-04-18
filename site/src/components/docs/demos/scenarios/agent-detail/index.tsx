@@ -1,18 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
-import { StigmerProvider, AgentDetailView } from "@stigmer/react";
-import {
-  createDemoClient,
-  buildScenario,
-  fixtures,
-  samples,
-} from "@stigmer/react/demo";
+import { AgentDetailView } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import { AgentSpecSchema, McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "@scenar/preview/connect";
 import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
 const DEMO_ORG = "acme";
@@ -73,22 +71,18 @@ function buildDemoAgent() {
   return agent;
 }
 
-export function AgentDetail() {
-  const client = useMemo(() => {
-    const agent = buildDemoAgent();
-    const scenario = buildScenario(
-      fixtures.agent.getByReference(() => agent),
-    );
-    return createDemoClient(scenario);
-  }, []);
+const previewFixtures = [
+  connectFixture(AgentQueryController, "getByReference", () => buildDemoAgent()),
+];
 
+export function AgentDetail() {
   return (
-    <StigmerProvider client={client}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
       <div className={DEMO_DETAIL_CLASSES}>
         <div className="p-4">
           <AgentDetailView org={DEMO_ORG} slug="support-agent" />
         </div>
       </div>
-    </StigmerProvider>
+    </PreviewProvider>
   );
 }

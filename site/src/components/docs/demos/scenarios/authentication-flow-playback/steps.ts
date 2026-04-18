@@ -11,8 +11,7 @@
  * API internals.
  */
 
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { TerminalLine } from "../../views/TerminalView";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
 import type { CheckItem } from "../../views/APIExchangeView";
 
 // ---------------------------------------------------------------------------
@@ -143,6 +142,13 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
     caption: "Stigmer validates the token",
     narration:
       "Stigmer verifies the JWT signature using the JWKS endpoint, then checks the issuer, audience, and expiration claims.",
+    interactions: [
+      { atPercent: 0.15, type: "set_cursor", target: "check-0" },
+      { atPercent: 0.35, type: "set_cursor", target: "check-1" },
+      { atPercent: 0.55, type: "set_cursor", target: "check-2" },
+      { atPercent: 0.75, type: "set_cursor", target: "check-3" },
+      { atPercent: 0.92, type: "clear_cursor" },
+    ],
   },
   {
     delayMs: 3000,
@@ -150,6 +156,12 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
     caption: "Identity resolved, access granted (JIT)",
     narration:
       "Stigmer maps the subject claim to Jane's identity. With JIT provisioning, if this is her first authentication, Stigmer creates the account and grants the viewer role automatically.",
+    interactions: [
+      { atPercent: 0.15, type: "set_cursor", target: "check-0" },
+      { atPercent: 0.4, type: "set_cursor", target: "check-1" },
+      { atPercent: 0.65, type: "set_cursor", target: "check-2" },
+      { atPercent: 0.85, type: "clear_cursor" },
+    ],
   },
   {
     delayMs: 3000,

@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
     "@stigmer/theme",
     "@stigmer/protos",
   ],
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.alias["msw/node"] = false;
+    }
+    return config;
+  },
 };
 
 const withMDX = createMDX();

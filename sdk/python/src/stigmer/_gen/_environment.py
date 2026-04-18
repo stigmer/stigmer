@@ -77,7 +77,7 @@ class EnvironmentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_secret_value(self, input: io_pb2.EnvironmentSecretValueInput) -> io_pb2.EnvironmentValue:
+    def get_secret_value(self, input: io_pb2.EnvironmentSecretValueInput) -> spec_pb2.EnvironmentValue:
         try:
             return self._query.getSecretValue(input)
         except grpc.RpcError as e:

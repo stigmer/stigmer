@@ -3,16 +3,19 @@
 import { useCallback, useRef, useState } from "react";
 import { Check, ShieldCheck, ToggleRight } from "lucide-react";
 import { ProviderPicker } from "@stigmer/react";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import { useStepInteractions } from "../../engine/useStepInteractions";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { BrowserView } from "../../views/BrowserView";
+import {
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
+  useStepInteractions,
+  CodeEditorView,
+  type FileTreeEntry,
+  BrowserView,
+} from "@scenar/react";
 import { ManagementShell } from "../../views/ManagementShell";
 import { APIExchangeView } from "../../views/APIExchangeView";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type OverviewTourStep,
   overviewTourSteps,
@@ -20,7 +23,6 @@ import {
   GRANT_CODE,
   JIT_CHECKS,
   MANUAL_CHECKS,
-  OVERVIEW_INTERACTIONS,
 } from "./steps";
 
 const noop = () => {};
@@ -244,7 +246,6 @@ export function FederationOverviewTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: OVERVIEW_INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -252,7 +253,7 @@ export function FederationOverviewTour() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={overviewTourSteps}
         narrationManifest={narrationManifest}
@@ -261,6 +262,6 @@ export function FederationOverviewTour() {
         {(step) => renderStep(step)}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

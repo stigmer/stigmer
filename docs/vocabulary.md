@@ -74,13 +74,14 @@ IdentityProvider, `kind: identity_provider` | Identity Provider |
 <!-- vale Stigmer.terms = YES -->
 
 | **Identity Account** | --- | --- | Identity Account | IdentityAccount,
-`kind: identity_account` | Identity Account | | **Agent Instance** | --- | Agent
-Instance | Agent Instance | AgentInstance, `kind: AgentInstance` | Agent
-Instance | | **Agent Execution** | --- | run, execution | Agent Execution |
-AgentExecution, `kind: AgentExecution` | Agent Execution | | **Workflow
-Execution** | --- | run, execution | Workflow Execution | WorkflowExecution,
-`kind: WorkflowExecution` | Workflow Execution | | **Sub-Agent** | --- | --- |
-Sub-Agent | SubAgent, `sub_agents` | Sub-Agent |
+`kind: identity_account` | Identity Account | | **PlatformClient** | --- | --- |
+PlatformClient | PlatformClient, `kind: platform_client` | PlatformClient | |
+**Agent Instance** | --- | Agent Instance | Agent Instance | AgentInstance,
+`kind: AgentInstance` | Agent Instance | | **Agent Execution** | --- | run,
+execution | Agent Execution | AgentExecution, `kind: AgentExecution` | Agent
+Execution | | **Workflow Execution** | --- | run, execution | Workflow Execution
+| WorkflowExecution, `kind: WorkflowExecution` | Workflow Execution | |
+**Sub-Agent** | --- | --- | Sub-Agent | SubAgent, `sub_agents` | Sub-Agent |
 
 Dash (—) means the term should not appear in that context.
 
@@ -398,21 +399,22 @@ your authentication system.
 
 #### Identity Account
 
-A principal that Stigmer can authenticate and authorize. Comes in three types:
-Direct (user signed up on Stigmer), Federated (provisioned by a platform
-backend), and Machine (service-to-service).
+A principal that Stigmer can authenticate and authorize. Comes in four types:
+Direct (user signed up on Stigmer), Federated (created via an Identity
+Provider), Platform (created via PlatformClient), and Machine
+(service-to-service).
 
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: identity_account`, prefix `ida`. proto:
   `iam/identityaccount/v1/spec.proto`.
-- **Key fields**: `provisioning_mode` (`direct`, `federated`, `machine`),
-  `identity_provider_ref`, `idp_id`.
+- **Key fields**: `provisioning_mode` (`direct`, `federated`, `platform_client`,
+  `machine`), `identity_provider_ref`, `idp_id`.
 - **Context rule**: Do not use on the sales site. In how-to and concept docs,
   capitalize as "Identity Account." In reference, use `IdentityAccount`. In
-  quickstart, avoid unless the tutorial covers federation.
-- **Note**: Federated accounts are provisioned explicitly via
-  `createFederatedAccount`---Stigmer never creates accounts automatically from
-  tokens.
+  quickstart, avoid unless the tutorial covers federation or PlatformClient.
+- **Note**: Federated accounts can be provisioned via JIT (automatic on first
+  token) or explicitly via `createFederatedAccount`. Platform accounts are
+  always provisioned automatically via `mintUserToken`.
 
 ---
 
@@ -428,6 +430,32 @@ Stigmer without creating Stigmer-native accounts.
   site, say "your users sign in with their existing credentials" without naming
   the mechanism. In quickstart, avoid unless the tutorial covers federation
   setup.
+
+---
+
+#### PlatformClient
+
+An OAuth2 credential pair (`client_id` + `client_secret`) that lets your backend
+mint Stigmer-signed user tokens for embedding Stigmer in your product.
+
+- **Capitalize**: Yes, as one word: "PlatformClient." Do not split into
+  "Platform Client" in prose---the API surface uses the compound form.
+- **API surface**: `kind: platform_client`, prefix `pc`. proto:
+  `iam/platformclient/v1/spec.proto`, `iam/platformclient/v1/token.proto`.
+- **Key fields**: `client_id`, `client_secret_hash`, `auto_provision_accounts`,
+  `auto_grant_on_org`, `auto_grant_role`, `allowed_origins`.
+- **Context rule**: Do not use on the sales site---say "embed Stigmer in your
+app" or "add Stigmer to your product." In quickstart, avoid unless the tutorial
+covers PlatformClient setup. In concepts and how-to, capitalize as
+"PlatformClient." In reference, use `PlatformClient`.
+<!-- vale Vale.Spelling = NO -->
+
+- **Note**: PlatformClient credentials authenticate your backend, not your
+  users. The backend calls `mintUserToken` to get user-scoped JWTs. This is the
+  same pattern used by Twilio (Access Tokens), Stream (User Tokens), and
+  Liveblocks (access tokens).
+
+<!-- vale Vale.Spelling = YES -->
 
 ---
 

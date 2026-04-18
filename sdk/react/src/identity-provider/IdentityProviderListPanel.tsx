@@ -148,12 +148,14 @@ function IdpRow({
   const { deleteProvider, isDeleting, error } = useDeleteIdentityProvider();
 
   const id = identityProvider.metadata?.id ?? "";
+  const spec = identityProvider.spec;
   const name =
-    identityProvider.spec?.displayName ||
+    spec?.displayName ||
     identityProvider.metadata?.name ||
     "Unnamed provider";
   const slug = identityProvider.metadata?.slug;
-  const isSso = identityProvider.spec?.isSsoProvider;
+  const isSso = spec?.isSsoProvider;
+  const isJit = !isSso && spec?.autoProvisionAccounts;
   const createdAt =
     identityProvider.status?.audit?.specAudit?.createdAt;
 
@@ -236,6 +238,11 @@ function IdpRow({
         {isSso && (
           <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary-subtle px-2 py-0.5 text-[0.65rem] font-medium text-primary">
             SSO
+          </span>
+        )}
+        {isJit && (
+          <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary-subtle px-2 py-0.5 text-[0.65rem] font-medium text-primary">
+            JIT
           </span>
         )}
         {createdAt && (

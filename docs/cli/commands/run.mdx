@@ -127,11 +127,11 @@ stigmer run my-agent --attach ./image.png --attach ./spec.pdf
 
 ### Output modes
 
-| Flag        | Behavior                                           |
-| ----------- | -------------------------------------------------- |
-| _(default)_ | Stream messages inline to the terminal             |
-| `--json`    | Newline-delimited JSON events for scripting and CI |
-| `--detach`  | Start execution and return immediately             |
+| Flag        | Behavior                                                                           |
+| ----------- | ---------------------------------------------------------------------------------- |
+| _(default)_ | Interactive terminal UI powered by [`@stigmer/ink`](/docs/sdk/ink/cli-integration) |
+| `--json`    | Newline-delimited JSON events for scripting and CI                                 |
+| `--detach`  | Start execution and return immediately                                             |
 
 Use `--json` when piping output to other tools:
 

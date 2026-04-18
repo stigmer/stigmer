@@ -50,6 +50,24 @@ public enum IdentityAccountProvisioningMode
    * <code>machine = 3;</code>
    */
   machine(3),
+  /**
+   * <pre>
+   * Account provisioned via a PlatformClient's mintUserToken endpoint.
+   *
+   * The idp_id for these accounts uses the composite encoding
+   * "stgm_pc|{platform_client_id}|{external_user_id}", where platform_client_id
+   * is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id
+   * is the user identifier supplied by the platform builder. The composite is
+   * globally unique by construction — no additional scope field is needed.
+   *
+   * Unlike federated accounts, PlatformClient is not an ongoing authentication
+   * authority. Stigmer signs its own JWTs for these users; the PlatformClient
+   * is the admission credential used at mint time only.
+   * </pre>
+   *
+   * <code>platform_client = 4;</code>
+   */
+  platform_client(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -94,6 +112,24 @@ public enum IdentityAccountProvisioningMode
    * <code>machine = 3;</code>
    */
   public static final int machine_VALUE = 3;
+  /**
+   * <pre>
+   * Account provisioned via a PlatformClient's mintUserToken endpoint.
+   *
+   * The idp_id for these accounts uses the composite encoding
+   * "stgm_pc|{platform_client_id}|{external_user_id}", where platform_client_id
+   * is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id
+   * is the user identifier supplied by the platform builder. The composite is
+   * globally unique by construction — no additional scope field is needed.
+   *
+   * Unlike federated accounts, PlatformClient is not an ongoing authentication
+   * authority. Stigmer signs its own JWTs for these users; the PlatformClient
+   * is the admission credential used at mint time only.
+   * </pre>
+   *
+   * <code>platform_client = 4;</code>
+   */
+  public static final int platform_client_VALUE = 4;
 
 
   public final int getNumber() {
@@ -124,6 +160,7 @@ public enum IdentityAccountProvisioningMode
       case 1: return direct;
       case 2: return federated;
       case 3: return machine;
+      case 4: return platform_client;
       default: return null;
     }
   }

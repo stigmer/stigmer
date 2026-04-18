@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.platformclient.v1;
+
+import "ai/stigmer/iam/platformclient/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// PlatformClientId identifies a platform client by its unique identifier.
+message PlatformClientId {
+  // Unique identifier of the platform client resource.
+  string value = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+}
+
+// PlatformClients contains a list of platform client resources.
+message PlatformClients {
+  // Platform client entries.
+  repeated PlatformClient entries = 1;
+}
+
+// ListPlatformClientsByOrgInput specifies the organization whose platform
+// clients should be returned.
+message ListPlatformClientsByOrgInput {
+  // Organization slug to list platform clients for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// PlatformClientCreateResponse wraps a PlatformClient resource with the
+// one-time raw client secret.
+//
+// Returned by the create and rotateSecret RPCs. The client_secret field
+// contains the raw secret value that must be stored securely by the caller —
+// it is never returned again after this response.
+//
+// This wrapper makes the one-time secret explicit in the type system rather
+// than relying on transient field injection in the resource message.
+message PlatformClientCreateResponse {
+  // The created or updated platform client resource.
+  PlatformClient platform_client = 1;
+
+  // The raw client secret. Store this value securely — it is not retrievable
+  // after this response. If lost, use rotateSecret to generate a new one.
+  string client_secret = 2;
+}

@@ -1,5 +1,4 @@
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { StepInteractions } from "../../engine/useStepInteractions";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Step data
@@ -35,6 +34,9 @@ export const dragReorderSteps: ScenarioStep<DragReorderStep>[] = [
       inProgress: [TASK_GAMMA],
     },
     caption: "Task board — drag to move",
+    interactions: [
+      { atPercent: 0.2, type: "drag", target: "task-alpha", dragTarget: "drop-in-progress" },
+    ],
   },
   {
     delayMs: 3000,
@@ -46,18 +48,3 @@ export const dragReorderSteps: ScenarioStep<DragReorderStep>[] = [
     caption: "Task moved to In Progress",
   },
 ];
-
-// ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-/**
- * Step 0: at 20% of the step duration, drag "task-alpha" from the
- * Backlog column to the In Progress drop zone. The cursor grabs the
- * card, animates across to the destination, and releases.
- */
-export const DRAG_INTERACTIONS: StepInteractions = {
-  0: [
-    { atPercent: 0.2, type: "drag", target: "task-alpha", dragTarget: "drop-in-progress" },
-  ],
-};

@@ -178,15 +178,37 @@ When starting a new session:
 - `site/scripts/generate-ink-sdk-docs/renderer.ts` — removed unused import
 - `site/src/components/docs/demos/scenarios/api-key-setup/index.tsx` — removed unused imports
 
+## Session Progress (2026-04-17)
+
+### Ink SDK CLI Integration Guide (follow-up to T03)
+
+- **New page**: `docs/sdk/ink/cli-integration.mdx` — "Embed in your CLI" how-to guide with Go, Rust, and Python examples
+- **Key insight**: The existing CLI integration section showed only bash/Node.js examples; platform builders writing CLIs in Go, Rust, or Python had no guidance on the spawn-and-render pattern the Stigmer CLI itself uses
+- **Generator update**: `renderMetaJson()` in `site/scripts/generate-ink-sdk-docs/renderer.ts` now includes `cli-integration` in the generated `meta.json` so the page survives regeneration
+- **Cross-links**: `stigmer run` enrichment template and generated docs now link to the new guide from the output modes table
+- **Commit**: `5d7587ec8` — 7 files changed (299 insertions, 29 deletions)
+
+### Files Created
+- `docs/sdk/ink/cli-integration.mdx` — CLI integration how-to guide
+- `_changelog/2026-04/2026-04-17-102439-ink-sdk-cli-integration-guide.md`
+
+### Files Modified
+- `docs/sdk/ink/index.mdx` — trimmed CLI section, added navigation card
+- `docs/sdk/ink/meta.json` — added `cli-integration` to sidebar (via generator)
+- `docs/cli/commands/run.mdx` — cross-link to Ink CLI integration
+- `client-apps/cli/cmd/stigmer/root/docs/run.mdx` — enrichment template cross-link
+- `site/scripts/generate-ink-sdk-docs/renderer.ts` — include `cli-integration` in generated meta
+
 ## Current Status
 
 **Created**: 2026-04-16
 **Current Task**: All tasks complete. Project finished.
 **Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, T05 COMPLETE.
+**Follow-up**: Ink SDK CLI Integration Guide added (2026-04-17).
 
 ## Next Steps
 
-None — all 5 tasks are complete. The documentation strategy project is finished.
+None — all 5 tasks and follow-up work are complete.
 
 ---
 

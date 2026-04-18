@@ -32,10 +32,10 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { samples } from "@stigmer/react/demo";
+import { samples } from "@stigmer/react/test";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -223,6 +223,9 @@ export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
       "GitHub requires OAuth — the detail view shows \"Sign in to connect\"",
     narration:
       "This MCP server uses OAuth authentication. Instead of entering a token manually, you sign in through GitHub and Stigmer handles the rest.",
+    interactions: [
+      { atPercent: 0.4, type: "scroll_to", target: "capabilities-bottom" },
+    ],
   },
   {
     delayMs: 3500,
@@ -250,6 +253,9 @@ export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
     caption: "Connected — 6 tools discovered, 3 approval policies classified",
     narration:
       "After authorization, Stigmer exchanges the code for a token, stores it securely, connects to the server, and discovers its tools. Read-only operations pass through automatically.",
+    interactions: [
+      { atPercent: 0.35, type: "scroll_to", target: "capabilities-bottom" },
+    ],
   },
   {
     delayMs: 3500,

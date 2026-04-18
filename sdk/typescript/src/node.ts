@@ -7,6 +7,14 @@ import {
   errorStripInterceptor,
 } from "./internal/interceptors";
 
+export {
+  createPlatformClientAuth,
+  PlatformClientAuth,
+  type PlatformClientAuthConfig,
+  type MintUserTokenInput,
+  type MintUserTokenResult,
+} from "./platform-client-auth";
+
 /**
  * Configuration for creating a Node.js-compatible Stigmer client.
  *

@@ -19,6 +19,7 @@ type Client struct {
 	McpServer         *McpServerClient
 	OAuthApp          *OAuthAppClient
 	Organization      *OrganizationClient
+	PlatformClient    *PlatformClientClient
 	Project           *ProjectClient
 	Session           *SessionClient
 	Skill             *SkillClient
@@ -43,6 +44,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		McpServer:         NewMcpServerClient(conn),
 		OAuthApp:          NewOAuthAppClient(conn),
 		Organization:      NewOrganizationClient(conn),
+		PlatformClient:    NewPlatformClientClient(conn),
 		Project:           NewProjectClient(conn),
 		Session:           NewSessionClient(conn),
 		Skill:             NewSkillClient(conn),

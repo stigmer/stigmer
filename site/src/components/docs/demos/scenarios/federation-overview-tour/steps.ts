@@ -8,8 +8,7 @@
  * vs explicit API calls.
  */
 
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { StepInteractions } from "../../engine/useStepInteractions";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -71,28 +70,6 @@ export const MANUAL_CHECKS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Step interactions
-// ---------------------------------------------------------------------------
-
-export const OVERVIEW_INTERACTIONS: StepInteractions = {
-  // Step 2 (jit-success): cursor walks through 4 JIT checks
-  2: [
-    { atPercent: 0.12, type: "set-cursor", target: "check-0" },
-    { atPercent: 0.30, type: "set-cursor", target: "check-1" },
-    { atPercent: 0.50, type: "set-cursor", target: "check-2" },
-    { atPercent: 0.70, type: "set-cursor", target: "check-3" },
-    { atPercent: 0.88, type: "clear-cursor" },
-  ],
-  // Step 6 (manual-success): cursor walks through 3 checks
-  6: [
-    { atPercent: 0.15, type: "set-cursor", target: "check-0" },
-    { atPercent: 0.40, type: "set-cursor", target: "check-1" },
-    { atPercent: 0.65, type: "set-cursor", target: "check-2" },
-    { atPercent: 0.88, type: "clear-cursor" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Step sequence
 // ---------------------------------------------------------------------------
 
@@ -118,6 +95,13 @@ export const overviewTourSteps: ScenarioStep<OverviewTourStep>[] = [
     caption: "API call succeeds — account auto-provisioned",
     narration:
       "The request succeeds. Stigmer validated the token, auto-provisioned Jane's account, granted the viewer role, and authorized the request — all in one step.",
+    interactions: [
+      { atPercent: 0.12, type: "set_cursor", target: "check-0" },
+      { atPercent: 0.30, type: "set_cursor", target: "check-1" },
+      { atPercent: 0.50, type: "set_cursor", target: "check-2" },
+      { atPercent: 0.70, type: "set_cursor", target: "check-3" },
+      { atPercent: 0.88, type: "clear_cursor" },
+    ],
   },
   // ── Manual path (steps 3-6) ───────────────────────────────────────────
   {
@@ -147,5 +131,11 @@ export const overviewTourSteps: ScenarioStep<OverviewTourStep>[] = [
     caption: "API call succeeds — manual setup complete",
     narration:
       "The request succeeds. The same result as JIT, but your backend handled provisioning and access grants explicitly.",
+    interactions: [
+      { atPercent: 0.15, type: "set_cursor", target: "check-0" },
+      { atPercent: 0.40, type: "set_cursor", target: "check-1" },
+      { atPercent: 0.65, type: "set_cursor", target: "check-2" },
+      { atPercent: 0.88, type: "clear_cursor" },
+    ],
   },
 ];

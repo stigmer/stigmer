@@ -1,27 +1,24 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { ArtifactPreviewContent, StigmerProvider } from "@stigmer/react";
-import {
-  createDemoClient,
-  fixtures,
-  buildScenario,
-  samples,
-} from "@stigmer/react/demo";
+import { useCallback, useRef, useState } from "react";
+import { ArtifactPreviewContent } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
+import { ScenarioPlayer, useNarrationManifest, Cursor } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DEMO_ORG } from "../../engine/shared";
+import { DEMO_ORG } from "../../fixtures";
 import {
   type McpCreationStep,
   mcpCreationTourSteps,
@@ -66,18 +63,16 @@ const ALL_SERVERS = [
 
 const yamlBytes = new TextEncoder().encode(MCP_SERVER_YAML);
 
-function buildDemoScenario() {
-  return buildScenario(
-    fixtures.agentExecution.getArtifactContent(() =>
-      create(GetArtifactContentResponseSchema, {
-        content: yamlBytes,
-        contentType: "text/yaml",
-        totalSizeBytes: BigInt(yamlBytes.length),
-        truncated: false,
-      }),
-    ),
-  );
-}
+const previewFixtures = [
+  connectFixture(AgentExecutionQueryController, "getArtifactContent", () =>
+    create(GetArtifactContentResponseSchema, {
+      content: yamlBytes,
+      contentType: "text/yaml",
+      totalSizeBytes: BigInt(yamlBytes.length),
+      truncated: false,
+    }),
+  ),
+];
 
 function contentKeyFor(step: McpCreationStep): string {
   switch (step.view) {
@@ -254,7 +249,6 @@ function renderStep(step: McpCreationStep) {
 }
 
 export function McpServerCreationTour() {
-  const client = useMemo(() => createDemoClient(buildDemoScenario()), []);
   const narrationManifest = useNarrationManifest("mcp-server-creation-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -264,8 +258,8 @@ export function McpServerCreationTour() {
   }, []);
 
   return (
-    <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={mcpCreationTourSteps}
           narrationManifest={narrationManifest}
@@ -274,7 +268,7 @@ export function McpServerCreationTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
-    </StigmerProvider>
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }

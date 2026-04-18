@@ -11,8 +11,9 @@ package ai.stigmer.iam.identityaccount.v1;
  *
  * An identity account represents a user or machine principal in Stigmer.
  * Accounts can be direct (signed up via Stigmer), federated (provisioned
- * through an external identity provider), or machine (service-to-service
- * credentials).
+ * through an external identity provider), machine (service-to-service
+ * credentials), or platform_client (provisioned via a PlatformClient's
+ * mintUserToken endpoint).
  *
  * &#64;internal
  * All FGA tuples use identity_account as the principal type.
@@ -21,6 +22,12 @@ package ai.stigmer.iam.identityaccount.v1;
  * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
  * scoped by identity_provider_ref
  * - machine: Auth0 client ID with "&#64;clients" suffix
+ * - platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
+ * is the Stigmer org that owns the PlatformClient(s) and external_user_id
+ * is the platform builder's stable identifier for the user. Scoping by org
+ * (not by PlatformClient) means a customer's end user resolves to a single
+ * IdentityAccount across all of that customer's PlatformClients. Globally
+ * unique by construction.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec}
@@ -84,6 +91,12 @@ private static final long serialVersionUID = 0L;
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+   * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+   * where org is the Stigmer org that owns the PlatformClient(s) and
+   * external_user_id is the platform builder's stable identifier for the user.
+   * Scoping by org (not by PlatformClient) means the same user_id presented
+   * via any PlatformClient in the same org resolves to the same IdentityAccount.
+   * Globally unique by construction — no additional scope field is needed.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -111,6 +124,12 @@ private static final long serialVersionUID = 0L;
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+   * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+   * where org is the Stigmer org that owns the PlatformClient(s) and
+   * external_user_id is the platform builder's stable identifier for the user.
+   * Scoping by org (not by PlatformClient) means the same user_id presented
+   * via any PlatformClient in the same org resolves to the same IdentityAccount.
+   * Globally unique by construction — no additional scope field is needed.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -666,8 +685,9 @@ private static final long serialVersionUID = 0L;
    *
    * An identity account represents a user or machine principal in Stigmer.
    * Accounts can be direct (signed up via Stigmer), federated (provisioned
-   * through an external identity provider), or machine (service-to-service
-   * credentials).
+   * through an external identity provider), machine (service-to-service
+   * credentials), or platform_client (provisioned via a PlatformClient's
+   * mintUserToken endpoint).
    *
    * &#64;internal
    * All FGA tuples use identity_account as the principal type.
@@ -676,6 +696,12 @@ private static final long serialVersionUID = 0L;
    * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
    * scoped by identity_provider_ref
    * - machine: Auth0 client ID with "&#64;clients" suffix
+   * - platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
+   * is the Stigmer org that owns the PlatformClient(s) and external_user_id
+   * is the platform builder's stable identifier for the user. Scoping by org
+   * (not by PlatformClient) means a customer's end user resolves to a single
+   * IdentityAccount across all of that customer's PlatformClients. Globally
+   * unique by construction.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec}
@@ -934,6 +960,12 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+     * where org is the Stigmer org that owns the PlatformClient(s) and
+     * external_user_id is the platform builder's stable identifier for the user.
+     * Scoping by org (not by PlatformClient) means the same user_id presented
+     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -960,6 +992,12 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+     * where org is the Stigmer org that owns the PlatformClient(s) and
+     * external_user_id is the platform builder's stable identifier for the user.
+     * Scoping by org (not by PlatformClient) means the same user_id presented
+     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -987,6 +1025,12 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+     * where org is the Stigmer org that owns the PlatformClient(s) and
+     * external_user_id is the platform builder's stable identifier for the user.
+     * Scoping by org (not by PlatformClient) means the same user_id presented
+     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -1010,6 +1054,12 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+     * where org is the Stigmer org that owns the PlatformClient(s) and
+     * external_user_id is the platform builder's stable identifier for the user.
+     * Scoping by org (not by PlatformClient) means the same user_id presented
+     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -1030,6 +1080,12 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
+     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
+     * where org is the Stigmer org that owns the PlatformClient(s) and
+     * external_user_id is the platform builder's stable identifier for the user.
+     * Scoping by org (not by PlatformClient) means the same user_id presented
+     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * Globally unique by construction — no additional scope field is needed.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>

@@ -1,19 +1,19 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
 import {
-  type StepInteractions,
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
   useStepInteractions,
-} from "../../engine/useStepInteractions";
-import { BrowserView } from "../../views/BrowserView";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { TerminalView } from "../../views/TerminalView";
-import { PulseHighlight } from "../../shared/PulseHighlight";
+  BrowserView,
+  CodeEditorView,
+  TerminalView,
+  PulseHighlight,
+  type FileTreeEntry,
+} from "@scenar/react";
 import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 
 const FILE_TREE: FileTreeEntry[] = [
   { name: "src", type: "folder", depth: 0 },
@@ -179,8 +179,6 @@ function renderStep(step: ProvisionGrantStep) {
  * NOT_FOUND → create federated account → account created →
  * grant IAM Policy → onboarding complete.
  */
-const INTERACTIONS: StepInteractions = {};
-
 export function ProvisionGrantPlayback() {
   const narrationManifest = useNarrationManifest("provision-grant-playback");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -197,7 +195,6 @@ export function ProvisionGrantPlayback() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -205,7 +202,7 @@ export function ProvisionGrantPlayback() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={provisionGrantSteps}
         narrationManifest={narrationManifest}
@@ -214,6 +211,6 @@ export function ProvisionGrantPlayback() {
         {(step) => renderStep(step)}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

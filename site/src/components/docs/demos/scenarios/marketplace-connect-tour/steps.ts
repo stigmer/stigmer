@@ -23,10 +23,10 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { samples } from "@stigmer/react/demo";
+import { samples } from "@stigmer/react/test";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -252,6 +252,9 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
     caption: "The detail view shows transport and environment requirements",
     narration:
       "PostgreSQL uses stdio transport — Stigmer launches the server locally and communicates over stdin and stdout. It needs a connection URL to reach your database.",
+    interactions: [
+      { atPercent: 0.4, type: "scroll_to", target: "capabilities-bottom" },
+    ],
   },
   {
     delayMs: 3500,
@@ -264,6 +267,9 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
     caption: "5 tools discovered, approval policies classified",
     narration:
       "Stigmer connected to the server, discovered five tools, and classified each one. Read operations like query and list_tables pass through automatically.",
+    interactions: [
+      { atPercent: 0.3, type: "scroll_to", target: "capabilities-bottom" },
+    ],
   },
   {
     delayMs: 3500,

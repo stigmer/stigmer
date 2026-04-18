@@ -1330,7 +1330,7 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 			if len(svcDef.Methods) > 0 {
 				schema.Services = append(schema.Services, svcDef)
 				if svcDef.Role == "command" && len(svcDef.Methods) > 0 {
-					resourceType = svcDef.Methods[0].OutputType
+					resourceType = inferResourceType(svcDef.Methods)
 				}
 			}
 		}
@@ -1786,6 +1786,24 @@ func deriveGoImportAlias(pkg string) string {
 	return resource + version
 }
 
+// inferResourceType determines the primary resource type from command service
+// methods. Prefers the output type of update or delete (which always return
+// the resource directly) over create (which may return a wrapper like
+// PlatformClientCreateResponse).
+func inferResourceType(methods []MethodSchema) string {
+	for _, m := range methods {
+		if strings.EqualFold(m.Name, "Update") {
+			return m.OutputType
+		}
+	}
+	for _, m := range methods {
+		if strings.EqualFold(m.Name, "Delete") {
+			return m.OutputType
+		}
+	}
+	return methods[0].OutputType
+}
+
 func inferServiceRole(name string) string {
 	lower := strings.ToLower(name)
 	if strings.Contains(lower, "command") {
@@ -1793,6 +1811,9 @@ func inferServiceRole(name string) string {
 	}
 	if strings.Contains(lower, "query") {
 		return "query"
+	}
+	if strings.Contains(lower, "token") {
+		return "token"
 	}
 	return "query"
 }

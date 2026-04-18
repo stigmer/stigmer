@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.platformclient.v1;
+
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/iam/platformclient/v1/api.proto";
+import "ai/stigmer/iam/platformclient/v1/io.proto";
+
+// PlatformClientQueryController provides read operations for platform client resources.
+service PlatformClientQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = platform_client;
+
+  // Get a platform client by its unique identifier.
+  //
+  // @internal
+  // Authorization: Requires can_view permission on the platform client resource.
+  rpc get(ai.stigmer.commons.apiresource.ApiResourceId) returns (PlatformClient) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform_client;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view platform client";
+  }
+
+  // Get a platform client by its organization-scoped reference (org/slug).
+  //
+  // Resolves a human-readable reference like "acme/acme-dashboard" to the full
+  // PlatformClient resource.
+  //
+  // @internal
+  // Custom authorization in handler — checks both direct resource access
+  // and organization-level visibility permissions.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (PlatformClient) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List all platform clients belonging to an organization.
+  //
+  // Returns every PlatformClient whose metadata.org matches the input org.
+  // Typically a small set per org, so results are not paginated.
+  //
+  // @internal
+  // Authorization: Requires can_view permission on the organization resource.
+  rpc listByOrg(ListPlatformClientsByOrgInput) returns (PlatformClients) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list platform clients in this organization";
+  }
+}

@@ -1,24 +1,24 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Plus } from "lucide-react";
+import { ApiKeyCreatedAlert, ApiKeyListPanel } from "@stigmer/react";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import {
-  ApiKeyCreatedAlert,
-  ApiKeyListPanel,
-  StigmerProvider,
-} from "@stigmer/react";
-import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import {
-  type StepInteractions,
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
   useStepInteractions,
-} from "../../engine/useStepInteractions";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { TerminalView } from "../../views/TerminalView";
+  CodeEditorView,
+  TerminalView,
+  type FileTreeEntry,
+} from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { ManagementShell } from "../../views/ManagementShell";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { connectFixture } from "@scenar/preview/connect";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type QuickstartTourStep,
@@ -35,12 +35,10 @@ import {
 
 const noop = () => {};
 
-function buildDemoScenario() {
-  return buildScenario(
-    fixtures.apiKey.findAll(() => getApiKeyList()),
-    fixtures.environment.get(() => PERSONAL_ENVIRONMENT),
-  );
-}
+const previewFixtures = [
+  connectFixture(ApiKeyQueryController, "findAll", () => getApiKeyList()),
+  connectFixture(EnvironmentQueryController, "get", () => PERSONAL_ENVIRONMENT),
+];
 
 // ---------------------------------------------------------------------------
 // File tree for the code editor
@@ -142,19 +140,6 @@ function renderStep(step: QuickstartTourStep) {
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {
-  0: [
-    { atPercent: 0.5, type: "set-cursor", target: "copy-key" },
-  ],
-  1: [
-    { atPercent: 0.0, type: "clear-cursor" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -167,7 +152,7 @@ const INTERACTIONS: StepInteractions = {
  * they start the step-by-step tutorial.
  */
 export function QuickstartTour() {
-  const client = useMemo(() => createDemoClient(buildDemoScenario()), []);
+  // fixtures are module-level constants — stable reference, no useMemo needed
   const narrationManifest = useNarrationManifest("quickstart-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -183,7 +168,6 @@ export function QuickstartTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -191,8 +175,8 @@ export function QuickstartTour() {
   });
 
   return (
-    <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={quickstartTourSteps}
           narrationManifest={narrationManifest}
@@ -201,7 +185,7 @@ export function QuickstartTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
-    </StigmerProvider>
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }
