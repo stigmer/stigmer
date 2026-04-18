@@ -16,17 +16,12 @@ export const DEMO_SIDEBAR_ZOOM = 0.85;
 /**
  * Zoom applied to BrowserView shells (login pages, auth dashboards,
  * external service UIs). Slightly below 1 so the browser mockup sits
- * comfortably within the docs page without dominating the prose. In
- * video export mode this compounds with the DemoVideo zoom (2×),
- * giving an effective 1.8× magnification instead of 2×.
+ * comfortably within the docs page without dominating the prose.
  */
 export const DEMO_BROWSER_ZOOM = 0.9;
 
 /**
  * Fixed height of the AppShell demo container in pixels.
- * On the docs site, this is the default. In video export mode,
- * the CSS variable `--scenar-shell-height` overrides this value
- * to fill more of the video frame.
  */
 export const DEMO_SHELL_HEIGHT = 380;
 
@@ -37,8 +32,7 @@ export const DEMO_SHELL_HEIGHT = 380;
  *
  * On desktop, `55vh` exceeds DEMO_SHELL_HEIGHT so the clamp resolves
  * to the canonical 380px. On shorter viewports, it shrinks gracefully
- * down to this floor. The `--scenar-shell-height` CSS variable override
- * for video export takes precedence over the entire clamp expression.
+ * down to this floor.
  */
 export const DEMO_SHELL_HEIGHT_MIN = 320;
 
@@ -51,21 +45,8 @@ export const DEMO_SHELL_HEIGHT_MIN = 320;
  * DEMO_BROWSER_ZOOM (0.9) the rendered height is ~378px — nearly
  * identical to the original 380px shell — but the internal content
  * area grows from ~314px to ~354px, giving cards comfortable margins.
- *
- * In video export mode, `--scenar-shell-height` overrides this
- * (just like DEMO_SHELL_HEIGHT) so video proportions are unaffected.
  */
 export const DEMO_BROWSER_SHELL_HEIGHT = 420;
-
-/**
- * Shell height for video export compositions.
- *
- * At 460px + ~32px caption = 492px in a 540px virtual viewport,
- * the component fills ~91% of the frame vertically — leaving
- * just enough dark margin for a professional "floating on stage"
- * look without the excessive empty space of the default 380px.
- */
-export const DEMO_VIDEO_SHELL_HEIGHT = 460;
 
 /**
  * Canonical width of the demo viewport in pixels.
