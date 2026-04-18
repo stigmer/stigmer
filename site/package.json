@@ -7,9 +7,9 @@
     "node": "^20.11.0 || ^22.0.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "tsx scripts/copy-narration-to-public.ts && next dev",
     "generate-images": "tsx scripts/generate-images.ts",
-    "build": "tsx scripts/generate-images.ts && next build && tsx scripts/generate-llms-txt.ts",
+    "build": "tsx scripts/copy-narration-to-public.ts && tsx scripts/generate-images.ts && next build && tsx scripts/generate-llms-txt.ts",
     "generate-llms": "tsx scripts/generate-llms-txt.ts",
     "generate-narration": "tsx scripts/generate-narration.ts",
     "copy-narration": "tsx scripts/copy-narration-to-public.ts",
