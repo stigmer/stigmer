@@ -6,7 +6,6 @@ import {
   useStepInteractions,
   Cursor,
 } from "@scenar/react";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type DragReorderStep,
