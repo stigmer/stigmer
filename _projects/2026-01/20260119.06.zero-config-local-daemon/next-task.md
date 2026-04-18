@@ -54,7 +54,7 @@ Combined project to achieve zero-config local development:
    - Disabled raw JSON logs in normal mode (zerolog.Disabled)
    - Shows user-friendly progress phases during startup
    - Enhanced status messages with spinners and checkmarks
-   - Professional UX matching Planton Cloud CLI standards
+   - Professional UX matching Planton CLI standards
    - **Checkpoint**: `checkpoints/2026-01-19-cli-ui-improvements.md`
    - **Changelog**: `_changelog/2026-01/2026-01-19-improve-local-command-ui.md`
 

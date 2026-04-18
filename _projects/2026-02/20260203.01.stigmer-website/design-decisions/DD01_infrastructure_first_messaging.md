@@ -11,7 +11,7 @@
 The website currently positions Stigmer as "Agentic Workflows as Code" with emphasis on YAML/SDK dual-track. This focuses on **format** rather than **value**.
 
 Founder realization (from voice note, 2026-02-03):
-> "I realized that building agents is nothing but a few configurations to be given... I realized that Planton Cloud, which is responsible for enabling DevOps for users, should not worry about how agent creation should work. I should simplify agent creation for Planton Cloud developers."
+> "I realized that building agents is nothing but a few configurations to be given... I realized that Planton, which is responsible for enabling DevOps for users, should not worry about how agent creation should work. I should simplify agent creation for Planton developers."
 
 ---
 
@@ -37,7 +37,7 @@ Pivot website messaging from **"format" (YAML/SDK)** to **"infrastructure handle
 ### Primary Messaging
 - **Headline**: "Build Agents Without Fighting Infrastructure"
 - **Value Prop**: "We handle: sandboxing, orchestration, MCP connections, local-to-cloud scaling"
-- **Proof**: "Built by building Planton Cloud (v1→v5 evolution)"
+- **Proof**: "Built by building Planton (v1→v5 evolution)"
 
 ### Secondary Messaging
 - YAML→SDK still important, but as **progression path** (not primary differentiator)
@@ -69,9 +69,9 @@ From founder's voice note:
 
 **This is the honesty that builds trust.** If the creator found YAML limiting, the SDK isn't a "nice to have" - it's a necessity.
 
-### 3. The Planton Cloud Validation
+### 3. The Planton Validation
 
-Stigmer was built **by building** Planton Cloud (a DevOps automation platform). This isn't theory - it's battle-tested at scale.
+Stigmer was built **by building** Planton (a DevOps automation platform). This isn't theory - it's battle-tested at scale.
 
 **Credibility multiplier**: "We walked the path. We hit the edges. We figured out the hard parts."
 
@@ -140,7 +140,7 @@ Stigmer was built **by building** Planton Cloud (a DevOps automation platform). 
 
 ## Open Questions
 
-1. **Planton Cloud Prominence**: How explicitly should we mention it?
+1. **Planton Prominence**: How explicitly should we mention it?
    - Current proposal: Moderate (proof point, not co-marketing)
    - Alternative: High (case study section)
    

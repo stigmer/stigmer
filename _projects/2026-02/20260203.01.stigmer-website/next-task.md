@@ -899,7 +899,7 @@ Executed complete content excellence overhaul following world-class quality stan
 - **Pillar 2**: Integrate agents (gRPC APIs, agents as microservices)
 - Platform positioning: "Twilio for AI Agents"
 - Marketplace capability: "Build your own agent marketplace"
-- No Planton Cloud mention (integration incomplete)
+- No Planton mention (integration incomplete)
 - SaaS-only (no self-hosting yet)
 - Public protos at github.com/stigmer/stigmer/apis/
 

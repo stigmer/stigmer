@@ -136,7 +136,7 @@ isProject: false
 
 **Proof**:
 
-- Built by building Planton Cloud (real usage)
+- Built by building Planton (real usage)
 - v1→v5 evolution shows battle-tested decisions
 - Open source = no vendor lock-in
 

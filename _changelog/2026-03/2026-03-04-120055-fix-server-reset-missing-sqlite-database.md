@@ -8,7 +8,7 @@
 
 ## Problem Statement
 
-After running `stigmer server reset`, previously registered resources (e.g. `planton-cloud` MCP server) reappeared on the next `stigmer list mcp-server`. The seedpack only ships `stigmer-mcp-server`, so a fresh reset should yield exactly one MCP server.
+After running `stigmer server reset`, previously registered resources (e.g. `planton` MCP server) reappeared on the next `stigmer list mcp-server`. The seedpack only ships `stigmer-mcp-server`, so a fresh reset should yield exactly one MCP server.
 
 ### Pain Points
 

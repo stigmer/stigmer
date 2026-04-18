@@ -2,13 +2,13 @@
 
 ## WA-01: "Forwarding Auth0 tokens is a confused deputy vulnerability"
 
-**Wrong assumption**: Session 1 concluded that forwarding Planton Cloud's Auth0 JWT to Stigmer would be a confused deputy problem because the audience is `api.planton.ai`, not `stigmer-api`.
+**Wrong assumption**: Session 1 concluded that forwarding Planton's Auth0 JWT to Stigmer would be a confused deputy problem because the audience is `api.planton.ai`, not `stigmer-api`.
 
 **Correction**: Token exchange solves this. The external JWT (with foreign audience) only goes to the token exchange endpoint, which is designed to accept external tokens. Stigmer issues its own token with correct `aud: stigmer-api` for API calls. The audience is correct where it matters — on actual API endpoints.
 
 ## WA-02: "We need custom RSA keys and JWKS publishing"
 
-**Wrong assumption**: Planton Cloud needs to generate a custom RSA key pair, publish JWKS on GitHub Pages, and the proxy must mint custom JWTs.
+**Wrong assumption**: Planton needs to generate a custom RSA key pair, publish JWKS on GitHub Pages, and the proxy must mint custom JWTs.
 
 **Correction**: Auth0's JWKS is already public (`/.well-known/jwks.json`). With token exchange, the IdentityProvider can point directly to Auth0's JWKS. No custom keys needed. Auth0 handles key rotation automatically.
 
@@ -32,7 +32,7 @@
 
 ## WA-06: "Auth0 access tokens contain email/profile claims"
 
-**Wrong assumption**: Since Planton Cloud requests `openid email profile` scopes, the access token would contain email/name/picture.
+**Wrong assumption**: Since Planton requests `openid email profile` scopes, the access token would contain email/name/picture.
 
 **Correction**: Those claims go into the **ID token** (frontend), not the **access token** (backend). Auth0 access tokens only contain `sub`, `aud`, `iss`, `exp`, `scope`. To get profile data, either add Auth0 Actions (rejected — maintenance burden) or call the OIDC UserInfo endpoint (chosen — standard, no Auth0 customization).
 

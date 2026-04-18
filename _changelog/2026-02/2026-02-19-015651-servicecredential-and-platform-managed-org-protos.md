@@ -4,11 +4,11 @@
 
 ## Summary
 
-Introduces the proto-layer foundation for Stigmer's Planton Cloud integration. A new `ManagementMode` enum extends the organization model to distinguish user-operated orgs from platform-managed ones. A new `ServiceCredential` resource formalizes how external platforms register their trust relationship with Stigmer. These definitions live in the shared `stigmer/apis/` package and their Go stubs are generated; cloud-layer implementation (controllers, storage, FGA) follows in `stigmer-cloud`.
+Introduces the proto-layer foundation for Stigmer's Planton integration. A new `ManagementMode` enum extends the organization model to distinguish user-operated orgs from platform-managed ones. A new `ServiceCredential` resource formalizes how external platforms register their trust relationship with Stigmer. These definitions live in the shared `stigmer/apis/` package and their Go stubs are generated; cloud-layer implementation (controllers, storage, FGA) follows in `stigmer-cloud`.
 
 ## Problem Statement
 
-Planton Cloud needs to create and operate Stigmer organizations on behalf of its users — provisioning agents, triggering workflows, and passing user identity for authorization. Stigmer had no model for:
+Planton needs to create and operate Stigmer organizations on behalf of its users — provisioning agents, triggering workflows, and passing user identity for authorization. Stigmer had no model for:
 
 ### Pain Points
 
@@ -103,12 +103,12 @@ ID prefix `svc` chosen to be short and collision-free with existing prefixes.
 
 - **Stigmer APIs**: New `ServiceCredential` resource available in the API registry; Organization API surface extended with three new fields
 - **stigmer-cloud**: Phase 1 cloud implementation can now begin using these proto definitions (Java gRPC stubs to be generated)
-- **Planton Cloud**: Integration path is now formally modeled; implementation work can proceed on both sides
+- **Planton**: Integration path is now formally modeled; implementation work can proceed on both sides
 - **OSS users**: No visible change — `management_mode` defaults to `self_managed`, new fields are ignored if not set
 
 ## Related Work
 
-- Project: `_projects/2026-02/20260218.01.stigmer-planton-cloud-integration/`
+- Project: `_projects/2026-02/20260218.01.stigmer-planton-integration/`
 - Architecture plan: `tasks/T01_0_plan.md`
 - Session checkpoint: `checkpoints/2026-02-19-session-1.md`
 - Phase 2 will add `provisioning_mode` to `IdentityAccount` and wire JWT assertion validation

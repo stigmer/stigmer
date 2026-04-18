@@ -128,7 +128,7 @@ kind: Project
 metadata:
   name: planton-agents
 spec:
-  description: Planton Cloud agent fleet
+  description: Planton agent fleet
 EOF
 
 # Drop in resource YAMLs

@@ -518,8 +518,8 @@ func renderApprovalUnknown(tc ToolCallInfo, action string, opts CompactOptions) 
 //
 // Examples:
 //
-//	"(query=\"planton cloud...\")"
-//	"(org=\"default\", name=\"planton-cloud\")"
+//	"(query=\"planton...\")"
+//	"(org=\"default\", name=\"planton\")"
 //	""  (empty args)
 func formatApprovalArgs(args map[string]interface{}) string {
 	if len(args) == 0 {

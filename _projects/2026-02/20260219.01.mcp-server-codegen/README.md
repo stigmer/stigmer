@@ -1,7 +1,7 @@
 # Project: 20260219.01.mcp-server-codegen
 
 ## Overview
-A manifest-driven Go code generator that produces curated MCP server tool and resource handlers from a YAML config and Go templates. Targets the official modelcontextprotocol/go-sdk. Designed to be reusable across Stigmer, Planton Cloud, and future products.
+A manifest-driven Go code generator that produces curated MCP server tool and resource handlers from a YAML config and Go templates. Targets the official modelcontextprotocol/go-sdk. Designed to be reusable across Stigmer, Planton, and future products.
 
 **Created**: 2026-02-19
 **Status**: Active 🟢
@@ -33,10 +33,10 @@ T11-A (Stigmer MCP server write operations) should be complete first to validate
 - skills
 - workflows
 - mcpservers) identically from a manifest. 2. Adding a new resource domain requires only a YAML entry
-- not Go code. 3. Generated code targets official go-sdk. 4. Works for Planton Cloud after SDK migration.
+- not Go code. 3. Generated code targets official go-sdk. 4. Works for Planton after SDK migration.
 
 ### Known Risks & Mitigations
-1. Official go-sdk API may change (v1.3.0 is current, pre-1.0 stability). 2. Template approach may not cover edge cases (search tool, versioned skill resources). 3. Planton Cloud has different patterns (cloud resource wrapping, multi-level domains) — generator must be flexible enough.
+1. Official go-sdk API may change (v1.3.0 is current, pre-1.0 stability). 2. Template approach may not cover edge cases (search tool, versioned skill resources). 3. Planton has different patterns (cloud resource wrapping, multi-level domains) — generator must be flexible enough.
 
 ## Project Structure
 

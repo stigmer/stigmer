@@ -21,7 +21,7 @@ The original plan proposed a standalone YAML manifest + Go template code generat
 
 5. **The pattern is still evolving** — write operations (T11-A) aren't finalized. Building a generator for a pattern that's still forming means constant generator updates.
 
-6. **Stigmer and Planton Cloud use different SDKs** — Stigmer uses `modelcontextprotocol/go-sdk`, Planton uses `mark3labs/mcp-go`. A "universal" codegen would need to abstract over SDK differences, adding complexity for questionable benefit.
+6. **Stigmer and Planton use different SDKs** — Stigmer uses `modelcontextprotocol/go-sdk`, Planton uses `mark3labs/mcp-go`. A "universal" codegen would need to abstract over SDK differences, adding complexity for questionable benefit.
 
 ### The Alternative: Shared Abstractions
 
@@ -524,7 +524,7 @@ They're curated, LLM-optimized text right next to the handler. This is the right
 Each domain still exports individual functions (`Tool()`, `Handler()`, `ApplyTool()`, etc.) and `server.go` lists them explicitly. This is transparent and easy to grep. If the domain count reaches 15+, we can add a `Registration()` pattern then.
 
 ### 5. This is Stigmer-specific
-Planton Cloud uses a different SDK, different patterns, and different registration style. If Planton migrates to the official go-sdk in the future, these same abstractions could be extracted into a shared library. But we don't build that bridge until it exists.
+Planton uses a different SDK, different patterns, and different registration style. If Planton migrates to the official go-sdk in the future, these same abstractions could be extracted into a shared library. But we don't build that bridge until it exists.
 
 ## Success Criteria
 

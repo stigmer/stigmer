@@ -163,7 +163,7 @@ INFO  Starting Temporal worker system
 **First run**: Creates missing attributes  
 **Subsequent runs**: Validates and continues
 
-### Production (Planton Cloud)
+### Production (Planton)
 
 **First deployment**:
 ```bash

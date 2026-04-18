@@ -10,7 +10,7 @@ Cleaned up all placeholder text and JSDoc examples in the Identity Provider SDK 
 
 ### Pain Points
 
-- SDK components contained hardcoded "Planton Cloud" in placeholder text and code examples
+- SDK components contained hardcoded "Planton" in placeholder text and code examples
 - Internal company names in public SDK components look unprofessional and confuse platform builders
 - JSDoc examples should use generic, relatable names
 

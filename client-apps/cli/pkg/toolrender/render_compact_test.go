@@ -3004,9 +3004,9 @@ func TestLabelBold_RendersLabel(t *testing.T) {
 func TestRenderCompact_UnknownTool_BasicFormat(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:   "search",
-		Args:   map[string]interface{}{"query": "planton cloud mcp server"},
+		Args:   map[string]interface{}{"query": "planton mcp server"},
 		Status: "completed",
-		Result: "Found 8 definition(s) matching \"planton cloud mcp server\"",
+		Result: "Found 8 definition(s) matching \"planton mcp server\"",
 	}
 	opts := CompactOptions{HyperlinksEnabled: false}
 
@@ -3016,7 +3016,7 @@ func TestRenderCompact_UnknownTool_BasicFormat(t *testing.T) {
 	assertContains(t, got, "●")
 	assertContains(t, got, "search")
 	assertContains(t, got, "query")
-	assertContains(t, got, "planton cloud mcp server")
+	assertContains(t, got, "planton mcp server")
 	assertContains(t, got, "Found 8 definition(s)")
 	assertNotContains(t, got, "*")
 
@@ -3029,7 +3029,7 @@ func TestRenderCompact_UnknownTool_BasicFormat(t *testing.T) {
 func TestRenderCompact_UnknownTool_ShowsInputArgs(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:   "get_mcp_server",
-		Args:   map[string]interface{}{"org": "default", "name": "planton-cloud"},
+		Args:   map[string]interface{}{"org": "default", "name": "planton"},
 		Status: "completed",
 		Result: "server config...",
 	}
@@ -3038,7 +3038,7 @@ func TestRenderCompact_UnknownTool_ShowsInputArgs(t *testing.T) {
 	got := RenderCompact(tc, opts)
 	plain := stripANSI(got)
 
-	assertContains(t, plain, `name: "planton-cloud"`)
+	assertContains(t, plain, `name: "planton"`)
 	assertContains(t, plain, `org: "default"`)
 }
 
@@ -3088,7 +3088,7 @@ func TestRenderCompact_UnknownTool_ErrorInResult(t *testing.T) {
 		Name:   "get_mcp_server",
 		Args:   map[string]interface{}{"org": "default"},
 		Status: "completed",
-		Result: "Error: MCP server \"planton-cloud\" in org \"default\" not found...\n\nRecovery suggestions:\n  1. Check the server name",
+		Result: "Error: MCP server \"planton\" in org \"default\" not found...\n\nRecovery suggestions:\n  1. Check the server name",
 	}
 	opts := CompactOptions{HyperlinksEnabled: false}
 
@@ -3192,7 +3192,7 @@ func TestRenderCompact_UnknownTool_WithMetadata(t *testing.T) {
 func TestRenderCompact_UnknownTool_WithServerName(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:       "search",
-		ServerName: "planton-cloud",
+		ServerName: "planton",
 		Args:       map[string]interface{}{"query": "test"},
 		Status:     "completed",
 		Result:     "found",
@@ -3202,7 +3202,7 @@ func TestRenderCompact_UnknownTool_WithServerName(t *testing.T) {
 	got := RenderCompact(tc, opts)
 	plain := stripANSI(got)
 
-	assertContains(t, plain, "planton-cloud/search")
+	assertContains(t, plain, "planton/search")
 }
 
 func TestRenderCompact_UnknownTool_ManyArgs_Truncated(t *testing.T) {
@@ -3245,7 +3245,7 @@ func TestRenderCompactRunning_UnknownTool_SingleLine(t *testing.T) {
 func TestRenderCompactRunning_UnknownTool_WithServerName(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:       "search",
-		ServerName: "planton-cloud",
+		ServerName: "planton",
 		Args:       map[string]interface{}{"query": "test"},
 	}
 	opts := CompactOptions{HyperlinksEnabled: false}
@@ -3253,7 +3253,7 @@ func TestRenderCompactRunning_UnknownTool_WithServerName(t *testing.T) {
 	got := RenderCompactRunning(tc, opts)
 	plain := stripANSI(got)
 
-	assertContains(t, plain, "planton-cloud/search")
+	assertContains(t, plain, "planton/search")
 	assertContains(t, plain, "…")
 }
 

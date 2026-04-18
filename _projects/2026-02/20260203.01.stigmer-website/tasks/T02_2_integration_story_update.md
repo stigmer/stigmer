@@ -242,7 +242,7 @@ response = client.ExecuteAgent(
 
 ### ❌ Avoid (Not True Yet)
 1. "Self-host Stigmer" - not available
-2. "Planton Cloud uses Stigmer" - integration incomplete
+2. "Planton uses Stigmer" - integration incomplete
 3. "Stigmer marketplace of agents" - doesn't exist yet
 4. "Proven at scale" - no public proof points yet
 
@@ -350,7 +350,7 @@ response = client.ExecuteAgent(
 
 ## Open Questions (Resolved)
 
-1. ✅ **Planton Cloud**: Don't mention (integration incomplete)
+1. ✅ **Planton**: Don't mention (integration incomplete)
 2. ✅ **Self-hosting**: Don't mention (not available yet)
 3. ✅ **Marketplace**: Position as capability, not feature
 4. ✅ **Proto location**: Link to `github.com/stigmer/stigmer/apis/`

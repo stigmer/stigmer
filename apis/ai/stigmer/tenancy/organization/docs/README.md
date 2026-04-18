@@ -27,7 +27,7 @@ Organizations have two management modes, set at creation time and **immutable** 
 | Mode | Description |
 |---|---|
 | `self_managed` | Default. Created and operated directly by users via the Stigmer UI, CLI, or API. |
-| `platform_managed` | Created programmatically by an external platform (e.g., Planton Cloud) via an IdentityProvider. The platform manages the org on behalf of its users. |
+| `platform_managed` | Created programmatically by an external platform (e.g., Planton) via an IdentityProvider. The platform manages the org on behalf of its users. |
 
 ## Documentation Index
 

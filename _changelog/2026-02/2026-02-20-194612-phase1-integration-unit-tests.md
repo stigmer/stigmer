@@ -4,11 +4,11 @@
 
 ## Summary
 
-Added 83 unit tests across 12 test files covering every Phase 1 component of the Stigmer–Planton Cloud integration: identity federation (JWT authentication, JIT provisioning, caching), platform-managed organization CRUD enforcement, and supporting infrastructure (repository queries, compound IDP IDs). This establishes the first test coverage for the entire federation and multi-tenant organization subsystem.
+Added 83 unit tests across 12 test files covering every Phase 1 component of the Stigmer–Planton integration: identity federation (JWT authentication, JIT provisioning, caching), platform-managed organization CRUD enforcement, and supporting infrastructure (repository queries, compound IDP IDs). This establishes the first test coverage for the entire federation and multi-tenant organization subsystem.
 
 ## Problem Statement
 
-Phase 1 of the Stigmer–Planton Cloud integration introduced several foundational components — federated JWT authentication, JIT identity provisioning, platform-managed organization validation, and external lookup queries. All of these were implemented without accompanying test coverage.
+Phase 1 of the Stigmer–Planton integration introduced several foundational components — federated JWT authentication, JIT identity provisioning, platform-managed organization validation, and external lookup queries. All of these were implemented without accompanying test coverage.
 
 ### Pain Points
 
@@ -71,7 +71,7 @@ Systematically designed and implemented unit tests for all Phase 1 components, o
 
 ## Related Work
 
-- Phase 1 implementation: sessions 3–7 of project `20260218.01.stigmer-planton-cloud-integration`
+- Phase 1 implementation: sessions 3–7 of project `20260218.01.stigmer-planton-integration`
 - Federation refactoring (session 6+): `FederatedJwtAuthenticationProvider`, `FederatedIdentityProvisionerImpl`, in-process gRPC boundary compliance
 - Organization platform-managed CRUD (session 7): validation steps, immutability, `getByExternalOrgId`
 

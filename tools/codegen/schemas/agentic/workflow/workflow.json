@@ -1,7 +1,7 @@
 {
   "name": "WorkflowSpec",
   "kind": "WORKFLOW_SPEC",
-  "description": "WorkflowSpec defines the configurable properties of a workflow.\n\n @internal\n Follows the \"kind + Struct\" pattern from CloudResource (Planton Cloud).\n This replaces the old `synthesized_yaml` field with structured proto definitions.\n Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,\n providing maximum flexibility and extensibility.\n The overview.md file provides the SDK-facing description and example YAML.",
+  "description": "WorkflowSpec defines the configurable properties of a workflow.\n\n @internal\n Follows the \"kind + Struct\" pattern from CloudResource (Planton).\n This replaces the old `synthesized_yaml` field with structured proto definitions.\n Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,\n providing maximum flexibility and extensibility.\n The overview.md file provides the SDK-facing description and example YAML.",
   "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowSpec",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
   "fields": [

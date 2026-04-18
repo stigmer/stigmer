@@ -4,7 +4,7 @@
 
 ## Summary
 
-Extended the Organization resource with full backend enforcement for platform-managed organizations. Added validation, custom authorization, immutability enforcement, and a new `getByExternalOrgId` query RPC — enabling external platforms like Planton Cloud to programmatically create and look up Stigmer organizations via their IdentityProvider trust relationship.
+Extended the Organization resource with full backend enforcement for platform-managed organizations. Added validation, custom authorization, immutability enforcement, and a new `getByExternalOrgId` query RPC — enabling external platforms like Planton to programmatically create and look up Stigmer organizations via their IdentityProvider trust relationship.
 
 ## Problem Statement
 
@@ -71,7 +71,7 @@ One new pipeline step added to `OrganizationUpdateHandler`:
 
 - **Organization domain**: Create, update, and query handlers all enhanced
 - **IdentityProvider domain**: Delete handler's `CheckNoReferencingOrgs` pattern now has a symmetric counterpart in the Organization create handler
-- **Platform integration**: Planton Cloud (and any future platform) can now create and look up organizations through a well-defined, authorized flow
+- **Platform integration**: Planton (and any future platform) can now create and look up organizations through a well-defined, authorized flow
 
 ## Related Work
 

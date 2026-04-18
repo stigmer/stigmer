@@ -1,4 +1,4 @@
-# Task T01: Integration Architecture Plan — Stigmer × Planton Cloud
+# Task T01: Integration Architecture Plan — Stigmer × Planton
 
 **Created**: 2026-02-18
 **Updated**: 2026-02-18 (v3 — open questions resolved, Decision 6 revised after FGA analysis)
@@ -36,14 +36,14 @@ The v2 plan stated "no shadow users — external identity is an audit attribute,
 
 ### Core Principle
 
-**Organization remains the single isolation boundary and the single resource addressing level.** The integration with Planton Cloud is achieved by adding a *management mode* and an *identity provider* concept — not a new hierarchy.
+**Organization remains the single isolation boundary and the single resource addressing level.** The integration with Planton is achieved by adding a *management mode* and an *identity provider* concept — not a new hierarchy.
 
 ### Decision 1: Product Positioning — Hybrid, but Lightweight
 
 Stigmer serves both direct users and embedding platforms. The difference is **how organizations are created and operated**, not what kind of entity they are.
 
 - **Self-managed orgs**: User signs up, creates org, manages it directly via Stigmer UI/CLI/API.
-- **Platform-managed orgs**: Created programmatically by an external platform (Planton Cloud) via an identity provider. Operated by the platform on behalf of its users.
+- **Platform-managed orgs**: Created programmatically by an external platform (Planton) via an identity provider. Operated by the platform on behalf of its users.
 
 Both are Organizations. Same data model. Same isolation. Same resource addressing.
 
@@ -65,8 +65,8 @@ An `IdentityProvider` represents an external platform's trust relationship with 
 
 | Field | Purpose |
 |---|---|
-| `slug` | e.g., `planton-cloud` |
-| `display_name` | e.g., "Planton Cloud" |
+| `slug` | e.g., `planton` |
+| `display_name` | e.g., "Planton" |
 | `jwks_uri` | Where to fetch the platform's signing keys (NOT Auth0 — see Decision 5) |
 | `allowed_issuers` | JWT `iss` values Stigmer will accept |
 | `expected_audience` | JWT `aud` value (e.g., `stigmer-api`) |
@@ -94,31 +94,31 @@ Examples:
 
 #### IdP Context
 
-Both Planton Cloud and Stigmer use Auth0, but with **separate tenants**:
+Both Planton and Stigmer use Auth0, but with **separate tenants**:
 
 | System | Auth0 Tenant | JWKS | Audience |
 |---|---|---|---|
-| Planton Cloud | `planton-prod.us.auth0.com` | Auth0-managed | `https://api.planton.ai/` |
+| Planton | `planton-prod.us.auth0.com` | Auth0-managed | `https://api.planton.ai/` |
 | Stigmer | `stigmer-prod.us.auth0.com` | Auth0-managed | `https://api.stigmer.ai/` |
 
 These are independent trust boundaries. Auth0 tokens from one tenant cannot be used with the other (different signing keys, different audiences).
 
 #### Why Auth0 Doesn't Solve Cross-Platform Auth Automatically
 
-- **Forwarding user tokens fails**: A Planton Cloud user's Auth0 token has `aud: https://api.planton.ai/`. If Stigmer accepted it, any service the user calls could replay it against Stigmer — confused deputy vulnerability.
-- **Auth0 M2M (Client Credentials) loses user context**: The token says "Planton Cloud backend" but not "on behalf of user X." We need user identity for FGA.
+- **Forwarding user tokens fails**: A Planton user's Auth0 token has `aud: https://api.planton.ai/`. If Stigmer accepted it, any service the user calls could replay it against Stigmer — confused deputy vulnerability.
+- **Auth0 M2M (Client Credentials) loses user context**: The token says "Planton backend" but not "on behalf of user X." We need user identity for FGA.
 - **Auth0 Token Exchange**: Auth0 doesn't natively support RFC 8693 token exchange across tenants.
 
 #### The Approach: Platform-Signed JWT Assertions
 
-Planton Cloud signs its **own** short-lived JWTs for Stigmer calls. This is independent of Auth0 — Planton Cloud generates its own signing key pair and exposes a JWKS endpoint.
+Planton signs its **own** short-lived JWTs for Stigmer calls. This is independent of Auth0 — Planton generates its own signing key pair and exposes a JWKS endpoint.
 
 ```
 ┌──────────────┐     service cred + signed JWT assertion     ┌──────────────┐
-│ Planton Cloud │ ──────────────────────────────────────────► │   Stigmer    │
+│ Planton │ ──────────────────────────────────────────► │   Stigmer    │
 │               │                                             │              │
 │  user auth'd  │  JWT claims:                                │  validates:  │
-│  via PC's     │    iss: planton-cloud                       │   signature  │
+│  via PC's     │    iss: planton                       │   signature  │
 │  own Auth0    │    aud: stigmer-api                         │   iss/aud    │
 │               │    sub: pc-user-stable-id                   │   expiry     │
 │               │    org: planton-org-id (→ Stigmer org)      │   org match  │
@@ -131,15 +131,15 @@ Planton Cloud signs its **own** short-lived JWTs for Stigmer calls. This is inde
 
 **End-to-end flow:**
 
-1. User authenticates to Planton Cloud (via Planton Cloud's Auth0 — normal flow)
+1. User authenticates to Planton (via Planton's Auth0 — normal flow)
 2. User triggers an action that needs Stigmer (e.g., run an agent)
-3. Planton Cloud backend:
+3. Planton backend:
    - Knows the user (from their Auth0 session)
-   - Mints a short-lived JWT for Stigmer (signed with Planton Cloud's own private key, NOT Auth0's key)
+   - Mints a short-lived JWT for Stigmer (signed with Planton's own private key, NOT Auth0's key)
    - Calls Stigmer API with that JWT + identity provider identifier
 4. Stigmer:
    - Reads identity provider identifier → finds `IdentityProvider` config
-   - Fetches JWKS from the credential's `jwks_uri` (Planton Cloud's endpoint, NOT Auth0's endpoint)
+   - Fetches JWKS from the credential's `jwks_uri` (Planton's endpoint, NOT Auth0's endpoint)
    - Validates JWT signature, `iss`, `aud`, `exp`
    - Extracts `sub` (user) and `org` claims
    - JIT-provisions `identity_account` if needed (see Decision 6)
@@ -174,7 +174,7 @@ Without an `identity_account`, a federated user cannot be authorized to do anyth
 | Field | Value | Source |
 |---|---|---|
 | `id` | `ida_<ulid>` (Stigmer-generated) | Stigmer |
-| `idp_id` | Planton Cloud user stable ID (from JWT `sub`) | JWT |
+| `idp_id` | Planton user stable ID (from JWT `sub`) | JWT |
 | `email` | From JWT `email` claim (optional, for display) | JWT |
 | `is_machine_account` | `false` | Stigmer |
 | `provisioning_mode` | `FEDERATED` | Stigmer |
@@ -190,7 +190,7 @@ Without an `identity_account`, a federated user cannot be authorized to do anyth
 
 #### JIT Provisioning Flow
 
-1. Planton Cloud sends request with signed JWT (`sub: pc-user-123`)
+1. Planton sends request with signed JWT (`sub: pc-user-123`)
 2. Stigmer validates JWT via identity provider's JWKS
 3. Stigmer looks up `identity_account` by `idp_id = pc-user-123` AND `provisioned_by = <identity_provider_id>`
 4. If not found → create new `identity_account` with `provisioning_mode = FEDERATED`
@@ -221,9 +221,9 @@ Without an `identity_account`, a federated user cannot be authorized to do anyth
 
 ### Decision 7: Organization Lifecycle — Event-Driven Sync
 
-Planton Cloud → Stigmer, one-way sync:
+Planton → Stigmer, one-way sync:
 
-| Planton Cloud Event | Stigmer Action |
+| Planton Event | Stigmer Action |
 |---|---|
 | Org created | Create new Organization (`PLATFORM_MANAGED`, linked to identity provider) |
 | Org renamed / slug changed | Update Organization metadata (internal ID stays stable) |
@@ -231,17 +231,17 @@ Planton Cloud → Stigmer, one-way sync:
 | Org deletion initiated | Soft-delete: suspend + start retention window |
 | Retention expired | Hard-delete organization and associated data |
 
-**Source of truth**: Planton Cloud. Sync is strictly one-way.
+**Source of truth**: Planton. Sync is strictly one-way.
 
-**Backfill**: One-time migration creates Stigmer organizations for all existing Planton Cloud orgs.
+**Backfill**: One-time migration creates Stigmer organizations for all existing Planton orgs.
 
 **Edge case**: If an execution request arrives before the org is provisioned, Stigmer returns a clear error (not found / not yet provisioned). No silent state creation.
 
 ### Decision 8: Billing — Aggregate by Service Credential
 
-- Stigmer bills Planton Cloud as a single customer
-- Usage is aggregated by querying: "all execution usage where `identity_provider_ref = planton-cloud`"
-- Per-org breakdowns available for Planton Cloud to bill its own customers
+- Stigmer bills Planton as a single customer
+- Usage is aggregated by querying: "all execution usage where `identity_provider_ref = planton`"
+- Per-org breakdowns available for Planton to bill its own customers
 
 No new hierarchy or billing entity needed. It's a query filter on the identity provider, not a structural change.
 
@@ -252,7 +252,7 @@ No new hierarchy or billing entity needed. It's a query filter on the identity p
 | Token lifetime | Short-lived (5 minutes) |
 | Audience restriction | Every JWT scoped to `stigmer-api` audience |
 | Org scoping | Every JWT bound to a specific org; Stigmer verifies the org is managed by the presenting credential |
-| Blast radius | If Planton Cloud's signing key is compromised, only platform-managed orgs under that credential are affected. Self-managed orgs and other platforms are untouched. |
+| Blast radius | If Planton's signing key is compromised, only platform-managed orgs under that credential are affected. Self-managed orgs and other platforms are untouched. |
 | Key rotation | JWKS endpoint; Stigmer caches and refreshes signing keys on schedule |
 | Replay protection | Short TTL + `jti` claim for deduplication on state-changing operations |
 | Provider revocation | Setting identity provider status to `REVOKED` immediately blocks all requests |
@@ -271,13 +271,13 @@ Platform-managed orgs follow the same slug rules as self-managed orgs. No prefix
 
 **How it works:**
 
-1. Planton Cloud calls `createOrganization` with a desired slug
+1. Planton calls `createOrganization` with a desired slug
 2. Stigmer checks slug availability (existing `checkSlugAvailability` pattern)
 3. If available → org created with that slug
-4. If taken → Stigmer returns error, Planton Cloud retries with alternative
-5. Planton Cloud can adopt its own naming convention (e.g., always use `planton-{name}`) — that's Planton Cloud's policy, not Stigmer's constraint
+4. If taken → Stigmer returns error, Planton retries with alternative
+5. Planton can adopt its own naming convention (e.g., always use `planton-{name}`) — that's Planton's policy, not Stigmer's constraint
 
-**How collision is handled:** The `external_org_id` field on Organization stores Planton Cloud's org ID. Planton Cloud always uses `external_org_id` for reverse lookup. If Planton Cloud's slug `acme` was taken and they created `acme-pc` instead, the mapping `external_org_id → slug` handles the mismatch transparently.
+**How collision is handled:** The `external_org_id` field on Organization stores Planton's org ID. Planton always uses `external_org_id` for reverse lookup. If Planton's slug `acme` was taken and they created `acme-pc` instead, the mapping `external_org_id → slug` handles the mismatch transparently.
 
 **Industry precedent:** GitHub, Heroku, and Netlify all use globally unique slugs with no platform prefix. First-come-first-served.
 
@@ -291,7 +291,7 @@ Platform-managed orgs are visible in Stigmer's UI and API like any other organiz
 
 Platform-managed orgs display standard Stigmer branding. No white-labeling, no conditional theming.
 
-**Rationale:** White-labeling is a product feature (CSS/theming infrastructure, brand-asset management, conditional rendering), not an integration requirement. When Planton Cloud calls Stigmer's API, the response is data — no branding. If a federated user somehow accesses Stigmer's UI directly, they see Stigmer. Revisit only if a paying customer explicitly requests white-label capability.
+**Rationale:** White-labeling is a product feature (CSS/theming infrastructure, brand-asset management, conditional rendering), not an integration requirement. When Planton calls Stigmer's API, the response is data — no branding. If a federated user somehow accesses Stigmer's UI directly, they see Stigmer. Revisit only if a paying customer explicitly requests white-label capability.
 
 ---
 
@@ -316,7 +316,7 @@ Platform-managed orgs display standard Stigmer branding. No white-labeling, no c
 
 ### Phase 2: Signed JWT Authentication + Federated Identity Accounts
 
-**Scope**: Enable Planton Cloud to authenticate and pass user context, with JIT identity provisioning.
+**Scope**: Enable Planton to authenticate and pass user context, with JIT identity provisioning.
 
 - [ ] Add `provisioning_mode` enum to IdentityAccount (`DIRECT`, `FEDERATED`, `MACHINE`)
 - [ ] Add `provisioned_by` field to IdentityAccount (identity provider reference)
@@ -326,16 +326,16 @@ Platform-managed orgs display standard Stigmer branding. No white-labeling, no c
 - [ ] Implement JIT provisioning: on validated JWT, look up or create federated `identity_account`
 - [ ] Implement JIT org membership: on first interaction with an org, create FGA membership tuple
 - [ ] Propagate federated identity through execution pipeline (audit trail)
-- [ ] Integration test: Planton Cloud user action → Stigmer execution → FGA check passes → audit trail shows full actor chain
+- [ ] Integration test: Planton user action → Stigmer execution → FGA check passes → audit trail shows full actor chain
 
 ### Phase 3: Organization Lifecycle Sync
 
-**Scope**: Automate org provisioning tied to Planton Cloud org lifecycle.
+**Scope**: Automate org provisioning tied to Planton org lifecycle.
 
-- [ ] Design event/webhook contract between Planton Cloud and Stigmer
+- [ ] Design event/webhook contract between Planton and Stigmer
 - [ ] Implement handlers for: org created, renamed, suspended, deletion initiated
 - [ ] Implement two-phase deletion (suspend → retention window → hard delete)
-- [ ] Build backfill migration for existing Planton Cloud orgs
+- [ ] Build backfill migration for existing Planton orgs
 - [ ] Add monitoring for sync failures and provisioning lag
 - [ ] Handle race condition: execution request before org provisioned
 
@@ -345,7 +345,7 @@ Platform-managed orgs display standard Stigmer branding. No white-labeling, no c
 
 - [ ] Instrument execution pipeline for per-org usage metrics
 - [ ] Build usage query API (filter by identity provider for platform-level rollups)
-- [ ] Design billing integration with Planton Cloud
+- [ ] Design billing integration with Planton
 
 ---
 
@@ -361,9 +361,9 @@ Platform-managed orgs display standard Stigmer branding. No white-labeling, no c
 6. **FGA integration**: Federated identity accounts participate in authorization identically to direct accounts
 7. **No new hierarchy level. No workspace concept. No changes to resource addressing.**
 
-### Planton Cloud Changes (For Reference — Not Part of Stigmer's Implementation Scope)
+### Planton Changes (For Reference — Not Part of Stigmer's Implementation Scope)
 
-These are the steps Planton Cloud needs to implement on their side:
+These are the steps Planton needs to implement on their side:
 
 #### 1. One-Time Setup: Signing Key Infrastructure
 
@@ -374,18 +374,18 @@ These are the steps Planton Cloud needs to implement on their side:
 
 #### 2. JWT Signing Utility (~50 lines of code)
 
-When Planton Cloud's backend needs to call Stigmer on behalf of a user:
+When Planton's backend needs to call Stigmer on behalf of a user:
 
 ```
 JWT claims:
-  iss: "planton-cloud"
+  iss: "planton"
   aud: "stigmer-api"
   sub: <planton-user-identity-account-id>   (stable user ID)
   org: <planton-org-id>                      (maps to Stigmer org via external_org_id)
   email: <user-email>                        (optional, for display/audit)
   exp: now + 5 minutes                       (short-lived)
   jti: <uuid>                                (unique per request, for replay protection)
-Signed with: Planton Cloud's private key (RSA256 or EC256)
+Signed with: Planton's private key (RSA256 or EC256)
 ```
 
 #### 3. Org Lifecycle Side Effects
@@ -395,7 +395,7 @@ Signed with: Planton Cloud's private key (RSA256 or EC256)
 - On org suspend → call Stigmer API to suspend org
 - On org delete → call Stigmer API to initiate deletion
 
-#### 4. What Planton Cloud Does NOT Need to Do
+#### 4. What Planton Does NOT Need to Do
 
 - No Auth0 configuration changes (signing key is independent of Auth0)
 - No SCIM sync
@@ -412,11 +412,11 @@ Signed with: Planton Cloud's private key (RSA256 or EC256)
 | Workspace hierarchy | Organization already serves as isolation boundary. Adding workspaces would break resource addressing and fragment the ubiquitous language. |
 | Platform Tenant entity | Billing and rate limiting are achievable by querying on identity provider. A structural entity is over-engineering. |
 | Shadow Users via SCIM sync | Proactive user sync adds infrastructure for no benefit. JIT provisioning from JWT claims is simpler and creates users only when needed. |
-| Auth0 Custom Token Exchange (RFC 8693) | Auth0's CTE feature handles this scenario natively (cross-platform token exchange with JIT user creation, Auth0-managed keys). However, it requires Auth0 Enterprise or B2B Pro plan, which neither product currently has. **Upgrade path**: if we move to Enterprise, migrate from custom JWT signing to CTE — this eliminates Planton Cloud's signing key management and Stigmer's custom JWT validation path entirely. Auth0 handles everything. |
+| Auth0 Custom Token Exchange (RFC 8693) | Auth0's CTE feature handles this scenario natively (cross-platform token exchange with JIT user creation, Auth0-managed keys). However, it requires Auth0 Enterprise or B2B Pro plan, which neither product currently has. **Upgrade path**: if we move to Enterprise, migrate from custom JWT signing to CTE — this eliminates Planton's signing key management and Stigmer's custom JWT validation path entirely. Auth0 handles everything. |
 | SCIM | Wrong tool. SCIM is for enterprise directory sync, not platform-to-platform integration. |
 | Org slug prefix convention | Leaks integration details into resource addressing. Treats platform-managed orgs as second-class. |
 | White-labeling | Product feature, not integration requirement. No paying customer has requested it. |
-| Forwarding Planton Cloud's Auth0 tokens directly | Auth0 tokens are audience-bound. Planton Cloud's Auth0 tokens are for `https://api.planton.ai/`, not for Stigmer. Forwarding them would be a confused deputy vulnerability. Auth0 M2M tokens lose user identity. Neither option works for backend-to-backend-on-behalf-of-user calls. |
+| Forwarding Planton's Auth0 tokens directly | Auth0 tokens are audience-bound. Planton's Auth0 tokens are for `https://api.planton.ai/`, not for Stigmer. Forwarding them would be a confused deputy vulnerability. Auth0 M2M tokens lose user identity. Neither option works for backend-to-backend-on-behalf-of-user calls. |
 
 ---
 
@@ -424,7 +424,7 @@ Signed with: Planton Cloud's private key (RSA256 or EC256)
 
 | # | Question | Answer | Rationale |
 |---|---|---|---|
-| 1 | What IdP does Planton Cloud use? | Auth0 (`planton-prod.us.auth0.com`), separate tenant from Stigmer (`stigmer-prod.us.auth0.com`). | Both use Auth0 but on separate tenants. Auth0's Custom Token Exchange (RFC 8693) could handle cross-platform auth natively, but requires Enterprise/B2B Pro plan (not currently available). Using custom JWT signing instead — Planton Cloud signs its own JWTs with a self-managed key pair. |
+| 1 | What IdP does Planton use? | Auth0 (`planton-prod.us.auth0.com`), separate tenant from Stigmer (`stigmer-prod.us.auth0.com`). | Both use Auth0 but on separate tenants. Auth0's Custom Token Exchange (RFC 8693) could handle cross-platform auth natively, but requires Enterprise/B2B Pro plan (not currently available). Using custom JWT signing instead — Planton signs its own JWTs with a self-managed key pair. |
 | 2 | Should platform-managed orgs be visible? | Yes, fully visible. | Same entity type as all orgs. Access control via FGA, not visibility filtering. |
 | 3 | Naming convention for org slugs? | No prefix. First-come-first-served. Availability-checked. | Industry standard (GitHub, Heroku). Prefix creates second-class citizens and leaks integration details. |
 | 4 | Should users see Stigmer branding? | Yes, default Stigmer. No white-label. | White-labeling is scope creep. API responses carry no branding. UI shows Stigmer if directly accessed. |
@@ -467,9 +467,9 @@ The Session 1 concern that "forwarding Auth0 tokens is a confused deputy vulnera
 - [ ] Build `stigmer-proxy-sdk` Go library (token exchange client, gRPC forwarding, user/org extraction, interceptor hooks)
 - [ ] Build pre-built Docker image (SDK with zero interceptors for internal-only deployments)
 
-**Planton Cloud side**:
+**Planton side**:
 - [ ] Write proxy program (~20 lines Go: import SDK, add authz interceptor, start server)
-- [ ] Deploy proxy as internal service behind Planton Cloud's API gateway
+- [ ] Deploy proxy as internal service behind Planton's API gateway
 - [ ] Integration testing end-to-end
 
 #### Phase 3: Organization Lifecycle Sync (unchanged from above)

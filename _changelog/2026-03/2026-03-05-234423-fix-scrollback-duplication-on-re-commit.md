@@ -14,7 +14,7 @@ When the session header was re-committed — triggered by the async subject reso
 
 - Every re-commit produced a full copy of all previous content in scrollback
 - The branded header panel rendered twice: once without Subject, once with Subject
-- External script output ("Resolved version: v1.0.13", "=== Planton Cloud McpServer Onboarding ===") appeared as raw text between the headers instead of being contained within the panel
+- External script output ("Resolved version: v1.0.13", "=== Planton McpServer Onboarding ===") appeared as raw text between the headers instead of being contained within the panel
 - For sessions with many tool calls, scrolling up showed the history 2-3 times
 
 ## Solution
@@ -45,7 +45,7 @@ This is atomic within a single Bubbletea event-loop tick — no race condition.
 
 ### Onboarding script cleanup (`00_onboard-planton-mcp-server.sh`)
 
-Removed the `echo "Resolved version: ${LATEST_TAG}"` and the `=== Planton Cloud McpServer Onboarding ===` banner block. The `LATEST_TAG` variable is still resolved and used in the message template passed to `stigmer draft mcp-server` — only the terminal echo output was removed.
+Removed the `echo "Resolved version: ${LATEST_TAG}"` and the `=== Planton McpServer Onboarding ===` banner block. The `LATEST_TAG` variable is still resolved and used in the message template passed to `stigmer draft mcp-server` — only the terminal echo output was removed.
 
 ## Benefits
 

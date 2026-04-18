@@ -17,7 +17,7 @@ When an agent called an MCP tool like `get_mcp_server` and the backend returned 
 5. LangGraph `ToolNode` only catches `ToolInvocationError` (pydantic) -- `RuntimeError` propagates
 6. `execute_graphton.py` top-level handler sets `EXECUTION_FAILED`
 
-A "resource not found" is an expected operational outcome, not a system error. The agent was checking whether an MCP server named "planton-cloud" existed -- it did not, and that is valid information the LLM needs to proceed with creating it. Instead, the session died.
+A "resource not found" is an expected operational outcome, not a system error. The agent was checking whether an MCP server named "planton" existed -- it did not, and that is valid information the LLM needs to proceed with creating it. Instead, the session died.
 
 ### Pain Points
 

@@ -351,7 +351,7 @@ func TestRenderExpanded_Unknown_Error(t *testing.T) {
 func TestRenderExpanded_Unknown_WithServerName(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:       "search",
-		ServerName: "planton-cloud",
+		ServerName: "planton",
 		Args:       map[string]interface{}{"query": "test"},
 		Status:     "completed",
 		Result:     "result line 1\nresult line 2",
@@ -359,7 +359,7 @@ func TestRenderExpanded_Unknown_WithServerName(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderExpanded(tc, opts)
-	assertContains(t, got, "planton-cloud/search")
+	assertContains(t, got, "planton/search")
 	assertContains(t, got, "result line 1")
 	assertContains(t, got, "result line 2")
 }

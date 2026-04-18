@@ -45,7 +45,7 @@ You do NOT need to build a proto-to-MCP generator from scratch. The ecosystem ha
 - Covers: tool definitions, JSON Schema input, gRPC client forwarding, response serialization
 - Integrates with Buf pipeline (add to `buf.gen.yaml`)
 - Replaces ~120-230 lines of hand-written boilerplate per resource domain
-- Currently targets `mcp-go` (Planton Cloud compatible today; Stigmer needs minor SDK adjustment)
+- Currently targets `mcp-go` (Planton compatible today; Stigmer needs minor SDK adjustment)
 
 ### Track 2: Build a thin layer for resource URI templates (if needed)
 
@@ -65,7 +65,7 @@ You do NOT need to build a proto-to-MCP generator from scratch. The ecosystem ha
 
 | Product | Immediate Action |
 |---|---|
-| Planton Cloud | Drop-in: already uses `mcp-go`. Add plugin to Buf pipeline, replace hand-written domains. |
+| Planton | Drop-in: already uses `mcp-go`. Add plugin to Buf pipeline, replace hand-written domains. |
 | Stigmer | Evaluate SDK swap to `mcp-go`, or keep custom server for search/URI enrichment and use generated code for get/apply/delete tools. |
 | Future products | Zero per-product MCP work once plugin is in Buf pipeline. |
 

@@ -28,7 +28,7 @@ isProject: false
 
 ```mermaid
 flowchart TD
-    A["Agent calls get_mcp_server\n(check if planton-cloud exists)"] --> B["Go MCP server makes\ngRPC call to backend"]
+    A["Agent calls get_mcp_server\n(check if planton exists)"] --> B["Go MCP server makes\ngRPC call to backend"]
     B --> C["Backend returns\ngRPC NotFound"]
     C --> D["MCP server returns\nCallToolResult isError=true"]
     D --> E["langchain_mcp_adapters\nraises ToolException"]
@@ -56,7 +56,7 @@ On **Feb 24** ([changelog](backend/libs/python/graphton/src/graphton/core/tool_w
 
 ### Why This is Architecturally Wrong
 
-A "resource not found" from `get_mcp_server` is an **expected operational outcome**, not a system error. The agent was checking whether an MCP server named "planton-cloud" already exists on the platform -- it does not, and that is perfectly valid information the agent needs to proceed with creating it. This is the equivalent of `ls` returning "file not found" -- the LLM should receive that information and decide what to do next.
+A "resource not found" from `get_mcp_server` is an **expected operational outcome**, not a system error. The agent was checking whether an MCP server named "planton" already exists on the platform -- it does not, and that is perfectly valid information the agent needs to proceed with creating it. This is the equivalent of `ls` returning "file not found" -- the LLM should receive that information and decide what to do next.
 
 The correct pattern already exists in two places in the codebase:
 
@@ -129,7 +129,7 @@ Update the docstrings for `create_tool_wrapper` and `create_approval_aware_tool_
 
 ## Secondary Architectural Observation (Not in Scope, but Flagged)
 
-The Go MCP server (`mcp-server-planton`) sets `isError=true` in the `CallToolResult` for gRPC `NotFound`. Under the MCP specification, `isError` means "the tool failed to execute." A NotFound is a valid, successful execution that returned informational content ("this resource does not exist"). The MCP server should arguably return `isError=false` with a content message like `"McpServer 'planton-cloud' not found in org 'default'."` This is analogous to HTTP: a 404 is a valid response, not a server error.
+The Go MCP server (`mcp-server-planton`) sets `isError=true` in the `CallToolResult` for gRPC `NotFound`. Under the MCP specification, `isError` means "the tool failed to execute." A NotFound is a valid, successful execution that returned informational content ("this resource does not exist"). The MCP server should arguably return `isError=false` with a content message like `"McpServer 'planton' not found in org 'default'."` This is analogous to HTTP: a 404 is a valid response, not a server error.
 
 However, this is in a different repository and is a separate concern. The agent runner fix above makes the system resilient regardless of MCP server behavior -- which is the correct defensive posture.
 

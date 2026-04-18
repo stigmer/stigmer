@@ -63,12 +63,12 @@ class TestApprovalRequirement:
         req = ApprovalRequirement(
             requires_approval=True,
             message="This is dangerous",
-            mcp_server="planton-cloud",
+            mcp_server="planton",
             source="mcp_default",
         )
         assert req.requires_approval is True
         assert req.message == "This is dangerous"
-        assert req.mcp_server == "planton-cloud"
+        assert req.mcp_server == "planton"
         assert req.source == "mcp_default"
 
 

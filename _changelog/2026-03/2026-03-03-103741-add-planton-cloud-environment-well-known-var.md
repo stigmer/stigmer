@@ -4,11 +4,11 @@
 
 ## Summary
 
-Added `PLANTON_CLOUD_ENVIRONMENT` to the CLI's well-known environment variable registry so that MCP servers requiring a Planton Cloud environment name get it auto-resolved without user intervention. The value is read from `~/.planton/config.yaml` (the Planton CLI's local config) and defaults to `"production"` when absent.
+Added `PLANTON_CLOUD_ENVIRONMENT` to the CLI's well-known environment variable registry so that MCP servers requiring a Planton environment name get it auto-resolved without user intervention. The value is read from `~/.planton/config.yaml` (the Planton CLI's local config) and defaults to `"production"` when absent.
 
 ## Problem Statement
 
-MCP servers that integrate with Planton Cloud (e.g., the `planton-cloud` MCP server) declare `PLANTON_CLOUD_ENVIRONMENT` in their `env_spec`. Without auto-resolution, users had to manually supply `PLANTON_CLOUD_ENVIRONMENT=<value>` every time they ran `stigmer discover` or `stigmer run` — friction that the well-known variable system was designed to eliminate.
+MCP servers that integrate with Planton (e.g., the `planton` MCP server) declare `PLANTON_CLOUD_ENVIRONMENT` in their `env_spec`. Without auto-resolution, users had to manually supply `PLANTON_CLOUD_ENVIRONMENT=<value>` every time they ran `stigmer discover` or `stigmer run` — friction that the well-known variable system was designed to eliminate.
 
 ### Pain Points
 
@@ -23,14 +23,14 @@ Register `PLANTON_CLOUD_ENVIRONMENT` alongside the existing well-known variables
 ## Implementation Details
 
 - Added `"PLANTON_CLOUD_ENVIRONMENT"` to the `wellKnownVars` slice
-- Added a `case "PLANTON_CLOUD_ENVIRONMENT"` in `resolveKnownVar` dispatching to new `resolvePlantonCloudEnvironment()` function
-- `resolvePlantonCloudEnvironment()` delegates to the existing `resolvePlantonEnvironment()` helper, always returning `true` (a sensible default of `"production"` is always available)
+- Added a `case "PLANTON_CLOUD_ENVIRONMENT"` in `resolveKnownVar` dispatching to new `resolvePlantonEnvironment()` function
+- `resolvePlantonEnvironment()` delegates to the existing `resolvePlantonEnvironment()` helper, always returning `true` (a sensible default of `"production"` is always available)
 - Not added to `secretVars` — environment names are not credentials
 - Updated `ResolveEnvForDiscovery` doc comment to list the new variable
 
 ## Benefits
 
-- Zero-friction discovery and execution of Planton Cloud MCP servers
+- Zero-friction discovery and execution of Planton MCP servers
 - Consistent with existing well-known variable auto-resolution pattern
 - Shell environment still takes priority if explicitly set
 

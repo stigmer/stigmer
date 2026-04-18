@@ -150,7 +150,7 @@ def create_deep_agent(
         mcp_servers: Optional dict of raw MCP server configurations. Accepts any format
             compatible with the MCP client. Supports template variables like {{VAR_NAME}}
             for dynamic token injection at runtime.
-            Example (dynamic): {"planton-cloud": {
+            Example (dynamic): {"planton": {
                 "transport": "streamable_http",
                 "url": "https://mcp.planton.ai/",
                 "headers": {"Authorization": "Bearer {{USER_TOKEN}}"}
@@ -161,7 +161,7 @@ def create_deep_agent(
                 "headers": {"X-API-Key": "hardcoded-key-123"}
             }}
         mcp_tools: Optional dict mapping server names to lists of tool names to load.
-            Example: {"planton-cloud": ["list_organizations", "create_cloud_resource"]}
+            Example: {"planton": ["list_organizations", "create_cloud_resource"]}
             Requires mcp_servers to be provided.
         tools: Optional list of additional tools the agent can use. MCP tools will
             be added automatically if mcp_servers and mcp_tools are provided.
@@ -298,9 +298,9 @@ def create_deep_agent(
         
         >>> agent = create_deep_agent(
         ...     model="claude-sonnet-4.5",
-        ...     system_prompt="You are a Planton Cloud assistant.",
+        ...     system_prompt="You are a Planton assistant.",
         ...     mcp_servers={
-        ...         "planton-cloud": {
+        ...         "planton": {
         ...             "transport": "streamable_http",
         ...             "url": "https://mcp.planton.ai/",
         ...             "headers": {
@@ -309,7 +309,7 @@ def create_deep_agent(
         ...         }
         ...     },
         ...     mcp_tools={
-        ...         "planton-cloud": ["list_organizations", "create_cloud_resource"]
+        ...         "planton": ["list_organizations", "create_cloud_resource"]
         ...     }
         ... )
         >>> # Invoke with user token - will be substituted into {{USER_TOKEN}}

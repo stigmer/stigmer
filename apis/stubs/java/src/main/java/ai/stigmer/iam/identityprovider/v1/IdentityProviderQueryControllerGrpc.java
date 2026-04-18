@@ -220,7 +220,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
@@ -314,7 +314,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
@@ -396,7 +396,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
@@ -475,7 +475,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access
@@ -555,7 +555,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by its organization-scoped reference (org/slug).
-     * Resolves a human-readable reference like "acme/planton-cloud" to the full
+     * Resolves a human-readable reference like "acme/planton" to the full
      * IdentityProvider resource.
      * &#64;internal
      * Custom authorization in handler — checks both direct resource access

@@ -57,7 +57,7 @@ Four targeted changes across `stigmer` (proto) and `stigmer-cloud` (FGA model) t
 ## Related Work
 
 - IdentityProvider CRUD implementation (session 4) -- this cleanup refines the authorization model established there
-- Planton Cloud integration project -- IDP is the trust anchor for federated authentication
+- Planton integration project -- IDP is the trust anchor for federated authentication
 
 ---
 

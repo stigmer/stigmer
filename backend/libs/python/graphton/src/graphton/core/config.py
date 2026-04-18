@@ -53,7 +53,7 @@ class AgentConfig(BaseModel):
         ...     model="gpt-4",
         ...     system_prompt="You are a helpful assistant",
         ...     mcp_servers={
-        ...         "planton-cloud": {
+        ...         "planton": {
         ...             "transport": "streamable_http",
         ...             "url": "https://mcp.planton.ai/",
         ...             "headers": {
@@ -62,7 +62,7 @@ class AgentConfig(BaseModel):
         ...         }
         ...     },
         ...     mcp_tools={
-        ...         "planton-cloud": ["list_organizations", "create_cloud_resource"]
+        ...         "planton": ["list_organizations", "create_cloud_resource"]
         ...     }
         ... )
 

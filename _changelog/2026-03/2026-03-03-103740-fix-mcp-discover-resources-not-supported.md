@@ -8,10 +8,10 @@ Fixed `stigmer discover mcp-server` crashing with "Resources not supported" when
 
 ## Problem Statement
 
-Running `stigmer discover mcp-server planton-cloud` failed with:
+Running `stigmer discover mcp-server planton` failed with:
 
 ```
-Error: discovery failed for MCP server 'planton-cloud': failed to list resource templates:
+Error: discovery failed for MCP server 'planton': failed to list resource templates:
   calling "resources/templates/list": Resources not supported
 ```
 
@@ -19,7 +19,7 @@ Error: discovery failed for MCP server 'planton-cloud': failed to list resource 
 
 - MCP servers that only expose tools (no resources) could not be discovered at all
 - The error was confusing — it implied the server was misconfigured rather than the client being too eager
-- Blocked onboarding of any tool-only MCP server (e.g., planton-cloud)
+- Blocked onboarding of any tool-only MCP server (e.g., planton)
 
 ## Solution
 
@@ -45,7 +45,7 @@ if caps := session.InitializeResult().Capabilities; caps != nil && caps.Resource
 
 ## Benefits
 
-- Tool-only MCP servers (like planton-cloud) can now be discovered successfully
+- Tool-only MCP servers (like planton) can now be discovered successfully
 - Aligns with MCP protocol semantics — capability negotiation is respected
 - No behavior change for servers that do support resources
 

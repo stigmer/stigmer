@@ -429,7 +429,7 @@ Executed a critical architectural refactoring to move IAM policy creation compon
 
 **Problem Identified:**
 - IAM policy creation logic was embedded in `stigmer-service`
-- Should be in shared libraries (similar to Planton Cloud's api-authorization pattern)
+- Should be in shared libraries (similar to Planton's api-authorization pattern)
 - Violates separation of concerns - authorization logic should be reusable
 
 **Migration Executed:**

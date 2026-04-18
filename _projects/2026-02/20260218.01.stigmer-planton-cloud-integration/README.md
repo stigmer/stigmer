@@ -1,7 +1,7 @@
-# Project: 20260218.01.stigmer-planton-cloud-integration
+# Project: 20260218.01.stigmer-planton-integration
 
 ## Overview
-Research and design the integration architecture for Stigmer as an agent-execution provider within Planton Cloud. Both are SaaS products with their own organizations, user accounts, and authentication. This project investigates identity federation, organization synchronization, user authentication across boundaries, and whether Stigmer should remain a standalone SaaS or become an embedded/white-label service for platforms like Planton Cloud.
+Research and design the integration architecture for Stigmer as an agent-execution provider within Planton. Both are SaaS products with their own organizations, user accounts, and authentication. This project investigates identity federation, organization synchronization, user authentication across boundaries, and whether Stigmer should remain a standalone SaaS or become an embedded/white-label service for platforms like Planton.
 
 **Created**: 2026-02-18
 **Status**: Active 🟢
@@ -9,24 +9,24 @@ Research and design the integration architecture for Stigmer as an agent-executi
 ## Project Information
 
 ### Primary Goal
-Determine the right architecture and mechanisms for integrating Stigmer into Planton Cloud — covering identity/auth federation, organization mirroring, cross-platform user authentication, and Stigmer's product positioning (standalone SaaS vs embedded provider vs hybrid).
+Determine the right architecture and mechanisms for integrating Stigmer into Planton — covering identity/auth federation, organization mirroring, cross-platform user authentication, and Stigmer's product positioning (standalone SaaS vs embedded provider vs hybrid).
 
 ### Timeline
 **Target Completion**: 2-3 weeks — primarily research and architectural design, with proof-of-concept validation
 
 ### Technology Stack
-Architecture design, gRPC APIs, OAuth2/OIDC, API keys, service accounts, identity federation protocols, Stigmer platform, Planton Cloud platform
+Architecture design, gRPC APIs, OAuth2/OIDC, API keys, service accounts, identity federation protocols, Stigmer platform, Planton platform
 
 ### Project Type
 Research
 
 ### Affected Components
-Stigmer identity/auth system, Stigmer organization management, Stigmer agent execution API, Planton Cloud identity/auth system, Planton Cloud organization management, integration API layer
+Stigmer identity/auth system, Stigmer organization management, Stigmer agent execution API, Planton identity/auth system, Planton organization management, integration API layer
 
 ## Project Context
 
 ### Dependencies
-Stigmer existing auth and org management system, Planton Cloud existing auth and org management system, MCP server work (parallel project)
+Stigmer existing auth and org management system, Planton existing auth and org management system, MCP server work (parallel project)
 
 ### Success Criteria
 - Clear integration architecture documented with trade-off analysis

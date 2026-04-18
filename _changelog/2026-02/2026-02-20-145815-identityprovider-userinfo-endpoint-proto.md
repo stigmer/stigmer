@@ -4,7 +4,7 @@
 
 ## Summary
 
-Added `userinfo_endpoint` to `IdentityProviderSpec` — the OIDC-standard field name for the UserInfo endpoint URL. This completes the proto layer for Phase 1 of the Stigmer × Planton Cloud integration. The field corrects the original design note's proposed name (`userinfo_uri`) to the canonical name registered in the OIDC Discovery 1.0 specification. Documentation throughout the spec was also updated to reflect the revised Session 2 architecture.
+Added `userinfo_endpoint` to `IdentityProviderSpec` — the OIDC-standard field name for the UserInfo endpoint URL. This completes the proto layer for Phase 1 of the Stigmer × Planton integration. The field corrects the original design note's proposed name (`userinfo_uri`) to the canonical name registered in the OIDC Discovery 1.0 specification. Documentation throughout the spec was also updated to reflect the revised Session 2 architecture.
 
 ## Problem Statement
 
@@ -94,7 +94,7 @@ Issue Stigmer-native token
 - Session 1 checkpoint: `checkpoints/2026-02-19-session-1.md` — IdentityProvider proto initial design
 - Session 2 checkpoint: `checkpoints/2026-02-19-session-2.md` — Architecture revised to token exchange + Auth0 JWKS
 - Next: `stigmer-cloud` IdentityProvider CRUD implementation (controller, Temporal workflow, MongoDB repo, FGA tuples)
-- Project: `20260218.01.stigmer-planton-cloud-integration`
+- Project: `20260218.01.stigmer-planton-integration`
 
 ---
 

@@ -154,7 +154,7 @@ message ExecutionValue {
 
 **Use Case**: JIT (Just-In-Time) secret injection for B2B integrations.
 
-**Example** (Planton Cloud customer executing workflow):
+**Example** (Planton customer executing workflow):
 ```json
 {
   "CUSTOMER_API_KEY": {

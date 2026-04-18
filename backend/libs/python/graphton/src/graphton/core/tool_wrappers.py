@@ -508,7 +508,7 @@ def create_tool_wrappers_for_server(
         
     Example:
         >>> wrappers = create_tool_wrappers_for_server(
-        ...     "planton-cloud",
+        ...     "planton",
         ...     ["list_organizations", "create_cloud_resource"],
         ...     middleware
         ... )

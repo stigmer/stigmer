@@ -4,7 +4,7 @@
 
 ## Summary
 
-MCP tool calls (search, get_mcp_server, etc.) were rendered using the legacy `*`-prefixed format with `│` gutter borders, making them visually indistinguishable from sub-blocks and hiding their inputs and outputs. This overhaul gives every unknown/MCP tool the same `●` bullet compact format used by built-in tools, adds input argument display, output previews, and propagates the originating MCP server slug end-to-end so the CLI can render qualified names like `planton-cloud/search`.
+MCP tool calls (search, get_mcp_server, etc.) were rendered using the legacy `*`-prefixed format with `│` gutter borders, making them visually indistinguishable from sub-blocks and hiding their inputs and outputs. This overhaul gives every unknown/MCP tool the same `●` bullet compact format used by built-in tools, adds input argument display, output previews, and propagates the originating MCP server slug end-to-end so the CLI can render qualified names like `planton/search`.
 
 ## Problem Statement
 
@@ -65,7 +65,7 @@ Existing approval tests updated in `render_approval_test.go` to reflect the new 
 - **Visual consistency**: MCP tools now share the same `●` bullet compact format as built-in tools, eliminating the nesting confusion
 - **Input transparency**: Users can immediately see what arguments the agent passed to each MCP tool
 - **Output visibility**: Truncated result previews show what came back, with clear error indicators for failures
-- **Server disambiguation**: Qualified `server/tool` names (e.g., `planton-cloud/search`) prevent confusion when multiple MCP servers are configured
+- **Server disambiguation**: Qualified `server/tool` names (e.g., `planton/search`) prevent confusion when multiple MCP servers are configured
 - **Forward compatibility**: The `ServerName` field and proto `mcp_server_slug` are ready for future UI features like server-colored badges
 
 ## Impact

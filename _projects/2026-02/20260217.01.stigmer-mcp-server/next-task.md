@@ -60,7 +60,7 @@ All 7 mutation tools implemented and wired. MCP server now exposes 12 tools tota
 
 The MCP server project backlog is **exhausted**. Possible follow-on work:
 
-1. **Integration with Stigmer Cloud** — project `20260218.01.stigmer-planton-cloud-integration`
+1. **Integration with Stigmer Cloud** — project `20260218.01.stigmer-planton-integration`
 2. **Proto-to-MCP codegen exploration** — research at `_projects/2026-02/20260217.01.stigmer-mcp-server/research/20260219.160000.proto-to-mcp-server-codegen/`
 3. **Smoke test against live stigmer-server** — validate apply/delete tools end-to-end against a real running backend
 4. **apply_skill via inline SKILL.md** — if backend adds a text-based skill mutation RPC

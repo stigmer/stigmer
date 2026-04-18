@@ -10,7 +10,7 @@ For Auth0-based integrators, the IdentityProvider's `jwks_uri` points directly t
 
 ## Context
 
-Session 1 proposed that Planton Cloud generate custom RSA keys, publish JWKS on GitHub Pages, and the proxy mint custom JWTs. During Session 2, we realized that with token exchange, the external JWT only goes to the exchange endpoint (not API endpoints), so using Auth0's existing JWKS is both simpler and more secure.
+Session 1 proposed that Planton generate custom RSA keys, publish JWKS on GitHub Pages, and the proxy mint custom JWTs. During Session 2, we realized that with token exchange, the external JWT only goes to the exchange endpoint (not API endpoints), so using Auth0's existing JWKS is both simpler and more secure.
 
 ## Consequences
 

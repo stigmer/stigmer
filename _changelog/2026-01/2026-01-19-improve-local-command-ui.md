@@ -17,7 +17,7 @@ stigmer local
 ...
 ```
 
-These debug logs should only appear when `--debug` flag is used, and the UI should be more sophisticated like the Planton Cloud CLI.
+These debug logs should only appear when `--debug` flag is used, and the UI should be more sophisticated like the Planton CLI.
 
 ## Solution
 
@@ -130,7 +130,7 @@ Output shows detailed debug logs in human-readable format (not JSON) plus progre
 
 ## Benefits
 
-1. **Better UX**: Clean, sophisticated UI that matches Planton Cloud CLI standards
+1. **Better UX**: Clean, sophisticated UI that matches Planton CLI standards
 2. **Debugging Support**: Detailed logs available when needed with `--debug`
 3. **Progress Visibility**: Users can see what's happening during startup
 4. **Professional Look**: Colored output with spinners and checkmarks
@@ -150,5 +150,5 @@ go build -o stigmer .
 ## Related
 
 - Uses existing `cliprint` package with bubbletea/lipgloss for UI
-- Follows patterns established in Planton Cloud CLI
+- Follows patterns established in Planton CLI
 - Maintains backward compatibility (default behavior improved, debug mode available)

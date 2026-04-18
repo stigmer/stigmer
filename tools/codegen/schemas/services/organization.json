@@ -253,7 +253,7 @@
     },
     {
       "name": "ManagementMode",
-      "description": "ManagementMode defines how an organization is operated.\n\n @internal\n Immutable after organization creation.\n - self_managed: User signed up directly, manages the org via Stigmer UI/CLI/API.\n - platform_managed: Created programmatically by an external platform (e.g., Planton Cloud)\n   via an IdentityProvider. Operated by the platform on behalf of its users.",
+      "description": "ManagementMode defines how an organization is operated.\n\n @internal\n Immutable after organization creation.\n - self_managed: User signed up directly, manages the org via Stigmer UI/CLI/API.\n - platform_managed: Created programmatically by an external platform (e.g., Planton)\n   via an IdentityProvider. Operated by the platform on behalf of its users.",
       "protoType": "ai.stigmer.tenancy.organization.v1.ManagementMode",
       "values": [
         {

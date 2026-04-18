@@ -8,11 +8,11 @@ Core schema reference for the `iam.stigmer.ai/v1` IdentityProvider resource. For
 apiVersion: iam.stigmer.ai/v1
 kind: IdentityProvider
 metadata:
-  name: Planton Cloud
-  slug: planton-cloud
+  name: Planton
+  slug: planton
   org: planton
 spec:
-  display_name: "Planton Cloud"
+  display_name: "Planton"
   jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
   allowed_issuers:
     - "https://planton-prod.us.auth0.com/"
@@ -36,7 +36,7 @@ status: {}  # System-managed, never set by users
 
 | Field | Required | Description |
 |---|---|---|
-| `metadata.name` | Yes | Human-readable name (e.g., `Planton Cloud`). Used in UI and audit logs. |
+| `metadata.name` | Yes | Human-readable name (e.g., `Planton`). Used in UI and audit logs. |
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter. |
 | `metadata.id` | No | System-generated unique identifier (prefix `idp-`). Never set by users. |
 | `metadata.org` | Yes | Organization that owns this identity provider. All federated accounts created via this provider are associated with this org. |
@@ -79,7 +79,7 @@ stigmer identity-provider update idp.yaml
 stigmer identity-provider get idp-01ABCDEF
 
 # Get an identity provider by reference (org/slug)
-stigmer identity-provider get --org planton --slug planton-cloud
+stigmer identity-provider get --org planton --slug planton
 
 # Get as YAML
 stigmer identity-provider get idp-01ABCDEF --output yaml

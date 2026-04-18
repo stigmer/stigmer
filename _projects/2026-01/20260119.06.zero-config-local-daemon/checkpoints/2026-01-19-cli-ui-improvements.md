@@ -80,7 +80,7 @@ Temporal UI: http://localhost:8233
 
 ### Benefits
 
-1. **Professional UX**: Matches Planton Cloud CLI standards
+1. **Professional UX**: Matches Planton CLI standards
 2. **Debug Support**: Detailed logs available with `--debug`
 3. **Progress Visibility**: Users see startup phases
 4. **Clean Output**: No JSON noise in normal mode

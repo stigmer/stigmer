@@ -9,7 +9,7 @@
 
 ## Context
 
-We currently hand-write ~120-230 lines of Go code per MCP resource domain (tools.go, fetch.go, resources.go) following an identical pattern across Stigmer and Planton Cloud MCP servers. This project creates a **manifest-driven code generator** that eliminates that boilerplate while preserving **curated tool surfaces** — you explicitly declare which tools to expose, with what names and descriptions, rather than dumping every gRPC RPC as a tool.
+We currently hand-write ~120-230 lines of Go code per MCP resource domain (tools.go, fetch.go, resources.go) following an identical pattern across Stigmer and Planton MCP servers. This project creates a **manifest-driven code generator** that eliminates that boilerplate while preserving **curated tool surfaces** — you explicitly declare which tools to expose, with what names and descriptions, rather than dumping every gRPC RPC as a tool.
 
 ### Why Not Use protoc-gen-go-mcp?
 
@@ -152,10 +152,10 @@ cmd/mcp-server-codegen/
 - Fix any discrepancies
 - Integration: add `go generate` command to Stigmer MCP server Makefile
 
-### T07: Planton Cloud Manifest (stretch)
-- Create manifest for Planton Cloud MCP server
+### T07: Planton Manifest (stretch)
+- Create manifest for Planton MCP server
 - Validate generator handles Planton's different patterns
-- This assumes Planton Cloud has migrated to official go-sdk first
+- This assumes Planton has migrated to official go-sdk first
 
 ## Design Decisions to Confirm
 

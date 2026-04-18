@@ -17,7 +17,7 @@ Originally proposed a config-only Docker image (deploy + set env vars). A critic
 - Custom authorization interceptors prevent org spoofing
 - Industry-validated pattern (Temporal SDK, gRPC-Go middleware, Connect-Go, Express.js)
 - Pre-built Docker image available for internal-only deployments (behind existing authz layer)
-- Language lock-in to Go (acceptable for Planton Cloud; multi-language SDKs can come later)
+- Language lock-in to Go (acceptable for Planton; multi-language SDKs can come later)
 
 ## Example
 

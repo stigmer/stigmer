@@ -21,7 +21,7 @@ The workflow-runner now uses **Bazel build** following the same pattern as other
      - Integration with OCI image rules
 
 3. **Reference Implementation**:
-   - Planton Cloud monorepo has Go services with Bazel
+   - Planton monorepo has Go services with Bazel
    - project-planton CLI uses `rules_go` + `gazelle`
    - Proven pattern we can follow
 
@@ -142,7 +142,7 @@ The workflow-runner now uses **Bazel build** following the same pattern as other
 - ✅ **Dependency caching** for faster builds
 - ✅ **Same CI/CD pipeline** as stigmer-service
 - ✅ **OCI image rules** for container packaging
-- ✅ **Proven pattern** from Planton Cloud repositories
+- ✅ **Proven pattern** from Planton repositories
 
 The Dockerfile is kept for local development convenience, but production builds use Bazel.
 

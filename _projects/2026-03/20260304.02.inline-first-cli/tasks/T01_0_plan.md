@@ -172,7 +172,7 @@ open the file with one click if they want to see the content. Claude Code proves
 single grouped display:
 ```
 ● Read 6 files
-    README.md, stigmer.yaml, planton-cloud.yaml, ...       (ctrl+e to expand)
+    README.md, stigmer.yaml, planton.yaml, ...       (ctrl+e to expand)
 ```
 
 On expand (ctrl+e), show individual reads:
@@ -180,7 +180,7 @@ On expand (ctrl+e), show individual reads:
 ● Read 6 files
     README.md — 77 lines
     stigmer.yaml — 12 lines
-    planton-cloud.yaml — 112 lines
+    planton.yaml — 112 lines
     onboard-planton-mcp-server.sh — 125 lines
     generate-approval-policy.sh — 80 lines
     README.md — 83 lines
@@ -198,7 +198,7 @@ On expand (ctrl+e), show individual reads:
   ● Read 6 files
       README.md — 77 lines
       stigmer.yaml — 12 lines
-      planton-cloud.yaml — 112 lines
+      planton.yaml — 112 lines
       onboard-planton-mcp-server.sh — 125 lines
       generate-approval-policy.sh — 80 lines
       README.md — 83 lines

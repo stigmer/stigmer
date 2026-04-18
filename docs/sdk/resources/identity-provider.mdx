@@ -12,11 +12,11 @@ token exchange and enables federated identity provisioning.
 apiVersion: iam.stigmer.ai/v1
 kind: IdentityProvider
 metadata:
-  name: Planton Cloud
-  slug: planton-cloud
+  name: Planton
+  slug: planton
   org: planton
 spec:
-  display_name: "Planton Cloud"
+  display_name: "Planton"
   jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
   allowed_issuers: ["https://planton-prod.us.auth0.com/"]
   expected_audience: "https://api.planton.ai/"
@@ -100,7 +100,7 @@ IdentityProvider identityProvider = client.identityProviders().get(id);
 
 Get an identity provider by its organization-scoped reference (org/slug).
 
-Resolves a human-readable reference like "acme/planton-cloud" to the full IdentityProvider resource.
+Resolves a human-readable reference like "acme/planton" to the full IdentityProvider resource.
 
 <SDKTabs>
 <Tab value="TypeScript">

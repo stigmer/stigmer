@@ -81,7 +81,7 @@ The agent domain has comprehensive conversion tests (`[agents/convert_test.go](m
 
 ## Issue 5: Dirty working tree has unrelated changes
 
-The working tree has uncommitted changes from a different project (`stigmer-planton-cloud-integration`) plus tracked binaries (`generator`, `proto2schema`). These should not be included in any T05 commits.
+The working tree has uncommitted changes from a different project (`stigmer-planton-integration`) plus tracked binaries (`generator`, `proto2schema`). These should not be included in any T05 commits.
 
 ---
 

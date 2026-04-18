@@ -26,7 +26,7 @@ const (
 // @internal
 // Immutable after organization creation.
 //   - self_managed: User signed up directly, manages the org via Stigmer UI/CLI/API.
-//   - platform_managed: Created programmatically by an external platform (e.g., Planton Cloud)
+//   - platform_managed: Created programmatically by an external platform (e.g., Planton)
 //     via an IdentityProvider. Operated by the platform on behalf of its users.
 type ManagementMode int32
 

@@ -20,13 +20,13 @@ The Stigmer Community Discord launched with no operational tooling — no struct
 
 ## Solution
 
-Two complementary Cursor action rules that together manage the full community interaction lifecycle, backed by a Discord bot for API access and Planton Cloud for secret management.
+Two complementary Cursor action rules that together manage the full community interaction lifecycle, backed by a Discord bot for API access and Planton for secret management.
 
 ## Implementation Details
 
 ### Discord Community Health Rule (`@discord-community-health`)
 
-- Fetches Discord bot credentials from Planton Cloud MCP at runtime (secrets group: `discord-bot`)
+- Fetches Discord bot credentials from Planton MCP at runtime (secrets group: `discord-bot`)
 - Scans `#general` and `#show-and-tell` for unanswered community messages
 - Classifies messages (bug, feature, integration/SDK, general) and tags them with reaction emojis (bug: bug, feature: lightbulb, SDK: plug, acknowledged: eyes)
 - Cross-references GitHub issue links in messages to check issue state

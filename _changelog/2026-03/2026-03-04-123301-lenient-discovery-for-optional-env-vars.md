@@ -33,7 +33,7 @@ No proto changes were needed — the `is_secret` field already existed on `Envir
 
 ## Benefits
 
-- MCP servers with optional configuration variables (like Planton Cloud's endpoint override) are now discoverable out of the box with just a credential.
+- MCP servers with optional configuration variables (like Planton's endpoint override) are now discoverable out of the box with just a credential.
 - Clearer separation of concerns: credentials block, configuration doesn't.
 - Zero breaking changes — servers that only declare secret env vars behave identically to before.
 
@@ -44,7 +44,7 @@ No proto changes were needed — the `is_secret` field already existed on `Envir
 
 ## Related Work
 
-- [Add Planton Cloud environment well-known var](2026-03-03-103741-add-planton-cloud-environment-well-known-var.md) — added `PLANTON_CLOUD_ENVIRONMENT` to well-known vars.
+- [Add Planton environment well-known var](2026-03-03-103741-add-planton-environment-well-known-var.md) — added `PLANTON_CLOUD_ENVIRONMENT` to well-known vars.
 - [Add --env flag to discover mcp-server](2026-03-03-103119-add-env-flag-to-discover-mcp-server.md) — manual discovery with explicit env overrides.
 
 ---

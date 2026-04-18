@@ -47,7 +47,7 @@ Created a three-file proto-level docs folder (`apis/ai/stigmer/agentic/execution
 - Minimal single non-secret value
 - Single secret value
 - Mixed secrets and plain config
-- B2B runtime injection (Planton Cloud integration pattern)
+- B2B runtime injection (Planton integration pattern)
 - Merged result from multiple Environments (showing left-to-right override behavior)
 - WorkflowExecution context (`execution_id` from a `wex_` ID)
 - Runner lookup pseudocode (`getByExecutionId` pattern)
@@ -71,7 +71,7 @@ Follows the exact structure of `what-is-agent-execution.md` and `what-is-environ
 ## Benefits
 
 - New team members and integration partners can understand ExecutionContext's role, lifecycle, and relationship to Environment without reading proto files
-- The B2B runtime injection use case (Planton Cloud and similar) is now documented with an example
+- The B2B runtime injection use case (Planton and similar) is now documented with an example
 - The operator-only authorization model and its security rationale (`getByExecutionId` is the only decryption point) are clearly explained
 - `status.resolved_context.environment_keys` on AgentExecution is connected back to ExecutionContext, completing the user-visible audit trail story
 

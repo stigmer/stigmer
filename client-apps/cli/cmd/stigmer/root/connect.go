@@ -63,7 +63,7 @@ ENVIRONMENT VARIABLES:
   stigmer connect mcp-server stigmer/mcp-server-stigmer
 
   # Pass required credentials via --env
-  stigmer connect mcp-server planton-cloud --env PLANTON_API_KEY=pk-xxx
+  stigmer connect mcp-server planton --env PLANTON_API_KEY=pk-xxx
 
   # Multiple env vars
   stigmer connect mcp-server my-server --env GITHUB_TOKEN=ghp-xxx --env API_URL=https://...

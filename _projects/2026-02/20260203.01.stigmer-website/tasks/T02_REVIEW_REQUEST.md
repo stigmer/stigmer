@@ -18,7 +18,7 @@ I've translated your voice note insights into a comprehensive content overhaul p
 ## What I Captured from Your Voice Note
 
 ### Your Core Realization
-> "Building agents is nothing but configurations to be given... Planton Cloud should not worry about how agent creation should work. I should simplify agent creation."
+> "Building agents is nothing but configurations to be given... Planton should not worry about how agent creation should work. I should simplify agent creation."
 
 **Translation**: 80% of agent building is infrastructure plumbing. Stigmer solves that so developers can focus on agent logic.
 
@@ -94,17 +94,17 @@ Review and approve/modify:
 - [ ] **Headline**: "Build Agents Without Fighting Infrastructure"
   - Alternative if too long: "Build Agents, Not Infrastructure"
   
-- [ ] **Evolution Story**: v1→v5 table inclusion (shows Planton Cloud learnings)
+- [ ] **Evolution Story**: v1→v5 table inclusion (shows Planton learnings)
   - Concern: Could feel like chest-thumping?
   - Mitigation: Humble tone ("We learned by building")
   
-- [ ] **Planton Cloud Mentions**: Currently moderate prominence
+- [ ] **Planton Mentions**: Currently moderate prominence
   - Increase? Add case study section?
   - Decrease? Keep as subtle proof points?
   
 - [ ] **Tone**: "We figured it out so you don't have to"
   - Too informal?
-  - Alternative: "We spent 2 years building Planton Cloud. We learned what works."
+  - Alternative: "We spent 2 years building Planton. We learned what works."
   
 - [ ] **Logo**: Use stigmer-cloud/docs/logo.svg (95×96px, gradient with pattern)
   - Correct file?
@@ -141,7 +141,7 @@ Review and approve/modify:
 
 **Approve with modifications** on:
 1. **Tone**: Soften "We figured it out" to "We learned by building" (more humble)
-2. **Planton Cloud**: Keep moderate (proof point, not hero)
+2. **Planton**: Keep moderate (proof point, not hero)
 3. **Evolution Story**: Include it - this IS your credibility
 
 **Proceed as-is** on:
@@ -167,7 +167,7 @@ Review and approve/modify:
 ## Open Questions Needing Your Input
 
 1. **Logo Variants**: Do we have light/dark mode versions? Or one universal logo?
-2. **Planton Cloud Link**: Should we link to plantoncloud.com or keep it as text-only mention?
+2. **Planton Link**: Should we link to plantoncloud.com or keep it as text-only mention?
 3. **Technical Diagram**: Add architecture diagram showing Temporal/BadgerDB/gRPC stack?
 4. **Skills Platform Feature**: Should we tease "agents creating skills" as future capability?
 

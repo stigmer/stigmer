@@ -12,7 +12,7 @@ The workflow resource had systemic documentation issues across its 21 proto file
 
 ### Pain Points
 
-- Internal terminology ("Zigflow DSL", "Planton Cloud", "Temporal") leaked into SDK-facing descriptions
+- Internal terminology ("Zigflow DSL", "Planton", "Temporal") leaked into SDK-facing descriptions
 - RPC comments exposed authorization implementation details to SDK users
 - `WorkflowTaskKind` enum values had redundant name prefixes and leaked config format details
 - Message-level comments contained JSON examples, backend unmarshalling details, and architecture notes without `@internal` markers
@@ -28,7 +28,7 @@ Applied the `@internal` comment convention systematically across all three file 
 ### Phase 1: Core Resource Protos (SDK-facing, highest impact)
 
 - **api.proto**: Rewrote `Workflow` message description from vague "represents a workflow orchestration definition" to specific "defines a multi-step task orchestration with sequential, parallel, and conditional execution"; aligned field comments with agent pattern
-- **spec.proto**: Added `@internal` to `WorkflowSpec`, `WorkflowDocument`, `WorkflowTask`, `Export`, `FlowControl`; removed "Zigflow DSL", "Planton Cloud", and "kind + Struct" pattern leaks from SDK-facing text
+- **spec.proto**: Added `@internal` to `WorkflowSpec`, `WorkflowDocument`, `WorkflowTask`, `Export`, `FlowControl`; removed "Zigflow DSL", "Planton", and "kind + Struct" pattern leaks from SDK-facing text
 - **enum.proto**: Rewrote all 13 `WorkflowTaskKind` values to remove redundant `set_vars:` name prefixes and `Config: {...}` format details; moved naming conventions and config schema catalog behind `@internal`
 - **command.proto**: Added `@internal` to `apply` and `create` RPCs to hide authorization details; fixed "Create a new workflow" to "Create a workflow"
 - **query.proto**: Added resolution context to `getByReference` ("Resolves a human-readable reference like 'stigmer/deploy'...")

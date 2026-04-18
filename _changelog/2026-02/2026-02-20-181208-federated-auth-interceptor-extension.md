@@ -4,7 +4,7 @@
 
 ## Summary
 
-Implemented end-to-end federated authentication for Stigmer, enabling external platforms (like Planton Cloud) to call Stigmer's gRPC APIs using their own JWTs without a token exchange proxy. The solution validates external JWTs directly in the auth interceptor, performs JIT identity provisioning via OIDC UserInfo, and constructs compound IDP identifiers to maintain global uniqueness across identity providers.
+Implemented end-to-end federated authentication for Stigmer, enabling external platforms (like Planton) to call Stigmer's gRPC APIs using their own JWTs without a token exchange proxy. The solution validates external JWTs directly in the auth interceptor, performs JIT identity provisioning via OIDC UserInfo, and constructs compound IDP identifiers to maintain global uniqueness across identity providers.
 
 ## Problem Statement
 

@@ -152,9 +152,9 @@ Add new section: "Integrate Agents Anywhere" (or "Build Your Agent Infrastructur
 **Analysis**: Good technical specificity. But feels like a feature list.
 
 **Proposed Enhancement**:
-> "Temporal orchestration. gRPC contracts. BadgerDB persistence. Not a toy - the same stack that powers Planton Cloud in production. We didn't build Yet Another Scheduler. We use what works."
+> "Temporal orchestration. gRPC contracts. BadgerDB persistence. Not a toy - the same stack that powers Planton in production. We didn't build Yet Another Scheduler. We use what works."
 
-**Change**: Added **proof** (powers Planton Cloud) and **credibility** (we use what works, not what's trendy)
+**Change**: Added **proof** (powers Planton) and **credibility** (we use what works, not what's trendy)
 
 ---
 
@@ -181,7 +181,7 @@ Add new section: "Integrate Agents Anywhere" (or "Build Your Agent Infrastructur
 ### Test 3: Aha Moment
 
 **Current**: "YAML or SDK"  
-**Proposed**: "We spent 2 years building Planton Cloud. We figured out the hard parts. Now you get it in one command."
+**Proposed**: "We spent 2 years building Planton. We figured out the hard parts. Now you get it in one command."
 
 **Verdict**: ✅ Proposed is more compelling
 
@@ -222,7 +222,7 @@ Before executing Phase 4, validate:
 
 1. **30-Second Skim Test**: Can a developer understand "infrastructure handled for me" in 30 seconds?
    - Current: "YAML or SDK, runs locally, scales to cloud"
-   - Proposed: "Infrastructure handled, YAML→SDK progression, built by building Planton Cloud"
+   - Proposed: "Infrastructure handled, YAML→SDK progression, built by building Planton"
    - **Answer**: ✅ Proposed is clearer
 
 2. **Differentiation Test**: Why Stigmer vs LangChain/CrewAI/DIY?
@@ -237,7 +237,7 @@ Before executing Phase 4, validate:
 
 4. **Trust Test**: Why should I believe you?
    - Current: "Built on Temporal" (good tech stack)
-   - Proposed: "Built BY building Planton Cloud" (lived experience)
+   - Proposed: "Built BY building Planton" (lived experience)
    - **Answer**: ✅ Proposed is more credible
 
 ---
@@ -245,7 +245,7 @@ Before executing Phase 4, validate:
 ## Approval Checklist
 
 - [x] Founder approves headline shift (Format → Dual Value: creation + integration)
-- [x] Founder clarifies Planton Cloud (✅ don't mention - integration incomplete)
+- [x] Founder clarifies Planton (✅ don't mention - integration incomplete)
 - [x] Founder clarifies self-hosting (✅ don't mention - not available, SaaS only)
 - [x] Founder clarifies marketplace (✅ position as capability, not existing feature)
 - [x] Founder confirms logo file path (✅ found: stigmer-cloud/docs/logo.svg)

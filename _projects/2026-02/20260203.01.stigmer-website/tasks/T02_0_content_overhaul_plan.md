@@ -40,7 +40,7 @@ Stigmer provides:
 
 ## The Evolution Story (Our Credibility)
 
-This isn't theory. This is learned by building Planton Cloud:
+This isn't theory. This is learned by building Planton:
 
 | Stage | What We Built | What We Learned |
 |-------|--------------|-----------------|
@@ -83,7 +83,7 @@ Reframe features as infrastructure problems solved. Add 7th feature for integrat
 |---------------|-------|---------------------|
 | **Start Simple, Scale Naturally** | Progressive complexity | 5-line YAML agent today. Type-safe SDK when you need conditionals, loops, error handling. No migration - both work together. |
 | **One Command, Zero Config** | Runtime simplicity | `stigmer server` auto-downloads Temporal, configures BadgerDB, sets up sandboxing. No Docker, no databases, no YAML hell. |
-| **Production Infrastructure, Day One** | Battle-tested stack | Temporal orchestration. gRPC contracts. BadgerDB persistence. Not a toy - the same stack that powers Planton Cloud. |
+| **Production Infrastructure, Day One** | Battle-tested stack | Temporal orchestration. gRPC contracts. BadgerDB persistence. Not a toy - the same stack that powers Planton. |
 | **Bring Your Own AI** | No vendor lock-in | Ollama for free local dev. OpenAI/Anthropic for production. Or your own model. API key optional, not required. |
 | **Type-Safe When You Need It** | SDK power | Go/Python SDKs with full type safety. IDE autocomplete. Compile-time validation. Workflows as infrastructure code. |
 | **Truly Open Source** | No tricks | Apache 2.0. Fork it. Modify it. Run anywhere. We're not a hosted service with an "open core" trap. |
@@ -198,7 +198,7 @@ Based on "Chief Product Evangelist & Founder" role:
 ### The Narrative Framework
 1. **Hair on Fire Problem**: "Evaluating 5 agent frameworks. Building sandboxing. Configuring Temporal. You wanted to build an agent, not become a DevOps engineer."
 2. **Intellectual Insight**: "The problem isn't agent logic - it's the infrastructure around it. We realized 80% of agent building is plumbing."
-3. **Stigmer Solution (Aha!)**: "We spent 2 years building Planton Cloud. We figured out the hard parts. Now you get it in one command."
+3. **Stigmer Solution (Aha!)**: "We spent 2 years building Planton. We figured out the hard parts. Now you get it in one command."
 
 ### Tone Checklist
 - [x] Clear > Clever (no puns about "agents")
@@ -237,7 +237,7 @@ After this phase:
 ## Open Questions for Review
 
 1. **Logo File Location**: ✅ FOUND - `/Users/suresh/scm/github.com/stigmer/stigmer-cloud/docs/logo.svg` (95×96px, gradient with pattern)
-2. **Planton Cloud Mentions**: ✅ RESOLVED - Don't mention (integration incomplete)
+2. **Planton Mentions**: ✅ RESOLVED - Don't mention (integration incomplete)
 3. **Self-Hosting**: ✅ RESOLVED - Don't mention (not available yet, Stigmer Cloud only)
 4. **Marketplace**: ✅ RESOLVED - Position as capability ("you can build"), not feature ("we have")
 5. **Proto Location**: ✅ CONFIRMED - `github.com/stigmer/stigmer/apis/` folder

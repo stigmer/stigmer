@@ -34,7 +34,7 @@ Added a `--env` `StringArrayVar` flag to the discover mcp-server cobra command, 
 
 ## Impact
 
-- CLI users running `stigmer discover mcp-server` with credential-requiring servers (planton-cloud, github, etc.)
+- CLI users running `stigmer discover mcp-server` with credential-requiring servers (planton, github, etc.)
 - Zero breaking changes — shell-inherited env vars continue to work as before
 
 ---

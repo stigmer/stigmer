@@ -240,7 +240,7 @@ The repository will need a method to query resources owned by a project. This is
 ## Key Implementation Considerations
 
 1. **No Business Logic**: Repository is pure data access - reconciliation logic belongs in domain service
-2. **Idempotent Saves**: Base class uses `replaceOne()` with upsert (matches Planton Cloud pattern)
+2. **Idempotent Saves**: Base class uses `replaceOne()` with upsert (matches Planton pattern)
 3. **Proto Conversion**: Uses `JsonFormat` for protobuf <-> JSON <-> MongoDB Document
 4. **IAM Ready**: `findByIds()` method enables OpenFGA policy-filtered queries
 5. **Minimal Surface**: Only standard methods - no project-specific queries needed yet

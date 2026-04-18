@@ -257,9 +257,9 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
    * Empty for built-in sandbox tools.
    * Populated by the worker using the mcp_tools_config reverse lookup.
    *
-   * Examples: "planton-cloud", "github", "slack"
+   * Examples: "planton", "github", "slack"
    *
-   * Used by CLI/UI to render a qualified tool name (e.g., "planton-cloud/search")
+   * Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
    * so users can distinguish tools with the same name from different servers.
    *
    * @generated from field: string mcp_server_slug = 17;

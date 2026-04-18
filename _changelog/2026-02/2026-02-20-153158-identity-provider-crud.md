@@ -5,9 +5,9 @@
 ## Summary
 
 Implemented the full CRUD backend for `IdentityProvider`, the new first-class API resource that
-enables external platforms (e.g., Planton Cloud) to establish a trust relationship with Stigmer.
+enables external platforms (e.g., Planton) to establish a trust relationship with Stigmer.
 This is the foundational layer for token exchange, federated identity provisioning, and
-platform-managed organizations — the core of the Stigmer × Planton Cloud integration.
+platform-managed organizations — the core of the Stigmer × Planton integration.
 
 The work spans both repositories: a proto cleanup in `stigmer` (removing a premature lifecycle
 state enum) and a complete domain implementation in `stigmer-cloud` (FGA model, repository,
@@ -15,7 +15,7 @@ gRPC routing, and six CRUD handlers).
 
 ## Problem Statement
 
-Phase 1 of the Stigmer × Planton Cloud integration required a concrete implementation path for
+Phase 1 of the Stigmer × Planton integration required a concrete implementation path for
 the `IdentityProvider` resource, which had been defined at the proto level in a prior session
 but had no backend implementation.
 
@@ -104,7 +104,7 @@ are unrelated to this work.
 
 ## Benefits
 
-- **Unblocks Phase 1** of the Stigmer × Planton Cloud integration. IdentityProvider CRUD is
+- **Unblocks Phase 1** of the Stigmer × Planton integration. IdentityProvider CRUD is
   the prerequisite for the token exchange endpoint and JIT identity provisioning.
 - **Zero technical debt** — no premature lifecycle state management, no unnecessary abstractions,
   no missing data integrity guards.

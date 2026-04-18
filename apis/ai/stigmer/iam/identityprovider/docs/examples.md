@@ -10,11 +10,11 @@ The most common setup: an external platform uses Auth0 as its identity backend.
 apiVersion: iam.stigmer.ai/v1
 kind: IdentityProvider
 metadata:
-  name: Planton Cloud
-  slug: planton-cloud
+  name: Planton
+  slug: planton
   org: planton
 spec:
-  display_name: "Planton Cloud"
+  display_name: "Planton"
   jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
   allowed_issuers:
     - "https://planton-prod.us.auth0.com/"
@@ -30,11 +30,11 @@ Support tokens from both staging and production Auth0 tenants using the same Ide
 apiVersion: iam.stigmer.ai/v1
 kind: IdentityProvider
 metadata:
-  name: Planton Cloud (All Environments)
-  slug: planton-cloud
+  name: Planton (All Environments)
+  slug: planton
   org: planton
 spec:
-  display_name: "Planton Cloud"
+  display_name: "Planton"
   jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
   allowed_issuers:
     - "https://planton-prod.us.auth0.com/"
@@ -70,10 +70,10 @@ spec:
 stigmer identity-provider apply planton-idp.yaml
 
 # Output on first apply (create):
-# Created: IdentityProvider idp-01ABCDEF (planton/planton-cloud)
+# Created: IdentityProvider idp-01ABCDEF (planton/planton)
 
 # Output on subsequent apply (update):
-# Updated: IdentityProvider idp-01ABCDEF (planton/planton-cloud)
+# Updated: IdentityProvider idp-01ABCDEF (planton/planton)
 ```
 
 ## CLI: Create
@@ -91,11 +91,11 @@ apiVersion: iam.stigmer.ai/v1
 kind: IdentityProvider
 metadata:
   id: idp-01ABCDEF
-  name: Planton Cloud
-  slug: planton-cloud
+  name: Planton
+  slug: planton
   org: planton
 spec:
-  display_name: "Planton Cloud"
+  display_name: "Planton"
   jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
   allowed_issuers:
     - "https://planton-prod.us.auth0.com/"
@@ -111,7 +111,7 @@ stigmer identity-provider update updated-idp.yaml
 
 ```bash
 # By org and slug (does not require the ID)
-stigmer identity-provider get --org planton --slug planton-cloud
+stigmer identity-provider get --org planton --slug planton
 ```
 
 ## CLI: Delete

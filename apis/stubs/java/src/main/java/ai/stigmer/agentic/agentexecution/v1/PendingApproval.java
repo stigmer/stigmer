@@ -430,7 +430,7 @@ private static final long serialVersionUID = 0L;
    * structured argument previews (scalar grids, humanized names)
    * instead of falling back to raw JSON.
    *
-   * Examples: "planton-cloud", "github", "slack"
+   * Examples: "planton", "github", "slack"
    * </pre>
    *
    * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -459,7 +459,7 @@ private static final long serialVersionUID = 0L;
    * structured argument previews (scalar grids, humanized names)
    * instead of falling back to raw JSON.
    *
-   * Examples: "planton-cloud", "github", "slack"
+   * Examples: "planton", "github", "slack"
    * </pre>
    *
    * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -1755,7 +1755,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton-cloud", "github", "slack"
+     * Examples: "planton", "github", "slack"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -1783,7 +1783,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton-cloud", "github", "slack"
+     * Examples: "planton", "github", "slack"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -1812,7 +1812,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton-cloud", "github", "slack"
+     * Examples: "planton", "github", "slack"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -1837,7 +1837,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton-cloud", "github", "slack"
+     * Examples: "planton", "github", "slack"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -1859,7 +1859,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton-cloud", "github", "slack"
+     * Examples: "planton", "github", "slack"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>

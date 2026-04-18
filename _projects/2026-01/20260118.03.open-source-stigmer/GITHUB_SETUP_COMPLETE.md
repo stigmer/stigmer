@@ -219,10 +219,10 @@ Organization admins can:
 
 ## Integration Points
 
-### PlantonCloud
+### Planton
 
-- No GitHub Actions workflows added (using PlantonCloud for CI/CD)
-- Repository webhook can be configured in PlantonCloud
+- No GitHub Actions workflows added (using Planton for CI/CD)
+- Repository webhook can be configured in Planton
 
 ### Future Integrations
 
@@ -298,4 +298,4 @@ The GitHub repository is now **fully configured** for open source development:
 1. Continue with Phase 2 implementation
 2. Consider enabling GitHub Discussions
 3. Add SECURITY.md when ready
-4. Configure PlantonCloud integration for CI/CD
+4. Configure Planton integration for CI/CD

@@ -71,9 +71,9 @@ All 7 proto source files removed.
 
 ### Project Documentation Updated
 
-- `_projects/2026-02/20260218.01.stigmer-planton-cloud-integration/next-task.md`
-- `_projects/2026-02/20260218.01.stigmer-planton-cloud-integration/checkpoints/2026-02-19-session-1.md`
-- `_projects/2026-02/20260218.01.stigmer-planton-cloud-integration/tasks/T01_0_plan.md`
+- `_projects/2026-02/20260218.01.stigmer-planton-integration/next-task.md`
+- `_projects/2026-02/20260218.01.stigmer-planton-integration/checkpoints/2026-02-19-session-1.md`
+- `_projects/2026-02/20260218.01.stigmer-planton-integration/tasks/T01_0_plan.md`
 
 ## Benefits
 
@@ -85,14 +85,14 @@ All 7 proto source files removed.
 
 ## Impact
 
-- **stigmer-cloud (Java)**: No changes required — IdentityProvider CRUD has not been implemented yet (Phase 1 of the Planton Cloud integration).
+- **stigmer-cloud (Java)**: No changes required — IdentityProvider CRUD has not been implemented yet (Phase 1 of the Planton integration).
 - **backend (Go)**: No changes required — zero references to `service_credential` or `ServiceCredential` existed in backend code.
 - **proto wire format**: Fully compatible — field numbers and enum values unchanged.
 - **Go stubs**: Regenerated clean. `ApiResourceKind_identity_provider = 21`, `GetIdentityProviderRef()` accessor generated.
 
 ## Related Work
 
-- [Planton Cloud Integration: T01 Architecture Plan](_projects/2026-02/20260218.01.stigmer-planton-cloud-integration/tasks/T01_0_plan.md) — Phase 1 context
+- [Planton Integration: T01 Architecture Plan](_projects/2026-02/20260218.01.stigmer-planton-integration/tasks/T01_0_plan.md) — Phase 1 context
 - Next: Implement `IdentityProvider` CRUD in `stigmer-cloud` (Temporal workflow, MongoDB repo, FGA tuples, gRPC controller)
 
 ---

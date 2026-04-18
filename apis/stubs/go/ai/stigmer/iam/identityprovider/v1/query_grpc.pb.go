@@ -39,7 +39,7 @@ type IdentityProviderQueryControllerClient interface {
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Get an identity provider by its organization-scoped reference (org/slug).
 	//
-	// Resolves a human-readable reference like "acme/planton-cloud" to the full
+	// Resolves a human-readable reference like "acme/planton" to the full
 	// IdentityProvider resource.
 	//
 	// @internal
@@ -130,7 +130,7 @@ type IdentityProviderQueryControllerServer interface {
 	Get(context.Context, *apiresource.ApiResourceId) (*IdentityProvider, error)
 	// Get an identity provider by its organization-scoped reference (org/slug).
 	//
-	// Resolves a human-readable reference like "acme/planton-cloud" to the full
+	// Resolves a human-readable reference like "acme/planton" to the full
 	// IdentityProvider resource.
 	//
 	// @internal

@@ -4,7 +4,7 @@
 
 ## Summary
 
-Migrated IAM policy creation components from `stigmer-service` to proper library locations (`api-authorization` and `grpc-request`), establishing reusable authorization infrastructure following the Planton Cloud pattern. This architectural refactoring separates core authorization logic from service-specific implementations, enabling any service to leverage configuration-driven FGA tuple creation.
+Migrated IAM policy creation components from `stigmer-service` to proper library locations (`api-authorization` and `grpc-request`), establishing reusable authorization infrastructure following the Planton pattern. This architectural refactoring separates core authorization logic from service-specific implementations, enabling any service to leverage configuration-driven FGA tuple creation.
 
 ## Problem Statement
 
@@ -14,7 +14,7 @@ The IAM policy creation components were embedded in `stigmer-service`, creating 
 
 - **No reusability**: Other services couldn't leverage the configuration-driven tuple creation logic
 - **Wrong layer**: Core authorization logic lived in service layer, not in shared libraries
-- **Inconsistent with platform patterns**: Planton Cloud properly separates authorization concerns
+- **Inconsistent with platform patterns**: Planton properly separates authorization concerns
 - **Testing complexity**: Service-level tests harder to maintain than library-level tests
 - **Duplication risk**: Any new service needing tuple creation would duplicate this logic
 
@@ -155,7 +155,7 @@ public class CreateAuthorizationTuplesStep {
 2. **Single source of truth**: Authorization logic centralized in libraries
 3. **Easier testing**: Library-level tests isolated from service concerns
 4. **Better separation**: Core logic separated from pipeline integration
-5. **Consistency**: Follows Planton Cloud architecture patterns
+5. **Consistency**: Follows Planton architecture patterns
 
 ### Long-term Benefits
 

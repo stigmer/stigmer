@@ -4,7 +4,7 @@
 
 ## Summary
 
-MCP tool calls rendered with bare names (e.g., `get_mcp_server`) instead of qualified `server/tool` names (e.g., `planton-cloud/get_mcp_server`) because the early tool call creation path bypassed the `mcp_server_slug` assignment. This fix propagates the slug at early creation time and backfills it during reconciliation as a safety net.
+MCP tool calls rendered with bare names (e.g., `get_mcp_server`) instead of qualified `server/tool` names (e.g., `planton/get_mcp_server`) because the early tool call creation path bypassed the `mcp_server_slug` assignment. This fix propagates the slug at early creation time and backfills it during reconciliation as a safety net.
 
 ## Problem Statement
 
@@ -12,7 +12,7 @@ The `mcp_server_slug` field was added to the `ToolCall` proto in Phase 2 of the 
 
 ### Pain Points
 
-- **Bare MCP tool names**: Users saw `get_mcp_server` instead of `planton-cloud/get_mcp_server`, losing server context
+- **Bare MCP tool names**: Users saw `get_mcp_server` instead of `planton/get_mcp_server`, losing server context
 - **Dead proto field**: `mcp_server_slug` was defined and documented but effectively unused for the dominant code path
 - **Multi-server confusion**: When multiple MCP servers expose tools, bare names are ambiguous
 
@@ -28,7 +28,7 @@ Two targeted changes in `status_builder.py` to close the data-flow gap, followin
 
 ## Benefits
 
-- **Qualified MCP tool names**: CLI now renders `planton-cloud/get_mcp_server` from the first render frame
+- **Qualified MCP tool names**: CLI now renders `planton/get_mcp_server` from the first render frame
 - **Proto field fulfills its purpose**: `mcp_server_slug` is no longer dead weight on the dominant streaming code path
 - **Multi-server clarity**: Users with multiple MCP servers can immediately see which server handles each tool call
 

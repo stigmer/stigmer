@@ -6,7 +6,7 @@
 
 ## Summary
 
-Restructured Stigmer's Go workspace to match Planton Cloud's modular architecture pattern. Previously, Stigmer had a root `go.mod` that existed solely because `stigmer-server` lacked its own module definition. This created an inconsistency with Planton's clean workspace-only approach.
+Restructured Stigmer's Go workspace to match Planton's modular architecture pattern. Previously, Stigmer had a root `go.mod` that existed solely because `stigmer-server` lacked its own module definition. This created an inconsistency with Planton's clean workspace-only approach.
 
 **Key changes**:
 - Created separate `go.mod` for `backend/libs/go` (shared libraries module)
@@ -320,7 +320,7 @@ If publishing modules externally:
 ## Related Work
 
 This change aligns with:
-- **Planton Cloud monorepo pattern** (`.cursor/rules/git/commit-planton-monorepo-changes.mdc`)
+- **Planton monorepo pattern** (`.cursor/rules/git/commit-planton-monorepo-changes.mdc`)
 - **Go workspace best practices** (Go 1.18+ workspaces)
 - **Modular build systems** (each module builds independently)
 

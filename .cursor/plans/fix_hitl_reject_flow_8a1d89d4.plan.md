@@ -175,10 +175,10 @@ Update tests that expect `ToolExecutionRejectedError` to be raised on reject. Th
 After implementation, the reject flow should produce this CLI output:
 
 ```
-Do you want to create agent-fleet/mcp-servers/planton-cloud.yaml?
+Do you want to create agent-fleet/mcp-servers/planton.yaml?
 > Reject
 
-● Write(agent-fleet/mcp-servers/planton-cloud.yaml)
+● Write(agent-fleet/mcp-servers/planton.yaml)
   └ Rejected
 
 [Agent adapts: "The user rejected the file creation. Let me ask what

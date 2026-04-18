@@ -32,7 +32,7 @@ This isn't a content refresh—it's a fundamental repositioning from **format** 
 1. **Creation Pillar**: YAML→SDK progression, infrastructure handled (sandboxing, orchestration, MCP)
 2. **Integration Pillar**: gRPC APIs, agents as microservices, platform capability
 
-The evolution story (v1→v5 building Planton Cloud) provides credibility. Public protos at `[github.com/stigmer/stigmer/apis/](github.com/stigmer/stigmer/apis/)` (119 proto files) prove no vendor lock-in.
+The evolution story (v1→v5 building Planton) provides credibility. Public protos at `[github.com/stigmer/stigmer/apis/](github.com/stigmer/stigmer/apis/)` (119 proto files) prove no vendor lock-in.
 
 **Quality Standard**: This is foundation content for a world-class platform. Every sentence must be precise, credible, and outcome-focused. No fluff, no buzzwords, no complacency.
 
@@ -165,7 +165,7 @@ Temporal orchestration. gRPC contracts. BadgerDB persistence. Not a toy—the sa
 ```
 
 **Icon**: `cpu`  
-**Change**: "Powers production systems" (honest, no Planton Cloud mention per founder guidance)
+**Change**: "Powers production systems" (honest, no Planton mention per founder guidance)
 
 ##### Feature 4: Model Flexibility (keep strong content)
 
@@ -380,7 +380,7 @@ Build agents in YAML or Go/Python SDKs—Stigmer handles sandboxing, orchestrati
 
 ### What NOT to Mention (Founder Guidance)
 
-- ❌ Planton Cloud (integration incomplete)
+- ❌ Planton (integration incomplete)
 - ❌ Self-hosting (not available yet, SaaS only)
 - ❌ "Stigmer marketplace" (doesn't exist—say "you can build marketplaces")
 - ❌ "Proven at scale" (no public proof points yet)
@@ -478,7 +478,7 @@ Build agents in YAML or Go/Python SDKs—Stigmer handles sandboxing, orchestrati
 This is foundation content for a world-class platform. Every sentence has been reviewed against:
 
 - The approved strategic messaging (dual-pillar: creation + integration)
-- The evolution story credibility (v1→v5 building Planton Cloud)
+- The evolution story credibility (v1→v5 building Planton)
 - The voice framework (Chief Product Evangelist: Hair on Fire → Insight → Aha!)
 - The technical reality (119 protos, specific stack, honest limitations)
 

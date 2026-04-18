@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Phase 1.5 successfully transformed the workflow-runner from a **file-based, single-workflow** architecture to a **runtime-input, multi-tenant** architecture using the proven dual-mode pattern from Planton Cloud's iac-runner.
+Phase 1.5 successfully transformed the workflow-runner from a **file-based, single-workflow** architecture to a **runtime-input, multi-tenant** architecture using the proven dual-mode pattern from Planton's iac-runner.
 
 ### Key Achievement
 ✅ **Multi-tenant workflow execution foundation established** - One worker pool can now execute any workflow dynamically without redeployment.
@@ -167,7 +167,7 @@ INFO Started Worker Namespace default TaskQueue stigmer-workflows
 ### 2. Runtime YAML Input
 **Decision**: Accept workflow YAML as input parameter, not from file  
 **Rationale**: Supports dynamic workflow execution without redeployment  
-**Pattern**: Follows `iac-runner` from Planton Cloud  
+**Pattern**: Follows `iac-runner` from Planton  
 **Status**: ✅ Implemented via `LoadFromString()`
 
 ### 3. Callback-Based Progress Reporting
@@ -367,7 +367,7 @@ Choose next phase based on priorities:
 - [Implementation Summary](IMPLEMENTATION-SUMMARY-PHASE-1.5.md)
 
 ### Pattern References
-- Planton Cloud `iac-runner` - Dual-mode pattern
+- Planton `iac-runner` - Dual-mode pattern
 - Stigmer callback architecture - Progress reporting
 
 ---

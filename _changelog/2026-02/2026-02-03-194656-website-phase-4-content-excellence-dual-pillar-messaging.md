@@ -19,7 +19,7 @@ The current website messaging focused on **format** (YAML/SDK) rather than **val
 - **Incomplete journey**: No clear path from creation → testing → integration → scaling
 - **Weak proof points**: Lacked specific, verifiable claims (proto counts, time savings)
 
-The approved strategic direction (from task files T02_0, T02_1, T02_2) established dual-pillar messaging based on founder insights from building Planton Cloud.
+The approved strategic direction (from task files T02_0, T02_1, T02_2) established dual-pillar messaging based on founder insights from building Planton.
 
 ## Solution
 
@@ -145,7 +145,7 @@ Each feature rewritten with 3-part structure: Problem → Solution → Benefit
 
 - **Positioning**: From framework to platform (agents as microservices)
 - **Marketplace Opportunity**: Positioned as enabler ("you can build marketplaces")
-- **Credibility**: Evolution story (v1→v5 building Planton Cloud) shows lived experience
+- **Credibility**: Evolution story (v1→v5 building Planton) shows lived experience
 - **Technical Confidence**: Specific stack mentions (Temporal, BadgerDB, gRPC) signal production-grade
 - **Apache 2.0 Emphasis**: "Truly Open Source" feature with 119 proto count reinforces no lock-in
 
@@ -240,7 +240,7 @@ HomePage
 
 Applied founder guidance throughout:
 
-- ❌ **No Planton Cloud mention**: Integration incomplete (per founder)
+- ❌ **No Planton mention**: Integration incomplete (per founder)
 - ❌ **No self-hosting mention**: Not available yet (Stigmer Cloud only)
 - ✅ **"You can build marketplaces"**: Capability positioning, not feature claim
 - ❌ **No "proven at scale" claims**: No public proof points yet

@@ -56,7 +56,7 @@ class IdentityProviderQueryControllerServicer(object):
     def getByReference(self, request, context):
         """Get an identity provider by its organization-scoped reference (org/slug).
 
-        Resolves a human-readable reference like "acme/planton-cloud" to the full
+        Resolves a human-readable reference like "acme/planton" to the full
         IdentityProvider resource.
 
         @internal
