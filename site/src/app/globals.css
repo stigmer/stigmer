@@ -5,9 +5,6 @@
 @import "@stigmer/react/styles.css";
 @import "@scenar/react/theme.css";
 
-@source "../node_modules/fumadocs-ui/dist/**/*.js";
-@source "../node_modules/@stigmer/react/src/**/*.{ts,tsx}";
-
 /*
  * Stigmer Design System
  *
