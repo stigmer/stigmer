@@ -31,6 +31,13 @@ through your own OIDC-compatible provider (Auth0, Okta, Entra ID, AWS Cognito,
 or any custom OIDC server). You want those users to interact with Stigmer
 Agents, Sessions, and other resources without a separate Stigmer login.
 
+<Callout type="info">
+  **Don't have an OIDC provider?** Use a
+  [PlatformClient](/docs/guides/authentication/platform-client/overview)
+  instead. Your backend mints Stigmer tokens per user — no Identity Provider
+  registration or JWKS endpoint needed.
+</Callout>
+
 ## What you'll build
 
 By the end of this guide, your platform's users will call the Stigmer API using
@@ -107,24 +114,27 @@ All integration paths start with step 1. If you enable JIT provisioning in step
 
 <Cards>
   <Card
-    href="/docs/guides/federation/register-identity-provider"
+    href="/docs/guides/authentication/federation/register-identity-provider"
     title="1. Register an Identity Provider"
   >
     Create and configure the trust relationship between your auth system and
     Stigmer. Enable JIT provisioning here for automatic account and role setup.
   </Card>
   <Card
-    href="/docs/guides/federation/provision-federated-accounts"
+    href="/docs/guides/authentication/federation/provision-federated-accounts"
     title="2. Provision federated accounts"
   >
     Create Identity Accounts for your users so Stigmer can resolve their tokens.
   </Card>
-  <Card href="/docs/guides/federation/grant-access" title="3. Grant access">
+  <Card
+    href="/docs/guides/authentication/federation/grant-access"
+    title="3. Grant access"
+  >
     Assign roles to federated accounts so they can access your Organization's
     resources.
   </Card>
   <Card
-    href="/docs/guides/federation/authentication-flow"
+    href="/docs/guides/authentication/federation/authentication-flow"
     title="4. Authentication flow"
   >
     Understand the end-to-end flow from JWT presentation to authorized API
@@ -145,7 +155,10 @@ Stigmer web console through your own Identity Provider, you can enable SSO.
 Stigmer creates accounts automatically on first login and assigns a viewer role.
 
 <Cards>
-  <Card href="/docs/guides/federation/sso-login" title="Set up SSO">
+  <Card
+    href="/docs/guides/authentication/federation/sso-login"
+    title="Set up SSO"
+  >
     Enable SSO login for a self-managed Organization so team members sign in
     through your Identity Provider.
   </Card>
@@ -161,7 +174,7 @@ JWT claim.
 
 <Cards>
   <Card
-    href="/docs/guides/federation/multi-tenant-setup"
+    href="/docs/guides/authentication/federation/multi-tenant-setup"
     title="Multi-tenant platform setup"
   >
     Create platform-managed Organizations to give each of your customers

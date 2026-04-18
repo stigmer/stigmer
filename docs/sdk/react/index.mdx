@@ -69,9 +69,13 @@ API keys are secret credentials (`sk_`). Do not embed them in client-side
 JavaScript — they would be visible to anyone who opens the browser's developer
 tools.
 
-For browser apps, use `getAccessToken` to pass each user's JWT from your
-authentication provider (Auth0, Okta, Cognito, Entra ID, or any OIDC
-provider):
+For browser apps, use `getAccessToken` to return a JWT on each request. Two
+paths produce this JWT — choose the one that fits your setup:
+
+#### Identity federation
+
+Your users authenticate through their existing OIDC provider (Auth0, Okta,
+Cognito, Entra ID). The SDK sends their JWT directly to Stigmer for validation.
 
 ```tsx
 import { useMemo } from "react";
@@ -100,23 +104,67 @@ function App() {
 }
 ```
 
-The SDK calls `getAccessToken` on every request and sends the JWT as
-`Authorization: Bearer`. Stigmer validates it against your registered Identity
-Provider's JWKS endpoint.
+Stigmer validates the JWT against your registered Identity Provider's JWKS
+endpoint. Register your auth provider as an
+[Identity Provider](/docs/guides/authentication/federation/register-identity-provider)
+with JIT provisioning enabled — Stigmer creates accounts and grants roles
+automatically on first authentication.
 
-**One-time setup:** Register your auth provider as an
-[Identity Provider](/docs/guides/federation/register-identity-provider) with JIT
-provisioning enabled. Stigmer then creates accounts and grants roles
-automatically on first authentication — no per-user provisioning required.
+See the [federation guide](/docs/guides/authentication/federation/overview) for
+the full walkthrough.
 
-See the [federation guide](/docs/guides/federation/overview) for the full
-walkthrough.
+#### PlatformClient
+
+Your backend authenticates users with your own auth system, then calls Stigmer's
+`mintUserToken` endpoint to get a Stigmer-signed JWT. Your frontend fetches this
+token and passes it to `getAccessToken`.
+
+```tsx
+import { useMemo } from "react";
+import { Stigmer } from "@stigmer/sdk";
+import { StigmerProvider } from "@stigmer/react";
+import "@stigmer/react/styles.css";
+
+async function getAccessToken(): Promise<string | null> {
+  const res = await fetch("/api/stigmer-token");
+  const { accessToken } = await res.json();
+  return accessToken;
+}
+
+function App() {
+  const client = useMemo(
+    () =>
+      new Stigmer({
+        baseUrl: "https://api.stigmer.ai",
+        getAccessToken,
+      }),
+    [],
+  );
+
+  return (
+    <StigmerProvider client={client}>
+      {/* your app */}
+    </StigmerProvider>
+  );
+}
+```
+
+No OIDC provider registration or JWKS endpoint is needed. Create a
+PlatformClient in the Console, add one endpoint to your backend, and you're
+done.
+
+See the
+[PlatformClient guide](/docs/guides/authentication/platform-client/overview) for
+backend setup in TypeScript, Go, Python, and Java.
 
 <Callout type="info">
   **Which auth method should I use?** Use `apiKey` when the client runs on
   the server (SSR, backend scripts, CLI tools). Use `getAccessToken` when the
-  client runs in the browser. See
-  [SDK Overview > Authentication](/docs/sdk#authentication) for details.
+  client runs in the browser — via
+  [identity federation](/docs/guides/authentication/federation/overview) or
+  [PlatformClient](/docs/guides/authentication/platform-client/overview). See
+  the [Authentication guide](/docs/guides/authentication/overview) for help
+  choosing.
 </Callout>
 
 Any descendant component can access the SDK client with `useStigmer()`:

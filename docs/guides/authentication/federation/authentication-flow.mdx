@@ -6,13 +6,13 @@ description:
 ---
 
 Once you've
-[registered an Identity Provider](/docs/guides/federation/register-identity-provider),
+[registered an Identity Provider](/docs/guides/authentication/federation/register-identity-provider),
 your users can call the Stigmer API using JWTs from your auth system. With JIT
 provisioning, that's all you need — accounts and roles are handled
 automatically. With manual provisioning, you'll also
-[provision federated accounts](/docs/guides/federation/provision-federated-accounts)
-and [grant access](/docs/guides/federation/grant-access) before users
-authenticate. This page explains what happens at runtime regardless of
+[provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts)
+and [grant access](/docs/guides/authentication/federation/grant-access) before
+users authenticate. This page explains what happens at runtime regardless of
 provisioning mode.
 
 <DemoAuthenticationFlowPlayback />
@@ -88,10 +88,10 @@ on the Identity Provider's provisioning mode:
   appropriate Organization. The request proceeds.
 - **SSO-enabled Identity Provider** (`isSsoProvider: true`) — Stigmer creates a
   federated account and grants the **viewer** role on the Organization. See
-  [Set up SSO](/docs/guides/federation/sso-login) for details.
+  [Set up SSO](/docs/guides/authentication/federation/sso-login) for details.
 - **Manual provisioning** (neither flag set) — The request fails with
   `401 Unauthorized`. Your backend must provision the account first (see
-  [Provision federated accounts](/docs/guides/federation/provision-federated-accounts)).
+  [Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts)).
 
 **Step 8--9: Check authorization.** Stigmer checks whether the resolved Identity
 Account has an IAM Policy granting it the required permission on the target
@@ -249,7 +249,7 @@ described above. If this is the user's first login, Stigmer creates a federated
 account automatically and grants the viewer role on the Organization.
 
 For full setup instructions, see
-[Set up SSO](/docs/guides/federation/sso-login).
+[Set up SSO](/docs/guides/authentication/federation/sso-login).
 
 ## Troubleshooting checklist
 
@@ -321,19 +321,19 @@ The federation setup you've completed depends on your provisioning mode:
 
 **JIT provisioning:**
 
-| Step | What you did                                                                                           | API used                  |
-| ---- | ------------------------------------------------------------------------------------------------------ | ------------------------- |
-| 1    | [Registered an Identity Provider](/docs/guides/federation/register-identity-provider) with JIT enabled | `identityProvider.create` |
-| 2    | Understood the runtime authentication flow (this page)                                                 | ---                       |
+| Step | What you did                                                                                                          | API used                  |
+| ---- | --------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| 1    | [Registered an Identity Provider](/docs/guides/authentication/federation/register-identity-provider) with JIT enabled | `identityProvider.create` |
+| 2    | Understood the runtime authentication flow (this page)                                                                | ---                       |
 
 **Manual provisioning:**
 
-| Step | What you did                                                                                               | API used                                 |
-| ---- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 1    | [Registered an Identity Provider](/docs/guides/federation/register-identity-provider) for your auth system | `identityProvider.create`                |
-| 2    | [Provisioned federated accounts](/docs/guides/federation/provision-federated-accounts) for your users      | `identityAccount.createFederatedAccount` |
-| 3    | [Granted access](/docs/guides/federation/grant-access) via IAM Policies                                    | `iamPolicy.create`                       |
-| 4    | Understood the runtime authentication flow (this page)                                                     | ---                                      |
+| Step | What you did                                                                                                              | API used                                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1    | [Registered an Identity Provider](/docs/guides/authentication/federation/register-identity-provider) for your auth system | `identityProvider.create`                |
+| 2    | [Provisioned federated accounts](/docs/guides/authentication/federation/provision-federated-accounts) for your users      | `identityAccount.createFederatedAccount` |
+| 3    | [Granted access](/docs/guides/authentication/federation/grant-access) via IAM Policies                                    | `iamPolicy.create`                       |
+| 4    | Understood the runtime authentication flow (this page)                                                                    | ---                                      |
 
 Your platform's users can now call the Stigmer API with JWTs from your auth
 system. Stigmer validates the token, resolves the identity, checks
@@ -342,12 +342,12 @@ authorization, and processes the request.
 ## What's next
 
 - **Multi-tenant platforms** --- If your platform serves multiple customers, see
-  [Multi-tenant platform setup](/docs/guides/federation/multi-tenant-setup) for
-  creating tenant Organizations. JIT provisioning with `tenantOrgClaim` can
+  [Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup)
+  for creating tenant Organizations. JIT provisioning with `tenantOrgClaim` can
   automatically route users to their tenant Organization.
 - **Self-managed SSO** --- If your Organization is self-managed and you want
   team members to sign in through your Identity Provider, see
-  [Set up SSO](/docs/guides/federation/sso-login).
+  [Set up SSO](/docs/guides/authentication/federation/sso-login).
 - **API reference** ---
   [IdentityProvider](/docs/sdk/resources/identity-provider),
   [IdentityAccount](/docs/sdk/resources/identity-account),

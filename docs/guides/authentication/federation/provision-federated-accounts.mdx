@@ -13,7 +13,7 @@ This gives you full control over who gets access and when.
   **Using JIT provisioning?** If your Identity Provider has
   `autoProvisionAccounts` enabled, Stigmer creates accounts automatically on
   first authentication. You don't need to follow this page. See [Enable JIT
-  provisioning](/docs/guides/federation/register-identity-provider#enable-jit-provisioning)
+  provisioning](/docs/guides/authentication/federation/register-identity-provider#enable-jit-provisioning)
   for the automatic setup.
 </Callout>
 
@@ -21,7 +21,7 @@ This gives you full control over who gets access and when.
   **Self-managed SSO is different.** If your Identity Provider has SSO enabled,
   Stigmer creates accounts automatically on first login. You don't need to
   provision accounts manually. See [Set up
-  SSO](/docs/guides/federation/sso-login) for details.
+  SSO](/docs/guides/authentication/federation/sso-login) for details.
 </Callout>
 
 <DemoProvisionGrantPlayback />
@@ -623,8 +623,8 @@ You've provisioned a federated account, but the user can't access any resources
 yet. An authenticated request without matching IAM Policies returns
 `403 Forbidden`.
 
-Next: [Grant access](/docs/guides/federation/grant-access) to give federated
-users roles on your Organization.
+Next: [Grant access](/docs/guides/authentication/federation/grant-access) to
+give federated users roles on your Organization.
 
 For the full Identity Account API reference, see
 [IdentityAccount](/docs/sdk/resources/identity-account).

@@ -120,6 +120,13 @@
       "components": 2
     },
     {
+      "slug": "platform-client",
+      "title": "Platform Client",
+      "description": "Hooks and components for platform client credential management, secret rotation, and admin UI.",
+      "hooks": 6,
+      "components": 4
+    },
+    {
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
