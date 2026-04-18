@@ -22,6 +22,8 @@ import { CreateAgentTour } from "./create-agent-tour";
 import { MarketplaceConnectTour } from "./marketplace-connect-tour";
 import { OAuthConnectFlow } from "./oauth-connect-flow";
 import { ByoaSetup } from "./byoa-setup";
+import { PlatformClientSetupTour } from "./platform-client-setup-tour";
+import { PlatformClientTokenFlow } from "./platform-client-token-flow";
 
 /**
  * Maps scenario directory names to their React components.
@@ -55,6 +57,8 @@ export const SCENARIO_REGISTRY: Record<string, ComponentType> = {
   "marketplace-connect-tour": MarketplaceConnectTour,
   "oauth-connect-flow": OAuthConnectFlow,
   "byoa-setup": ByoaSetup,
+  "platform-client-setup-tour": PlatformClientSetupTour,
+  "platform-client-token-flow": PlatformClientTokenFlow,
 };
 
 export const PLAYBACK_SCENARIO_IDS = Object.keys(SCENARIO_REGISTRY);
