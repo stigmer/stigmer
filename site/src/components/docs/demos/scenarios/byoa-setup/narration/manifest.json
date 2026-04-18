@@ -1,0 +1,22 @@
+{
+  "steps": [
+    {
+      "src": "/demos/byoa-setup/step-0.mp3",
+      "durationMs": 9675
+    },
+    null,
+    {
+      "src": "/demos/byoa-setup/step-2.mp3",
+      "durationMs": 12863
+    },
+    null,
+    {
+      "src": "/demos/byoa-setup/step-4.mp3",
+      "durationMs": 9688
+    },
+    {
+      "src": "/demos/byoa-setup/step-5.mp3",
+      "durationMs": 11525
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "steps": [
+    {
+      "src": "/demos/oauth-connect-flow/step-0.mp3",
+      "durationMs": 9450
+    },
+    null,
+    {
+      "src": "/demos/oauth-connect-flow/step-2.mp3",
+      "durationMs": 9588
+    },
+    {
+      "src": "/demos/oauth-connect-flow/step-3.mp3",
+      "durationMs": 11338
+    },
+    {
+      "src": "/demos/oauth-connect-flow/step-4.mp3",
+      "durationMs": 9413
+    }
+  ]
+}

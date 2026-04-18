@@ -30,7 +30,10 @@ const SCENARIOS_DIR = path.join(
   process.cwd(),
   "src/components/docs/demos/scenarios",
 );
-const MANIFESTS_DIR = path.join(process.cwd(), "public/demos");
+const MANIFESTS_DIR = path.join(
+  process.cwd(),
+  "src/components/docs/demos/scenarios",
+);
 
 const PIXEL_FONT_RE = /text-\[\d+px\]/g;
 const INLINE_ZOOM_RE = /zoom:\s*[\d.]+(?!\s*\*)/g;
@@ -117,7 +120,7 @@ async function checkManifestAlignment(
   scenario: string,
   violations: Violation[],
 ): Promise<void> {
-  const manifestPath = path.join(MANIFESTS_DIR, scenario, "manifest.json");
+  const manifestPath = path.join(MANIFESTS_DIR, scenario, "narration", "manifest.json");
   const stepsPath = path.join(SCENARIOS_DIR, scenario, "steps.ts");
 
   if (!(await fileExists(manifestPath)) || !(await fileExists(stepsPath))) {
