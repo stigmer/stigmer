@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck clean preview generate-narration validate-demos test-demos remotion-studio remotion-hello render-videos render-video
+.PHONY: deps dev build start lint typecheck clean preview generate-narration copy-narration validate-demos test-demos
 
 PORT ?= 3000
 
@@ -33,9 +33,13 @@ lint:
 typecheck:
 	yarn typecheck
 
-# Generate narration audio from scenario step definitions
+# Generate narration audio from scenario step definitions (co-located output)
 generate-narration: deps
 	yarn generate-narration
+
+# Copy co-located narration audio to public/demos/ for Next.js static serving
+copy-narration: deps
+	yarn copy-narration
 
 # Validate demo scenarios for token compliance, interaction coverage, and manifest alignment
 validate-demos: deps
@@ -46,26 +50,9 @@ validate-demos: deps
 test-demos: deps
 	yarn test:demos
 
-# Render all demo scenarios as MP4 videos via Remotion
-# (requires narration audio in public/demos/ — run generate-narration first)
-render-videos: deps
-	yarn render-videos
-
-# Render a single scenario: make render-video SCENARIO=approval-flow-playback
-render-video: deps
-	yarn render-videos --scenario=$(SCENARIO)
-
-# Launch Remotion Studio (composition preview UI)
-remotion-studio: deps
-	yarn remotion:studio
-
-# Render the HelloWorld test composition to MP4
-remotion-hello: deps
-	npx remotion render video/index.ts HelloWorld dist/videos/hello-world.mp4
-
 # Remove build artifacts
 clean:
-	rm -rf .next out node_modules .source dist/videos
+	rm -rf .next out node_modules .source
 
 # Preview the static build locally
 preview: build

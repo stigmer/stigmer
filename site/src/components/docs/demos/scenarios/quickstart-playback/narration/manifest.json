@@ -1,0 +1,19 @@
+{
+  "steps": [
+    {
+      "src": "/demos/quickstart-playback/step-0.mp3",
+      "durationMs": 4175
+    },
+    null,
+    null,
+    {
+      "src": "/demos/quickstart-playback/step-3.mp3",
+      "durationMs": 6800
+    },
+    null,
+    {
+      "src": "/demos/quickstart-playback/step-5.mp3",
+      "durationMs": 4213
+    }
+  ]
+}
