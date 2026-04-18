@@ -95,7 +95,7 @@ Location: `pkg/converter/proto_to_yaml.go`
 
 Converts structured WorkflowSpec proto to Zigflow YAML format.
 
-**Pattern**: "kind + Struct" (like CloudResource in Planton Cloud)
+**Pattern**: "kind + Struct" (like CloudResource in Planton)
 - `WorkflowTask.kind` determines task type
 - `WorkflowTask.task_config` contains dynamic configuration (google.protobuf.Struct)
 - Converter unpacks and formats as YAML

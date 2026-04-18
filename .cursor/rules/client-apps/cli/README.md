@@ -110,7 +110,7 @@ Stigmer OSS CLI differs from Stigmer Cloud CLI:
 1. **Dual Mode**: Local (daemon) + Backend (for Stigmer Cloud integration)
 2. **Focus**: Workflow execution and agent management
 3. **Import Paths**: `github.com/stigmer/stigmer/...`
-4. **Simpler**: No multi-environment context (simpler than Planton Cloud)
+4. **Simpler**: No multi-environment context (simpler than Planton)
 
 ## Related Rules
 

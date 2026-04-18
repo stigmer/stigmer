@@ -63,11 +63,11 @@ import os
 # Agent with dynamic MCP authentication
 agent = create_deep_agent(
     model="claude-sonnet-4.5",
-    system_prompt="You are a Planton Cloud assistant helping users manage cloud resources.",
+    system_prompt="You are a Planton assistant helping users manage cloud resources.",
     
     # MCP integration with template variables
     mcp_servers={
-        "planton-cloud": {
+        "planton": {
             "transport": "streamable_http",
             "url": "https://mcp.planton.ai/",
             "headers": {
@@ -76,7 +76,7 @@ agent = create_deep_agent(
         }
     },
     mcp_tools={
-        "planton-cloud": [
+        "planton": [
             "list_organizations",
             "search_cloud_resources",
             "create_cloud_resource",

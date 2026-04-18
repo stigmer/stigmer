@@ -80,7 +80,7 @@ message PendingApproval {
   // structured argument previews (scalar grids, humanized names)
   // instead of falling back to raw JSON.
   //
-  // Examples: "planton-cloud", "github", "slack"
+  // Examples: "planton", "github", "slack"
   string mcp_server_slug = 8;
 
   // Concise subject/description of the sub-agent's task (3-10 words).

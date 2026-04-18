@@ -1,5 +1,5 @@
 ---
-description: Action rule to manage the full GitHub issue lifecycle — triage new issues, resolve fixed issues with Discord notifications, and generate health reports. Fetches Discord credentials from Planton Cloud for cross-posting resolution messages.
+description: Action rule to manage the full GitHub issue lifecycle — triage new issues, resolve fixed issues with Discord notifications, and generate health reports. Fetches Discord credentials from Planton for cross-posting resolution messages.
 alwaysApply: false
 ---
 

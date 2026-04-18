@@ -1,5 +1,5 @@
 ---
-description: Action rule to scan the Stigmer Discord Community for unanswered messages, check community health, and draft responses. Fetches credentials from Planton Cloud at runtime.
+description: Action rule to scan the Stigmer Discord Community for unanswered messages, check community health, and draft responses. Fetches credentials from Planton at runtime.
 alwaysApply: false
 ---
 
@@ -7,7 +7,7 @@ alwaysApply: false
 
 Purpose: When triggered, scan the Stigmer Community Discord server for unanswered messages, generate a health report, and draft responses for review. Optionally send approved responses.
 
-This is an action rule. It uses the Discord REST API via `curl` and the Planton Cloud MCP for credential retrieval.
+This is an action rule. It uses the Discord REST API via `curl` and the Planton MCP for credential retrieval.
 
 Usage: Invoke explicitly as `@discord-community-health`.
 
@@ -22,7 +22,7 @@ Current channel structure:
 
 ## Preconditions
 
-- The Planton Cloud MCP server (`user-planton-cloud`) is connected and authenticated.
+- The Planton MCP server (`user-planton`) is connected and authenticated.
 - The `discord-bot` secrets group exists in the `stigmer` Planton org with entries `prod.bot-token` and `prod.server-id`.
 - The Discord bot has been invited to the Stigmer Community server with permissions: Manage Roles, Manage Channels, Send Messages, Manage Messages, Read Message History, View Channels.
 

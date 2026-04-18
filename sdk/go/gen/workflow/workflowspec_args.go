@@ -15,7 +15,7 @@ import (
 // WorkflowSpec defines the configurable properties of a workflow.
 //
 //	@internal
-//	Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
+//	Follows the "kind + Struct" pattern from CloudResource (Planton).
 //	This replaces the old `synthesized_yaml` field with structured proto definitions.
 //	Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
 //	providing maximum flexibility and extensibility.

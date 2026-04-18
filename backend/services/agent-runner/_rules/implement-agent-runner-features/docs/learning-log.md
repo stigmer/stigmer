@@ -1002,7 +1002,7 @@ poetry run python main.py
 
 **Problem**: Agent execution status fields (tool_calls[], sub_agent_executions[], todos) were empty during and after execution, despite tool calls executing successfully. Frontend only saw messages[] updates.
 
-**Root Cause**: When agent-runner was initially created from Planton Cloud's agent-fleet-worker, 87% of the event processing logic was not ported:
+**Root Cause**: When agent-runner was initially created from Planton's agent-fleet-worker, 87% of the event processing logic was not ported:
 - `execution_client.py` had only 233 lines vs 1790 lines in source
 - Missing: Dual tracking (messages[] AND tool_calls[])
 - Missing: Sub-agent execution tracking  
@@ -1011,7 +1011,7 @@ poetry run python main.py
 - Missing: Namespace routing for sub-agents
 - Missing: Planning tools filtering
 
-**Solution**: Port complete event processing logic from Planton Cloud:
+**Solution**: Port complete event processing logic from Planton:
 
 **Phase 1 - Enhanced Event Handlers**:
 
@@ -1252,7 +1252,7 @@ fi
 
 **Prevention**: Always add `make build` target with mypy for Python services
 
-**Pattern Source**: Planton Cloud `agent-fleet-worker` (same pattern, same problem solved)
+**Pattern Source**: Planton `agent-fleet-worker` (same pattern, same problem solved)
 
 **Reference**: `backend/services/agent-runner/docs/implementation/type-checking.md`
 
@@ -1492,7 +1492,7 @@ public Worker javaActivitiesWorker(WorkerFactory factory) {
 
 **Prevention**: Always separate workflows (Java) from activities (Python) when sharing queues
 
-**Pattern Source**: Planton Cloud `agent-fleet` + `agent-fleet-worker`
+**Pattern Source**: Planton `agent-fleet` + `agent-fleet-worker`
 
 **Reference**: `backend/services/stigmer-service/.../temporal/README.md`
 

@@ -535,20 +535,20 @@ const maxUnknownOutputLines = 3
 // bold tool name, dim metadata, input args, and output preview:
 //
 //	● search (1.6 KB, 1.6s)
-//	    query: "planton cloud mcp server"
-//	    Found 8 definition(s) matching "planton cloud mcp server"
+//	    query: "planton mcp server"
+//	    Found 8 definition(s) matching "planton mcp server"
 //	    … +22 more lines
 //
 // Error case (error embedded in result):
 //
 //	● get_mcp_server (521 chars, 196ms)
 //	    org: "default"
-//	    ✗ MCP server "planton-cloud" not found...
+//	    ✗ MCP server "planton" not found...
 //
 // With server identity (Phase 2, when tc.ServerName is populated):
 //
-//	● planton-cloud/search (1.6 KB, 1.6s)
-//	    query: "planton cloud mcp server"
+//	● planton/search (1.6 KB, 1.6s)
+//	    query: "planton mcp server"
 //	    Found 8 definition(s) matching...
 func renderCompactUnknown(tc ToolCallInfo, opts CompactOptions) string {
 	header := buildUnknownCompactHeader(tc)
@@ -640,7 +640,7 @@ func buildUnknownWithResult(header string, tc ToolCallInfo) string {
 // Examples:
 //
 //	"● search …"
-//	"● planton-cloud/get_mcp_server …"
+//	"● planton/get_mcp_server …"
 func renderCompactUnknownRunning(tc ToolCallInfo) string {
 	name := tc.Name
 	if tc.ServerName != "" {

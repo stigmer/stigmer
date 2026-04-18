@@ -117,7 +117,7 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentexecution.v1.Pend
    * structured argument previews (scalar grids, humanized names)
    * instead of falling back to raw JSON.
    *
-   * Examples: "planton-cloud", "github", "slack"
+   * Examples: "planton", "github", "slack"
    *
    * @generated from field: string mcp_server_slug = 8;
    */

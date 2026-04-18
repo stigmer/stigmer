@@ -2339,7 +2339,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the MCP server that provides this tool.\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"planton-cloud\", \"github\", \"slack\"",
+          "description": "Slug of the MCP server that provides this tool.\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"planton\", \"github\", \"slack\"",
           "required": false
         },
         {
@@ -2974,7 +2974,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the MCP server that provides this tool.\n Empty for built-in sandbox tools.\n Populated by the worker using the mcp_tools_config reverse lookup.\n\n Examples: \"planton-cloud\", \"github\", \"slack\"\n\n Used by CLI/UI to render a qualified tool name (e.g., \"planton-cloud/search\")\n so users can distinguish tools with the same name from different servers.",
+          "description": "Slug of the MCP server that provides this tool.\n Empty for built-in sandbox tools.\n Populated by the worker using the mcp_tools_config reverse lookup.\n\n Examples: \"planton\", \"github\", \"slack\"\n\n Used by CLI/UI to render a qualified tool name (e.g., \"planton/search\")\n so users can distinguish tools with the same name from different servers.",
           "required": false
         },
         {

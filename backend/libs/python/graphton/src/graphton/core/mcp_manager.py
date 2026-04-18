@@ -249,14 +249,14 @@ async def list_mcp_resources(
 
     Example:
         >>> servers = {
-        ...     "planton-cloud": {
+        ...     "planton": {
         ...         "transport": "streamable_http",
         ...         "url": "https://mcp.planton.ai/",
         ...         "headers": {"Authorization": "Bearer token123"}
         ...     }
         ... }
         >>> result = await list_mcp_resources(servers)
-        >>> result["planton-cloud"]["resource_templates"]
+        >>> result["planton"]["resource_templates"]
         [{"uri_template": "cloud-resource-schema://{kind}", ...}]
 
     """
@@ -366,7 +366,7 @@ async def read_mcp_resource(
 
     Example:
         >>> contents = await read_mcp_resource(
-        ...     servers, "planton-cloud", "cloud-resource-schema://AwsAlb"
+        ...     servers, "planton", "cloud-resource-schema://AwsAlb"
         ... )
         >>> contents[0]["text"]
         '{"kind": "AwsAlb", "fields": [...]}'

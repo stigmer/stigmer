@@ -121,7 +121,7 @@ export STIGMER_SERVICE_USE_TLS=true
 ### 2. Runtime YAML Input
 **Decision**: Accept workflow YAML as input parameter, not from file  
 **Rationale**: Supports dynamic workflow execution without redeployment  
-**Pattern**: Follows `iac-runner` pattern from Planton Cloud
+**Pattern**: Follows `iac-runner` pattern from Planton
 
 ### 3. Standard Library Errors
 **Decision**: Use Go standard library `fmt.Errorf` with `%w` instead of `pkg/errors`  
@@ -372,7 +372,7 @@ All success criteria met. Phase 1.5 architecture transformation is complete and 
 - [Next Task Guide](/_projects/2026-01/20260108.02.workflow-orchestration-engine/next-task.md)
 
 ### Pattern References
-- Planton Cloud `iac-runner` - Dual-mode pattern inspiration
+- Planton `iac-runner` - Dual-mode pattern inspiration
 - Stigmer callback architecture - Progress reporting pattern
 
 ---

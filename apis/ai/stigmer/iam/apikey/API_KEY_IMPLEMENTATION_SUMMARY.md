@@ -1,6 +1,6 @@
 # API Key Implementation for Stigmer
 
-This document summarizes the complete API key authentication feature added to Stigmer, modeled after Planton Cloud's implementation.
+This document summarizes the complete API key authentication feature added to Stigmer, modeled after Planton's implementation.
 
 ## Overview
 
@@ -525,7 +525,7 @@ spec:
 
 ## Comparison: Planton vs Stigmer
 
-| Aspect | Planton Cloud | Stigmer |
+| Aspect | Planton | Stigmer |
 |--------|---------------|---------|
 | Prefix | `pck_` | `stk_` |
 | Hash Algorithm | SHA-256 | SHA-256 |
@@ -541,7 +541,7 @@ spec:
 
 ## Summary
 
-This implementation brings feature parity with Planton Cloud for API key authentication:
+This implementation brings feature parity with Planton for API key authentication:
 
 ✅ **Complete proto API** - All CRUD operations defined  
 ✅ **Secure authentication** - SHA-256 hashing, no raw key storage  

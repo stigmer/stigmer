@@ -31,13 +31,13 @@ export const file_ai_stigmer_iam_identityprovider_v1_api: GenFile = /*@__PURE__*
  *   apiVersion: iam.stigmer.ai/v1
  *   kind: IdentityProvider
  *   metadata:
- *     name: Planton Cloud
- *     slug: planton-cloud
+ *     name: Planton
+ *     slug: planton
  *     org: planton
  *   spec:
- *     display_name: "Planton Cloud"
+ *     display_name: "Planton"
  *     jwks_uri: "https://api.planton.ai/.well-known/stigmer-jwks.json"
- *     allowed_issuers: ["planton-cloud"]
+ *     allowed_issuers: ["planton"]
  *     expected_audience: "stigmer-api"
  *
  * @generated from message ai.stigmer.iam.identityprovider.v1.IdentityProvider

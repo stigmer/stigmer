@@ -4,7 +4,7 @@
 
 ## Summary
 
-Added mypy type checking validation to the agent-runner service to catch import errors and type mismatches before deployment. This follows the same pattern successfully implemented in Planton Cloud's agent-fleet-worker service.
+Added mypy type checking validation to the agent-runner service to catch import errors and type mismatches before deployment. This follows the same pattern successfully implemented in Planton's agent-fleet-worker service.
 
 ## Problem Statement
 
@@ -20,7 +20,7 @@ These errors were not caught during development or build time, only surfacing at
 
 ## Solution
 
-Implemented the same defense-in-depth approach used in Planton Cloud:
+Implemented the same defense-in-depth approach used in Planton:
 
 ### 1. Added Makefile with `build` Target
 
@@ -184,11 +184,11 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import AgentExecutionPhase  #
 # error: Module has no attribute "AgentExecutionPhase"; maybe "ExecutionPhase"?
 ```
 
-## Comparison with Planton Cloud
+## Comparison with Planton
 
-This implementation follows the exact same pattern used in Planton Cloud's `agent-fleet-worker`:
+This implementation follows the exact same pattern used in Planton's `agent-fleet-worker`:
 
-| Aspect | Planton Cloud | Stigmer Agent Runner |
+| Aspect | Planton | Stigmer Agent Runner |
 |--------|--------------|---------------------|
 | **Makefile build target** | ✅ Yes | ✅ Yes |
 | **mypy in pyproject.toml** | ✅ Yes | ✅ Yes |
@@ -198,7 +198,7 @@ This implementation follows the exact same pattern used in Planton Cloud's `agen
 
 ## Related Documentation
 
-- Planton Cloud implementation: `backend/services/agent-fleet-worker/_changelog/2025-12/2025-12-20-135447-fix-subagent-enum-error-and-add-type-checking.md`
+- Planton implementation: `backend/services/agent-fleet-worker/_changelog/2025-12/2025-12-20-135447-fix-subagent-enum-error-and-add-type-checking.md`
 - Build script: `tools/ci/build_and_push_service.sh` (lines 142-145)
 
 ## Future Enhancements

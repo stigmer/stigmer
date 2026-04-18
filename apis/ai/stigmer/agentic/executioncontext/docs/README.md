@@ -22,7 +22,7 @@ ExecutionContexts are not created by end users. They are produced by the Stigmer
 
 - **Ephemeral by design**: an ExecutionContext exists only for the duration of its execution — created at start, deleted at completion or failure
 - **Tied to one execution**: each ExecutionContext carries the `execution_id` of the `AgentExecution` or `WorkflowExecution` it serves
-- **Runtime secret injection**: supports B2B scenarios (e.g., Planton Cloud integrations) where secrets are injected at execution time rather than stored in a persistent Environment
+- **Runtime secret injection**: supports B2B scenarios (e.g., Planton integrations) where secrets are injected at execution time rather than stored in a persistent Environment
 - **Operator-only access**: all read and write operations require platform-level operator permission — only internal runners can retrieve decrypted values
 - **Consistent value model**: each entry uses the same `value` / `is_secret` pattern as `EnvironmentValue`, keeping the secret-vs-plaintext semantics uniform across the system
 

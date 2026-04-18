@@ -52,12 +52,12 @@ metadata:
   name: Acme Planton
   slug: acme-planton
 spec:
-  description: "Acme organization managed by Planton Cloud"
+  description: "Acme organization managed by Planton"
   management_mode: platform_managed
   identity_provider_ref:
     org: stigmer
     kind: identity_provider
-    slug: planton-cloud-idp
+    slug: planton-idp
   external_org_id: "planton-org-7a3f2c91"
 ```
 

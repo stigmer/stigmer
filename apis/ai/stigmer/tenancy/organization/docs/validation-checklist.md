@@ -91,7 +91,7 @@ spec:
   identity_provider_ref:
     org: stigmer
     kind: identity_provider
-    slug: planton-cloud-idp
+    slug: planton-idp
 
 # Correct
 spec:
@@ -113,7 +113,7 @@ spec:
   identity_provider_ref:
     org: stigmer
     kind: identity_provider
-    slug: planton-cloud-idp
+    slug: planton-idp
   external_org_id: "planton-org-12345"
 ```
 
@@ -163,7 +163,7 @@ spec:
   identity_provider_ref:
     org: stigmer
     kind: identity_provider
-    slug: planton-cloud-idp
+    slug: planton-idp
   # external_org_id missing
 
 # Complete
@@ -172,7 +172,7 @@ spec:
   identity_provider_ref:
     org: stigmer
     kind: identity_provider
-    slug: planton-cloud-idp
+    slug: planton-idp
   external_org_id: "planton-org-7a3f2c91"
 ```
 

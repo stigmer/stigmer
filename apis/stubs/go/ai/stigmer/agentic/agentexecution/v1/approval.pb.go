@@ -88,7 +88,7 @@ type PendingApproval struct {
 	// structured argument previews (scalar grids, humanized names)
 	// instead of falling back to raw JSON.
 	//
-	// Examples: "planton-cloud", "github", "slack"
+	// Examples: "planton", "github", "slack"
 	McpServerSlug string `protobuf:"bytes,8,opt,name=mcp_server_slug,json=mcpServerSlug,proto3" json:"mcp_server_slug,omitempty"`
 	// Concise subject/description of the sub-agent's task (3-10 words).
 	// Copied from SubAgentExecution.subject when from_sub_agent is true.

@@ -364,6 +364,6 @@ counter("api_key_cache_miss").increment();
 For questions or issues during implementation:
 
 1. Check `API_KEY_IMPLEMENTATION_SUMMARY.md` for design details
-2. Review Planton Cloud implementation at:
+2. Review Planton implementation at:
    - `/Users/suresh/scm/github.com/plantonhq/planton/backend/services/iam/src/main/java/ai/planton/iam/domain/apikey/`
 3. Check Spring Security OAuth2 docs: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/opaque-token.html

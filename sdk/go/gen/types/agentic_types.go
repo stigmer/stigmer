@@ -376,7 +376,7 @@ func (c *SwitchCase) FromProto(s *structpb.Struct) error {
 // WorkflowTask represents a single executable step in a workflow.
 //
 //	@internal
-//	Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
+//	Uses the "kind + Struct" pattern (like CloudResource in Planton):
 //	- `kind` determines the task type (set_vars, http_call, switch_case, etc.)
 //	- `task_config` contains task-specific configuration as dynamic JSON
 //	- Backend unmarshals `task_config` to the appropriate Go struct based on `kind`

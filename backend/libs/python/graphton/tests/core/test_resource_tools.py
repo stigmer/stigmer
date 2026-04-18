@@ -15,7 +15,7 @@ import pytest
 def sample_servers():
     """Sample MCP server configurations."""
     return {
-        "planton-cloud": {
+        "planton": {
             "transport": "streamable_http",
             "url": "https://mcp.planton.ai/",
             "headers": {"Authorization": "Bearer test-token"},
@@ -51,7 +51,7 @@ class TestCreateResourceTools:
     async def test_list_tool_returns_json(self, sample_servers):
         """Test that list tool returns JSON with resource data."""
         mock_result = {
-            "planton-cloud": {
+            "planton": {
                 "resources": [
                     {
                         "uri": "planton://cloud-resource-kinds",
@@ -83,7 +83,7 @@ class TestCreateResourceTools:
 
             result = await list_tool.ainvoke({})
 
-        assert "planton-cloud" in result
+        assert "planton" in result
         assert "cloud-resource-schema://{kind}" in result
         assert "planton://cloud-resource-kinds" in result
 
@@ -143,7 +143,7 @@ class TestCreateResourceTools:
             read_tool = next(t for t in tools if t.name == "read_mcp_resource")
 
             result = await read_tool.ainvoke(
-                {"server_name": "planton-cloud", "uri": "cloud-resource-schema://AwsAlb"}
+                {"server_name": "planton", "uri": "cloud-resource-schema://AwsAlb"}
             )
 
         assert result == '{"kind": "AwsAlb", "fields": ["name", "subnets"]}'
@@ -162,7 +162,7 @@ class TestCreateResourceTools:
             read_tool = next(t for t in tools if t.name == "read_mcp_resource")
 
             result = await read_tool.ainvoke(
-                {"server_name": "planton-cloud", "uri": "test://empty"}
+                {"server_name": "planton", "uri": "test://empty"}
             )
 
         assert "no content" in result.lower()
@@ -206,7 +206,7 @@ class TestCreateResourceTools:
             read_tool = next(t for t in tools if t.name == "read_mcp_resource")
 
             result = await read_tool.ainvoke(
-                {"server_name": "planton-cloud", "uri": "test://multi"}
+                {"server_name": "planton", "uri": "test://multi"}
             )
 
         assert "part 1" in result
@@ -226,7 +226,7 @@ class TestCreateResourceTools:
             read_tool = next(t for t in tools if t.name == "read_mcp_resource")
 
             result = await read_tool.ainvoke(
-                {"server_name": "planton-cloud", "uri": "test://fail"}
+                {"server_name": "planton", "uri": "test://fail"}
             )
 
         assert "error" in result.lower()

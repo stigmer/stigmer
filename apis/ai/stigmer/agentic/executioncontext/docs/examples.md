@@ -75,16 +75,16 @@ spec:
 
 ---
 
-## B2B Runtime Injection — Planton Cloud Integration
+## B2B Runtime Injection — Planton Integration
 
-In B2B scenarios, a calling platform (e.g., Planton Cloud) injects credentials at execution time rather than storing them in a persistent Environment. The execution engine creates the ExecutionContext from the caller-supplied payload and deletes it on completion.
+In B2B scenarios, a calling platform (e.g., Planton) injects credentials at execution time rather than storing them in a persistent Environment. The execution engine creates the ExecutionContext from the caller-supplied payload and deletes it on completion.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: ExecutionContext
 metadata:
   name: exec-ctx-wex-jkl012
-  org: planton-cloud
+  org: planton
 spec:
   execution_id: "wex_jkl012"
   data:

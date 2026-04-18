@@ -48,11 +48,11 @@ export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__
  *   apiVersion: iam.stigmer.ai/v1
  *   kind: IdentityProvider
  *   metadata:
- *     name: Planton Cloud
- *     slug: planton-cloud
+ *     name: Planton
+ *     slug: planton
  *     org: planton
  *   spec:
- *     display_name: "Planton Cloud"
+ *     display_name: "Planton"
  *     jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
  *     allowed_issuers: ["https://planton-prod.us.auth0.com/"]
  *     expected_audience: "https://api.planton.ai/"

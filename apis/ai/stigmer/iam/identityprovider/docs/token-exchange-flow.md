@@ -13,7 +13,7 @@ Step 1: Platform creates a federated account (one-time, before auth)
       Stigmer returns the identity_account_id for role grants.
 
 Step 2: Platform authenticates user
-  └─► User logs in to the external platform (e.g., Planton Cloud)
+  └─► User logs in to the external platform (e.g., Planton)
 
 Step 3: User calls Stigmer API with a platform-issued JWT
   └─► Authorization: Bearer {platform_access_token}

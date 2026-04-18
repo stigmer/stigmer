@@ -97,12 +97,12 @@ The organization is created programmatically by an external platform via an Iden
 
 ```yaml
 spec:
-  description: "Acme org managed by Planton Cloud"
+  description: "Acme org managed by Planton"
   management_mode: platform_managed
   identity_provider_ref:
     org: stigmer
     kind: identity_provider
-    slug: planton-cloud-idp
+    slug: planton-idp
   external_org_id: "planton-org-12345"
 ```
 

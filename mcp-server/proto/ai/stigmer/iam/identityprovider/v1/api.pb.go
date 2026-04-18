@@ -35,13 +35,13 @@ const (
 //	apiVersion: iam.stigmer.ai/v1
 //	kind: IdentityProvider
 //	metadata:
-//	  name: Planton Cloud
-//	  slug: planton-cloud
+//	  name: Planton
+//	  slug: planton
 //	  org: planton
 //	spec:
-//	  display_name: "Planton Cloud"
+//	  display_name: "Planton"
 //	  jwks_uri: "https://api.planton.ai/.well-known/stigmer-jwks.json"
-//	  allowed_issuers: ["planton-cloud"]
+//	  allowed_issuers: ["planton"]
 //	  expected_audience: "stigmer-api"
 type IdentityProvider struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
