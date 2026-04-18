@@ -10,10 +10,10 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PlatformClientSchema, type PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
-import { PlatformClientCreateResponseSchema, PlatformClientIdSchema, ListPlatformClientsByOrgInputSchema, PlatformClientsSchema, MintUserTokenRequestSchema, MintUserTokenResponseSchema, type PlatformClientCreateResponse, type ListPlatformClientsByOrgInput, type PlatformClients, type MintUserTokenRequest, type MintUserTokenResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
+import { PlatformClientCreateResponseSchema, PlatformClientIdSchema, ListPlatformClientsByOrgInputSchema, PlatformClientsSchema, type PlatformClientCreateResponse, type ListPlatformClientsByOrgInput, type PlatformClients } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
-import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import { PlatformClientTokenController, MintUserTokenRequestSchema, MintUserTokenResponseSchema, type MintUserTokenRequest, type MintUserTokenResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /** Provides operations on platformclient resources. */

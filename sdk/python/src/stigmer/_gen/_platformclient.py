@@ -11,6 +11,7 @@ from ai.stigmer.iam.platformclient.v1 import command_pb2_grpc
 from ai.stigmer.iam.platformclient.v1 import query_pb2_grpc
 from ai.stigmer.iam.platformclient.v1 import token_pb2_grpc
 from ai.stigmer.iam.platformclient.v1 import io_pb2
+from ai.stigmer.iam.platformclient.v1 import token_pb2
 from ai.stigmer.iam.platformclient.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -72,7 +73,7 @@ class PlatformClientClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def mint_user_token(self, input: io_pb2.MintUserTokenRequest) -> io_pb2.MintUserTokenResponse:
+    def mint_user_token(self, input: token_pb2.MintUserTokenRequest) -> token_pb2.MintUserTokenResponse:
         try:
             return self._token.mintUserToken(input)
         except grpc.RpcError as e:
