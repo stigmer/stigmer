@@ -9,7 +9,6 @@ import {
   VIEWPORT_TRANSFORM_IDENTITY,
   type ViewportTransform,
 } from "@scenar/react";
-import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type MetricCard,

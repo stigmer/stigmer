@@ -19,10 +19,10 @@ import (
 // The returned tokens are passed to the React SDK's StigmerProvider via
 // the getAccessToken callback to authenticate browser-based API calls.
 type PlatformClientAuth struct {
-	tokenClient platformclientv1.PlatformClientTokenControllerClient
-	clientID    string
+	tokenClient  platformclientv1.PlatformClientTokenControllerClient
+	clientID     string
 	clientSecret string
-	conn        *grpc.ClientConn
+	conn         *grpc.ClientConn
 }
 
 // PlatformClientAuthOption configures a [PlatformClientAuth].
